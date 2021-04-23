@@ -1,0 +1,21 @@
+disabled_rules:
+  - trailing_whitespace
+
+line_length:
+  warning: 150
+  ignores_comments: true
+
+identifier_name:
+  min_length: 1
+  max_length:
+    warning: 40
+    error: 60
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 80
+    error: 100
+
+excluded:
+  - .build
