@@ -24,6 +24,9 @@ Using a simulator where a physical device is unavailable is acceptable.
 * [ ] iOS 13
 * [ ] iOS 14
 
+* [ ] macOS 10.15
+* [ ] macOS 11
+
 ---
 ###### Internal references:
 [Software Engineering Expectations](https://app.asana.com/0/59792373528535/199064865822552)
