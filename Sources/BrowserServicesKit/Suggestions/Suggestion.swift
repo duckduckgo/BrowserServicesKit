@@ -35,8 +35,16 @@ extension Suggestion {
 
     static let phraseKey = "phrase"
 
-    init(key: String, value: String) {
-        self = key == Self.phraseKey ? .phrase(phrase: value) : .unknown(value: value)
+    init(key: String, value: String, urlFactory: (String) -> URL?) {
+        if key == Self.phraseKey {
+            if let url = urlFactory(value) {
+                self = .website(url: url)
+            } else {
+                self = .phrase(phrase: value)
+            }
+        } else {
+            self = .unknown(value: value)
+        }
     }
 
 }

@@ -20,9 +20,20 @@ import Foundation
 
 public protocol SuggestionLoading: AnyObject {
 
-    func getSuggestions(query: Query, maximum: Int, completion: @escaping ([Suggestion]?, Error?) -> Void)
+    func getSuggestions(query: Query,
+                        maximum: Int,
+                        urlFactory: @escaping (String) -> URL?,
+                        completion: @escaping ([Suggestion]?, Error?) -> Void)
 
     var dataSource: SuggestionLoadingDataSource? { get set }
+
+}
+
+extension SuggestionLoading {
+
+    func getSuggestions(query: Query, maximum: Int, completion: @escaping ([Suggestion]?, Error?) -> Void) {
+        getSuggestions(query: query, maximum: maximum, urlFactory: { _ in nil }, completion: completion)
+    }
 
 }
 
@@ -45,6 +56,7 @@ public class SuggestionLoader: SuggestionLoading {
 
     public func getSuggestions(query: Query,
                                maximum: Int,
+                               urlFactory: @escaping (String) -> URL?,
                                completion: @escaping ([Suggestion]?, Error?) -> Void) {
         guard let dataSource = dataSource else {
             completion(nil, SuggestionLoaderError.noDataSource)
@@ -81,7 +93,7 @@ public class SuggestionLoader: SuggestionLoading {
             }
 
             do {
-                remoteSuggestions = try Self.remoteSuggestions(from: data)
+                remoteSuggestions = try Self.remoteSuggestions(from: data, urlFactory: urlFactory)
             } catch {
                 remoteSuggestionsError = error
             }
@@ -92,11 +104,13 @@ public class SuggestionLoader: SuggestionLoading {
                                      bookmarkSuggestions: bookmarkSuggestions,
                                      remoteSuggestions: remoteSuggestions ?? [])
 
-            guard !result.isEmpty || remoteSuggestionsError == nil else {
-                completion(nil, SuggestionLoaderError.failedToObtainData)
-                return
+            DispatchQueue.main.async {
+                guard !result.isEmpty || remoteSuggestionsError == nil else {
+                    completion(nil, SuggestionLoaderError.failedToObtainData)
+                    return
+                }
+                completion(result, nil)
             }
-            completion(result, nil)
         }
     }
 
@@ -127,13 +141,13 @@ public class SuggestionLoader: SuggestionLoading {
 
     // MARK: - Remote Suggestions
 
-    private static func remoteSuggestions(from data: Data) throws -> [Suggestion] {
+    private static func remoteSuggestions(from data: Data, urlFactory: (String) -> URL?) throws -> [Suggestion] {
         let decoder = JSONDecoder()
         let apiResult = try decoder.decode(APIResult.self, from: data)
 
         return apiResult.items
             .joined()
-            .map { Suggestion(key: $0.key, value: $0.value) }
+            .map { Suggestion(key: $0.key, value: $0.value, urlFactory: urlFactory) }
     }
 
     // MARK: - Merging
