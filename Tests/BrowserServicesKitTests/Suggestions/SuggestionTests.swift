@@ -42,7 +42,7 @@ final class SuggestionTests: XCTestCase {
     func testWhenSuggestionKeyIsNotPhrase_ThenSuggestionIsUnknown() {
         let key = "Key"
         let value = "value"
-        let suggestion = Suggestion(key: key, value: value, urlFactory: { _ in nil })
+        let suggestion = Suggestion(key: key, value: value)
 
         XCTAssertEqual(suggestion, Suggestion.unknown(value: value))
     }

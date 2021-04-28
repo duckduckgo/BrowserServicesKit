@@ -35,9 +35,9 @@ extension Suggestion {
 
     static let phraseKey = "phrase"
 
-    init(key: String, value: String, urlFactory: (String) -> URL?) {
+    init(key: String, value: String, urlFactory: ((String) -> URL?)? = nil) {
         if key == Self.phraseKey {
-            if let url = urlFactory(value) {
+            if let url = urlFactory?(value) {
                 self = .website(url: url)
             } else {
                 self = .phrase(phrase: value)

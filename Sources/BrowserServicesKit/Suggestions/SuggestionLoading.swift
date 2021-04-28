@@ -22,18 +22,9 @@ public protocol SuggestionLoading: AnyObject {
 
     func getSuggestions(query: Query,
                         maximum: Int,
-                        urlFactory: @escaping (String) -> URL?,
                         completion: @escaping ([Suggestion]?, Error?) -> Void)
 
     var dataSource: SuggestionLoadingDataSource? { get set }
-
-}
-
-extension SuggestionLoading {
-
-    func getSuggestions(query: Query, maximum: Int, completion: @escaping ([Suggestion]?, Error?) -> Void) {
-        getSuggestions(query: query, maximum: maximum, urlFactory: { _ in nil }, completion: completion)
-    }
 
 }
 
@@ -49,14 +40,15 @@ public class SuggestionLoader: SuggestionLoading {
     }
 
     public weak var dataSource: SuggestionLoadingDataSource?
+    private var urlFactory: ((String) -> URL?)?
 
-    public init(dataSource: SuggestionLoadingDataSource? = nil) {
+    public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: ((String) -> URL?)? = nil) {
         self.dataSource = dataSource
+        self.urlFactory = urlFactory
     }
 
     public func getSuggestions(query: Query,
                                maximum: Int,
-                               urlFactory: @escaping (String) -> URL?,
                                completion: @escaping ([Suggestion]?, Error?) -> Void) {
         guard let dataSource = dataSource else {
             completion(nil, SuggestionLoaderError.noDataSource)
@@ -85,7 +77,7 @@ public class SuggestionLoader: SuggestionLoading {
         group.enter()
         dataSource.suggestionLoading(self,
                                      suggestionDataFromUrl: Self.remoteSuggestionsUrl,
-                                     withParameters: [Self.searchParameter: query]) { data, error in
+                                     withParameters: [Self.searchParameter: query]) { [urlFactory] data, error in
             defer { group.leave() }
             guard let data = data else {
                 remoteSuggestionsError = error
@@ -141,7 +133,7 @@ public class SuggestionLoader: SuggestionLoading {
 
     // MARK: - Remote Suggestions
 
-    private static func remoteSuggestions(from data: Data, urlFactory: (String) -> URL?) throws -> [Suggestion] {
+    private static func remoteSuggestions(from data: Data, urlFactory: ((String) -> URL?)?) throws -> [Suggestion] {
         let decoder = JSONDecoder()
         let apiResult = try decoder.decode(APIResult.self, from: data)
 
