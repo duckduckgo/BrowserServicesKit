@@ -77,15 +77,15 @@ public class SuggestionLoader: SuggestionLoading {
         group.enter()
         dataSource.suggestionLoading(self,
                                      suggestionDataFromUrl: Self.remoteSuggestionsUrl,
-                                     withParameters: [Self.searchParameter: query]) { [urlFactory] data, error in
+                                     withParameters: [Self.searchParameter: query]) { [weak self] data, error in
             defer { group.leave() }
-            guard let data = data else {
+            guard let self = self, let data = data else {
                 remoteSuggestionsError = error
                 return
             }
 
             do {
-                remoteSuggestions = try Self.remoteSuggestions(from: data, urlFactory: urlFactory)
+                remoteSuggestions = try self.remoteSuggestions(from: data)
             } catch {
                 remoteSuggestionsError = error
             }
@@ -133,7 +133,7 @@ public class SuggestionLoader: SuggestionLoading {
 
     // MARK: - Remote Suggestions
 
-    private static func remoteSuggestions(from data: Data, urlFactory: ((String) -> URL?)?) throws -> [Suggestion] {
+    private func remoteSuggestions(from data: Data) throws -> [Suggestion] {
         let decoder = JSONDecoder()
         let apiResult = try decoder.decode(APIResult.self, from: data)
 
