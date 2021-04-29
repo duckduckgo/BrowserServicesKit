@@ -42,7 +42,7 @@ public class SuggestionLoader: SuggestionLoading {
     public weak var dataSource: SuggestionLoadingDataSource?
     private var urlFactory: ((String) -> URL?)?
 
-    public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: ((String) -> URL?)? = nil) {
+    public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: ((String) -> URL?)?) {
         self.dataSource = dataSource
         self.urlFactory = urlFactory
     }
