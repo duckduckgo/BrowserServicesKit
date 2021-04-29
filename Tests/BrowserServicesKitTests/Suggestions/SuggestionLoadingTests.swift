@@ -62,7 +62,7 @@ final class SuggestionLoadingTests: XCTestCase {
     struct E: Error {}
 
     func testWhenNoDataSource_ThenErrorMustBeReturned() {
-        let loader = SuggestionLoader()
+        let loader = SuggestionLoader(urlFactory: nil)
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
             XCTAssertNil(suggestions)
@@ -74,7 +74,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenQueryIsEmpty_ThenSuggestionsAreEmpty() {
         let dataSource = SuggestionLoadingDataSourceMock()
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "", maximum: 10) { (suggestions, error) in
@@ -87,7 +87,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenQueryHasOneLetter_ThenSuggestionsLoadedWithoutBookmarks() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData, bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "a", maximum: 10) { (suggestions, error) in
@@ -100,7 +100,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenGetSuggestionsIsCalled_ThenDataSourceAsksForBookmarksAndDataOnce() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData, bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (_, _) in
@@ -113,7 +113,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testMaximumNumberOfSuggestions() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData, bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 2) { (suggestions, _) in
@@ -125,7 +125,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenQueryMatchesBookmarkTitle_thenBookmarkMustBeSuggested() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData, bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test 1", maximum: 10) { (suggestions, _) in
@@ -139,7 +139,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenMaximumNumberIsLargeEnough_ThenSuggestionsContainAllRemoteSuggestionsAndTwoBookmarkSuggestions() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData, bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, _) in
@@ -151,7 +151,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenAPIReturnsError_ThenBookmarksSuggested() {
         let dataSource = SuggestionLoadingDataSourceMock(error: E(), bookmarks: BookmarkMock.someBookmarks, delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
@@ -166,7 +166,7 @@ final class SuggestionLoadingTests: XCTestCase {
         let dataSource = SuggestionLoadingDataSourceMock(data: "malformed data".data(using: .utf8),
                                                          bookmarks: BookmarkMock.someBookmarks,
                                                          delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
@@ -179,7 +179,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenAPIReturnsErrorAndNoBookmarks_ThenFailedToLoadErrorReturned() {
         let dataSource = SuggestionLoadingDataSourceMock(error: E(), bookmarks: [], delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
@@ -192,7 +192,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenAPIReturnsMalformedDataAndNoBookmarks_ThenFailedToLoadErrorReturned() {
         let dataSource = SuggestionLoadingDataSourceMock(data: "malformed data".data(using: .utf8), bookmarks: [], delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
@@ -208,7 +208,7 @@ final class SuggestionLoadingTests: XCTestCase {
                                                          error: E(),
                                                          bookmarks: BookmarkMock.someBookmarks,
                                                          delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
@@ -221,7 +221,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenAPIReturnsAfterDelay_ThenSuggestionsContainAllRemoteSuggestionsAndTwoBookmarkSuggestions() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData, bookmarks: BookmarkMock.someBookmarks, delay: 0.2)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
@@ -233,7 +233,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenAPIReturnsErrorAfterDelay_ThenSuggestionsContainTwoBookmarkSuggestions() {
         let dataSource = SuggestionLoadingDataSourceMock(error: E(), bookmarks: BookmarkMock.someBookmarks, delay: 0.2)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader(dataSource: dataSource, urlFactory: nil)
 
         let e = expectation(description: "suggestions callback")
         loader.getSuggestions(query: "test", maximum: 10) { (suggestions, error) in
