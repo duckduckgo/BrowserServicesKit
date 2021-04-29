@@ -23,14 +23,16 @@ let package = Package(
                 "GRDB",
             ],
             resources: [
-                .process("Email/email-autofill.css"),
-                .process("Email/email-autofill.js")
+                .process("Email/Resources")
             ]),
         .target(
             name: "SecureVault",
             dependencies: [
                 "BrowserServicesKit",
                 "GRDB",
+            ],
+            resources: [
+                .process("Resources")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
