@@ -55,10 +55,7 @@ public class EmailUserScript: NSObject, UserScript {
     public var messageNames: [String] { EmailMessageNames.allCases.map(\.rawValue) }
         
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let type = EmailMessageNames(rawValue: message.name) else {
-            print("Receieved invalid message name")
-            return
-        }
+        guard let type = EmailMessageNames(rawValue: message.name) else { return }
         
         switch type {
         case .storeToken:
