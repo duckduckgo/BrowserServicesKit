@@ -24,31 +24,39 @@ class VaultUserScriptTests: XCTestCase {
 
     let script = VaultUserScript(domainProvider: MockDomainProvider(domain: "example.com"))
     let userContentController = WKUserContentController()
+    let mockDelegate = MockDelegate()
+
+    override func setUp() {
+        script.delegate = mockDelegate
+    }
+
+    func test() {
+        let message = MockWKScriptMessage(name: VaultUserScript.MessageNames.vaultStoreCredentials.rawValue, body: [
+            VaultUserScript.MessageNames.StoreCredentialsArgNames.username.rawValue: "username",
+            VaultUserScript.MessageNames.StoreCredentialsArgNames.password.rawValue: "password"
+        ])
+        script.userContentController(userContentController, didReceive: message)
+        XCTAssertEqual("example.com", mockDelegate.credentials?.account.domain)
+        XCTAssertEqual("password".data(using: .utf8), mockDelegate.credentials?.password)
+        XCTAssertEqual("username", mockDelegate.credentials?.account.username)
+    }
 
     func testWhenRequestingAccounts_ThenDelegateIsCalledWithDomain() {
-        XCTAssertNotNil(script.source)
-
         let message = MockWKScriptMessage(name: VaultUserScript.MessageNames.vaultRequestAccounts.rawValue, body: [:])
-
-        let delegate = MockDelegate()
-        script.delegate = delegate
         script.userContentController(userContentController, didReceive: message)
-
-        XCTAssertEqual("example.com", delegate.domain)
+        XCTAssertEqual("example.com", mockDelegate.domain)
     }
 
     func testWhenRequestingCredentialsMessageReceived_ThenDelegateIsCalledWithDomain() {
-        XCTAssertNotNil(script.source)
-
         let message = MockWKScriptMessage(name: VaultUserScript.MessageNames.vaultRequestCredentials.rawValue, body: [
             VaultUserScript.MessageNames.RequestCredentialsArgNames.id.rawValue: 23
         ])
-
-        let delegate = MockDelegate()
-        script.delegate = delegate
         script.userContentController(userContentController, didReceive: message)
+        XCTAssertEqual(23, mockDelegate.id)
+    }
 
-        XCTAssertEqual(23, delegate.id)
+    func testWhenUserScriptCreated_ThenSourceIsLoaded() {
+        XCTAssertNotNil(script.source)
     }
 
     class MockDelegate: NSObject, VaultUserScriptDelegate {
