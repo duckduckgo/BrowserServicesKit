@@ -30,7 +30,7 @@ class VaultUserScriptTests: XCTestCase {
         script.delegate = mockDelegate
     }
 
-    func test() {
+    func testWhenRequestingStorageOfCredentials_ThenDelegateIsCalledWithCredentials() {
         let message = MockWKScriptMessage(name: VaultUserScript.MessageNames.vaultStoreCredentials.rawValue, body: [
             VaultUserScript.MessageNames.StoreCredentialsArgNames.username.rawValue: "username",
             VaultUserScript.MessageNames.StoreCredentialsArgNames.password.rawValue: "password"
