@@ -5,7 +5,7 @@
         "package": "GRDB",
         "repositoryURL": "https://github.com/duckduckgo/GRDB.swift.git",
         "state": {
-          "branch": "SQLCipher",
+          "branch": null,
           "revision": "e5714d4b6ee1651d2271b04ae85aaf5a327fe70a",
           "version": null
         }
