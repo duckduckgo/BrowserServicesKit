@@ -19,9 +19,7 @@ let package = Package(
     targets: [
         .target(
             name: "BrowserServicesKit",
-            dependencies: [
-                "GRDB",
-            ],
+            dependencies: [],
             resources: [
                 .process("Email/email-autofill.css"),
                 .process("Email/email-autofill.js")
