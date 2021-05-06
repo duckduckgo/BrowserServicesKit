@@ -19,7 +19,7 @@
 
 import Foundation
 
-public protocol EmailManagerStorage: class {
+public protocol EmailManagerStorage: AnyObject {
     func getUsername() -> String?
     func getToken() -> String?
     func getAlias() -> String?
@@ -36,7 +36,7 @@ public enum EmailManagerPermittedAddressType {
 }
 
 // swiftlint:disable identifier_name
-public protocol EmailManagerAliasPermissionDelegate: class {
+public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
     func emailManager(_ emailManager: EmailManager,
                       didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType) -> Void)
@@ -45,7 +45,7 @@ public protocol EmailManagerAliasPermissionDelegate: class {
 // swiftlint:enable identifier_name
 
 // swiftlint:disable function_parameter_count
-public protocol EmailManagerRequestDelegate: class {
+public protocol EmailManagerRequestDelegate: AnyObject {
     func emailManager(_ emailManager: EmailManager,
                       didRequestAliasWithURL url: URL,
                       method: String,

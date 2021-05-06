@@ -19,7 +19,7 @@
 
 import WebKit
 
-public protocol EmailUserScriptDelegate: class {
+public protocol EmailUserScriptDelegate: AnyObject {
     func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool
     func emailUserScript(_ emailUserScript: EmailUserScript,
                          didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
