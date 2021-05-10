@@ -2,6 +2,7 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
 
 let package = Package(
     name: "BrowserServicesKit",
@@ -20,9 +21,9 @@ let package = Package(
         .target(
             name: "BrowserServicesKit",
             dependencies: [],
+            // ideally exclude `Resources/duckduckgo-autofill` explicitly, but doing so prevents Bundle.module being generated
             resources: [
-                .process("Email/email-autofill.css"),
-                .process("Email/email-autofill.js")
+                .process("Resources/duckduckgo-autofill/dist/autofill.js")
             ]),
         .target(
             name: "SecureVault",
