@@ -85,12 +85,16 @@ public class EmailUserScript: NSObject, UserScript {
 
         case .getAddresses:
             delegate?.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: self) { username, alias, error in
-                guard error == nil,
-                      let username = username,
-                      let alias = alias else { return }
+                guard error == nil else { return }
 
-                let jsString = EmailUserScript.postMessageJSString(withPropertyString:
-                                                                    "type: 'getAddressesResponse', addresses: { \"\(username)\", \"\(alias)\" }")
+                let addresses: String
+                if let username = username, let alias = alias {
+                    addresses = "{ personalAddress: \"\(username)\", privateAddress \"\(alias)\" }"
+                } else {
+                    addresses = "null"
+                }
+
+                let jsString = EmailUserScript.postMessageJSString(withPropertyString: "type: 'getAddressesResponse', addresses: \(addresses)")
                 self.webView?.evaluateJavaScript(jsString)
             }
         }
