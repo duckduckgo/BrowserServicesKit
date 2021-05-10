@@ -34,7 +34,7 @@ final class SuggestionTests: XCTestCase {
     func testWhenSuggestionKeyIsPhrase_ThenSuggestionIsPhrase() {
         let key = Suggestion.phraseKey
         let phraseValue = "value"
-        let suggestion = Suggestion(key: key, value: phraseValue)
+        let suggestion = Suggestion(key: key, value: phraseValue, urlFactory: { _ in nil })
 
         XCTAssertEqual(suggestion, Suggestion.phrase(phrase: phraseValue))
     }
@@ -45,6 +45,14 @@ final class SuggestionTests: XCTestCase {
         let suggestion = Suggestion(key: key, value: value)
 
         XCTAssertEqual(suggestion, Suggestion.unknown(value: value))
+    }
+
+    func testWhenSuggestionKeyIsURL_ThenSuggestionIsURL() {
+        let key = Suggestion.phraseKey
+        let phraseValue = "duckduckgo.com"
+        let suggestion = Suggestion(key: key, value: phraseValue, urlFactory: URL.init(string:))
+
+        XCTAssertEqual(suggestion, Suggestion.website(url: URL(string: phraseValue)!))
     }
 
 }
