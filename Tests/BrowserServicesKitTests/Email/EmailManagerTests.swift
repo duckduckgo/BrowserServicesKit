@@ -182,7 +182,7 @@ class EmailManagerTests: XCTestCase {
 
         emailManager.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript()) { username, alias, error in
             XCTAssertNil(error)
-            XCTAssertEqual(username, "username@duck.com")
+            XCTAssertEqual(username, "username")
             XCTAssertEqual(alias, "testAlias2@duck.com")
         }
 

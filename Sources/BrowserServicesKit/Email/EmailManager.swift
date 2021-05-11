@@ -142,7 +142,7 @@ extension EmailManager: EmailUserScriptDelegate {
                 return
             }
 
-            completionHandler(self.userEmail, alias, nil)
+            completionHandler(self.username, alias, nil)
         }
     }
     
