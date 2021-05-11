@@ -84,9 +84,7 @@ public class EmailUserScript: NSObject, UserScript {
             delegate?.emailUserScriptDidRequestRefreshAlias(emailUserScript: self)
 
         case .getAddresses:
-            delegate?.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: self) { username, alias, error in
-                guard error == nil else { return }
-
+            delegate?.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: self) { username, alias, _ in
                 let addresses: String
                 if let username = username, let alias = alias {
                     addresses = "{ personalAddress: \"\(username)\", privateAddress \"\(alias)\" }"
