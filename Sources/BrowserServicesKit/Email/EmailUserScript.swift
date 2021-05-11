@@ -87,7 +87,7 @@ public class EmailUserScript: NSObject, UserScript {
             delegate?.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: self) { username, alias, _ in
                 let addresses: String
                 if let username = username, let alias = alias {
-                    addresses = "{ personalAddress: \"\(username)\", privateAddress \"\(alias)\" }"
+                    addresses = "{ personalAddress: \"\(username)\", privateAddress: \"\(alias)\" }"
                 } else {
                     addresses = "null"
                 }
