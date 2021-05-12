@@ -1,0 +1,3 @@
+[submodule "Sources/BrowserServicesKit/Resources/duckduckgo-autofill"]
+	path = Sources/BrowserServicesKit/Resources/duckduckgo-autofill
+	url = https://github.com/duckduckgo/duckduckgo-autofill

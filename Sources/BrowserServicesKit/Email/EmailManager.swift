@@ -82,6 +82,7 @@ public struct EmailUrls {
 }
 
 public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
+public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
 
 public class EmailManager {
     
@@ -133,8 +134,16 @@ public class EmailManager {
 }
 
 extension EmailManager: EmailUserScriptDelegate {
-    public func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
-        isSignedIn
+
+    public func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
+        getAliasEmailIfNeeded { [weak self] alias, error in
+            guard let alias = alias, error == nil, let self = self else {
+                completionHandler(nil, nil, error)
+                return
+            }
+
+            completionHandler(self.username, alias, nil)
+        }
     }
     
     public func emailUserScript(_ emailUserScript: EmailUserScript,

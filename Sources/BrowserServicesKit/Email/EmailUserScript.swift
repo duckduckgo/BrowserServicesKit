@@ -20,23 +20,22 @@
 import WebKit
 
 public protocol EmailUserScriptDelegate: AnyObject {
-    func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool
     func emailUserScript(_ emailUserScript: EmailUserScript,
                          didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                          shouldConsumeAliasIfProvided: Bool,
                          completionHandler: @escaping AliasCompletion)
     func emailUserScriptDidRequestRefreshAlias(emailUserScript: EmailUserScript)
     func emailUserScript(_ emailUserScript: EmailUserScript, didRequestStoreToken token: String, username: String)
+    func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
 }
 
 public class EmailUserScript: NSObject, UserScript {
     
     private enum EmailMessageNames: String, CaseIterable {
         case storeToken = "emailHandlerStoreToken"
-        case checkSignedInStatus = "emailHandlerCheckAppSignedInStatus"
-        case checkCanInjectAutofill = "emailHandlerCheckCanInjectAutoFill"
         case getAlias = "emailHandlerGetAlias"
         case refreshAlias = "emailHandlerRefreshAlias"
+        case getAddresses = "emailHandlerGetAddresses"
     }
     
     public weak var delegate: EmailUserScriptDelegate?
@@ -48,7 +47,7 @@ public class EmailUserScript: NSObject, UserScript {
         #else
             let replacements: [String: String] = [:]
         #endif
-        return EmailUserScript.loadJS("email-autofill", from: Bundle.module, withReplacements: replacements)
+        return EmailUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentEnd }
     public var forMainFrameOnly: Bool { false }
@@ -66,21 +65,7 @@ public class EmailUserScript: NSObject, UserScript {
                   let token = dict["token"] as? String,
                   let username = dict["username"] as? String else { return }
             delegate?.emailUserScript(self, didRequestStoreToken: token, username: username)
-            
-        case .checkSignedInStatus:
-            let signedIn = delegate?.emailUserScriptDidRequestSignedInStatus(emailUserScript: self) ?? false
-            let signedInString = String(signedIn)
-            let properties = "checkExtensionSignedInCallback: true, isAppSignedIn: \(signedInString)"
-            let jsString = EmailUserScript.postMessageJSString(withPropertyString: properties)
-            self.webView?.evaluateJavaScript(jsString)
-            
-        case .checkCanInjectAutofill:
-            let signedIn = delegate?.emailUserScriptDidRequestSignedInStatus(emailUserScript: self) ?? false
-            let canInjectString = String(signedIn)
-            let properties = "checkCanInjectAutoFillCallback: true, canInjectAutoFill: \(canInjectString)"
-            let jsString = EmailUserScript.postMessageJSString(withPropertyString: properties)
-            self.webView?.evaluateJavaScript(jsString)
-            
+
         case .getAlias:
             guard let dict = message.body as? [String: Any],
                   let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
@@ -97,6 +82,19 @@ public class EmailUserScript: NSObject, UserScript {
             }
         case .refreshAlias:
             delegate?.emailUserScriptDidRequestRefreshAlias(emailUserScript: self)
+
+        case .getAddresses:
+            delegate?.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: self) { username, alias, _ in
+                let addresses: String
+                if let username = username, let alias = alias {
+                    addresses = "{ personalAddress: \"\(username)\", privateAddress: \"\(alias)\" }"
+                } else {
+                    addresses = "null"
+                }
+
+                let jsString = EmailUserScript.postMessageJSString(withPropertyString: "type: 'getAddressesResponse', addresses: \(addresses)")
+                self.webView?.evaluateJavaScript(jsString)
+            }
         }
     }
     
