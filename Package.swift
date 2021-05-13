@@ -15,7 +15,7 @@ let package = Package(
         .library(name: "SecureVault", targets: ["SecureVault"]),
     ],
     dependencies: [
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .revision("e5714d4b6ee1651d2271b04ae85aaf5a327fe70a")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .upToNextMajor(from: "1.0.0")),
     ],
     targets: [
         .target(
