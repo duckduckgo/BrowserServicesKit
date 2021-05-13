@@ -70,7 +70,8 @@ class VaultUserScript: NSObject, UserScript {
     weak var delegate: VaultUserScriptDelegate?
 
     public lazy var source: String = {
-        return Self.loadJS("vault-support", from: Bundle.module)
+        // return Self.loadJS("vault-support", from: Bundle.module)
+        return ""
     }()
 
     let injectionTime: WKUserScriptInjectionTime = .atDocumentStart

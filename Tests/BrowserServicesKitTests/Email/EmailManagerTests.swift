@@ -157,7 +157,7 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
         
-        emailManager.emailUserScript(EmailUserScript(), didRequestStoreToken: "token", username: "username")
+        emailManager.autofillUserScript(AutofillUserScript(), didRequestStoreToken: "token", username: "username")
         
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
@@ -180,7 +180,7 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
 
-        emailManager.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript()) { username, alias, error in
+        emailManager.autofillUserScriptDidRequestUsernameAndAlias(AutofillUserScript()) { username, alias, error in
             XCTAssertNil(error)
             XCTAssertEqual(username, "username")
             XCTAssertEqual(alias, "testAlias2@duck.com")

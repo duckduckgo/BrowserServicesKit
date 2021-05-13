@@ -8,14 +8,14 @@ let package = Package(
     name: "BrowserServicesKit",
     platforms: [
         .iOS("13.0"),
-        .macOS("10.15"),
+        .macOS("10.15")
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "SecureVault", targets: ["SecureVault"]),
+        .library(name: "SecureVault", targets: ["SecureVault"])
     ],
     dependencies: [
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .upToNextMajor(from: "1.0.0")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .upToNextMajor(from: "1.0.0"))
     ],
     targets: [
         .target(

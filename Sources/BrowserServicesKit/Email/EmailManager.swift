@@ -133,9 +133,9 @@ public class EmailManager {
     }
 }
 
-extension EmailManager: EmailUserScriptDelegate {
+extension EmailManager: AutofillEmailDelegate {
 
-    public func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
+    public func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
         getAliasEmailIfNeeded { [weak self] alias, error in
             guard let alias = alias, error == nil, let self = self else {
                 completionHandler(nil, nil, error)
@@ -146,10 +146,10 @@ extension EmailManager: EmailUserScriptDelegate {
         }
     }
     
-    public func emailUserScript(_ emailUserScript: EmailUserScript,
-                                didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
-                                shouldConsumeAliasIfProvided: Bool,
-                                completionHandler: @escaping AliasCompletion) {
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
+                                   shouldConsumeAliasIfProvided: Bool,
+                                   completionHandler: @escaping AliasCompletion) {
             
         getAliasEmailIfNeeded { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil, let self = self else {
@@ -190,11 +190,11 @@ extension EmailManager: EmailUserScriptDelegate {
         }
     }
     
-    public func emailUserScriptDidRequestRefreshAlias(emailUserScript: EmailUserScript) {
+    public func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         self.consumeAliasAndReplace()
     }
     
-    public func emailUserScript(_ emailUserScript: EmailUserScript, didRequestStoreToken token: String, username: String) {
+    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
         storeToken(token, username: username)
         NotificationCenter.default.post(name: .emailDidSignIn, object: self)
     }

@@ -24,7 +24,7 @@ class VaultUserScriptTests: XCTestCase {
 
     let script = VaultUserScript(domainProvider: MockDomainProvider(domain: "example.com"))
     let userContentController = WKUserContentController()
-    let mockDelegate = MockDelegate()
+    let mockDelegate = MockDelegate() //swiftlint:disable:this weak_delegate
 
     override func setUp() {
         script.delegate = mockDelegate

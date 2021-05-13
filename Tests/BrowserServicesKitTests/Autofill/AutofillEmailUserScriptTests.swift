@@ -1,5 +1,5 @@
 //
-//  EmailUserScriptTests.swift
+//  AutofillEmailUserScriptTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
@@ -21,14 +21,14 @@ import XCTest
 import WebKit
 @testable import BrowserServicesKit
 
-class EmailUserScriptTests: XCTestCase {
+class AutofillEmailUserScriptTests: XCTestCase {
 
-    let emailUserScript = EmailUserScript()
+    let userScript = AutofillUserScript()
     let userContentController = WKUserContentController()
 
     func testWhenReceivesStoreTokenMessageThenCallsDelegateMethodWithCorrectTokenAndUsername() {
-        let mock = MockEmailUserScriptDelegate()
-        emailUserScript.delegate = mock
+        let mock = MockAutofillEmailDelegate()
+        userScript.emailDelegate = mock
         
         let token = "testToken"
         let username = "testUsername"
@@ -41,14 +41,14 @@ class EmailUserScriptTests: XCTestCase {
         }
         
         let message = MockWKScriptMessage(name: "emailHandlerStoreToken", body: [ "token": "testToken", "username": "testUsername"])
-        emailUserScript.userContentController(userContentController, didReceive: message)
+        userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
    
     func testWhenReceivesGetAliasMessageThenCallsDelegateMethod() {
-        let mock = MockEmailUserScriptDelegate()
-        emailUserScript.delegate = mock
+        let mock = MockAutofillEmailDelegate()
+        userScript.emailDelegate = mock
         
         let expect = expectation(description: "testWhenReceivesGetAliasMessageThenCallsDelegateMethod")
         mock.requestAliasCallback = {
@@ -57,14 +57,14 @@ class EmailUserScriptTests: XCTestCase {
         
         let message = MockWKScriptMessage(name: "emailHandlerGetAlias",
                                           body: ["requiresUserPermission": false, "shouldConsumeAliasIfProvided": false])
-        emailUserScript.userContentController(userContentController, didReceive: message)
+        userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
     
     func testWhenReceivesRefreshAliasMessageThenCallsDelegateMethod() {
-        let mock = MockEmailUserScriptDelegate()
-        emailUserScript.delegate = mock
+        let mock = MockAutofillEmailDelegate()
+        userScript.emailDelegate = mock
         
         let expect = expectation(description: "testWhenReceivesRefreshAliasMessageThenCallsDelegateMethod")
         mock.refreshAliasCallback = {
@@ -72,14 +72,14 @@ class EmailUserScriptTests: XCTestCase {
         }
         
         let message = MockWKScriptMessage(name: "emailHandlerRefreshAlias", body: "")
-        emailUserScript.userContentController(userContentController, didReceive: message)
+        userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
 
     func testWhenReceivesRequestUsernameAndAliasMessageThenCallsDelegateMethod() {
-        let mock = MockEmailUserScriptDelegate()
-        emailUserScript.delegate = mock
+        let mock = MockAutofillEmailDelegate()
+        userScript.emailDelegate = mock
 
         let expect = expectation(description: "testWhenReceivesRequestUsernameAndAliasMessageThenCallsDelegateMethod")
         mock.requestUsernameAndAliasCallback = {
@@ -87,7 +87,7 @@ class EmailUserScriptTests: XCTestCase {
         }
 
         let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: "")
-        emailUserScript.userContentController(userContentController, didReceive: message)
+        userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
@@ -113,30 +113,29 @@ class MockWKScriptMessage: WKScriptMessage {
     }
 }
 
-class MockEmailUserScriptDelegate: EmailUserScriptDelegate {
+class MockAutofillEmailDelegate: AutofillEmailDelegate {
 
-    // var signedInCallback: (() -> Void)?
     var requestAliasCallback: (() -> Void)?
     var requestStoreTokenCallback: ((String, String) -> Void)?
     var refreshAliasCallback: (() -> Void)?
     var requestUsernameAndAliasCallback: (() -> Void)?
     
-    func emailUserScript(_ emailUserScript: EmailUserScript,
-                         didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
-                         shouldConsumeAliasIfProvided: Bool,
-                         completionHandler: @escaping AliasCompletion) {
+    func autofillUserScript(_: AutofillUserScript,
+                            didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
+                            shouldConsumeAliasIfProvided: Bool,
+                            completionHandler: @escaping AliasCompletion) {
         requestAliasCallback!()
     }
     
-    func emailUserScriptDidRequestRefreshAlias(emailUserScript: EmailUserScript) {
+    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {
         refreshAliasCallback!()
     }
     
-    func emailUserScript(_ emailUserScript: EmailUserScript, didRequestStoreToken token: String, username: String) {
+    func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
         requestStoreTokenCallback!(token, username)
     }
 
-    func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
+    func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
         requestUsernameAndAliasCallback!()
     }
 

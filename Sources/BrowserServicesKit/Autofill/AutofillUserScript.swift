@@ -19,26 +19,31 @@
 
 import WebKit
 
-public protocol EmailUserScriptDelegate: AnyObject {
-    func emailUserScript(_ emailUserScript: EmailUserScript,
-                         didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
-                         shouldConsumeAliasIfProvided: Bool,
-                         completionHandler: @escaping AliasCompletion)
-    func emailUserScriptDidRequestRefreshAlias(emailUserScript: EmailUserScript)
-    func emailUserScript(_ emailUserScript: EmailUserScript, didRequestStoreToken token: String, username: String)
-    func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
+public protocol AutofillEmailDelegate: AnyObject {
+    func autofillUserScript(_: AutofillUserScript,
+                            didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
+                            shouldConsumeAliasIfProvided: Bool,
+                            completionHandler: @escaping AliasCompletion)
+    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String)
+    func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
 }
 
-public class EmailUserScript: NSObject, UserScript {
+public class AutofillUserScript: NSObject, UserScript {
     
     private enum EmailMessageNames: String, CaseIterable {
         case storeToken = "emailHandlerStoreToken"
         case getAlias = "emailHandlerGetAlias"
         case refreshAlias = "emailHandlerRefreshAlias"
         case getAddresses = "emailHandlerGetAddresses"
+
+        var responseType: String {
+            return self.rawValue + "Response"
+        }
+
     }
     
-    public weak var delegate: EmailUserScriptDelegate?
+    public weak var emailDelegate: AutofillEmailDelegate?
     public var webView: WKWebView?
     
     public lazy var source: String = {
@@ -47,41 +52,43 @@ public class EmailUserScript: NSObject, UserScript {
         #else
             let replacements: [String: String] = [:]
         #endif
-        return EmailUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
+        return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentEnd }
     public var forMainFrameOnly: Bool { false }
     public var messageNames: [String] { EmailMessageNames.allCases.map(\.rawValue) }
         
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let type = EmailMessageNames(rawValue: message.name) else { return }
-        
+        if let emailMessage = EmailMessageNames(rawValue: message.name) {
+            handleEmailMessage(emailMessage, message)
+        }
+    }
+
+    private func handleEmailMessage(_ type: EmailMessageNames, _ message: WKScriptMessage) {
         switch type {
         case .storeToken:
             guard let dict = message.body as? [String: Any],
                   let token = dict["token"] as? String,
                   let username = dict["username"] as? String else { return }
-            delegate?.emailUserScript(self, didRequestStoreToken: token, username: username)
+            emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
 
         case .getAlias:
             guard let dict = message.body as? [String: Any],
                   let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
                   let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
 
-            delegate?.emailUserScript(self,
+            emailDelegate?.autofillUserScript(self,
                                       didRequestAliasAndRequiresUserPermission: requiresUserPermission,
                                       shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
-                guard let alias = alias else {
-                    return
-                }
-                let jsString = EmailUserScript.postMessageJSString(withPropertyString: "type: 'getAliasResponse', alias: \"\(alias)\"")
+                guard let alias = alias else { return }
+                let jsString = Self.postMessageJSString(withPropertyString: "type: '\(type.responseType)', alias: \"\(alias)\"")
                 self.webView?.evaluateJavaScript(jsString)
             }
         case .refreshAlias:
-            delegate?.emailUserScriptDidRequestRefreshAlias(emailUserScript: self)
+            emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
 
         case .getAddresses:
-            delegate?.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: self) { username, alias, _ in
+            emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
                 let addresses: String
                 if let username = username, let alias = alias {
                     addresses = "{ personalAddress: \"\(username)\", privateAddress: \"\(alias)\" }"
@@ -89,14 +96,15 @@ public class EmailUserScript: NSObject, UserScript {
                     addresses = "null"
                 }
 
-                let jsString = EmailUserScript.postMessageJSString(withPropertyString: "type: 'getAddressesResponse', addresses: \(addresses)")
+                let jsString = Self.postMessageJSString(withPropertyString: "type: '\(type.responseType)', addresses: \(addresses)")
                 self.webView?.evaluateJavaScript(jsString)
             }
         }
     }
-    
+
     private static func postMessageJSString(withPropertyString propertyString: String) -> String {
         let string = "window.postMessage({%@, fromIOSApp: true}, window.origin)"
         return String(format: string, propertyString)
     }
+
 }
