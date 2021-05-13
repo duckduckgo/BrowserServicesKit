@@ -45,37 +45,7 @@ class EmailUserScriptTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
-    
-    func testWhenReceivesCheckSignedInMessageThenCallsDelegateMethod() {
-        let mock = MockEmailUserScriptDelegate()
-        emailUserScript.delegate = mock
-        
-        let expect = expectation(description: "testWhenReceivesCheckSignedInMessageThenCallsDelegateMethod")
-        mock.signedInCallback = {
-            expect.fulfill()
-        }
-        
-        let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: "")
-        emailUserScript.userContentController(userContentController, didReceive: message)
-
-        waitForExpectations(timeout: 1.0, handler: nil)
-    }
-    
-    func testWhenReceivesCheckCanInjectMessageThenCallsDelegateMethod() {
-        let mock = MockEmailUserScriptDelegate()
-        emailUserScript.delegate = mock
-        
-        let expect = expectation(description: "testWhenReceivesCheckCanInjectMessageThenCallsDelegateMethod")
-        mock.signedInCallback = {
-            expect.fulfill()
-        }
-        
-        let message = MockWKScriptMessage(name: "emailHandlerCheckCanInjectAutoFill", body: "")
-        emailUserScript.userContentController(userContentController, didReceive: message)
-
-        waitForExpectations(timeout: 1.0, handler: nil)
-    }
-    
+   
     func testWhenReceivesGetAliasMessageThenCallsDelegateMethod() {
         let mock = MockEmailUserScriptDelegate()
         emailUserScript.delegate = mock
@@ -106,6 +76,21 @@ class EmailUserScriptTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
+
+    func testWhenReceivesRequestUsernameAndAliasMessageThenCallsDelegateMethod() {
+        let mock = MockEmailUserScriptDelegate()
+        emailUserScript.delegate = mock
+
+        let expect = expectation(description: "testWhenReceivesRequestUsernameAndAliasMessageThenCallsDelegateMethod")
+        mock.requestUsernameAndAliasCallback = {
+            expect.fulfill()
+        }
+
+        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: "")
+        emailUserScript.userContentController(userContentController, didReceive: message)
+
+        waitForExpectations(timeout: 1.0, handler: nil)
+    }
 }
 
 class MockWKScriptMessage: WKScriptMessage {
@@ -130,15 +115,11 @@ class MockWKScriptMessage: WKScriptMessage {
 
 class MockEmailUserScriptDelegate: EmailUserScriptDelegate {
 
-    var signedInCallback: (() -> Void)?
+    // var signedInCallback: (() -> Void)?
     var requestAliasCallback: (() -> Void)?
     var requestStoreTokenCallback: ((String, String) -> Void)?
     var refreshAliasCallback: (() -> Void)?
-    
-    func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
-        signedInCallback!()
-        return false
-    }
+    var requestUsernameAndAliasCallback: (() -> Void)?
     
     func emailUserScript(_ emailUserScript: EmailUserScript,
                          didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
@@ -154,4 +135,9 @@ class MockEmailUserScriptDelegate: EmailUserScriptDelegate {
     func emailUserScript(_ emailUserScript: EmailUserScript, didRequestStoreToken token: String, username: String) {
         requestStoreTokenCallback!(token, username)
     }
+
+    func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
+        requestUsernameAndAliasCallback!()
+    }
+
 }

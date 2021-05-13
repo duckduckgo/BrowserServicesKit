@@ -2,6 +2,7 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
+import Foundation
 
 let package = Package(
     name: "BrowserServicesKit",
@@ -14,23 +15,28 @@ let package = Package(
         .library(name: "SecureVault", targets: ["SecureVault"]),
     ],
     dependencies: [
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .revision("e5714d4b6ee1651d2271b04ae85aaf5a327fe70a")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .upToNextMajor(from: "1.0.0")),
     ],
     targets: [
         .target(
             name: "BrowserServicesKit",
             dependencies: [],
+            exclude: [
+                "Resources/duckduckgo-autofill/Gruntfile.js",
+                "Resources/duckduckgo-autofill/package.json",
+                "Resources/duckduckgo-autofill/package-lock.json",
+                "Resources/duckduckgo-autofill/LICENSE.md",
+                "Resources/duckduckgo-autofill/README.md",
+                "Resources/duckduckgo-autofill/src"
+            ],
             resources: [
-                .process("Email/Resources")
+                .process("Resources/duckduckgo-autofill/dist/autofill.js")
             ]),
         .target(
             name: "SecureVault",
             dependencies: [
                 "BrowserServicesKit",
                 "GRDB",
-            ],
-            resources: [
-                .process("Resources")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
