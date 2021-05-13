@@ -91,6 +91,12 @@ class AutofillEmailUserScriptTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
+
+    func testWhenUnknownMessageReceivedThenNoProblem() {
+        let message = MockWKScriptMessage(name: "unknownmessage", body: "")
+        userScript.userContentController(userContentController, didReceive: message)
+    }
+
 }
 
 class MockWKScriptMessage: WKScriptMessage {

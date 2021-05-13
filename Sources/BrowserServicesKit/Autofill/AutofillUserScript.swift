@@ -30,19 +30,9 @@ public protocol AutofillEmailDelegate: AnyObject {
 }
 
 public class AutofillUserScript: NSObject, UserScript {
-    
-    private enum EmailMessageNames: String, CaseIterable {
-        case storeToken = "emailHandlerStoreToken"
-        case getAlias = "emailHandlerGetAlias"
-        case refreshAlias = "emailHandlerRefreshAlias"
-        case getAddresses = "emailHandlerGetAddresses"
 
-        var responseType: String {
-            return self.rawValue + "Response"
-        }
+    typealias MessageHandler = (WKScriptMessage) -> Void
 
-    }
-    
     public weak var emailDelegate: AutofillEmailDelegate?
     public var webView: WKWebView?
     
@@ -56,55 +46,69 @@ public class AutofillUserScript: NSObject, UserScript {
     }()
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentEnd }
     public var forMainFrameOnly: Bool { false }
-    public var messageNames: [String] { EmailMessageNames.allCases.map(\.rawValue) }
-        
+    public var messageNames: [String] { messages.keys.map { $0 } }
+
+    private lazy var messages: [String: MessageHandler] = { [
+        "emailHandlerStoreToken": emailStoreToken(_:),
+        "emailHandlerGetAlias": emailGetAlias(_:),
+        "emailHandlerRefreshAlias": emailRefreshAlias(_:),
+        "emailHandlerGetAddresses": emailGetAddresses(_:)
+    ] }()
+
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        if let emailMessage = EmailMessageNames(rawValue: message.name) {
-            handleEmailMessage(emailMessage, message)
+        messages[message.name]?(message)
+    }
+
+    private func emailStoreToken(_ message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let token = dict["token"] as? String,
+              let username = dict["username"] as? String else { return }
+        emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
+    }
+
+    private func emailGetAlias(_ message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
+              let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
+
+        emailDelegate?.autofillUserScript(self,
+                                  didRequestAliasAndRequiresUserPermission: requiresUserPermission,
+                                  shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
+            guard let alias = alias else { return }
+            let jsString = Self.postMessageJSString(withPropertyString: "type: '\(message.responseType)', alias: \"\(alias)\"")
+            self.webView?.evaluateJavaScript(jsString)
         }
     }
 
-    private func handleEmailMessage(_ type: EmailMessageNames, _ message: WKScriptMessage) {
-        switch type {
-        case .storeToken:
-            guard let dict = message.body as? [String: Any],
-                  let token = dict["token"] as? String,
-                  let username = dict["username"] as? String else { return }
-            emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
+    private func emailRefreshAlias(_ message: WKScriptMessage) {
+        emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
+    }
 
-        case .getAlias:
-            guard let dict = message.body as? [String: Any],
-                  let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
-                  let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
-
-            emailDelegate?.autofillUserScript(self,
-                                      didRequestAliasAndRequiresUserPermission: requiresUserPermission,
-                                      shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
-                guard let alias = alias else { return }
-                let jsString = Self.postMessageJSString(withPropertyString: "type: '\(type.responseType)', alias: \"\(alias)\"")
-                self.webView?.evaluateJavaScript(jsString)
+    private func emailGetAddresses(_ message: WKScriptMessage) {
+        emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
+            let addresses: String
+            if let username = username, let alias = alias {
+                addresses = "{ personalAddress: \"\(username)\", privateAddress: \"\(alias)\" }"
+            } else {
+                addresses = "null"
             }
-        case .refreshAlias:
-            emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
 
-        case .getAddresses:
-            emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
-                let addresses: String
-                if let username = username, let alias = alias {
-                    addresses = "{ personalAddress: \"\(username)\", privateAddress: \"\(alias)\" }"
-                } else {
-                    addresses = "null"
-                }
-
-                let jsString = Self.postMessageJSString(withPropertyString: "type: '\(type.responseType)', addresses: \(addresses)")
-                self.webView?.evaluateJavaScript(jsString)
-            }
+            let jsString = Self.postMessageJSString(withPropertyString: "type: '\(message.responseType)', addresses: \(addresses)")
+            self.webView?.evaluateJavaScript(jsString)
         }
     }
 
     private static func postMessageJSString(withPropertyString propertyString: String) -> String {
         let string = "window.postMessage({%@, fromIOSApp: true}, window.origin)"
         return String(format: string, propertyString)
+    }
+
+}
+
+extension WKScriptMessage {
+
+    var responseType: String {
+        return name + "Response"
     }
 
 }
