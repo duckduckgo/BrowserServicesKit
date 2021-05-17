@@ -21,8 +21,7 @@ import Foundation
 public protocol SuggestionLoading: AnyObject {
 
     func getSuggestions(query: Query,
-                        maximum: Int,
-                        completion: @escaping ([Suggestion]?, Error?) -> Void)
+                        completion: @escaping (SuggestionResult?, Error?) -> Void)
 
     var dataSource: SuggestionLoadingDataSource? { get set }
 
@@ -30,131 +29,83 @@ public protocol SuggestionLoading: AnyObject {
 
 public class SuggestionLoader: SuggestionLoading {
 
-    public static let defaultMaxOfSuggestions = 9
     static let remoteSuggestionsUrl = URL(string: "https://duckduckgo.com/ac/")!
     static let searchParameter = "q"
 
     public enum SuggestionLoaderError: Error {
         case noDataSource
+        case parsingFailed
         case failedToObtainData
+        case failedToProcessData
     }
 
     public weak var dataSource: SuggestionLoadingDataSource?
-    private var urlFactory: ((String) -> URL?)?
+    private var processing: SuggestionProcessing
 
-    public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: ((String) -> URL?)?) {
+    public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: @escaping (String) -> URL?) {
         self.dataSource = dataSource
-        self.urlFactory = urlFactory
+        self.processing = SuggestionProcessing(urlFactory: urlFactory)
     }
 
     public func getSuggestions(query: Query,
-                               maximum: Int,
-                               completion: @escaping ([Suggestion]?, Error?) -> Void) {
+                               completion: @escaping (SuggestionResult?, Error?) -> Void) {
         guard let dataSource = dataSource else {
             completion(nil, SuggestionLoaderError.noDataSource)
             return
         }
 
         if query.isEmpty {
-            completion([], nil)
+            completion(.empty, nil)
             return
         }
 
+        // 1) Getting all necessary data
         let bookmarks = dataSource.bookmarks(for: self)
-        var bookmarkSuggestions: [Suggestion]!
-        var remoteSuggestions: [Suggestion]?
-        var remoteSuggestionsError: Error?
+        let history = dataSource.history(for: self)
+        var apiResult: APIResult?
+        var apiError: Error?
+
         let group = DispatchGroup()
-
-        group.enter()
-        DispatchQueue.global().async {
-            // Bookmark suggestions
-            bookmarkSuggestions = self.bookmarkSuggestions(from: bookmarks, for: query)
-            group.leave()
-        }
-
-        // Remote suggestions
         group.enter()
         dataSource.suggestionLoading(self,
                                      suggestionDataFromUrl: Self.remoteSuggestionsUrl,
-                                     withParameters: [Self.searchParameter: query]) { [weak self] data, error in
+                                     withParameters: [Self.searchParameter: query]) { data, error in
             defer { group.leave() }
-            guard let self = self, let data = data else {
-                remoteSuggestionsError = error
+            guard let data = data else {
+                apiError = error
                 return
             }
-
-            do {
-                remoteSuggestions = try self.remoteSuggestions(from: data)
-            } catch {
-                remoteSuggestionsError = error
+            guard let result = try? JSONDecoder().decode(APIResult.self, from: data) else {
+                apiError = SuggestionLoaderError.parsingFailed
+                return
             }
+            apiResult = result
         }
 
-        group.notify(queue: .global()) {
-            let result = Self.result(maximum: maximum,
-                                     bookmarkSuggestions: bookmarkSuggestions,
-                                     remoteSuggestions: remoteSuggestions ?? [])
-
-            DispatchQueue.main.async {
-                guard !result.isEmpty || remoteSuggestionsError == nil else {
-                    completion(nil, SuggestionLoaderError.failedToObtainData)
-                    return
+        // 2) Processing it
+        group.notify(queue: .main) { [weak self] in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let result = self?.processing.result(for: query,
+                                                     from: history,
+                                                     bookmarks: bookmarks,
+                                                     apiResult: apiResult)
+                DispatchQueue.main.async {
+                    if let result = result {
+                        completion(result, apiError)
+                    } else {
+                        completion(nil, SuggestionLoaderError.failedToProcessData)
+                    }
                 }
-                completion(result, nil)
             }
         }
     }
-
-    // MARK: - Bookmark Suggestions
-
-    static var minimumQueryLengthForBookmarkSuggestions = 2
-
-    private func bookmarkSuggestions(from bookmarks: [Bookmark], for query: Query) -> [Suggestion] {
-        guard query.count >= Self.minimumQueryLengthForBookmarkSuggestions else { return [] }
-
-        let queryTokens = Score.tokens(from: query)
-
-        return bookmarks
-            // Score bookmarks
-            .map { bookmark -> (bookmark: Bookmark, score: Score) in
-                let score = Score(bookmark: bookmark, query: query, queryTokens: queryTokens)
-                return (bookmark, score)
-            }
-            // Filter not relevant
-            .filter { $0.score > 0 }
-            // Sort according to the score
-            .sorted { $0.score < $1.score }
-            // Pick first two
-            .prefix(2)
-            // Create suggestion array
-            .map { Suggestion(bookmark: $0.bookmark) }
-    }
-
-    // MARK: - Remote Suggestions
-
-    private func remoteSuggestions(from data: Data) throws -> [Suggestion] {
-        let decoder = JSONDecoder()
-        let apiResult = try decoder.decode(APIResult.self, from: data)
-
-        return apiResult.items
-            .joined()
-            .map { Suggestion(key: $0.key, value: $0.value, urlFactory: urlFactory) }
-    }
-
-    // MARK: - Merging
-
-    private static func result(maximum: Int,
-                               bookmarkSuggestions: [Suggestion],
-                               remoteSuggestions: [Suggestion]) -> [Suggestion] {
-        return Array((bookmarkSuggestions + remoteSuggestions).prefix(maximum))
-    }
-
 }
 
 public protocol SuggestionLoadingDataSource: AnyObject {
 
     func bookmarks(for suggestionLoading: SuggestionLoading) -> [Bookmark]
+
+    func history(for suggestionLoading: SuggestionLoading) -> [HistoryEntry]
 
     func suggestionLoading(_ suggestionLoading: SuggestionLoading,
                            suggestionDataFromUrl url: URL,

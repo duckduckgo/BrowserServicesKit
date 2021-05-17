@@ -20,7 +20,9 @@ import Foundation
 @testable import BrowserServicesKit
 
 struct BookmarkMock: Bookmark {
+
     var url: URL
     var title: String
     var isFavorite: Bool
+
 }

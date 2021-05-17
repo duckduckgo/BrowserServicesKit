@@ -1,5 +1,5 @@
 //
-//  History.swift
+//  HistoryEntryMock.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,4 +18,14 @@
 
 import Foundation
 
-typealias History = Set<HistoryEntry>
+@testable import BrowserServicesKit
+
+struct HistoryEntryMock: HistoryEntry {
+
+    var identifier: UUID
+    var url: URL
+    var title: String?
+    var numberOfVisits: Int
+    var lastVisit: Date
+
+}

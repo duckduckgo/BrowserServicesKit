@@ -1,5 +1,5 @@
 //
-//  HistoryEntry.swift
+//  SuggestionResultTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -16,14 +16,18 @@
 //  limitations under the License.
 //
 
-import Foundation
+import XCTest
+@testable import BrowserServicesKit
 
-public protocol HistoryEntry {
+final class SuggestionResultTests: XCTestCase {
 
-    var identifier: UUID { get }
-    var url: URL { get }
-    var title: String? { get }
-    var numberOfVisits: Int { get }
-    var lastVisit: Date { get }
+    func testWhenResultContainsNoSuggestions_ThenItIsEmpty() {
+        let emptyResult = SuggestionResult.empty
+
+        XCTAssert(emptyResult.isEmpty)
+        XCTAssertEqual(emptyResult.topHits.count, 0)
+        XCTAssertEqual(emptyResult.historyAndBookmarks.count, 0)
+        XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
+    }
 
 }

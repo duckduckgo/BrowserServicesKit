@@ -1,5 +1,5 @@
 //
-//  HistoryEntry.swift
+//  StringExtension.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,12 +18,14 @@
 
 import Foundation
 
-public protocol HistoryEntry {
+extension String {
 
-    var identifier: UUID { get }
-    var url: URL { get }
-    var title: String? { get }
-    var numberOfVisits: Int { get }
-    var lastVisit: Date { get }
+    func drop(prefix: String) -> String {
+        return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
+    }
+
+    func dropWwwPrefix() -> String {
+        self.drop(prefix: "www.")
+    }
 
 }

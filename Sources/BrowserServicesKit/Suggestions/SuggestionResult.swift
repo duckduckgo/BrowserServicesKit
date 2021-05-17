@@ -1,5 +1,5 @@
 //
-//  HistoryEntry.swift
+//  File.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,12 +18,18 @@
 
 import Foundation
 
-public protocol HistoryEntry {
+public struct SuggestionResult: Equatable {
 
-    var identifier: UUID { get }
-    var url: URL { get }
-    var title: String? { get }
-    var numberOfVisits: Int { get }
-    var lastVisit: Date { get }
+    static var empty: SuggestionResult {
+        SuggestionResult(topHits: [], duckduckgoSuggestions: [], historyAndBookmarks: [])
+    }
+
+    private(set) public var topHits: [Suggestion]
+    private(set) public var duckduckgoSuggestions: [Suggestion]
+    private(set) public var historyAndBookmarks: [Suggestion]
+
+    var isEmpty: Bool {
+        topHits.isEmpty && duckduckgoSuggestions.isEmpty && historyAndBookmarks.isEmpty
+    }
 
 }

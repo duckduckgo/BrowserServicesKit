@@ -22,29 +22,29 @@ typealias Score = Int
 
 extension Score {
     
-    init(bookmark: Bookmark, query: Query, queryTokens: [Query]? = nil) {
+    init(title: String?, url: URL, visitCount: Int, query: Query, queryTokens: [Query]? = nil) {
         // To optimize, query tokens can be precomputed
         let queryTokens = queryTokens ?? Self.tokens(from: query)
 
-        // Note: Below is the original scoring algorithm copied from iOS browser
-        var score = bookmark.isFavorite ? 0 : -1
-        let title = bookmark.title.lowercased()
+        var score = 0
+        let lowercasedTitle = title?.lowercased() ?? ""
 
         // Exact matches - full query
-        if title.starts(with: query) { // High score for exact match from the begining of the title
-            score += 200
-        } else if title.contains(" \(query)") { // Exact match from the begining of the word within string.
-            score += 100
+        let queryCount = query.count
+        if queryCount > 1 && lowercasedTitle.starts(with: query) { // High score for exact match from the begining of the title
+            score += 20000
+        } else if queryCount > 2 && lowercasedTitle.contains(" \(query)") { // Exact match from the begining of the word within string.
+            score += 10000
         }
 
-        let domain = bookmark.url.host?.drop(prefix: "www.") ?? ""
+        let domain = url.host?.drop(prefix: "www.") ?? ""
 
         // Tokenized matches
         if queryTokens.count > 1 {
             var matchesAllTokens = true
             for token in queryTokens {
                 // Match only from the begining of the word to avoid unintuitive matches.
-                if !title.starts(with: token) && !title.contains(" \(token)") && !domain.starts(with: token) {
+                if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !domain.starts(with: token) {
                     matchesAllTokens = false
                     break
                 }
@@ -52,24 +52,44 @@ extension Score {
 
             if matchesAllTokens {
                 // Score tokenized matches
-                score += 10
+                score += 1000
 
                 // Boost score if first token matches:
                 if let firstToken = queryTokens.first { // domain - high score boost
                     if domain.starts(with: firstToken) {
-                        score += 300
-                    } else if title.starts(with: firstToken) { // begining of the title - moderate score boost
-                        score += 50
+                        score += 30000
+                    } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
+                        score += 5000
                     }
                 }
             }
         } else {
             // High score for matching domain in the URL
-            if let firstToken = queryTokens.first, domain.starts(with: firstToken) {
-                score += 300
+            if let firstToken = queryTokens.first {
+                if domain.starts(with: firstToken) {
+                    score += 30000
+
+                    // Prioritize root URLs most
+                    if url.isRoot { score += 200000 }
+                } else if firstToken.count > 2 && domain.contains(firstToken) {
+                    score += 15000
+                    if url.isRoot { score += 200000 }
+                }
             }
         }
+
+        // If there are matches, add visitCount to prioritise more visited
+        if score > 0 { score += visitCount }
+
         self = score
+    }
+
+    init(bookmark: Bookmark, query: Query, queryTokens: [Query]? = nil) {
+        self.init(title: bookmark.title, url: bookmark.url, visitCount: 0, query: query, queryTokens: queryTokens)
+    }
+
+    init(historyEntry: HistoryEntry, query: Query, queryTokens: [Query]? = nil) {
+        self.init(title: historyEntry.title ?? "", url: historyEntry.url, visitCount: historyEntry.numberOfVisits, query: query, queryTokens: queryTokens)
     }
 
     static func tokens(from query: Query) -> [Query] {
@@ -79,14 +99,6 @@ extension Score {
             })
             .filter { !$0.isEmpty }
             .map { String($0).lowercased() }
-    }
-
-}
-
-fileprivate extension String {
-
-    func drop(prefix: String) -> String {
-        return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
     }
 
 }
