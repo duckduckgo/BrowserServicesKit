@@ -46,6 +46,25 @@ class EmailManagerTests: XCTestCase {
         waitForExpectations(timeout: 1.0, handler: nil)
     }
 
+    func testWhenRequestSignedInStatusThenReturnsCorrectStatus() {
+        let storage = MockEmailManagerStorage()
+        let emailManager = EmailManager(storage: storage)
+        storage.mockUsername = "username"
+        storage.mockToken = "token"
+
+        var status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        XCTAssertTrue(status)
+
+        storage.mockUsername = nil
+        status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        XCTAssertFalse(status)
+
+        storage.mockUsername = "username"
+        storage.mockToken = nil
+        status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        XCTAssertFalse(status)
+    }
+
     func testWhenCallingGetAliasWithAliasStoredThenAliasReturnedAndNewAliasFetched() {
         
         let expect = expectation(description: "testWhenCallingGetAliasWithAliasStoredThenAliasReturnedAndNewAliasFetched")

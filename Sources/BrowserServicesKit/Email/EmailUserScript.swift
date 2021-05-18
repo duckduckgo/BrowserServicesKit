@@ -20,6 +20,7 @@
 import WebKit
 
 public protocol EmailUserScriptDelegate: AnyObject {
+    func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool
     func emailUserScript(_ emailUserScript: EmailUserScript,
                          didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                          shouldConsumeAliasIfProvided: Bool,
@@ -33,6 +34,7 @@ public class EmailUserScript: NSObject, UserScript {
     
     private enum EmailMessageNames: String, CaseIterable {
         case storeToken = "emailHandlerStoreToken"
+        case checkSignedInStatus = "emailHandlerCheckAppSignedInStatus"
         case getAlias = "emailHandlerGetAlias"
         case refreshAlias = "emailHandlerRefreshAlias"
         case getAddresses = "emailHandlerGetAddresses"
@@ -65,6 +67,13 @@ public class EmailUserScript: NSObject, UserScript {
                   let token = dict["token"] as? String,
                   let username = dict["username"] as? String else { return }
             delegate?.emailUserScript(self, didRequestStoreToken: token, username: username)
+
+        case .checkSignedInStatus:
+            let signedIn = delegate?.emailUserScriptDidRequestSignedInStatus(emailUserScript: self) ?? false
+            let signedInString = String(signedIn)
+            let properties = "checkExtensionSignedInCallback: true, isAppSignedIn: \(signedInString)"
+            let jsString = EmailUserScript.postMessageJSString(withPropertyString: properties)
+            self.webView?.evaluateJavaScript(jsString)
 
         case .getAlias:
             guard let dict = message.body as? [String: Any],

@@ -134,6 +134,8 @@ public class EmailManager {
 }
 
 extension EmailManager: EmailUserScriptDelegate {
+    public func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
+         isSignedIn
 
     public func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
         getAliasEmailIfNeeded { [weak self] alias, error in

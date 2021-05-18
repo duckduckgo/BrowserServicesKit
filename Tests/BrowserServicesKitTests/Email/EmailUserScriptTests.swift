@@ -45,6 +45,21 @@ class EmailUserScriptTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
+
+    func testWhenReceivesCheckSignedInMessageThenCallsDelegateMethod() {
+        let mock = MockEmailUserScriptDelegate()
+        emailUserScript.delegate = mock
+
+        let expect = expectation(description: "testWhenReceivesCheckSignedInMessageThenCallsDelegateMethod")
+        mock.signedInCallback = {
+            expect.fulfill()
+        }
+
+        let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: "")
+        emailUserScript.userContentController(userContentController, didReceive: message)
+
+        waitForExpectations(timeout: 1.0, handler: nil)
+    }
    
     func testWhenReceivesGetAliasMessageThenCallsDelegateMethod() {
         let mock = MockEmailUserScriptDelegate()
@@ -115,11 +130,16 @@ class MockWKScriptMessage: WKScriptMessage {
 
 class MockEmailUserScriptDelegate: EmailUserScriptDelegate {
 
-    // var signedInCallback: (() -> Void)?
+    var signedInCallback: (() -> Void)?
     var requestAliasCallback: (() -> Void)?
     var requestStoreTokenCallback: ((String, String) -> Void)?
     var refreshAliasCallback: (() -> Void)?
     var requestUsernameAndAliasCallback: (() -> Void)?
+
+    func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
+        signedInCallback!()
+        return false
+    }
     
     func emailUserScript(_ emailUserScript: EmailUserScript,
                          didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
