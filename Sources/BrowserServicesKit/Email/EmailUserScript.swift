@@ -71,7 +71,7 @@ public class EmailUserScript: NSObject, UserScript {
         case .checkSignedInStatus:
             let signedIn = delegate?.emailUserScriptDidRequestSignedInStatus(emailUserScript: self) ?? false
             let signedInString = String(signedIn)
-            let properties = "checkExtensionSignedInCallback: true, isAppSignedIn: \(signedInString)"
+            let properties = "emailHandlerCheckAppSignedInStatusResponse: true, isAppSignedIn: \(signedInString)"
             let jsString = EmailUserScript.postMessageJSString(withPropertyString: properties)
             self.webView?.evaluateJavaScript(jsString)
 
