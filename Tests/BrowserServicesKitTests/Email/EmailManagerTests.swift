@@ -89,7 +89,7 @@ class EmailManagerTests: XCTestCase {
         ]
                 
         emailManager.getAliasEmailIfNeededAndConsume { alias, _ in
-            XCTAssertEqual(alias, "testAlias1@duck.com")
+            XCTAssertEqual(alias, "testAlias1")
             events.append(.getAliasCallbackCalled)
         }
         
@@ -125,7 +125,7 @@ class EmailManagerTests: XCTestCase {
         ]
         
         emailManager.getAliasEmailIfNeededAndConsume { alias, _ in
-            XCTAssertEqual(alias, "testAlias2@duck.com")
+            XCTAssertEqual(alias, "testAlias2")
             events.append(.getAliasCallbackCalled)
         }
         
@@ -202,7 +202,7 @@ class EmailManagerTests: XCTestCase {
         emailManager.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript()) { username, alias, error in
             XCTAssertNil(error)
             XCTAssertEqual(username, "username")
-            XCTAssertEqual(alias, "testAlias2@duck.com")
+            XCTAssertEqual(alias, "testAlias2")
         }
 
         waitForExpectations(timeout: 1.0) { _ in

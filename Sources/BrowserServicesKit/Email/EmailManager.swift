@@ -234,15 +234,15 @@ private extension EmailManager {
     
     func getAliasEmailIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
-            completionHandler(emailFromAlias(alias), nil)
+            completionHandler(alias, nil)
             return
         }
-        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
+        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { newAlias, error in
             guard let newAlias = newAlias, error == nil  else {
                 completionHandler(nil, error)
                 return
             }
-            completionHandler(self?.emailFromAlias(newAlias), nil)
+            completionHandler(newAlias, nil)
         }
     }
     
@@ -287,9 +287,5 @@ private extension EmailManager {
                 completionHandler?(nil, .invalidResponse)
             }
         }
-    }
-    
-    func emailFromAlias(_ alias: String) -> String {
-        return alias + "@" + EmailManager.emailDomain
     }
 }
