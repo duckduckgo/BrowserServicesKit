@@ -122,13 +122,7 @@ public class EmailManager {
         storage.deleteAll()
         NotificationCenter.default.post(name: .emailDidSignOut, object: self)
     }
-    
-    public func getAliasEmailIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
-        getAliasIfNeededAndConsume { [weak self] alias, error in
-            completionHandler(alias == nil ? nil : self?.emailFromAlias(alias!), error)
-        }
-    }
-
+ 
     public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         getAliasIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             completionHandler(newAlias, error)
@@ -140,7 +134,6 @@ public class EmailManager {
 
 }
 
-// Note that the JS injected via the user script does not expect fully qualified email addresss
 extension EmailManager: EmailUserScriptDelegate {
     public func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
          isSignedIn
@@ -242,15 +235,15 @@ private extension EmailManager {
     
     func getAliasIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
-            completionHandler(alias, nil)
+            completionHandler(aliasFormattedForPlatorm(alias), nil)
             return
         }
-        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { newAlias, error in
+        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil  else {
                 completionHandler(nil, error)
                 return
             }
-            completionHandler(newAlias, nil)
+            completionHandler(self?.aliasFormattedForPlatorm(newAlias), nil)
         }
     }
 
@@ -296,8 +289,14 @@ private extension EmailManager {
             }
         }
     }
-    
-    func emailFromAlias(_ alias: String) -> String {
-        return alias + "@" + EmailManager.emailDomain
+
+    #warning("Tests are expected to run on OSX")
+    // Later the script will expect the alias in a consistent format.
+    func aliasFormattedForPlatorm(_ alias: String) -> String {
+        #if os(OSX)
+            return alias
+        #else
+            return alias + "@" + EmailManager.emailDomain
+        #endif
     }
 }
