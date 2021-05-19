@@ -65,39 +65,6 @@ class EmailManagerTests: XCTestCase {
         XCTAssertFalse(status)
     }
 
-    func testWhenCallingGetAliasWithAliasStoredThenAliasReturnedAndNewAliasFetched() {
-
-        let expect = expectation(description: "test")
-        let storage = storageForGetAliasTest(signedIn: true, storedAlias: true, fulfullOnFirstStorageEvent: true, expectationToFulfill: expect)
-        let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
-        requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
-        emailManager.requestDelegate = requestDelegate
-
-        events.removeAll()
-
-        // When an alias is stored
-        // should call completion with stored alias
-        // then delete alias
-        // then there should be a request for a new alias
-        // and it should store the new one
-        let expectedEvents: [AliasFetchingTestEvent] = [
-            .getAliasCallbackCalled,
-            .deleteAliasCalled,
-            .requestMade,
-            .storeAliasCalled
-        ]
-
-        emailManager.getAliasIfNeededAndConsume { alias, _ in
-            XCTAssertEqual(alias, "testAlias1")
-            events.append(.getAliasCallbackCalled)
-        }
-
-        waitForExpectations(timeout: 1.0) { _ in
-            XCTAssertEqual(events, expectedEvents)
-        }
-    }
-
     func testWhenCallingGetAliasEmailWithAliasStoredThenAliasReturnedAndNewAliasFetched() {
         
         let expect = expectation(description: "test")
