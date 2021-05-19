@@ -124,22 +124,30 @@ public class EmailManager {
     }
     
     public func getAliasEmailIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
-        getAliasEmailIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
+        getAliasIfNeededAndConsume { [weak self] alias, error in
+            completionHandler(alias == nil ? nil : self?.emailFromAlias(alias!), error)
+        }
+    }
+
+    public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
+        getAliasIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             completionHandler(newAlias, error)
             if error == nil {
                 self?.consumeAliasAndReplace()
             }
         }
     }
+
 }
 
+// Note that the JS injected via the user script does not expect fully qualified email addresss
 extension EmailManager: EmailUserScriptDelegate {
     public func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
          isSignedIn
     }
 
     public func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
-        getAliasEmailIfNeeded { [weak self] alias, error in
+        getAliasIfNeeded { [weak self] alias, error in
             guard let alias = alias, error == nil, let self = self else {
                 completionHandler(nil, nil, error)
                 return
@@ -154,7 +162,7 @@ extension EmailManager: EmailUserScriptDelegate {
                                 shouldConsumeAliasIfProvided: Bool,
                                 completionHandler: @escaping AliasCompletion) {
             
-        getAliasEmailIfNeeded { [weak self] newAlias, error in
+        getAliasIfNeeded { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil, let self = self else {
                 completionHandler(nil, error)
                 return
@@ -232,7 +240,7 @@ private extension EmailManager {
         fetchAndStoreAlias()
     }
     
-    func getAliasEmailIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
+    func getAliasIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
             completionHandler(alias, nil)
             return
@@ -245,7 +253,7 @@ private extension EmailManager {
             completionHandler(newAlias, nil)
         }
     }
-    
+
     func fetchAndStoreAlias(timeoutInterval: TimeInterval = 60.0, completionHandler: AliasCompletion? = nil) {
         fetchAlias(timeoutInterval: timeoutInterval) { [weak self] alias, error in
             guard let alias = alias, error == nil else {
@@ -287,5 +295,9 @@ private extension EmailManager {
                 completionHandler?(nil, .invalidResponse)
             }
         }
+    }
+    
+    func emailFromAlias(_ alias: String) -> String {
+        return alias + "@" + EmailManager.emailDomain
     }
 }
