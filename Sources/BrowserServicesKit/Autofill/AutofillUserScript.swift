@@ -31,11 +31,11 @@ public protocol AutofillEmailDelegate: AnyObject {
 
 public class AutofillUserScript: NSObject, UserScript {
 
-    typealias MessageHandler = (WKScriptMessage) -> Void
+    typealias MessageReplyHandler = (String) -> Void
+    typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
     public weak var emailDelegate: AutofillEmailDelegate?
-    public var webView: WKWebView?
-    
+
     public lazy var source: String = {
         #if os(OSX)
             let replacements = ["// INJECT isApp HERE": "isApp = true;"]
@@ -49,24 +49,20 @@ public class AutofillUserScript: NSObject, UserScript {
     public var messageNames: [String] { messages.keys.map { $0 } }
 
     private lazy var messages: [String: MessageHandler] = { [
-        "emailHandlerStoreToken": emailStoreToken(_:),
-        "emailHandlerGetAlias": emailGetAlias(_:),
-        "emailHandlerRefreshAlias": emailRefreshAlias(_:),
-        "emailHandlerGetAddresses": emailGetAddresses(_:)
+        "emailHandlerStoreToken": emailStoreToken,
+        "emailHandlerGetAlias": emailGetAlias,
+        "emailHandlerRefreshAlias": emailRefreshAlias,
+        "emailHandlerGetAddresses": emailGetAddresses
     ] }()
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        messages[message.name]?(message)
-    }
-
-    private func emailStoreToken(_ message: WKScriptMessage) {
+    private func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.body as? [String: Any],
               let token = dict["token"] as? String,
               let username = dict["username"] as? String else { return }
         emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
     }
 
-    private func emailGetAlias(_ message: WKScriptMessage) {
+    private func emailGetAlias(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.body as? [String: Any],
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
@@ -75,40 +71,101 @@ public class AutofillUserScript: NSObject, UserScript {
                                   didRequestAliasAndRequiresUserPermission: requiresUserPermission,
                                   shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
             guard let alias = alias else { return }
-            let jsString = Self.postMessageJSString(withPropertyString: "type: '\(message.responseType)', alias: \"\(alias)\"")
-            self.webView?.evaluateJavaScript(jsString)
+
+            replyHandler("""
+            {
+                alias: "\(alias)"
+            }
+            """)
         }
     }
 
-    private func emailRefreshAlias(_ message: WKScriptMessage) {
+    private func emailRefreshAlias(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
     }
 
-    private func emailGetAddresses(_ message: WKScriptMessage) {
+    private func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
             let addresses: String
             if let username = username, let alias = alias {
-                addresses = "{ personalAddress: \"\(username)\", privateAddress: \"\(alias)\" }"
+                addresses = """
+                    personalAddress: "\(username)",
+                    privateAddress: "\(alias)"
+                """
             } else {
                 addresses = "null"
             }
 
-            let jsString = Self.postMessageJSString(withPropertyString: "type: '\(message.responseType)', addresses: \(addresses)")
-            self.webView?.evaluateJavaScript(jsString)
+            replyHandler("""
+            {
+                addresses: \(addresses)
+            }
+            """)
         }
     }
+}
 
-    private static func postMessageJSString(withPropertyString propertyString: String) -> String {
-        let string = "window.postMessage({%@, fromIOSApp: true}, window.origin)"
-        return String(format: string, propertyString)
+@available(iOS 14, *)
+@available(macOS 11, *)
+extension AutofillUserScript: WKScriptMessageHandlerWithReply {
+
+    public func userContentController(_ userContentController: WKUserContentController,
+                                      didReceive message: WKScriptMessage,
+                                      replyHandler: @escaping (Any?, String?) -> Void) {
+
+        messages[message.name]?(message) {
+            replyHandler($0, nil)
+        }
+
     }
 
 }
 
-extension WKScriptMessage {
+// Fallback for older iOS / macOS version
+extension AutofillUserScript {
 
-    var responseType: String {
-        return name + "Response"
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+
+        guard let body = message.body as? [String: Any],
+              let key = body["key"] as? [Int],
+              let iv = body["iv"] as? [Int],
+              let methodName = body["methodName"] as? String else { return }
+
+        messages[message.name]?(message) { reply in
+
+            let keyAsString = key.map { "\($0)" }.joined(separator: ",")
+            let ivAsString = iv.map { "\($0)" }.joined(separator: ",")
+
+            let script = """
+            (() => {
+              const params = {
+                 key: [\(keyAsString)],
+                 iv: [\(ivAsString)],
+                 methodName: \(methodName),
+                 message: \(reply)
+              };
+              const iv = new window.ddgGlobals.Uint8Array(params.iv);
+              const key = params.key;
+
+              function encrypt(message) {
+                let enc = new window.ddgGlobals.TextEncoder();
+                return window.ddgGlobals.encrypt(
+                  {
+                    name: "AES-GCM",
+                    iv
+                  },
+                  key,
+                  encoded: enc.encode(message)
+                );
+              }
+
+              const encryptedMessage = await encrypt(params.message);
+              window[params.methodName](encryptedMessage);
+            })()
+            """
+
+            message.webView?.evaluateJavaScript(script)
+        }
     }
 
 }
