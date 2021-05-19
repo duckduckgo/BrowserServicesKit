@@ -235,7 +235,7 @@ private extension EmailManager {
     
     func getAliasIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
-            completionHandler(aliasFormattedForPlatorm(alias), nil)
+            completionHandler(aliasFormattedForPlatform(alias), nil)
             return
         }
         fetchAndStoreAlias(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
@@ -243,7 +243,7 @@ private extension EmailManager {
                 completionHandler(nil, error)
                 return
             }
-            completionHandler(self?.aliasFormattedForPlatorm(newAlias), nil)
+            completionHandler(self?.aliasFormattedForPlatform(newAlias), nil)
         }
     }
 
@@ -292,7 +292,7 @@ private extension EmailManager {
 
     #warning("Tests are expected to run on OSX")
     // Later the script will expect the alias in a consistent format.
-    func aliasFormattedForPlatorm(_ alias: String) -> String {
+    private func aliasFormattedForPlatform(_ alias: String) -> String {
         #if os(OSX)
             return alias
         #else
