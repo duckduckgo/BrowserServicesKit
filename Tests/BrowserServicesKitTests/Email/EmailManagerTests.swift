@@ -37,7 +37,7 @@ class EmailManagerTests: XCTestCase {
         let storage = MockEmailManagerStorage()
         let emailManager = EmailManager(storage: storage)
         
-        let expect = expectation(description: "testWhenReceivesStoreTokenMessageThenCallsDelegateMethod")
+        let expect = expectation(description: "test")
         storage.deleteAllCallback = {
             expect.fulfill()
         }
@@ -46,9 +46,28 @@ class EmailManagerTests: XCTestCase {
         waitForExpectations(timeout: 1.0, handler: nil)
     }
 
-    func testWhenCallingGetAliasWithAliasStoredThenAliasReturnedAndNewAliasFetched() {
+    func testWhenRequestSignedInStatusThenReturnsCorrectStatus() {
+        let storage = MockEmailManagerStorage()
+        let emailManager = EmailManager(storage: storage)
+        storage.mockUsername = "username"
+        storage.mockToken = "token"
+
+        var status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        XCTAssertTrue(status)
+
+        storage.mockUsername = nil
+        status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        XCTAssertFalse(status)
+
+        storage.mockUsername = "username"
+        storage.mockToken = nil
+        status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        XCTAssertFalse(status)
+    }
+
+    func testWhenCallingGetAliasEmailWithAliasStoredThenAliasReturnedAndNewAliasFetched() {
         
-        let expect = expectation(description: "testWhenCallingGetAliasWithAliasStoredThenAliasReturnedAndNewAliasFetched")
+        let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: true, fulfullOnFirstStorageEvent: true, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -69,8 +88,8 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
                 
-        emailManager.getAliasEmailIfNeededAndConsume { alias, _ in
-            XCTAssertEqual(alias, "testAlias1@duck.com")
+        emailManager.getAliasIfNeededAndConsume { alias, _ in
+            XCTAssertEqual(alias, "testAlias1")
             events.append(.getAliasCallbackCalled)
         }
         
@@ -79,9 +98,9 @@ class EmailManagerTests: XCTestCase {
         }
     }
     
-    func testWhenCallingGetAliasWithNoAliasStoredThenAliasFetchedAndNewAliasFetched() {
+    func testWhenCallingGetAliasEmailWithNoAliasStoredThenAliasFetchedAndNewAliasFetched() {
         
-        let expect = expectation(description: "testWhenCallingGetAliasWithNoAliasStoredThenAliasFetchedAndNewAliasFetched")
+        let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfullOnFirstStorageEvent: false, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -105,8 +124,8 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
         
-        emailManager.getAliasEmailIfNeededAndConsume { alias, _ in
-            XCTAssertEqual(alias, "testAlias2@duck.com")
+        emailManager.getAliasIfNeededAndConsume { alias, _ in
+            XCTAssertEqual(alias, "testAlias2")
             events.append(.getAliasCallbackCalled)
         }
         
@@ -116,7 +135,7 @@ class EmailManagerTests: XCTestCase {
     }
     
     func testWhenCallingGetAliasWhenSignedOutThenNoAliasReturned() {
-        let expect = expectation(description: "testWhenCallingGetAliasWhenSignedOutThenNoAliasReturned")
+        let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: false, storedAlias: false, fulfullOnFirstStorageEvent: false, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -129,7 +148,7 @@ class EmailManagerTests: XCTestCase {
             .getAliasCallbackCalled
         ]
         
-        emailManager.getAliasEmailIfNeededAndConsume { alias, error in
+        emailManager.getAliasIfNeededAndConsume { alias, error in
             XCTAssertNil(alias)
             XCTAssertEqual(error, .signedOut)
             events.append(.getAliasCallbackCalled)
@@ -142,7 +161,7 @@ class EmailManagerTests: XCTestCase {
     }
     
     func testWhenStoreTokenThenRequestForAliasMade() {
-        let expect = expectation(description: "testWhenStoreTokenThenRequestForAliasMade")
+        let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfullOnFirstStorageEvent: true, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -166,7 +185,7 @@ class EmailManagerTests: XCTestCase {
 
     func testWhenRequestingUsernameAndAliasThenTheyAreReturned() {
 
-        let expect = expectation(description: "testWhenRequestingUsernameAndAliasThenTheyAreReturned")
+        let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfullOnFirstStorageEvent: true, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -183,7 +202,7 @@ class EmailManagerTests: XCTestCase {
         emailManager.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript()) { username, alias, error in
             XCTAssertNil(error)
             XCTAssertEqual(username, "username")
-            XCTAssertEqual(alias, "testAlias2@duck.com")
+            XCTAssertEqual(alias, "testAlias2")
         }
 
         waitForExpectations(timeout: 1.0) { _ in
