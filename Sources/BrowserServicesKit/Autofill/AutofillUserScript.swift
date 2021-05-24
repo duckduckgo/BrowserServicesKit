@@ -27,6 +27,8 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String)
     func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
+    func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
+
 }
 
 public class AutofillUserScript: NSObject, UserScript {
@@ -52,8 +54,15 @@ public class AutofillUserScript: NSObject, UserScript {
         "emailHandlerStoreToken": emailStoreToken,
         "emailHandlerGetAlias": emailGetAlias,
         "emailHandlerRefreshAlias": emailRefreshAlias,
-        "emailHandlerGetAddresses": emailGetAddresses
+        "emailHandlerGetAddresses": emailGetAddresses,
+        "emailHandlerCheckAppSignedInStatus": emailCheckSignedInStatus
     ] }()
+
+    private func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        let signedInString = String(signedIn)
+        replyHandler("isAppSignedIn: \(signedInString)")
+    }
 
     private func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.body as? [String: Any],

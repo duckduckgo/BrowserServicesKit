@@ -142,7 +142,7 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     var refreshAliasCallback: (() -> Void)?
     var requestUsernameAndAliasCallback: (() -> Void)?
 
-    func autofillUserScriptDidRequestSignedInStatus(emailUserScript: AutofillUserScript) -> Bool {
+    func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
         signedInCallback!()
         return false
     }
