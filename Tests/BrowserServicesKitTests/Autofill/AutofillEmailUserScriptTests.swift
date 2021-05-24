@@ -26,6 +26,12 @@ class AutofillEmailUserScriptTests: XCTestCase {
     let userScript = AutofillUserScript()
     let userContentController = WKUserContentController()
 
+    let encryptedMessagingParams: [String: Any] = [
+        "iv": Array(repeating: 1, count: 32),
+        "key":Array(repeating: 1, count: 32),
+        "methodName": "test-methodName"
+    ]
+
     func testWhenReceivesStoreTokenMessageThenCallsDelegateMethodWithCorrectTokenAndUsername() {
         let mock = MockAutofillEmailDelegate()
         userScript.emailDelegate = mock
@@ -39,8 +45,11 @@ class AutofillEmailUserScriptTests: XCTestCase {
             XCTAssertEqual(username, callbackUsername)
             expect.fulfill()
         }
-        
-        let message = MockWKScriptMessage(name: "emailHandlerStoreToken", body: [ "token": "testToken", "username": "testUsername"])
+
+        var body = encryptedMessagingParams
+        body["token"] = "testToken"
+        body["username"] = "testUsername"
+        let message = MockWKScriptMessage(name: "emailHandlerStoreToken", body: body)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
@@ -55,7 +64,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
             expect.fulfill()
         }
 
-        let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: "")
+        let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: encryptedMessagingParams)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
@@ -69,9 +78,12 @@ class AutofillEmailUserScriptTests: XCTestCase {
         mock.requestAliasCallback = {
             expect.fulfill()
         }
-        
+
+        var body = encryptedMessagingParams
+        body["requiresUserPermission"] = false
+        body["shouldConsumeAliasIfProvided"] = false
         let message = MockWKScriptMessage(name: "emailHandlerGetAlias",
-                                          body: ["requiresUserPermission": false, "shouldConsumeAliasIfProvided": false])
+                                          body: body)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
@@ -86,7 +98,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
             expect.fulfill()
         }
         
-        let message = MockWKScriptMessage(name: "emailHandlerRefreshAlias", body: "")
+        let message = MockWKScriptMessage(name: "emailHandlerRefreshAlias", body: encryptedMessagingParams)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
@@ -101,7 +113,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
             expect.fulfill()
         }
 
-        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: "")
+        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
