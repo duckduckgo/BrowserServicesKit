@@ -32,9 +32,9 @@ extension Score {
         // Exact matches - full query
         let queryCount = query.count
         if queryCount > 1 && lowercasedTitle.starts(with: query) { // High score for exact match from the begining of the title
-            score += 20000
+            score += 200
         } else if queryCount > 2 && lowercasedTitle.contains(" \(query)") { // Exact match from the begining of the word within string.
-            score += 10000
+            score += 100
         }
 
         let domain = url.host?.drop(prefix: "www.") ?? ""
@@ -52,14 +52,14 @@ extension Score {
 
             if matchesAllTokens {
                 // Score tokenized matches
-                score += 1000
+                score += 10
 
                 // Boost score if first token matches:
                 if let firstToken = queryTokens.first { // domain - high score boost
                     if domain.starts(with: firstToken) {
-                        score += 30000
+                        score += 300
                     } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
-                        score += 5000
+                        score += 50
                     }
                 }
             }
@@ -67,19 +67,22 @@ extension Score {
             // High score for matching domain in the URL
             if let firstToken = queryTokens.first {
                 if domain.starts(with: firstToken) {
-                    score += 30000
+                    score += 300
 
                     // Prioritize root URLs most
-                    if url.isRoot { score += 200000 }
+                    if url.isRoot { score += 2000 }
                 } else if firstToken.count > 2 && domain.contains(firstToken) {
-                    score += 15000
-                    if url.isRoot { score += 200000 }
+                    score += 150
+                    if url.isRoot { score += 2000 }
                 }
             }
         }
 
         // If there are matches, add visitCount to prioritise more visited
-        if score > 0 { score += visitCount }
+        if score > 0 {
+            score *= 1000
+            score += visitCount
+        }
 
         self = score
     }
