@@ -28,6 +28,14 @@ public struct SuggestionResult: Equatable {
     private(set) public var duckduckgoSuggestions: [Suggestion]
     private(set) public var historyAndBookmarks: [Suggestion]
 
+    public init(topHits: [Suggestion],
+                duckduckgoSuggestions: [Suggestion],
+                historyAndBookmarks: [Suggestion]) {
+        self.topHits = topHits
+        self.duckduckgoSuggestions = duckduckgoSuggestions
+        self.historyAndBookmarks = historyAndBookmarks
+    }
+
     var isEmpty: Bool {
         topHits.isEmpty && duckduckgoSuggestions.isEmpty && historyAndBookmarks.isEmpty
     }
