@@ -10,6 +10,10 @@ DuckDuckGo is growing fast and we continue to expand our fully distributed team.
 
 ## Building
 
+The package uses submodules, which will need to be cloned in order for the project to build:
+
+Run `git submodule update --init --recursive`
+
 `BrowserServicesKit` can be built manually two ways:
 
 1. Build the `BrowserServicesKit` scheme by opening the Swift package in Xcode
