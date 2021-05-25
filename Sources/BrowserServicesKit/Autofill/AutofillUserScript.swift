@@ -39,11 +39,15 @@ public class AutofillUserScript: NSObject, UserScript {
     public weak var emailDelegate: AutofillEmailDelegate?
 
     public lazy var source: String = {
+        var replacements: [String: String] = [:]
         #if os(OSX)
-            let replacements = ["// INJECT isApp HERE": "isApp = true;"]
-        #else
-            let replacements: [String: String] = [:]
+            replacements["// INJECT isApp HERE"] = "isApp = true;"
         #endif
+
+        if #available(iOS 14, macOS 11, *) {
+            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
+        }
+
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentEnd }
@@ -147,7 +151,11 @@ extension AutofillUserScript {
 
             let script = """
             (() => {
-                const messageHandling = PASS THE VARIABLE HERE
+                const messageHandling = {
+                    key: [\(keyAsString)],
+                    iv: [\(ivAsString)],
+                    methodName: "\(methodName)"
+                }
                 const message = \(reply)
 
                 const ddgGlobals = window.navigator.ddgGlobals
