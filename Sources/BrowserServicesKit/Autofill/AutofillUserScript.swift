@@ -147,29 +147,29 @@ extension AutofillUserScript {
 
             let script = """
             (() => {
-              const params = {
-                 key: [\(keyAsString)],
-                 iv: [\(ivAsString)],
-                 methodName: \(methodName),
-                 message: \(reply)
-              };
-              const iv = new window.ddgGlobals.Uint8Array(params.iv);
-              const key = params.key;
+                const messageHandling = PASS THE VARIABLE HERE
+                const message = \(reply)
 
-              function encrypt(message) {
-                let enc = new window.ddgGlobals.TextEncoder();
-                return window.ddgGlobals.encrypt(
-                  {
-                    name: "AES-GCM",
-                    iv
-                  },
-                  key,
-                  encoded: enc.encode(message)
-                );
-              }
+                const ddgGlobals = window.navigator.ddgGlobals
 
-              const encryptedMessage = await encrypt(params.message);
-              window[params.methodName](encryptedMessage);
+                const iv = new ddgGlobals.Uint8Array(messageHandling.iv)
+                const keyBuffer = new ddgGlobals.Uint8Array(messageHandling.key)
+                const key = await ddgGlobals.importKey('raw', keyBuffer, 'AES-GCM', false, ['encrypt'])
+
+                const encrypt = (message) => {
+                  let enc = new ddgGlobals.TextEncoder()
+                  return ddgGlobals.encrypt(
+                      {
+                          name: 'AES-GCM',
+                          iv
+                      },
+                      key,
+                      enc.encode(message)
+                  )
+                }
+
+                encrypt(ddgGlobals.JSONstringify(message)).then((encryptedMsg) =>
+                      window[messageHandling.methodName](encryptedMsg))
             })()
             """
 
