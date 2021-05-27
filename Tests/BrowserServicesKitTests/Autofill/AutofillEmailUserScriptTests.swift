@@ -31,7 +31,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
             "messageHandling": [
                 "iv": Array(repeating: UInt8(1), count: 32),
                 "key": Array(repeating: UInt8(1), count: 32),
-                "secret": AutofillUserScript.generatedSecret,
+                "secret": userScript.generatedSecret,
                 "methodName": "test-methodName"
             ]
         ]
