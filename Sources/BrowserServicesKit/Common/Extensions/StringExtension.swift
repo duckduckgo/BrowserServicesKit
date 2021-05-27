@@ -1,5 +1,5 @@
 //
-//  BookmarkMock.swift
+//  StringExtension.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +17,15 @@
 //
 
 import Foundation
-@testable import BrowserServicesKit
 
-struct BookmarkMock: Bookmark {
+extension String {
 
-    var url: URL
-    var title: String
-    var isFavorite: Bool
+    func dropping(prefix: String) -> String {
+        return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
+    }
+
+    func droppingWwwPrefix() -> String {
+        self.dropping(prefix: "www.")
+    }
 
 }

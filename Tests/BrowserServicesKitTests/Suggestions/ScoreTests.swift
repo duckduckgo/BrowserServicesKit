@@ -40,5 +40,65 @@ final class ScoreTests: XCTestCase {
         XCTAssertEqual(spaceTokens, tabTokens)
         XCTAssertEqual(spaceTokens, newlineTokens)
     }
+
+    func testWhenURLMatchesWithQuery_ThenScoreIsIncreased() {
+        let query = "test case"
+        let score1 = Score(title: "Test case website",
+                           url: URL(string: "htts://www.test.com/case")!,
+                           visitCount: 100,
+                           query: query)
+
+        let score2 = Score(title: "Test case website 2",
+                           url: URL(string: "https://www.other.com")!,
+                           visitCount: 100,
+                           query: query)
+
+        XCTAssert(score1 > score2)
+    }
+
+    func testWhenTitleMatchesFromTheBeggining_ThenScoreIsIncreased() {
+        let query = "test"
+        let score1 = Score(title: "Test case website",
+                           url: URL(string: "htts://www.website.com")!,
+                           visitCount: 100,
+                           query: query)
+
+        let score2 = Score(title: "Case test website 2",
+                           url: URL(string: "htts://www.website2.com")!,
+                           visitCount: 100,
+                           query: query)
+
+        XCTAssert(score1 > score2)
+    }
+
+    func testWhenDomainMatchesFromTheBeggining_ThenScoreIsIncreased() {
+        let query = "test"
+        let score1 = Score(title: "Website",
+                           url: URL(string: "htts://www.test.com")!,
+                           visitCount: 100,
+                           query: query)
+
+        let score2 = Score(title: "Website 2",
+                           url: URL(string: "htts://www.websitetest.com")!,
+                           visitCount: 100,
+                           query: query)
+
+        XCTAssert(score1 > score2)
+    }
+
+    func testWhenThereIsMoreVisitCount_ThenScoreIsIncreasedd() {
+        let query = "website"
+        let score1 = Score(title: "Website",
+                           url: URL(string: "htts://www.website.com")!,
+                           visitCount: 100,
+                           query: query)
+
+        let score2 = Score(title: "Website 2",
+                           url: URL(string: "htts://www.website2.com")!,
+                           visitCount: 101,
+                           query: query)
+
+        XCTAssert(score1 < score2)
+    }
     
 }

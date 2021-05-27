@@ -1,5 +1,5 @@
 //
-//  BookmarkMock.swift
+//  URLExtension.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +17,25 @@
 //
 
 import Foundation
-@testable import BrowserServicesKit
 
-struct BookmarkMock: Bookmark {
+extension URL {
 
-    var url: URL
-    var title: String
-    var isFavorite: Bool
+    // URL without the scheme and the '/' suffix of the path
+    // For finding duplicate URLs
+    var naked: URL? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        components.scheme = nil
+        components.host = components.host?.droppingWwwPrefix()
+        if components.path.last == "/" {
+            components.path.removeLast()
+        }
+        return components.url
+    }
+
+    var isRoot: Bool {
+        return (path.isEmpty || path == "/") &&
+            query == nil &&
+            fragment == nil
+    }
 
 }
