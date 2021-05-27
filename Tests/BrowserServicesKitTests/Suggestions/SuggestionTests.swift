@@ -47,53 +47,36 @@ final class SuggestionTests: XCTestCase {
         XCTAssertEqual(suggestion, Suggestion.unknown(value: value))
     }
 
-    func testWhenUrlIsSet_ThenOnlySuggestionsThatContainUrlStoreIt() {
-        let originalUrl = URL(string: "https://www.duckduckgo.com")!
-
-        var phraseSuggestion = Suggestion.phrase(phrase: "phrase")
-        var websiteSuggestion = Suggestion.website(url: originalUrl)
-        var bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: originalUrl, isFavorite: true)
-        var historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: originalUrl)
-        var unknownSuggestion = Suggestion.unknown(value: "phrase")
-
-        let newUrl = URL(string: "https://www.spreadprivacy.com")!
-        phraseSuggestion.url = newUrl
-        websiteSuggestion.url = newUrl
-        bookmarkSuggestion.url = newUrl
-        historyEntrySuggestion.url = newUrl
-        unknownSuggestion.url = newUrl
-
-        XCTAssertNil(phraseSuggestion.url)
-        XCTAssertEqual(websiteSuggestion.url, newUrl)
-        XCTAssertEqual(bookmarkSuggestion.url, newUrl)
-        XCTAssertEqual(historyEntrySuggestion.url, newUrl)
-        XCTAssertNil(phraseSuggestion.url)
-
-        websiteSuggestion.url = nil
-        XCTAssertEqual(websiteSuggestion.url, newUrl)
-    }
-
-    func testWhenTitleIsSet_ThenOnlySuggestionsThatContainUrlStoreIt() {
+    func testWhenUrlIsAccessed_ThenOnlySuggestionsThatContainUrlReturnsIt() {
         let url = URL(string: "https://www.duckduckgo.com")!
-        let originalTitle = "Original Title"
 
         var phraseSuggestion = Suggestion.phrase(phrase: "phrase")
         var websiteSuggestion = Suggestion.website(url: url)
-        var bookmarkSuggestion = Suggestion.bookmark(title: originalTitle, url: url, isFavorite: true)
-        var historyEntrySuggestion = Suggestion.historyEntry(title: originalTitle, url: url)
+        var bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true)
+        var historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url)
         var unknownSuggestion = Suggestion.unknown(value: "phrase")
 
-        let newTitle = "New Title"
-        phraseSuggestion.title = newTitle
-        websiteSuggestion.title = newTitle
-        bookmarkSuggestion.title = newTitle
-        historyEntrySuggestion.title = newTitle
-        unknownSuggestion.title = newTitle
+        XCTAssertNil(phraseSuggestion.url)
+        XCTAssertEqual(websiteSuggestion.url, url)
+        XCTAssertEqual(bookmarkSuggestion.url, url)
+        XCTAssertEqual(historyEntrySuggestion.url, url)
+        XCTAssertNil(phraseSuggestion.url)
+    }
+
+    func testWhenTitleIsAccessed_ThenOnlySuggestionsThatContainUrlStoreIt() {
+        let url = URL(string: "https://www.duckduckgo.com")!
+        let title = "Original Title"
+
+        var phraseSuggestion = Suggestion.phrase(phrase: "phrase")
+        var websiteSuggestion = Suggestion.website(url: url)
+        var bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true)
+        var historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url)
+        var unknownSuggestion = Suggestion.unknown(value: "phrase")
 
         XCTAssertNil(phraseSuggestion.title)
         XCTAssertNil(websiteSuggestion.title)
-        XCTAssertEqual(bookmarkSuggestion.title, newTitle)
-        XCTAssertEqual(historyEntrySuggestion.title, newTitle)
+        XCTAssertEqual(bookmarkSuggestion.title, title)
+        XCTAssertEqual(historyEntrySuggestion.title, title)
         XCTAssertNil(phraseSuggestion.title)
     }
 

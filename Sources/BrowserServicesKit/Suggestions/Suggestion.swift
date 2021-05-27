@@ -37,22 +37,6 @@ public enum Suggestion: Equatable {
                 return nil
             }
         }
-
-        set {
-            guard let newValue = newValue else {
-                return
-            }
-            switch self {
-            case .website:
-                self = .website(url: newValue)
-            case .historyEntry(title: let title, url: _):
-                self = .historyEntry(title: title, url: newValue)
-            case .bookmark(title: let title, url: _, isFavorite: let isFavorite):
-                self = .bookmark(title: title, url: newValue, isFavorite: isFavorite)
-            case .phrase, .unknown:
-                return
-            }
-        }
     }
 
     var title: String? {
@@ -64,19 +48,6 @@ public enum Suggestion: Equatable {
                 return title
             case .phrase, .website,.unknown:
                 return nil
-            }
-        }
-
-        set {
-            switch self {
-            case .historyEntry(title: _, url: let url):
-                self = .historyEntry(title: newValue, url: url)
-            case .bookmark(title: _, url: let url, isFavorite: let isFavorite):
-                if let newTitle = newValue {
-                    self = .bookmark(title: newTitle, url: url, isFavorite: isFavorite)
-                }
-            case .phrase, .website,.unknown:
-                return
             }
         }
     }
