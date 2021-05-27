@@ -82,18 +82,16 @@ public class SuggestionLoader: SuggestionLoading {
         }
 
         // 2) Processing it
-        group.notify(queue: .main) { [weak self] in
-            DispatchQueue.global(qos: .userInitiated).async {
-                let result = self?.processing.result(for: query,
-                                                     from: history,
-                                                     bookmarks: bookmarks,
-                                                     apiResult: apiResult)
-                DispatchQueue.main.async {
-                    if let result = result {
-                        completion(result, apiError)
-                    } else {
-                        completion(nil, SuggestionLoaderError.failedToProcessData)
-                    }
+        group.notify(queue: .global(qos: .userInitiated)) { [weak self] in
+            let result = self?.processing.result(for: query,
+                                                 from: history,
+                                                 bookmarks: bookmarks,
+                                                 apiResult: apiResult)
+            DispatchQueue.main.async {
+                if let result = result {
+                    completion(result, apiError)
+                } else {
+                    completion(nil, SuggestionLoaderError.failedToProcessData)
                 }
             }
         }
