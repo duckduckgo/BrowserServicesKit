@@ -28,13 +28,12 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(url.naked, duplicate.naked)
     }
 
-    func testWhenRootIsCalled_ThenURLWithRootPathAndWithoutQueryOrFragmentIsReturend() {
+    func testIsRoot() {
         let url = URL(string: "https://www.server.com:8080/path?query=string#fragment")!
         let rootUrl = URL(string: "https://www.server.com:8080/")!
 
-        XCTAssertEqual(url.root, rootUrl)
         XCTAssert(rootUrl.isRoot)
-        XCTAssert(url.root!.isRoot)
+        XCTAssertFalse(url.isRoot)
     }
 
 }

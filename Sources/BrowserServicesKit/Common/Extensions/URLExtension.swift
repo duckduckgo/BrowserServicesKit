@@ -32,14 +32,6 @@ extension URL {
         return components.url
     }
 
-    var root: URL? {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
-        components.path = "/"
-        components.query = nil
-        components.fragment = nil
-        return components.url
-    }
-
     var isRoot: Bool {
         return (path.isEmpty || path == "/") &&
             query == nil &&
