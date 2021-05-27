@@ -52,9 +52,9 @@ class AutofillEmailUserScriptTests: XCTestCase {
         XCTAssertEqual(mockWebView.javaScriptString?.contains(expectedReply!), true)
     }
 
-    func testWhenRunningOnModernWebkit_ThenInjectsAPIFlag() {
-        XCTAssertTrue(AutofillUserScript().source.contains("hasModernWebkitAPI = true"))
-    }
+//    func testWhenRunningOnModernWebkit_ThenInjectsAPIFlag() {
+//        XCTAssertTrue(AutofillUserScript().source.contains("hasModernWebkitAPI = true"))
+//    }
 
     func testWhenReceivesStoreTokenMessageThenCallsDelegateMethodWithCorrectTokenAndUsername() {
         let mock = MockAutofillEmailDelegate()

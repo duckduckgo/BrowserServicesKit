@@ -38,7 +38,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public weak var emailDelegate: AutofillEmailDelegate?
 
-    public var source: String {
+    public lazy var source: String = {
         var replacements: [String: String] = [:]
         #if os(OSX)
             replacements["// INJECT isApp HERE"] = "isApp = true;"
@@ -52,7 +52,7 @@ public class AutofillUserScript: NSObject, UserScript {
 //        }
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
-    }
+    }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool { false }
