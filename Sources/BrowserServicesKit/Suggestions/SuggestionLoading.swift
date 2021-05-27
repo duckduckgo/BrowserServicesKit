@@ -39,7 +39,7 @@ public class SuggestionLoader: SuggestionLoading {
     }
 
     public weak var dataSource: SuggestionLoadingDataSource?
-    private var processing: SuggestionProcessing
+    private let processing: SuggestionProcessing
 
     public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: @escaping (String) -> URL?) {
         self.dataSource = dataSource

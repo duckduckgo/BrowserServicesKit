@@ -50,11 +50,11 @@ final class SuggestionTests: XCTestCase {
     func testWhenUrlIsAccessed_ThenOnlySuggestionsThatContainUrlReturnsIt() {
         let url = URL(string: "https://www.duckduckgo.com")!
 
-        var phraseSuggestion = Suggestion.phrase(phrase: "phrase")
-        var websiteSuggestion = Suggestion.website(url: url)
-        var bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true)
-        var historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url)
-        var unknownSuggestion = Suggestion.unknown(value: "phrase")
+        let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
+        let websiteSuggestion = Suggestion.website(url: url)
+        let bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url)
+        _ = Suggestion.unknown(value: "phrase")
 
         XCTAssertNil(phraseSuggestion.url)
         XCTAssertEqual(websiteSuggestion.url, url)
@@ -67,11 +67,11 @@ final class SuggestionTests: XCTestCase {
         let url = URL(string: "https://www.duckduckgo.com")!
         let title = "Original Title"
 
-        var phraseSuggestion = Suggestion.phrase(phrase: "phrase")
-        var websiteSuggestion = Suggestion.website(url: url)
-        var bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true)
-        var historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url)
-        var unknownSuggestion = Suggestion.unknown(value: "phrase")
+        let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
+        let websiteSuggestion = Suggestion.website(url: url)
+        let bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url)
+        _ = Suggestion.unknown(value: "phrase")
 
         XCTAssertNil(phraseSuggestion.title)
         XCTAssertNil(websiteSuggestion.title)
