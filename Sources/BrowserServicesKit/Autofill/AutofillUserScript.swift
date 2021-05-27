@@ -36,6 +36,8 @@ public class AutofillUserScript: NSObject, UserScript {
     typealias MessageReplyHandler = (String) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
+    static let generatedSecret: String = UUID().uuidString
+
     public weak var emailDelegate: AutofillEmailDelegate?
 
     public lazy var source: String = {
@@ -47,7 +49,7 @@ public class AutofillUserScript: NSObject, UserScript {
 //        if #available(iOS 14, macOS 11, *) {
 //            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
 //        } else {
-            replacements["PLACEHOLDER_SECRET"] = generatedSecret
+            replacements["PLACEHOLDER_SECRET"] = AutofillUserScript.generatedSecret
             replacements["PLACEHOLDER_AUTH_DATA"] = encrypter.authenticationDataAsJavaScriptString
 //        }
 
@@ -56,8 +58,6 @@ public class AutofillUserScript: NSObject, UserScript {
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool { false }
     public var messageNames: [String] { messages.keys.map { $0 } }
-
-    let generatedSecret: String = UUID().uuidString
 
     private lazy var messages: [String: MessageHandler] = { [
         "emailHandlerStoreToken": emailStoreToken,
