@@ -151,7 +151,7 @@ final class SuggestionProcessing {
 
             // Sometimes, duplicates with a lower score have more information
             // The point of the code below is to prioritise duplicates that
-            // provide a bigger value
+            // provide a higher value
             var suggestion = suggestion
             switch suggestion {
             case .bookmark, .historyEntry:
