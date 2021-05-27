@@ -290,7 +290,7 @@ private extension EmailManager {
         }
     }
 
-    #warning("Tests are expected to run on OSX")
+    // Tests are expected to run on OSX
     // Later the script will expect the alias in a consistent format.
     private func aliasFormattedForPlatform(_ alias: String) -> String {
         #if os(OSX)
