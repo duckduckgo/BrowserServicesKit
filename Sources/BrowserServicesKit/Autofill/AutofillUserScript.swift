@@ -44,16 +44,16 @@ public class AutofillUserScript: NSObject, UserScript {
             replacements["// INJECT isApp HERE"] = "isApp = true;"
         #endif
 
-        if #available(iOS 14, macOS 11, *) {
-            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
-        } else {
+//        if #available(iOS 14, macOS 11, *) {
+//            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
+//        } else {
             replacements["PLACEHOLDER_SECRET"] = generatedSecret
             replacements["PLACEHOLDER_AUTH_DATA"] = encrypter.authenticationDataAsJavaScriptString
-        }
+//        }
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
-    public var injectionTime: WKUserScriptInjectionTime { .atDocumentEnd }
+    public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool { false }
     public var messageNames: [String] { messages.keys.map { $0 } }
 
