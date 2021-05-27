@@ -25,7 +25,7 @@ extension URL {
     var naked: URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.scheme = nil
-        components.host = components.host?.dropWwwPrefix()
+        components.host = components.host?.droppingWwwPrefix()
         if components.path.last == "/" {
             components.path.removeLast()
         }

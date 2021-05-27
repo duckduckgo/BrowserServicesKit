@@ -101,7 +101,7 @@ extension Suggestion {
 
     init(key: String, value: String) {
         if key == Self.phraseKey {
-            self = .phrase(phrase: value.dropWwwPrefix())
+            self = .phrase(phrase: value.droppingWwwPrefix())
         } else {
             self = .unknown(value: value)
         }

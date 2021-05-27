@@ -37,7 +37,7 @@ extension Score {
             score += 100
         }
 
-        let domain = url.host?.drop(prefix: "www.") ?? ""
+        let domain = url.host?.droppingWwwPrefix() ?? ""
 
         // Tokenized matches
         if queryTokens.count > 1 {

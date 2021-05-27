@@ -20,12 +20,12 @@ import Foundation
 
 extension String {
 
-    func drop(prefix: String) -> String {
+    func dropping(prefix: String) -> String {
         return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
     }
 
-    func dropWwwPrefix() -> String {
-        self.drop(prefix: "www.")
+    func droppingWwwPrefix() -> String {
+        self.dropping(prefix: "www.")
     }
 
 }
