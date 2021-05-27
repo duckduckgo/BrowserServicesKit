@@ -153,7 +153,7 @@ extension AutofillUserScript {
         guard let body = message.body as? [String: Any],
               let messageHandling = body["messageHandling"] as? [String: Any],
               let secret = messageHandling["secret"] as? String,
-              secret == generatedSecret, // If this does not match the page is playing shenanigans.
+              secret == Self.generatedSecret, // If this does not match the page is playing shenanigans.
               let key = messageHandling["key"] as? [UInt8],
               let iv = messageHandling["iv"] as? [UInt8],
               let methodName = messageHandling["methodName"] as? String else { return }
