@@ -35,7 +35,6 @@ public class SuggestionLoader: SuggestionLoading {
     public enum SuggestionLoaderError: Error {
         case noDataSource
         case parsingFailed
-        case failedToObtainData
         case failedToProcessData
     }
 
