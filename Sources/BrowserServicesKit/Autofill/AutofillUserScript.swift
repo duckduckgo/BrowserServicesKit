@@ -69,7 +69,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
     private let encrypter: AutofillEncrypter
 
-    init(encrypter: AutofillEncrypter = AESGCMAutofillEncrypter()) {
+    public init(encrypter: AutofillEncrypter = AESGCMAutofillEncrypter()) {
         self.encrypter = encrypter
     }
 
