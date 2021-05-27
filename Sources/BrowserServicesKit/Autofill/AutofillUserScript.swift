@@ -46,6 +46,9 @@ public class AutofillUserScript: NSObject, UserScript {
 
         if #available(iOS 14, macOS 11, *) {
             replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
+        } else {
+            replacements["PLACEHOLDER_SECRET"] = generatedSecret
+            replacements["PLACEHOLDER_AUTH_DATA"] = encrypter.authenticationDataAsJavaScriptString
         }
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
@@ -54,6 +57,8 @@ public class AutofillUserScript: NSObject, UserScript {
     public var forMainFrameOnly: Bool { false }
     public var messageNames: [String] { messages.keys.map { $0 } }
 
+    let generatedSecret: String = UUID().uuidString
+
     private lazy var messages: [String: MessageHandler] = { [
         "emailHandlerStoreToken": emailStoreToken,
         "emailHandlerGetAlias": emailGetAlias,
@@ -61,6 +66,12 @@ public class AutofillUserScript: NSObject, UserScript {
         "emailHandlerGetAddresses": emailGetAddresses,
         "emailHandlerCheckAppSignedInStatus": emailCheckSignedInStatus
     ] }()
+
+    private let encrypter: AutofillEncrypter
+
+    init(encrypter: AutofillEncrypter = AESGCMAutofillEncrypter()) {
+        self.encrypter = encrypter
+    }
 
     private func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
@@ -140,49 +151,41 @@ extension AutofillUserScript {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
 
         guard let body = message.body as? [String: Any],
-              let key = body["key"] as? [Int],
-              let iv = body["iv"] as? [Int],
-              let methodName = body["methodName"] as? String else { return }
+              let messageHandling = body["messageHandling"] as? [String: Any],
+              let secret = messageHandling["secret"] as? String,
+              secret == generatedSecret, // If this does not match the page is playing shenanigans.
+              let key = messageHandling["key"] as? [UInt8],
+              let iv = messageHandling["iv"] as? [UInt8],
+              let methodName = messageHandling["methodName"] as? String else { return }
 
         messages[message.name]?(message) { reply in
+            guard let encryption = try? self.encrypter.encryptReply(reply, key: key, iv: iv) else { return }
 
-            let keyAsString = key.map { "\($0)" }.joined(separator: ",")
-            let ivAsString = iv.map { "\($0)" }.joined(separator: ",")
+            let ciphertext = encryption.ciphertext.withUnsafeBytes { bytes in
+                return bytes.map { String($0) }
+            }.joined(separator: ",")
+
+            let tag = encryption.tag.withUnsafeBytes { bytes in
+                return bytes.map { String($0) }
+            }.joined(separator: ",")
 
             let script = """
             (() => {
-                const messageHandling = {
-                    key: [\(keyAsString)],
-                    iv: [\(ivAsString)],
-                    methodName: "\(methodName)"
-                }
-                const message = \(reply)
-
-                const ddgGlobals = window.navigator.ddgGlobals
-
-                const iv = new ddgGlobals.Uint8Array(messageHandling.iv)
-                const keyBuffer = new ddgGlobals.Uint8Array(messageHandling.key)
-                const key = await ddgGlobals.importKey('raw', keyBuffer, 'AES-GCM', false, ['encrypt'])
-
-                const encrypt = (message) => {
-                  let enc = new ddgGlobals.TextEncoder()
-                  return ddgGlobals.encrypt(
-                      {
-                          name: 'AES-GCM',
-                          iv
-                      },
-                      key,
-                      enc.encode(message)
-                  )
-                }
-
-                encrypt(ddgGlobals.JSONstringify(message)).then((encryptedMsg) =>
-                      window[messageHandling.methodName](encryptedMsg))
+                window.\(methodName)([\(ciphertext)], [\(tag)]);
             })()
             """
 
+            assert(message.webView != nil)
             message.webView?.evaluateJavaScript(script)
         }
+    }
+
+}
+
+extension AutofillEncrypter {
+
+    var authenticationDataAsJavaScriptString: String {
+        return "[" + authenticationData.withUnsafeBytes { $0.map { String($0) }}.joined(separator: ",") + "];"
     }
 
 }

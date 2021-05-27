@@ -23,14 +23,34 @@ import WebKit
 
 class AutofillEmailUserScriptTests: XCTestCase {
 
-    let userScript = AutofillUserScript()
+    let userScript = AutofillUserScript(encrypter: MockEncrypter())
     let userContentController = WKUserContentController()
 
-    let encryptedMessagingParams: [String: Any] = [
-        "iv": Array(repeating: 1, count: 32),
-        "key":Array(repeating: 1, count: 32),
-        "methodName": "test-methodName"
-    ]
+    var encryptedMessagingParams: [String: Any] {
+        return [
+            "messageHandling": [
+                "iv": Array(repeating: UInt8(1), count: 32),
+                "key": Array(repeating: UInt8(1), count: 32),
+                "secret": userScript.generatedSecret,
+                "methodName": "test-methodName"
+            ]
+        ]
+    }
+
+    func testWhenReplyIsReturnedFromMessageHandlerThenIsEncrypted() {
+        let mock = MockAutofillEmailDelegate()
+        userScript.emailDelegate = mock
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams, webView: mockWebView)
+        userScript.userContentController(userContentController, didReceive: message)
+
+        let expectedReply = "reply".data(using: .utf8)?.withUnsafeBytes {
+            $0.map { String($0) }
+        }.joined(separator: ",")
+
+        XCTAssertEqual(mockWebView.javaScriptString?.contains(expectedReply!), true)
+    }
 
     func testWhenRunningOnModernWebkit_ThenInjectsAPIFlag() {
         XCTAssertTrue(AutofillUserScript().source.contains("hasModernWebkitAPI = true"))
@@ -68,8 +88,11 @@ class AutofillEmailUserScriptTests: XCTestCase {
             expect.fulfill()
         }
 
-        let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: encryptedMessagingParams)
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: encryptedMessagingParams, webView: mockWebView)
         userScript.userContentController(userContentController, didReceive: message)
+
+        XCTAssertEqual(mockWebView.javaScriptString?.contains("window.test-methodName(["), true)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
@@ -86,11 +109,13 @@ class AutofillEmailUserScriptTests: XCTestCase {
         var body = encryptedMessagingParams
         body["requiresUserPermission"] = false
         body["shouldConsumeAliasIfProvided"] = false
-        let message = MockWKScriptMessage(name: "emailHandlerGetAlias",
-                                          body: body)
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "emailHandlerGetAlias", body: body, webView: mockWebView)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
+
+        XCTAssertNotNil(mockWebView.javaScriptString)
     }
     
     func testWhenReceivesRefreshAliasMessageThenCallsDelegateMethod() {
@@ -101,14 +126,14 @@ class AutofillEmailUserScriptTests: XCTestCase {
         mock.refreshAliasCallback = {
             expect.fulfill()
         }
-        
+
         let message = MockWKScriptMessage(name: "emailHandlerRefreshAlias", body: encryptedMessagingParams)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
 
-    func testWhenReceivesRequestUsernameAndAliasMessageThenCallsDelegateMethod() {
+    func testWhenReceivesEmailGetAddressesMessageThenCallsDelegateMethod() {
         let mock = MockAutofillEmailDelegate()
         userScript.emailDelegate = mock
 
@@ -117,10 +142,13 @@ class AutofillEmailUserScriptTests: XCTestCase {
             expect.fulfill()
         }
 
-        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams)
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams, webView: mockWebView)
         userScript.userContentController(userContentController, didReceive: message)
 
         waitForExpectations(timeout: 1.0, handler: nil)
+
+        XCTAssertNotNil(mockWebView.javaScriptString)
     }
 
     func testWhenUnknownMessageReceivedThenNoProblem() {
@@ -134,6 +162,7 @@ class MockWKScriptMessage: WKScriptMessage {
     
     let mockedName: String
     let mockedBody: Any
+    let mockedWebView: WKWebView?
     
     override var name: String {
         return mockedName
@@ -142,10 +171,15 @@ class MockWKScriptMessage: WKScriptMessage {
     override var body: Any {
         return mockedBody
     }
+
+    override var webView: WKWebView? {
+        return mockedWebView
+    }
     
-    init(name: String, body: Any) {
+    init(name: String, body: Any, webView: WKWebView? = nil) {
         self.mockedName = name
         self.mockedBody = body
+        self.mockedWebView = webView
         super.init()
     }
 }
@@ -159,7 +193,7 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     var requestUsernameAndAliasCallback: (() -> Void)?
 
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
-        signedInCallback!()
+        signedInCallback?()
         return false
     }
     
@@ -167,11 +201,12 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
                             completionHandler: @escaping AliasCompletion) {
-        requestAliasCallback!()
+        requestAliasCallback?()
+        completionHandler("alias", nil)
     }
     
     func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {
-        refreshAliasCallback!()
+        refreshAliasCallback?()
     }
     
     func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
@@ -179,7 +214,28 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     }
 
     func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
-        requestUsernameAndAliasCallback!()
+        requestUsernameAndAliasCallback?()
+        completionHandler("username", "alias", nil)
+    }
+
+}
+
+class MockWebView: WKWebView {
+
+    var javaScriptString: String?
+
+    override func evaluateJavaScript(_ javaScriptString: String, completionHandler: ((Any?, Error?) -> Void)? = nil) {
+        self.javaScriptString = javaScriptString
+    }
+
+}
+
+struct MockEncrypter: AutofillEncrypter {
+
+    var authenticationData: Data = Data()
+
+    func encryptReply(_ reply: String, key: [UInt8], iv: [UInt8]) throws -> (ciphertext: Data, tag: Data) {
+        return ("reply".data(using: .utf8)!, Data())
     }
 
 }
