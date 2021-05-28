@@ -172,7 +172,10 @@ extension AutofillUserScript {
 
             let script = """
             (() => {
-                window.\(methodName)([\(ciphertext)], [\(tag)]);
+                window.\(methodName)({
+                    ciphertext: [\(ciphertext)],
+                    tag: [\(tag)]
+                });
             })()
             """
 
