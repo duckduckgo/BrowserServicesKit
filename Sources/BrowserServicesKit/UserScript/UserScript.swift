@@ -49,11 +49,11 @@ extension UserScript {
     }
 
     static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool) -> WKUserScript {
-        if #available(OSX 11.0, iOS 14.0, *) {
-            return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: .defaultClient)
-        } else {
+//        if #available(OSX 11.0, iOS 14.0, *) {
+//            return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: .defaultClient)
+//        } else {
             return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
-        }
+//        }
     }
 
     public func makeWKUserScript() -> WKUserScript {
