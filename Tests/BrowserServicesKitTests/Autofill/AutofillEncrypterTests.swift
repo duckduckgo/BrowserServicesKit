@@ -38,7 +38,7 @@ class AutofillEncrypterTests: XCTestCase {
 
         let symmetricKey = SymmetricKey(data: key)
 
-        let result = try AES.GCM.open(box, using: symmetricKey, authenticating: encrypter.authenticationData)
+        let result = try AES.GCM.open(box, using: symmetricKey)
         XCTAssertEqual("test", String(data: result, encoding: .utf8))
     }
 

@@ -22,15 +22,11 @@ import CryptoKit
 
 public protocol AutofillEncrypter {
 
-    var authenticationData: Data { get }
-
     func encryptReply(_ reply: String, key: [UInt8], iv: [UInt8]) throws -> (ciphertext: Data, tag: Data)
 
 }
 
 public struct AESGCMAutofillEncrypter: AutofillEncrypter {
-
-    public let authenticationData = SymmetricKey(size: .bits128).withUnsafeBytes { Data($0) }
 
     enum Error: Swift.Error {
         case encodingReply
@@ -42,7 +38,7 @@ public struct AESGCMAutofillEncrypter: AutofillEncrypter {
         guard let replyData = reply.data(using: .utf8) else {
             throw Error.encodingReply
         }
-        let sealed = try AES.GCM.seal(replyData, using: .init(data: key), nonce: .init(data: iv), authenticating: authenticationData)
+        let sealed = try AES.GCM.seal(replyData, using: .init(data: key), nonce: .init(data: iv))
         return (ciphertext: sealed.ciphertext, tag: sealed.tag)
     }
 

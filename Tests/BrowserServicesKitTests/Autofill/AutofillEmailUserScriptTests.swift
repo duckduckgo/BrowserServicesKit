@@ -92,7 +92,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
         let message = MockWKScriptMessage(name: "emailHandlerCheckAppSignedInStatus", body: encryptedMessagingParams, webView: mockWebView)
         userScript.userContentController(userContentController, didReceive: message)
 
-        XCTAssertEqual(mockWebView.javaScriptString?.contains("window.test-methodName(["), true)
+        XCTAssertEqual(mockWebView.javaScriptString?.contains("window.test-methodName("), true)
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }

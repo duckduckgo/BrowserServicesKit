@@ -293,7 +293,7 @@ private extension EmailManager {
 
     // Later the script will expect the alias in a consistent format.
     private func aliasFormattedForPlatform(_ alias: String) -> String {
-        #if os(OSX) || targetEnvironment(simulator)
+        #if os(macOS) || targetEnvironment(simulator)
             return alias
         #else
             return alias + "@" + EmailManager.emailDomain

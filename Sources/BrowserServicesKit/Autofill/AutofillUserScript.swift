@@ -40,7 +40,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public lazy var source: String = {
         var replacements: [String: String] = [:]
-        #if os(OSX)
+        #if os(macOS)
             replacements["// INJECT isApp HERE"] = "isApp = true;"
         #endif
 
@@ -48,7 +48,6 @@ public class AutofillUserScript: NSObject, UserScript {
 //            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
 //        } else {
             replacements["PLACEHOLDER_SECRET"] = generatedSecret
-            replacements["PLACEHOLDER_AUTH_DATA"] = encrypter.authenticationDataAsJavaScriptString
 //        }
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
@@ -116,8 +115,10 @@ public class AutofillUserScript: NSObject, UserScript {
             let addresses: String
             if let username = username, let alias = alias {
                 addresses = """
+                {
                     "personalAddress": "\(username)",
                     "privateAddress": "\(alias)"
+                }
                 """
             } else {
                 addresses = "null"
@@ -184,14 +185,6 @@ extension AutofillUserScript {
             assert(message.webView != nil)
             message.webView?.evaluateJavaScript(script)
         }
-    }
-
-}
-
-extension AutofillEncrypter {
-
-    var authenticationDataAsJavaScriptString: String {
-        return "[" + authenticationData.withUnsafeBytes { $0.map { String($0) }}.joined(separator: ",") + "];"
     }
 
 }
