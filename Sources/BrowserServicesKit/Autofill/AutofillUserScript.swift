@@ -77,7 +77,9 @@ public class AutofillUserScript: NSObject, UserScript {
     private func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let signedInString = String(signedIn)
-        replyHandler("{ isAppSignedIn: \(signedInString) }")
+        replyHandler("""
+            { "isAppSignedIn": \(signedInString) }
+        """)
     }
 
     private func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
@@ -99,7 +101,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
             replyHandler("""
             {
-                alias: "\(alias)"
+                "alias": "\(alias)"
             }
             """)
         }
@@ -114,8 +116,8 @@ public class AutofillUserScript: NSObject, UserScript {
             let addresses: String
             if let username = username, let alias = alias {
                 addresses = """
-                    personalAddress: "\(username)",
-                    privateAddress: "\(alias)"
+                    "personalAddress": "\(username)",
+                    "privateAddress": "\(alias)"
                 """
             } else {
                 addresses = "null"
@@ -123,7 +125,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
             replyHandler("""
             {
-                addresses: \(addresses)
+                "addresses": \(addresses)
             }
             """)
         }
