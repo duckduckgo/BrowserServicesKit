@@ -44,11 +44,11 @@ public class AutofillUserScript: NSObject, UserScript {
             replacements["// INJECT isApp HERE"] = "isApp = true;"
         #endif
 
-//        if #available(iOS 14, macOS 11, *) {
-//            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
-//        } else {
+        if #available(iOS 14, macOS 11, *) {
+            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
+        } else {
             replacements["PLACEHOLDER_SECRET"] = generatedSecret
-//        }
+        }
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
@@ -184,6 +184,7 @@ extension AutofillUserScript {
             """
 
             assert(message.webView != nil)
+            dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
             message.webView?.evaluateJavaScript(script)
         }
     }
