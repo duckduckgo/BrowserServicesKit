@@ -157,13 +157,14 @@ extension AutofillUserScript {
         guard let body = message.body as? [String: Any],
               let messageHandling = body["messageHandling"] as? [String: Any],
               let secret = messageHandling["secret"] as? String,
-              secret == generatedSecret, // If this does not match the page is playing shenanigans.
-              let key = messageHandling["key"] as? [UInt8],
-              let iv = messageHandling["iv"] as? [UInt8],
-              let methodName = messageHandling["methodName"] as? String else { return }
+              // If this does not match the page is playing shenanigans.
+              secret == generatedSecret else { return }
 
         messages[message.name]?(message) { reply in
-            guard let encryption = try? self.encrypter.encryptReply(reply, key: key, iv: iv) else { return }
+            guard let key = messageHandling["key"] as? [UInt8],
+                  let iv = messageHandling["iv"] as? [UInt8],
+                  let methodName = messageHandling["methodName"] as? String,
+                  let encryption = try? self.encrypter.encryptReply(reply, key: key, iv: iv) else { return }
 
             let ciphertext = encryption.ciphertext.withUnsafeBytes { bytes in
                 return bytes.map { String($0) }
