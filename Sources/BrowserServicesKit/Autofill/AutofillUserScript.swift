@@ -33,7 +33,7 @@ public protocol AutofillEmailDelegate: AnyObject {
 
 public class AutofillUserScript: NSObject, UserScript {
 
-    typealias MessageReplyHandler = (String) -> Void
+    typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
     public weak var emailDelegate: AutofillEmailDelegate?
@@ -86,6 +86,7 @@ public class AutofillUserScript: NSObject, UserScript {
               let token = dict["token"] as? String,
               let username = dict["username"] as? String else { return }
         emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
+        replyHandler(nil)
     }
 
     private func emailGetAlias(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -108,6 +109,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
     private func emailRefreshAlias(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
+        replyHandler(nil)
     }
 
     private func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -161,7 +163,8 @@ extension AutofillUserScript {
               secret == generatedSecret else { return }
 
         messages[message.name]?(message) { reply in
-            guard let key = messageHandling["key"] as? [UInt8],
+            guard let reply = reply,
+                  let key = messageHandling["key"] as? [UInt8],
                   let iv = messageHandling["iv"] as? [UInt8],
                   let methodName = messageHandling["methodName"] as? String,
                   let encryption = try? self.encrypter.encryptReply(reply, key: key, iv: iv) else { return }
