@@ -86,7 +86,7 @@ public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: Str
 
 public class EmailManager {
     
-    private static let emailDomain = "duck.com"
+    public static let emailDomain = "duck.com"
     
     private let storage: EmailManagerStorage
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
