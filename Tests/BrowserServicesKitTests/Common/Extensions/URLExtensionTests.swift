@@ -1,5 +1,5 @@
 //
-//  BookmarkMock.swift
+//  URLExtensionTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -16,13 +16,24 @@
 //  limitations under the License.
 //
 
-import Foundation
+import XCTest
 @testable import BrowserServicesKit
 
-struct BookmarkMock: Bookmark {
+final class URLExtensionTests: XCTestCase {
 
-    var url: URL
-    var title: String
-    var isFavorite: Bool
+    func testWhenNakedIsCalled_ThenURLWithNoSchemeWWWPrefixAndLastSlashIsReturned() {
+        let url = URL(string: "http://duckduckgo.com")!
+        let duplicate = URL(string: "https://www.duckduckgo.com/")!
+
+        XCTAssertEqual(url.naked, duplicate.naked)
+    }
+
+    func testIsRoot() {
+        let url = URL(string: "https://www.server.com:8080/path?query=string#fragment")!
+        let rootUrl = URL(string: "https://www.server.com:8080/")!
+
+        XCTAssert(rootUrl.isRoot)
+        XCTAssertFalse(url.isRoot)
+    }
 
 }

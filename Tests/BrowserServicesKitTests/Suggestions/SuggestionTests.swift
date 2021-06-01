@@ -34,7 +34,7 @@ final class SuggestionTests: XCTestCase {
     func testWhenSuggestionKeyIsPhrase_ThenSuggestionIsPhrase() {
         let key = Suggestion.phraseKey
         let phraseValue = "value"
-        let suggestion = Suggestion(key: key, value: phraseValue, urlFactory: { _ in nil })
+        let suggestion = Suggestion(key: key, value: phraseValue)
 
         XCTAssertEqual(suggestion, Suggestion.phrase(phrase: phraseValue))
     }
@@ -47,12 +47,84 @@ final class SuggestionTests: XCTestCase {
         XCTAssertEqual(suggestion, Suggestion.unknown(value: value))
     }
 
-    func testWhenSuggestionKeyIsURL_ThenSuggestionIsURL() {
-        let key = Suggestion.phraseKey
-        let phraseValue = "duckduckgo.com"
-        let suggestion = Suggestion(key: key, value: phraseValue, urlFactory: URL.init(string:))
+    func testWhenUrlIsAccessed_ThenOnlySuggestionsThatContainUrlReturnsIt() {
+        let url = URL(string: "https://www.duckduckgo.com")!
 
-        XCTAssertEqual(suggestion, Suggestion.website(url: URL(string: phraseValue)!))
+        let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
+        let websiteSuggestion = Suggestion.website(url: url)
+        let bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url)
+        _ = Suggestion.unknown(value: "phrase")
+
+        XCTAssertNil(phraseSuggestion.url)
+        XCTAssertEqual(websiteSuggestion.url, url)
+        XCTAssertEqual(bookmarkSuggestion.url, url)
+        XCTAssertEqual(historyEntrySuggestion.url, url)
+        XCTAssertNil(phraseSuggestion.url)
+    }
+
+    func testWhenTitleIsAccessed_ThenOnlySuggestionsThatContainUrlStoreIt() {
+        let url = URL(string: "https://www.duckduckgo.com")!
+        let title = "Original Title"
+
+        let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
+        let websiteSuggestion = Suggestion.website(url: url)
+        let bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url)
+        _ = Suggestion.unknown(value: "phrase")
+
+        XCTAssertNil(phraseSuggestion.title)
+        XCTAssertNil(websiteSuggestion.title)
+        XCTAssertEqual(bookmarkSuggestion.title, title)
+        XCTAssertEqual(historyEntrySuggestion.title, title)
+        XCTAssertNil(phraseSuggestion.title)
+    }
+
+    func testWhenInitFromHistoryEntry_ThenHistroryEntrySuggestionIsInitialized() {
+        let url = URL(string: "https://www.duckduckgo.com")!
+        let title = "Title"
+
+
+        let historyEntry = HistoryEntryMock(identifier: UUID(), url: url, title: title, numberOfVisits: 1, lastVisit: Date())
+        let suggestion = Suggestion(historyEntry: historyEntry)
+
+        guard case .historyEntry = suggestion else {
+            XCTFail("Wrong type of suggestion")
+            return
+        }
+
+        XCTAssertEqual(suggestion.url, url)
+        XCTAssertEqual(suggestion.title, title)
+    }
+
+    func testWhenInitFromBookmark_ThenBookmarkSuggestionIsInitialized() {
+        let url = URL(string: "https://www.duckduckgo.com")!
+        let title = "Title"
+
+
+        let bookmark = BookmarkMock(url: url, title: title, isFavorite: true)
+        let suggestion = Suggestion(bookmark: bookmark)
+
+        guard case .bookmark = suggestion else {
+            XCTFail("Wrong type of suggestion")
+            return
+        }
+
+        XCTAssertEqual(suggestion.url, url)
+        XCTAssertEqual(suggestion.title, title)
+    }
+
+    func testWhenInitFromURL_ThenWebsiteSuggestionIsInitialized() {
+        let url = URL(string: "https://www.duckduckgo.com")!
+        let suggestion = Suggestion(url: url)
+
+        guard case .website(let websiteUrl) = suggestion else {
+            XCTFail("Wrong type of suggestion")
+            return
+        }
+
+        XCTAssertEqual(suggestion.url, url)
+        XCTAssertEqual(websiteUrl, url)
     }
 
 }
