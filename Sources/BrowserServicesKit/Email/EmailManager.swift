@@ -86,7 +86,7 @@ public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: Str
 
 public class EmailManager {
     
-    public static let emailDomain = "duck.com"
+    private static let emailDomain = "duck.com"
     
     private let storage: EmailManagerStorage
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
@@ -122,7 +122,11 @@ public class EmailManager {
         storage.deleteAll()
         NotificationCenter.default.post(name: .emailDidSignOut, object: self)
     }
- 
+
+    public func emailAddressFor(_ alias: String) -> String {
+        return alias + "@" + Self.emailDomain
+    }
+
     public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         getAliasIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             completionHandler(newAlias, error)
@@ -172,8 +176,8 @@ extension EmailManager: AutofillEmailDelegate {
                 delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType in
                     switch permissionType {
                     case .user:
-                        if let userEmail = self?.userEmail {
-                            completionHandler(userEmail, nil)
+                        if let username = self?.username {
+                            completionHandler(username, nil)
                         } else {
                             completionHandler(nil, .userRefused)
                         }
