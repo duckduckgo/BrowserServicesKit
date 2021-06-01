@@ -236,15 +236,15 @@ private extension EmailManager {
     
     func getAliasIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
-            completionHandler(aliasFormattedForPlatform(alias), nil)
+            completionHandler(alias, nil)
             return
         }
-        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
+        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { newAlias, error in
             guard let newAlias = newAlias, error == nil  else {
                 completionHandler(nil, error)
                 return
             }
-            completionHandler(self?.aliasFormattedForPlatform(newAlias), nil)
+            completionHandler(newAlias, nil)
         }
     }
 
@@ -291,12 +291,4 @@ private extension EmailManager {
         }
     }
 
-    // Later the script will expect the alias in a consistent format.
-    private func aliasFormattedForPlatform(_ alias: String) -> String {
-        #if os(macOS) || targetEnvironment(simulator)
-            return alias
-        #else
-            return alias + "@" + EmailManager.emailDomain
-        #endif
-    }
 }
