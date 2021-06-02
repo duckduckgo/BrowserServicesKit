@@ -122,7 +122,11 @@ public class EmailManager {
         storage.deleteAll()
         NotificationCenter.default.post(name: .emailDidSignOut, object: self)
     }
- 
+
+    public func emailAddressFor(_ alias: String) -> String {
+        return alias + "@" + Self.emailDomain
+    }
+
     public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         getAliasIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             completionHandler(newAlias, error)
@@ -134,12 +138,13 @@ public class EmailManager {
 
 }
 
-extension EmailManager: EmailUserScriptDelegate {
-    public func emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript) -> Bool {
-         isSignedIn
+extension EmailManager: AutofillEmailDelegate {
+
+    public func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
+         return isSignedIn
     }
 
-    public func emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
+    public func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
         getAliasIfNeeded { [weak self] alias, error in
             guard let alias = alias, error == nil, let self = self else {
                 completionHandler(nil, nil, error)
@@ -150,10 +155,10 @@ extension EmailManager: EmailUserScriptDelegate {
         }
     }
     
-    public func emailUserScript(_ emailUserScript: EmailUserScript,
-                                didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
-                                shouldConsumeAliasIfProvided: Bool,
-                                completionHandler: @escaping AliasCompletion) {
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
+                                   shouldConsumeAliasIfProvided: Bool,
+                                   completionHandler: @escaping AliasCompletion) {
             
         getAliasIfNeeded { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil, let self = self else {
@@ -171,8 +176,8 @@ extension EmailManager: EmailUserScriptDelegate {
                 delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType in
                     switch permissionType {
                     case .user:
-                        if let userEmail = self?.userEmail {
-                            completionHandler(userEmail, nil)
+                        if let username = self?.username {
+                            completionHandler(username, nil)
                         } else {
                             completionHandler(nil, .userRefused)
                         }
@@ -194,11 +199,11 @@ extension EmailManager: EmailUserScriptDelegate {
         }
     }
     
-    public func emailUserScriptDidRequestRefreshAlias(emailUserScript: EmailUserScript) {
+    public func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         self.consumeAliasAndReplace()
     }
     
-    public func emailUserScript(_ emailUserScript: EmailUserScript, didRequestStoreToken token: String, username: String) {
+    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
         storeToken(token, username: username)
         NotificationCenter.default.post(name: .emailDidSignIn, object: self)
     }
@@ -235,15 +240,15 @@ private extension EmailManager {
     
     func getAliasIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
-            completionHandler(aliasFormattedForPlatform(alias), nil)
+            completionHandler(alias, nil)
             return
         }
-        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
+        fetchAndStoreAlias(timeoutInterval: timeoutInterval) { newAlias, error in
             guard let newAlias = newAlias, error == nil  else {
                 completionHandler(nil, error)
                 return
             }
-            completionHandler(self?.aliasFormattedForPlatform(newAlias), nil)
+            completionHandler(newAlias, nil)
         }
     }
 
@@ -290,13 +295,4 @@ private extension EmailManager {
         }
     }
 
-    // Tests are expected to run on OSX
-    // Later the script will expect the alias in a consistent format.
-    private func aliasFormattedForPlatform(_ alias: String) -> String {
-        #if os(OSX)
-            return alias
-        #else
-            return alias + "@" + EmailManager.emailDomain
-        #endif
-    }
 }

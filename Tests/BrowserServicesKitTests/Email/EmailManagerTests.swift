@@ -52,16 +52,16 @@ class EmailManagerTests: XCTestCase {
         storage.mockUsername = "username"
         storage.mockToken = "token"
 
-        var status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        var status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
         XCTAssertTrue(status)
 
         storage.mockUsername = nil
-        status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
         XCTAssertFalse(status)
 
         storage.mockUsername = "username"
         storage.mockToken = nil
-        status = emailManager.emailUserScriptDidRequestSignedInStatus(emailUserScript: EmailUserScript())
+        status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
         XCTAssertFalse(status)
     }
 
@@ -176,7 +176,7 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
         
-        emailManager.emailUserScript(EmailUserScript(), didRequestStoreToken: "token", username: "username")
+        emailManager.autofillUserScript(AutofillUserScript(), didRequestStoreToken: "token", username: "username")
         
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
@@ -199,7 +199,7 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
 
-        emailManager.emailUserScriptDidRequestUsernameAndAlias(emailUserScript: EmailUserScript()) { username, alias, error in
+        emailManager.autofillUserScriptDidRequestUsernameAndAlias(AutofillUserScript()) { username, alias, error in
             XCTAssertNil(error)
             XCTAssertEqual(username, "username")
             XCTAssertEqual(alias, "testAlias2")

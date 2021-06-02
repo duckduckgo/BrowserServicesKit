@@ -28,7 +28,7 @@ public final class ScheduledFuture<Output, Failure: Error>: Publisher {
         _ attemptToFulfill: @escaping (@escaping Future<Output, Failure>.Promise) -> Void
     ) {
         future = Future<Output, Failure> { promise in
-            scheduler.async() {
+            scheduler.async {
                 attemptToFulfill(promise)
             }
         }
