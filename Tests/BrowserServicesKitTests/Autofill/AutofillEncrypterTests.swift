@@ -25,8 +25,8 @@ import CryptoKit
 class AutofillEncrypterTests: XCTestCase {
 
     func testWhenMessageIsEncrypted_ThenCanBeDecryptedUsingAuthenticationData() throws {
-        let key: [UInt8] = SymmetricKey(size: .bits256).withUnsafeBytes { $0.map { $0 }}
-        let iv: [UInt8] = SymmetricKey(size: .bits256).withUnsafeBytes { $0.map { $0 }}
+        let key: [UInt8] = SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
+        let iv: [UInt8] = SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
 
         let encrypter = AESGCMAutofillEncrypter()
         let encrypted = try encrypter.encryptReply("test", key: key, iv: iv)
