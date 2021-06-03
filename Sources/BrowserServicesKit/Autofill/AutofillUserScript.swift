@@ -36,7 +36,7 @@ public class AutofillUserScript: NSObject, UserScript {
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
-    private enum MessageName: String {
+    private enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
         case emailHandlerGetAlias
         case emailHandlerRefreshAlias
@@ -64,23 +64,16 @@ public class AutofillUserScript: NSObject, UserScript {
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool { false }
     public var messageNames: [String] {
-        [
-            "emailHandlerStoreToken",
-            "emailHandlerGetAlias",
-            "emailHandlerRefreshAlias",
-            "emailHandlerGetAddresses",
-            "emailHandlerCheckAppSignedInStatus"
-        ]
+        MessageName.allCases.map(\.rawValue)
     }
 
-    private func messageHandlerFor(name: String) -> MessageHandler? {
-        switch name {
-        case "emailHandlerStoreToken": return emailStoreToken
-        case "emailHandlerGetAlias": return emailGetAlias
-        case "emailHandlerRefreshAlias": return emailRefreshAlias
-        case "emailHandlerGetAddresses": return emailGetAddresses
-        case "emailHandlerCheckAppSignedInStatus": return emailCheckSignedInStatus
-        default: return nil
+    private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
+        switch message {
+        case .emailHandlerStoreToken: return emailStoreToken
+        case .emailHandlerGetAlias: return emailGetAlias
+        case .emailHandlerRefreshAlias: return emailRefreshAlias
+        case .emailHandlerGetAddresses: return emailGetAddresses
+        case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
         }
     }
 
@@ -161,8 +154,9 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
     public func userContentController(_ userContentController: WKUserContentController,
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
+        guard let messageName = MessageName(rawValue: message.name) else { return }
 
-        messageHandlerFor(name: message.name)?(message) {
+        messageHandlerFor(messageName)(message) {
             replyHandler($0, nil)
         }
 
@@ -175,13 +169,14 @@ extension AutofillUserScript {
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
 
-        guard let body = message.body as? [String: Any],
+        guard let messageName = MessageName(rawValue: message.name),
+              let body = message.body as? [String: Any],
               let messageHandling = body["messageHandling"] as? [String: Any],
               let secret = messageHandling["secret"] as? String,
               // If this does not match the page is playing shenanigans.
               secret == generatedSecret else { return }
 
-        messageHandlerFor(name: message.name)?(message) { reply in
+        messageHandlerFor(messageName)(message) { reply in
             guard let reply = reply,
                   let key = messageHandling["key"] as? [UInt8],
                   let iv = messageHandling["iv"] as? [UInt8],
