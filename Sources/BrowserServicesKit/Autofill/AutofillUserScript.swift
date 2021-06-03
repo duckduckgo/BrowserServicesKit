@@ -36,6 +36,14 @@ public class AutofillUserScript: NSObject, UserScript {
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
+    private enum MessageName: String {
+        case emailHandlerStoreToken
+        case emailHandlerGetAlias
+        case emailHandlerRefreshAlias
+        case emailHandlerGetAddresses
+        case emailHandlerCheckAppSignedInStatus
+    }
+
     public weak var emailDelegate: AutofillEmailDelegate?
 
     public lazy var source: String = {
@@ -55,15 +63,26 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool { false }
-    public var messageNames: [String] { messages.keys.map { $0 } }
+    public var messageNames: [String] {
+        [
+            "emailHandlerStoreToken",
+            "emailHandlerGetAlias",
+            "emailHandlerRefreshAlias",
+            "emailHandlerGetAddresses",
+            "emailHandlerCheckAppSignedInStatus"
+        ]
+    }
 
-    private lazy var messages: [String: MessageHandler] = { [
-        "emailHandlerStoreToken": emailStoreToken,
-        "emailHandlerGetAlias": emailGetAlias,
-        "emailHandlerRefreshAlias": emailRefreshAlias,
-        "emailHandlerGetAddresses": emailGetAddresses,
-        "emailHandlerCheckAppSignedInStatus": emailCheckSignedInStatus
-    ] }()
+    private func messageHandlerFor(name: String) -> MessageHandler? {
+        switch name {
+        case "emailHandlerStoreToken": return emailStoreToken
+        case "emailHandlerGetAlias": return emailGetAlias
+        case "emailHandlerRefreshAlias": return emailRefreshAlias
+        case "emailHandlerGetAddresses": return emailGetAddresses
+        case "emailHandlerCheckAppSignedInStatus": return emailCheckSignedInStatus
+        default: return nil
+        }
+    }
 
     private let encrypter: AutofillEncrypter
 
@@ -143,7 +162,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
 
-        messages[message.name]?(message) {
+        messageHandlerFor(name: message.name)?(message) {
             replyHandler($0, nil)
         }
 
@@ -162,7 +181,7 @@ extension AutofillUserScript {
               // If this does not match the page is playing shenanigans.
               secret == generatedSecret else { return }
 
-        messages[message.name]?(message) { reply in
+        messageHandlerFor(name: message.name)?(message) { reply in
             guard let reply = reply,
                   let key = messageHandling["key"] as? [UInt8],
                   let iv = messageHandling["iv"] as? [UInt8],
