@@ -63,9 +63,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool { false }
-    public var messageNames: [String] {
-        MessageName.allCases.map(\.rawValue)
-    }
+    public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
         switch message {
