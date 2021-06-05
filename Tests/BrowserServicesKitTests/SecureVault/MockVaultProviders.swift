@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import SecureVault
+@testable import BrowserServicesKit
 
 internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 

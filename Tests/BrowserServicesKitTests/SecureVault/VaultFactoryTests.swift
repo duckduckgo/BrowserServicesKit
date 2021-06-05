@@ -18,7 +18,7 @@
 
 import XCTest
 import Combine
-@testable import SecureVault
+@testable import BrowserServicesKit
 
 class VaultFactoryTests: XCTestCase {
 

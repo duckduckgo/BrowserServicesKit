@@ -19,7 +19,7 @@
 import Foundation
 
 import XCTest
-@testable import SecureVault
+@testable import BrowserServicesKit
 
 // swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {

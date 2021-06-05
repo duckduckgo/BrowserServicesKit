@@ -9,7 +9,7 @@ import Foundation
 
 import XCTest
 import CryptoKit
-@testable import SecureVault
+@testable import BrowserServicesKit
 
 class CryptoProviderTests: XCTestCase {
 

@@ -18,7 +18,6 @@
 
 import Foundation
 import Combine
-import BrowserServicesKit
 
 /// A vault that supports storing data at various levels.
 ///

@@ -12,7 +12,6 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "SecureVault", targets: ["SecureVault"])
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .upToNextMajor(from: "1.0.0"))
@@ -20,7 +19,9 @@ let package = Package(
     targets: [
         .target(
             name: "BrowserServicesKit",
-            dependencies: [],
+            dependencies: [
+                "GRDB"
+            ],
             exclude: [
                 "Resources/duckduckgo-autofill/Gruntfile.js",
                 "Resources/duckduckgo-autofill/package.json",
@@ -38,17 +39,10 @@ let package = Package(
             resources: [
                 .process("Resources/duckduckgo-autofill/dist/autofill.js")
             ]),
-        .target(
-            name: "SecureVault",
-            dependencies: [
-                "BrowserServicesKit",
-                "GRDB",
-            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
-                "BrowserServicesKit",
-                "SecureVault"
+                "BrowserServicesKit"
             ],
             resources: [
                 .copy("UserScript/testUserScript.js")
