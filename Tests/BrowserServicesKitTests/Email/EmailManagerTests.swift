@@ -255,13 +255,15 @@ class EmailManagerTests: XCTestCase {
 }
 
 class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
-    
+
     var mockAliases: [String] = []
     
     // swiftlint:disable function_parameter_count
     func emailManager(_ emailManager: EmailManager,
-                      didRequestAliasWithURL url: URL,
-                      method: String, headers: [String: String],
+                      requested url: URL,
+                      method: String,
+                      headers: [String : String],
+                      parameters: [String : String]?,
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void) {
         events.append(.requestMade)
@@ -279,14 +281,18 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
 }
 
 class MockEmailManagerStorage: EmailManagerStorage {
-    
+
     var mockUsername: String?
     var mockToken: String?
     var mockAlias: String?
+    var mockWaitlistToken: String?
+    var mockWaitlistTimestamp: Int?
+    var mockWaitlistInviteCode: String?
     var storeTokenCallback: ((String, String) -> Void)?
     var storeAliasCallback: ((String) -> Void)?
     var deleteAliasCallback: (() -> Void)?
     var deleteAllCallback: (() -> Void)?
+    var deleteWaitlistStateCallback: (() -> Void)?
     
     func getUsername() -> String? {
         return mockUsername
@@ -315,4 +321,33 @@ class MockEmailManagerStorage: EmailManagerStorage {
     func deleteAll() {
         deleteAllCallback?()
     }
+
+    func getWaitlistToken() -> String? {
+        return mockWaitlistToken
+    }
+
+    func getWaitlistTimestamp() -> Int? {
+        return mockWaitlistTimestamp
+    }
+
+    func getWaitlistInviteCode() -> String? {
+        return mockWaitlistInviteCode
+    }
+
+    func store(waitlistTimestamp: Int) {
+        mockWaitlistTimestamp = waitlistTimestamp
+    }
+
+    func store(inviteCode: String) {
+        mockWaitlistInviteCode = inviteCode
+    }
+
+    func store(waitlistToken: String) {
+        mockWaitlistToken = waitlistToken
+    }
+
+    func deleteWaitlistState() {
+        deleteWaitlistStateCallback?()
+    }
+
 }
