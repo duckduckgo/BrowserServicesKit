@@ -42,6 +42,10 @@ public class AutofillUserScript: NSObject, UserScript {
         case emailHandlerRefreshAlias
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
+        case pmHandlerStoreCredentials
+        case pmHandlerGetCredentials
+        case pmHandlerGetAutofillCredentials
+        case pmHandlerOpenManagePasswords
     }
 
     public weak var emailDelegate: AutofillEmailDelegate?
@@ -72,6 +76,10 @@ public class AutofillUserScript: NSObject, UserScript {
         case .emailHandlerRefreshAlias: return emailRefreshAlias
         case .emailHandlerGetAddresses: return emailGetAddresses
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
+        case .pmHandlerStoreCredentials: return pmStoreCredentials
+        case .pmHandlerGetCredentials: return pmGetCredentials
+        case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
+        case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
     }
 
@@ -81,6 +89,41 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public init(encrypter: AutofillEncrypter = AESGCMAutofillEncrypter()) {
         self.encrypter = encrypter
+    }
+
+    private func pmStoreCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        // Do stuff
+        replyHandler(nil)
+    }
+
+    private func pmGetCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        replyHandler("""
+        {
+            \"success\":[{
+                \"id\": 123,
+                \"username\": \"user@name.com\",
+                \"lastUpdated\": 1623221677121
+            }]
+        }
+        """)
+    }
+    
+    private func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        replyHandler("""
+        {
+            \"success\":[{
+                \"id\": 123,
+                \"username\": \"user@name.com\",
+                \"password\": \"abcd1234!\",
+                \"lastUpdated\": 1623221677121
+            }]
+        }
+        """)
+    }
+    
+    private func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        // Do stuff
+        replyHandler(nil)
     }
 
     private func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
