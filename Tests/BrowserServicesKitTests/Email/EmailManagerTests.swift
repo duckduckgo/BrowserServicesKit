@@ -211,6 +211,31 @@ class EmailManagerTests: XCTestCase {
 
     }
 
+    func testWhenGettingWaitListStateAndWaitlistHasNoTokenOrInviteCodeThenStatusIsNotJoinedQueue() {
+        let storage = MockEmailManagerStorage()
+        let manager = EmailManager(storage: storage)
+
+        XCTAssertEqual(manager.waitlistState, .notJoinedQueue)
+    }
+
+    func testWhenGettingWaitListStateAndWaitlistHasTokenAndTimestampAndNoInviteCodeThenStatusIsJoinedQueue() {
+        let storage = MockEmailManagerStorage()
+        storage.store(waitlistToken: "Token")
+        storage.store(waitlistTimestamp: 42)
+        let manager = EmailManager(storage: storage)
+
+        XCTAssertEqual(manager.waitlistState, .joinedQueue)
+    }
+
+    func testWhenGettingWaitListStateAndWaitlistHasInviteCodeThenStatusIsJoinedQueue() {
+        let storage = MockEmailManagerStorage()
+        storage.store(waitlistToken: "Token")
+        storage.store(inviteCode: "Code")
+        let manager = EmailManager(storage: storage)
+
+        XCTAssertEqual(manager.waitlistState, .inBeta)
+    }
+
     private func storageForGetAliasTest(signedIn: Bool,
                                         storedAlias: Bool,
                                         fulfullOnFirstStorageEvent: Bool,
