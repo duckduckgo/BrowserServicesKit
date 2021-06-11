@@ -99,7 +99,7 @@ public class AutofillUserScript: NSObject, UserScript {
     private func pmGetCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         replyHandler("""
         {
-            \"success\":[{
+            \"success\": [{
                 \"id\": 123,
                 \"username\": \"user@name.com\",
                 \"lastUpdated\": 1623221677121
@@ -111,12 +111,12 @@ public class AutofillUserScript: NSObject, UserScript {
     private func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         replyHandler("""
         {
-            \"success\":[{
+            \"success\": {
                 \"id\": 123,
                 \"username\": \"user@name.com\",
                 \"password\": \"abcd1234!\",
                 \"lastUpdated\": 1623221677121
-            }]
+            }
         }
         """)
     }
