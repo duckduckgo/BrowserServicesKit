@@ -87,7 +87,7 @@ public enum AliasRequestError: Error {
 }
 
 public struct EmailUrls {
-    private struct Url {
+    struct Url {
         static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
         static let joinWaitlist = "https://quack.duckduckgo.com/api/waitlist/join"
         static let waitlistStatus = "https://quack.duckduckgo.com/api/waitlist/status"
@@ -286,7 +286,7 @@ private extension EmailManager {
     
     typealias HTTPHeaders = [String: String]
     
-    var aliasHeaders: HTTPHeaders {
+    var emailHeaders: HTTPHeaders {
         guard let token = token else {
             return [:]
         }
@@ -338,7 +338,7 @@ private extension EmailManager {
         requestDelegate?.emailManager(self,
                                       requested: aliasAPIURL,
                                       method: "POST",
-                                      headers: aliasHeaders,
+                                      headers: emailHeaders,
                                       parameters: [:],
                                       timeoutInterval: timeoutInterval) { data, error in
             guard let data = data, error == nil else {
@@ -364,7 +364,7 @@ extension EmailManager {
 
     public typealias WaitlistRequestCompletion<T> = (Result<T, WaitlistRequestError>) -> Void
 
-    public typealias JoinWaitlistCompletion = (Result<WaitlistResponse, WaitlistRequestError>) -> Void
+    public typealias JoinWaitlistCompletion = WaitlistRequestCompletion<WaitlistResponse>
     public typealias FetchInviteCodeCompletion = WaitlistRequestCompletion<EmailInviteCodeResponse>
     private typealias FetchWaitlistStatusCompletion = WaitlistRequestCompletion<WaitlistStatusResponse>
 
@@ -393,7 +393,7 @@ extension EmailManager {
         requestDelegate?.emailManager(self,
                                       requested: emailUrls.joinWaitlistAPI,
                                       method: "POST",
-                                      headers: aliasHeaders,
+                                      headers: emailHeaders,
                                       parameters: nil,
                                       timeoutInterval: timeoutInterval) { [weak self] data, error in
             guard let self = self else { return }
@@ -470,7 +470,7 @@ extension EmailManager {
         requestDelegate?.emailManager(self,
                                       requested: emailUrls.waitlistStatusAPI,
                                       method: "GET",
-                                      headers: aliasHeaders,
+                                      headers: emailHeaders,
                                       parameters: nil,
                                       timeoutInterval: timeoutInterval) { data, error in
             guard let data = data, error == nil else {
@@ -511,7 +511,7 @@ extension EmailManager {
         requestDelegate?.emailManager(self,
                                       requested: emailUrls.getInviteCodeAPI,
                                       method: "POST",
-                                      headers: aliasHeaders,
+                                      headers: emailHeaders,
                                       parameters: ["token": token],
                                       timeoutInterval: timeoutInterval) { [weak self] data, error in
             guard let data = data, error == nil else {
