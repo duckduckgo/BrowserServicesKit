@@ -322,6 +322,8 @@ class EmailManagerTests: XCTestCase {
         ]
 
         manager.joinWaitlist { result in
+            XCTAssert(Thread.isMainThread)
+
             switch result {
             case .success(let response):
                 XCTAssertEqual(response.token, "Token")
@@ -335,6 +337,8 @@ class EmailManagerTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
+            XCTAssertEqual(storage.getWaitlistToken(), "Token")
+            XCTAssertEqual(storage.getWaitlistTimestamp(), 1)
         }
     }
 
@@ -350,6 +354,8 @@ class EmailManagerTests: XCTestCase {
         let expectedEvents: [AliasFetchingTestEvent] = []
 
         manager.fetchInviteCodeIfAvailable { result in
+            XCTAssert(Thread.isMainThread)
+
             switch result {
             case .success:
                 XCTFail()
@@ -377,6 +383,8 @@ class EmailManagerTests: XCTestCase {
         let expectedEvents: [AliasFetchingTestEvent] = []
 
         manager.fetchInviteCodeIfAvailable { result in
+            XCTAssert(Thread.isMainThread)
+
             switch result {
             case .success:
                 XCTFail()
@@ -408,6 +416,8 @@ class EmailManagerTests: XCTestCase {
         ]
 
         manager.fetchInviteCodeIfAvailable { result in
+            XCTAssert(Thread.isMainThread)
+
             switch result {
             case .success(let response):
                 XCTAssertEqual(response.code, "Code")
