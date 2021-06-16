@@ -20,6 +20,7 @@
 import WebKit
 
 public protocol AutofillEmailDelegate: AnyObject {
+
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
@@ -28,6 +29,13 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String)
     func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
+
+}
+
+public protocol AutofillSecureVaultDelegate: AnyObject {
+
+    func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentials username: String, password: String)
 
 }
 
@@ -49,6 +57,7 @@ public class AutofillUserScript: NSObject, UserScript {
     }
 
     public weak var emailDelegate: AutofillEmailDelegate?
+    public weak var vaultDelegate: AutofillSecureVaultDelegate?
 
     public lazy var source: String = {
         var replacements: [String: String] = [:]
@@ -92,8 +101,17 @@ public class AutofillUserScript: NSObject, UserScript {
     }
 
     private func pmStoreCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        // Do stuff
-        replyHandler(nil)
+        defer {
+            replyHandler(nil)
+        }
+
+        guard let body = message.body as? [String: Any],
+              let username = body["username"] as? String,
+              let password = body["password"] as? String else {
+            return
+        }
+
+        vaultDelegate?.autofillUserScript(self, didRequestStoreCredentials: username, password: password)
     }
 
     private func pmGetCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -106,6 +124,11 @@ public class AutofillUserScript: NSObject, UserScript {
             }]
         }
         """)
+//        replyHandler("""
+//        {
+//            \"success\": []
+//        }
+//        """)
     }
     
     private func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -119,10 +142,15 @@ public class AutofillUserScript: NSObject, UserScript {
             }
         }
         """)
+//        replyHandler("""
+//        {
+//            \"success\": { }
+//        }
+//        """)
     }
     
     private func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        // Do stuff
+        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: message.frameInfo.securityOrigin.host)
         replyHandler(nil)
     }
 
