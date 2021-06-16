@@ -75,7 +75,13 @@ public class AutofillUserScript: NSObject, UserScript {
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
-    public var forMainFrameOnly: Bool { false }
+    public var forMainFrameOnly: Bool {
+        if #available(iOS 14, macOS 11, *) {
+            return false
+        }
+        // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
+        return true
+    }
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
@@ -262,11 +268,11 @@ extension AutofillUserScript {
 
             let script = """
             (() => {
-                window.\(methodName)({
+                window.\(methodName) && window.\(methodName)({
                     ciphertext: [\(ciphertext)],
                     tag: [\(tag)]
                 });
-            })()
+            })();
             """
 
             assert(message.webView != nil)
