@@ -23,7 +23,7 @@ import WebKit
 
 class AutofillEmailUserScriptTests: XCTestCase {
 
-    let userScript = AutofillUserScript(encrypter: MockEncrypter())
+    let userScript = AutofillUserScript(encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     let userContentController = WKUserContentController()
 
     var encryptedMessagingParams: [String: Any] {

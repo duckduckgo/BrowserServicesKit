@@ -25,7 +25,7 @@ import WebKit
 
 class AutofillVaultUserScriptTests: XCTestCase {
 
-    let userScript = AutofillUserScript(encrypter: NoneEncryptingEncrypter())
+    let userScript = AutofillUserScript(encrypter: NoneEncryptingEncrypter(), hostProvider: MockAutofillHostProvider())
     let userContentController = WKUserContentController()
 
     var encryptedMessagingParams: [String: Any] {
@@ -64,7 +64,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
             XCTAssertNil($1)
 
             let data = ($0 as? String)?.data(using: .utf8)
-            let response = try? JSONDecoder().decode(RequestAccountsResponse.self, from: data!)
+            let response = try? JSONDecoder().decode(AutofillUserScript.RequestVaultAccountsResponse.self, from: data!)
             XCTAssertEqual(response?.success.count, 2)
 
             expect.fulfill()
@@ -81,7 +81,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
                                              didRequestCredentialsForAccount accountId: Int64,
                                              completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
 
-                completionHandler(.init(account: .init(id: 1,
+                completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
                                                        domain: "example.com",
                                                        created: Date(),
@@ -92,11 +92,13 @@ class AutofillVaultUserScriptTests: XCTestCase {
 
         }
 
+        let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
+
         let delegate = GetCredentialsDelegate()
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
-        body["id"] = 1
+        body["id"] = randomAccountId
 
         let mockWebView = MockWebView()
         let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials", body: body, webView: mockWebView)
@@ -107,28 +109,72 @@ class AutofillVaultUserScriptTests: XCTestCase {
             XCTAssertNil($1)
 
             let data = ($0 as? String)?.data(using: .utf8)
-            let response = try? JSONDecoder().decode(RequestCredentialsResponse.self, from: data!)
-            XCTAssertEqual(response?.success.id, 1)
+            let response = try? JSONDecoder().decode(AutofillUserScript.RequestVaultCredentialsResponse.self, from: data!)
+            XCTAssertEqual(response?.success.id, Int64(randomAccountId))
 
             expect.fulfill()
         }
 
         waitForExpectations(timeout: 1.0)
-   }
+    }
+
+    @available(macOS 14, iOS 11, *)
+    func testWhenStoreCredentialsCalled_ThenDelegateIsCalled() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["username"] = "username@example.com"
+        body["password"] = "password"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerStoreCredentials", body: body, webView: mockWebView)
+
+        userScript.userContentController(userContentController, didReceive: message)
+
+        XCTAssertEqual(delegate.lastDomain, "example.com")
+        XCTAssertEqual(delegate.lastUsername, "username@example.com")
+        XCTAssertEqual(delegate.lastPassword, "password")
+    }
+
+    func testWhenShowManagementUIIsCalled_ThenDelegateIsCalled() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams, webView: mockWebView)
+
+        userScript.userContentController(userContentController, didReceive: message)
+
+        XCTAssertEqual(delegate.lastDomain, "example.com")
+    }
 
 }
 
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
+    var lastDomain: String?
+    var lastUsername: String?
+    var lastPassword: String?
+
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
+        lastDomain = domain
     }
 
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentials username: String, password: String) {
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String,
+                            username: String,
+                            password: String) {
+        lastDomain = domain
+        lastUsername = username
+        lastPassword = password
     }
 
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void) {
+        lastDomain = domain
     }
 
     func autofillUserScript(_: AutofillUserScript,
@@ -146,4 +192,8 @@ struct NoneEncryptingEncrypter: AutofillEncrypter {
 
 }
 
-
+struct MockAutofillHostProvider: AutofillHostProvider {
+    func hostForMessage(_ message: WKScriptMessage) -> String {
+        return "example.com"
+    }
+}

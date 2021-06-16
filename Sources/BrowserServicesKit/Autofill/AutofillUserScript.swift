@@ -19,45 +19,24 @@
 
 import WebKit
 
-public protocol AutofillEmailDelegate: AnyObject {
-
-    func autofillUserScript(_: AutofillUserScript,
-                            didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
-                            shouldConsumeAliasIfProvided: Bool,
-                            completionHandler: @escaping AliasCompletion)
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String)
-    func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
-    func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
-
-}
-
-public protocol AutofillSecureVaultDelegate: AnyObject {
-
-    func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentials username: String, password: String)
-    func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
-                            completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
-    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
-                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
-
-}
-
 public class AutofillUserScript: NSObject, UserScript {
 
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
     private enum MessageName: String, CaseIterable {
+
         case emailHandlerStoreToken
         case emailHandlerGetAlias
         case emailHandlerRefreshAlias
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
+
         case pmHandlerStoreCredentials
         case pmHandlerGetAccounts
         case pmHandlerGetAutofillCredentials
         case pmHandlerOpenManagePasswords
+
     }
 
     public weak var emailDelegate: AutofillEmailDelegate?
@@ -90,143 +69,34 @@ public class AutofillUserScript: NSObject, UserScript {
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
         switch message {
+
         case .emailHandlerStoreToken: return emailStoreToken
         case .emailHandlerGetAlias: return emailGetAlias
         case .emailHandlerRefreshAlias: return emailRefreshAlias
         case .emailHandlerGetAddresses: return emailGetAddresses
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
+
         case .pmHandlerStoreCredentials: return pmStoreCredentials
         case .pmHandlerGetAccounts: return pmGetAccounts
         case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
+            
         }
     }
 
-    private let encrypter: AutofillEncrypter
-
+    let encrypter: AutofillEncrypter
+    let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
 
-    public init(encrypter: AutofillEncrypter = AESGCMAutofillEncrypter()) {
+    init(encrypter: AutofillEncrypter, hostProvider: AutofillHostProvider) {
         self.encrypter = encrypter
+        self.hostProvider = hostProvider
     }
 
-    private func pmStoreCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        defer {
-            replyHandler(nil)
-        }
-
-        guard let body = message.body as? [String: Any],
-              let username = body["username"] as? String,
-              let password = body["password"] as? String else {
-            return
-        }
-
-        vaultDelegate?.autofillUserScript(self, didRequestStoreCredentials: username, password: password)
+    public convenience override init() {
+        self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
     }
 
-    private func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-
-        vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: message.frameInfo.securityOrigin.host) { credentials in
-            let credentials: [RequestAccountsResponse.Account] = credentials.compactMap {
-                guard let id = $0.id else { return nil }
-                return .init(id: id, username: $0.username, lastUpdated: $0.lastUpdated.timeIntervalSince1970)
-            }
-
-            let response = RequestAccountsResponse(success: credentials)
-            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                replyHandler(jsonString)
-            }
-        }
-
-    }
-    
-    private func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-
-        guard let body = message.body as? [String: Any],
-              let accountId = body["id"] as? Int else {
-            return
-        }
-
-        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) {
-            guard let credential = $0,
-                  let id = credential.account.id,
-                  let password = String(data: credential.password, encoding: .utf8) else { return }
-
-            let response = RequestCredentialsResponse(success: .init(id: id,
-                                                                     username: credential.account.username,
-                                                                     password: password,
-                                                                     lastUpdated: credential.account.lastUpdated.timeIntervalSince1970))
-            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                replyHandler(jsonString)
-            }
-        }
-    }
-    
-    private func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: message.frameInfo.securityOrigin.host)
-        replyHandler(nil)
-    }
-
-    private func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        let signedInString = String(signedIn)
-        replyHandler("""
-            { "isAppSignedIn": \(signedInString) }
-        """)
-    }
-
-    private func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        guard let dict = message.body as? [String: Any],
-              let token = dict["token"] as? String,
-              let username = dict["username"] as? String else { return }
-        emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
-        replyHandler(nil)
-    }
-
-    private func emailGetAlias(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        guard let dict = message.body as? [String: Any],
-              let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
-              let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
-
-        emailDelegate?.autofillUserScript(self,
-                                  didRequestAliasAndRequiresUserPermission: requiresUserPermission,
-                                  shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
-            guard let alias = alias else { return }
-
-            replyHandler("""
-            {
-                "alias": "\(alias)"
-            }
-            """)
-        }
-    }
-
-    private func emailRefreshAlias(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
-        replyHandler(nil)
-    }
-
-    private func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
-            let addresses: String
-            if let username = username, let alias = alias {
-                addresses = """
-                {
-                    "personalAddress": "\(username)",
-                    "privateAddress": "\(alias)"
-                }
-                """
-            } else {
-                addresses = "null"
-            }
-
-            replyHandler("""
-            {
-                "addresses": \(addresses)
-            }
-            """)
-        }
-    }
 }
 
 @available(iOS 14, *)
@@ -287,29 +157,5 @@ extension AutofillUserScript {
             message.webView?.evaluateJavaScript(script)
         }
     }
-
-}
-
-internal struct RequestAccountsResponse: Codable {
-
-    struct Account: Codable {
-        let id: Int64
-        let username: String
-        let lastUpdated: TimeInterval
-    }
-
-    let success: [Account]
-}
-
-internal struct RequestCredentialsResponse: Codable {
-
-    struct Credential: Codable {
-        let id: Int64
-        let username: String
-        let password: String
-        let lastUpdated: TimeInterval
-    }
-
-    let success: Credential
 
 }
