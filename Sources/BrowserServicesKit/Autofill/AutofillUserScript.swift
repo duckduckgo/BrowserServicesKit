@@ -36,6 +36,10 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentials username: String, password: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
+                            completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
 
 }
 
@@ -51,7 +55,7 @@ public class AutofillUserScript: NSObject, UserScript {
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
         case pmHandlerStoreCredentials
-        case pmHandlerGetCredentials
+        case pmHandlerGetAccounts
         case pmHandlerGetAutofillCredentials
         case pmHandlerOpenManagePasswords
     }
@@ -92,7 +96,7 @@ public class AutofillUserScript: NSObject, UserScript {
         case .emailHandlerGetAddresses: return emailGetAddresses
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
         case .pmHandlerStoreCredentials: return pmStoreCredentials
-        case .pmHandlerGetCredentials: return pmGetCredentials
+        case .pmHandlerGetAccounts: return pmGetAccounts
         case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
@@ -120,39 +124,42 @@ public class AutofillUserScript: NSObject, UserScript {
         vaultDelegate?.autofillUserScript(self, didRequestStoreCredentials: username, password: password)
     }
 
-    private func pmGetCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        replyHandler("""
-        {
-            \"success\": [{
-                \"id\": 123,
-                \"username\": \"user@name.com\",
-                \"lastUpdated\": 1623221677121
-            }]
+    private func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+
+        vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: message.frameInfo.securityOrigin.host) { credentials in
+            let credentials: [RequestAccountsResponse.Account] = credentials.compactMap {
+                guard let id = $0.id else { return nil }
+                return .init(id: id, username: $0.username, lastUpdated: $0.lastUpdated.timeIntervalSince1970)
+            }
+
+            let response = RequestAccountsResponse(success: credentials)
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
         }
-        """)
-//        replyHandler("""
-//        {
-//            \"success\": []
-//        }
-//        """)
+
     }
     
     private func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        replyHandler("""
-        {
-            \"success\": {
-                \"id\": 123,
-                \"username\": \"user@name.com\",
-                \"password\": \"abcd1234!\",
-                \"lastUpdated\": 1623221677121
+
+        guard let body = message.body as? [String: Any],
+              let accountId = body["id"] as? Int else {
+            return
+        }
+
+        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) {
+            guard let credential = $0,
+                  let id = credential.account.id,
+                  let password = String(data: credential.password, encoding: .utf8) else { return }
+
+            let response = RequestCredentialsResponse(success: .init(id: id,
+                                                                     username: credential.account.username,
+                                                                     password: password,
+                                                                     lastUpdated: credential.account.lastUpdated.timeIntervalSince1970))
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
             }
         }
-        """)
-//        replyHandler("""
-//        {
-//            \"success\": { }
-//        }
-//        """)
     }
     
     private func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -280,5 +287,29 @@ extension AutofillUserScript {
             message.webView?.evaluateJavaScript(script)
         }
     }
+
+}
+
+internal struct RequestAccountsResponse: Codable {
+
+    struct Account: Codable {
+        let id: Int64
+        let username: String
+        let lastUpdated: TimeInterval
+    }
+
+    let success: [Account]
+}
+
+internal struct RequestCredentialsResponse: Codable {
+
+    struct Credential: Codable {
+        let id: Int64
+        let username: String
+        let password: String
+        let lastUpdated: TimeInterval
+    }
+
+    let success: Credential
 
 }

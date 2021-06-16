@@ -25,7 +25,7 @@ protocol SecureVaultDatabaseProvider {
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
 
-    func websiteCredentialsForAccountId(_ accountId: Any) throws -> SecureVaultModels.WebsiteCredentials?
+    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
 
@@ -124,9 +124,9 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Any) throws -> SecureVaultModels.WebsiteCredentials? {
+    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         return try db.read {
-            guard let account = try SecureVaultModels.WebsiteAccount.fetchOne($0, key: accountId as? Int64) else {
+            guard let account = try SecureVaultModels.WebsiteAccount.fetchOne($0, key: accountId) else {
                 return nil
             }
 

@@ -193,7 +193,7 @@ class SecureVaultTests: XCTestCase {
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
 
-        testVault.websiteCredentialsFor(accountId: "any").sink {
+        testVault.websiteCredentialsFor(accountId: 1).sink {
             if case .failure(let error) = $0 {
                 XCTFail(error.localizedDescription)
             }
@@ -222,7 +222,7 @@ class SecureVaultTests: XCTestCase {
 
         testVault.authWith(password: userPassword).flatMap {
 
-            $0.websiteCredentialsFor(accountId: "any")
+            $0.websiteCredentialsFor(accountId: 1)
 
         }.sink {
             if case .failure(let error) = $0 {
@@ -261,7 +261,7 @@ class SecureVaultTests: XCTestCase {
 
         let ex = expectation(description: "websiteCredentialsFor")
 
-        testVault.websiteCredentialsFor(accountId: "any").sink {
+        testVault.websiteCredentialsFor(accountId: 1).sink {
             if case .failure(let error) = $0,
                case .authRequired = error {
                 ex.fulfill()

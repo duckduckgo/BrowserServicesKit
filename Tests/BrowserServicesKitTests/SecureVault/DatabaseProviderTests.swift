@@ -67,7 +67,7 @@ class DatabaseProviderTests: XCTestCase {
         try database.storeWebsiteCredentials(credentials)
 
         let storedAccount = try database.websiteAccountsForDomain("example.com")[0]
-        let storedCredentials = try database.websiteCredentialsForAccountId(storedAccount.id as Any)
+        let storedCredentials = try database.websiteCredentialsForAccountId(storedAccount.id!)
         XCTAssertNotNil(storedCredentials)
         XCTAssertEqual("password", String(data: storedCredentials!.password, encoding: .utf8))
     }
@@ -127,7 +127,7 @@ class DatabaseProviderTests: XCTestCase {
         try database.storeWebsiteCredentials(credentials)
 
         let storedAccount = try database.websiteAccountsForDomain("example.com")[0]
-        var storedCredentials = try database.websiteCredentialsForAccountId(storedAccount.id as Any)!
+        var storedCredentials = try database.websiteCredentialsForAccountId(storedAccount.id!)!
 
         sleep(2)
 

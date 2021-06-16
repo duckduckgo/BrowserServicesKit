@@ -33,7 +33,7 @@ public protocol SecureVault {
     func resetL2Password(oldPassword: Data?, newPassword: Data) -> AnyPublisher<Void, SecureVaultError>
     func accounts() -> AnyPublisher<[SecureVaultModels.WebsiteAccount], SecureVaultError>
     func accountFor(domain: String) -> AnyPublisher<[SecureVaultModels.WebsiteAccount], SecureVaultError>
-    func websiteCredentialsFor(accountId: String) -> AnyPublisher<SecureVaultModels.WebsiteCredentials?, SecureVaultError>
+    func websiteCredentialsFor(accountId: Int64) -> AnyPublisher<SecureVaultModels.WebsiteCredentials?, SecureVaultError>
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) -> AnyPublisher<Void, SecureVaultError>
     
 }
@@ -151,7 +151,7 @@ class DefaultSecureVault: SecureVault {
         .eraseToAnyPublisher()
     }
 
-    public func websiteCredentialsFor(accountId: String) -> AnyPublisher<SecureVaultModels.WebsiteCredentials?, SecureVaultError> {
+    public func websiteCredentialsFor(accountId: Int64) -> AnyPublisher<SecureVaultModels.WebsiteCredentials?, SecureVaultError> {
         return ScheduledFuture(scheduler: self.queue) { promise in
             dispatchPrecondition(condition: .onQueue(self.queue))
             do {

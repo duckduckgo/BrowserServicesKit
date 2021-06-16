@@ -32,7 +32,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         _lastCredentials = credentials
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Any) throws -> SecureVaultModels.WebsiteCredentials? {
+    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         return _credentials
     }
 
