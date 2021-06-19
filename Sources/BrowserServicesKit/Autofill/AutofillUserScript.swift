@@ -121,15 +121,18 @@ extension AutofillUserScript {
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
 
+        #warning("temporary hack")
         guard let messageName = MessageName(rawValue: message.name),
-              let body = message.body as? [String: Any],
-              let messageHandling = body["messageHandling"] as? [String: Any],
-              let secret = messageHandling["secret"] as? String,
+              let body = message.body as? [String: Any]
+              // let messageHandling = body["messageHandling"] as? [String: Any],
+              // let secret = messageHandling["secret"] as? String,
               // If this does not match the page is playing shenanigans.
-              secret == generatedSecret else { return }
+              //secret == generatedSecret
+        else { return }
 
         messageHandlerFor(messageName)(message) { reply in
             guard let reply = reply,
+                  let messageHandling = body["messageHandling"] as? [String: Any],
                   let key = messageHandling["key"] as? [UInt8],
                   let iv = messageHandling["iv"] as? [UInt8],
                   let methodName = messageHandling["methodName"] as? String,
