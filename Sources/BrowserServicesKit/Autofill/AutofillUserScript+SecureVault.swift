@@ -90,7 +90,8 @@ extension AutofillUserScript {
     func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         guard let body = message.body as? [String: Any],
-              let accountId = body["id"] as? Int else {
+              let id = body["id"] as? String,
+              let accountId = Int64(id) else {
             return
         }
 

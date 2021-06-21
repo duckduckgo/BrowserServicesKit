@@ -46,10 +46,8 @@ public class SecureVaultFactory {
     public func makeVault(authExpiration: TimeInterval = 60 * 60 * 24 * 72) -> AnyPublisher<SecureVault, SecureVaultError> {
 
         if let vault = self.vault, authExpiration == vault.authExpiry {
-            print("Reusing vault")
             return CurrentValueSubject(vault).eraseToAnyPublisher()
         } else {
-            print("Creating vault")
 
             objc_sync_enter(self)
             defer {

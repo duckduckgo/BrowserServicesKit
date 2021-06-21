@@ -51,6 +51,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 // Later, we'll fire a delegate method if we need to re-authenticate or deal with some other error
                 cancellable?.cancel()
             } receiveValue: { [weak self] vault in
+                // Later, check the vault to see if this exists already
                 let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
                 let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                 self?.delegate?.secureVaultManager(self!, promptUserToStoreCredentials: credentials)
@@ -60,13 +61,36 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAccountsForDomain domain: String,
                                    completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void) {
-        completionHandler([])
+
+        var cancellable: AnyCancellable?
+        cancellable = SecureVaultFactory.default.makeVault().flatMap { vault in
+            vault.accountsFor(domain: domain)
+        }
+        .receive(on: DispatchQueue.main)
+        .sink(receiveCompletion: { completion in
+            // Later, we'll fire a delegate method if we need to re-authenticate or deal with some other error
+            cancellable?.cancel()
+        }, receiveValue: { accounts in
+            completionHandler(accounts)
+        })
+
     }
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForAccount accountId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
-        completionHandler(nil)
+
+        var cancellable: AnyCancellable?
+        cancellable = SecureVaultFactory.default.makeVault().flatMap { vault in
+            vault.websiteCredentialsFor(accountId: accountId)
+        }
+        .receive(on: DispatchQueue.main)
+        .sink(receiveCompletion: { completion in
+            // Later, we'll fire a delegate method if we need to re-authenticate or deal with some other error
+            cancellable?.cancel()
+        }, receiveValue: { account in
+            completionHandler(account)
+        })
     }
 
 }

@@ -69,7 +69,7 @@ class SecureVaultTests: XCTestCase {
             .init(username: "username", domain: "domain")
         ]
 
-        testVault.accountFor(domain: "example.com").sink { _ in
+        testVault.accountsFor(domain: "example.com").sink { _ in
             // This never seems to get called though...
         } receiveValue: {
             ex.fulfill()
