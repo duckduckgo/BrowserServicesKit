@@ -17,7 +17,6 @@
 //
 
 import XCTest
-import Combine
 @testable import BrowserServicesKit
 
 class SecureVaultTests: XCTestCase {
@@ -26,8 +25,6 @@ class SecureVaultTests: XCTestCase {
     var mockDatabaseProvider = MockDatabaseProvider()
     var mockKeystoreProvider = MockKeystoreProvider()
     var testVault: SecureVault!
-
-    var cancellables = Set<AnyCancellable>()
 
     override func setUp() {
         super.setUp()
@@ -41,66 +38,40 @@ class SecureVaultTests: XCTestCase {
 
     }
 
-    func testWhenRetrievingAccounts_ThenDatabaseCalled() {
-
-        let ex = expectation(description: "accounts")
-
+    func testWhenRetrievingAccounts_ThenDatabaseCalled() throws {
         mockDatabaseProvider._accounts = [
             .init(username: "username", domain: "domain")
         ]
 
-        testVault.accounts().sink { _ in
-            // This never seems to get called though...
-        } receiveValue: {
-            ex.fulfill()
-            XCTAssertEqual(1, $0.count)
-            XCTAssertEqual("domain", $0[0].domain)
-            XCTAssertEqual("username", $0[0].username)
-        }.store(in: &cancellables)
+        let accounts = try testVault.accounts()
 
-        waitForExpectations(timeout: 0.3, handler: nil)
+        XCTAssertEqual(1, accounts.count)
+        XCTAssertEqual("domain", accounts[0].domain)
+        XCTAssertEqual("username", accounts[0].username)
     }
 
-    func testWhenRetrievingAccountsForDomain_ThenDatabaseCalled() {
-
-        let ex = expectation(description: "accounts")
+    func testWhenRetrievingAccountsForDomain_ThenDatabaseCalled() throws {
 
         mockDatabaseProvider._accounts = [
             .init(username: "username", domain: "domain")
         ]
 
-        testVault.accountsFor(domain: "example.com").sink { _ in
-            // This never seems to get called though...
-        } receiveValue: {
-            ex.fulfill()
-            XCTAssertEqual(1, $0.count)
-            XCTAssertEqual("domain", $0[0].domain)
-            XCTAssertEqual("username", $0[0].username)
-        }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        let accounts = try testVault.accountsFor(domain: "example.com")
+        XCTAssertEqual(1, accounts.count)
+        XCTAssertEqual("domain", accounts[0].domain)
+        XCTAssertEqual("username", accounts[0].username)
 
         XCTAssertEqual("example.com", mockDatabaseProvider._forDomain)
 
     }
 
-    func testWhenAuthorsingWithValidPassword_ThenPasswordValidatedByDecryptingL2Key() {
-        let ex = expectation(description: "authWith")
+    func testWhenAuthorsingWithValidPassword_ThenPasswordValidatedByDecryptingL2Key() throws {
 
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encrypted".data(using: .utf8)
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
 
-        testVault.authWith(password: "password".data(using: .utf8)!)
-            .sink {
-                if case .failure(let error) = $0 {
-                    XCTFail(error.localizedDescription)
-                }
-            } receiveValue: { _ in
-                ex.fulfill()
-            }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        _ = try testVault.authWith(password: "password".data(using: .utf8)!)
 
         XCTAssertEqual(mockCryptoProvider._lastDataToDecrypt, mockKeystoreProvider._encryptedL2Key)
         XCTAssertEqual(mockCryptoProvider._lastKey, mockCryptoProvider._derivedKey)
@@ -108,44 +79,30 @@ class SecureVaultTests: XCTestCase {
     }
 
     func testWhenAuthorsingWithInvalidPassword_ThenPasswordValidatedByDecryptingL2Key() {
-        let ex = expectation(description: "authWith")
-
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encrypted".data(using: .utf8)
 
-        testVault.authWith(password: "password".data(using: .utf8)!)
-            .sink {
-                if case .failure(let error) = $0,
-                   case .invalidPassword = error {
-                    ex.fulfill()
-                }
-            } receiveValue: { _ in
-            }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        do {
+            _ = try testVault.authWith(password: "password".data(using: .utf8)!)
+        } catch {
+            if case SecureVaultError.invalidPassword = error {
+                // no-op
+            } else {
+                XCTFail("Unexepected error \(error)")
+            }
+        }
 
         XCTAssertEqual(mockCryptoProvider._lastDataToDecrypt, mockKeystoreProvider._encryptedL2Key)
         XCTAssertEqual(mockCryptoProvider._lastKey, mockCryptoProvider._derivedKey)
 
     }
 
-    func testWhenResetL2Password_ThenL2KeyIsEncryptedAndGeneratedPasswordIsCleared() {
-        let ex = expectation(description: "resetL2Password")
-
+    func testWhenResetL2Password_ThenL2KeyIsEncryptedAndGeneratedPasswordIsCleared() throws {
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encrypted".data(using: .utf8)
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
 
-        testVault.resetL2Password(oldPassword: "old".data(using: .utf8), newPassword: "new".data(using: .utf8)!)
-            .sink {
-                if case .failure(let error) = $0 {
-                    XCTFail(error.localizedDescription)
-                }
-            } receiveValue: { _ in
-                ex.fulfill()
-            }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        try testVault.resetL2Password(oldPassword: "old".data(using: .utf8), newPassword: "new".data(using: .utf8)!)
 
         XCTAssertNotNil(mockKeystoreProvider._lastEncryptedL2Key)
         XCTAssertNotNil(mockCryptoProvider._lastDataToEncrypt)
@@ -154,8 +111,7 @@ class SecureVaultTests: XCTestCase {
 
     }
 
-    func testWhenStoringWebsiteCredentials_ThenThePasswordIsEncryptedWithL2Key() {
-        let ex = expectation(description: "storeWebsiteCredentials")
+    func testWhenStoringWebsiteCredentials_ThenThePasswordIsEncryptedWithL2Key() throws {
 
         mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)!
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)!
@@ -167,23 +123,14 @@ class SecureVaultTests: XCTestCase {
         let credentials = SecureVaultModels.WebsiteCredentials(account: .init(username: "test@duck.com", domain: "example.com"),
                                                                password: passwordToEncrypt)
 
-        testVault.storeWebsiteCredentials(credentials).sink {
-            if case .failure(let error) = $0 {
-                XCTFail(error.localizedDescription)
-            }
-        } receiveValue: { _ in
-            ex.fulfill()
-        }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        try testVault.storeWebsiteCredentials(credentials)
 
         XCTAssertNotNil(mockDatabaseProvider._lastCredentials)
         XCTAssertEqual(mockCryptoProvider._lastDataToEncrypt, passwordToEncrypt)
 
     }
 
-    func testWhenCredentialsAreRetrievedUsingGeneratedPassword_ThenTheyAreDecrypted() {
-        let ex = expectation(description: "websiteCredentialsFor")
+    func testWhenCredentialsAreRetrievedUsingGeneratedPassword_ThenTheyAreDecrypted() throws {
 
         let password = "password".data(using: .utf8)!
         let account = SecureVaultModels.WebsiteAccount(username: "test@duck.com", domain: "example.com")
@@ -193,25 +140,15 @@ class SecureVaultTests: XCTestCase {
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
 
-        testVault.websiteCredentialsFor(accountId: 1).sink {
-            if case .failure(let error) = $0 {
-                XCTFail(error.localizedDescription)
-            }
-        } receiveValue: {
-            XCTAssertNotNil($0)
-            XCTAssertNotNil($0?.password)
-            ex.fulfill()
-        }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        let credentials = try testVault.websiteCredentialsFor(accountId: 1)
+        XCTAssertNotNil(credentials)
+        XCTAssertNotNil(credentials?.password)
 
         XCTAssertEqual(mockCryptoProvider._lastDataToDecrypt, password)
 
     }
 
-    func testWhenCredentialsAreRetrievedUsingUserPassword_ThenTheyAreDecrypted() {
-        let ex = expectation(description: "websiteCredentialsFor")
-
+    func testWhenCredentialsAreRetrievedUsingUserPassword_ThenTheyAreDecrypted() throws {
         let userPassword = "userPassword".data(using: .utf8)!
         let password = "password".data(using: .utf8)!
         let account = SecureVaultModels.WebsiteAccount(username: "test@duck.com", domain: "example.com")
@@ -220,27 +157,15 @@ class SecureVaultTests: XCTestCase {
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
 
-        testVault.authWith(password: userPassword).flatMap {
+        let credentials = try testVault.authWith(password: userPassword).websiteCredentialsFor(accountId: 1)
 
-            $0.websiteCredentialsFor(accountId: 1)
-
-        }.sink {
-            if case .failure(let error) = $0 {
-                XCTFail(error.localizedDescription)
-            }
-        } receiveValue: {
-            XCTAssertNotNil($0)
-            XCTAssertNotNil($0?.password)
-            ex.fulfill()
-        }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        XCTAssertNotNil(credentials)
+        XCTAssertNotNil(credentials?.password)
 
         XCTAssertEqual(mockCryptoProvider._lastDataToDecrypt, password)
-
     }
 
-    func testWhenCredentialsAreRetrievedUsingExpiredUserPassword_ThenErrorIsThrown() {
+    func testWhenCredentialsAreRetrievedUsingExpiredUserPassword_ThenErrorIsThrown() throws {
         let userPassword = "userPassword".data(using: .utf8)!
         let password = "password".data(using: .utf8)!
         let account = SecureVaultModels.WebsiteAccount(username: "test@duck.com", domain: "example.com")
@@ -249,31 +174,19 @@ class SecureVaultTests: XCTestCase {
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
         
-        testVault.authWith(password: userPassword).sink {
-            if case .failure(let error) = $0 {
-                XCTFail(error.localizedDescription)
-            }
-        } receiveValue: { _ in
-            // no-op
-        }.store(in: &cancellables)
+        _ = try testVault.authWith(password: userPassword)
 
         sleep(2) // allow vault to expire password
 
-        let ex = expectation(description: "websiteCredentialsFor")
-
-        testVault.websiteCredentialsFor(accountId: 1).sink {
-            if case .failure(let error) = $0,
-               case .authRequired = error {
-                ex.fulfill()
-                return
+        do {
+            _ = try testVault.websiteCredentialsFor(accountId: 1)
+        } catch {
+            if case SecureVaultError.authRequired = error {
+                // no-op
+            } else {
+                XCTFail("Unexepected error \(error)")
             }
-
-            XCTFail("Didn't get expected error")
-        } receiveValue: { _ in
-            XCTFail("Unexpected value")
-        }.store(in: &cancellables)
-
-        waitForExpectations(timeout: 0.3, handler: nil)
+        }
     }
 
 }

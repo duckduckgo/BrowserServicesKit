@@ -98,7 +98,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
-        body["id"] = randomAccountId
+        body["id"] = "\(randomAccountId)"
 
         let mockWebView = MockWebView()
         let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials", body: body, webView: mockWebView)

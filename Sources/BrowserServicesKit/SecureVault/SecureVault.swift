@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import Combine
 
 /// A vault that supports storing data at various levels.
 ///
@@ -29,12 +28,12 @@ import Combine
 /// Data always goes in and comes out unencrypted.
 public protocol SecureVault {
 
-    func authWith(password: Data) -> AnyPublisher<SecureVault, SecureVaultError>
-    func resetL2Password(oldPassword: Data?, newPassword: Data) -> AnyPublisher<Void, SecureVaultError>
-    func accounts() -> AnyPublisher<[SecureVaultModels.WebsiteAccount], SecureVaultError>
-    func accountsFor(domain: String) -> AnyPublisher<[SecureVaultModels.WebsiteAccount], SecureVaultError>
-    func websiteCredentialsFor(accountId: Int64) -> AnyPublisher<SecureVaultModels.WebsiteCredentials?, SecureVaultError>
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) -> AnyPublisher<Void, SecureVaultError>
+    func authWith(password: Data) throws -> SecureVault
+    func resetL2Password(oldPassword: Data?, newPassword: Data) throws
+    func accounts() throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
     
 }
 
@@ -49,6 +48,7 @@ internal struct SecureVaultProviders {
 
 class DefaultSecureVault: SecureVault {
 
+    private let lock = NSLock()
     private let queue = DispatchQueue(label: "Secure Vault")
 
     private let providers: SecureVaultProviders
@@ -67,120 +67,125 @@ class DefaultSecureVault: SecureVault {
     // MARK: - public interface (protocol candidates)
 
     /// Sets the password which is retained for the given amount of time. Call this is you receive a `authRequired` error.
-    public func authWith(password: Data) -> AnyPublisher<SecureVault, SecureVaultError> {
-        return ScheduledFuture(scheduler: self.queue) { promise in
-            dispatchPrecondition(condition: .onQueue(self.queue))
-            do {
-                _ = try self.l2KeyFrom(password: password) // checks the password
-                self.expiringPassword.value = password
-                promise(.success(self))
-            } catch {
-                let error = error as? SecureVaultError ?? .authError(cause: error)
-                promise(.failure(error))
-            }
-        }.eraseToAnyPublisher()
-    }
-
-    public func resetL2Password(oldPassword: Data?, newPassword: Data) -> AnyPublisher<Void, SecureVaultError> {
-        return ScheduledFuture(scheduler: self.queue) { promise in
-            dispatchPrecondition(condition: .onQueue(self.queue))
-
-            // Whatever happens, force a re-auth on future calls
-            self.expiringPassword.value = nil
-
-            do {
-                // Use the provided old password if provided, or the stored generated password
-                let generatedPassword = try self.providers.keystore.generatedPassword()
-                guard let oldPassword = oldPassword ?? generatedPassword else {
-                    throw SecureVaultError.invalidPassword
-                }
-
-                // get decrypted l2key using old password
-                let l2Key = try self.l2KeyFrom(password: oldPassword)
-
-                // derive new encryption key
-                let newEncryptionKey = try self.providers.crypto.deriveKeyFromPassword(newPassword)
-
-                // encrypt 2 key with new encryption key and nonce
-                let encryptedKey = try self.providers.crypto.encrypt(l2Key, withKey: newEncryptionKey)
-
-                // store encrypted L2 key and nonce
-                try self.providers.keystore.storeEncryptedL2Key(encryptedKey)
-
-                // Clear the generated password now since we're def using a user provided password
-                try self.providers.keystore.clearGeneratedPassword()
-
-                promise(.success(()))
-            } catch {
-
-                if let error = error as? SecureVaultError {
-                    promise(.failure(error))
-                } else {
-                    promise(.failure(SecureVaultError.databaseError(cause: error)))
-                }
-
-            }
-
-        }.eraseToAnyPublisher()
-    }
-
-    public func accounts() -> AnyPublisher<[SecureVaultModels.WebsiteAccount], SecureVaultError> {
-        return ScheduledFuture(scheduler: self.queue) { promise in
-            dispatchPrecondition(condition: .onQueue(self.queue))
-            do {
-                let accounts = try self.providers.database.accounts()
-                promise(.success(accounts))
-            } catch {
-                promise(.failure(SecureVaultError.databaseError(cause: error)))
-            }
+    public func authWith(password: Data) throws -> SecureVault {
+        lock.lock()
+        defer {
+            lock.unlock()
         }
-        .eraseToAnyPublisher()
-    }
 
-    public func accountsFor(domain: String) -> AnyPublisher<[SecureVaultModels.WebsiteAccount], SecureVaultError> {
-        return ScheduledFuture(scheduler: self.queue) { promise in
-            dispatchPrecondition(condition: .onQueue(self.queue))
-
-            do {
-                let results = try self.providers.database.websiteAccountsForDomain(domain)
-                promise(.success(results))
-            } catch {
-                promise(.failure(SecureVaultError.databaseError(cause: error)))
-            }
+        do {
+            _ = try self.l2KeyFrom(password: password) // checks the password
+            self.expiringPassword.value = password
+            return self
+        } catch {
+            let error = error as? SecureVaultError ?? .authError(cause: error)
+            throw error
         }
-        .eraseToAnyPublisher()
     }
 
-    public func websiteCredentialsFor(accountId: Int64) -> AnyPublisher<SecureVaultModels.WebsiteCredentials?, SecureVaultError> {
-        return ScheduledFuture(scheduler: self.queue) { promise in
-            dispatchPrecondition(condition: .onQueue(self.queue))
-            do {
-                var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
-                if let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
-                    decryptedCredentials = .init(account: credentials.account,
-                                                 password: try self.l2Decrypt(data: credentials.password))
-                }
-                promise(.success(decryptedCredentials))
-            } catch {
-                let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-                promise(.failure(error))
+    public func resetL2Password(oldPassword: Data?, newPassword: Data) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+
+        // Whatever happens, force a re-auth on future calls
+        self.expiringPassword.value = nil
+
+        do {
+            // Use the provided old password if provided, or the stored generated password
+            let generatedPassword = try self.providers.keystore.generatedPassword()
+            guard let oldPassword = oldPassword ?? generatedPassword else {
+                throw SecureVaultError.invalidPassword
             }
-        }.eraseToAnyPublisher()
+
+            // get decrypted l2key using old password
+            let l2Key = try self.l2KeyFrom(password: oldPassword)
+
+            // derive new encryption key
+            let newEncryptionKey = try self.providers.crypto.deriveKeyFromPassword(newPassword)
+
+            // encrypt 2 key with new encryption key and nonce
+            let encryptedKey = try self.providers.crypto.encrypt(l2Key, withKey: newEncryptionKey)
+
+            // store encrypted L2 key and nonce
+            try self.providers.keystore.storeEncryptedL2Key(encryptedKey)
+
+            // Clear the generated password now since we're def using a user provided password
+            try self.providers.keystore.clearGeneratedPassword()
+
+        } catch {
+
+            if let error = error as? SecureVaultError {
+                throw error
+            } else {
+                throw SecureVaultError.databaseError(cause: error)
+            }
+
+        }
+
     }
 
-    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) -> AnyPublisher<Void, SecureVaultError> {
-        return ScheduledFuture(scheduler: self.queue) { promise in
-            dispatchPrecondition(condition: .onQueue(self.queue))
+    public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
 
-            do {
-                let encryptedPassword = try self.l2Encrypt(data: credentials.password)
-                try self.providers.database.storeWebsiteCredentials(.init(account: credentials.account, password: encryptedPassword))
-                promise(.success(()))
-            } catch {
-                let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-                promise(.failure(error))
+        do {
+            return try self.providers.database.accounts()
+        } catch {
+            throw SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+    public func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.websiteAccountsForDomain(domain)
+        } catch {
+            throw SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+    public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
+            if let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
+                decryptedCredentials = .init(account: credentials.account,
+                                             password: try self.l2Decrypt(data: credentials.password))
             }
-        }.eraseToAnyPublisher()
+
+            return decryptedCredentials
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            let encryptedPassword = try self.l2Encrypt(data: credentials.password)
+            try self.providers.database.storeWebsiteCredentials(.init(account: credentials.account, password: encryptedPassword))
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
     }
 
     // MARK: - private

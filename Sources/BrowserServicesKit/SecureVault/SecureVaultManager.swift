@@ -44,35 +44,36 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String) {
         guard let passwordData = password.data(using: .utf8) else { return }
 
-        var cancellable: AnyCancellable?
-        cancellable = SecureVaultFactory.default.makeVault()
-            .receive(on: DispatchQueue.main)
-            .sink { completion in
-                // Later, we'll fire a delegate method if we need to re-authenticate or deal with some other error
-                cancellable?.cancel()
-            } receiveValue: { [weak self] vault in
-                // Later, check the vault to see if this exists already
+        do {
+
+            if let account = try SecureVaultFactory.default.makeVault().accountsFor(domain: domain).first(where: { $0.username == username }) {
+
+                let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+                delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
+
+            } else {
+
                 let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
                 let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                self?.delegate?.secureVaultManager(self!, promptUserToStoreCredentials: credentials)
+                delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
+
             }
+        } catch {
+            // TODO log
+        }
+
     }
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAccountsForDomain domain: String,
                                    completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void) {
 
-        var cancellable: AnyCancellable?
-        cancellable = SecureVaultFactory.default.makeVault().flatMap { vault in
-            vault.accountsFor(domain: domain)
+        do {
+            completionHandler(try SecureVaultFactory.default.makeVault().accountsFor(domain: domain))
+        } catch {
+            // TODO log
+            completionHandler([])
         }
-        .receive(on: DispatchQueue.main)
-        .sink(receiveCompletion: { completion in
-            // Later, we'll fire a delegate method if we need to re-authenticate or deal with some other error
-            cancellable?.cancel()
-        }, receiveValue: { accounts in
-            completionHandler(accounts)
-        })
 
     }
 
@@ -80,17 +81,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestCredentialsForAccount accountId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
 
-        var cancellable: AnyCancellable?
-        cancellable = SecureVaultFactory.default.makeVault().flatMap { vault in
-            vault.websiteCredentialsFor(accountId: accountId)
+        do {
+            completionHandler(try SecureVaultFactory.default.makeVault().websiteCredentialsFor(accountId: accountId))
+        } catch {
+            // TODO log
+            completionHandler(nil)
         }
-        .receive(on: DispatchQueue.main)
-        .sink(receiveCompletion: { completion in
-            // Later, we'll fire a delegate method if we need to re-authenticate or deal with some other error
-            cancellable?.cancel()
-        }, receiveValue: { account in
-            completionHandler(account)
-        })
+
     }
 
 }

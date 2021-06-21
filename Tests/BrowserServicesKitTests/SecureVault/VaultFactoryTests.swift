@@ -17,7 +17,6 @@
 //
 
 import XCTest
-import Combine
 @testable import BrowserServicesKit
 
 class VaultFactoryTests: XCTestCase {
@@ -42,22 +41,10 @@ class VaultFactoryTests: XCTestCase {
 
     }
 
-    var cancellable: AnyCancellable?
-
-    func test() {
+    func test() throws {
         let testHarness = VaultFactoryTestHarness()
         testHarness.mockKeystoreProvider._l1Key = "samplekey".data(using: .utf8)
-
-        let makeVault = expectation(description: "makeVault")
-        cancellable = testHarness.makeVault()
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    XCTFail(error.localizedDescription)
-                }
-            } receiveValue: { _ in
-                makeVault.fulfill()
-            }
-        waitForExpectations(timeout: 1.0, handler: nil)
+        _ = try testHarness.makeVault()
     }
 
 }
