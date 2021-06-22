@@ -67,6 +67,7 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       method: String,
                       headers: [String: String],
                       parameters: [String: String]?,
+                      httpBody: Data?,
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void)
 }
@@ -89,9 +90,9 @@ public enum AliasRequestError: Error {
 public struct EmailUrls {
     struct Url {
         static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
-        static let joinWaitlist = "https://quack.duckduckgo.com/api/waitlist/join"
-        static let waitlistStatus = "https://quack.duckduckgo.com/api/waitlist/status"
-        static let getInviteCode = "https://quack.duckduckgo.com/api/waitlist/code"
+        static let joinWaitlist = "https://quack.duckduckgo.com/api/auth/waitlist/join"
+        static let waitlistStatus = "https://quack.duckduckgo.com/api/auth/waitlist/status"
+        static let getInviteCode = "https://quack.duckduckgo.com/api/auth/waitlist/code"
     }
 
     var emailAliasAPI: URL {
@@ -340,6 +341,7 @@ private extension EmailManager {
                                       method: "POST",
                                       headers: emailHeaders,
                                       parameters: [:],
+                                      httpBody: nil,
                                       timeoutInterval: timeoutInterval) { data, error in
             guard let data = data, error == nil else {
                 completionHandler?(nil, .noDataError)
@@ -395,6 +397,7 @@ extension EmailManager {
                                       method: "POST",
                                       headers: emailHeaders,
                                       parameters: nil,
+                                      httpBody: nil,
                                       timeoutInterval: timeoutInterval) { [weak self] data, error in
             guard let self = self else { return }
 
@@ -472,6 +475,7 @@ extension EmailManager {
                                       method: "GET",
                                       headers: emailHeaders,
                                       parameters: nil,
+                                      httpBody: nil,
                                       timeoutInterval: timeoutInterval) { data, error in
             guard let data = data, error == nil else {
                 DispatchQueue.main.async {
@@ -508,11 +512,16 @@ extension EmailManager {
             return
         }
 
+        var components = URLComponents()
+        components.queryItems = [URLQueryItem(name: "token", value: token)]
+        let componentData = components.query?.data(using: .utf8)
+
         requestDelegate?.emailManager(self,
                                       requested: emailUrls.getInviteCodeAPI,
                                       method: "POST",
                                       headers: emailHeaders,
-                                      parameters: ["token": token],
+                                      parameters: nil,
+                                      httpBody: componentData,
                                       timeoutInterval: timeoutInterval) { [weak self] data, error in
             guard let data = data, error == nil else {
                 DispatchQueue.main.async {
