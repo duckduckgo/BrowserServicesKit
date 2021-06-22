@@ -156,6 +156,10 @@ public class EmailManager {
         return waitlistState == .notJoinedQueue
     }
 
+    public var isInWaitlist: Bool {
+        return waitlistState == .joinedQueue && !isSignedIn
+    }
+
     public var waitlistState: EmailManagerWaitlistState {
         if storage.getWaitlistTimestamp() != nil, storage.getWaitlistInviteCode() == nil {
             return .joinedQueue
