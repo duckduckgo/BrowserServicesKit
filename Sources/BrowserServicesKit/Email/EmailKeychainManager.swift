@@ -186,6 +186,7 @@ private extension EmailKeychainManager {
     static func deleteWaitlistState() {
         deleteItem(forField: .waitlistToken)
         deleteItem(forField: .waitlistTimestamp)
+        deleteItem(forField: .inviteCode)
     }
     
     static func deleteItem(forField field: EmailKeychainField) {
