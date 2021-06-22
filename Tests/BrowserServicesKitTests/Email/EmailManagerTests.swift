@@ -20,7 +20,7 @@
 import XCTest
 @testable import BrowserServicesKit
 
-enum AliasFetchingTestEvent {
+enum EmailManagerTestEvent {
     case getAliasCallbackCalled
     case deleteAliasCalled
     case storeAliasCalled
@@ -34,7 +34,7 @@ enum AliasFetchingTestEvent {
     case storeWaitlistInviteCodeCalled
 }
 
-var events = [AliasFetchingTestEvent]()
+var events = [EmailManagerTestEvent]()
 
 class EmailManagerTests: XCTestCase {
 
@@ -110,7 +110,7 @@ class EmailManagerTests: XCTestCase {
         // then delete alias
         // then there should be a request for a new alias
         // and it should store the new one
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        let expectedEvents: [EmailManagerTestEvent] = [
             .getAliasCallbackCalled,
             .deleteAliasCalled,
             .aliasRequestMade,
@@ -144,7 +144,7 @@ class EmailManagerTests: XCTestCase {
         // make a new request
         // and store the new alias
         
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        let expectedEvents: [EmailManagerTestEvent] = [
             .aliasRequestMade,
             .storeAliasCalled,
             .getAliasCallbackCalled,
@@ -173,7 +173,7 @@ class EmailManagerTests: XCTestCase {
 
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        let expectedEvents: [EmailManagerTestEvent] = [
             .getAliasCallbackCalled
         ]
         
@@ -199,7 +199,7 @@ class EmailManagerTests: XCTestCase {
         
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        let expectedEvents: [EmailManagerTestEvent] = [
             .storeTokenCalled,
             .aliasRequestMade,
             .storeAliasCalled
@@ -222,7 +222,7 @@ class EmailManagerTests: XCTestCase {
 
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        let expectedEvents: [EmailManagerTestEvent] = [
             .aliasRequestMade,
             .storeAliasCalled
         ]
@@ -307,7 +307,7 @@ class EmailManagerTests: XCTestCase {
     }
 
     func testWhenCallingJoinWaitlistThenTokenAndTimestampAreStoredAndReturned() {
-        let expectation = expectation(description: "Join Waitlist Success")
+        let expectation = expectation(description: #function)
         let storage = storageForWaitlistTest(joinedWaitlist: false, hasInviteCode: false)
         let manager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -315,7 +315,7 @@ class EmailManagerTests: XCTestCase {
 
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        let expectedEvents: [EmailManagerTestEvent] = [
             .joinWaitlistRequestMade,
             .storeWaitlistTokenCalled,
             .storeWaitlistTimestampCalled
@@ -343,7 +343,7 @@ class EmailManagerTests: XCTestCase {
     }
 
     func testWhenCallingFetchInviteCodeIfNeededAndInviteCodeAlreadyExistsThenErrorIsReturned() {
-        let expectation = expectation(description: "Fetch Invite Code Failure")
+        let expectation = expectation(description: #function)
         let storage = storageForWaitlistTest(joinedWaitlist: true, hasInviteCode: true)
         let manager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -351,7 +351,7 @@ class EmailManagerTests: XCTestCase {
 
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = []
+        let expectedEvents: [EmailManagerTestEvent] = []
 
         manager.fetchInviteCodeIfAvailable { result in
             XCTAssert(Thread.isMainThread)
@@ -372,7 +372,7 @@ class EmailManagerTests: XCTestCase {
     }
 
     func testWhenCallingFetchInviteCodeIfNeededAndNoWaitlistDataExistsThenErrorIsReturned() {
-        let expectation = expectation(description: "Fetch Invite Code Failure")
+        let expectation = expectation(description: #function)
         let storage = storageForWaitlistTest(joinedWaitlist: false, hasInviteCode: false)
         let manager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
@@ -380,7 +380,7 @@ class EmailManagerTests: XCTestCase {
 
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = []
+        let expectedEvents: [EmailManagerTestEvent] = []
 
         manager.fetchInviteCodeIfAvailable { result in
             XCTAssert(Thread.isMainThread)
@@ -400,16 +400,57 @@ class EmailManagerTests: XCTestCase {
         }
     }
 
-    func testWhenCallingFetchInviteCodeIfNeededAndInviteCodeIsReadyThenInviteCodeIsReturned() {
-        let expectation = expectation(description: "Fetch Invite Code Failure")
-        let storage = storageForWaitlistTest(joinedWaitlist: true, hasInviteCode: false)
+    func testWhenCallingFetchInviteCodeIfNeededAndInviteCodeIsNotReadyThenErrorIsReturned() {
+        let expectation = expectation(description: #function)
+        let storage = storageForWaitlistTest(joinedWaitlist: true, waitlistTimestamp: Int.max, hasInviteCode: false)
         let manager = EmailManager(storage: storage)
         let requestDelegate = MockEmailManagerRequestDelegate()
+        requestDelegate.waitlistTimestamp = 1
         manager.requestDelegate = requestDelegate
 
         events.removeAll()
 
-        let expectedEvents: [AliasFetchingTestEvent] = [
+        // When the user has joined the waitlist
+        // and a status call is made with a timestamp earlier than that which was stored
+        // then no further calls should be made
+        // and no values should be stored
+        let expectedEvents: [EmailManagerTestEvent] = [
+            .waitlistStatusRequestMade
+        ]
+
+        manager.fetchInviteCodeIfAvailable { result in
+            XCTAssert(Thread.isMainThread)
+
+            switch result {
+            case .success:
+                XCTFail()
+            case .failure(let error):
+                XCTAssertEqual(error, .noCodeAvailable)
+            }
+
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0) { _ in
+            XCTAssertEqual(events, expectedEvents)
+        }
+    }
+
+    func testWhenCallingFetchInviteCodeIfNeededAndInviteCodeIsReadyThenInviteCodeIsReturned() {
+        let expectation = expectation(description: #function)
+        let storage = storageForWaitlistTest(joinedWaitlist: true, waitlistTimestamp: 1, hasInviteCode: false)
+        let manager = EmailManager(storage: storage)
+        let requestDelegate = MockEmailManagerRequestDelegate()
+        requestDelegate.waitlistTimestamp = 2
+        manager.requestDelegate = requestDelegate
+
+        events.removeAll()
+
+        // When the user has joined the waitlist
+        // and a status call is made with a timestamp later than that which was stored
+        // then an invite code request should be made
+        // and the invite code should be stored
+        let expectedEvents: [EmailManagerTestEvent] = [
             .waitlistStatusRequestMade,
             .waitlistInviteCodeRequestMade,
             .storeWaitlistInviteCodeCalled
@@ -476,13 +517,14 @@ class EmailManagerTests: XCTestCase {
     }
 
     private func storageForWaitlistTest(joinedWaitlist: Bool,
+                                        waitlistTimestamp: Int = 1,
                                         hasInviteCode: Bool) -> MockEmailManagerStorage {
 
         let storage = MockEmailManagerStorage()
 
         if joinedWaitlist {
             storage.mockWaitlistToken = "Token"
-            storage.mockWaitlistTimestamp = 1
+            storage.mockWaitlistTimestamp = waitlistTimestamp
         }
 
         if hasInviteCode {
@@ -508,6 +550,7 @@ class EmailManagerTests: XCTestCase {
 class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
 
     var mockAliases: [String] = []
+    var waitlistTimestamp: Int = 1
     
     // swiftlint:disable function_parameter_count
     func emailManager(_ emailManager: EmailManager,
@@ -515,6 +558,7 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
                       method: String,
                       headers: [String : String],
                       parameters: [String : String]?,
+                      httpBody: Data?,
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void) {
         switch url.absoluteString {
@@ -551,7 +595,7 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     private func processWaitlistStatusRequest(_ completion: @escaping (Data?, Error?) -> Void) {
         events.append(.waitlistStatusRequestMade)
 
-        let jsonString = "{\"timestamp\":2}"
+        let jsonString = "{\"timestamp\":\(waitlistTimestamp)}"
         let data = jsonString.data(using: .utf8)!
         completion(data, nil)
     }
