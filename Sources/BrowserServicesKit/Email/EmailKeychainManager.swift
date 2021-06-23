@@ -84,6 +84,10 @@ extension EmailKeychainManager: EmailManagerStorage {
         EmailKeychainManager.add(inviteCode: inviteCode)
     }
 
+    public func deleteInviteCode() {
+        EmailKeychainManager.deleteItem(forField: .inviteCode)
+    }
+
     public func deleteWaitlistState() {
         EmailKeychainManager.deleteWaitlistState()
     }
