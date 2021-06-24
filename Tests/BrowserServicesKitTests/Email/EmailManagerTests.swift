@@ -67,7 +67,7 @@ class EmailManagerTests: XCTestCase {
         let emailManager = EmailManager(storage: storage)
         
         let expect = expectation(description: "test")
-        storage.deleteAllCallback = {
+        storage.deleteAuthenticationStateCallback = {
             expect.fulfill()
         }
         
@@ -621,7 +621,7 @@ class MockEmailManagerStorage: EmailManagerStorage {
     var storeTokenCallback: ((String, String) -> Void)?
     var storeAliasCallback: ((String) -> Void)?
     var deleteAliasCallback: (() -> Void)?
-    var deleteAllCallback: (() -> Void)?
+    var deleteAuthenticationStateCallback: (() -> Void)?
     var storeWaitlistTokenCallback: ((String) -> Void)?
     var storeWaitlistTimestampCallback: ((Int) -> Void)?
     var storeWaitlistInviteCodeCallback: ((String) -> Void)?
@@ -651,8 +651,8 @@ class MockEmailManagerStorage: EmailManagerStorage {
         deleteAliasCallback?()
     }
     
-    func deleteAll() {
-        deleteAllCallback?()
+    func deleteAuthenticationState() {
+        deleteAuthenticationStateCallback?()
     }
 
     func getWaitlistToken() -> String? {
