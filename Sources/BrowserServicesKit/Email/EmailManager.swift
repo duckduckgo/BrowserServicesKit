@@ -36,7 +36,6 @@ public protocol EmailManagerStorage: AnyObject {
     func store(waitlistToken: String)
     func store(waitlistTimestamp: Int)
     func store(inviteCode: String)
-    func deleteWaitlistState()
 }
 
 public enum EmailManagerPermittedAddressType {

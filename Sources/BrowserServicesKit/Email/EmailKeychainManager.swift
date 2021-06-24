@@ -183,12 +183,6 @@ private extension EmailKeychainManager {
         deleteItem(forField: .token)
         deleteItem(forField: .alias)
     }
-
-    static func deleteWaitlistState() {
-        deleteItem(forField: .waitlistToken)
-        deleteItem(forField: .waitlistTimestamp)
-        deleteItem(forField: .inviteCode)
-    }
     
     static func deleteItem(forField field: EmailKeychainField) {
         let query: [String: Any] = [
@@ -199,16 +193,18 @@ private extension EmailKeychainManager {
 
 }
 
-// MARK: - Debugging Extension
+// MARK: - Debugging Extensions
 
 public extension EmailKeychainManager {
 
-    func deleteInviteCode() {
-        EmailKeychainManager.deleteItem(forField: .inviteCode)
+    static func deleteInviteCode() {
+        deleteItem(forField: .inviteCode)
     }
 
-    func deleteWaitlistState() {
-        EmailKeychainManager.deleteWaitlistState()
+    static func deleteWaitlistState() {
+        deleteItem(forField: .waitlistToken)
+        deleteItem(forField: .waitlistTimestamp)
+        deleteItem(forField: .inviteCode)
     }
 
 }
