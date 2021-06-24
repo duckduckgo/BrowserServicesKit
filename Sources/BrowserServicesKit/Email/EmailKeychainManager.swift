@@ -20,10 +20,13 @@
 import Foundation
 
 public class EmailKeychainManager {
+
     public init() {}
+
 }
 
 extension EmailKeychainManager: EmailManagerStorage {
+
     public func getUsername() -> String? {
         EmailKeychainManager.getString(forField: .username)
     }
@@ -48,8 +51,8 @@ extension EmailKeychainManager: EmailManagerStorage {
         EmailKeychainManager.deleteItem(forField: .alias)
     }
     
-    public func deleteAll() {
-        EmailKeychainManager.deleteAll()
+    public func deleteAuthenticationState() {
+        EmailKeychainManager.deleteAuthenticationState()
     }
 
     public func getWaitlistToken() -> String? {
@@ -84,13 +87,6 @@ extension EmailKeychainManager: EmailManagerStorage {
         EmailKeychainManager.add(inviteCode: inviteCode)
     }
 
-    public func deleteInviteCode() {
-        EmailKeychainManager.deleteItem(forField: .inviteCode)
-    }
-
-    public func deleteWaitlistState() {
-        EmailKeychainManager.deleteWaitlistState()
-    }
 }
 
 private extension EmailKeychainManager {
@@ -141,7 +137,8 @@ private extension EmailKeychainManager {
               let usernameData = username.data(using: String.Encoding.utf8) else {
             return
         }
-        deleteAll()
+
+        deleteAuthenticationState()
         
         add(data: tokenData, forField: .token)
         add(data: usernameData, forField: .username)
@@ -181,7 +178,7 @@ private extension EmailKeychainManager {
         SecItemAdd(query as CFDictionary, nil)
     }
     
-    static func deleteAll() {
+    static func deleteAuthenticationState() {
         deleteItem(forField: .username)
         deleteItem(forField: .token)
         deleteItem(forField: .alias)
@@ -199,4 +196,19 @@ private extension EmailKeychainManager {
             kSecAttrService as String: field.keyValue]
         SecItemDelete(query as CFDictionary)
     }
+
+}
+
+// MARK: - Debugging Extension
+
+public extension EmailKeychainManager {
+
+    func deleteInviteCode() {
+        EmailKeychainManager.deleteItem(forField: .inviteCode)
+    }
+
+    func deleteWaitlistState() {
+        EmailKeychainManager.deleteWaitlistState()
+    }
+
 }

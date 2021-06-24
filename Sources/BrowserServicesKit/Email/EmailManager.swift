@@ -26,7 +26,7 @@ public protocol EmailManagerStorage: AnyObject {
     func store(token: String, username: String)
     func store(alias: String)
     func deleteAlias()
-    func deleteAll()
+    func deleteAuthenticationState()
 
     // Waitlist:
 
@@ -182,7 +182,7 @@ public class EmailManager {
     }
     
     public func signOut() {
-        storage.deleteAll()
+        storage.deleteAuthenticationState()
         NotificationCenter.default.post(name: .emailDidSignOut, object: self)
     }
 
