@@ -68,6 +68,10 @@ extension EmailKeychainManager: EmailManagerStorage {
         EmailKeychainManager.getString(forField: .inviteCode)
     }
 
+    public func deleteWaitlistState() {
+        EmailKeychainManager.deleteWaitlistState()
+    }
+
     public func store(waitlistToken: String) {
         // Avoid saving a new token if one already exists.
         guard getWaitlistToken() == nil else { return }
