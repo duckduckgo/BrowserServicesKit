@@ -19,6 +19,7 @@
 
 import Foundation
 import Combine
+import os
 
 public protocol SecureVaultManagerDelegate: AnyObject {
 
@@ -35,6 +36,7 @@ public class SecureVaultManager {
 
 }
 
+// Later these catches should check if it is an auth error and call the delegate to ask for user authentication.
 extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
@@ -59,7 +61,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
             }
         } catch {
-            // TODO log
+            os_log(.error, "Error storing accounts: %{public}@", error.localizedDescription)
         }
 
     }
@@ -71,7 +73,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().accountsFor(domain: domain))
         } catch {
-            // TODO log
+            os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
             completionHandler([])
         }
 
@@ -84,7 +86,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().websiteCredentialsFor(accountId: accountId))
         } catch {
-            // TODO log
+            os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
             completionHandler(nil)
         }
 
