@@ -25,7 +25,7 @@ protocol SecureVaultDatabaseProvider {
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
 
-    func websiteCredentialsForAccountId(_ accountId: Any) throws -> SecureVaultModels.WebsiteCredentials?
+    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
 
@@ -124,9 +124,9 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Any) throws -> SecureVaultModels.WebsiteCredentials? {
+    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         return try db.read {
-            guard let account = try SecureVaultModels.WebsiteAccount.fetchOne($0, key: accountId as? Int64) else {
+            guard let account = try SecureVaultModels.WebsiteAccount.fetchOne($0, key: accountId) else {
                 return nil
             }
 
@@ -194,11 +194,19 @@ extension DefaultDatabaseProvider {
 extension DefaultDatabaseProvider {
 
     static internal func dbFile() throws -> URL {
+
         let fm = FileManager.default
 
+#if os(macOS)
+        // Note that if we move the macos browser to the app store, we should really use the alternative method
+        let sandboxPathComponent = "Containers/\(Bundle.main.bundleIdentifier!)/Data/Library/Application Support/"
+        let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
+        let dir = libraryURL.appendingPathComponent(sandboxPathComponent)
+#else
         guard let dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             fatalError("Could not find application support directory")
         }
+#endif
         let subDir = dir.appendingPathComponent("Vault")
 
         var isDir: ObjCBool = false
