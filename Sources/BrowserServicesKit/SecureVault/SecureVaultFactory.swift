@@ -17,15 +17,13 @@
 //
 
 import Foundation
-import Combine
 
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
-///
-/// Q: `Factory` the right name?
 public class SecureVaultFactory {
 
     public static let `default` = SecureVaultFactory()
 
+    private var lock = NSLock()
     private var vault: DefaultSecureVault?
 
     /// You should really use the `default` accessor.
@@ -43,17 +41,14 @@ public class SecureVaultFactory {
     /// * Generates a secret key for L2 encryption
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encyprted L2 key in Keychain
-    public func makeVault(authExpiration: TimeInterval = 60 * 60 * 24 * 72) -> AnyPublisher<SecureVault, SecureVaultError> {
+    public func makeVault(authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> SecureVault {
 
         if let vault = self.vault, authExpiration == vault.authExpiry {
-            print("Reusing vault")
-            return CurrentValueSubject(vault).eraseToAnyPublisher()
+            return vault
         } else {
-            print("Creating vault")
-
-            objc_sync_enter(self)
+            lock.lock()
             defer {
-                objc_sync_exit(self)
+                lock.unlock()
             }
 
             let cryptoProvider = makeCryptoProvider()
@@ -81,10 +76,10 @@ public class SecureVaultFactory {
 
                 let vault = DefaultSecureVault(authExpiry: authExpiration, providers: providers)
                 self.vault = vault
-                return CurrentValueSubject(vault).eraseToAnyPublisher()
+                return vault
 
             } catch {
-                return Fail(error: SecureVaultError.initFailed(cause: error)).eraseToAnyPublisher()
+                throw SecureVaultError.initFailed(cause: error)
             }
         }
 

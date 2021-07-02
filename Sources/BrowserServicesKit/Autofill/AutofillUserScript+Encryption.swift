@@ -20,19 +20,17 @@
 import Foundation
 import CryptoKit
 
-public protocol AutofillEncrypter {
+protocol AutofillEncrypter {
 
     func encryptReply(_ reply: String, key: [UInt8], iv: [UInt8]) throws -> (ciphertext: Data, tag: Data)
 
 }
 
-public struct AESGCMAutofillEncrypter: AutofillEncrypter {
+struct AESGCMAutofillEncrypter: AutofillEncrypter {
 
     enum Error: Swift.Error {
         case encodingReply
     }
-
-    public init() { }
 
     public func encryptReply(_ reply: String, key: [UInt8], iv: [UInt8]) throws -> (ciphertext: Data, tag: Data) {
         guard let replyData = reply.data(using: .utf8) else {
