@@ -54,11 +54,7 @@ public class AutofillUserScript: NSObject, UserScript {
             replacements["PLACEHOLDER_SECRET"] = generatedSecret
         }
 
-        #if os(macOS)
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
-        #else
-        return AutofillUserScript.loadJS("autofill-ios", from: Bundle.module, withReplacements: replacements)
-        #endif
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }

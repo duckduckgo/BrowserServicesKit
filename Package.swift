@@ -37,8 +37,7 @@ let package = Package(
                 "Resources/duckduckgo-autofill/jest-test-environment.js"
             ],
             resources: [
-                .process("Resources/duckduckgo-autofill/dist/autofill.js"),
-                .process("Resources/autofill-ios.js")
+                .process("Resources/duckduckgo-autofill/dist/autofill.js")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
