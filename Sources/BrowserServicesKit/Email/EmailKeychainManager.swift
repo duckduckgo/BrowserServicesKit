@@ -177,6 +177,7 @@ private extension EmailKeychainManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrSynchronizable as String: false,
             kSecAttrService as String: field.keyValue,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData as String: data]
         
         SecItemAdd(query as CFDictionary, nil)
