@@ -539,8 +539,9 @@ extension EmailManager {
                 let decoder = JSONDecoder()
                 let inviteCodeResponse = try decoder.decode(EmailInviteCodeResponse.self, from: data)
 
+                self?.storage.store(inviteCode: inviteCodeResponse.code)
+
                 DispatchQueue.main.async {
-                    self?.storage.store(inviteCode: inviteCodeResponse.code)
                     completionHandler?(.success(inviteCodeResponse))
                 }
             } catch {
