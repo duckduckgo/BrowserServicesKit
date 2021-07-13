@@ -65,6 +65,16 @@ class SecureVaultTests: XCTestCase {
 
     }
 
+    func testWhenDeletingCredentialsForAccount_ThenDatabaseCalled() throws {
+        let account = SecureVaultModels.WebsiteAccount(id: 1, username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
+        mockDatabaseProvider._credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        mockDatabaseProvider._accounts = [account]
+
+        XCTAssertEqual("example.com", mockDatabaseProvider._accounts[0].domain)
+        try testVault.deleteWebsiteCredentialsFor(accountId: 1)
+        XCTAssert(mockDatabaseProvider._accounts.isEmpty)
+    }
+
     func testWhenAuthorsingWithValidPassword_ThenPasswordValidatedByDecryptingL2Key() throws {
 
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
