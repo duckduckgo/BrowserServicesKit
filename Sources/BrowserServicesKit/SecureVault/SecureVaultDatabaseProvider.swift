@@ -90,6 +90,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
 
         try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+                """, arguments: [accountId])
+
             try credentials.account.delete($0)
         }
     }
