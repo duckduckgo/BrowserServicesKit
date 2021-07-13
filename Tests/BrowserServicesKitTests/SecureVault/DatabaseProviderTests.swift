@@ -176,22 +176,11 @@ class DatabaseProviderTests: XCTestCase {
 
         XCTAssertEqual(2, try database.accounts().count)
         let storedAccount = try database.websiteAccountsForDomain("example1.com")[0]
-
         try database.deleteWebsiteCredentialsForAccountId(storedAccount.id!)
-
-        // Verify that the credentials for the account were removed:
 
         let credentials = try database.websiteCredentialsForAccountId(storedAccount.id!)
         XCTAssertNil(credentials)
-
-        // Verify that the account itself was removed:
-
         XCTAssertEqual(1, try database.accounts().count)
-
-        // Verify that the account can re-added after removal:
-
-        try database.storeWebsiteCredentials(firstAccountCredentials)
-        XCTAssertEqual(2, try database.accounts().count)
     }
 
 }
