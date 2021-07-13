@@ -41,6 +41,10 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         return _accounts
     }
 
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        self._accounts = self._accounts.filter { $0.id != accountId }
+    }
+
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
         return _accounts
     }

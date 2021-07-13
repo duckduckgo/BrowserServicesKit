@@ -163,5 +163,29 @@ class DatabaseProviderTests: XCTestCase {
         XCTAssertTrue(results.isEmpty)
     }
 
+    func test_when_credentials_are_deleted_then_they_are_removed_from_the_database() throws {
+        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+
+        let firstAccount = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example1.com")
+        let firstAccountCredentials = SecureVaultModels.WebsiteCredentials(account: firstAccount, password: "password".data(using: .utf8)!)
+        try database.storeWebsiteCredentials(firstAccountCredentials)
+
+        let secondAccount = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example2.com")
+        let secondAccountCredentials = SecureVaultModels.WebsiteCredentials(account: secondAccount, password: "password".data(using: .utf8)!)
+        try database.storeWebsiteCredentials(secondAccountCredentials)
+
+        XCTAssertEqual(2, try database.accounts().count)
+        let storedAccount = try database.websiteAccountsForDomain("example1.com")[0]
+
+        try database.deleteWebsiteCredentialsForAccountId(storedAccount.id!)
+
+        // Verify that the credentials for the account were removed:
+        let credentials = try database.websiteCredentialsForAccountId(storedAccount.id!)
+        XCTAssertNil(credentials)
+
+        // Verify that the account itself was removed:
+        XCTAssertEqual(1, try database.accounts().count)
+    }
+
 }
 // swiftlint:enable force_try

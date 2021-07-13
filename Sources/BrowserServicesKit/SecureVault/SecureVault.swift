@@ -34,6 +34,7 @@ public protocol SecureVault {
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
+    func deleteWebsiteCredentialsFor(accountId: Int64) throws
     
 }
 
@@ -185,6 +186,19 @@ class DefaultSecureVault: SecureVault {
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
+        }
+    }
+
+    func deleteWebsiteCredentialsFor(accountId: Int64) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        } catch {
+            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
 

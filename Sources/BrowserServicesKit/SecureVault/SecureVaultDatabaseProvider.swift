@@ -29,6 +29,8 @@ protocol SecureVaultDatabaseProvider {
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
 
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
+
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -80,7 +82,16 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         } else {
             try insertWebsiteCredentials(credentials)
         }
+    }
 
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        guard let credentials = try websiteCredentialsForAccountId(accountId) else {
+            return
+        }
+
+        try db.write {
+            try credentials.account.delete($0)
+        }
     }
 
     func updateWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64) throws {
