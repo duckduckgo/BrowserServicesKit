@@ -38,9 +38,13 @@ extension EmailKeychainManager: EmailManagerStorage {
     public func getAlias() -> String? {
         EmailKeychainManager.getString(forField: .alias)
     }
+
+    public func getCohort() -> String? {
+        EmailKeychainManager.getString(forField: .cohort)
+    }
     
-    public func store(token: String, username: String) {
-        EmailKeychainManager.add(token: token, forUsername: username)
+    public func store(token: String, username: String, cohort: String?) {
+        EmailKeychainManager.add(token: token, forUsername: username, cohort: cohort)
     }
     
     public func store(alias: String) {
@@ -106,6 +110,7 @@ private extension EmailKeychainManager {
         case waitlistToken = ".email.waitlistToken"
         case waitlistTimestamp = ".email.waitlistTimestamp"
         case inviteCode = ".email.inviteCode"
+        case cohort = ".email.cohort"
         
         var keyValue: String {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
@@ -136,9 +141,9 @@ private extension EmailKeychainManager {
         return existingItem
     }
     
-    static func add(token: String, forUsername username: String) {
-        guard let tokenData = token.data(using: String.Encoding.utf8),
-              let usernameData = username.data(using: String.Encoding.utf8) else {
+    static func add(token: String, forUsername username: String, cohort: String?) {
+        guard let tokenData = token.data(using: .utf8),
+              let usernameData = username.data(using: .utf8) else {
             return
         }
 
@@ -146,6 +151,10 @@ private extension EmailKeychainManager {
         
         add(data: tokenData, forField: .token)
         add(data: usernameData, forField: .username)
+
+        if let cohortData = cohort?.data(using: .utf8) {
+            add(data: cohortData, forField: .cohort)
+        }
     }
     
     static func add(alias: String) {

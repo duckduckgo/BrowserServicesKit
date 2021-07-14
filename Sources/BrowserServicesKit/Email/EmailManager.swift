@@ -23,7 +23,8 @@ public protocol EmailManagerStorage: AnyObject {
     func getUsername() -> String?
     func getToken() -> String?
     func getAlias() -> String?
-    func store(token: String, username: String)
+    func getCohort() -> String?
+    func store(token: String, username: String, cohort: String?)
     func store(alias: String)
     func deleteAlias()
     func deleteAuthenticationState()
@@ -142,6 +143,11 @@ public class EmailManager {
 
     private var hasExistingInviteCode: Bool {
         return storage.getWaitlistInviteCode() != nil
+    }
+
+
+    public var cohort: String? {
+        storage.getCohort()
     }
 
     public var inviteCode: String? {
@@ -266,8 +272,8 @@ extension EmailManager: AutofillEmailDelegate {
         self.consumeAliasAndReplace()
     }
     
-    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
-        storeToken(token, username: username)
+    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+        storeToken(token, username: username, cohort: cohort)
         NotificationCenter.default.post(name: .emailDidSignIn, object: self)
     }
 }
@@ -275,8 +281,8 @@ extension EmailManager: AutofillEmailDelegate {
 // MARK: - Token Management
 
 private extension EmailManager {
-    func storeToken(_ token: String, username: String) {
-        storage.store(token: token, username: username)
+    func storeToken(_ token: String, username: String, cohort: String?) {
+        storage.store(token: token, username: username, cohort: cohort)
         fetchAndStoreAlias()
     }
 }
