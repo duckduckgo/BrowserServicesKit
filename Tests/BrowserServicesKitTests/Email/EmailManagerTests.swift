@@ -205,7 +205,7 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
         
-        emailManager.autofillUserScript(AutofillUserScript(), didRequestStoreToken: "token", username: "username")
+        emailManager.autofillUserScript(AutofillUserScript(), didRequestStoreToken: "token", username: "username", cohort: "internal_beta")
         
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
@@ -494,7 +494,7 @@ class EmailManagerTests: XCTestCase {
             events.append(.deleteAliasCalled)
         }
         
-        storage.storeTokenCallback = { _, _ in
+        storage.storeTokenCallback = { _, _, _ in
             events.append(.storeTokenCalled)
         }
                         
@@ -615,10 +615,11 @@ class MockEmailManagerStorage: EmailManagerStorage {
     var mockUsername: String?
     var mockToken: String?
     var mockAlias: String?
+    var mockCohort: String?
     var mockWaitlistToken: String?
     var mockWaitlistTimestamp: Int?
     var mockWaitlistInviteCode: String?
-    var storeTokenCallback: ((String, String) -> Void)?
+    var storeTokenCallback: ((String, String, String?) -> Void)?
     var storeAliasCallback: ((String) -> Void)?
     var deleteAliasCallback: (() -> Void)?
     var deleteAuthenticationStateCallback: (() -> Void)?
@@ -638,9 +639,13 @@ class MockEmailManagerStorage: EmailManagerStorage {
     func getAlias() -> String? {
         return mockAlias
     }
+
+    func getCohort() -> String? {
+        return mockCohort
+    }
     
-    func store(token: String, username: String) {
-        storeTokenCallback?(token, username)
+    func store(token: String, username: String, cohort: String?) {
+        storeTokenCallback?(token, username, cohort)
     }
     
     func store(alias: String) {
