@@ -196,6 +196,7 @@ private extension EmailKeychainManager {
         deleteItem(forField: .username)
         deleteItem(forField: .token)
         deleteItem(forField: .alias)
+        deleteItem(forField: .cohort)
     }
     
     static func deleteItem(forField field: EmailKeychainField) {
