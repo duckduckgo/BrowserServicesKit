@@ -20,10 +20,13 @@
 import Foundation
 
 public class EmailKeychainManager {
+
     public init() {}
+
 }
 
 extension EmailKeychainManager: EmailManagerStorage {
+
     public func getUsername() -> String? {
         EmailKeychainManager.getString(forField: .username)
     }
@@ -35,9 +38,13 @@ extension EmailKeychainManager: EmailManagerStorage {
     public func getAlias() -> String? {
         EmailKeychainManager.getString(forField: .alias)
     }
+
+    public func getCohort() -> String? {
+        EmailKeychainManager.getString(forField: .cohort)
+    }
     
-    public func store(token: String, username: String) {
-        EmailKeychainManager.add(token: token, forUsername: username)
+    public func store(token: String, username: String, cohort: String?) {
+        EmailKeychainManager.add(token: token, forUsername: username, cohort: cohort)
     }
     
     public func store(alias: String) {
@@ -48,9 +55,46 @@ extension EmailKeychainManager: EmailManagerStorage {
         EmailKeychainManager.deleteItem(forField: .alias)
     }
     
-    public func deleteAll() {
-        EmailKeychainManager.deleteAll()
+    public func deleteAuthenticationState() {
+        EmailKeychainManager.deleteAuthenticationState()
     }
+
+    public func getWaitlistToken() -> String? {
+        EmailKeychainManager.getString(forField: .waitlistToken)
+    }
+
+    public func getWaitlistTimestamp() -> Int? {
+        guard let timestampString = EmailKeychainManager.getString(forField: .waitlistTimestamp) else { return nil }
+        return Int(timestampString)
+    }
+
+    public func getWaitlistInviteCode() -> String? {
+        EmailKeychainManager.getString(forField: .inviteCode)
+    }
+
+    public func deleteWaitlistState() {
+        EmailKeychainManager.deleteWaitlistState()
+    }
+
+    public func store(waitlistToken: String) {
+        // Avoid saving a new token if one already exists.
+        guard getWaitlistToken() == nil else { return }
+
+        EmailKeychainManager.add(waitlistToken: waitlistToken)
+    }
+
+    public func store(waitlistTimestamp: Int) {
+        // Avoid saving a new timestamp if one already exists.
+        guard getWaitlistTimestamp() == nil else { return }
+
+        let timestampString = String(waitlistTimestamp)
+        EmailKeychainManager.add(waitlistTimestamp: timestampString)
+    }
+
+    public func store(inviteCode: String) {
+        EmailKeychainManager.add(inviteCode: inviteCode)
+    }
+
 }
 
 private extension EmailKeychainManager {
@@ -63,6 +107,10 @@ private extension EmailKeychainManager {
         case username = ".email.username"
         case token = ".email.token"
         case alias = ".email.alias"
+        case waitlistToken = ".email.waitlistToken"
+        case waitlistTimestamp = ".email.waitlistTimestamp"
+        case inviteCode = ".email.inviteCode"
+        case cohort = ".email.cohort"
         
         var keyValue: String {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
@@ -93,23 +141,44 @@ private extension EmailKeychainManager {
         return existingItem
     }
     
-    static func add(token: String, forUsername username: String) {
-        guard let tokenData = token.data(using: String.Encoding.utf8),
-              let usernameData = username.data(using: String.Encoding.utf8) else {
+    static func add(token: String, forUsername username: String, cohort: String?) {
+        guard let tokenData = token.data(using: .utf8),
+              let usernameData = username.data(using: .utf8) else {
             return
         }
-        deleteAll()
+
+        deleteAuthenticationState()
         
         add(data: tokenData, forField: .token)
         add(data: usernameData, forField: .username)
+
+        if let cohortData = cohort?.data(using: .utf8) {
+            add(data: cohortData, forField: .cohort)
+        }
     }
     
     static func add(alias: String) {
-        guard let aliasData = alias.data(using: String.Encoding.utf8) else {
+        add(string: alias, forField: .alias)
+    }
+
+    static func add(waitlistToken: String) {
+        add(string: waitlistToken, forField: .waitlistToken)
+    }
+
+    static func add(waitlistTimestamp: String) {
+        add(string: waitlistTimestamp, forField: .waitlistTimestamp)
+    }
+
+    static func add(inviteCode: String) {
+        add(string: inviteCode, forField: .inviteCode)
+    }
+
+    static func add(string: String, forField field: EmailKeychainField) {
+        guard let stringData = string.data(using: .utf8) else {
             return
         }
-        deleteItem(forField: .alias)
-        add(data: aliasData, forField: .alias)
+        deleteItem(forField: field)
+        add(data: stringData, forField: field)
     }
     
     static func add(data: Data, forField field: EmailKeychainField) {
@@ -117,15 +186,17 @@ private extension EmailKeychainManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrSynchronizable as String: false,
             kSecAttrService as String: field.keyValue,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData as String: data]
         
         SecItemAdd(query as CFDictionary, nil)
     }
     
-    static func deleteAll() {
+    static func deleteAuthenticationState() {
         deleteItem(forField: .username)
         deleteItem(forField: .token)
         deleteItem(forField: .alias)
+        deleteItem(forField: .cohort)
     }
     
     static func deleteItem(forField field: EmailKeychainField) {
@@ -134,4 +205,21 @@ private extension EmailKeychainManager {
             kSecAttrService as String: field.keyValue]
         SecItemDelete(query as CFDictionary)
     }
+
+}
+
+// MARK: - Debugging Extensions
+
+public extension EmailKeychainManager {
+
+    static func deleteInviteCode() {
+        deleteItem(forField: .inviteCode)
+    }
+
+    static func deleteWaitlistState() {
+        deleteItem(forField: .waitlistToken)
+        deleteItem(forField: .waitlistTimestamp)
+        deleteItem(forField: .inviteCode)
+    }
+
 }

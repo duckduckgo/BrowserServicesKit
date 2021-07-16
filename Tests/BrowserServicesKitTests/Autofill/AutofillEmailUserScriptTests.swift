@@ -66,17 +66,20 @@ class AutofillEmailUserScriptTests: XCTestCase {
         
         let token = "testToken"
         let username = "testUsername"
+        let cohort = "testCohort"
                 
         let expect = expectation(description: "testWhenReceivesStoreTokenMessageThenCallsDelegateMethod")
-        mock.requestStoreTokenCallback = { callbackToken, callbackUsername in
+        mock.requestStoreTokenCallback = { callbackToken, callbackUsername, callbackCohort in
             XCTAssertEqual(token, callbackToken)
             XCTAssertEqual(username, callbackUsername)
+            XCTAssertEqual(cohort, callbackCohort)
             expect.fulfill()
         }
 
         var body = encryptedMessagingParams
         body["token"] = "testToken"
         body["username"] = "testUsername"
+        body["cohort"] = "testCohort"
         let message = MockWKScriptMessage(name: "emailHandlerStoreToken", body: body)
         userScript.userContentController(userContentController, didReceive: message)
 
@@ -192,7 +195,7 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
 
     var signedInCallback: (() -> Void)?
     var requestAliasCallback: (() -> Void)?
-    var requestStoreTokenCallback: ((String, String) -> Void)?
+    var requestStoreTokenCallback: ((String, String, String?) -> Void)?
     var refreshAliasCallback: (() -> Void)?
     var requestUsernameAndAliasCallback: (() -> Void)?
 
@@ -213,8 +216,8 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         refreshAliasCallback?()
     }
     
-    func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
-        requestStoreTokenCallback!(token, username)
+    func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+        requestStoreTokenCallback!(token, username, cohort)
     }
 
     func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {

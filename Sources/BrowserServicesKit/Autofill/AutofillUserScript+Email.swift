@@ -26,7 +26,7 @@ public protocol AutofillEmailDelegate: AnyObject {
                             shouldConsumeAliasIfProvided: Bool,
                             completionHandler: @escaping AliasCompletion)
     func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
     func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
 
@@ -47,7 +47,8 @@ extension AutofillUserScript {
         guard let dict = message.body as? [String: Any],
               let token = dict["token"] as? String,
               let username = dict["username"] as? String else { return }
-        emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username)
+        let cohort = dict["cohort"] as? String
+        emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username, cohort: cohort)
         replyHandler(nil)
     }
 

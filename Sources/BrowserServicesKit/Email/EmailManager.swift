@@ -23,16 +23,33 @@ public protocol EmailManagerStorage: AnyObject {
     func getUsername() -> String?
     func getToken() -> String?
     func getAlias() -> String?
-    func store(token: String, username: String)
+    func getCohort() -> String?
+    func store(token: String, username: String, cohort: String?)
     func store(alias: String)
     func deleteAlias()
-    func deleteAll()
+    func deleteAuthenticationState()
+
+    // Waitlist:
+
+    func getWaitlistToken() -> String?
+    func getWaitlistTimestamp() -> Int?
+    func getWaitlistInviteCode() -> String?
+    func store(waitlistToken: String)
+    func store(waitlistTimestamp: Int)
+    func store(inviteCode: String)
+    func deleteWaitlistState()
 }
 
 public enum EmailManagerPermittedAddressType {
     case user
     case generated
     case none
+}
+
+public enum EmailManagerWaitlistState {
+    case notJoinedQueue
+    case joinedQueue
+    case inBeta
 }
 
 // swiftlint:disable identifier_name
@@ -47,9 +64,11 @@ public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 // swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
     func emailManager(_ emailManager: EmailManager,
-                      didRequestAliasWithURL url: URL,
+                      requested url: URL,
                       method: String,
                       headers: [String: String],
+                      parameters: [String: String]?,
+                      httpBody: Data?,
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void)
 }
@@ -70,12 +89,27 @@ public enum AliasRequestError: Error {
 }
 
 public struct EmailUrls {
-    private struct Url {
+    struct Url {
         static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
+        static let joinWaitlist = "https://quack.duckduckgo.com/api/auth/waitlist/join"
+        static let waitlistStatus = "https://quack.duckduckgo.com/api/auth/waitlist/status"
+        static let getInviteCode = "https://quack.duckduckgo.com/api/auth/waitlist/code"
     }
 
     var emailAliasAPI: URL {
         return URL(string: Url.emailAlias)!
+    }
+
+    var joinWaitlistAPI: URL {
+        return URL(string: Url.joinWaitlist)!
+    }
+
+    var waitlistStatusAPI: URL {
+        return URL(string: Url.waitlistStatus)!
+    }
+
+    var getInviteCodeAPI: URL {
+        return URL(string: Url.getInviteCode)!
     }
     
     public init() { }
@@ -98,15 +132,50 @@ public class EmailManager {
     private var username: String? {
         storage.getUsername()
     }
+
     private var token: String? {
         storage.getToken()
     }
+
     private var alias: String? {
         storage.getAlias()
     }
-    
+
+    private var hasExistingInviteCode: Bool {
+        return storage.getWaitlistInviteCode() != nil
+    }
+
+
+    public var cohort: String? {
+        storage.getCohort()
+    }
+
+    public var inviteCode: String? {
+        storage.getWaitlistInviteCode()
+    }
+
     public var isSignedIn: Bool {
         return token != nil && username != nil
+    }
+
+    public var eligibleToJoinWaitlist: Bool {
+        return waitlistState == .notJoinedQueue
+    }
+
+    public var isInWaitlist: Bool {
+        return waitlistState == .joinedQueue && !isSignedIn
+    }
+
+    public var waitlistState: EmailManagerWaitlistState {
+        if storage.getWaitlistTimestamp() != nil, storage.getWaitlistInviteCode() == nil {
+            return .joinedQueue
+        }
+
+        if storage.getWaitlistInviteCode() != nil {
+            return .inBeta
+        }
+
+        return .notJoinedQueue
     }
     
     public var userEmail: String? {
@@ -119,7 +188,7 @@ public class EmailManager {
     }
     
     public func signOut() {
-        storage.deleteAll()
+        storage.deleteAuthenticationState()
         NotificationCenter.default.post(name: .emailDidSignOut, object: self)
     }
 
@@ -203,21 +272,23 @@ extension EmailManager: AutofillEmailDelegate {
         self.consumeAliasAndReplace()
     }
     
-    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String) {
-        storeToken(token, username: username)
+    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+        storeToken(token, username: username, cohort: cohort)
         NotificationCenter.default.post(name: .emailDidSignIn, object: self)
     }
 }
 
-// Token Management
+// MARK: - Token Management
+
 private extension EmailManager {
-    func storeToken(_ token: String, username: String) {
-        storage.store(token: token, username: username)
+    func storeToken(_ token: String, username: String, cohort: String?) {
+        storage.store(token: token, username: username, cohort: cohort)
         fetchAndStoreAlias()
     }
 }
 
-// Alias managment
+// MARK: - Alias Management
+
 private extension EmailManager {
     
     struct EmailAliasResponse: Decodable {
@@ -226,7 +297,7 @@ private extension EmailManager {
     
     typealias HTTPHeaders = [String: String]
     
-    var aliasHeaders: HTTPHeaders {
+    var emailHeaders: HTTPHeaders {
         guard let token = token else {
             return [:]
         }
@@ -276,9 +347,11 @@ private extension EmailManager {
         }
         
         requestDelegate?.emailManager(self,
-                                      didRequestAliasWithURL: aliasAPIURL,
+                                      requested: aliasAPIURL,
                                       method: "POST",
-                                      headers: aliasHeaders,
+                                      headers: emailHeaders,
+                                      parameters: [:],
+                                      httpBody: nil,
                                       timeoutInterval: timeoutInterval) { data, error in
             guard let data = data, error == nil else {
                 completionHandler?(nil, .noDataError)
@@ -291,6 +364,196 @@ private extension EmailManager {
                 completionHandler?(alias, nil)
             } catch {
                 completionHandler?(nil, .invalidResponse)
+            }
+        }
+    }
+
+}
+
+// MARK: - Waitlist Management
+
+extension EmailManager {
+
+    public typealias WaitlistRequestCompletion<T> = (Result<T, WaitlistRequestError>) -> Void
+
+    public typealias JoinWaitlistCompletion = WaitlistRequestCompletion<WaitlistResponse>
+    public typealias FetchInviteCodeCompletion = WaitlistRequestCompletion<EmailInviteCodeResponse>
+    private typealias FetchWaitlistStatusCompletion = WaitlistRequestCompletion<WaitlistStatusResponse>
+
+    public struct WaitlistResponse: Decodable {
+        let token: String
+        let timestamp: Int
+    }
+
+    struct WaitlistStatusResponse: Decodable {
+        let timestamp: Int
+    }
+
+    public struct EmailInviteCodeResponse: Decodable {
+        let code: String
+    }
+
+    public enum WaitlistRequestError: Error {
+        case noDataError
+        case invalidResponse
+        case codeAlreadyExists
+        case noCodeAvailable
+        case notOnWaitlist
+    }
+
+    public func joinWaitlist(timeoutInterval: TimeInterval = 60.0, completionHandler: JoinWaitlistCompletion? = nil) {
+        requestDelegate?.emailManager(self,
+                                      requested: emailUrls.joinWaitlistAPI,
+                                      method: "POST",
+                                      headers: emailHeaders,
+                                      parameters: nil,
+                                      httpBody: nil,
+                                      timeoutInterval: timeoutInterval) { [weak self] data, error in
+            guard let self = self else { return }
+
+            guard let data = data, error == nil else {
+                DispatchQueue.main.async {
+                    completionHandler?(.failure(.noDataError))
+                }
+
+                return
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                let response = try decoder.decode(WaitlistResponse.self, from: data)
+
+                self.storage.store(waitlistToken: response.token)
+                self.storage.store(waitlistTimestamp: response.timestamp)
+
+                DispatchQueue.main.async {
+                    completionHandler?(.success(response))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    completionHandler?(.failure(.noDataError))
+                }
+            }
+        }
+    }
+
+    /// Fetches the invite code for users who have joined the waitlist. There are two steps required:
+    ///
+    /// 1. Query the waitlist status API to determine the status of the queue, which returns a timestamp
+    /// 2. Compare the waitlist status timestamp against the locally persisted value, and status timestamp > local timestamp, then fetch the waitlist code using the saved token
+    public func fetchInviteCodeIfAvailable(timeoutInterval: TimeInterval = 60.0, completionHandler: FetchInviteCodeCompletion? = nil) {
+        guard storage.getWaitlistInviteCode() == nil else {
+            completionHandler?(.failure(.codeAlreadyExists))
+            return
+        }
+
+        // Verify that the waitlist has already been joined before checking the status.
+        guard storage.getWaitlistToken() != nil, let storedTimestamp = storage.getWaitlistTimestamp() else {
+            completionHandler?(.failure(.notOnWaitlist))
+            return
+        }
+
+        fetchWaitlistStatus(timeoutInterval: timeoutInterval) { waitlistResult in
+            switch waitlistResult {
+            case .success(let statusResponse):
+                if statusResponse.timestamp >= storedTimestamp {
+                    self.fetchInviteCode(timeoutInterval: timeoutInterval, completionHandler: completionHandler)
+                } else {
+                    // If the user is still in the waitlist, no code is available.
+                    completionHandler?(.failure(.noCodeAvailable))
+                }
+            case .failure(let error):
+                completionHandler?(.failure(error))
+            }
+        }
+    }
+
+    private func fetchWaitlistStatus(timeoutInterval: TimeInterval = 60.0, completionHandler: FetchWaitlistStatusCompletion? = nil) {
+        guard storage.getWaitlistInviteCode() == nil else {
+            completionHandler?(.failure(.codeAlreadyExists))
+            return
+        }
+
+        // Verify that the waitlist has already been joined before checking the status.
+        guard storage.getWaitlistToken() != nil, storage.getWaitlistTimestamp() != nil else {
+            completionHandler?(.failure(.notOnWaitlist))
+            return
+        }
+
+        requestDelegate?.emailManager(self,
+                                      requested: emailUrls.waitlistStatusAPI,
+                                      method: "GET",
+                                      headers: emailHeaders,
+                                      parameters: nil,
+                                      httpBody: nil,
+                                      timeoutInterval: timeoutInterval) { data, error in
+            guard let data = data, error == nil else {
+                DispatchQueue.main.async {
+                    completionHandler?(.failure(.noDataError))
+                }
+
+                return
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                let waitlistStatus = try decoder.decode(WaitlistStatusResponse.self, from: data)
+
+                DispatchQueue.main.async {
+                    completionHandler?(.success(waitlistStatus))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    completionHandler?(.failure(.noDataError))
+                }
+            }
+        }
+    }
+
+    private func fetchInviteCode(timeoutInterval: TimeInterval = 60.0, completionHandler: FetchInviteCodeCompletion? = nil) {
+        guard storage.getWaitlistInviteCode() == nil else {
+            completionHandler?(.failure(.codeAlreadyExists))
+            return
+        }
+
+        // Verify that the waitlist has already been joined before checking the status.
+        guard let token = storage.getWaitlistToken(), storage.getWaitlistTimestamp() != nil else {
+            completionHandler?(.failure(.notOnWaitlist))
+            return
+        }
+
+        var components = URLComponents()
+        components.queryItems = [URLQueryItem(name: "token", value: token)]
+        let componentData = components.query?.data(using: .utf8)
+
+        requestDelegate?.emailManager(self,
+                                      requested: emailUrls.getInviteCodeAPI,
+                                      method: "POST",
+                                      headers: emailHeaders,
+                                      parameters: nil,
+                                      httpBody: componentData,
+                                      timeoutInterval: timeoutInterval) { [weak self] data, error in
+            guard let data = data, error == nil else {
+                DispatchQueue.main.async {
+                    completionHandler?(.failure(.noDataError))
+                }
+
+                return
+            }
+
+            do {
+                let decoder = JSONDecoder()
+                let inviteCodeResponse = try decoder.decode(EmailInviteCodeResponse.self, from: data)
+
+                self?.storage.store(inviteCode: inviteCodeResponse.code)
+
+                DispatchQueue.main.async {
+                    completionHandler?(.success(inviteCodeResponse))
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    completionHandler?(.failure(.noDataError))
+                }
             }
         }
     }
