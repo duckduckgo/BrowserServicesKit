@@ -39,7 +39,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         ]
     }
 
-    @available(macOS 14, iOS 11, *)
+    @available(macOS 11, iOS 14, *)
     func testWhenAccountsForDomainRequested_ThenDelegateCalled() {
         class GetAccountsDelegate: MockSecureVaultDelegate {
             override func autofillUserScript(_: AutofillUserScript,
@@ -73,7 +73,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
    }
 
-    @available(macOS 14, iOS 11, *)
+    @available(macOS 11, iOS 14, *)
     func testWhenCredentialForAccountRequested_ThenDelegateCalled() {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
@@ -118,7 +118,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
     }
 
-    @available(macOS 14, iOS 11, *)
+    @available(macOS 11, iOS 14, *)
     func testWhenStoreCredentialsCalled_ThenDelegateIsCalled() {
 
         let delegate = MockSecureVaultDelegate()
