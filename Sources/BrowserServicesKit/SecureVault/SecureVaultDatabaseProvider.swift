@@ -56,6 +56,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
         // ... add more migrations here ...
         try migrator.migrate(db)
     }
@@ -207,6 +208,12 @@ extension DefaultDatabaseProvider {
                             ifNotExists: true)
     }
 
+    static func migrateV3(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.title.name, .text)
+        }
+    }
+
 }
 
 // MARK: - Utility functions
@@ -253,11 +260,12 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-           case id, username, domain, created, lastUpdated
+           case id, title, username, domain, created, lastUpdated
     }
 
     public init(row: Row) {
         id = row[Columns.id]
+        title = row[Columns.title]
         username = row[Columns.username]
         domain = row[Columns.domain]
         created = row[Columns.created]
@@ -266,6 +274,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     public func encode(to container: inout PersistenceContainer) {
         container[Columns.id] = id
+        container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
         container[Columns.created] = created

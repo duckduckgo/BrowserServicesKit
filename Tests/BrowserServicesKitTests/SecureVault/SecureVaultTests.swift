@@ -66,7 +66,12 @@ class SecureVaultTests: XCTestCase {
     }
 
     func testWhenDeletingCredentialsForAccount_ThenDatabaseCalled() throws {
-        let account = SecureVaultModels.WebsiteAccount(id: 1, username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
+        let account = SecureVaultModels.WebsiteAccount(id: 1,
+                                                       title: "Title",
+                                                       username: "test@duck.com",
+                                                       domain: "example.com",
+                                                       created: Date(),
+                                                       lastUpdated: Date())
         mockDatabaseProvider._credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         mockDatabaseProvider._accounts = [account]
 
