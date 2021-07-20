@@ -144,7 +144,7 @@ class DatabaseProviderTests: XCTestCase {
 
     func test_when_record_stored_then_can_be_retrieved_and_is_allocated_id_and_dates() throws {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
-        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let account = SecureVaultModels.WebsiteAccount(title: "Example Title", username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         try database.storeWebsiteCredentials(credentials)
 
@@ -152,6 +152,7 @@ class DatabaseProviderTests: XCTestCase {
         XCTAssertEqual(results.count, 1)
         XCTAssertNotNil(results[0].id)
         XCTAssertEqual(account.domain, results[0].domain)
+        XCTAssertEqual(account.title, results[0].title)
         XCTAssertEqual(account.username, results[0].username)
         XCTAssertNotNil(account.created)
         XCTAssertNotNil(account.lastUpdated)
