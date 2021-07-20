@@ -44,7 +44,7 @@ public struct SecureVaultModels {
 
         public var id: Int64?
         public var username: String
-        public let domain: String
+        public var domain: String
         public let created: Date
         public let lastUpdated: Date
 
