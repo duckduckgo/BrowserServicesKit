@@ -23,7 +23,7 @@ protocol SecureVaultDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
 
@@ -75,12 +75,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
         if let id = credentials.account.id {
             try updateWebsiteCredentials(credentials, usingId: id)
+            return id
         } else {
-            try insertWebsiteCredentials(credentials)
+            return try insertWebsiteCredentials(credentials)
         }
     }
 
@@ -118,7 +119,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func insertWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    func insertWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         try db.write {
             do {
                 try credentials.account.insert($0)
@@ -132,6 +133,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                     )
                     VALUES (?, ?)
                 """, arguments: [id, credentials.password])
+                return id
             } catch let error as DatabaseError {
                 if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
                     throw SecureVaultError.duplicateRecord
