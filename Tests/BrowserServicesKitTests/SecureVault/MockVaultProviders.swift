@@ -28,8 +28,9 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     // swiftlint:enable identifier_name
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         _lastCredentials = credentials
+        return _lastCredentials?.account.id ?? -1
     }
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {

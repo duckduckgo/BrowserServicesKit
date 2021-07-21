@@ -23,6 +23,7 @@ protocol SecureVaultDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
 
+    @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
