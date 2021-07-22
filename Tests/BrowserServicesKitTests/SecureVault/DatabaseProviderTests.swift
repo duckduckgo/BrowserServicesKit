@@ -20,6 +20,7 @@ import Foundation
 
 import XCTest
 @testable import BrowserServicesKit
+import GRDB
 
 // swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {
@@ -45,6 +46,20 @@ class DatabaseProviderTests: XCTestCase {
     override func tearDown() {
         super.tearDown()
         try! deleteDbFile()
+    }
+
+    func test_when_account_delete_then_credential_is_deleted() throws {
+        let database = try DefaultDatabaseProvider(key: simpleL1Key)
+        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        let accountId = try database.storeWebsiteCredentials(credentials)
+
+        try database.deleteWebsiteCredentialsForAccountId(accountId)
+
+        try database.db.read {
+            XCTAssertEqual(try Row.fetchAll($0, sql: "select * from \(SecureVaultModels.WebsiteCredentials.databaseTableName)").count, 0)
+        }
+
     }
 
     func test_when_credentials_stored_then_is_included_in_list_of_accounts() throws {
@@ -105,11 +120,11 @@ class DatabaseProviderTests: XCTestCase {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        try database.storeWebsiteCredentials(credentials)
+        XCTAssertEqual(1, try database.storeWebsiteCredentials(credentials))
 
         do {
-            try database.storeWebsiteCredentials(credentials)
-            XCTFail("No exception for duplicate record")
+            let id = try database.storeWebsiteCredentials(credentials)
+            XCTFail("No exception for duplicate record, id: \(id)")
         } catch {
             switch error {
             case SecureVaultError.duplicateRecord: break

@@ -40,6 +40,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
         case unableToDetermineStorageDirectory
         case unableToGetDatabaseKey
+        case unableToDeleteAccount(accountId: Int64)
 
     }
 
@@ -58,8 +59,37 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
         // ... add more migrations here ...
-        try migrator.migrate(db)
+        do {
+            try migrator.migrate(db)
+
+            dumpTable(SecureVaultModels.WebsiteAccount.databaseTableName)
+            dumpTable(SecureVaultModels.WebsiteAccount.databaseTableName + "Old")
+            dumpTable(SecureVaultModels.WebsiteCredentials.databaseTableName)
+            dumpTable(SecureVaultModels.WebsiteCredentials.databaseTableName + "Old")
+
+        } catch {
+            print("***", error)
+            throw error
+        }
+    }
+
+    // TODO remove
+    private func dumpTable(_ tableName: String) {
+        print("***", #function, tableName, "IN")
+        try? db.read {
+            let result = try Row.fetchOne($0,
+                                             sql: """
+                SELECT
+                    *
+                FROM
+                    \(tableName)
+                """)
+
+            print("***", result as Any)
+        }
+        print("***", #function, tableName, "OUT")
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
@@ -77,6 +107,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
         if let id = credentials.account.id {
@@ -93,14 +124,9 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
 
         try db.write {
-            try $0.execute(sql: """
-                DELETE FROM
-                    \(SecureVaultModels.WebsiteCredentials.databaseTableName)
-                WHERE
-                    \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
-                """, arguments: [accountId])
-
-            try credentials.account.delete($0)
+            if !(try credentials.account.delete($0)) {
+                throw DbError.unableToDeleteAccount(accountId: accountId)
+            }
         }
     }
 
@@ -213,6 +239,59 @@ extension DefaultDatabaseProvider {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.title.name, .text)
         }
+    }
+
+    static func migrateV4(database: Database) throws {
+        typealias Account = SecureVaultModels.WebsiteAccount
+        typealias Credentials = SecureVaultModels.WebsiteCredentials
+
+        try database.rename(table: Account.databaseTableName,
+                            to: Account.databaseTableName + "Old")
+        try database.rename(table: Credentials.databaseTableName,
+                            to: Credentials.databaseTableName + "Old")
+
+
+        try database.create(table: Account.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(Account.Columns.id.name)
+            $0.column(Account.Columns.username.name, .text)
+            $0.column(Account.Columns.created.name, .date)
+            $0.column(Account.Columns.lastUpdated.name, .date)
+            $0.column(Account.Columns.domain.name, .text)
+            $0.column(Account.Columns.title.name, .text)
+        }
+
+        try database.create(table: Credentials.databaseTableName) {
+            $0.column(Credentials.Columns.id.name, .integer)
+            $0.column(Credentials.Columns.password.name, .blob)
+            $0.primaryKey([Credentials.Columns.id.name])
+            $0.foreignKey([Credentials.Columns.id.name],
+                          references: Account.databaseTableName, onDelete: .cascade)
+        }
+
+        try database.execute(sql: """
+            INSERT INTO \(Account.databaseTableName) SELECT * FROM \(Account.databaseTableName + "Old")
+            """)
+
+        try database.execute(sql: """
+            INSERT INTO \(Credentials.databaseTableName) SELECT * FROM \(Credentials.databaseTableName + "Old")
+            """)
+
+        // TODO comment in
+//        try database.drop(table: Account.databaseTableName + "Old")
+//        try database.drop(table: redentials.databaseTableName + "Old")
+
+        try database.drop(index: Account.databaseTableName + "_unique")
+
+        // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
+        try database.create(index: Account.databaseTableName + "_unique",
+                            on: Account.databaseTableName,
+                            columns: [
+                                Account.Columns.domain.name,
+                                Account.Columns.username.name
+                            ],
+                            unique: true,
+                            ifNotExists: false)
+
     }
 
 }
