@@ -88,10 +88,6 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
-        guard let credentials = try websiteCredentialsForAccountId(accountId) else {
-            return
-        }
-
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -100,7 +96,12 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                     \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
                 """, arguments: [accountId])
 
-            try credentials.account.delete($0)
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+                """, arguments: [accountId])
         }
     }
 
