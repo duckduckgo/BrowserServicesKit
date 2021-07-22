@@ -40,7 +40,6 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
         case unableToDetermineStorageDirectory
         case unableToGetDatabaseKey
-        case unableToDeleteAccount(accountId: Int64)
 
     }
 
@@ -119,14 +118,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
-        guard let credentials = try websiteCredentialsForAccountId(accountId) else {
-            return
-        }
-
         try db.write {
-            if !(try credentials.account.delete($0)) {
-                throw DbError.unableToDeleteAccount(accountId: accountId)
-            }
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+                """, arguments: [accountId])
         }
     }
 
