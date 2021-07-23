@@ -253,17 +253,7 @@ extension DefaultDatabaseProvider {
         try database.drop(table: Account.databaseTableName + "Old")
         try database.drop(table: Credentials.databaseTableName + "Old")
 
-        try database.execute(sql: "DROP INDEX IF EXISTS \((Account.databaseTableName + "_unique").quotedDatabaseIdentifier)")
-
-//        do {
-//            try database.drop(index: Account.databaseTableName + "_unique")
-//        } catch {
-//            if let databaseError = error as? GRDB.DatabaseError, databaseError.extendedResultCode == .SQLITE_ERROR {
-//                // No-op in the case where the database table doesn't already exist
-//            } else {
-//                throw error
-//            }
-//        }
+        try database.dropIndexIfExists(Account.databaseTableName + "_unique")
 
         // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
         try database.create(index: Account.databaseTableName + "_unique",
