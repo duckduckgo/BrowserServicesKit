@@ -62,33 +62,9 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
-
-            dumpTable(SecureVaultModels.WebsiteAccount.databaseTableName)
-            dumpTable(SecureVaultModels.WebsiteAccount.databaseTableName + "Old")
-            dumpTable(SecureVaultModels.WebsiteCredentials.databaseTableName)
-            dumpTable(SecureVaultModels.WebsiteCredentials.databaseTableName + "Old")
-
         } catch {
-            print("***", error)
             throw error
         }
-    }
-
-    // TODO remove
-    private func dumpTable(_ tableName: String) {
-        print("***", #function, tableName, "IN")
-        try? db.read {
-            let result = try Row.fetchOne($0,
-                                             sql: """
-                SELECT
-                    *
-                FROM
-                    \(tableName)
-                """)
-
-            print("***", result as Any)
-        }
-        print("***", #function, tableName, "OUT")
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
@@ -274,9 +250,8 @@ extension DefaultDatabaseProvider {
             INSERT INTO \(Credentials.databaseTableName) SELECT * FROM \(Credentials.databaseTableName + "Old")
             """)
 
-        // TODO comment in
-//        try database.drop(table: Account.databaseTableName + "Old")
-//        try database.drop(table: redentials.databaseTableName + "Old")
+        try database.drop(table: Account.databaseTableName + "Old")
+        try database.drop(table: Credentials.databaseTableName + "Old")
 
         try database.drop(index: Account.databaseTableName + "_unique")
 
