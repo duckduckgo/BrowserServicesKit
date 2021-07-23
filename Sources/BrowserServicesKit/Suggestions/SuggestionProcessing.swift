@@ -61,8 +61,8 @@ final class SuggestionProcessing {
                                                    maximum: maximumOfNavigationalSuggestions)
 
         // Split the Top Hits and the History and Bookmarks section
-        let topHits = Array(navigationalSuggestions.prefix(2))
-        let historyAndBookmarkSuggestions = Array(navigationalSuggestions.dropFirst(2).filter { suggestion in
+        let topHits = topHits(from: navigationalSuggestions)
+        let historyAndBookmarkSuggestions = Array(navigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
             case .bookmark, .historyEntry:
                 return true
@@ -169,6 +169,32 @@ final class SuggestionProcessing {
         }
 
         return newSuggestions
+    }
+
+    // MARK: - Top Hits
+
+    private func topHits(from suggestions: [Suggestion]) -> [Suggestion] {
+        var topHits = [Suggestion]()
+
+        for (i, suggestion) in suggestions.enumerated() {
+            guard i <= Self.maximumNumberOfTopHits else { break }
+
+            if case let .historyEntry(title: _, url: _, allowedInTopHits: allowedInTopHits) = suggestion {
+                if allowedInTopHits {
+                    topHits.append(suggestion)
+                } else {
+                    break
+                }
+            } else if case .website = suggestion {
+                topHits.append(suggestion)
+            } else if case .bookmark = suggestion {
+                topHits.append(suggestion)
+            } else {
+                break
+            }
+        }
+
+        return topHits
     }
 
     // MARK: - Cutting off and making the result
