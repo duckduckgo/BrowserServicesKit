@@ -20,6 +20,7 @@ import Foundation
 
 import XCTest
 @testable import BrowserServicesKit
+import GRDB
 
 // swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {
@@ -45,6 +46,20 @@ class DatabaseProviderTests: XCTestCase {
     override func tearDown() {
         super.tearDown()
         try! deleteDbFile()
+    }
+
+    func test_when_account_delete_then_credential_is_deleted() throws {
+        let database = try DefaultDatabaseProvider(key: simpleL1Key)
+        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        let accountId = try database.storeWebsiteCredentials(credentials)
+
+        try database.deleteWebsiteCredentialsForAccountId(accountId)
+
+        try database.db.read {
+            XCTAssertEqual(try Row.fetchAll($0, sql: "select * from \(SecureVaultModels.WebsiteCredentials.databaseTableName)").count, 0)
+        }
+
     }
 
     func test_when_credentials_stored_then_is_included_in_list_of_accounts() throws {
@@ -105,11 +120,11 @@ class DatabaseProviderTests: XCTestCase {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        try database.storeWebsiteCredentials(credentials)
+        XCTAssertEqual(1, try database.storeWebsiteCredentials(credentials))
 
         do {
-            try database.storeWebsiteCredentials(credentials)
-            XCTFail("No exception for duplicate record")
+            let id = try database.storeWebsiteCredentials(credentials)
+            XCTFail("No exception for duplicate record, id: \(id)")
         } catch {
             switch error {
             case SecureVaultError.duplicateRecord: break
@@ -144,7 +159,7 @@ class DatabaseProviderTests: XCTestCase {
 
     func test_when_record_stored_then_can_be_retrieved_and_is_allocated_id_and_dates() throws {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
-        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let account = SecureVaultModels.WebsiteAccount(title: "Example Title", username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         try database.storeWebsiteCredentials(credentials)
 
@@ -152,6 +167,7 @@ class DatabaseProviderTests: XCTestCase {
         XCTAssertEqual(results.count, 1)
         XCTAssertNotNil(results[0].id)
         XCTAssertEqual(account.domain, results[0].domain)
+        XCTAssertEqual(account.title, results[0].title)
         XCTAssertEqual(account.username, results[0].username)
         XCTAssertNotNil(account.created)
         XCTAssertNotNil(account.lastUpdated)
@@ -161,6 +177,26 @@ class DatabaseProviderTests: XCTestCase {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
         let results = try database.websiteAccountsForDomain("example.com")
         XCTAssertTrue(results.isEmpty)
+    }
+
+    func test_when_credentials_are_deleted_then_they_are_removed_from_the_database() throws {
+        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+
+        let firstAccount = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example1.com")
+        let firstAccountCredentials = SecureVaultModels.WebsiteCredentials(account: firstAccount, password: "password".data(using: .utf8)!)
+        try database.storeWebsiteCredentials(firstAccountCredentials)
+
+        let secondAccount = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example2.com")
+        let secondAccountCredentials = SecureVaultModels.WebsiteCredentials(account: secondAccount, password: "password".data(using: .utf8)!)
+        try database.storeWebsiteCredentials(secondAccountCredentials)
+
+        XCTAssertEqual(2, try database.accounts().count)
+        let storedAccount = try database.websiteAccountsForDomain("example1.com")[0]
+        try database.deleteWebsiteCredentialsForAccountId(storedAccount.id!)
+
+        let credentials = try database.websiteCredentialsForAccountId(storedAccount.id!)
+        XCTAssertNil(credentials)
+        XCTAssertEqual(1, try database.accounts().count)
     }
 
 }
