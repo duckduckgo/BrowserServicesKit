@@ -18,7 +18,7 @@
 
 import Foundation
 
-public extension URL {
+extension URL {
 
     // URL without the scheme and the '/' suffix of the path
     // For finding duplicate URLs
@@ -30,6 +30,10 @@ public extension URL {
             components.path.removeLast()
         }
         return components.url
+    }
+
+    var nakedString: String? {
+        naked?.absoluteString.dropping(prefix: "//")
     }
 
     public var root: URL? {
