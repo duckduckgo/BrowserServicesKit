@@ -69,7 +69,7 @@ public class SuggestionLoader: SuggestionLoading {
         let url = urlFactory(query)
 
         let group = DispatchGroup()
-        if url?.isRoot ?? true {
+        if url == nil || url!.isRoot && url!.path.last != "/" {
             group.enter()
             dataSource.suggestionLoading(self,
                                          suggestionDataFromUrl: Self.remoteSuggestionsUrl,
