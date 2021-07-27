@@ -150,7 +150,15 @@ class DefaultSecureVault: SecureVault {
         }
 
         do {
-            return try self.providers.database.websiteAccountsForDomain(domain)
+            var parts = domain.components(separatedBy: ".")
+            while !parts.isEmpty {
+                let accounts = try self.providers.database.websiteAccountsForDomain(parts.joined(separator: "."))
+                if !accounts.isEmpty {
+                    return accounts
+                }
+                parts.removeFirst()
+            }
+            return []
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }

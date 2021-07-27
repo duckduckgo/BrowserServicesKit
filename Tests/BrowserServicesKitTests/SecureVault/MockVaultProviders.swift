@@ -23,7 +23,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
     // swiftlint:disable identifier_name
     var _accounts =  [SecureVaultModels.WebsiteAccount]()
-    var _forDomain: String?
+    var _forDomain = [String]()
     var _credentials: SecureVaultModels.WebsiteCredentials?
     var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     // swiftlint:enable identifier_name
@@ -38,7 +38,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        self._forDomain = domain
+        self._forDomain.append(domain)
         return _accounts
     }
 

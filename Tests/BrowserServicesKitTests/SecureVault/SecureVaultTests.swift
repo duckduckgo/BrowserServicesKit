@@ -61,8 +61,15 @@ class SecureVaultTests: XCTestCase {
         XCTAssertEqual("domain", accounts[0].domain)
         XCTAssertEqual("username", accounts[0].username)
 
-        XCTAssertEqual("example.com", mockDatabaseProvider._forDomain)
+        XCTAssertEqual(["example.com"], mockDatabaseProvider._forDomain)
+    }
 
+    func testWhenRetrievingAccountsForDomain_ThenWalkUpDomainToFindAccounts() throws {
+
+        mockDatabaseProvider._accounts = []
+
+        _ = try testVault.accountsFor(domain: "www.example.com")
+        XCTAssertEqual(["www.example.com", "example.com", "com"], mockDatabaseProvider._forDomain)
     }
 
     func testWhenDeletingCredentialsForAccount_ThenDatabaseCalled() throws {
