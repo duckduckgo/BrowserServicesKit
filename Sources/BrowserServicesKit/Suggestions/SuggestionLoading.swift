@@ -40,9 +40,11 @@ public class SuggestionLoader: SuggestionLoading {
 
     public weak var dataSource: SuggestionLoadingDataSource?
     private let processing: SuggestionProcessing
+    private let urlFactory: (String) -> URL?
 
     public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: @escaping (String) -> URL?) {
         self.dataSource = dataSource
+        self.urlFactory = urlFactory
         self.processing = SuggestionProcessing(urlFactory: urlFactory)
     }
 
@@ -64,21 +66,27 @@ public class SuggestionLoader: SuggestionLoading {
         var apiResult: APIResult?
         var apiError: Error?
 
+        let url = urlFactory(query)
+
         let group = DispatchGroup()
-        group.enter()
-        dataSource.suggestionLoading(self,
-                                     suggestionDataFromUrl: Self.remoteSuggestionsUrl,
-                                     withParameters: [Self.searchParameter: query]) { data, error in
-            defer { group.leave() }
-            guard let data = data else {
-                apiError = error
-                return
+        if url?.isRoot ?? true {
+            group.enter()
+            dataSource.suggestionLoading(self,
+                                         suggestionDataFromUrl: Self.remoteSuggestionsUrl,
+                                         withParameters: [Self.searchParameter: query]) { data, error in
+                defer { group.leave() }
+                guard let data = data else {
+                    apiError = error
+                    return
+                }
+                guard let result = try? JSONDecoder().decode(APIResult.self, from: data) else {
+                    apiError = SuggestionLoaderError.parsingFailed
+                    return
+                }
+                apiResult = result
             }
-            guard let result = try? JSONDecoder().decode(APIResult.self, from: data) else {
-                apiError = SuggestionLoaderError.parsingFailed
-                return
-            }
-            apiResult = result
+        } else {
+            apiResult = nil
         }
 
         // 2) Processing it
