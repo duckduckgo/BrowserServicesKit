@@ -56,7 +56,7 @@ final class SuggestionProcessing {
 
         let maximumOfNavigationalSuggestions = min(
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
-            query.count * 2)
+            query.count + 1)
         navigationalSuggestions = removeDuplicates(from: navigationalSuggestions,
                                                    maximum: maximumOfNavigationalSuggestions)
 
