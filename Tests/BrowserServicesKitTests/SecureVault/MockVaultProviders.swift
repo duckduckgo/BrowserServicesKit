@@ -23,13 +23,14 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
     // swiftlint:disable identifier_name
     var _accounts =  [SecureVaultModels.WebsiteAccount]()
-    var _forDomain: String?
+    var _forDomain = [String]()
     var _credentials: SecureVaultModels.WebsiteCredentials?
     var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     // swiftlint:enable identifier_name
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         _lastCredentials = credentials
+        return _lastCredentials?.account.id ?? -1
     }
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
@@ -37,8 +38,12 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        self._forDomain = domain
+        self._forDomain.append(domain)
         return _accounts
+    }
+
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        self._accounts = self._accounts.filter { $0.id != accountId }
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {

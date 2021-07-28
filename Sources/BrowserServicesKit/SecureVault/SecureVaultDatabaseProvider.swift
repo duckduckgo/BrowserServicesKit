@@ -23,11 +23,14 @@ protocol SecureVaultDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
+
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
 }
 
@@ -54,8 +57,14 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
         // ... add more migrations here ...
-        try migrator.migrate(db)
+        do {
+            try migrator.migrate(db)
+        } catch {
+            throw error
+        }
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
@@ -73,14 +82,26 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
         if let id = credentials.account.id {
             try updateWebsiteCredentials(credentials, usingId: id)
+            return id
         } else {
-            try insertWebsiteCredentials(credentials)
+            return try insertWebsiteCredentials(credentials)
         }
+    }
 
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+                """, arguments: [accountId])
+        }
     }
 
     func updateWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64) throws {
@@ -100,7 +121,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func insertWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    func insertWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         try db.write {
             do {
                 try credentials.account.insert($0)
@@ -114,6 +135,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                     )
                     VALUES (?, ?)
                 """, arguments: [id, credentials.password])
+                return id
             } catch let error as DatabaseError {
                 if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
                     throw SecureVaultError.duplicateRecord
@@ -187,6 +209,64 @@ extension DefaultDatabaseProvider {
                             ifNotExists: true)
     }
 
+    static func migrateV3(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.title.name, .text)
+        }
+    }
+
+    static func migrateV4(database: Database) throws {
+        typealias Account = SecureVaultModels.WebsiteAccount
+        typealias Credentials = SecureVaultModels.WebsiteCredentials
+
+        try database.rename(table: Account.databaseTableName,
+                            to: Account.databaseTableName + "Old")
+        try database.rename(table: Credentials.databaseTableName,
+                            to: Credentials.databaseTableName + "Old")
+
+
+        try database.create(table: Account.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(Account.Columns.id.name)
+            $0.column(Account.Columns.username.name, .text)
+            $0.column(Account.Columns.created.name, .date)
+            $0.column(Account.Columns.lastUpdated.name, .date)
+            $0.column(Account.Columns.domain.name, .text)
+            $0.column(Account.Columns.title.name, .text)
+        }
+
+        try database.create(table: Credentials.databaseTableName) {
+            $0.column(Credentials.Columns.id.name, .integer)
+            $0.column(Credentials.Columns.password.name, .blob)
+            $0.primaryKey([Credentials.Columns.id.name])
+            $0.foreignKey([Credentials.Columns.id.name],
+                          references: Account.databaseTableName, onDelete: .cascade)
+        }
+
+        try database.execute(sql: """
+            INSERT INTO \(Account.databaseTableName) SELECT * FROM \(Account.databaseTableName + "Old")
+            """)
+
+        try database.execute(sql: """
+            INSERT INTO \(Credentials.databaseTableName) SELECT * FROM \(Credentials.databaseTableName + "Old")
+            """)
+
+        try database.drop(table: Account.databaseTableName + "Old")
+        try database.drop(table: Credentials.databaseTableName + "Old")
+
+        try database.dropIndexIfExists(Account.databaseTableName + "_unique")
+
+        // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
+        try database.create(index: Account.databaseTableName + "_unique",
+                            on: Account.databaseTableName,
+                            columns: [
+                                Account.Columns.domain.name,
+                                Account.Columns.username.name
+                            ],
+                            unique: true,
+                            ifNotExists: false)
+
+    }
+
 }
 
 // MARK: - Utility functions
@@ -233,11 +313,12 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-           case id, username, domain, created, lastUpdated
+           case id, title, username, domain, created, lastUpdated
     }
 
     public init(row: Row) {
         id = row[Columns.id]
+        title = row[Columns.title]
         username = row[Columns.username]
         domain = row[Columns.domain]
         created = row[Columns.created]
@@ -246,6 +327,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     public func encode(to container: inout PersistenceContainer) {
         container[Columns.id] = id
+        container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
         container[Columns.created] = created

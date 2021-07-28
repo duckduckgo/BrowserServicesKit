@@ -33,7 +33,10 @@ public protocol SecureVault {
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws
+
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
+    func deleteWebsiteCredentialsFor(accountId: Int64) throws
     
 }
 
@@ -147,7 +150,15 @@ class DefaultSecureVault: SecureVault {
         }
 
         do {
-            return try self.providers.database.websiteAccountsForDomain(domain)
+            var parts = domain.components(separatedBy: ".")
+            while !parts.isEmpty {
+                let accounts = try self.providers.database.websiteAccountsForDomain(parts.joined(separator: "."))
+                if !accounts.isEmpty {
+                    return accounts
+                }
+                parts.removeFirst()
+            }
+            return []
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }
@@ -173,7 +184,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws {
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         lock.lock()
         defer {
             lock.unlock()
@@ -181,10 +192,23 @@ class DefaultSecureVault: SecureVault {
 
         do {
             let encryptedPassword = try self.l2Encrypt(data: credentials.password)
-            try self.providers.database.storeWebsiteCredentials(.init(account: credentials.account, password: encryptedPassword))
+            return try self.providers.database.storeWebsiteCredentials(.init(account: credentials.account, password: encryptedPassword))
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
+        }
+    }
+
+    func deleteWebsiteCredentialsFor(accountId: Int64) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        } catch {
+            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
 
