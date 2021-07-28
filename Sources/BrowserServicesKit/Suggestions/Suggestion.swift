@@ -52,6 +52,15 @@ public enum Suggestion: Equatable {
         }
     }
 
+    public var allowedForAutocompletion: Bool {
+        switch self {
+        case .historyEntry, .bookmark:
+            return true
+        case .phrase, .website,.unknown:
+            return false
+        }
+    }
+
 }
 
 extension Suggestion {
