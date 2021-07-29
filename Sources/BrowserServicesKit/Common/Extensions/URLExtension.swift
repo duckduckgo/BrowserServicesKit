@@ -32,10 +32,26 @@ extension URL {
         return components.url
     }
 
-    var isRoot: Bool {
+    var nakedString: String? {
+        naked?.absoluteString.dropping(prefix: "//")
+    }
+
+    public var root: URL? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        components.path = "/"
+        components.query = nil
+        components.fragment = nil
+        components.user = nil
+        components.password = nil
+        return components.url
+    }
+
+    public var isRoot: Bool {
         return (path.isEmpty || path == "/") &&
             query == nil &&
-            fragment == nil
+            fragment == nil &&
+            user == nil &&
+            password == nil
     }
 
 }

@@ -27,5 +27,7 @@ struct HistoryEntryMock: HistoryEntry {
     var title: String?
     var numberOfVisits: Int
     var lastVisit: Date
+    var failedToLoad: Bool
+    var isDownload: Bool
 
 }

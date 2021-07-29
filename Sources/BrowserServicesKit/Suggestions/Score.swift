@@ -38,13 +38,14 @@ extension Score {
         }
 
         let domain = url.host?.droppingWwwPrefix() ?? ""
+        let nakedUrl = url.nakedString ?? ""
 
         // Tokenized matches
         if queryTokens.count > 1 {
             var matchesAllTokens = true
             for token in queryTokens {
                 // Match only from the begining of the word to avoid unintuitive matches.
-                if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !domain.starts(with: token) {
+                if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
                     matchesAllTokens = false
                     break
                 }
@@ -55,8 +56,8 @@ extension Score {
                 score += 10
 
                 // Boost score if first token matches:
-                if let firstToken = queryTokens.first { // domain - high score boost
-                    if domain.starts(with: firstToken) {
+                if let firstToken = queryTokens.first { // nakedUrlString - high score boost
+                    if nakedUrl.starts(with: firstToken) {
                         score += 300
                     } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
                         score += 50
@@ -64,9 +65,9 @@ extension Score {
                 }
             }
         } else {
-            // High score for matching domain in the URL
+            // High score for matching URL
             if let firstToken = queryTokens.first {
-                if domain.starts(with: firstToken) {
+                if nakedUrl.starts(with: firstToken) {
                     score += 300
 
                     // Prioritize root URLs most

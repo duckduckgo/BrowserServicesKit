@@ -28,6 +28,14 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(url.naked, duplicate.naked)
     }
 
+    func testWhenRootIsCalled_ThenURLWithNoPathQueryFragmentUserAndPasswordIsReturned() {
+        let url = URL(string: "https://dax:123456@www.duckduckgo.com/test.php?test=S&info=test#fragment")!
+
+        let rootUrl = url.root!
+        XCTAssertEqual(rootUrl, URL(string: "https://www.duckduckgo.com/")!)
+        XCTAssert(rootUrl.isRoot)
+    }
+
     func testIsRoot() {
         let url = URL(string: "https://www.server.com:8080/path?query=string#fragment")!
         let rootUrl = URL(string: "https://www.server.com:8080/")!

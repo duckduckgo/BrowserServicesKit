@@ -23,14 +23,14 @@ public enum Suggestion: Equatable {
     case phrase(phrase: String)
     case website(url: URL)
     case bookmark(title: String, url: URL, isFavorite: Bool)
-    case historyEntry(title: String?, url: URL)
+    case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
     case unknown(value: String)
 
     var url: URL? {
         get {
             switch self {
             case .website(url: let url),
-                 .historyEntry(title: _, url: let url),
+                 .historyEntry(title: _, url: let url, allowedInTopHits: _),
                  .bookmark(title: _, url: let url, isFavorite: _):
                 return url
             case .phrase, .unknown:
@@ -42,13 +42,22 @@ public enum Suggestion: Equatable {
     var title: String? {
         get {
             switch self {
-            case .historyEntry(title: let title, url: _):
+            case .historyEntry(title: let title, url: _, allowedInTopHits: _):
                 return title
             case .bookmark(title: let title, url: _, isFavorite: _):
                 return title
             case .phrase, .website,.unknown:
                 return nil
             }
+        }
+    }
+
+    public var allowedForAutocompletion: Bool {
+        switch self {
+        case .historyEntry, .bookmark:
+            return true
+        case .phrase, .website,.unknown:
+            return false
         }
     }
 
@@ -61,7 +70,8 @@ extension Suggestion {
     }
 
     init(historyEntry: HistoryEntry) {
-        self = .historyEntry(title: historyEntry.title, url: historyEntry.url)
+        let allowedInTopHits = !(historyEntry.failedToLoad || historyEntry.isDownload)
+        self = .historyEntry(title: historyEntry.title, url: historyEntry.url, allowedInTopHits: allowedInTopHits)
     }
 
     init(url: URL) {

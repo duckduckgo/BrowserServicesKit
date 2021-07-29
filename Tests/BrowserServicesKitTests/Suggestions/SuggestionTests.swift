@@ -53,7 +53,7 @@ final class SuggestionTests: XCTestCase {
         let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
         let websiteSuggestion = Suggestion.website(url: url)
         let bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true)
-        let historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url, allowedInTopHits: true)
         _ = Suggestion.unknown(value: "phrase")
 
         XCTAssertNil(phraseSuggestion.url)
@@ -70,7 +70,7 @@ final class SuggestionTests: XCTestCase {
         let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
         let websiteSuggestion = Suggestion.website(url: url)
         let bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true)
-        let historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url, allowedInTopHits: true)
         _ = Suggestion.unknown(value: "phrase")
 
         XCTAssertNil(phraseSuggestion.title)
@@ -85,7 +85,7 @@ final class SuggestionTests: XCTestCase {
         let title = "Title"
 
 
-        let historyEntry = HistoryEntryMock(identifier: UUID(), url: url, title: title, numberOfVisits: 1, lastVisit: Date())
+        let historyEntry = HistoryEntryMock(identifier: UUID(), url: url, title: title, numberOfVisits: 1, lastVisit: Date(), failedToLoad: false, isDownload: false)
         let suggestion = Suggestion(historyEntry: historyEntry)
 
         guard case .historyEntry = suggestion else {
