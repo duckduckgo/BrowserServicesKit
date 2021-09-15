@@ -24,8 +24,10 @@ public protocol EmailManagerStorage: AnyObject {
     func getToken() -> String?
     func getAlias() -> String?
     func getCohort() -> String?
+    func getLastUseDate() -> String?
     func store(token: String, username: String, cohort: String?)
     func store(alias: String)
+    func store(lastUseDate: String)
     func deleteAlias()
     func deleteAuthenticationState()
 
@@ -128,6 +130,8 @@ public class EmailManager {
     
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
+
+    private var dateFormatter = ISO8601DateFormatter()
     
     private var username: String? {
         storage.getUsername()
@@ -145,9 +149,17 @@ public class EmailManager {
         return storage.getWaitlistInviteCode() != nil
     }
 
-
     public var cohort: String? {
         storage.getCohort()
+    }
+
+    public var lastUseDate: String {
+        storage.getLastUseDate() ?? ""
+    }
+
+    public func updateLastUseDate() {
+        let dateString = dateFormatter.string(from: Date())
+        storage.store(lastUseDate: dateString)
     }
 
     public var inviteCode: String? {
@@ -185,6 +197,9 @@ public class EmailManager {
     
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
+
+        dateFormatter.formatOptions = [.withFullDate, .withDashSeparatorInDate]
+        dateFormatter.timeZone = TimeZone(identifier: "America/New_York") // Use ET time zone
     }
     
     public func signOut() {
