@@ -69,4 +69,14 @@ public struct SecureVaultModels {
 
     }
 
+    public struct Note {
+
+        public var id: Int64?
+        public var title: String
+        public var text: String
+        public let created: Date
+        public let lastUpdated: Date
+
+    }
+
 }

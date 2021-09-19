@@ -32,12 +32,14 @@ public protocol SecureVault {
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-    func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
 
+    func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func deleteWebsiteCredentialsFor(accountId: Int64) throws
-    
+
+    func notes() throws -> [SecureVaultModels.Note]
+    func noteFor(id: Int64) throws -> SecureVaultModels.Note?
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -164,6 +166,8 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
+    // MARK: - credentials
+
     public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         lock.lock()
         defer {
@@ -209,6 +213,36 @@ class DefaultSecureVault: SecureVault {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
         } catch {
             throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+    // MARK: - notes
+
+    func notes() throws -> [SecureVaultModels.Note] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.notes()
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.noteForNoteId(id)
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
         }
     }
 

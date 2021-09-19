@@ -145,7 +145,7 @@ public class EmailManager {
         return storage.getWaitlistInviteCode() != nil
     }
 
-
+    
     public var cohort: String? {
         storage.getCohort()
     }

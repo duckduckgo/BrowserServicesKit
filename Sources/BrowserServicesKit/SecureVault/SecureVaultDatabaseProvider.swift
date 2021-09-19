@@ -32,6 +32,12 @@ protocol SecureVaultDatabaseProvider {
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
+    func notes() throws -> [SecureVaultModels.Note]
+
+    func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note?
+
+    func deleteNoteForNoteId(_ noteId: Int64) throws
+
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -167,6 +173,36 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 
             }
             return nil
+        }
+    }
+
+    func notes() throws -> [SecureVaultModels.Note] {
+        return try db.read {
+            return try SecureVaultModels.Note.fetchAll($0)
+        }
+    }
+
+    func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note? {
+        try db.read {
+            return try SecureVaultModels.Note.fetchOne($0, sql: """
+                SELECT
+                    *
+                FROM
+                    \(SecureVaultModels.Note.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Note.Columns.id.name) = ?
+                """, arguments: [noteId])
+        }
+    }
+
+    func deleteNoteForNoteId(_ noteId: Int64) throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.Note.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Note.Columns.id.name) = ?
+                """, arguments: [noteId])
         }
     }
 
@@ -345,5 +381,31 @@ extension SecureVaultModels.WebsiteCredentials {
     }
 
     public static var databaseTableName: String = "website_passwords"
+
+}
+
+extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
+
+    enum Columns: String, ColumnExpression {
+           case id, title, text, created, lastUpdated
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        title = row[Columns.title]
+        text = row[Columns.text]
+        created = row[Columns.created]
+        lastUpdated = row[Columns.lastUpdated]
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.title] = title
+        container[Columns.text] = text
+        container[Columns.created] = created
+        container[Columns.lastUpdated] = Date()
+    }
+
+    public static var databaseTableName: String = "notes"
 
 }
