@@ -77,6 +77,14 @@ public struct SecureVaultModels {
         public let created: Date
         public let lastUpdated: Date
 
+        public init(title: String? = nil, text: String) {
+            self.id = nil
+            self.title = title ?? ""
+            self.text = text
+            self.created = Date()
+            self.lastUpdated = self.created
+        }
+
     }
 
 }

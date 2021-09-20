@@ -36,6 +36,8 @@ protocol SecureVaultDatabaseProvider {
 
     func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note?
 
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64
+
     func deleteNoteForNoteId(_ noteId: Int64) throws
 
 }
@@ -65,6 +67,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
         migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
@@ -195,6 +198,15 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+        if let id = note.id {
+            try updateNote(note, usingId: id)
+            return id
+        } else {
+            return try insertNote(note)
+        }
+    }
+
     func deleteNoteForNoteId(_ noteId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
@@ -203,6 +215,19 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 WHERE
                     \(SecureVaultModels.Note.Columns.id.name) = ?
                 """, arguments: [noteId])
+        }
+    }
+
+    func updateNote(_ note: SecureVaultModels.Note, usingId id: Int64) throws {
+        try db.write {
+            try note.update($0)
+        }
+    }
+
+    func insertNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+        try db.write {
+            try note.insert($0)
+            return $0.lastInsertedRowID
         }
     }
 
@@ -300,6 +325,18 @@ extension DefaultDatabaseProvider {
                             ],
                             unique: true,
                             ifNotExists: false)
+
+    }
+
+    static func migrateV5(database: Database) throws {
+
+        try database.create(table: SecureVaultModels.Note.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.Note.Columns.id.name)
+            $0.column(SecureVaultModels.Note.Columns.title.name, .text)
+            $0.column(SecureVaultModels.Note.Columns.text.name, .text)
+            $0.column(SecureVaultModels.Note.Columns.created.name, .date)
+            $0.column(SecureVaultModels.Note.Columns.lastUpdated.name, .date)
+        }
 
     }
 
