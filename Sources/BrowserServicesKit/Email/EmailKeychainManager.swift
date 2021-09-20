@@ -56,7 +56,7 @@ extension EmailKeychainManager: EmailManagerStorage {
     }
 
     public func store(lastUseDate: String) {
-        EmailKeychainManager.add(alias: lastUseDate)
+        EmailKeychainManager.add(lastUseDate: lastUseDate)
     }
     
     public func deleteAlias() {
