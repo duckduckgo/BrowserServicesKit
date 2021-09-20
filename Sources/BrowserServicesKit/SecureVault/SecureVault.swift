@@ -41,6 +41,7 @@ public protocol SecureVault {
     func notes() throws -> [SecureVaultModels.Note]
     func noteFor(id: Int64) throws -> SecureVaultModels.Note?
     func storeNote(_ note: SecureVaultModels.Note) throws -> Int64
+    func deleteNoteFor(noteId: Int64) throws
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -258,6 +259,19 @@ class DefaultSecureVault: SecureVault {
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
+        }
+    }
+
+    func deleteNoteFor(noteId: Int64) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            try self.providers.database.deleteNoteForNoteId(noteId)
+        } catch {
+            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
 

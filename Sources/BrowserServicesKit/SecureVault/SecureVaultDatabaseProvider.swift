@@ -386,7 +386,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-           case id, title, username, domain, created, lastUpdated
+        case id, title, username, domain, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -414,7 +414,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 extension SecureVaultModels.WebsiteCredentials {
 
     enum Columns: String, ColumnExpression {
-           case id, password
+        case id, password
     }
 
     public static var databaseTableName: String = "website_passwords"
@@ -424,7 +424,7 @@ extension SecureVaultModels.WebsiteCredentials {
 extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-           case id, title, text, created, lastUpdated
+        case id, title, text, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -444,5 +444,86 @@ extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
     }
 
     public static var databaseTableName: String = "notes"
+
+}
+
+extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case title
+        case created
+        case lastUpdated
+
+        case firstName
+        case middleName
+        case lastName
+
+        case birthdayDay
+        case birthdayMonth
+        case birthdayYear
+
+        case addressStreet
+        case addressCity
+        case addressProvince
+        case addressPostalCode
+        case addressCountryCode
+
+        case homePhone
+        case mobilePhone
+        case emailAddress
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        title = row[Columns.title]
+        created = row[Columns.created]
+        lastUpdated = row[Columns.lastUpdated]
+
+        firstName = row[Columns.firstName]
+        middleName = row[Columns.middleName]
+        lastName = row[Columns.lastName]
+
+        birthdayDay = row[Columns.birthdayDay]
+        birthdayMonth = row[Columns.birthdayMonth]
+        birthdayYear = row[Columns.birthdayYear]
+
+        addressStreet = row[Columns.addressStreet]
+        addressCity = row[Columns.addressCity]
+        addressProvince = row[Columns.addressProvince]
+        addressPostalCode = row[Columns.addressPostalCode]
+        addressCountryCode = row[Columns.addressCountryCode]
+
+        homePhone = row[Columns.homePhone]
+        mobilePhone = row[Columns.mobilePhone]
+        emailAddress = row[Columns.emailAddress]
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.title] = title
+        container[Columns.created] = created
+        container[Columns.lastUpdated] = Date()
+
+        container[Columns.firstName] = firstName
+        container[Columns.middleName] = middleName
+        container[Columns.lastName] = lastName
+
+        container[Columns.birthdayDay] = birthdayDay
+        container[Columns.birthdayMonth] = birthdayMonth
+        container[Columns.birthdayYear] = birthdayYear
+
+        container[Columns.addressStreet] = addressStreet
+        container[Columns.addressCity] = addressCity
+        container[Columns.addressProvince] = addressProvince
+        container[Columns.addressPostalCode] = addressPostalCode
+        container[Columns.addressCountryCode] = addressCountryCode
+
+        container[Columns.homePhone] = homePhone
+        container[Columns.mobilePhone] = mobilePhone
+        container[Columns.emailAddress] = emailAddress
+    }
+
+    public static var databaseTableName: String = "identities"
 
 }

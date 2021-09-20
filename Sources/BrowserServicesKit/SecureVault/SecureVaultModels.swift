@@ -73,9 +73,10 @@ public struct SecureVaultModels {
 
         public var id: Int64?
         public var title: String
-        public var text: String
         public let created: Date
         public let lastUpdated: Date
+
+        public var text: String
 
         public init(title: String? = nil, text: String) {
             self.id = nil
@@ -84,6 +85,34 @@ public struct SecureVaultModels {
             self.created = Date()
             self.lastUpdated = self.created
         }
+
+    }
+
+
+    public struct Identity {
+
+        public var id: Int64?
+        public var title: String
+        public let created: Date
+        public let lastUpdated: Date
+
+        public var firstName: String?
+        public var middleName: String?
+        public var lastName: String?
+
+        public var birthdayDay: String?
+        public var birthdayMonth: String?
+        public var birthdayYear: String?
+
+        public var addressStreet: String?
+        public var addressCity: String?
+        public var addressProvince: String?
+        public var addressPostalCode: String?
+        public var addressCountryCode: String? // Two digit ISO country code
+
+        public var homePhone: String?
+        public var mobilePhone: String?
+        public var emailAddress: String?
 
     }
 
