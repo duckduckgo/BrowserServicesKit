@@ -40,8 +40,15 @@ public protocol SecureVault {
 
     func notes() throws -> [SecureVaultModels.Note]
     func noteFor(id: Int64) throws -> SecureVaultModels.Note?
+    @discardableResult
     func storeNote(_ note: SecureVaultModels.Note) throws -> Int64
     func deleteNoteFor(noteId: Int64) throws
+
+    func identities() throws -> [SecureVaultModels.Identity]
+    func identityFor(id: Int64) throws -> SecureVaultModels.Identity?
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
+    func deleteIdentityFor(identityId: Int64) throws
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -270,6 +277,64 @@ class DefaultSecureVault: SecureVault {
 
         do {
             try self.providers.database.deleteNoteForNoteId(noteId)
+        } catch {
+            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+    // MARK: - identities
+
+    func identities() throws -> [SecureVaultModels.Identity] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.identities()
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.identityForIdentityId(id)
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.storeIdentity(identity)
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    func deleteIdentityFor(identityId: Int64) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            try self.providers.database.deleteIdentityForIdentityId(identityId)
         } catch {
             throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }

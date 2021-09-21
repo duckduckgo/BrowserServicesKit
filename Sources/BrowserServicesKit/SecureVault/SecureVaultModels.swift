@@ -100,9 +100,9 @@ public struct SecureVaultModels {
         public var middleName: String?
         public var lastName: String?
 
-        public var birthdayDay: String?
-        public var birthdayMonth: String?
-        public var birthdayYear: String?
+        public var birthdayDay: Int?
+        public var birthdayMonth: Int?
+        public var birthdayYear: Int?
 
         public var addressStreet: String?
         public var addressCity: String?
@@ -113,6 +113,48 @@ public struct SecureVaultModels {
         public var homePhone: String?
         public var mobilePhone: String?
         public var emailAddress: String?
+
+        public init() {
+            self.init(id: nil, title: "", created: Date(), lastUpdated: Date())
+        }
+
+        public init(id: Int64? = nil,
+                    title: String? = nil,
+                    created: Date,
+                    lastUpdated: Date,
+                    firstName: String? = nil,
+                    middleName: String? = nil,
+                    lastName: String? = nil,
+                    birthdayDay: Int? = nil,
+                    birthdayMonth: Int? = nil,
+                    birthdayYear: Int? = nil,
+                    addressStreet: String? = nil,
+                    addressCity: String? = nil,
+                    addressProvince: String? = nil,
+                    addressPostalCode: String? = nil,
+                    addressCountryCode: String? = nil,
+                    homePhone: String? = nil,
+                    mobilePhone: String? = nil,
+                    emailAddress: String? = nil) {
+            self.id = id
+            self.title = title ?? ""
+            self.created = created
+            self.lastUpdated = lastUpdated
+            self.firstName = firstName
+            self.middleName = middleName
+            self.lastName = lastName
+            self.birthdayDay = birthdayDay
+            self.birthdayMonth = birthdayMonth
+            self.birthdayYear = birthdayYear
+            self.addressStreet = addressStreet
+            self.addressCity = addressCity
+            self.addressProvince = addressProvince
+            self.addressPostalCode = addressPostalCode
+            self.addressCountryCode = addressCountryCode
+            self.homePhone = homePhone
+            self.mobilePhone = mobilePhone
+            self.emailAddress = emailAddress
+        }
 
     }
 

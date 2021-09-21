@@ -25,20 +25,21 @@ protocol SecureVaultDatabaseProvider {
 
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
-
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
-
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
     func notes() throws -> [SecureVaultModels.Note]
-
     func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note?
-
+    @discardableResult
     func storeNote(_ note: SecureVaultModels.Note) throws -> Int64
-
     func deleteNoteForNoteId(_ noteId: Int64) throws
+
+    func identities() throws -> [SecureVaultModels.Identity]
+    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity?
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
+    func deleteIdentityForIdentityId(_ identityId: Int64) throws
 
 }
 
@@ -68,6 +69,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
         migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
         migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
@@ -231,6 +233,59 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    func identities() throws -> [SecureVaultModels.Identity] {
+        return try db.read {
+            return try SecureVaultModels.Identity.fetchAll($0)
+        }
+    }
+
+    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
+        try db.read {
+            return try SecureVaultModels.Identity.fetchOne($0, sql: """
+                SELECT
+                    *
+                FROM
+                    \(SecureVaultModels.Identity.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Identity.Columns.id.name) = ?
+                """, arguments: [identityId])
+        }
+    }
+
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        if let id = identity.id {
+            try updateIdentity(identity, usingId: id)
+            return id
+        } else {
+            return try insertIdentity(identity)
+        }
+    }
+
+    func deleteIdentityForIdentityId(_ identityId: Int64) throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.Identity.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Identity.Columns.id.name) = ?
+                """, arguments: [identityId])
+        }
+    }
+
+    func updateIdentity(_ identity: SecureVaultModels.Identity, usingId id: Int64) throws {
+        try db.write {
+            try identity.update($0)
+        }
+    }
+
+    func insertIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        try db.write {
+            try identity.insert($0)
+            return $0.lastInsertedRowID
+        }
+    }
+
 }
 
 // MARK: - Database Migrations
@@ -336,6 +391,35 @@ extension DefaultDatabaseProvider {
             $0.column(SecureVaultModels.Note.Columns.text.name, .text)
             $0.column(SecureVaultModels.Note.Columns.created.name, .date)
             $0.column(SecureVaultModels.Note.Columns.lastUpdated.name, .date)
+        }
+
+    }
+
+    static func migrateV6(database: Database) throws {
+
+        try database.create(table: SecureVaultModels.Identity.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.Identity.Columns.id.name)
+            $0.column(SecureVaultModels.Identity.Columns.title.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.created.name, .date)
+            $0.column(SecureVaultModels.Identity.Columns.lastUpdated.name, .date)
+
+            $0.column(SecureVaultModels.Identity.Columns.firstName.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.middleName.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.lastName.name, .text)
+
+            $0.column(SecureVaultModels.Identity.Columns.birthdayDay.name, .integer)
+            $0.column(SecureVaultModels.Identity.Columns.birthdayMonth.name, .integer)
+            $0.column(SecureVaultModels.Identity.Columns.birthdayYear.name, .integer)
+
+            $0.column(SecureVaultModels.Identity.Columns.addressStreet.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressCity.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressProvince.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressPostalCode.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressCountryCode.name, .text)
+
+            $0.column(SecureVaultModels.Identity.Columns.homePhone.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.mobilePhone.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.emailAddress.name, .text)
         }
 
     }
