@@ -42,6 +42,10 @@ extension EmailKeychainManager: EmailManagerStorage {
     public func getCohort() -> String? {
         EmailKeychainManager.getString(forField: .cohort)
     }
+
+    public func getLastUseDate() -> String? {
+        EmailKeychainManager.getString(forField: .lastUseDate)
+    }
     
     public func store(token: String, username: String, cohort: String?) {
         EmailKeychainManager.add(token: token, forUsername: username, cohort: cohort)
@@ -49,6 +53,10 @@ extension EmailKeychainManager: EmailManagerStorage {
     
     public func store(alias: String) {
         EmailKeychainManager.add(alias: alias)
+    }
+
+    public func store(lastUseDate: String) {
+        EmailKeychainManager.add(lastUseDate: lastUseDate)
     }
     
     public func deleteAlias() {
@@ -107,6 +115,7 @@ private extension EmailKeychainManager {
         case username = ".email.username"
         case token = ".email.token"
         case alias = ".email.alias"
+        case lastUseDate = ".email.lastUseDate"
         case waitlistToken = ".email.waitlistToken"
         case waitlistTimestamp = ".email.waitlistTimestamp"
         case inviteCode = ".email.inviteCode"
@@ -161,6 +170,10 @@ private extension EmailKeychainManager {
         add(string: alias, forField: .alias)
     }
 
+    static func add(lastUseDate: String) {
+        add(string: lastUseDate, forField: .lastUseDate)
+    }
+
     static func add(waitlistToken: String) {
         add(string: waitlistToken, forField: .waitlistToken)
     }
@@ -197,6 +210,7 @@ private extension EmailKeychainManager {
         deleteItem(forField: .token)
         deleteItem(forField: .alias)
         deleteItem(forField: .cohort)
+        deleteItem(forField: .lastUseDate)
     }
     
     static func deleteItem(forField field: EmailKeychainField) {

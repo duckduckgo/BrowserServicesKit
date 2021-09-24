@@ -545,6 +545,32 @@ class EmailManagerTests: XCTestCase {
 
         return storage
     }
+
+    func testWhenGettingLastUseDateFirstTimeThenEmptyValueIsReturned() {
+        let storage = MockEmailManagerStorage()
+        let emailManager = EmailManager(storage: storage)
+
+        XCTAssertEqual(emailManager.lastUseDate, "")
+    }
+
+    func testWhenSettingLastUseDateThenValueIsReturned() {
+
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withFullDate, .withDashSeparatorInDate]
+        dateFormatter.timeZone = TimeZone(identifier: "America/New_York")
+
+        let dateStoredExpectation = expectation(description: "Date Stored")
+
+        let storage = MockEmailManagerStorage()
+        storage.storeLastUseDateCallback = { dateString in
+            dateStoredExpectation.fulfill()
+            XCTAssertNotNil(dateFormatter.date(from: dateString))
+        }
+        let emailManager = EmailManager(storage: storage)
+        emailManager.updateLastUseDate()
+
+        wait(for: [dateStoredExpectation], timeout: 1.0)
+    }
 }
 
 class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
@@ -616,11 +642,13 @@ class MockEmailManagerStorage: EmailManagerStorage {
     var mockToken: String?
     var mockAlias: String?
     var mockCohort: String?
+    var mockLastUseDate: String?
     var mockWaitlistToken: String?
     var mockWaitlistTimestamp: Int?
     var mockWaitlistInviteCode: String?
     var storeTokenCallback: ((String, String, String?) -> Void)?
     var storeAliasCallback: ((String) -> Void)?
+    var storeLastUseDateCallback: ((String) -> Void)?
     var deleteAliasCallback: (() -> Void)?
     var deleteAuthenticationStateCallback: (() -> Void)?
     var storeWaitlistTokenCallback: ((String) -> Void)?
@@ -643,13 +671,21 @@ class MockEmailManagerStorage: EmailManagerStorage {
     func getCohort() -> String? {
         return mockCohort
     }
-    
+
+    func getLastUseDate() -> String? {
+        return mockLastUseDate
+    }
+
     func store(token: String, username: String, cohort: String?) {
         storeTokenCallback?(token, username, cohort)
     }
     
     func store(alias: String) {
         storeAliasCallback?(alias)
+    }
+
+    func store(lastUseDate: String) {
+        storeLastUseDateCallback?(lastUseDate)
     }
     
     func deleteAlias() {
