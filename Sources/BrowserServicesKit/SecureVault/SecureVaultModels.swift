@@ -69,6 +69,24 @@ public struct SecureVaultModels {
 
     }
 
+    public struct CreditCard {
+
+        public var id: Int64?
+        public var title: String
+        public let created: Date
+        public let lastUpdated: Date
+
+        public var cardNumber: String?
+        public var cardSecurityCode: String?
+        public var expirationMonth: Int?
+        public var expirationYear: Int?
+
+        /// ISO country code, e.g. `CA`
+        public var countryCode: String?
+        public var postalCode: String?
+
+    }
+
     public struct Note {
 
         public var id: Int64?
@@ -76,14 +94,17 @@ public struct SecureVaultModels {
         public let created: Date
         public let lastUpdated: Date
 
+        public var associatedDomain: String?
         public var text: String
 
-        public init(title: String? = nil, text: String) {
+        public init(title: String? = nil, associatedDomain: String? = nil, text: String) {
             self.id = nil
             self.title = title ?? ""
-            self.text = text
             self.created = Date()
             self.lastUpdated = self.created
+
+            self.associatedDomain = associatedDomain
+            self.text = text
         }
 
     }
@@ -108,7 +129,9 @@ public struct SecureVaultModels {
         public var addressCity: String?
         public var addressProvince: String?
         public var addressPostalCode: String?
-        public var addressCountryCode: String? // Two digit ISO country code
+
+        /// ISO country code, e.g. `CA`
+        public var addressCountryCode: String?
 
         public var homePhone: String?
         public var mobilePhone: String?

@@ -24,10 +24,14 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     // swiftlint:disable identifier_name
     var _accounts =  [SecureVaultModels.WebsiteAccount]()
     var _notes =  [SecureVaultModels.Note]()
+    var _identities =  [SecureVaultModels.Identity]()
+    var _creditCards =  [SecureVaultModels.CreditCard]()
     var _forDomain = [String]()
     var _credentials: SecureVaultModels.WebsiteCredentials?
     var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     var _note: SecureVaultModels.Note?
+    var _identity: SecureVaultModels.Identity?
+    var _creditCard: SecureVaultModels.CreditCard?
     // swiftlint:enable identifier_name
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
@@ -64,6 +68,44 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         self._notes = self._notes.filter { $0.id != noteId }
     }
 
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+        _note = note
+        return note.id ?? -1
+    }
+
+    func identities() throws -> [SecureVaultModels.Identity] {
+        return _identities
+    }
+
+    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
+        return _identity
+    }
+
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        _identity = identity
+        return identity.id ?? -1
+    }
+
+    func deleteIdentityForIdentityId(_ identityId: Int64) throws {
+        self._identities = self._identities.filter { $0.id != identityId }
+    }
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+        return _creditCards
+    }
+
+    func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
+        return _creditCard
+    }
+
+    func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
+        _creditCard = creditCard
+        return creditCard.id ?? -1
+    }
+
+    func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
+        self._creditCards = self._creditCards.filter { $0.id != cardId }
+    }
 }
 
 internal class MockCryptoProvider: SecureVaultCryptoProvider {
