@@ -595,6 +595,13 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         title = row[Columns.title]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
+
+        cardNumber = row[Columns.cardNumber]
+        cardSecurityCode = row[Columns.cardSecurityCode]
+        expirationMonth = row[Columns.expirationMonth]
+        expirationMonth = row[Columns.expirationYear]
+        countryCode = row[Columns.countryCode]
+        postalCode = row[Columns.postalCode]
     }
 
     public func encode(to container: inout PersistenceContainer) {
@@ -602,6 +609,12 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
+        container[Columns.cardNumber] = cardNumber
+        container[Columns.cardSecurityCode] = cardSecurityCode
+        container[Columns.expirationMonth] = expirationMonth
+        container[Columns.expirationYear] = expirationYear
+        container[Columns.countryCode] = countryCode
+        container[Columns.postalCode] = postalCode
     }
 
     public static var databaseTableName: String = "credit_cards"

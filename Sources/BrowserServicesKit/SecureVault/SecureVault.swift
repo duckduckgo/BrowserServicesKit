@@ -49,6 +49,12 @@ public protocol SecureVault {
     @discardableResult
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
     func deleteIdentityFor(identityId: Int64) throws
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard]
+    func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard?
+    @discardableResult
+    func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
+    func deleteCreditCardFor(cardId: Int64) throws
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -335,6 +341,64 @@ class DefaultSecureVault: SecureVault {
 
         do {
             try self.providers.database.deleteIdentityForIdentityId(identityId)
+        } catch {
+            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+    // MARK: - credit cards
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.creditCards()
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.creditCardForCardId(id)
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    @discardableResult
+    func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.storeCreditCard(card)
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    func deleteCreditCardFor(cardId: Int64) throws {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            try self.providers.database.deleteCreditCardForCreditCardId(cardId)
         } catch {
             throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }

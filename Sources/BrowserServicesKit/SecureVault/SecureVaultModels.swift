@@ -85,6 +85,26 @@ public struct SecureVaultModels {
         public var countryCode: String?
         public var postalCode: String?
 
+        public init(title: String? = nil,
+                    cardNumber: String?,
+                    cardSecurityCode: String?,
+                    expirationMonth: Int?,
+                    expirationYear: Int?,
+                    countryCode: String?,
+                    postalCode: String?) {
+            self.id = nil
+            self.title = title ?? ""
+            self.created = Date()
+            self.lastUpdated = self.created
+
+            self.cardNumber = cardNumber
+            self.cardSecurityCode = cardSecurityCode
+            self.expirationMonth = expirationMonth
+            self.expirationYear = expirationYear
+            self.countryCode = countryCode
+            self.postalCode = postalCode
+        }
+
     }
 
     public struct Note {
