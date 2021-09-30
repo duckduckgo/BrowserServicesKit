@@ -497,8 +497,6 @@ extension DefaultDatabaseProvider {
             $0.column(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name, .text)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
-            $0.column(SecureVaultModels.CreditCard.Columns.countryCode.name, .text)
-            $0.column(SecureVaultModels.CreditCard.Columns.postalCode.name, .text)
         }
 
     }
@@ -587,7 +585,7 @@ extension SecureVaultModels.WebsiteCredentials {
 extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, created, lastUpdated, cardNumber, cardSecurityCode, expirationMonth, expirationYear, countryCode, postalCode
+        case id, title, created, lastUpdated, cardNumber, cardSecurityCode, expirationMonth, expirationYear
     }
 
     public init(row: Row) {
@@ -599,9 +597,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         cardNumber = row[Columns.cardNumber]
         cardSecurityCode = row[Columns.cardSecurityCode]
         expirationMonth = row[Columns.expirationMonth]
-        expirationMonth = row[Columns.expirationYear]
-        countryCode = row[Columns.countryCode]
-        postalCode = row[Columns.postalCode]
+        expirationYear = row[Columns.expirationYear]
     }
 
     public func encode(to container: inout PersistenceContainer) {
@@ -613,8 +609,6 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         container[Columns.cardSecurityCode] = cardSecurityCode
         container[Columns.expirationMonth] = expirationMonth
         container[Columns.expirationYear] = expirationYear
-        container[Columns.countryCode] = countryCode
-        container[Columns.postalCode] = postalCode
     }
 
     public static var databaseTableName: String = "credit_cards"

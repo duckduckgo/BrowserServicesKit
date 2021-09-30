@@ -81,17 +81,11 @@ public struct SecureVaultModels {
         public var expirationMonth: Int?
         public var expirationYear: Int?
 
-        /// ISO country code, e.g. `CA`
-        public var countryCode: String?
-        public var postalCode: String?
-
         public init(title: String? = nil,
                     cardNumber: String?,
                     cardSecurityCode: String?,
                     expirationMonth: Int?,
-                    expirationYear: Int?,
-                    countryCode: String?,
-                    postalCode: String?) {
+                    expirationYear: Int?) {
             self.id = nil
             self.title = title ?? ""
             self.created = Date()
@@ -101,8 +95,6 @@ public struct SecureVaultModels {
             self.cardSecurityCode = cardSecurityCode
             self.expirationMonth = expirationMonth
             self.expirationYear = expirationYear
-            self.countryCode = countryCode
-            self.postalCode = postalCode
         }
 
     }
