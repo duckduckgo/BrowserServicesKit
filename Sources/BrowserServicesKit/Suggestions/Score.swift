@@ -72,7 +72,6 @@ extension Score {
             }
         }
 
-        // If there are matches,
         if score > 0 {
             // Second sort based on visitCount
             score *= 1000
