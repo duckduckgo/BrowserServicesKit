@@ -28,59 +28,53 @@ extension Score {
 
         var score = 0
         let lowercasedTitle = title?.lowercased() ?? ""
-
-        // Exact matches - full query
         let queryCount = query.count
-        if queryCount > 1 && lowercasedTitle.starts(with: query) { // High score for exact match from the begining of the title
-            score += 200
-        } else if queryCount > 2 && lowercasedTitle.contains(" \(query)") { // Exact match from the begining of the word within string.
-            score += 100
-        }
-
         let domain = url.host?.droppingWwwPrefix() ?? ""
         let nakedUrl = url.nakedString ?? ""
 
-        // Tokenized matches
-        if queryTokens.count > 1 {
-            var matchesAllTokens = true
-            for token in queryTokens {
-                // Match only from the begining of the word to avoid unintuitive matches.
-                if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
-                    matchesAllTokens = false
-                    break
-                }
-            }
-
-            if matchesAllTokens {
-                // Score tokenized matches
-                score += 10
-
-                // Boost score if first token matches:
-                if let firstToken = queryTokens.first { // nakedUrlString - high score boost
-                    if nakedUrl.starts(with: firstToken) {
-                        score += 300
-                    } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
-                        score += 50
+        // Full matches
+        if nakedUrl.starts(with: query) {
+            score += 300
+            // Prioritize root URLs most
+            if url.isRoot { score += 2000 }
+        } else if lowercasedTitle.starts(with: query) {
+            score += 200
+            if url.isRoot { score += 2000 }
+        } else if queryCount > 2 && domain.contains(query) {
+            score += 150
+        } else if queryCount > 2 && lowercasedTitle.contains(" \(query)") { // Exact match from the begining of the word within string.
+            score += 100
+        } else {
+            // Tokenized matches
+            if queryTokens.count > 1 {
+                var matchesAllTokens = true
+                for token in queryTokens {
+                    // Match only from the begining of the word to avoid unintuitive matches.
+                    if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
+                        matchesAllTokens = false
+                        break
                     }
                 }
-            }
-        } else {
-            // High score for matching URL
-            if let firstToken = queryTokens.first {
-                if nakedUrl.starts(with: firstToken) {
-                    score += 300
 
-                    // Prioritize root URLs most
-                    if url.isRoot { score += 2000 }
-                } else if firstToken.count > 2 && domain.contains(firstToken) {
-                    score += 150
-                    if url.isRoot { score += 2000 }
+                if matchesAllTokens {
+                    // Score tokenized matches
+                    score += 10
+
+                    // Boost score if first token matches:
+                    if let firstToken = queryTokens.first { // nakedUrlString - high score boost
+                        if nakedUrl.starts(with: firstToken) {
+                            score += 70
+                        } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
+                            score += 50
+                        }
+                    }
                 }
             }
         }
 
-        // If there are matches, add visitCount to prioritise more visited
+        // If there are matches,
         if score > 0 {
+            // Second sort based on visitCount
             score *= 1000
             score += visitCount
         }
