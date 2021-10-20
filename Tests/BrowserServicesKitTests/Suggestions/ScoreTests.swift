@@ -42,18 +42,13 @@ final class ScoreTests: XCTestCase {
     }
 
     func testWhenURLMatchesWithQuery_ThenScoreIsIncreased() {
-        let query = "test case"
+        let query = "testcase.com/no"
         let score1 = Score(title: "Test case website",
-                           url: URL(string: "https://www.test.com/case")!,
+                           url: URL(string: "https://www.testcase.com/notroot")!,
                            visitCount: 100,
                            query: query)
 
-        let score2 = Score(title: "Test case website 2",
-                           url: URL(string: "https://www.other.com")!,
-                           visitCount: 100,
-                           query: query)
-
-        XCTAssert(score1 > score2)
+        XCTAssert(score1 > 0)
     }
 
     func testWhenTitleMatchesFromTheBeginning_ThenScoreIsIncreased() {
