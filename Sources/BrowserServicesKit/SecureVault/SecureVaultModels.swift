@@ -77,6 +77,7 @@ public struct SecureVaultModels {
         public let lastUpdated: Date
 
         public var cardNumber: String?
+        public var cardholderName: String?
         public var cardSecurityCode: String?
         public var expirationMonth: Int?
         public var expirationYear: Int?
@@ -91,6 +92,7 @@ public struct SecureVaultModels {
 
         public init(title: String? = nil,
                     cardNumber: String?,
+                    cardholderName: String?,
                     cardSecurityCode: String?,
                     expirationMonth: Int?,
                     expirationYear: Int?) {
@@ -100,6 +102,7 @@ public struct SecureVaultModels {
             self.lastUpdated = self.created
 
             self.cardNumber = cardNumber
+            self.cardholderName = cardholderName
             self.cardSecurityCode = cardSecurityCode
             self.expirationMonth = expirationMonth
             self.expirationYear = expirationYear

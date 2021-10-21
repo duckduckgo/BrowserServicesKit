@@ -105,7 +105,7 @@ extension AutofillUserScript {
             return CreditCardObject(id: id,
                                     title: card.title,
                                     displayNumber: card.displayNumber ?? "",
-                                    cardName: "TODO",
+                                    cardName: card.cardholderName,
                                     cardNumber: card.cardNumber,
                                     cardSecurityCode: card.cardSecurityCode,
                                     expirationMonth: card.expirationMonth,

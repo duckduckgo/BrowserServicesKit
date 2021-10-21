@@ -494,6 +494,7 @@ extension DefaultDatabaseProvider {
             $0.column(SecureVaultModels.CreditCard.Columns.lastUpdated.name, .date)
 
             $0.column(SecureVaultModels.CreditCard.Columns.cardNumber.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardholderName.name, .text)
             $0.column(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name, .text)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
@@ -585,7 +586,7 @@ extension SecureVaultModels.WebsiteCredentials {
 extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, created, lastUpdated, cardNumber, cardSecurityCode, expirationMonth, expirationYear
+        case id, title, created, lastUpdated, cardNumber, cardholderName, cardSecurityCode, expirationMonth, expirationYear
     }
 
     public init(row: Row) {
@@ -595,6 +596,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         lastUpdated = row[Columns.lastUpdated]
 
         cardNumber = row[Columns.cardNumber]
+        cardholderName = row[Columns.cardholderName]
         cardSecurityCode = row[Columns.cardSecurityCode]
         expirationMonth = row[Columns.expirationMonth]
         expirationYear = row[Columns.expirationYear]
@@ -606,6 +608,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
         container[Columns.cardNumber] = cardNumber
+        container[Columns.cardholderName] = cardholderName
         container[Columns.cardSecurityCode] = cardSecurityCode
         container[Columns.expirationMonth] = expirationMonth
         container[Columns.expirationYear] = expirationYear
