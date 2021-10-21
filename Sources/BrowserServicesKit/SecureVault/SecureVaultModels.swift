@@ -81,6 +81,14 @@ public struct SecureVaultModels {
         public var expirationMonth: Int?
         public var expirationYear: Int?
 
+        public var displayNumber: String? {
+            if let number = cardNumber {
+                return String(number.suffix(4))
+            } else {
+                return nil
+            }
+        }
+
         public init(title: String? = nil,
                     cardNumber: String?,
                     cardSecurityCode: String?,
