@@ -182,6 +182,19 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
     }
 
+    func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping ([SecureVaultModels.WebsiteAccount], [SecureVaultModels.Identity], [SecureVaultModels.CreditCard]) -> Void) {
+
+    }
+
+    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64, completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
+
+    }
+
+    func autofillUserScript(_: AutofillUserScript, didRequestIdentityWithId identityId: Int64, completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
+        
+    }
+
+
 }
 
 struct NoneEncryptingEncrypter: AutofillEncrypter {
