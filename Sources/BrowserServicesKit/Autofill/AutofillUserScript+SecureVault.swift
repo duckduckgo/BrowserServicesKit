@@ -160,8 +160,6 @@ extension AutofillUserScript {
 
     }
 
-    // MARK: - Deprecated Responses
-
     struct RequestVaultAccountsResponse: Codable {
 
         let success: [CredentialObject]
