@@ -76,22 +76,21 @@ public struct SecureVaultModels {
         public let created: Date
         public let lastUpdated: Date
 
-        public var cardNumber: String?
+        public var cardNumber: String
         public var cardholderName: String?
         public var cardSecurityCode: String?
         public var expirationMonth: Int?
         public var expirationYear: Int?
 
-        public var displayNumber: String? {
-            if let number = cardNumber {
-                return String(number.suffix(4))
-            } else {
-                return nil
-            }
+        public var displayName: String {
+            let type = CreditCardValidation.type(for: cardNumber)
+            let suffix = String(cardNumber.suffix(4))
+
+            return "\(type.displayName) (\(suffix))"
         }
 
         public init(title: String? = nil,
-                    cardNumber: String?,
+                    cardNumber: String,
                     cardholderName: String?,
                     cardSecurityCode: String?,
                     expirationMonth: Int?,

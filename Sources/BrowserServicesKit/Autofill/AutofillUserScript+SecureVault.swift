@@ -104,7 +104,7 @@ extension AutofillUserScript {
 
             return CreditCardObject(id: id,
                                     title: card.title,
-                                    displayNumber: card.displayNumber ?? "",
+                                    displayNumber: card.displayName,
                                     cardName: card.cardholderName,
                                     cardNumber: card.cardNumber,
                                     cardSecurityCode: card.cardSecurityCode,
@@ -117,7 +117,7 @@ extension AutofillUserScript {
 
             return CreditCardObject(id: id,
                                     title: card.title,
-                                    displayNumber: card.displayNumber ?? "",
+                                    displayNumber: card.displayName,
                                     cardName: nil,
                                     cardNumber: nil,
                                     cardSecurityCode: nil,
