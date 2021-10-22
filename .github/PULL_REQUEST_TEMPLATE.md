@@ -23,6 +23,7 @@ Using a simulator where a physical device is unavailable is acceptable.
 
 * [ ] iOS 13
 * [ ] iOS 14
+* [ ] iOS 15
 * [ ] macOS 10.15
 * [ ] macOS 11
 
