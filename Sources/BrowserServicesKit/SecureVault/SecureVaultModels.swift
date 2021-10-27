@@ -89,13 +89,14 @@ public struct SecureVaultModels {
             return "\(type.displayName) (\(suffix))"
         }
 
-        public init(title: String? = nil,
+        public init(id: Int64? = nil,
+                    title: String? = nil,
                     cardNumber: String,
                     cardholderName: String?,
                     cardSecurityCode: String?,
                     expirationMonth: Int?,
                     expirationYear: Int?) {
-            self.id = nil
+            self.id = id
             self.title = title ?? ""
             self.created = Date()
             self.lastUpdated = self.created

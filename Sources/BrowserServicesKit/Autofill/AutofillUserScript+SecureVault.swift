@@ -112,7 +112,8 @@ extension AutofillUserScript {
                                     expirationYear: card.expirationYear)
         }
 
-        static func initValueFrom(card: SecureVaultModels.CreditCard) -> CreditCardObject? {
+        /// Provides a minimal summary of the card, suitable for presentation in the credit card selection list. This intentionally omits secure data, such as card number and cardholder name.
+        static func autofillInitializationValueFrom(card: SecureVaultModels.CreditCard) -> CreditCardObject? {
             guard let id = card.id else { return nil }
 
             return CreditCardObject(id: id,
@@ -191,7 +192,7 @@ extension AutofillUserScript {
             }
 
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
-            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.initValueFrom(card:))
+            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
 
             let success = RequestAutoFillInitDataResponse.AutofillInitSuccess(credentials: credentials,
                                                                               creditCards: cards,
