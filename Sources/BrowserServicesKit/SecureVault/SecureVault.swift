@@ -181,7 +181,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    // MARK: - credentials
+    // MARK: - Credentials
 
     public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         lock.lock()
@@ -219,192 +219,105 @@ class DefaultSecureVault: SecureVault {
     }
 
     func deleteWebsiteCredentialsFor(accountId: Int64) throws {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
-        } catch {
-            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
 
-    // MARK: - notes
+    // MARK: - Notes
 
     func notes() throws -> [SecureVaultModels.Note] {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.notes()
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.noteForNoteId(id)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeNote(note)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func deleteNoteFor(noteId: Int64) throws {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        try executeThrowingDatabaseOperation {
             try self.providers.database.deleteNoteForNoteId(noteId)
-        } catch {
-            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
 
-    // MARK: - identities
+    // MARK: - Identities
 
     func identities() throws -> [SecureVaultModels.Identity] {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.identities()
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.identityForIdentityId(id)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     @discardableResult
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeIdentity(identity)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func deleteIdentityFor(identityId: Int64) throws {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        try executeThrowingDatabaseOperation {
             try self.providers.database.deleteIdentityForIdentityId(identityId)
-        } catch {
-            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
 
-    // MARK: - credit cards
+    // MARK: - Credit Cards
 
     func creditCards() throws -> [SecureVaultModels.CreditCard] {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.creditCards()
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.creditCardForCardId(id)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     @discardableResult
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
-        lock.lock()
-        defer {
-            lock.unlock()
-        }
-
-        do {
+        return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeCreditCard(card)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
         }
     }
 
     func deleteCreditCardFor(cardId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteCreditCardForCreditCardId(cardId)
+        }
+    }
+
+    // MARK: - Private
+
+    private func executeThrowingDatabaseOperation<DatabaseResult>(_ operation: () throws -> DatabaseResult) throws -> DatabaseResult {
         lock.lock()
         defer {
             lock.unlock()
         }
 
         do {
-            try self.providers.database.deleteCreditCardForCreditCardId(cardId)
+            return try operation()
         } catch {
             throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
-
-    // MARK: - private
 
     private func passwordInUse() throws -> Data {
         if let generatedPassword = try providers.keystore.generatedPassword() {
