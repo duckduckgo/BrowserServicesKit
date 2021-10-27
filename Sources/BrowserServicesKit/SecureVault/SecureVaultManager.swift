@@ -26,6 +26,10 @@ public protocol SecureVaultManagerDelegate: AnyObject {
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
 
+    func secureVaultManager(_: SecureVaultManager,
+                            didAutofillCredentialsForDomain domain: String)
+    func secureVaultManager(_: SecureVaultManager,
+                            didAutofillCredentialsForAccountId accountId: Int64)
 }
 
 public class SecureVaultManager {
@@ -72,6 +76,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().accountsFor(domain: domain))
+            delegate?.secureVaultManager(self, didAutofillCredentialsForDomain: domain)
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
             completionHandler([])
@@ -85,6 +90,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().websiteCredentialsFor(accountId: accountId))
+            delegate?.secureVaultManager(self, didAutofillCredentialsForAccountId: accountId)
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
             completionHandler(nil)
