@@ -83,7 +83,7 @@ extension AutofillUserScript {
                                   addressProvince: identity.addressProvince,
                                   addressPostalCode: identity.addressPostalCode,
                                   addressCountryCode: identity.addressCountryCode,
-                                  phone: identity.homePhone, // TODO: Home or mobile phone?
+                                  phone: identity.homePhone, // Replace with single "phone number" column
                                   emailAddress: identity.emailAddress)
         }
     }
@@ -134,6 +134,7 @@ extension AutofillUserScript {
 
     // MARK: - Responses
 
+    // swiftlint:disable nesting
     struct RequestAutoFillInitDataResponse: Codable {
 
         struct AutofillInitSuccess: Codable {
@@ -146,6 +147,7 @@ extension AutofillUserScript {
         let error: String?
 
     }
+    // swiftlint:enable nesting
 
     struct RequestAutoFillCreditCardResponse: Codable {
 
@@ -167,6 +169,7 @@ extension AutofillUserScript {
 
     }
 
+    // swiftlint:disable nesting
     struct RequestVaultCredentialsResponse: Codable {
 
         struct Credential: Codable {
@@ -179,6 +182,7 @@ extension AutofillUserScript {
         let success: Credential
 
     }
+    // swiftlint:enable nesting
 
     // MARK: - Message Handlers
 

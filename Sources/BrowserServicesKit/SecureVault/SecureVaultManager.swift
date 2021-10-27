@@ -39,7 +39,11 @@ public class SecureVaultManager {
 // Later these catches should check if it is an auth error and call the delegate to ask for user authentication.
 extension SecureVaultManager: AutofillSecureVaultDelegate {
 
-    public func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping ([SecureVaultModels.WebsiteAccount], [SecureVaultModels.Identity], [SecureVaultModels.CreditCard]) -> Void) {
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestAutoFillInitDataForDomain domain: String,
+                                   completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
+                                                                 [SecureVaultModels.Identity],
+                                                                 [SecureVaultModels.CreditCard]) -> Void) {
 
         do {
             let vault = try SecureVaultFactory.default.makeVault()

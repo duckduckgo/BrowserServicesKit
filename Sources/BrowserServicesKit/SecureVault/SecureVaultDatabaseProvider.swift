@@ -404,7 +404,6 @@ extension DefaultDatabaseProvider {
         try database.rename(table: Credentials.databaseTableName,
                             to: Credentials.databaseTableName + "Old")
 
-
         try database.create(table: Account.databaseTableName) {
             $0.autoIncrementedPrimaryKey(Account.Columns.id.name)
             $0.column(Account.Columns.username.name, .text)

@@ -109,7 +109,6 @@ class DefaultSecureVault: SecureVault {
             lock.unlock()
         }
 
-
         // Whatever happens, force a re-auth on future calls
         self.expiringPassword.value = nil
 

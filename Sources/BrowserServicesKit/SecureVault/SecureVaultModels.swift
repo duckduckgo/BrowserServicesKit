@@ -132,7 +132,6 @@ public struct SecureVaultModels {
 
     }
 
-
     public struct Identity {
 
         public var id: Int64?

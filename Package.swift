@@ -11,7 +11,7 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0"))
