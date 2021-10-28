@@ -34,7 +34,8 @@ let package = Package(
                 "Resources/duckduckgo-autofill/jest.setup.js",
                 "Resources/duckduckgo-autofill/dist/autofill-host-styles_chrome.css",
                 "Resources/duckduckgo-autofill/jest.config.js",
-                "Resources/duckduckgo-autofill/jest-test-environment.js"
+                "Resources/duckduckgo-autofill/jest-test-environment.js",
+                "Resources/duckduckgo-autofill/scripts/release.js"
             ],
             resources: [
                 .process("Resources/duckduckgo-autofill/dist/autofill.js")
