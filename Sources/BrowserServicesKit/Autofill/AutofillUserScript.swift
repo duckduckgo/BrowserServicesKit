@@ -32,11 +32,17 @@ public class AutofillUserScript: NSObject, UserScript {
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
 
+        case pmHandlerGetAutofillInitData
+
         case pmHandlerStoreCredentials
         case pmHandlerGetAccounts
         case pmHandlerGetAutofillCredentials
-        case pmHandlerOpenManagePasswords
+        case pmHandlerGetIdentity
+        case pmHandlerGetCreditCard
 
+        case pmHandlerOpenManageCreditCards
+        case pmHandlerOpenManageIdentities
+        case pmHandlerOpenManagePasswords
     }
 
     public weak var emailDelegate: AutofillEmailDelegate?
@@ -76,9 +82,17 @@ public class AutofillUserScript: NSObject, UserScript {
         case .emailHandlerGetAddresses: return emailGetAddresses
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
+        case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
+
         case .pmHandlerStoreCredentials: return pmStoreCredentials
         case .pmHandlerGetAccounts: return pmGetAccounts
         case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
+
+        case .pmHandlerGetIdentity: return pmGetIdentity
+        case .pmHandlerGetCreditCard: return pmGetCreditCard
+
+        case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
+        case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
             
         }
