@@ -21,11 +21,18 @@ import Foundation
 import Combine
 import os
 
+public enum AutofillType {
+    case password
+    case card
+    case identity
+}
+
 public protocol SecureVaultManagerDelegate: AnyObject {
 
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
 
+    func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
 }
 
 public class SecureVaultManager {
@@ -104,6 +111,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().websiteCredentialsFor(accountId: accountId))
+            delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
             completionHandler(nil)
