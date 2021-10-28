@@ -124,6 +124,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().creditCardFor(id: creditCardId))
+            delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: creditCardId)
         } catch {
             os_log(.error, "Error requesting credit card: %{public}@", error.localizedDescription)
             completionHandler(nil)
@@ -133,12 +134,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestIdentityWithId identityId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
-                do {
-                    completionHandler(try SecureVaultFactory.default.makeVault().identityFor(id: identityId))
-                } catch {
-                    os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)
-                    completionHandler(nil)
-                }
+        do {
+            completionHandler(try SecureVaultFactory.default.makeVault().identityFor(id: identityId))
+            delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: identityId)
+        } catch {
+            os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)
+            completionHandler(nil)
+        }
     }
 
 }
