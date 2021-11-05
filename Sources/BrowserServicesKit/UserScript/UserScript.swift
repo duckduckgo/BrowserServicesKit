@@ -24,6 +24,7 @@ public protocol UserScript: WKScriptMessageHandler {
     var source: String { get }
     var injectionTime: WKUserScriptInjectionTime { get }
     var forMainFrameOnly: Bool { get }
+    var requiresRunInPageContentWorld: Bool { get }
 
     var messageNames: [String] { get }
 
@@ -32,6 +33,27 @@ public protocol UserScript: WKScriptMessageHandler {
 }
 
 extension UserScript {
+
+    static public var requiresRunInPageContentWorld: Bool {
+        return false
+    }
+
+    public var requiresRunInPageContentWorld: Bool {
+        return false
+    }
+
+    @available(macOS 11.0, *)
+    static func getContentWorld(_ requiresRunInPageContentWorld: Bool) -> WKContentWorld {
+        if requiresRunInPageContentWorld {
+            return .page
+        }
+        return .defaultClient
+    }
+
+    @available(macOS 11.0, *)
+    public func getContentWorld() -> WKContentWorld {
+        return Self.getContentWorld(requiresRunInPageContentWorld)
+    }
 
     public static func loadJS(_ jsFile: String, from bundle: Bundle, withReplacements replacements: [String: String] = [:]) -> String {
 
@@ -48,16 +70,17 @@ extension UserScript {
         return js
     }
 
-    static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool) -> WKUserScript {
+    static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, requiresRunInPageContentWorld: Bool = false) -> WKUserScript {
         if #available(macOS 11.0, iOS 14.0, *) {
-            return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: .defaultClient)
+            let contentWorld = getContentWorld(requiresRunInPageContentWorld)
+            return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
         } else {
             return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
         }
     }
 
     public func makeWKUserScript() -> WKUserScript {
-        return Self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
+        return Self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, requiresRunInPageContentWorld: requiresRunInPageContentWorld)
     }
 
 }
