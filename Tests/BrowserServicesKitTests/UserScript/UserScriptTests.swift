@@ -31,6 +31,7 @@ class UserScriptTests: XCTestCase {
         var injectionTime: WKUserScriptInjectionTime
         var forMainFrameOnly: Bool
         var messageNames: [String]
+        var requiresRunInPageContentWorld: Bool
 
         init(val: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, messageNames: [String]) {
             self.val = val

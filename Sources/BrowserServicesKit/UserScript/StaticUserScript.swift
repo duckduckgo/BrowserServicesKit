@@ -24,6 +24,7 @@ public protocol StaticUserScript: UserScript {
     static var source: String { get }
     static var injectionTime: WKUserScriptInjectionTime { get }
     static var forMainFrameOnly: Bool { get }
+    static var requiresRunInPageContentWorld: Bool { get }
 
     static var script: WKUserScript { get }
 
@@ -41,6 +42,10 @@ public extension StaticUserScript {
 
     var forMainFrameOnly: Bool {
         Self.forMainFrameOnly
+    }
+
+    var requiresRunInPageContentWorld: Bool {
+        Self.requiresRunInPageContentWorld
     }
 
     func makeWKUserScript() -> WKUserScript {
