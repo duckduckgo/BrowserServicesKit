@@ -42,7 +42,7 @@ extension UserScript {
         return false
     }
 
-    @available(macOS 11.0, *)
+    @available(macOS 11.0, iOS 14.0, *)
     static func getContentWorld(_ requiresRunInPageContentWorld: Bool) -> WKContentWorld {
         if requiresRunInPageContentWorld {
             return .page
@@ -50,7 +50,7 @@ extension UserScript {
         return .defaultClient
     }
 
-    @available(macOS 11.0, *)
+    @available(macOS 11.0, iOS 14.0, *)
     public func getContentWorld() -> WKContentWorld {
         return Self.getContentWorld(requiresRunInPageContentWorld)
     }
