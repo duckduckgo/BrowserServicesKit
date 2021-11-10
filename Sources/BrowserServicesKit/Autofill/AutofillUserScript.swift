@@ -18,22 +18,82 @@
 //
 
 import WebKit
+// import SwiftUI
 
-public class AutofillUserScript: NSObject, UserScript {
+public protocol AutofillUserScriptDelegate: AnyObject {
+
+    func clickTriggered(_ script: AutofillUserScript)
+
+}
+
+public protocol AutofillEmailDelegate: AnyObject {
+
+    func autofillUserScript(_: AutofillUserScript,
+                            didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
+                            shouldConsumeAliasIfProvided: Bool,
+                            completionHandler: @escaping AliasCompletion)
+    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
+    func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
+    func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
+
+}
+
+public protocol AutofillSecureVaultDelegate: AnyObject {
+
+    func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
+        [SecureVaultModels.WebsiteAccount],
+        [SecureVaultModels.Identity],
+        [SecureVaultModels.CreditCard]
+    ) -> Void)
+
+    // func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
+                            completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
+    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void)
+    func autofillUserScript(_: AutofillUserScript, didRequestIdentityWithId identityId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.Identity?) -> Void)
+
+}
+
+/*
+protocol AutofillHostProvider {
+
+    func hostForMessage(_ message: WKScriptMessage) -> String
+
+}
+
+struct SecurityOriginHostProvider: AutofillHostProvider {
+
+    public func hostForMessage(_ message: WKScriptMessage) -> String {
+        return message.frameInfo.securityOrigin.host
+    }
+
+}*/
+
+
+public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
 
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
     private enum MessageName: String, CaseIterable {
-
+        case showAutofillParent
+        case closeAutofillParent
+/*
         case emailHandlerStoreToken
         case emailHandlerGetAlias
         case emailHandlerRefreshAlias
+ */
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
 
         case pmHandlerGetAutofillInitData
-
+/*
         case pmHandlerStoreCredentials
         case pmHandlerGetAccounts
         case pmHandlerGetAutofillCredentials
@@ -43,8 +103,13 @@ public class AutofillUserScript: NSObject, UserScript {
         case pmHandlerOpenManageCreditCards
         case pmHandlerOpenManageIdentities
         case pmHandlerOpenManagePasswords
+ */
     }
+    
+    public weak var topView: NSViewController?
+    public var clickPoint: NSPoint?
 
+    public weak var delegate: AutofillUserScriptDelegate?
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
 
@@ -52,6 +117,7 @@ public class AutofillUserScript: NSObject, UserScript {
         var replacements: [String: String] = [:]
         #if os(macOS)
             replacements["// INJECT isApp HERE"] = "isApp = true;"
+            replacements["// INJECT isTopFrame HERE"] = "isTopFrame = false;"
         #endif
 
         if #available(iOS 14, macOS 11, *) {
@@ -71,19 +137,25 @@ public class AutofillUserScript: NSObject, UserScript {
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
+    public var requiresRunInPageContentWorld: Bool = true
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
+        print("got message \(message)")
         switch message {
-
+            
+        case .showAutofillParent: return showAutofillParent
+        case .closeAutofillParent: return closeAutofillParent
+/*
         case .emailHandlerStoreToken: return emailStoreToken
         case .emailHandlerGetAlias: return emailGetAlias
         case .emailHandlerRefreshAlias: return emailRefreshAlias
+ */
         case .emailHandlerGetAddresses: return emailGetAddresses
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
-
+/*
         case .pmHandlerStoreCredentials: return pmStoreCredentials
         case .pmHandlerGetAccounts: return pmGetAccounts
         case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
@@ -94,7 +166,129 @@ public class AutofillUserScript: NSObject, UserScript {
         case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
         case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
+ */
+        }
+    }
+    
+    func pmGetAutoFillInitData(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        // replyHandler("{\"success\": {\"credentials\":true,\"creditCards\":true,\"identities\":true}}") // TODO hack fix
+        let domain = hostProvider.hostForMessage(message)
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+            let credentials: [CredentialObject] = accounts.compactMap {
+                guard let id = $0.id else { return nil }
+                return .init(id: id, username: $0.username)
+            }
+
+            let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
+            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
+
+            let success = RequestAutoFillInitDataResponse.AutofillInitSuccess(credentials: credentials,
+                                                                              creditCards: cards,
+                                                                              identities: identities)
+
+            let response = RequestAutoFillInitDataResponse(success: success, error: nil)
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
+        }
+    }
+    
+    func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        let signedInString = String(signedIn)
+        replyHandler("""
+            { "isAppSignedIn": \(signedInString) }
+        """)
+    }
+    
+    func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
+            let addresses: String
+            if let username = username, let alias = alias {
+                addresses = """
+                {
+                    "personalAddress": "\(username)",
+                    "privateAddress": "\(alias)"
+                }
+                """
+            } else {
+                addresses = "null"
+            }
+
+            replyHandler("""
+            {
+                "addresses": \(addresses)
+            }
+            """)
+        }
+    }
+    
+    public func messageSelectedCredential(_ credential: String) {
+        print("messsaged to af! \(credential)")
+        guard let topView = topView else { return }
+        topView.getContentOverlayPopover(self)?.close()
+        guard let currentWebView = currentWebView else { return }
+        let script = """
+        (() => {
+            let credential = '\(credential)';
+            document.activeElement.value = credential;
+            const event = new CustomEvent("InboundCredential", {
+              detail: {
+                credential
+              }
+            });
+            document.dispatchEvent(event);
+        })()
+        """
+        currentWebView.evaluateJavaScript(script)
+    }
+    
+    weak var currentWebView: WKWebView?
+    
+    func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard let topView = topView else { return }
+        let popover = topView.getContentOverlayPopover(self)!;
+        currentWebView = nil
+        popover.close()
+        replyHandler(nil)
+    }
+    
+    func showAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        print("show autofill parent")
+        guard let dict = message.body as? [String: Any],
+              let left = dict["inputLeft"] as? String,
+              let top = dict["inputTop"] as? String,
+              let height = dict["inputHeight"] as? String,
+              let width = dict["inputWidth"] as? String,
+              let heightI = Int(height),
+              let widthI = Int(width),
+              let offsetX = Int(left),
+              let offsetY = Int(top) else { return }
+        // Combines native click with offset of dax click.
+        let clickX = Int(clickPoint!.x);
+        let clickY = Int(clickPoint!.y);
+        let x = /*clickX - */offsetX;
+        // TODO look into why Y seems offset somewhat
+        let y = /*clickY - */offsetY;
+        print("show autofill parent x: \(x), y: \(y), click: \(clickX), \(clickY) Offset: \(offsetX), \(offsetY) - \(dict)")
+        if let topView = topView {
+            // This rectangle should overlay the dax one giving native the choice to position around the edges of it.
+            let rect = NSRect(x: x, y: Int(topView.view.bounds.height) - y - heightI, width: widthI, height: heightI)
+            /* Debug rect placement
+            let view = NSView(frame: rect)
+            view.wantsLayer = true
+            view.layer?.backgroundColor = NSColor.blue.cgColor
+            topView.view.addSubview(view)
+             */
             
+            let popover = topView.getContentOverlayPopover(self)!;
+            // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
+            if let insetBy = popover.value(forKeyPath: "anchorSize")! as? CGSize {
+                currentWebView = message.webView
+                popover.show(relativeTo: rect.insetBy(dx: insetBy.width, dy: insetBy.height), of: topView.view, preferredEdge: .minY)
+                popover.contentSize = NSSize.init(width: widthI, height: 200)
+                replyHandler(nil)
+            }
         }
     }
 
@@ -174,4 +368,149 @@ extension AutofillUserScript {
         }
     }
 
+}
+
+extension AutofillUserScript {
+
+    // MARK: - Response Objects
+
+    struct IdentityObject: Codable {
+        let id: Int64
+        let title: String
+
+        let firstName: String?
+        let middleName: String?
+        let lastName: String?
+
+        let birthdayDay: Int?
+        let birthdayMonth: Int?
+        let birthdayYear: Int?
+
+        let addressStreet: String?
+        let addressStreet2: String?
+        let addressCity: String?
+        let addressProvince: String?
+        let addressPostalCode: String?
+        let addressCountryCode: String?
+
+        let phone: String?
+        let emailAddress: String?
+
+        static func from(identity: SecureVaultModels.Identity) -> IdentityObject? {
+            guard let id = identity.id else { return nil }
+
+            return IdentityObject(id: id,
+                                  title: identity.title,
+                                  firstName: identity.firstName,
+                                  middleName: identity.middleName,
+                                  lastName: identity.middleName,
+                                  birthdayDay: identity.birthdayDay,
+                                  birthdayMonth: identity.birthdayMonth,
+                                  birthdayYear: identity.birthdayYear,
+                                  addressStreet: identity.addressStreet,
+                                  addressStreet2: nil,
+                                  addressCity: identity.addressCity,
+                                  addressProvince: identity.addressProvince,
+                                  addressPostalCode: identity.addressPostalCode,
+                                  addressCountryCode: identity.addressCountryCode,
+                                  phone: identity.homePhone, // Replace with single "phone number" column
+                                  emailAddress: identity.emailAddress)
+        }
+    }
+
+    struct CreditCardObject: Codable {
+        let id: Int64
+        let title: String
+        let displayNumber: String
+
+        let cardName: String?
+        let cardNumber: String?
+        let cardSecurityCode: String?
+        let expirationMonth: Int?
+        let expirationYear: Int?
+
+        static func from(card: SecureVaultModels.CreditCard) -> CreditCardObject? {
+            guard let id = card.id else { return nil }
+
+            return CreditCardObject(id: id,
+                                    title: card.title,
+                                    displayNumber: card.displayName,
+                                    cardName: card.cardholderName,
+                                    cardNumber: card.cardNumber,
+                                    cardSecurityCode: card.cardSecurityCode,
+                                    expirationMonth: card.expirationMonth,
+                                    expirationYear: card.expirationYear)
+        }
+
+        /// Provides a minimal summary of the card, suitable for presentation in the credit card selection list. This intentionally omits secure data, such as card number and cardholder name.
+        static func autofillInitializationValueFrom(card: SecureVaultModels.CreditCard) -> CreditCardObject? {
+            guard let id = card.id else { return nil }
+
+            return CreditCardObject(id: id,
+                                    title: card.title,
+                                    displayNumber: card.displayName,
+                                    cardName: nil,
+                                    cardNumber: nil,
+                                    cardSecurityCode: nil,
+                                    expirationMonth: nil,
+                                    expirationYear: nil)
+        }
+    }
+
+    struct CredentialObject: Codable {
+        let id: Int64
+        let username: String
+    }
+
+    // MARK: - Responses
+
+    // swiftlint:disable nesting
+    struct RequestAutoFillInitDataResponse: Codable {
+
+        struct AutofillInitSuccess: Codable {
+            let credentials: [CredentialObject]
+            let creditCards: [CreditCardObject]
+            let identities: [IdentityObject]
+        }
+
+        let success: AutofillInitSuccess
+        let error: String?
+
+    }
+    // swiftlint:enable nesting
+
+    struct RequestAutoFillCreditCardResponse: Codable {
+
+        let success: CreditCardObject
+        let error: String?
+
+    }
+
+    struct RequestAutoFillIdentityResponse: Codable {
+
+        let success: IdentityObject
+        let error: String?
+
+    }
+
+    struct RequestVaultAccountsResponse: Codable {
+
+        let success: [CredentialObject]
+
+    }
+
+    // swiftlint:disable nesting
+    struct RequestVaultCredentialsResponse: Codable {
+
+        struct Credential: Codable {
+            let id: Int64
+            let username: String
+            let password: String
+            let lastUpdated: TimeInterval
+        }
+
+        let success: Credential
+
+    }
+    // swiftlint:enable nesting
 }

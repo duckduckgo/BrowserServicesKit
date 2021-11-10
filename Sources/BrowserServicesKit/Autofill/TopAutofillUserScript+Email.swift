@@ -1,5 +1,5 @@
 //
-//  AutofillUserScript+Email.swift
+//  TopAutofillUserScript+Email.swift
 //  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
@@ -19,23 +19,23 @@
 
 import WebKit
 
-public protocol AutofillEmailDelegate: AnyObject {
+public protocol TopAutofillEmailDelegate: AnyObject {
 
-    func autofillUserScript(_: AutofillUserScript,
+    func topAutofillUserScript(_: TopAutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
                             completionHandler: @escaping AliasCompletion)
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
-    func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
-    func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
+    func topAutofillUserScriptDidRequestRefreshAlias(_ : TopAutofillUserScript)
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
+    func topAutofillUserScriptDidRequestUsernameAndAlias(_ : TopAutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
+    func topAutofillUserScriptDidRequestSignedInStatus(_: TopAutofillUserScript) -> Bool
 
 }
 
-extension AutofillUserScript {
+extension TopAutofillUserScript {
 
     func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        let signedIn = emailDelegate?.topAutofillUserScriptDidRequestSignedInStatus(self) ?? false
         let signedInString = String(signedIn)
         replyHandler("""
             { "isAppSignedIn": \(signedInString) }
@@ -47,7 +47,7 @@ extension AutofillUserScript {
               let token = dict["token"] as? String,
               let username = dict["username"] as? String else { return }
         let cohort = dict["cohort"] as? String
-        emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username, cohort: cohort)
+        emailDelegate?.topAutofillUserScript(self, didRequestStoreToken: token, username: username, cohort: cohort)
         replyHandler(nil)
     }
 
@@ -56,7 +56,7 @@ extension AutofillUserScript {
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
 
-        emailDelegate?.autofillUserScript(self,
+        emailDelegate?.topAutofillUserScript(self,
                                   didRequestAliasAndRequiresUserPermission: requiresUserPermission,
                                   shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
             guard let alias = alias else { return }
@@ -70,12 +70,14 @@ extension AutofillUserScript {
     }
 
     func emailRefreshAlias(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
+        emailDelegate?.topAutofillUserScriptDidRequestRefreshAlias(self)
         replyHandler(nil)
     }
 
     func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
+        print("got outer topAutofillUserScriptDidRequestUsernameAndAlias")
+        emailDelegate?.topAutofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
+            print("got inner topAutofillUserScriptDidRequestUsernameAndAlias")
             let addresses: String
             if let username = username, let alias = alias {
                 addresses = """

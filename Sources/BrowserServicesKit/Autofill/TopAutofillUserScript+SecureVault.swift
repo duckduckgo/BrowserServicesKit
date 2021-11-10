@@ -19,28 +19,28 @@
 
 import WebKit
 
-public protocol AutofillSecureVaultDelegate: AnyObject {
+public protocol TopAutofillSecureVaultDelegate: AnyObject {
 
-    func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
         [SecureVaultModels.WebsiteAccount],
         [SecureVaultModels.Identity],
         [SecureVaultModels.CreditCard]
     ) -> Void)
 
-    func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String)
-    func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestPasswordManagerForDomain domain: String)
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String)
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
-    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
-    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
                             completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void)
-    func autofillUserScript(_: AutofillUserScript, didRequestIdentityWithId identityId: Int64,
+    func topAutofillUserScript(_: TopAutofillUserScript, didRequestIdentityWithId identityId: Int64,
                             completionHandler: @escaping (SecureVaultModels.Identity?) -> Void)
 
 }
 
-extension AutofillUserScript {
+extension TopAutofillUserScript {
 
     // MARK: - Response Objects
 
@@ -189,7 +189,7 @@ extension AutofillUserScript {
     func pmGetAutoFillInitData(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         let domain = hostProvider.hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+        vaultDelegate?.topAutofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
             let credentials: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
                 return .init(id: id, username: $0.username)
@@ -222,12 +222,12 @@ extension AutofillUserScript {
         }
 
         let domain = hostProvider.hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
+        vaultDelegate?.topAutofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
     }
 
     func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
-        vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostProvider.hostForMessage(message)) { credentials in
+        vaultDelegate?.topAutofillUserScript(self, didRequestAccountsForDomain: hostProvider.hostForMessage(message)) { credentials in
             let credentials: [CredentialObject] = credentials.compactMap {
                 guard let id = $0.id else { return nil }
                 return .init(id: id, username: $0.username)
@@ -249,7 +249,7 @@ extension AutofillUserScript {
             return
         }
 
-        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) {
+        vaultDelegate?.topAutofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) {
             guard let credential = $0,
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8) else { return }
@@ -271,7 +271,7 @@ extension AutofillUserScript {
             return
         }
 
-        vaultDelegate?.autofillUserScript(self, didRequestCreditCardWithId: Int64(cardId)) {
+        vaultDelegate?.topAutofillUserScript(self, didRequestCreditCardWithId: Int64(cardId)) {
             guard let card = $0, let cardObject = CreditCardObject.from(card: card) else { return }
 
             let response = RequestAutoFillCreditCardResponse(success: cardObject, error: nil)
@@ -289,7 +289,7 @@ extension AutofillUserScript {
             return
         }
 
-        vaultDelegate?.autofillUserScript(self, didRequestIdentityWithId: Int64(accountId)) {
+        vaultDelegate?.topAutofillUserScript(self, didRequestIdentityWithId: Int64(accountId)) {
             guard let identity = $0, let identityObject = IdentityObject.from(identity: identity) else { return }
 
             let response = RequestAutoFillIdentityResponse(success: identityObject, error: nil)
@@ -303,17 +303,17 @@ extension AutofillUserScript {
     // MARK: Open Management Views
 
     func pmOpenManageCreditCards(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
         replyHandler(nil)
     }
 
     func pmOpenManageIdentities(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
         replyHandler(nil)
     }
 
     func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
         replyHandler(nil)
     }
 
