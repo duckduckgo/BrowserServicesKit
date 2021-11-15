@@ -76,17 +76,25 @@ public struct SecureVaultModels {
         public let created: Date
         public let lastUpdated: Date
 
-        public var cardNumber: String
+        public var cardNumberData: Data
+        public var cardSuffix: String // Stored as L1 data, used when presenting a list of cards in the Autofill UI
         public var cardholderName: String?
         public var cardSecurityCode: String?
         public var expirationMonth: Int?
         public var expirationYear: Int?
+        
+        public var cardNumber: String {
+            return String(data: cardNumberData, encoding: .utf8)!
+        }
 
         public var displayName: String {
             let type = CreditCardValidation.type(for: cardNumber)
-            let suffix = String(cardNumber.suffix(4))
-
-            return "\(type.displayName) (\(suffix))"
+            return "\(type.displayName) (\(cardSuffix))"
+        }
+        
+        static func suffix(from cardNumber: String) -> String {
+            let trimmedCardNumber = cardNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+            return String(trimmedCardNumber.suffix(4))
         }
 
         public init(id: Int64? = nil,
@@ -101,7 +109,8 @@ public struct SecureVaultModels {
             self.created = Date()
             self.lastUpdated = self.created
 
-            self.cardNumber = cardNumber
+            self.cardNumberData = cardNumber.data(using: .utf8)!
+            self.cardSuffix = Self.suffix(from: cardNumber)
             self.cardholderName = cardholderName
             self.cardSecurityCode = cardSecurityCode
             self.expirationMonth = expirationMonth
@@ -148,6 +157,7 @@ public struct SecureVaultModels {
         public var birthdayYear: Int?
 
         public var addressStreet: String?
+        public var addressStreet2: String?
         public var addressCity: String?
         public var addressProvince: String?
         public var addressPostalCode: String?
@@ -174,6 +184,7 @@ public struct SecureVaultModels {
                     birthdayMonth: Int? = nil,
                     birthdayYear: Int? = nil,
                     addressStreet: String? = nil,
+                    addressStreet2: String? = nil,
                     addressCity: String? = nil,
                     addressProvince: String? = nil,
                     addressPostalCode: String? = nil,
@@ -192,6 +203,7 @@ public struct SecureVaultModels {
             self.birthdayMonth = birthdayMonth
             self.birthdayYear = birthdayYear
             self.addressStreet = addressStreet
+            self.addressStreet2 = addressStreet2
             self.addressCity = addressCity
             self.addressProvince = addressProvince
             self.addressPostalCode = addressPostalCode

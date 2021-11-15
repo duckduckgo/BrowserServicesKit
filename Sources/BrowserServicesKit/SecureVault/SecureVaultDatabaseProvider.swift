@@ -75,6 +75,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
         migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
         migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
@@ -492,7 +493,7 @@ extension DefaultDatabaseProvider {
             $0.column(SecureVaultModels.CreditCard.Columns.created.name, .date)
             $0.column(SecureVaultModels.CreditCard.Columns.lastUpdated.name, .date)
 
-            $0.column(SecureVaultModels.CreditCard.Columns.cardNumber.name, .text)
+            $0.column(SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name, .text)
             $0.column(SecureVaultModels.CreditCard.Columns.cardholderName.name, .text)
             $0.column(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name, .text)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
@@ -500,10 +501,89 @@ extension DefaultDatabaseProvider {
         }
 
     }
+    
+    static func migrateV6(database: Database) throws {
+
+        try database.alter(table: SecureVaultModels.Identity.databaseTableName) {
+            $0.add(column: SecureVaultModels.Identity.Columns.addressStreet2.name, .text)
+        }
+
+        // The initial version of the credit card model stored the credit card number as L1 data. This migration
+        // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
+        // initialization logic.
+        
+        // 1. Add the new cardSuffix column, and a temporary cardNumberData column which will be renamed at the end:
+
+        try database.alter(table: SecureVaultModels.CreditCard.databaseTableName) {
+            $0.add(column: SecureVaultModels.CreditCard.Columns.cardSuffix.name, .text)
+            $0.add(column: SecureVaultModels.CreditCard.Columns.cardNumberData.name, .blob)
+        }
+        
+        // 2. Iterate over existing records - read their numbers, store the suffixes, and then re-save the newly
+        //    encrypted number into the cardNumberData column:
+        
+        let rows = try Row.fetchCursor(database,
+                                       sql: "SELECT * FROM \(SecureVaultModels.CreditCard.databaseTableName)")
+        
+        while let row = try rows.next() {
+            let cardID: Int64 = row[SecureVaultModels.CreditCard.Columns.id.name]
+            let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
+            let suffix = SecureVaultModels.CreditCard.suffix(from: number)
+            
+            // Set the card suffix:
+            
+            try database.execute(sql: """
+                UPDATE
+                    \(SecureVaultModels.CreditCard.databaseTableName)
+                SET
+                    \(SecureVaultModels.CreditCard.Columns.cardSuffix.name) = ?
+                WHERE
+                    \(SecureVaultModels.CreditCard.Columns.id.name) = ?
+
+            """, arguments: [suffix, cardID])
+            
+            // Encrypt the existing card number and set it:
+
+            let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!)
+            
+            try database.execute(sql: """
+                UPDATE
+                    \(SecureVaultModels.CreditCard.databaseTableName)
+                SET
+                    \(SecureVaultModels.CreditCard.Columns.cardNumberData.name) = ?
+                WHERE
+                    \(SecureVaultModels.CreditCard.Columns.id.name) = ?
+
+            """, arguments: [encryptedCardNumber, cardID])
+        }
+
+    }
 
 }
 
 // MARK: - Utility functions
+
+struct MigrationUtility {
+    
+    static func l2encrypt(data: Data) throws -> Data {
+        let providers = try SecureVaultFactory.default.makeSecureVaultProviders()
+        
+        guard let generatedPassword = try providers.keystore.generatedPassword() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptionKey = try providers.crypto.deriveKeyFromPassword(generatedPassword)
+
+        guard let encryptedL2Key = try providers.keystore.encryptedL2Key() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptedL2Key = try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
+        
+        return try providers.crypto.encrypt(data, withKey: decryptedL2Key)
+    }
+    
+}
 
 extension DefaultDatabaseProvider {
 
@@ -585,7 +665,22 @@ extension SecureVaultModels.WebsiteCredentials {
 extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, created, lastUpdated, cardNumber, cardholderName, cardSecurityCode, expirationMonth, expirationYear
+        case id
+        case title
+        case created
+        case lastUpdated
+        
+        case cardNumberData
+        case cardSuffix
+        case cardholderName
+        case cardSecurityCode
+
+        case expirationMonth
+        case expirationYear
+    }
+    
+    enum DeprecatedColumns: String, ColumnExpression {
+        case cardNumber
     }
 
     public init(row: Row) {
@@ -594,7 +689,8 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
 
-        cardNumber = row[Columns.cardNumber]
+        cardNumberData = row[Columns.cardNumberData]
+        cardSuffix = row[Columns.cardSuffix]
         cardholderName = row[Columns.cardholderName]
         cardSecurityCode = row[Columns.cardSecurityCode]
         expirationMonth = row[Columns.expirationMonth]
@@ -606,7 +702,8 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
-        container[Columns.cardNumber] = cardNumber
+        container[Columns.cardNumberData] = cardNumberData
+        container[Columns.cardSuffix] = cardSuffix
         container[Columns.cardholderName] = cardholderName
         container[Columns.cardSecurityCode] = cardSecurityCode
         container[Columns.expirationMonth] = expirationMonth
@@ -662,6 +759,7 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
         case birthdayYear
 
         case addressStreet
+        case addressStreet2
         case addressCity
         case addressProvince
         case addressPostalCode
@@ -687,6 +785,7 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
         birthdayYear = row[Columns.birthdayYear]
 
         addressStreet = row[Columns.addressStreet]
+        addressStreet2 = row[Columns.addressStreet2]
         addressCity = row[Columns.addressCity]
         addressProvince = row[Columns.addressProvince]
         addressPostalCode = row[Columns.addressPostalCode]
