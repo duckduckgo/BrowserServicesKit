@@ -73,7 +73,7 @@ extension AutofillUserScript {
                                   title: identity.title,
                                   firstName: identity.firstName,
                                   middleName: identity.middleName,
-                                  lastName: identity.middleName,
+                                  lastName: identity.lastName,
                                   birthdayDay: identity.birthdayDay,
                                   birthdayMonth: identity.birthdayMonth,
                                   birthdayYear: identity.birthdayYear,
