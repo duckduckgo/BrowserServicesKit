@@ -1,7 +1,8 @@
 //
-//  StringExtension.swift
+//  DomainsProtectionStore.swift
+//  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,18 +19,11 @@
 
 import Foundation
 
-extension String {
+public protocol DomainsProtectionStore: AnyObject {
 
-    public func trimWhitespace() -> String {
-        return trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    var unprotectedDomains: Set<String> { get }
 
-    func dropping(prefix: String) -> String {
-        return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
-    }
+    func disableProtection(forDomain domain: String)
 
-    func droppingWwwPrefix() -> String {
-        self.dropping(prefix: "www.")
-    }
-
+    func enableProtection(forDomain domain: String)
 }
