@@ -34,7 +34,6 @@ public protocol AutofillEmailDelegate: AnyObject {
 
 extension AutofillUserScript {
 
-
     func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let signedInString = String(signedIn)
@@ -96,6 +95,5 @@ extension AutofillUserScript {
             """)
         }
     }
-
 
 }

@@ -11,7 +11,7 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
@@ -36,7 +36,8 @@ let package = Package(
                 "Resources/duckduckgo-autofill/jest.setup.js",
                 "Resources/duckduckgo-autofill/dist/autofill-host-styles_chrome.css",
                 "Resources/duckduckgo-autofill/jest.config.js",
-                "Resources/duckduckgo-autofill/jest-test-environment.js"
+                "Resources/duckduckgo-autofill/jest-test-environment.js",
+                "Resources/duckduckgo-autofill/scripts/release.js"
             ],
             resources: [
                 .process("Resources/duckduckgo-autofill/dist/autofill.js"),

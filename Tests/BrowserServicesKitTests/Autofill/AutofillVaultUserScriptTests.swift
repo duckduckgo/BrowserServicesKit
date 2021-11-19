@@ -138,13 +138,140 @@ class AutofillVaultUserScriptTests: XCTestCase {
         XCTAssertEqual(delegate.lastPassword, "password")
     }
 
-    func testWhenShowManagementUIIsCalled_ThenDelegateIsCalled() {
+    @available(macOS 11, iOS 14, *)
+    func testWhenCreditCardForIdIsRequested_ThenDelegateIsCalled() {
+
+        class GetCreditCardDelegate: MockSecureVaultDelegate {
+
+            override func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64, completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
+
+                completionHandler(.init(id: creditCardId,
+                                        title: "Mock Card",
+                                        cardNumber: "1234123412341234",
+                                        cardholderName: "Dax",
+                                        cardSecurityCode: "123",
+                                        expirationMonth: 11,
+                                        expirationYear: 2021))
+
+            }
+
+        }
+
+        let randomCardId = Int.random(in: 0 ..< Int.max)
+
+        let delegate = GetCreditCardDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["id"] = "\(randomCardId)"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerGetCreditCard", body: body, webView: mockWebView)
+
+        let expect = expectation(description: #function)
+        userScript.userContentController(userContentController, didReceive: message) {
+            XCTAssertNotNil($0)
+            XCTAssertNil($1)
+
+            let data = ($0 as? String)?.data(using: .utf8)
+            let response = try? JSONDecoder().decode(AutofillUserScript.RequestAutoFillCreditCardResponse.self, from: data!)
+            XCTAssertEqual(response?.success.id, Int64(randomCardId))
+
+            expect.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+
+    }
+
+    @available(macOS 11, iOS 14, *)
+    func testWhenIdentityForIdIsRequested_ThenDelegateIsCalled() {
+
+        class GetCreditCardDelegate: MockSecureVaultDelegate {
+
+            override func autofillUserScript(_: AutofillUserScript, didRequestIdentityWithId identityId: Int64, completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
+                completionHandler(.init(id: identityId,
+                                        title: "Identity",
+                                        created: Date(),
+                                        lastUpdated: Date(),
+                                        firstName: "Dax",
+                                        middleName: nil,
+                                        lastName: nil,
+                                        birthdayDay: 1,
+                                        birthdayMonth: 2,
+                                        birthdayYear: 3,
+                                        addressStreet: nil,
+                                        addressCity: nil,
+                                        addressProvince: nil,
+                                        addressPostalCode: nil,
+                                        addressCountryCode: nil,
+                                        homePhone: nil,
+                                        mobilePhone: nil,
+                                        emailAddress: nil))
+            }
+
+        }
+
+        let randomIdentityId = Int.random(in: 0 ..< Int.max)
+
+        let delegate = GetCreditCardDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["id"] = "\(randomIdentityId)"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerGetIdentity", body: body, webView: mockWebView)
+
+        let expect = expectation(description: #function)
+        userScript.userContentController(userContentController, didReceive: message) {
+            XCTAssertNotNil($0)
+            XCTAssertNil($1)
+
+            let data = ($0 as? String)?.data(using: .utf8)
+            let response = try? JSONDecoder().decode(AutofillUserScript.RequestAutoFillIdentityResponse.self, from: data!)
+            XCTAssertEqual(response?.success.id, Int64(randomIdentityId))
+
+            expect.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+
+    }
+
+    func testWhenShowPasswordManagementUIIsCalled_ThenDelegateIsCalled() {
 
         let delegate = MockSecureVaultDelegate()
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
         let message = MockWKScriptMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams, webView: mockWebView)
+
+        userScript.userContentController(userContentController, didReceive: message)
+
+        XCTAssertEqual(delegate.lastDomain, "example.com")
+    }
+
+    func testWhenShowCardManagementUIIsCalled_ThenDelegateIsCalled() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerOpenManageCreditCards", body: encryptedMessagingParams, webView: mockWebView)
+
+        userScript.userContentController(userContentController, didReceive: message)
+
+        XCTAssertEqual(delegate.lastDomain, "example.com")
+    }
+
+    func testWhenShowIdentityManagementUIIsCalled_ThenDelegateIsCalled() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerOpenManageIdentities", body: encryptedMessagingParams, webView: mockWebView)
 
         userScript.userContentController(userContentController, didReceive: message)
 
@@ -180,6 +307,21 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+    }
+
+    func autofillUserScript(_: AutofillUserScript,
+                            didRequestAutoFillInitDataForDomain domain: String,
+                            completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
+                                                          [SecureVaultModels.Identity],
+                                                          [SecureVaultModels.CreditCard]) -> Void) {
+    }
+
+    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64, completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
+    }
+
+    func autofillUserScript(_: AutofillUserScript,
+                            didRequestIdentityWithId identityId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
     }
 
 }
