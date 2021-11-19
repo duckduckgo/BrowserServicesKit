@@ -22,10 +22,11 @@ import WebKit
 import os.log
 import TrackerRadarKit
 
-public struct ContentBlockerProtectionChangedNotification {
-    public static let name = Notification.Name(rawValue: "com.duckduckgo.contentblocker.storeChanged")
+public protocol ContentBlockerRulesUpdating {
 
-    public static let diffKey = "ContentBlockingDiff"
+    func rulesManager(_ manager: ContentBlockerRulesManager,
+                      didUpdateRules: ContentBlockerRulesManager.CurrentRules,
+                      changes: ContentBlockerRulesIdentifier.Difference)
 }
 
 /**
@@ -53,6 +54,7 @@ public class ContentBlockerRulesManager {
     }
 
     private let dataSource: ContentBlockerRulesSource
+    private let updateListener: ContentBlockerRulesUpdating?
     private let logger: OSLog
     public let sourceManager: ContentBlockerRulesSourceManager
 
@@ -60,9 +62,11 @@ public class ContentBlockerRulesManager {
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
 
     public init(source: ContentBlockerRulesSource,
+                updateListener: ContentBlockerRulesUpdating? = nil,
                 logger: OSLog = .disabled,
                 skipInitialSetup: Bool = false) {
         dataSource = source
+        self.updateListener = updateListener
         self.logger = logger
         sourceManager = ContentBlockerRulesSourceManager(dataSource: source)
         
@@ -244,11 +248,12 @@ public class ContentBlockerRulesManager {
                                                                                      unprotectedSitesHash: nil))
         }
         
-        _currentRules = CurrentRules(rulesList: ruleList,
+        let newRules = CurrentRules(rulesList: ruleList,
                                      trackerData: input.tds,
                                      encodedTrackerData: encodedTrackerData,
                                      etag: input.tdsIdentifier,
                                      identifier: input.rulesIdentifier)
+        _currentRules = newRules
         
         if self.state == .recompilingAndScheduled {
             // New work has been scheduled - prepare for execution.
@@ -264,9 +269,7 @@ public class ContentBlockerRulesManager {
         lock.unlock()
                 
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: ContentBlockerProtectionChangedNotification.name,
-                                            object: self,
-                                            userInfo: [ContentBlockerProtectionChangedNotification.diffKey: diff])
+            self.updateListener?.rulesManager(self, didUpdateRules: newRules, changes: diff)
             
             WKContentRuleListStore.default()?.getAvailableContentRuleListIdentifiers({ ids in
                 guard let ids = ids else { return }
