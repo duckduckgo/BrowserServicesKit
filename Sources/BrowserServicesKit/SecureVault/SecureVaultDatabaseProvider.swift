@@ -812,6 +812,7 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
         container[Columns.birthdayYear] = birthdayYear
 
         container[Columns.addressStreet] = addressStreet
+        container[Columns.addressStreet2] = addressStreet2
         container[Columns.addressCity] = addressCity
         container[Columns.addressProvince] = addressProvince
         container[Columns.addressPostalCode] = addressPostalCode
