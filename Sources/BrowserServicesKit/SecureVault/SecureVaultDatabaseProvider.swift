@@ -524,8 +524,9 @@ extension DefaultDatabaseProvider {
         
         let rows = try Row.fetchCursor(database,
                                        sql: "SELECT * FROM \(SecureVaultModels.CreditCard.databaseTableName)")
-        
+
         while let row = try rows.next() {
+            
             let cardID: Int64 = row[SecureVaultModels.CreditCard.Columns.id.name]
             let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
             let suffix = SecureVaultModels.CreditCard.suffix(from: number)
@@ -566,21 +567,21 @@ extension DefaultDatabaseProvider {
 struct MigrationUtility {
     
     static func l2encrypt(data: Data) throws -> Data {
-        let providers = try SecureVaultFactory.default.makeSecureVaultProviders()
+        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
         
-        guard let generatedPassword = try providers.keystore.generatedPassword() else {
+        guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureVaultError.noL2Key
         }
 
-        let decryptionKey = try providers.crypto.deriveKeyFromPassword(generatedPassword)
+        let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
 
-        guard let encryptedL2Key = try providers.keystore.encryptedL2Key() else {
+        guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
             throw SecureVaultError.noL2Key
         }
 
-        let decryptedL2Key = try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
+        let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
         
-        return try providers.crypto.encrypt(data, withKey: decryptedL2Key)
+        return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
     
 }
