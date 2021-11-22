@@ -280,20 +280,40 @@ class DefaultSecureVault: SecureVault {
 
     func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try executeThrowingDatabaseOperation {
-            return try self.providers.database.creditCards()
+            let cards =  try self.providers.database.creditCards()
+            
+            let decryptedCards: [SecureVaultModels.CreditCard] = try cards.map { card in
+                var mutableCard = card
+                mutableCard.cardNumberData = try self.l2Decrypt(data: mutableCard.cardNumberData)
+                
+                return mutableCard
+            }
+            
+            return decryptedCards
         }
     }
 
     func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
         return try executeThrowingDatabaseOperation {
-            return try self.providers.database.creditCardForCardId(id)
+            guard var card = try self.providers.database.creditCardForCardId(id) else {
+                return nil
+            }
+
+            card.cardNumberData = try self.l2Decrypt(data: card.cardNumberData)
+
+            return card
         }
     }
 
     @discardableResult
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
-            return try self.providers.database.storeCreditCard(card)
+            var mutableCard = card
+            
+            mutableCard.cardSuffix = SecureVaultModels.CreditCard.suffix(from: mutableCard.cardNumber)
+            mutableCard.cardNumberData = try self.l2Encrypt(data: mutableCard.cardNumberData)
+            
+            return try self.providers.database.storeCreditCard(mutableCard)
         }
     }
 

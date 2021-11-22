@@ -78,7 +78,7 @@ extension AutofillUserScript {
                                   birthdayMonth: identity.birthdayMonth,
                                   birthdayYear: identity.birthdayYear,
                                   addressStreet: identity.addressStreet,
-                                  addressStreet2: nil,
+                                  addressStreet2: identity.addressStreet2,
                                   addressCity: identity.addressCity,
                                   addressProvince: identity.addressProvince,
                                   addressPostalCode: identity.addressPostalCode,
