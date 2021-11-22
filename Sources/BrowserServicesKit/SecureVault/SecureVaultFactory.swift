@@ -74,17 +74,7 @@ public class SecureVaultFactory {
             if let existingL1Key = try keystoreProvider.l1Key() {
                 databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
             } else {
-                let l1Key = try cryptoProvider.generateSecretKey()
-                let l2Key = try cryptoProvider.generateSecretKey()
-                let password = try cryptoProvider.generatePassword()
-                let passwordKey = try cryptoProvider.deriveKeyFromPassword(password)
-                let encryptedL2Key = try cryptoProvider.encrypt(l2Key, withKey: passwordKey)
-
-                try keystoreProvider.storeEncryptedL2Key(encryptedL2Key)
-                try keystoreProvider.storeGeneratedPassword(password)
-                try keystoreProvider.storeL1Key(l1Key)
-
-                databaseProvider = try DefaultDatabaseProvider(key: l1Key)
+                throw SecureVaultError.noL1Key
             }
             
             return SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
