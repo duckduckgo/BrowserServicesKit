@@ -127,7 +127,12 @@ public struct SecureVaultModels {
         public let lastUpdated: Date
 
         public var associatedDomain: String?
-        public var text: String
+        public var text: String {
+            didSet {
+                self.displayTitle = generateDisplayTitle()
+                self.displaySubtitle = generateDisplaySubtitle()
+            }
+        }
 
         public init(title: String? = nil, associatedDomain: String? = nil, text: String) {
             self.id = nil
@@ -137,6 +142,55 @@ public struct SecureVaultModels {
 
             self.associatedDomain = associatedDomain
             self.text = text
+            
+            self.displayTitle = generateDisplayTitle()
+            self.displaySubtitle = generateDisplaySubtitle()
+        }
+        
+        // Display Properties:
+        
+        public internal(set) var displayTitle: String?
+        public internal(set) var displaySubtitle: String = ""
+        
+        /// If a note has a title, it will be used when displaying the note in the UI. If it doesn't have a title and it has body text, the first non-empty line of the body text
+        /// will be used. If it doesn't have a title or body text, a placeholder string is used.
+        internal func generateDisplayTitle() -> String? {
+            guard title.isEmpty else {
+                return title
+            }
+
+            // If a note doesn't have a title, the first non-empty line will be used instead.
+            let noteLines = text.components(separatedBy: .newlines)
+            return noteLines.first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
+        }
+        
+        /// If a note has a title, the first non-empty line of the note is used as the subtitle. If it doesn't have a title, the first non-empty line will be used as a title, so the
+        /// second non-empty line will then be used as the subtitle. If there is no title or body text, an empty string is returned.
+        internal func generateDisplaySubtitle() -> String {
+            guard title.isEmpty else {
+                return firstNonEmptyLine ?? ""
+            }
+
+            // The title's empty, so assume that the first non-empty line is used as the title, and find the second non-
+            // empty line instead.
+            
+            let noteLines = text.components(separatedBy: .newlines)
+            var alreadyFoundFirstNonEmptyLine = false
+            
+            for line in noteLines where !line.isEmpty {
+                if !alreadyFoundFirstNonEmptyLine {
+                    alreadyFoundFirstNonEmptyLine = true
+                } else if alreadyFoundFirstNonEmptyLine {
+                    return line
+                }
+            }
+            
+            return ""
+        }
+        
+        private var firstNonEmptyLine: String? {
+            let noteLines = text.components(separatedBy: .newlines)
+            return noteLines.first(where: { !$0.isEmpty })
         }
 
     }

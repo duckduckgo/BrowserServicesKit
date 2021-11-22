@@ -756,6 +756,9 @@ extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
         lastUpdated = row[Columns.lastUpdated]
         associatedDomain = row[Columns.associatedDomain]
         text = row[Columns.text]
+        
+        displayTitle = generateDisplayTitle()
+        displaySubtitle = generateDisplaySubtitle()
     }
 
     public func encode(to container: inout PersistenceContainer) {
