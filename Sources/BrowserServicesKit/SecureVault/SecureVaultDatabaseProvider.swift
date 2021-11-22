@@ -80,6 +80,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         do {
             try migrator.migrate(db)
         } catch {
+            print(error)
             throw error
         }
     }
@@ -511,52 +512,79 @@ extension DefaultDatabaseProvider {
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
         // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
         // initialization logic.
-        
-        // 1. Add the new cardSuffix column, and a temporary cardNumberData column which will be renamed at the end:
 
-        try database.alter(table: SecureVaultModels.CreditCard.databaseTableName) {
-            $0.add(column: SecureVaultModels.CreditCard.Columns.cardSuffix.name, .text)
-            $0.add(column: SecureVaultModels.CreditCard.Columns.cardNumberData.name, .blob)
+        // 1. Rename the existing table so that old data can be copied over to the new table:
+
+        let oldTableName = SecureVaultModels.CreditCard.databaseTableName + "Old"
+        try database.rename(table: SecureVaultModels.CreditCard.databaseTableName, to: oldTableName)
+        
+        // 2. Create the new table with suffix and card data values:
+        
+        try database.create(table: SecureVaultModels.CreditCard.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.CreditCard.Columns.id.name)
+
+            $0.column(SecureVaultModels.CreditCard.Columns.title.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.created.name, .date)
+            $0.column(SecureVaultModels.CreditCard.Columns.lastUpdated.name, .date)
+
+            $0.column(SecureVaultModels.CreditCard.Columns.cardSuffix.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardNumberData.name, .blob)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardholderName.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
+            $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
         }
         
-        // 2. Iterate over existing records - read their numbers, store the suffixes, and then re-save the newly
-        //    encrypted number into the cardNumberData column:
+        // 3. Iterate over existing records - read their numbers, store the suffixes, and then update the new table:
         
-        let rows = try Row.fetchCursor(database,
-                                       sql: "SELECT * FROM \(SecureVaultModels.CreditCard.databaseTableName)")
+        let rows = try Row.fetchCursor(database, sql: "SELECT * FROM \(oldTableName)")
 
         while let row = try rows.next() {
             
-            let cardID: Int64 = row[SecureVaultModels.CreditCard.Columns.id.name]
+            // Generate the encrypted card number and plaintext suffix:
+
             let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
-            let suffix = SecureVaultModels.CreditCard.suffix(from: number)
-            
-            // Set the card suffix:
-            
-            try database.execute(sql: """
-                UPDATE
-                    \(SecureVaultModels.CreditCard.databaseTableName)
-                SET
-                    \(SecureVaultModels.CreditCard.Columns.cardSuffix.name) = ?
-                WHERE
-                    \(SecureVaultModels.CreditCard.Columns.id.name) = ?
-
-            """, arguments: [suffix, cardID])
-            
-            // Encrypt the existing card number and set it:
-
+            let plaintextCardSuffix = SecureVaultModels.CreditCard.suffix(from: number)
             let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!)
             
+            // Insert data from the old table into the new one:
+            
             try database.execute(sql: """
-                UPDATE
+                INSERT INTO
                     \(SecureVaultModels.CreditCard.databaseTableName)
-                SET
-                    \(SecureVaultModels.CreditCard.Columns.cardNumberData.name) = ?
-                WHERE
-                    \(SecureVaultModels.CreditCard.Columns.id.name) = ?
+                (
+                    \(SecureVaultModels.CreditCard.Columns.id.name),
 
-            """, arguments: [encryptedCardNumber, cardID])
+                    \(SecureVaultModels.CreditCard.Columns.title.name),
+                    \(SecureVaultModels.CreditCard.Columns.created.name),
+                    \(SecureVaultModels.CreditCard.Columns.lastUpdated.name),
+
+                    \(SecureVaultModels.CreditCard.Columns.cardSuffix.name),
+                    \(SecureVaultModels.CreditCard.Columns.cardNumberData.name),
+                    \(SecureVaultModels.CreditCard.Columns.cardholderName.name),
+                    \(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name),
+                    \(SecureVaultModels.CreditCard.Columns.expirationMonth.name),
+                    \(SecureVaultModels.CreditCard.Columns.expirationYear.name)
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, arguments: [row[SecureVaultModels.CreditCard.Columns.id.name],
+
+                             row[SecureVaultModels.CreditCard.Columns.title.name],
+                             row[SecureVaultModels.CreditCard.Columns.created.name],
+                             row[SecureVaultModels.CreditCard.Columns.lastUpdated.name],
+
+                             plaintextCardSuffix,
+                             encryptedCardNumber,
+                             row[SecureVaultModels.CreditCard.Columns.cardholderName.name],
+                             row[SecureVaultModels.CreditCard.Columns.cardSecurityCode.name],
+                             row[SecureVaultModels.CreditCard.Columns.expirationMonth.name],
+                             row[SecureVaultModels.CreditCard.Columns.expirationYear.name]
+                            ])
         }
+        
+        // 4. Drop the old database:
+
+        try database.drop(table: oldTableName)
 
     }
 
