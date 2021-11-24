@@ -21,7 +21,7 @@ import Foundation
 import TrackerRadarKit
 
 // Populated with relevant info at the point of detection.
-public struct DetectedTracker {
+public struct DetectedTracker: Encodable {
 
     public let url: String
     public let knownTracker: KnownTracker?

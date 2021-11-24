@@ -26,7 +26,8 @@ public protocol ContentBlockerRulesUpdating {
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
                       didUpdateRules: ContentBlockerRulesManager.CurrentRules,
-                      changes: ContentBlockerRulesIdentifier.Difference)
+                      changes: ContentBlockerRulesIdentifier.Difference,
+                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
 }
 
 /**
@@ -34,12 +35,12 @@ public protocol ContentBlockerRulesUpdating {
  */
 public class ContentBlockerRulesManager {
     
-    public typealias CompletionBlock = (WKContentRuleList?) -> Void
+    public typealias CompletionToken = String
     
     enum State {
         case idle // Waiting for work
-        case recompiling // Executing work
-        case recompilingAndScheduled // New work has been requested while one is currently being executed
+        case recompiling(currentTokens: [CompletionToken]) // Executing work
+        case recompilingAndScheduled(currentTokens: [CompletionToken], pendingTokens: [CompletionToken]) // New work has been requested while one is currently being executed
     }
 
     /**
@@ -58,7 +59,6 @@ public class ContentBlockerRulesManager {
     private let logger: OSLog
     public let sourceManager: ContentBlockerRulesSourceManager
 
-//    fileprivate(set) public static var shared = ContentBlockerRulesManager()
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
 
     public init(source: ContentBlockerRulesSource,
@@ -71,7 +71,7 @@ public class ContentBlockerRulesManager {
         sourceManager = ContentBlockerRulesSourceManager(dataSource: source)
         
         if !skipInitialSetup {
-            requestCompilation()
+            requestCompilation(token: "")
         }
     }
     
@@ -97,26 +97,32 @@ public class ContentBlockerRulesManager {
         }
     }
 
-    public func recompile() {
+    @discardableResult
+    public func scheduleCompilation() -> CompletionToken {
+        let token = UUID().uuidString
         workQueue.async {
-            self.requestCompilation()
+            self.requestCompilation(token: token)
         }
+        return token
     }
 
-    private func requestCompilation() {
+
+    private func requestCompilation(token: CompletionToken) {
         os_log("Requesting compilation...", log: logger, type: .default)
         
         lock.lock()
-        guard state == .idle else {
-            if state == .recompiling {
+        guard case .idle = state else {
+            if case .recompiling(let tokens) = state {
                 // Schedule reload
-                state = .recompilingAndScheduled
+                state = .recompilingAndScheduled(currentTokens: tokens, pendingTokens: [token])
+            } else if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
+                state = .recompilingAndScheduled(currentTokens: currentTokens, pendingTokens: pendingTokens + [token])
             }
             lock.unlock()
             return
         }
         
-        state = .recompiling
+        state = .recompiling(currentTokens: [token])
         let isInitial = _currentRules == nil
         lock.unlock()
         
@@ -182,8 +188,9 @@ public class ContentBlockerRulesManager {
         
         lock.lock()
                 
-        if self.state == .recompilingAndScheduled {
+        if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
             // Recompilation is scheduled - it may fix the problem
+            state = .recompiling(currentTokens: currentTokens + pendingTokens)
         } else {
             sourceManager.compilationFailed(for: input, with: error)
         }
@@ -191,8 +198,7 @@ public class ContentBlockerRulesManager {
         workQueue.async {
             self.performCompilation()
         }
-        
-        state = .recompiling
+
         lock.unlock()
     }
     
@@ -254,22 +260,28 @@ public class ContentBlockerRulesManager {
                                      etag: input.tdsIdentifier,
                                      identifier: input.rulesIdentifier)
         _currentRules = newRules
-        
-        if self.state == .recompilingAndScheduled {
+
+        var completionTokens = [CompletionToken]()
+        if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
             // New work has been scheduled - prepare for execution.
             workQueue.async {
                 self.performCompilation()
             }
-            
-            state = .recompiling
-        } else {
+
+            completionTokens = currentTokens
+            state = .recompiling(currentTokens: pendingTokens)
+        } else if case .recompiling(let currentTokens) = state {
+            completionTokens = currentTokens
             state = .idle
         }
         
         lock.unlock()
                 
         DispatchQueue.main.async {
-            self.updateListener?.rulesManager(self, didUpdateRules: newRules, changes: diff)
+            self.updateListener?.rulesManager(self,
+                                              didUpdateRules: newRules,
+                                              changes: diff,
+                                              completionTokens: completionTokens)
             
             WKContentRuleListStore.default()?.getAvailableContentRuleListIdentifiers({ ids in
                 guard let ids = ids else { return }
@@ -284,28 +296,4 @@ public class ContentBlockerRulesManager {
         }
     }
 
-}
-
-extension ContentBlockerRulesManager {
-    
-//    class func test_prepareEmbeddedInstance() -> ContentBlockerRulesManager {
-//        let cbrm = ContentBlockerRulesManager(skipInitialSetup: true)
-//
-//        let input = ContentBlockerRulesSourceModel(tdsIdentfier: UUID().uuidString, tds: TrackerDataManager.shared.embeddedData.tds)
-//        cbrm.compile(input: input)
-//        
-//        return cbrm
-//    }
-//    
-//    class func test_prepareRegularInstance(source: ContentBlockerRulesSource? = nil, skipInitialSetup: Bool = false) -> ContentBlockerRulesManager {
-//        if let source = source {
-//            return ContentBlockerRulesManager(source: source, skipInitialSetup: skipInitialSetup)
-//        }
-//        return ContentBlockerRulesManager(skipInitialSetup: skipInitialSetup)
-//    }
-    
-    class func test_replaceSharedInstance(with instance: ContentBlockerRulesManager) {
-//        shared = instance
-    }
-    
 }

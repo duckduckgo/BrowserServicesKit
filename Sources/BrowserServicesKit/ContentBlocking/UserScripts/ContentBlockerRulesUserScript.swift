@@ -22,9 +22,9 @@ import TrackerRadarKit
 
 public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 
-    func contentBlockerUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
-    func contentBlockerUserScript(_ script: ContentBlockerRulesUserScript,
-                                  detectedTracker tracker: DetectedTracker)
+    func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedTracker tracker: DetectedTracker)
 
 }
 
@@ -82,7 +82,7 @@ public class ContentBlockerRulesUserScript: NSObject, UserScript {
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let delegate = delegate else { return }
-        guard delegate.contentBlockerUserScriptShouldProcessTrackers(self) else { return }
+        guard delegate.contentBlockerRulesUserScriptShouldProcessTrackers(self) else { return }
         
         guard let dict = message.body as? [String: Any] else { return }
         
@@ -106,7 +106,7 @@ public class ContentBlockerRulesUserScript: NSObject, UserScript {
                                                  pageUrlString: pageUrlStr,
                                                  resourceType: resourceType,
                                                  potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
-            delegate.contentBlockerUserScript(self, detectedTracker: tracker)
+            delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
         }
     }
 }

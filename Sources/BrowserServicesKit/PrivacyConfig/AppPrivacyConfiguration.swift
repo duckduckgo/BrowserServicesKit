@@ -58,6 +58,20 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return feature.exceptions.map { $0.domain }
     }
 
+    public func isFeature(_ feature: PrivacyFeature, enabledForDomain domain: String?) -> Bool {
+        guard isEnabled(featureKey: feature) else {
+            return false
+        }
+
+        if let domain = domain,
+           isTempUnprotected(domain: domain) ||
+            isUserUnprotected(domain: domain) ||
+            isInExceptionList(domain: domain, forFeature: .contentBlocking) {
+            return false
+        }
+        return true
+    }
+
     public func isProtected(domain: String?) -> Bool {
         guard let domain = domain else { return true }
 
