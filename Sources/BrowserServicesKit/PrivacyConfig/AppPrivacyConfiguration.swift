@@ -112,6 +112,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return false
     }
 
+    public func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings {
+        return data.features[feature.rawValue]?.settings ?? [:]
+    }
+
     public func userEnabledProtection(forDomain domain: String) {
         locallyUnprotected.enableProtection(forDomain: domain)
     }

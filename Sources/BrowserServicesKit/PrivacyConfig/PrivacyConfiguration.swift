@@ -75,6 +75,9 @@ public protocol PrivacyConfiguration {
     /// Returns true for exact match and all subdomains.
     func isInExceptionList(domain: String?, forFeature featureKey: PrivacyFeature) -> Bool
 
+    /// Returns settings for a specified feature.
+    func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings
+
     /// Removes given domain from locally unprotected list.
     func userEnabledProtection(forDomain: String)
     /// Adds given domain to locally unprotected list.
