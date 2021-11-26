@@ -40,7 +40,7 @@ public class SecureVaultFactory {
     /// * Generates a secret key for L1 encryption and stores in Keychain
     /// * Generates a secret key for L2 encryption
     /// * Generates a user password to encrypt the L2 key with
-    /// * Stores encyprted L2 key in Keychain
+    /// * Stores encrypted L2 key in Keychain
     public func makeVault(authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> SecureVault {
 
         if let vault = self.vault, authExpiration == vault.authExpiry {
@@ -51,31 +51,12 @@ public class SecureVaultFactory {
                 lock.unlock()
             }
 
-            let cryptoProvider = makeCryptoProvider()
-            let keystoreProvider = makeKeyStoreProvider()
-            let databaseProvider: SecureVaultDatabaseProvider
-
             do {
-                if let existingL1Key = try keystoreProvider.l1Key() {
-                    databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
-                } else {
-                    let l1Key = try cryptoProvider.generateSecretKey()
-                    let l2Key = try cryptoProvider.generateSecretKey()
-                    let password = try cryptoProvider.generatePassword()
-                    let passwordKey = try cryptoProvider.deriveKeyFromPassword(password)
-                    let encryptedL2Key = try cryptoProvider.encrypt(l2Key, withKey: passwordKey)
-
-                    try keystoreProvider.storeEncryptedL2Key(encryptedL2Key)
-                    try keystoreProvider.storeGeneratedPassword(password)
-                    try keystoreProvider.storeL1Key(l1Key)
-
-                    databaseProvider = try DefaultDatabaseProvider(key: l1Key)
-                }
-
-                let providers = SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
-
+                let providers = try makeSecureVaultProviders()
                 let vault = DefaultSecureVault(authExpiry: authExpiration, providers: providers)
+
                 self.vault = vault
+
                 return vault
 
             } catch {
@@ -83,6 +64,23 @@ public class SecureVaultFactory {
             }
         }
 
+    }
+    
+    internal func makeSecureVaultProviders() throws -> SecureVaultProviders {
+        do {
+            let (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
+            let databaseProvider: SecureVaultDatabaseProvider
+
+            if let existingL1Key = try keystoreProvider.l1Key() {
+                databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
+            } else {
+                throw SecureVaultError.noL1Key
+            }
+            
+            return SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
+        } catch {
+            throw SecureVaultError.initFailed(cause: error)
+        }
     }
 
     internal func makeCryptoProvider() -> SecureVaultCryptoProvider {
@@ -95,6 +93,27 @@ public class SecureVaultFactory {
 
     internal func makeKeyStoreProvider() -> SecureVaultKeyStoreProvider {
         return DefaultKeyStoreProvider()
+    }
+    
+    internal func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider) {
+        let cryptoProvider = makeCryptoProvider()
+        let keystoreProvider = makeKeyStoreProvider()
+        
+        if try keystoreProvider.l1Key() != nil {
+            return (cryptoProvider, keystoreProvider)
+        } else {
+            let l1Key = try cryptoProvider.generateSecretKey()
+            let l2Key = try cryptoProvider.generateSecretKey()
+            let password = try cryptoProvider.generatePassword()
+            let passwordKey = try cryptoProvider.deriveKeyFromPassword(password)
+            let encryptedL2Key = try cryptoProvider.encrypt(l2Key, withKey: passwordKey)
+
+            try keystoreProvider.storeEncryptedL2Key(encryptedL2Key)
+            try keystoreProvider.storeGeneratedPassword(password)
+            try keystoreProvider.storeL1Key(l1Key)
+            
+            return (cryptoProvider, keystoreProvider)
+        }
     }
 
 }

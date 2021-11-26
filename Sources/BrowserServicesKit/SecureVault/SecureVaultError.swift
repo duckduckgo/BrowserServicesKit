@@ -23,6 +23,7 @@ public enum SecureVaultError: Error {
     case initFailed(cause: Error)
     case authRequired
     case invalidPassword
+    case noL1Key
     case noL2Key
     case authError(cause: Error)
     case failedToOpenDatabase(cause: Error)
