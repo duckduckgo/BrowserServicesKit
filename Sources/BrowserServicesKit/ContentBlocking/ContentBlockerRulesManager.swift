@@ -62,7 +62,7 @@ public class ContentBlockerRulesManager {
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
 
     public init(source: ContentBlockerRulesSource,
-                updateListener: ContentBlockerRulesUpdating? = nil,
+                updateListener: ContentBlockerRulesUpdating,
                 logger: OSLog = .disabled,
                 skipInitialSetup: Bool = false) {
         dataSource = source

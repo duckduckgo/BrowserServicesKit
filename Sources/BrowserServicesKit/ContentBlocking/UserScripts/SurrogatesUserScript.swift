@@ -30,7 +30,7 @@ public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
 
 }
 
-public protocol SurrogatesUserScriptConfigSource: UserScriptSourceProvider {
+public protocol SurrogatesUserScriptConfig: UserScriptSourceProvider {
 
     var privacyConfig: PrivacyConfiguration { get }
     var surrogates: String { get }
@@ -39,7 +39,7 @@ public protocol SurrogatesUserScriptConfigSource: UserScriptSourceProvider {
 
 }
 
-public class DefaultSurrogatesUserScriptConfigSource: SurrogatesUserScriptConfigSource {
+public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
 
     public let privacyConfig: PrivacyConfiguration
     public let surrogates: String
@@ -94,7 +94,7 @@ public class DefaultSurrogatesUserScriptConfigSource: SurrogatesUserScriptConfig
     }
 }
 
-public class SurrogatesUserScript: NSObject, UserScript {
+open class SurrogatesUserScript: NSObject, UserScript {
     
     struct TrackerDetectedKey {
         static let protectionId = "protectionId"
@@ -105,16 +105,16 @@ public class SurrogatesUserScript: NSObject, UserScript {
         static let pageUrl = "pageUrl"
     }
 
-    private let configurationSource: SurrogatesUserScriptConfigSource
+    private let configuration: SurrogatesUserScriptConfig
 
-    public init(configurationSource: SurrogatesUserScriptConfigSource) {
-        self.configurationSource = configurationSource
+    public init(configuration: SurrogatesUserScriptConfig) {
+        self.configuration = configuration
 
         super.init()
     }
 
-    public var source: String {
-        return configurationSource.surrogates
+    open var source: String {
+        return configuration.source
     }
     
     public var injectionTime: WKUserScriptInjectionTime = .atDocumentStart
@@ -142,7 +142,7 @@ public class SurrogatesUserScript: NSObject, UserScript {
     }
             
     private func trackerFromUrl(_ urlString: String, pageUrlString: String, _ blocked: Bool) -> DetectedTracker {
-        let currentTrackerData = configurationSource.trackerData
+        let currentTrackerData = configuration.trackerData
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
         let entity = currentTrackerData?.findEntity(byName: knownTracker?.owner?.name ?? "")
         return DetectedTracker(url: urlString, knownTracker: knownTracker, entity: entity, blocked: blocked, pageUrl: pageUrlString)

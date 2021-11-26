@@ -28,7 +28,14 @@ public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 
 }
 
-public class ContentBlockerUserScriptConfigSource: UserScriptSourceProvider {
+public protocol ContentBlockerUserScriptConfig: UserScriptSourceProvider {
+
+    var privacyConfiguration: PrivacyConfiguration { get }
+    var trackerData: TrackerData? { get }
+
+}
+
+public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConfig {
 
     public let privacyConfiguration: PrivacyConfiguration
     public let trackerData: TrackerData?
@@ -56,7 +63,7 @@ public class ContentBlockerUserScriptConfigSource: UserScriptSourceProvider {
     }
 }
 
-public class ContentBlockerRulesUserScript: NSObject, UserScript {
+open class ContentBlockerRulesUserScript: NSObject, UserScript {
     
     struct ContentBlockerKey {
         static let url = "url"
@@ -65,16 +72,16 @@ public class ContentBlockerRulesUserScript: NSObject, UserScript {
         static let pageUrl = "pageUrl"
     }
 
-    private let configurationSource: ContentBlockerUserScriptConfigSource
+    private let configuration: ContentBlockerUserScriptConfig
 
-    public init(configurationSource: ContentBlockerUserScriptConfigSource) {
-        self.configurationSource = configurationSource
+    public init(configuration: ContentBlockerUserScriptConfig) {
+        self.configuration = configuration
 
         super.init()
     }
     
-    public var source: String {
-        return configurationSource.source
+    open var source: String {
+        return configuration.source
     }
 
     public var injectionTime: WKUserScriptInjectionTime = .atDocumentStart
@@ -86,7 +93,7 @@ public class ContentBlockerRulesUserScript: NSObject, UserScript {
     public weak var delegate: ContentBlockerRulesUserScriptDelegate?
 
     var temporaryUnprotectedDomains: [String] {
-        let privacyConfiguration = configurationSource.privacyConfiguration
+        let privacyConfiguration = configuration.privacyConfiguration
         var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimWhitespace().isEmpty }
         temporaryUnprotectedDomains.append(contentsOf: privacyConfiguration.exceptionsList(forFeature: .contentBlocking))
         return temporaryUnprotectedDomains
@@ -104,11 +111,11 @@ public class ContentBlockerRulesUserScript: NSObject, UserScript {
         let resourceType = (dict[ContentBlockerKey.resourceType] as? String) ?? "unknown"
         guard let pageUrlStr = dict[ContentBlockerKey.pageUrl] as? String else { return }
         
-        guard let currentTrackerData = configurationSource.trackerData else {
+        guard let currentTrackerData = configuration.trackerData else {
             return
         }
 
-        let privacyConfiguration = configurationSource.privacyConfiguration
+        let privacyConfiguration = configuration.privacyConfiguration
 
         let resolver = TrackerResolver(tds: currentTrackerData,
                                        unprotectedSites: privacyConfiguration.userUnprotectedDomains,
