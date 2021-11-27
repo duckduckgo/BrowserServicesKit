@@ -1,8 +1,8 @@
 //
-//  UserScriptSourceProvider.swift
-//  Core
+//  EventMapping.swift
+//  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,6 +19,16 @@
 
 import Foundation
 
-public protocol UserScriptSourceProviding {
-    var source: String { get }
+public class EventMapping<BSKEvent> {
+    public typealias Mapping = (_ event: BSKEvent, _ error: Error?, _ params: [String: String]?) -> Void
+
+    private let eventMapper: Mapping
+
+    public init(mapping: @escaping Mapping) {
+        eventMapper = mapping
+    }
+
+    public func fire(_ event: BSKEvent, error: Error? = nil, parameters: [String: String]? = nil) {
+        eventMapper(event, error, parameters)
+    }
 }

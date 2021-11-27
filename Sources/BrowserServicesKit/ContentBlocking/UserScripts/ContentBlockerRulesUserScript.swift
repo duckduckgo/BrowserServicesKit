@@ -28,7 +28,7 @@ public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 
 }
 
-public protocol ContentBlockerUserScriptConfig: UserScriptSourceProvider {
+public protocol ContentBlockerUserScriptConfig: UserScriptSourceProviding {
 
     var privacyConfiguration: PrivacyConfiguration { get }
     var trackerData: TrackerData? { get }

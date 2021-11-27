@@ -20,31 +20,30 @@
 import XCTest
 import CommonCrypto
 @testable import BrowserServicesKit
-//@testable import IntegrationTests
 
 class TrackerDataManagerTests: XCTestCase {
     
     func testWhenReloadCalledInitiallyThenDataSetIsEmbedded() {
 
-        XCTAssertEqual(TrackerDataManager().reload(etag: nil, data: nil), .embedded)
+        XCTAssertEqual(TrackerDataManager(etag: nil, data: nil).reload(etag: nil, data: nil), TrackerDataManager.ReloadResult.embedded)
     }
 
     func testFindTrackerByUrl() {
-        let trackerDataManager = TrackerDataManager()
+        let trackerDataManager = TrackerDataManager(etag: nil, data: nil)
         let tracker = trackerDataManager.embeddedData.tds.findTracker(forUrl: "http://googletagmanager.com")
         XCTAssertNotNil(tracker)
         XCTAssertEqual("Google", tracker?.owner?.displayName)
     }
     
     func testFindEntityByName() {
-        let trackerDataManager = TrackerDataManager()
+        let trackerDataManager = TrackerDataManager(etag: nil, data: nil)
         let entity = trackerDataManager.embeddedData.tds.findEntity(byName: "Google LLC")
         XCTAssertNotNil(entity)
         XCTAssertEqual("Google", entity?.displayName)
     }
     
     func testFindEntityForHost() {
-        let trackerDataManager = TrackerDataManager()
+        let trackerDataManager = TrackerDataManager(etag: nil, data: nil)
         let entity = trackerDataManager.embeddedData.tds.findEntity(forHost: "www.google.com")
         XCTAssertNotNil(entity)
         XCTAssertEqual("Google", entity?.displayName)
@@ -101,10 +100,10 @@ class TrackerDataManagerTests: XCTestCase {
         """
 
 
-        let trackerDataManager = TrackerDataManager()
+        let trackerDataManager = TrackerDataManager(etag: nil, data: nil)
         
         XCTAssertEqual(trackerDataManager.embeddedData.etag, TrackerDataManager.Constants.embeddedDataSetETag)
-        XCTAssertEqual(trackerDataManager.reload(etag: "new etag", data: update.data(using: .utf8)), .downloaded)
+        XCTAssertEqual(trackerDataManager.reload(etag: "new etag", data: update.data(using: .utf8)), TrackerDataManager.ReloadResult.downloaded)
         XCTAssertEqual(trackerDataManager.fetchedData?.etag, "new etag")
         XCTAssertNil(trackerDataManager.fetchedData?.tds.findEntity(byName: "Google LLC"))
         XCTAssertNotNil(trackerDataManager.fetchedData?.tds.findEntity(byName: "Not Real"))

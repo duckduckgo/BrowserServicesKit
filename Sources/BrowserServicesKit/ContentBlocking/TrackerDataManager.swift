@@ -1,6 +1,6 @@
 //
 //  TrackerDataManager.swift
-//  Core
+//  DuckDuckGo
 //
 //  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
@@ -34,7 +34,7 @@ public class TrackerDataManager {
         public static let embeddedDataSetSHA = "uFwyHaQtXyKGmC4SQtLRmFMH1EOn48LRlf2pLQEvd+8="
     }
     
-    public enum ReloadResult {
+    public enum ReloadResult: Equatable {
         case embedded
         case embeddedFallback
         case downloaded
@@ -90,8 +90,12 @@ public class TrackerDataManager {
         return embeddedData.tds
     }
 
-    public init() {
-//        reload(etag: UserDefaultsETagStorage().etag(for: .trackerDataSet)) FIXME
+    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
+
+    public init(etag: String?, data: Data?, errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+        self.errorReporting = errorReporting
+
+        reload(etag: etag, data: data)
     }
 
     @discardableResult
@@ -108,7 +112,7 @@ public class TrackerDataManager {
                 let data = try JSONDecoder().decode(TrackerData.self, from: data)
                 fetchedData = (data, etag)
             } catch {
-//                Pixel.fire(pixel: .trackerDataParseFailed, error: error)
+                errorReporting?.fire(.trackerDataParseFailed, error: error)
                 fetchedData = nil
                 return .embeddedFallback
             }

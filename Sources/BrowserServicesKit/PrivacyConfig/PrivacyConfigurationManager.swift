@@ -19,7 +19,7 @@
 
 import Foundation
 
-public protocol PrivacyConfigurationDataProvider {
+public protocol PrivacyConfigurationEmbeddedDataProvider {
 
     var embeddedPrivacyConfigEtag: String { get }
     var embeddedPrivacyConfig: Data { get }
@@ -27,7 +27,7 @@ public protocol PrivacyConfigurationDataProvider {
 
 public class PrivacyConfigurationManager {
     
-    public enum ReloadResult {
+    public enum ReloadResult: Equatable {
         case embedded
         case embeddedFallback
         case downloaded
@@ -40,7 +40,7 @@ public class PrivacyConfigurationManager {
     public typealias ConfigurationData = (data: PrivacyConfigurationData, etag: String)
     
     private let lock = NSLock()
-    private let dataProvider: PrivacyConfigurationDataProvider
+    private let embeddedDataProvider: PrivacyConfigurationEmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
     
     private var _fetchedConfigData: ConfigurationData?
@@ -68,10 +68,10 @@ public class PrivacyConfigurationManager {
             if let embedded = _embeddedConfigData {
                 data = embedded
             } else {
-                let jsonData = dataProvider.embeddedPrivacyConfig
+                let jsonData = embeddedDataProvider.embeddedPrivacyConfig
                 let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
                 let configData = PrivacyConfigurationData(json: json!)
-                _embeddedConfigData = (configData, dataProvider.embeddedPrivacyConfigEtag)
+                _embeddedConfigData = (configData, embeddedDataProvider.embeddedPrivacyConfigEtag)
                 data = _embeddedConfigData
             }
             lock.unlock()
@@ -84,14 +84,19 @@ public class PrivacyConfigurationManager {
         }
     }
 
-    public init(dataProvider: PrivacyConfigurationDataProvider, localProtection: DomainsProtectionStore) {
-        self.dataProvider = dataProvider
-        self.localProtection = localProtection
+    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
 
-//        reload(etag: UserDefaultsETagStorage().etag(for: .privacyConfiguration)) FIXME
+    public init(fetchedETag: String?,
+                fetchedData: Data?,
+                embeddedDataProvider: PrivacyConfigurationEmbeddedDataProvider,
+                localProtection: DomainsProtectionStore,
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+        self.embeddedDataProvider = embeddedDataProvider
+        self.localProtection = localProtection
+        self.errorReporting = errorReporting
+
+        reload(etag: fetchedETag, data: fetchedData)
     }
-    
-//    public static let shared = PrivacyConfigurationManager()
     
     public var privacyConfig: PrivacyConfiguration {
         if let fetchedData = fetchedConfigData {
@@ -122,7 +127,7 @@ public class PrivacyConfigurationManager {
                     throw ParsingError.dataMismatch
                 }
             } catch {
-//                Pixel.fire(pixel: .privacyConfigurationParseFailed, error: error)
+                errorReporting?.fire(.privacyConfigurationParseFailed, error: error)
                 fetchedConfigData = nil
                 return .embeddedFallback
             }

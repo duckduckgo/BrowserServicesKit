@@ -63,16 +63,13 @@ public class ContentBlockerRulesManager {
 
     public init(source: ContentBlockerRulesSource,
                 updateListener: ContentBlockerRulesUpdating,
-                logger: OSLog = .disabled,
-                skipInitialSetup: Bool = false) {
+                logger: OSLog = .disabled) {
         dataSource = source
         self.updateListener = updateListener
         self.logger = logger
         sourceManager = ContentBlockerRulesSourceManager(dataSource: source)
-        
-        if !skipInitialSetup {
-            requestCompilation(token: "")
-        }
+
+        requestCompilation(token: "")
     }
     
     /**

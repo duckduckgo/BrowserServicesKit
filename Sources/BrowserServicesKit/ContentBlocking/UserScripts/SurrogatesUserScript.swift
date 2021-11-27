@@ -30,7 +30,7 @@ public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
 
 }
 
-public protocol SurrogatesUserScriptConfig: UserScriptSourceProvider {
+public protocol SurrogatesUserScriptConfig: UserScriptSourceProviding {
 
     var privacyConfig: PrivacyConfiguration { get }
     var surrogates: String { get }

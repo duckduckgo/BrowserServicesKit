@@ -70,30 +70,6 @@ public class ContentBlockerRulesIdentifier: Equatable {
         return domains.joined().sha1
     }
     
-    public init?(identifier: String) {
-
-        var components = identifier.components(separatedBy: "\"\"")
-        if components.count == 2 {
-            // Legacy - migrate to new format
-            let tdsComponent = components[0]
-            let tmpListAndUnprotected = components[1].components(separatedBy: "\"")
-
-            components = [tdsComponent,
-                          tmpListAndUnprotected.first ?? "",
-                          "",
-                          (tmpListAndUnprotected.last ?? "").appending("\"")]
-
-        } else if components.count != 4 {
-//            Pixel.fire(pixel: .contentBlockingIdentifierError) FIXME
-            return nil
-        }
-
-        tdsEtag = Self.normalize(identifier: components[0])
-        tempListEtag = Self.normalize(identifier: components[1])
-        allowListEtag = Self.normalize(identifier: components[2])
-        unprotectedSitesHash = Self.normalize(identifier: components[3])
-    }
-    
     public init(tdsEtag: String, tempListEtag: String?, allowListEtag: String?, unprotectedSitesHash: String?) {
         
         self.tdsEtag = Self.normalize(identifier: tdsEtag)

@@ -26,7 +26,7 @@ class PrivacyConfigurationDataTests: XCTestCase {
     private var data = JsonTestDataLoader()
 
     func testJSONParsing() {
-        let jsonData = data.fromJsonFile("MockFiles/privacy-config-example.json")
+        let jsonData = data.fromJsonFile("privacy-config-example.json")
         let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
 
         let configData = PrivacyConfigurationData(json: json!)
@@ -59,7 +59,7 @@ class PrivacyConfigurationDataTests: XCTestCase {
     }
 
     func testJSONWithoutAllowlistParsing() {
-        let jsonData = data.fromJsonFile("MockFiles/privacy-config-example.json")
+        let jsonData = data.fromJsonFile("privacy-config-example.json")
         var json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
         var features = json?["features"] as? [String: Any]
         features?.removeValue(forKey: "trackerAllowlist")
