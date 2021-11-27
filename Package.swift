@@ -52,7 +52,8 @@ let package = Package(
             ],
             resources: [
                 .copy("UserScript/testUserScript.js"),
-                .copy("MockFiles")
+                .copy("MockFiles"),
+                .copy("Resources")
             ])
     ]
 )

@@ -31,19 +31,6 @@ class MockPrivacyConfigurationDataProvider: PrivacyConfigurationEmbeddedDataProv
     }
 }
 
-private class MockDomainsProtectionStore: DomainsProtectionStore {
-    var unprotectedDomains = Set<String>()
-
-    func disableProtection(forDomain domain: String) {
-        unprotectedDomains.remove(domain)
-    }
-
-    func enableProtection(forDomain domain: String) {
-        unprotectedDomains.insert(domain)
-    }
-
-}
-
 class AppPrivacyConfigurationTests: XCTestCase {
 
     let embeddedConfig =
