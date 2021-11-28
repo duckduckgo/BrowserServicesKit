@@ -56,6 +56,7 @@ public class ContentBlockerRulesManager {
 
     private let dataSource: ContentBlockerRulesSource
     private let updateListener: ContentBlockerRulesUpdating?
+    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let logger: OSLog
     public let sourceManager: ContentBlockerRulesSourceManager
 
@@ -63,11 +64,13 @@ public class ContentBlockerRulesManager {
 
     public init(source: ContentBlockerRulesSource,
                 updateListener: ContentBlockerRulesUpdating,
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 logger: OSLog = .disabled) {
         dataSource = source
         self.updateListener = updateListener
+        self.errorReporting = errorReporting
         self.logger = logger
-        sourceManager = ContentBlockerRulesSourceManager(dataSource: source)
+        sourceManager = ContentBlockerRulesSourceManager(dataSource: source, errorReporting: errorReporting)
 
         requestCompilation(token: "")
     }

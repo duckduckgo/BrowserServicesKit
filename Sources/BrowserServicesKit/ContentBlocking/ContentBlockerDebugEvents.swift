@@ -21,6 +21,11 @@ import Foundation
 
 public enum ContentBlockerDebugEvents {
 
+    struct Parameters {
+        static let etag = "etag"
+        static let errorDescription = "error_desc"
+    }
+
     case trackerDataParseFailed
     case trackerDataReloadFailed
     case trackerDataCouldNotBeLoaded

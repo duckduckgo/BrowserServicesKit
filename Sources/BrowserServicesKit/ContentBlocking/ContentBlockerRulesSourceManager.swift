@@ -79,8 +79,11 @@ public class ContentBlockerRulesSourceManager {
      */
     public private(set) var brokenSources: ContentBlockerRulesSourceIdentifiers?
 
-    init(dataSource: ContentBlockerRulesSource) {
+    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
+
+    init(dataSource: ContentBlockerRulesSource, errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
         self.dataSource = dataSource
+        self.errorReporting = errorReporting
     }
 
     /**
@@ -148,32 +151,36 @@ public class ContentBlockerRulesSourceManager {
         if input.tdsIdentifier != dataSource.embeddedTrackerData.etag {
             // We failed compilation for non-embedded TDS, marking it as broken.
             brokenSources = ContentBlockerRulesSourceIdentifiers(tdsIdentfier: input.tdsIdentifier)
-//            Pixel.fire(pixel: .contentBlockingTDSCompilationFailed,
-//                       error: error,
-//                       withAdditionalParameters: [PixelParameters.etag: input.tdsIdentifier])
+            errorReporting?.fire(.contentBlockingTDSCompilationFailed,
+                                 error: error,
+                                 parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tdsIdentifier])
         } else if input.tempListIdentifier != nil {
             brokenSources?.tempListIdentifier = input.tempListIdentifier
-//            Pixel.fire(pixel: .contentBlockingTempListCompilationFailed,
-//                       error: error,
-//                       withAdditionalParameters: [PixelParameters.etag: input.tempListIdentifier ?? "empty"])
+            errorReporting?.fire(.contentBlockingTempListCompilationFailed,
+                                 error: error,
+                                 parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tempListIdentifier ?? "empty"])
         } else if input.allowListIdentifier != nil {
             brokenSources?.allowListIdentifier = input.allowListIdentifier
-//            Pixel.fire(pixel: .contentBlockingAllowListCompilationFailed,
-//                       error: error,
-//                       withAdditionalParameters: [PixelParameters.etag: input.allowListIdentifier ?? "empty"])
+            errorReporting?.fire(.contentBlockingAllowListCompilationFailed,
+                                 error: error,
+                                 parameters: [ContentBlockerDebugEvents.Parameters.etag: input.allowListIdentifier ?? "empty"])
         } else if input.unprotectedSitesIdentifier != nil {
             brokenSources?.unprotectedSitesIdentifier = input.unprotectedSitesIdentifier
-//            Pixel.fire(pixel: .contentBlockingUnpSitesCompilationFailed,
-//                       error: error)
+            errorReporting?.fire(.contentBlockingUnpSitesCompilationFailed,
+                                 error: error)
         } else {
             // We failed for embedded data, this is unlikely.
             // Include description - why built-in version of the TDS has failed to compile?
-//            let error = error as NSError
-//            let errorDesc = (error.userInfo[NSHelpAnchorErrorKey] as? String) ?? "missing"
-//            let params = [PixelParameters.errorDescription: errorDesc.isEmpty ? "empty" : errorDesc]
-//            Pixel.fire(pixel: .contentBlockingFallbackCompilationFailed, error: error, withAdditionalParameters: params) { _ in
-//                fatalError("Could not compile embedded rules list")
-//            }
+            let error = error as NSError
+            let errorDesc = (error.userInfo[NSHelpAnchorErrorKey] as? String) ?? "missing"
+            let params = [ContentBlockerDebugEvents.Parameters.errorDescription: errorDesc.isEmpty ? "empty" : errorDesc]
+
+            errorReporting?.fire(.contentBlockingFallbackCompilationFailed,
+                                 error: error,
+                                 parameters: params,
+                                 onComplete: { _ in
+                fatalError("Could not compile embedded rules list")
+            })
         }
     }
 }
