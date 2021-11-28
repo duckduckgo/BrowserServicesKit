@@ -31,7 +31,7 @@ public class TrackerDataManager {
     
     public struct Constants {
         public static let embeddedDataSetETag = "\"b5a369bfb768bc327fb22575c792a348\""
-        public static let embeddedDataSetSHA = "uFwyHaQtXyKGmC4SQtLRmFMH1EOn48LRlf2pLQEvd+8="
+        public static let embeddedDataSetSHA = "b85c321da42d5f2286982e1242d2d1985307d443a7e3c2d195fda92d012f77ef"
     }
     
     public enum ReloadResult: Equatable {
