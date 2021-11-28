@@ -59,6 +59,15 @@ class AppPrivacyConfigurationTests: XCTestCase {
     """.data(using: .utf8)!
     let downloadedConfigETag = "downloaded"
 
+    let corruptedConfig =
+    """
+    {
+        "features": {},
+        "unprotectedTemporary": [
+    }
+    """.data(using: .utf8)!
+    let corruptedConfigETag = "corrupted"
+
     func testWhenDownloadedDataIsMissing_ThenEmbeddedIsUsed() {
 
         let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
@@ -77,10 +86,134 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertFalse(config.isTempUnprotected(domain: "main1.com"))
         XCTAssertFalse(config.isTempUnprotected(domain: "notdomain1.com"))
         XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain5.com"))
 
         XCTAssertTrue(config.isTempUnprotected(domain: "www.domain1.com"))
     }
 
-    // TODO
+
+    func testWhenDataIsPresent_ThenItIsUsed() {
+
+        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+
+        let manager = PrivacyConfigurationManager(fetchedETag: downloadedConfigETag,
+                                                  fetchedData: downloadedConfig,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.fetchedConfigData?.etag, downloadedConfigETag)
+
+        let config = manager.privacyConfig
+        XCTAssertFalse(config.isTempUnprotected(domain: "main1.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "notdomain1.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain5.com"))
+
+        XCTAssertTrue(config.isTempUnprotected(domain: "www.domain1.com"))
+    }
+
+    func testWhenDownloadedDataIsReloaded_ThenItIsUsed() {
+
+        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertNil(manager.fetchedConfigData)
+
+        XCTAssertEqual(manager.reload(etag: downloadedConfigETag, data: downloadedConfig), .downloaded)
+
+        let config = manager.privacyConfig
+        XCTAssertFalse(config.isTempUnprotected(domain: "main1.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "notdomain1.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain5.com"))
+
+        XCTAssertTrue(config.isTempUnprotected(domain: "www.domain1.com"))
+    }
+
+    func testWhenPresentDataIsCorrupted_ThenEmbeddedIsUsed() {
+
+        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+
+        let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
+                                                  fetchedData: corruptedConfig,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertNil(manager.fetchedConfigData)
+
+        // Should use embedded
+        var config = manager.privacyConfig
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain5.com"))
+
+        // Attempt fix
+        XCTAssertEqual(manager.reload(etag: downloadedConfigETag, data: downloadedConfig), .downloaded)
+
+        config = manager.privacyConfig
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain5.com"))
+    }
+
+    func testWhenReloadedDataIsCorrupted_ThenEmbeddedIsUsed() {
+
+        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertNil(manager.fetchedConfigData)
+
+        // Should use embedded
+        var config = manager.privacyConfig
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain5.com"))
+
+        // Attempt fix
+        XCTAssertEqual(manager.reload(etag: corruptedConfigETag, data: corruptedConfig), .embeddedFallback)
+
+        config = manager.privacyConfig
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain1.com"))
+        XCTAssertTrue(config.isTempUnprotected(domain: "domain2.com"))
+        XCTAssertFalse(config.isTempUnprotected(domain: "domain5.com"))
+    }
+
+    func testWhenCheckingUnprotectedSites_ThenProtectionStoreIsUsed() {
+
+        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+
+        let mockProtectionStore = MockDomainsProtectionStore()
+        mockProtectionStore.enableProtection(forDomain: "enabled.com")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
+                                                  fetchedData: corruptedConfig,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: mockProtectionStore)
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertNil(manager.fetchedConfigData)
+
+        let config = manager.privacyConfig
+
+        XCTAssertTrue(config.isUserUnprotected(domain: "enabled.com"))
+
+        mockProtectionStore.enableProtection(forDomain: "enabled2.com")
+        XCTAssertTrue(config.isUserUnprotected(domain: "enabled2.com"))
+    }
 
 }
