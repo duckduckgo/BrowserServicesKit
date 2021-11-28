@@ -46,6 +46,8 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     public let trackerData: TrackerData?
     public let encodedSurrogateTrackerData: String?
 
+    public let source: String
+
     public init(privacyConfig: PrivacyConfiguration,
          surrogates: String,
          trackerData: TrackerData?,
@@ -57,40 +59,10 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
         self.trackerData = trackerData
         self.encodedSurrogateTrackerData = encodedSurrogateTrackerData
 
-        source = Self.generateSource(privacyConfiguration: privacyConfig,
-                                     surrogates: surrogates,
-                                     encodedSurrogateTrackerData: encodedSurrogateTrackerData,
-                                     isDebugBuild: isDebugBuild)
-    }
-
-    public let source: String
-
-    private static func generateSource(privacyConfiguration: PrivacyConfiguration,
-                                       surrogates: String,
-                                       encodedSurrogateTrackerData: String?,
-                                       isDebugBuild: Bool) -> String {
-        let remoteUnprotectedDomains = (privacyConfiguration.tempUnprotectedDomains.joined(separator: "\n"))
-            + "\n"
-            + (privacyConfiguration.exceptionsList(forFeature: .contentBlocking).joined(separator: "\n"))
-
-        // Encode whatever the tracker data manager is using to ensure it's in sync and because we know it will work
-        let trackerData: String
-        if let data = encodedSurrogateTrackerData {
-            trackerData = data
-        } else {
-            let encodedData = try? JSONEncoder().encode(TrackerData(trackers: [:], entities: [:], domains: [:], cnames: [:]))
-            trackerData = String(data: encodedData!, encoding: .utf8)!
-        }
-
-        return SurrogatesUserScript.loadJS("surrogates", from: Bundle.module, withReplacements: [
-            "$IS_DEBUG$": isDebugBuild ? "true" : "false",
-            "$TEMP_UNPROTECTED_DOMAINS$": remoteUnprotectedDomains,
-            "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
-            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist),
-            "$TRACKER_DATA$": trackerData,
-            "$SURROGATES$": surrogates,
-            "$BLOCKING_ENABLED$": privacyConfiguration.isEnabled(featureKey: .contentBlocking) ? "true" : "false"
-        ])
+        source = SurrogatesUserScript.generateSource(privacyConfiguration: privacyConfig,
+                                                     surrogates: surrogates,
+                                                     encodedSurrogateTrackerData: encodedSurrogateTrackerData,
+                                                     isDebugBuild: isDebugBuild)
     }
 }
 
@@ -146,5 +118,33 @@ open class SurrogatesUserScript: NSObject, UserScript {
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
         let entity = currentTrackerData?.findEntity(byName: knownTracker?.owner?.name ?? "")
         return DetectedTracker(url: urlString, knownTracker: knownTracker, entity: entity, blocked: blocked, pageUrl: pageUrlString)
+    }
+
+    public static func generateSource(privacyConfiguration: PrivacyConfiguration,
+                                      surrogates: String,
+                                      encodedSurrogateTrackerData: String?,
+                                      isDebugBuild: Bool) -> String {
+        let remoteUnprotectedDomains = (privacyConfiguration.tempUnprotectedDomains.joined(separator: "\n"))
+            + "\n"
+            + (privacyConfiguration.exceptionsList(forFeature: .contentBlocking).joined(separator: "\n"))
+
+        // Encode whatever the tracker data manager is using to ensure it's in sync and because we know it will work
+        let trackerData: String
+        if let data = encodedSurrogateTrackerData {
+            trackerData = data
+        } else {
+            let encodedData = try? JSONEncoder().encode(TrackerData(trackers: [:], entities: [:], domains: [:], cnames: [:]))
+            trackerData = String(data: encodedData!, encoding: .utf8)!
+        }
+
+        return SurrogatesUserScript.loadJS("surrogates", from: Bundle.module, withReplacements: [
+            "$IS_DEBUG$": isDebugBuild ? "true" : "false",
+            "$TEMP_UNPROTECTED_DOMAINS$": remoteUnprotectedDomains,
+            "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
+            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist),
+            "$TRACKER_DATA$": trackerData,
+            "$SURROGATES$": surrogates,
+            "$BLOCKING_ENABLED$": privacyConfiguration.isEnabled(featureKey: .contentBlocking) ? "true" : "false"
+        ])
     }
 }

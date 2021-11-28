@@ -92,21 +92,51 @@ final class MockDomainsProtectionStore: DomainsProtectionStore {
     }
 }
 
-final class CustomContentBlockerRulesUserScript: ContentBlockerRulesUserScript {
+final class TestSchemeContentBlockerUserScriptConfig: ContentBlockerUserScriptConfig {
 
-    var onSourceInjection: (String) -> String = { $0 }
+    public let privacyConfiguration: PrivacyConfiguration
+    public let trackerData: TrackerData?
 
-    override var source: String {
-        return onSourceInjection(super.source)
+    public private(set) var source: String
+
+    public init(privacyConfiguration: PrivacyConfiguration,
+                trackerData: TrackerData?) {
+        self.privacyConfiguration = privacyConfiguration
+        self.trackerData = trackerData
+
+        // UserScripts contain TrackerAllowlist rules in form of regular expressions - we need to ensure test scheme is matched instead of http/https
+        let orginalSource = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)
+        source = orginalSource.replacingOccurrences(of: "http", with: "test")
     }
 }
 
-final class CustomSurrogatesUserScript: SurrogatesUserScript {
+public class TestSchemeSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
 
-    var onSourceInjection: (String) -> String = { $0 }
+    public let privacyConfig: PrivacyConfiguration
+    public let surrogates: String
+    public let trackerData: TrackerData?
+    public let encodedSurrogateTrackerData: String?
 
-    override var source: String {
-        return onSourceInjection(super.source)
+    public let source: String
+
+    public init(privacyConfig: PrivacyConfiguration,
+         surrogates: String,
+         trackerData: TrackerData?,
+         encodedSurrogateTrackerData: String?,
+         isDebugBuild: Bool) {
+
+        self.privacyConfig = privacyConfig
+        self.surrogates = surrogates
+        self.trackerData = trackerData
+        self.encodedSurrogateTrackerData = encodedSurrogateTrackerData
+
+        // UserScripts contain TrackerAllowlist rules in form of regular expressions - we need to ensure test scheme is matched instead of http/https
+        let orginalSource = SurrogatesUserScript.generateSource(privacyConfiguration: privacyConfig,
+                                                                surrogates: surrogates,
+                                                                encodedSurrogateTrackerData: encodedSurrogateTrackerData,
+                                                                isDebugBuild: isDebugBuild)
+
+        source = orginalSource.replacingOccurrences(of: "http", with: "test")
     }
 }
 

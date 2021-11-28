@@ -47,20 +47,9 @@ public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConf
         self.privacyConfiguration = privacyConfiguration
         self.trackerData = trackerData
 
-        source = Self.generateSource(privacyConfiguration: privacyConfiguration)
+        source = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)
     }
 
-    private static func generateSource(privacyConfiguration: PrivacyConfiguration) -> String {
-        let remoteUnprotectedDomains = (privacyConfiguration.tempUnprotectedDomains.joined(separator: "\n"))
-            + "\n"
-            + (privacyConfiguration.exceptionsList(forFeature: .contentBlocking).joined(separator: "\n"))
-
-        return ContentBlockerRulesUserScript.loadJS("contentblockerrules", from: Bundle.module, withReplacements: [
-            "$TEMP_UNPROTECTED_DOMAINS$": remoteUnprotectedDomains,
-            "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
-            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist)
-        ])
-    }
 }
 
 open class ContentBlockerRulesUserScript: NSObject, UserScript {
@@ -80,7 +69,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         super.init()
     }
     
-    open var source: String {
+    public var source: String {
         return configuration.source
     }
 
@@ -127,6 +116,18 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
                                                  potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
             delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
         }
+    }
+
+    public static func generateSource(privacyConfiguration: PrivacyConfiguration) -> String {
+        let remoteUnprotectedDomains = (privacyConfiguration.tempUnprotectedDomains.joined(separator: "\n"))
+            + "\n"
+            + (privacyConfiguration.exceptionsList(forFeature: .contentBlocking).joined(separator: "\n"))
+
+        return ContentBlockerRulesUserScript.loadJS("contentblockerrules", from: Bundle.module, withReplacements: [
+            "$TEMP_UNPROTECTED_DOMAINS$": remoteUnprotectedDomains,
+            "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
+            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist)
+        ])
     }
 }
 
