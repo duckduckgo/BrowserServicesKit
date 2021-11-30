@@ -1,7 +1,8 @@
 //
-//  StringExtension.swift
+//  EventMapping.swift
+//  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,18 +19,16 @@
 
 import Foundation
 
-extension String {
+public class EventMapping<BSKEvent> {
+    public typealias Mapping = (_ event: BSKEvent, _ error: Error?, _ params: [String: String]?, _ onComplete: @escaping (Error?) -> Void) -> Void
 
-    public func trimWhitespace() -> String {
-        return trimmingCharacters(in: .whitespacesAndNewlines)
+    private let eventMapper: Mapping
+
+    public init(mapping: @escaping Mapping) {
+        eventMapper = mapping
     }
 
-    func dropping(prefix: String) -> String {
-        return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
+    public func fire(_ event: BSKEvent, error: Error? = nil, parameters: [String: String]? = nil, onComplete: @escaping (Error?) -> Void = {_ in }) {
+        eventMapper(event, error, parameters, onComplete)
     }
-
-    func droppingWwwPrefix() -> String {
-        self.dropping(prefix: "www.")
-    }
-
 }

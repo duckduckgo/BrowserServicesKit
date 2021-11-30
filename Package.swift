@@ -14,13 +14,15 @@ let package = Package(
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
     ],
     dependencies: [
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0"))
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3"))
     ],
     targets: [
         .target(
             name: "BrowserServicesKit",
             dependencies: [
-                "GRDB"
+                "GRDB",
+                "TrackerRadarKit"
             ],
             exclude: [
                 "Resources/duckduckgo-autofill/Gruntfile.js",
@@ -38,7 +40,10 @@ let package = Package(
                 "Resources/duckduckgo-autofill/scripts/release.js"
             ],
             resources: [
-                .process("Resources/duckduckgo-autofill/dist/autofill.js")
+                .process("Resources/duckduckgo-autofill/dist/autofill.js"),
+                .process("ContentBlocking/UserScripts/contentblockerrules.js"),
+                .process("ContentBlocking/UserScripts/surrogates.js"),
+                .copy("Resources/trackerData.json")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
@@ -46,7 +51,9 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .copy("UserScript/testUserScript.js")
+                .copy("UserScript/testUserScript.js"),
+                .copy("MockFiles"),
+                .copy("Resources")
             ])
     ]
 )

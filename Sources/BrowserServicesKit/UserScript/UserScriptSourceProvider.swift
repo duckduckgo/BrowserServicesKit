@@ -1,5 +1,6 @@
 //
-//  StringExtension.swift
+//  UserScriptSourceProvider.swift
+//  Core
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,18 +19,6 @@
 
 import Foundation
 
-extension String {
-
-    public func trimWhitespace() -> String {
-        return trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    func dropping(prefix: String) -> String {
-        return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
-    }
-
-    func droppingWwwPrefix() -> String {
-        self.dropping(prefix: "www.")
-    }
-
+public protocol UserScriptSourceProviding {
+    var source: String { get }
 }
