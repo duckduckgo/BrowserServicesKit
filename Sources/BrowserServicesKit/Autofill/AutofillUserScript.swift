@@ -20,12 +20,6 @@
 import WebKit
 // import SwiftUI
 
-public protocol AutofillUserScriptDelegate: AnyObject {
-
-    func clickTriggered(_ script: AutofillUserScript)
-
-}
-
 public protocol AutofillEmailDelegate: AnyObject {
 
     func autofillUserScript(_: AutofillUserScript,
@@ -84,8 +78,8 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     private enum MessageName: String, CaseIterable {
         case showAutofillParent
         case closeAutofillParent
-/*
         case emailHandlerStoreToken
+/*
         case emailHandlerGetAlias
         case emailHandlerRefreshAlias
  */
@@ -107,9 +101,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     }
     
     public weak var topView: NSViewController?
-    public var clickPoint: NSPoint?
 
-    public weak var delegate: AutofillUserScriptDelegate?
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
 
@@ -146,8 +138,8 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
             
         case .showAutofillParent: return showAutofillParent
         case .closeAutofillParent: return closeAutofillParent
-/*
         case .emailHandlerStoreToken: return emailStoreToken
+/*
         case .emailHandlerGetAlias: return emailGetAlias
         case .emailHandlerRefreshAlias: return emailRefreshAlias
  */
@@ -170,8 +162,16 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         }
     }
     
+    func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard let dict = message.body as? [String: Any],
+              let token = dict["token"] as? String,
+              let username = dict["username"] as? String else { return }
+        let cohort = dict["cohort"] as? String
+        emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username, cohort: cohort)
+        replyHandler(nil)
+    }
+    
     func pmGetAutoFillInitData(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        // replyHandler("{\"success\": {\"credentials\":true,\"creditCards\":true,\"identities\":true}}") // TODO hack fix
         let domain = hostProvider.hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
             let credentials: [CredentialObject] = accounts.compactMap {
@@ -254,41 +254,38 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     }
     
     func showAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        print("show autofill parent")
         guard let dict = message.body as? [String: Any],
-              let left = dict["inputLeft"] as? String,
-              let top = dict["inputTop"] as? String,
-              let height = dict["inputHeight"] as? String,
-              let width = dict["inputWidth"] as? String,
-              let heightI = Int(height),
-              let widthI = Int(width),
-              let offsetX = Int(left),
-              let offsetY = Int(top) else { return }
-        // Combines native click with offset of dax click.
-        let clickX = Int(clickPoint!.x);
-        let clickY = Int(clickPoint!.y);
-        let x = /*clickX - */offsetX;
-        // TODO look into why Y seems offset somewhat
-        let y = /*clickY - */offsetY;
-        print("show autofill parent x: \(x), y: \(y), click: \(clickX), \(clickY) Offset: \(offsetX), \(offsetY) - \(dict)")
-        if let topView = topView {
-            // This rectangle should overlay the dax one giving native the choice to position around the edges of it.
-            let rect = NSRect(x: x, y: Int(topView.view.bounds.height) - y - heightI, width: widthI, height: heightI)
-            /* Debug rect placement
-            let view = NSView(frame: rect)
-            view.wantsLayer = true
-            view.layer?.backgroundColor = NSColor.blue.cgColor
-            topView.view.addSubview(view)
-             */
-            
-            let popover = topView.getContentOverlayPopover(self)!;
-            // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
-            if let insetBy = popover.value(forKeyPath: "anchorSize")! as? CGSize {
-                currentWebView = message.webView
-                popover.show(relativeTo: rect.insetBy(dx: insetBy.width, dy: insetBy.height), of: topView.view, preferredEdge: .minY)
-                popover.contentSize = NSSize.init(width: widthI, height: 200)
-                replyHandler(nil)
-            }
+              let left = dict["inputLeft"] as? Int,
+              let top = dict["inputTop"] as? Int,
+              let height = dict["inputHeight"] as? Int,
+              let width = dict["inputWidth"] as? Int,
+              let inputType = dict["inputType"] as? String,
+              let topView = topView else { return }
+        print("show autofill parent x: \(left), y: \(top)- \(dict)")
+        
+        let popover = topView.getContentOverlayPopover(self)!;
+        popover.setTypes(inputType: inputType)
+        
+        print("zoom: \(popover.zoomFactor) it: \(inputType)")
+        let zf = popover.zoomFactor!
+
+        let rect = NSRect(x: left, y: top, width: width, height: height)
+        // Convert to webview coordinate system
+        let outRect = topView.view.convert(rect, to: popover.webView)
+        /* Debug rect placement
+        let view = NSView(frame: rect)
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.blue.cgColor
+        topView.view.addSubview(view)
+         */
+        print("\(rect) ... \(outRect)")
+        
+        // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
+        if let insetBy = popover.value(forKeyPath: "anchorSize")! as? CGSize {
+            currentWebView = message.webView
+            popover.show(relativeTo: rect.insetBy(dx: insetBy.width, dy: insetBy.height), of: popover.webView!, preferredEdge: .maxY)
+            popover.contentSize = NSSize.init(width: width, height: 200)
+            replyHandler(nil)
         }
     }
 

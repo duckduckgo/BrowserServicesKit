@@ -30,6 +30,8 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     private let topAutofillUserScript = TopAutofillUserScript()
     private var cancellables = Set<AnyCancellable>()
     @Published var pendingUpdates = Set<String>()
+    public var zoomFactor: CGFloat?
+    public var inputType: String?
     
     public var messageInterfaceBack: AutofillMessaging?
     
@@ -51,7 +53,10 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
         topAutofillUserScript.messageInterfaceBack = messageInterfaceBack
         topAutofillUserScript.emailDelegate = emailManager
         topAutofillUserScript.vaultDelegate = vaultManager
-        // webView.configuration.userContentController.addHandlerNoContentWorld(topAutofillUserScript)
+        print("view did load \(inputType)")
+        // TODO I think this probably would race
+        topAutofillUserScript.inputType = inputType
+
         webView.configuration.userContentController.addHandler(topAutofillUserScript)
         webView.configuration.userContentController.addUserScript(topAutofillUserScript.makeWKUserScript())
     }
@@ -79,6 +84,11 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
         let webView = WKWebView(frame: .zero, configuration: configuration)
         // webView.navigationDelegate = self
         self.webView = webView
+        print("init webview:")
+        if let zoomFactor = zoomFactor {
+            print("zf: \(zoomFactor)")
+            webView.magnification = zoomFactor
+        }
         view.addAndLayout(webView)
     }
 

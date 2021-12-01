@@ -38,7 +38,7 @@ extension TopAutofillUserScript {
         let signedIn = emailDelegate?.topAutofillUserScriptDidRequestSignedInStatus(self) ?? false
         let signedInString = String(signedIn)
         replyHandler("""
-            { "isAppSignedIn": \(signedInString) }
+            { "isAppSignedIn": \(signedInString), "inputType": "\(inputType!)" }
         """)
     }
 
@@ -75,9 +75,7 @@ extension TopAutofillUserScript {
     }
 
     func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        print("got outer topAutofillUserScriptDidRequestUsernameAndAlias")
         emailDelegate?.topAutofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
-            print("got inner topAutofillUserScriptDidRequestUsernameAndAlias")
             let addresses: String
             if let username = username, let alias = alias {
                 addresses = """

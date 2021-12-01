@@ -85,6 +85,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
     
     public weak var emailDelegate: TopAutofillEmailDelegate?
     public weak var vaultDelegate: TopAutofillSecureVaultDelegate?
+    public var inputType: String?
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
     let encrypter: AutofillEncrypter

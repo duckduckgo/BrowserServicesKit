@@ -17,8 +17,12 @@
 //
 
 import Cocoa
+import WebKit
 
 public final class ContentOverlayPopover: NSPopover {
+    
+    public var zoomFactor: CGFloat?
+    public var webView: WKWebView?
 
     public override init() {
         super.init()
@@ -33,7 +37,7 @@ public final class ContentOverlayPopover: NSPopover {
     }
 
     public required init?(coder: NSCoder) {
-        fatalError("PrivacyDashboardPopover: Bad initializer")
+        fatalError("ContentOverlayPopover: Bad initializer")
     }
     
     // swiftlint:disable force_cast
@@ -48,4 +52,12 @@ public final class ContentOverlayPopover: NSPopover {
         contentViewController = controller
     }
     // swiftlint:enable force_cast
+    
+    
+    public func setTypes(inputType: String) {
+        print("setting types: \(inputType)")
+        let c = contentViewController as! ContentOverlayViewController
+        c.zoomFactor = zoomFactor
+        c.inputType = inputType
+    }
 }
