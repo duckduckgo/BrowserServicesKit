@@ -20,8 +20,9 @@ import Cocoa
 import WebKit
 import Combine
 
-@objc public protocol AutofillMessaging {
-    func messageSelectedCredential(_ credential: String)
+public protocol AutofillMessaging {
+    var lastOpenHost: String? { get }
+    func messageSelectedCredential<T: Encodable>(_ data: [String: T], _ configType: String)
 }
 
 public final class ContentOverlayViewController: NSViewController, EmailManagerRequestDelegate {

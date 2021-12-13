@@ -19,15 +19,6 @@
 import Cocoa
 import Foundation
 
-// TODO I think the ffi boundary requires objective c here
-@objc extension NSViewController {
-
-    open func getContentOverlayPopover(_ response: AutofillMessaging) -> ContentOverlayPopover? {
-        return nil
-    }
-
-}
-
 extension NSViewController {
     
     /// Applies a modal window style to a view controller if it is being presented by another view controller.

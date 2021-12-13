@@ -30,6 +30,10 @@ public class TopAutofillUserScript: NSObject, UserScript {
     
     public var messageInterfaceBack: AutofillMessaging?
     
+    func hostForMessage() -> String {
+        messageInterfaceBack?.lastOpenHost ?? ""
+    }
+
     private enum MessageName: String, CaseIterable {
         case selectedDetail
 
@@ -92,8 +96,9 @@ public class TopAutofillUserScript: NSObject, UserScript {
     
     func selectedDetail(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.body as? [String: Any],
-              let chosenCredential = dict["credential"] as? String else { return }
-        messageInterfaceBack!.messageSelectedCredential(chosenCredential)
+              let chosenCredential = dict["data"] as? [String: String],
+              let configType = dict["configType"] as? String else { return }
+        messageInterfaceBack!.messageSelectedCredential(chosenCredential, configType)
     }
 
     typealias MessageReplyHandler = (String?) -> Void

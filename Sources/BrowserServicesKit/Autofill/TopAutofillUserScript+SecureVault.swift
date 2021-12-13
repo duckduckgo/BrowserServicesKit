@@ -187,8 +187,7 @@ extension TopAutofillUserScript {
     // MARK: - Message Handlers
 
     func pmGetAutoFillInitData(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-
-        let domain = hostProvider.hostForMessage(message)
+        let domain = hostForMessage()
         vaultDelegate?.topAutofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
             let credentials: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
@@ -221,13 +220,13 @@ extension TopAutofillUserScript {
             return
         }
 
-        let domain = hostProvider.hostForMessage(message)
+        let domain = hostForMessage()
         vaultDelegate?.topAutofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
     }
 
     func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
-        vaultDelegate?.topAutofillUserScript(self, didRequestAccountsForDomain: hostProvider.hostForMessage(message)) { credentials in
+        vaultDelegate?.topAutofillUserScript(self, didRequestAccountsForDomain: hostForMessage()) { credentials in
             let credentials: [CredentialObject] = credentials.compactMap {
                 guard let id = $0.id else { return nil }
                 return .init(id: id, username: $0.username)
@@ -303,17 +302,17 @@ extension TopAutofillUserScript {
     // MARK: Open Management Views
 
     func pmOpenManageCreditCards(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage())
         replyHandler(nil)
     }
 
     func pmOpenManageIdentities(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage())
         replyHandler(nil)
     }
 
     func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.topAutofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage())
         replyHandler(nil)
     }
 

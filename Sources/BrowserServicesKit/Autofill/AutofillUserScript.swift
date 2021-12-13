@@ -54,6 +54,11 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
 }
 
+public protocol OverlayProtocol {
+    func getContentOverlayPopover(_ response: AutofillMessaging) -> ContentOverlayPopover?
+    var view: NSView { get }
+}
+
 /*
 protocol AutofillHostProvider {
 
@@ -74,6 +79,8 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
 
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
+
+    public var lastOpenHost: String?
 
     private enum MessageName: String, CaseIterable {
         case showAutofillParent
@@ -99,8 +106,8 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         case pmHandlerOpenManagePasswords
  */
     }
-    
-    public weak var topView: NSViewController?
+
+    public var topView: OverlayProtocol?
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
@@ -223,24 +230,25 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         }
     }
     
-    public func messageSelectedCredential(_ credential: String) {
-        print("messsaged to af! \(credential)")
+    public func messageSelectedCredential<T: Encodable>(_ data: [String: T], _ configType: String) {
+        print("messsaged to af! \(data)")
         guard let topView = topView else { return }
         topView.getContentOverlayPopover(self)?.close()
         guard let currentWebView = currentWebView else { return }
-        let script = """
-        (() => {
-            let credential = '\(credential)';
-            document.activeElement.value = credential;
-            const event = new CustomEvent("InboundCredential", {
-              detail: {
-                credential
-              }
-            });
-            document.dispatchEvent(event);
-        })()
-        """
-        currentWebView.evaluateJavaScript(script)
+        if let json = try? JSONEncoder().encode(data), let jsonString = String(data: json, encoding: .utf8) {
+            let script = """
+            (() => {
+                const event = new CustomEvent("InboundCredential", {
+                    detail: {
+                        data: \(jsonString),
+                        configType: "\(configType)"
+                    }
+                });
+                document.dispatchEvent(event);
+            })()
+            """
+            currentWebView.evaluateJavaScript(script)
+        }
     }
     
     weak var currentWebView: WKWebView?
@@ -261,6 +269,8 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
               let width = dict["inputWidth"] as? Int,
               let inputType = dict["inputType"] as? String,
               let topView = topView else { return }
+
+        lastOpenHost = hostProvider.hostForMessage(message)
         print("show autofill parent x: \(left), y: \(top)- \(dict)")
         
         let popover = topView.getContentOverlayPopover(self)!;
