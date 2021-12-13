@@ -261,6 +261,7 @@ public class ContentBlockerRulesManager {
                                      etag: input.tdsIdentifier,
                                      identifier: input.rulesIdentifier)
         let oldRules = _currentRules?.rulesList
+        let oldIdentifier = _currentRules?.identifier
         _currentRules = newRules
 
         var completionTokens = [CompletionToken]()
@@ -286,15 +287,8 @@ public class ContentBlockerRulesManager {
                                               changes: diff,
                                               completionTokens: completionTokens)
             
-            WKContentRuleListStore.default()?.getAvailableContentRuleListIdentifiers({ ids in
-                guard let ids = ids else { return }
-
-                var idsSet = Set(ids)
-                idsSet.remove(ruleList.identifier)
-
-                for id in idsSet {
-                    WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: id) { _ in }
-                }
+            
+                WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: oldIdentifier) { _ in }
             })
         }
     }
