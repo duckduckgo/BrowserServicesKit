@@ -20,6 +20,7 @@
 import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
+import WebKit
 
 // swiftlint:disable file_length
 
@@ -175,6 +176,7 @@ final private class RulesUpdateListener: ContentBlockerRulesUpdating {
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
                       didUpdateRules: ContentBlockerRulesManager.CurrentRules,
+                      oldRules: WKContentRuleList?,
                       changes: ContentBlockerRulesIdentifier.Difference,
                       completionTokens: [ContentBlockerRulesManager.CompletionToken]) {
         onRulesUpdated()

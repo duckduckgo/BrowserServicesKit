@@ -26,6 +26,7 @@ public protocol ContentBlockerRulesUpdating {
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
                       didUpdateRules: ContentBlockerRulesManager.CurrentRules,
+                      oldRules: WKContentRuleList?,
                       changes: ContentBlockerRulesIdentifier.Difference,
                       completionTokens: [ContentBlockerRulesManager.CompletionToken])
 }
@@ -259,6 +260,7 @@ public class ContentBlockerRulesManager {
                                      encodedTrackerData: encodedTrackerData,
                                      etag: input.tdsIdentifier,
                                      identifier: input.rulesIdentifier)
+        let oldRules = _currentRules?.rulesList
         _currentRules = newRules
 
         var completionTokens = [CompletionToken]()
@@ -280,6 +282,7 @@ public class ContentBlockerRulesManager {
         DispatchQueue.main.async {
             self.updateListener?.rulesManager(self,
                                               didUpdateRules: newRules,
+                                              oldRules: oldRules,
                                               changes: diff,
                                               completionTokens: completionTokens)
             
