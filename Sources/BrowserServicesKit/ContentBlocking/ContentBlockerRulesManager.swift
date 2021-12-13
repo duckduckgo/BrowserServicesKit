@@ -288,8 +288,9 @@ public class ContentBlockerRulesManager {
                                               completionTokens: completionTokens)
             
             
-                WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: oldIdentifier) { _ in }
-            })
+            if let oldIdentifier = oldIdentifier {
+                WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: oldIdentifier.stringValue) { _ in }
+            }
         }
     }
 
