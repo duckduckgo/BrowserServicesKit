@@ -61,13 +61,15 @@ public class ContentBlockerRulesManager {
     private let logger: OSLog
     public let sourceManager: ContentBlockerRulesSourceManager
 
-    private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
+    private let workQueue: DispatchQueue
 
     public init(source: ContentBlockerRulesSource,
                 updateListener: ContentBlockerRulesUpdating,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 logger: OSLog = .disabled) {
         dataSource = source
+        self.workQueue = DispatchQueue(label: "ContentBlockerManagerQueue\(UUID().uuidString)",
+                                       qos: .userInitiated)
         self.updateListener = updateListener
         self.errorReporting = errorReporting
         self.logger = logger
