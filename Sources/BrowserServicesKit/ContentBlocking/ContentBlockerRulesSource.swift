@@ -56,7 +56,7 @@ public struct ContentBlockerRulesList {
     }
 }
 
-public class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
+open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
     public struct Constants {
         public static let trackerDataSetRulesListName = "TrackerDataSet"
@@ -68,7 +68,7 @@ public class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSour
         self.trackerDataManger = trackerDataManger
     }
     
-    public var contentBlockerRulesLists: [ContentBlockerRulesList] {
+    open var contentBlockerRulesLists: [ContentBlockerRulesList] {
         return [ContentBlockerRulesList(name: Constants.trackerDataSetRulesListName,
                                         trackerData: trackerDataManger.fetchedData,
                                         fallbackTrackerData: trackerDataManger.embeddedData)]
