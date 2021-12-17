@@ -70,9 +70,11 @@ public class ContentBlockerRulesSourceModel: ContentBlockerRulesSourceIdentifier
 public class ContentBlockerRulesSourceManager {
 
     /**
-     Data source for all of the inputs used for compilation.
+     Data source for all of the exception info used during compilation.
      */
-    private let dataSource: ContentBlockerRulesSource
+    private let exceptionsSource: ContentBlockerRulesExceptionsSource
+
+    private let rulesList: ContentBlockerRulesList
 
     /**
      Identifiers of sources that have caused compilation process to fail.
@@ -81,22 +83,25 @@ public class ContentBlockerRulesSourceManager {
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
 
-    init(dataSource: ContentBlockerRulesSource, errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
-        self.dataSource = dataSource
+    init(rulesList: ContentBlockerRulesList,
+         exceptionsSource: ContentBlockerRulesExceptionsSource,
+         errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+        self.rulesList = rulesList
+        self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
     }
 
     /**
-     Create Source Model based on data source and knowne broken sources.
+     Create Source Model based on data source and known broken sources.
 
      This method takes into account changes to `dataSource` that could fix previously corrupted data set - in such case `brokenSources` state is updated.
      */
     func makeModel() -> ContentBlockerRulesSourceModel {
 
         // Fetch identifiers up-front
-        let tempListIdentifier = dataSource.tempListEtag
-        let allowListIdentifier = dataSource.allowListEtag
-        let unprotectedSites = dataSource.unprotectedSites
+        let tempListIdentifier = exceptionsSource.tempListEtag
+        let allowListIdentifier = exceptionsSource.allowListEtag
+        let unprotectedSites = exceptionsSource.unprotectedSites
         let unprotectedSitesIdentifier = ContentBlockerRulesIdentifier.hash(domains: unprotectedSites)
 
         // In case of any broken input that has been changed, reset the broken state and retry full compilation
@@ -108,17 +113,17 @@ public class ContentBlockerRulesSourceManager {
 
         // Check which Tracker Data Set to use - fallback to embedded one in case of any issues.
         let result: ContentBlockerRulesSourceModel
-        if let trackerData = dataSource.trackerData,
+        if let trackerData = rulesList.trackerData,
            trackerData.etag != brokenSources?.tdsIdentifier {
             result = ContentBlockerRulesSourceModel(tdsIdentfier: trackerData.etag,
                                                    tds: trackerData.tds)
         } else {
-            result = ContentBlockerRulesSourceModel(tdsIdentfier: dataSource.embeddedTrackerData.etag,
-                                                   tds: dataSource.embeddedTrackerData.tds)
+            result = ContentBlockerRulesSourceModel(tdsIdentfier: rulesList.fallbackTrackerData.etag,
+                                                   tds: rulesList.fallbackTrackerData.tds)
         }
 
         if tempListIdentifier != brokenSources?.tempListIdentifier {
-            let tempListDomains = dataSource.tempList
+            let tempListDomains = exceptionsSource.tempList
             if !tempListDomains.isEmpty {
                 result.tempListIdentifier = tempListIdentifier
                 result.tempList = tempListDomains
@@ -126,7 +131,7 @@ public class ContentBlockerRulesSourceManager {
         }
 
         if allowListIdentifier != brokenSources?.allowListIdentifier {
-            let allowList = dataSource.allowList
+            let allowList = exceptionsSource.allowList
             if !allowList.isEmpty {
                 result.allowListIdentifier = allowListIdentifier
                 result.allowList = allowList
@@ -148,7 +153,7 @@ public class ContentBlockerRulesSourceManager {
      */
     func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers, with error: Error) {
 
-        if input.tdsIdentifier != dataSource.embeddedTrackerData.etag {
+        if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             // We failed compilation for non-embedded TDS, marking it as broken.
             brokenSources = ContentBlockerRulesSourceIdentifiers(tdsIdentfier: input.tdsIdentifier)
             errorReporting?.fire(.contentBlockingTDSCompilationFailed,

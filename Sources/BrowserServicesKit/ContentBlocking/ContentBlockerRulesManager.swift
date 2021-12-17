@@ -25,9 +25,107 @@ import TrackerRadarKit
 public protocol ContentBlockerRulesUpdating {
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules: ContentBlockerRulesManager.CurrentRules,
+                      didUpdateRules: [ContentBlockerRulesManager.Rules],
                       changes: ContentBlockerRulesIdentifier.Difference,
                       completionTokens: [ContentBlockerRulesManager.CompletionToken])
+}
+
+/**
+ Encapsulates compilation steps for a single Task
+ */
+private class CompilationTask {
+    typealias Completion = () -> Void
+    let workQueue: DispatchQueue
+    let rulesList: ContentBlockerRulesList
+    let sourceManager: ContentBlockerRulesSourceManager
+    let logger: OSLog
+
+    var completed: Bool { output != nil }
+    var output: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
+
+    init(workQueue: DispatchQueue,
+         rulesList: ContentBlockerRulesList,
+         sourceManager: ContentBlockerRulesSourceManager,
+         logger: OSLog = .disabled) {
+        self.workQueue = workQueue
+        self.rulesList = rulesList
+        self.sourceManager = sourceManager
+        self.logger = logger
+    }
+
+    func start(completionHandler: @escaping Completion) {
+
+        let model = sourceManager.makeModel()
+
+        // Delegate querying to main thread - crashes were observed in background.
+        DispatchQueue.main.async {
+            WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
+                                                                    completionHandler: { ruleList, _ in
+                if let ruleList = ruleList {
+                    self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
+                } else {
+                    self.workQueue.async {
+                        self.compile(model: model, completionHandler: completionHandler)
+                    }
+                }
+            })
+        }
+    }
+    
+    private func compilationSucceded(with compiledRulesList: WKContentRuleList,
+                                     model: ContentBlockerRulesSourceModel,
+                                     completionHandler: @escaping Completion) {
+        workQueue.async {
+            self.output = (compiledRulesList, model)
+            completionHandler()
+        }
+    }
+
+    private func compilationFailed(for model: ContentBlockerRulesSourceModel,
+                                   with error: Error,
+                                   completionHandler: @escaping Completion) {
+        os_log("Failed to compile %{public}s rules %{public}s", log: logger, type: .error, rulesList.name, error.localizedDescription)
+
+        // Retry after marking failed state in the source
+        sourceManager.compilationFailed(for: model, with: error)
+        let newModel = sourceManager.makeModel()
+
+        self.workQueue.async {
+            self.compile(model: newModel, completionHandler: completionHandler)
+        }
+    }
+    
+    private func compile(model: ContentBlockerRulesSourceModel,
+                         completionHandler: @escaping Completion) {
+        os_log("Starting CBR compilation for %{public}s", log: logger, type: .default, rulesList.name)
+        
+        let builder = ContentBlockerRulesBuilder(trackerData: model.tds)
+        let rules = builder.buildRules(withExceptions: model.unprotectedSites,
+                                       andTemporaryUnprotectedDomains: model.tempList,
+                                       andTrackerAllowlist: model.allowList)
+
+        let data: Data
+        do {
+            data = try JSONEncoder().encode(rules)
+        } catch {
+            os_log("Failed to encode content blocking rules %{public}s", log: logger, type: .error, rulesList.name)
+            compilationFailed(for: model, with: error, completionHandler: completionHandler)
+            return
+        }
+
+        let ruleList = String(data: data, encoding: .utf8)!
+        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
+                                     encodedContentRuleList: ruleList) { ruleList, error in
+
+            if let ruleList = ruleList {
+                self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
+            } else if let error = error {
+                self.compilationFailed(for: model, with: error, completionHandler: completionHandler)
+            } else {
+                assertionFailure("Rule list has not been returned properly by the engine")
+            }
+        }
+    }
 }
 
 /**
@@ -44,9 +142,10 @@ public class ContentBlockerRulesManager {
     }
 
     /**
-     Encapsulates information about the result of the compilation.
+     Encapsulates information about the result of the task compilation.
      */
-    public struct CurrentRules {
+    public struct Rules {
+        public let name: String
         public let rulesList: WKContentRuleList
         public let trackerData: TrackerData
         public let encodedTrackerData: String
@@ -54,23 +153,29 @@ public class ContentBlockerRulesManager {
         public let identifier: ContentBlockerRulesIdentifier
     }
 
-    private let dataSource: ContentBlockerRulesSource
+    private let rulesSource: ContentBlockerRulesListsSource
+    private let exceptionsSource: ContentBlockerRulesExceptionsSource
     private let updateListener: ContentBlockerRulesUpdating?
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let logger: OSLog
-    public let sourceManager: ContentBlockerRulesSourceManager
+
+    // Public only for tests
+    public var sourceManagers = [String: ContentBlockerRulesSourceManager]()
+
+    private var currentTasks = [CompilationTask]()
 
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
 
-    public init(source: ContentBlockerRulesSource,
+    public init(rulesSource: ContentBlockerRulesListsSource,
+                exceptionsSource: ContentBlockerRulesExceptionsSource,
                 updateListener: ContentBlockerRulesUpdating,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 logger: OSLog = .disabled) {
-        dataSource = source
+        self.rulesSource = rulesSource
+        self.exceptionsSource = exceptionsSource
         self.updateListener = updateListener
         self.errorReporting = errorReporting
         self.logger = logger
-        sourceManager = ContentBlockerRulesSourceManager(dataSource: source, errorReporting: errorReporting)
 
         requestCompilation(token: "")
     }
@@ -84,8 +189,8 @@ public class ContentBlockerRulesManager {
     
     private var state = State.idle
     
-    private var _currentRules: CurrentRules?
-    public private(set) var currentRules: CurrentRules? {
+    private var _currentRules = [Rules]()
+    public private(set) var currentRules: [Rules] {
         get {
             lock.lock(); defer { lock.unlock() }
             return _currentRules
@@ -106,10 +211,9 @@ public class ContentBlockerRulesManager {
         return token
     }
 
-
     private func requestCompilation(token: CompletionToken) {
         os_log("Requesting compilation...", log: logger, type: .default)
-        
+        defer { lock.unlock() }
         lock.lock()
         guard case .idle = state else {
             if case .recompiling(let tokens) = state {
@@ -118,88 +222,40 @@ public class ContentBlockerRulesManager {
             } else if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
                 state = .recompilingAndScheduled(currentTokens: currentTokens, pendingTokens: pendingTokens + [token])
             }
-            lock.unlock()
             return
         }
         
         state = .recompiling(currentTokens: [token])
-        let isInitial = _currentRules == nil
-        lock.unlock()
-        
-        performCompilation(isInitial: isInitial)
+        startCompilationProcess()
     }
 
-    private func performCompilation(isInitial: Bool = false) {
-        let input = sourceManager.makeModel()
-        
-        if isInitial {
-            // Delegate querying to main thread - crashes were observed in background.
-            DispatchQueue.main.async {
-                WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: input.rulesIdentifier.stringValue,
-                                                                        completionHandler: { ruleList, _ in
-                    if let ruleList = ruleList {
-                        self.compilationSucceeded(with: ruleList, for: input)
-                    } else {
-                        self.workQueue.async {
-                            self.compile(input: input)
-                        }
-                    }
-                })
-            }
-        } else {
-            compile(input: input)
-        }
-    }
+    private func startCompilationProcess() {
+        // Prepare compilation tasks based on the sources
+        currentTasks = rulesSource.contentBlockerRulesLists.map({ rulesList in
 
-    fileprivate func compile(input: ContentBlockerRulesSourceModel) {
-        os_log("Starting CBR compilation", log: logger, type: .default)
-
-        let builder = ContentBlockerRulesBuilder(trackerData: input.tds)
-        let rules = builder.buildRules(withExceptions: input.unprotectedSites,
-                                       andTemporaryUnprotectedDomains: input.tempList,
-                                       andTrackerAllowlist: input.allowList)
-
-        let data: Data
-        do {
-            data = try JSONEncoder().encode(rules)
-        } catch {
-            os_log("Failed to encode content blocking rules", log: logger, type: .error)
-            compilationFailed(for: input, with: error)
-            return
-        }
-
-        let ruleList = String(data: data, encoding: .utf8)!
-        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: input.rulesIdentifier.stringValue,
-                                     encodedContentRuleList: ruleList) { ruleList, error in
-            
-            if let ruleList = ruleList {
-                self.compilationSucceeded(with: ruleList, for: input)
-            } else if let error = error {
-                self.compilationFailed(for: input, with: error)
+            let sourceManager: ContentBlockerRulesSourceManager
+            if let manager = self.sourceManagers[rulesList.name] {
+                sourceManager = manager
             } else {
-                assertionFailure("Rule list has not been returned properly by the engine")
+                sourceManager = ContentBlockerRulesSourceManager(rulesList: rulesList,
+                                                                 exceptionsSource: self.exceptionsSource,
+                                                                 errorReporting: self.errorReporting)
+                self.sourceManagers[rulesList.name] = sourceManager
             }
-        }
+            return CompilationTask(workQueue: workQueue, rulesList: rulesList, sourceManager: sourceManager)
+        })
 
+        executeNextTask()
     }
-    
-    private func compilationFailed(for input: ContentBlockerRulesSourceModel, with error: Error) {
-        os_log("Failed to compile rules %{public}s", log: logger, type: .error, error.localizedDescription)
-        
-        lock.lock()
-                
-        if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
-            // Recompilation is scheduled - it may fix the problem
-            state = .recompiling(currentTokens: currentTokens + pendingTokens)
-        } else {
-            sourceManager.compilationFailed(for: input, with: error)
-        }
-        
-        workQueue.async {
-            self.performCompilation()
-        }
 
-        lock.unlock()
+    private func executeNextTask() {
+        if let nextTask = currentTasks.first(where: { !$0.completed }) {
+            nextTask.start {
+                self.executeNextTask()
+            }
+        } else {
+            compilationCompleted()
+        }
     }
     
     static func extractSurrogates(from tds: TrackerData) -> TrackerData {
@@ -233,39 +289,47 @@ public class ContentBlockerRulesManager {
         
         return TrackerData(trackers: trackers, entities: entities, domains: domains, cnames: cnames)
     }
-    
-    private func compilationSucceeded(with ruleList: WKContentRuleList,
-                                      for input: ContentBlockerRulesSourceModel) {
-        os_log("Rules compiled", log: logger, type: .default)
+
+    private func compilationCompleted() {
         
-        let surrogateTDS = Self.extractSurrogates(from: input.tds)
-        let encodedData = try? JSONEncoder().encode(surrogateTDS)
-        let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
-        
+        let newRules: [Rules] = currentTasks.map { task in
+            guard let output = task.output else {
+                fatalError("Task not completed!")
+            }
+            
+            let surrogateTDS = Self.extractSurrogates(from: output.model.tds)
+            let encodedData = try? JSONEncoder().encode(surrogateTDS)
+            let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
+            
+            return Rules(name: task.rulesList.name,
+                         rulesList: output.compiledRulesList,
+                         trackerData: output.model.tds,
+                         encodedTrackerData: encodedTrackerData,
+                         etag: output.model.tdsIdentifier,
+                         identifier: output.model.rulesIdentifier)
+        }
+
         lock.lock()
         
-        let diff: ContentBlockerRulesIdentifier.Difference
-        if let id = _currentRules?.identifier {
-            diff = id.compare(with: input.rulesIdentifier)
-        } else {
-            diff = input.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(tdsEtag: "",
-                                                                                     tempListEtag: nil,
-                                                                                     allowListEtag: nil,
-                                                                                     unprotectedSitesHash: nil))
-        }
+//        let diff: ContentBlockerRulesIdentifier.Difference
+//        if let id = _currentRules?.identifier {
+//            diff = id.compare(with: input.rulesIdentifier)
+//        } else {
+//            diff = input.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(tdsEtag: "",
+//                                                                                     tempListEtag: nil,
+//                                                                                     allowListEtag: nil,
+//                                                                                     unprotectedSitesHash: nil))
+//        }
         
-        let newRules = CurrentRules(rulesList: ruleList,
-                                     trackerData: input.tds,
-                                     encodedTrackerData: encodedTrackerData,
-                                     etag: input.tdsIdentifier,
-                                     identifier: input.rulesIdentifier)
         _currentRules = newRules
+        
+        let currentIdentifiers: [String] = newRules.map { $0.identifier.stringValue }
 
         var completionTokens = [CompletionToken]()
         if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
             // New work has been scheduled - prepare for execution.
             workQueue.async {
-                self.performCompilation()
+                self.startCompilationProcess()
             }
 
             completionTokens = currentTokens
@@ -280,14 +344,14 @@ public class ContentBlockerRulesManager {
         DispatchQueue.main.async {
             self.updateListener?.rulesManager(self,
                                               didUpdateRules: newRules,
-                                              changes: diff,
+                                              changes: .init(), // FIXME
                                               completionTokens: completionTokens)
             
             WKContentRuleListStore.default()?.getAvailableContentRuleListIdentifiers({ ids in
                 guard let ids = ids else { return }
 
                 var idsSet = Set(ids)
-                idsSet.remove(ruleList.identifier)
+                idsSet.subtract(currentIdentifiers)
 
                 for id in idsSet {
                     WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: id) { _ in }
