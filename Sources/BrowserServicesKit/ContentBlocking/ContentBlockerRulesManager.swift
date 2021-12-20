@@ -213,7 +213,6 @@ public class ContentBlockerRulesManager {
 
     private func requestCompilation(token: CompletionToken) {
         os_log("Requesting compilation...", log: logger, type: .default)
-        defer { lock.unlock() }
         lock.lock()
         guard case .idle = state else {
             if case .recompiling(let tokens) = state {
@@ -222,10 +221,13 @@ public class ContentBlockerRulesManager {
             } else if case .recompilingAndScheduled(let currentTokens, let pendingTokens) = state {
                 state = .recompilingAndScheduled(currentTokens: currentTokens, pendingTokens: pendingTokens + [token])
             }
+            lock.unlock()
             return
         }
         
         state = .recompiling(currentTokens: [token])
+        lock.unlock()
+        
         startCompilationProcess()
     }
 
@@ -235,6 +237,8 @@ public class ContentBlockerRulesManager {
 
             let sourceManager: ContentBlockerRulesSourceManager
             if let manager = self.sourceManagers[rulesList.name] {
+                // Update rules list
+                manager.rulesList = rulesList
                 sourceManager = manager
             } else {
                 sourceManager = ContentBlockerRulesSourceManager(rulesList: rulesList,

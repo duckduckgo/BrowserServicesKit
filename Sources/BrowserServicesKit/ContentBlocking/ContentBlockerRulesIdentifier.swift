@@ -21,13 +21,14 @@ import Foundation
 
 public class ContentBlockerRulesIdentifier: Equatable {
     
+    private let name: String
     private let tdsEtag: String
     private let tempListEtag: String
     private let allowListEtag: String
     private let unprotectedSitesHash: String
     
     public var stringValue: String {
-        return tdsEtag + tempListEtag + unprotectedSitesHash
+        return name + tdsEtag + tempListEtag + unprotectedSitesHash
     }
     
     public struct Difference: OptionSet {
@@ -70,8 +71,9 @@ public class ContentBlockerRulesIdentifier: Equatable {
         return domains.joined().sha1
     }
     
-    public init(tdsEtag: String, tempListEtag: String?, allowListEtag: String?, unprotectedSitesHash: String?) {
+    public init(name: String, tdsEtag: String, tempListEtag: String?, allowListEtag: String?, unprotectedSitesHash: String?) {
         
+        self.name = Self.normalize(identifier: name)
         self.tdsEtag = Self.normalize(identifier: tdsEtag)
         self.tempListEtag = Self.normalize(identifier: tempListEtag)
         self.allowListEtag = Self.normalize(identifier: allowListEtag)

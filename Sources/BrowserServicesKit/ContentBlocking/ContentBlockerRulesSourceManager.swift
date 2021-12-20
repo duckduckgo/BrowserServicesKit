@@ -25,6 +25,7 @@ import TrackerRadarKit
  */
 public class ContentBlockerRulesSourceIdentifiers {
 
+    public let name: String
     public let tdsIdentifier: String
 
     public internal(set) var tempListIdentifier: String?
@@ -33,12 +34,14 @@ public class ContentBlockerRulesSourceIdentifiers {
 
     public internal(set) var unprotectedSitesIdentifier: String?
 
-    init(tdsIdentfier: String) {
+    init(name: String, tdsIdentfier: String) {
+        self.name = name
         self.tdsIdentifier = tdsIdentfier
     }
 
     public var rulesIdentifier: ContentBlockerRulesIdentifier {
-        ContentBlockerRulesIdentifier(tdsEtag: tdsIdentifier,
+        ContentBlockerRulesIdentifier(name: name,
+                                      tdsEtag: tdsIdentifier,
                                       tempListEtag: tempListIdentifier,
                                       allowListEtag: allowListIdentifier,
                                       unprotectedSitesHash: unprotectedSitesIdentifier)
@@ -58,9 +61,9 @@ public class ContentBlockerRulesSourceModel: ContentBlockerRulesSourceIdentifier
 
     var unprotectedSites = [String]()
 
-    init(tdsIdentfier: String, tds: TrackerData) {
+    init(name: String, tdsIdentfier: String, tds: TrackerData) {
         self.tds = tds
-        super.init(tdsIdentfier: tdsIdentfier)
+        super.init(name: name, tdsIdentfier: tdsIdentfier)
     }
 }
 
@@ -74,7 +77,7 @@ public class ContentBlockerRulesSourceManager {
      */
     private let exceptionsSource: ContentBlockerRulesExceptionsSource
 
-    private let rulesList: ContentBlockerRulesList
+    var rulesList: ContentBlockerRulesList
 
     /**
      Identifiers of sources that have caused compilation process to fail.
@@ -115,11 +118,13 @@ public class ContentBlockerRulesSourceManager {
         let result: ContentBlockerRulesSourceModel
         if let trackerData = rulesList.trackerData,
            trackerData.etag != brokenSources?.tdsIdentifier {
-            result = ContentBlockerRulesSourceModel(tdsIdentfier: trackerData.etag,
-                                                   tds: trackerData.tds)
+            result = ContentBlockerRulesSourceModel(name: rulesList.name,
+                                                    tdsIdentfier: trackerData.etag,
+                                                    tds: trackerData.tds)
         } else {
-            result = ContentBlockerRulesSourceModel(tdsIdentfier: rulesList.fallbackTrackerData.etag,
-                                                   tds: rulesList.fallbackTrackerData.tds)
+            result = ContentBlockerRulesSourceModel(name: rulesList.name,
+                                                    tdsIdentfier: rulesList.fallbackTrackerData.etag,
+                                                    tds: rulesList.fallbackTrackerData.tds)
         }
 
         if tempListIdentifier != brokenSources?.tempListIdentifier {
@@ -155,7 +160,8 @@ public class ContentBlockerRulesSourceManager {
 
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             // We failed compilation for non-embedded TDS, marking it as broken.
-            brokenSources = ContentBlockerRulesSourceIdentifiers(tdsIdentfier: input.tdsIdentifier)
+            brokenSources = ContentBlockerRulesSourceIdentifiers(name: rulesList.name,
+                                                                 tdsIdentfier: input.tdsIdentifier)
             errorReporting?.fire(.contentBlockingTDSCompilationFailed,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tdsIdentifier])

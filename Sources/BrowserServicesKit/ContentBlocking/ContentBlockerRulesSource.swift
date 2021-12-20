@@ -42,10 +42,10 @@ public protocol ContentBlockerRulesExceptionsSource {
 
 public struct ContentBlockerRulesList {
 
-    let trackerData: TrackerDataManager.DataSet?
-    let fallbackTrackerData: TrackerDataManager.DataSet
+    public let trackerData: TrackerDataManager.DataSet?
+    public let fallbackTrackerData: TrackerDataManager.DataSet
 
-    let name: String
+    public let name: String
     
     public init(name: String,
                 trackerData: TrackerDataManager.DataSet?,

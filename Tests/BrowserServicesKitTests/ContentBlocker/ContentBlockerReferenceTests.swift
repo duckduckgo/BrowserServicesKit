@@ -86,8 +86,8 @@ class ContentBlockerReferenceTests: XCTestCase {
     func testDomainMatching() throws {
 
         let data = JsonTestDataLoader()
-        let trackerJSON = data.fromJsonFile("resources/tracker_radar_reference.json")
-        let testJSON = data.fromJsonFile("resources/domain_matching_tests.json")
+        let trackerJSON = data.fromJsonFile("Resources/tracker_radar_reference.json")
+        let testJSON = data.fromJsonFile("Resources/domain_matching_tests.json")
 
         tds = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
 

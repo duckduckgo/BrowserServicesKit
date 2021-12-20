@@ -58,7 +58,7 @@ class TrackerAllowlistReferenceTests: XCTestCase {
                       schemeHandler: TestSchemeHandler,
                       completion: @escaping (WKWebView) -> Void) {
 
-        let exceptions = DefaultContentBlockerRulesSource.transform(allowList: trackerAllowlist)
+        let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: trackerAllowlist)
 
         WebKitTestHelper.prepareContentBlockingRules(trackerData: trackerData,
                                                      exceptions: [],
