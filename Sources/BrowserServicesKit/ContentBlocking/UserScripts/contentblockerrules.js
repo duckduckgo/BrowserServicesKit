@@ -18,29 +18,18 @@
 //
 
 // "use strict";
+import * as userScriptUtils from '../../UserScript/userScriptUtils'
 
 (function () {
-    const topLevelUrl = getTopLevelURL()
+    const topLevelUrl = userScriptUtils.getTopLevelURL()
+    const featureList = userScriptUtils.parseNewLineList(`
+    $TEMP_UNPROTECTED_DOMAINS$
+    `)
 
-    let unprotectedDomain = false
-    const domainParts = topLevelUrl && topLevelUrl.host ? topLevelUrl.host.split('.') : []
-
-    // walk up the domain to see if it's unprotected
-    while (domainParts.length > 1 && !unprotectedDomain) {
-        const partialDomain = domainParts.join('.')
-
-        unprotectedDomain = `
-        $TEMP_UNPROTECTED_DOMAINS$
-        `.split('\n').filter(domain => domain.trim() === partialDomain).length > 0
-
-        domainParts.shift()
-    }
-
-    if (!unprotectedDomain && topLevelUrl.host != null) {
-        unprotectedDomain = `
-        $USER_UNPROTECTED_DOMAINS$
-        `.split('\n').filter(domain => domain.trim() === topLevelUrl.host).length > 0
-    }
+    const userList = userScriptUtils.parseNewLineList(`
+    $USER_UNPROTECTED_DOMAINS$
+    `)
+    const unprotectedDomain = userScriptUtils.isUnprotectedDomain(featureList, userList)
 
     // tld.js
     const tldjs = {
@@ -132,21 +121,6 @@
         }
 
         return false
-    }
-
-    // private
-    function getTopLevelURL () {
-        try {
-            // FROM: https://stackoverflow.com/a/7739035/73479
-            // FIX: Better capturing of top level URL so that trackers in embedded documents are not considered first party
-            if (window.location !== window.parent.location) {
-                return new URL(window.location.href !== 'about:blank' ? document.referrer : window.parent.location.href)
-            } else {
-                return new URL(document.location.href)
-            }
-        } catch (error) {
-            return new URL(location.href)
-        }
     }
 
     if (!window.__firefox__) {
