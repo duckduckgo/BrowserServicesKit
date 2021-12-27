@@ -42,6 +42,7 @@ public class PrivacyConfigurationManager {
     private let lock = NSLock()
     private let embeddedDataProvider: PrivacyConfigurationEmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
+    public var currentConfig: Data
     
     private var _fetchedConfigData: ConfigurationData?
     private(set) public var fetchedConfigData: ConfigurationData? {
@@ -94,6 +95,7 @@ public class PrivacyConfigurationManager {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
+        self.currentConfig = embeddedDataProvider.embeddedPrivacyConfig
 
         reload(etag: fetchedETag, data: fetchedData)
     }
@@ -121,6 +123,7 @@ public class PrivacyConfigurationManager {
             do {
                 // This might fail if the downloaded data is corrupt or format has changed unexpectedly
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    currentConfig = data
                     let configData = PrivacyConfigurationData(json: json)
                     fetchedConfigData = (configData, etag)
                 } else {
