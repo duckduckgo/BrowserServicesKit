@@ -20,23 +20,38 @@ import Foundation
 import WebKit
 import Combine
 
+public final class ContentScopePreferences: Encodable {
+    public let globalPrivacyControlValue: Bool
+    public let debug: Bool = false
+    public let sessionKey: String = "TODO"
+
+    public init(gpcEnabled: Bool) {
+        self.globalPrivacyControlValue = gpcEnabled
+    }
+}
+
 public final class ContentScopeUserScript: NSObject, UserScript {
     public let messageNames: [String] = []
 
-    public init(_ privacyConfigManager: PrivacyConfigurationManager) {
-        source = ContentScopeUserScript.generateSource(privacyConfigManager)
+    public init(_ privacyConfigManager: PrivacyConfigurationManager, preferences: ContentScopePreferences) {
+        source = ContentScopeUserScript.generateSource(privacyConfigManager, preferences: preferences)
     }
 
-    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManager) -> String {
+    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManager, preferences: ContentScopePreferences) -> String {
         let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8)
 
-        guard let json = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains), let jsonString = String(data: json, encoding: .utf8)  else {
+        guard let json = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
+              let jsonString = String(data: json, encoding: .utf8),
+              let jsonPreferences = try? JSONEncoder().encode(preferences),
+              let jsonPreferencesString = String(data: jsonPreferences, encoding: .utf8)
+              else {
             return ""
         }
         
         return loadJS("contentScope", from: Bundle.module, withReplacements: [
             "$CONTENT_SCOPE$": privacyConfigJson!,
-            "$USER_UNPROTECTED_DOMAINS$": jsonString
+            "$USER_UNPROTECTED_DOMAINS$": jsonString,
+            "$USER_PREFERENCES$": jsonPreferencesString,
         ])
     }
 
