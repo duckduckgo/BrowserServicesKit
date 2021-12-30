@@ -23,10 +23,11 @@ import Combine
 public final class ContentScopePreferences: Encodable {
     public let globalPrivacyControlValue: Bool
     public let debug: Bool = false
-    public let sessionKey: String = "TODO"
+    public let sessionKey: String
 
-    public init(gpcEnabled: Bool) {
+    public init(gpcEnabled: Bool, sessionKey: String) {
         self.globalPrivacyControlValue = gpcEnabled
+        self.sessionKey = sessionKey
     }
 }
 
