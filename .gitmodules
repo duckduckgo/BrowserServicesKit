@@ -3,4 +3,4 @@
 	url = https://github.com/duckduckgo/duckduckgo-autofill
 [submodule "Sources/BrowserServicesKit/Resources/content-scope-scripts"]
 	path = Sources/BrowserServicesKit/Resources/content-scope-scripts
-	url = https://github.com/jonathanKingston/content-scope-scripts.git
+	url = https://github.com/duckduckgo/content-scope-scripts

@@ -20,7 +20,7 @@ import Foundation
 import WebKit
 import Combine
 
-public final class ContentScopePreferences: Encodable {
+public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
     public let debug: Bool = false
     public let sessionKey: String
@@ -34,25 +34,25 @@ public final class ContentScopePreferences: Encodable {
 public final class ContentScopeUserScript: NSObject, UserScript {
     public let messageNames: [String] = []
 
-    public init(_ privacyConfigManager: PrivacyConfigurationManager, preferences: ContentScopePreferences) {
-        source = ContentScopeUserScript.generateSource(privacyConfigManager, preferences: preferences)
+    public init(_ privacyConfigManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+        source = ContentScopeUserScript.generateSource(privacyConfigManager, properties: properties)
     }
 
-    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManager, preferences: ContentScopePreferences) -> String {
-        let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8)
+    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) -> String {
 
-        guard let json = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
-              let jsonString = String(data: json, encoding: .utf8),
-              let jsonPreferences = try? JSONEncoder().encode(preferences),
-              let jsonPreferencesString = String(data: jsonPreferences, encoding: .utf8)
+        guard let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8),
+              let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
+              let userUnprotectedDomainsString = String(data: userUnprotectedDomains, encoding: .utf8),
+              let jsonProperties = try? JSONEncoder().encode(properties),
+              let jsonPropertiesString = String(data: jsonProperties, encoding: .utf8)
               else {
             return ""
         }
         
         return loadJS("contentScope", from: Bundle.module, withReplacements: [
-            "$CONTENT_SCOPE$": privacyConfigJson!,
-            "$USER_UNPROTECTED_DOMAINS$": jsonString,
-            "$USER_PREFERENCES$": jsonPreferencesString,
+            "$CONTENT_SCOPE$": privacyConfigJson,
+            "$USER_UNPROTECTED_DOMAINS$": userUnprotectedDomainsString,
+            "$USER_PREFERENCES$": jsonPropertiesString,
         ])
     }
 
