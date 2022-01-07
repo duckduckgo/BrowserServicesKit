@@ -37,7 +37,7 @@ public class PrivacyConfigurationManager {
         case dataMismatch
     }
     
-    public typealias ConfigurationData = (data: PrivacyConfigurationData, etag: String)
+    public typealias ConfigurationData = (rawData: Data, data: PrivacyConfigurationData, etag: String)
     
     private let lock = NSLock()
     private let embeddedDataProvider: PrivacyConfigurationEmbeddedDataProvider
@@ -71,7 +71,7 @@ public class PrivacyConfigurationManager {
                 let jsonData = embeddedDataProvider.embeddedPrivacyConfig
                 let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
                 let configData = PrivacyConfigurationData(json: json!)
-                _embeddedConfigData = (configData, embeddedDataProvider.embeddedPrivacyConfigEtag)
+                _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedPrivacyConfigEtag)
                 data = _embeddedConfigData
             }
             lock.unlock()
@@ -110,6 +110,13 @@ public class PrivacyConfigurationManager {
                                        localProtection: localProtection)
     }
     
+    public var currentConfig: Data {
+        if let fetchedData = fetchedConfigData {
+            return fetchedData.rawData
+        }
+        return embeddedConfigData.rawData
+    }
+
     @discardableResult
     public func reload(etag: String?, data: Data?) -> ReloadResult {
         
@@ -122,7 +129,7 @@ public class PrivacyConfigurationManager {
                 // This might fail if the downloaded data is corrupt or format has changed unexpectedly
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     let configData = PrivacyConfigurationData(json: json)
-                    fetchedConfigData = (configData, etag)
+                    fetchedConfigData = (data, configData, etag)
                 } else {
                     throw ParsingError.dataMismatch
                 }

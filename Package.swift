@@ -43,6 +43,7 @@ let package = Package(
                 .process("Resources/duckduckgo-autofill/dist/autofill.js"),
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
+                .process("Resources/content-scope-scripts/build/apple/contentScope.js"),
                 .copy("Resources/trackerData.json")
             ]),
         .testTarget(
