@@ -117,7 +117,10 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
                                                      pageUrlString: pageUrlStr,
                                                      resourceType: resourceType,
                                                      potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
-                delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
+                if tracker.blocked {
+                    delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
+                    return
+                }
             }
         }
 
