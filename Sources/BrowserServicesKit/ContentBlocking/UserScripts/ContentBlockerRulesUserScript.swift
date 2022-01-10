@@ -107,6 +107,19 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         }
 
         let privacyConfiguration = configuration.privacyConfiguration
+        
+        if(CTLenabled) {
+            let resolver = TrackerResolver(tds: CTLtrackers!,
+                                           unprotectedSites: privacyConfiguration.userUnprotectedDomains,
+                                           tempList: temporaryUnprotectedDomains)
+            
+            if let tracker = resolver.trackerFromUrl(trackerUrlString,
+                                                     pageUrlString: pageUrlStr,
+                                                     resourceType: resourceType,
+                                                     potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
+                delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
+            }
+        }
 
         let resolver = TrackerResolver(tds: currentTrackerData,
                                        unprotectedSites: privacyConfiguration.userUnprotectedDomains,
