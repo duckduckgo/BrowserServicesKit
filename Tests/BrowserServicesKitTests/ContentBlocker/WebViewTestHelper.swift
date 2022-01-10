@@ -36,7 +36,7 @@ final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
     }
 }
 
-final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate {
+final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate  {
 
     var shouldProcessTrackers = true
     var onTrackerDetected: ((DetectedTracker) -> Void)?
@@ -48,6 +48,10 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
 
     func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
         return shouldProcessTrackers
+    }
+
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> (Bool, TrackerData?) {
+        return (true, nil)
     }
 
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,

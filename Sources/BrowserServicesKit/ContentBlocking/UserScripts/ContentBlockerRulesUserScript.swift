@@ -23,6 +23,7 @@ import TrackerRadarKit
 public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 
     func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> (Bool, TrackerData?)
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
                                        detectedTracker tracker: DetectedTracker)
 
@@ -91,6 +92,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let delegate = delegate else { return }
         guard delegate.contentBlockerRulesUserScriptShouldProcessTrackers(self) else { return }
+        let (CTLenabled, CTLtrackers) = delegate.contentBlockerRulesUserScriptShouldProcessCTLTrackers(self)
         
         guard let dict = message.body as? [String: Any] else { return }
         
