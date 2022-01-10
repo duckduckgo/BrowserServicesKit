@@ -50,8 +50,8 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
         return shouldProcessTrackers
     }
 
-    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> (Bool, TrackerData?) {
-        return (true, nil)
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
+        return true
     }
 
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
