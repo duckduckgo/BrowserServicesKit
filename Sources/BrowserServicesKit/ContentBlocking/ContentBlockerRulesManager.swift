@@ -26,7 +26,7 @@ public protocol ContentBlockerRulesUpdating {
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
                       didUpdateRules: [ContentBlockerRulesManager.Rules],
-                      changes: ContentBlockerRulesIdentifier.Difference,
+                      changes: [String: ContentBlockerRulesIdentifier.Difference],
                       completionTokens: [ContentBlockerRulesManager.CompletionToken])
 }
 
@@ -40,8 +40,8 @@ private class CompilationTask {
     let sourceManager: ContentBlockerRulesSourceManager
     let logger: OSLog
 
-    var completed: Bool { output != nil }
-    var output: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
+    var completed: Bool { result != nil }
+    var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
 
     init(workQueue: DispatchQueue,
          rulesList: ContentBlockerRulesList,
@@ -76,7 +76,7 @@ private class CompilationTask {
                                      model: ContentBlockerRulesSourceModel,
                                      completionHandler: @escaping Completion) {
         workQueue.async {
-            self.output = (compiledRulesList, model)
+            self.result = (compiledRulesList, model)
             completionHandler()
         }
     }
@@ -296,34 +296,39 @@ public class ContentBlockerRulesManager {
 
     private func compilationCompleted() {
         
+        var changes = [String: ContentBlockerRulesIdentifier.Difference]()
+        
+        lock.lock()
+        
         let newRules: [Rules] = currentTasks.map { task in
-            guard let output = task.output else {
+            guard let result = task.result else {
                 fatalError("Task not completed!")
             }
             
-            let surrogateTDS = Self.extractSurrogates(from: output.model.tds)
+            let surrogateTDS = Self.extractSurrogates(from: result.model.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
             
+            let diff: ContentBlockerRulesIdentifier.Difference
+            if let id = _currentRules.first(where: {$0.name == task.rulesList.name })?.identifier {
+                diff = id.compare(with: result.model.rulesIdentifier)
+            } else {
+                diff = result.model.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(name: task.rulesList.name,
+                                                                                                tdsEtag: "",
+                                                                                                tempListEtag: nil,
+                                                                                                allowListEtag: nil,
+                                                                                                unprotectedSitesHash: nil))
+            }
+            
+            changes[task.rulesList.name] = diff
+            
             return Rules(name: task.rulesList.name,
-                         rulesList: output.compiledRulesList,
-                         trackerData: output.model.tds,
+                         rulesList: result.compiledRulesList,
+                         trackerData: result.model.tds,
                          encodedTrackerData: encodedTrackerData,
-                         etag: output.model.tdsIdentifier,
-                         identifier: output.model.rulesIdentifier)
+                         etag: result.model.tdsIdentifier,
+                         identifier: result.model.rulesIdentifier)
         }
-
-        lock.lock()
-        
-//        let diff: ContentBlockerRulesIdentifier.Difference
-//        if let id = _currentRules?.identifier {
-//            diff = id.compare(with: input.rulesIdentifier)
-//        } else {
-//            diff = input.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(tdsEtag: "",
-//                                                                                     tempListEtag: nil,
-//                                                                                     allowListEtag: nil,
-//                                                                                     unprotectedSitesHash: nil))
-//        }
         
         _currentRules = newRules
         
@@ -348,7 +353,7 @@ public class ContentBlockerRulesManager {
         DispatchQueue.main.async {
             self.updateListener?.rulesManager(self,
                                               didUpdateRules: newRules,
-                                              changes: .init(), // FIXME
+                                              changes: changes,
                                               completionTokens: completionTokens)
             
             WKContentRuleListStore.default()?.getAvailableContentRuleListIdentifiers({ ids in

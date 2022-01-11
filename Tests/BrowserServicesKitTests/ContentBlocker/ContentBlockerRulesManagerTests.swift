@@ -171,13 +171,13 @@ class ContentBlockerRulesManagerTests: XCTestCase {
 
 final class RulesUpdateListener: ContentBlockerRulesUpdating {
 
-    var onRulesUpdated: () -> Void = {}
+    var onRulesUpdated: ([String: ContentBlockerRulesIdentifier.Difference]) -> Void = { _ in }
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
                       didUpdateRules: [ContentBlockerRulesManager.Rules],
-                      changes: ContentBlockerRulesIdentifier.Difference,
+                      changes: [String: ContentBlockerRulesIdentifier.Difference],
                       completionTokens: [ContentBlockerRulesManager.CompletionToken]) {
-        onRulesUpdated()
+        onRulesUpdated(changes)
     }
 }
 
@@ -194,7 +194,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -225,7 +225,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -258,7 +258,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -292,7 +292,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -329,7 +329,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -370,7 +370,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -410,7 +410,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -452,7 +452,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -497,7 +497,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -550,7 +550,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let initialLoading = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
         }
 
@@ -573,7 +573,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
 
@@ -610,7 +610,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let initialLoading = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
         }
 
@@ -634,7 +634,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
         
@@ -671,7 +671,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
 
         let initialLoading = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
         }
 
@@ -695,7 +695,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
 
@@ -733,7 +733,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         let initialLoading = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
         }
 
@@ -756,7 +756,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
         
@@ -794,7 +794,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
 
         let initialLoading = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
         }
 
@@ -817,7 +817,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
 

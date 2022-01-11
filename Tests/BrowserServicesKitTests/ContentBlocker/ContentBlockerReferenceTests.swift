@@ -65,7 +65,8 @@ class ContentBlockerReferenceTests: XCTestCase {
                                                                       exceptions: [])
 
             let config = DefaultContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
-                                                                             trackerData: trackerData)
+                                                               trackerData: trackerData,
+                                                               ctlTrackerData: nil)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate

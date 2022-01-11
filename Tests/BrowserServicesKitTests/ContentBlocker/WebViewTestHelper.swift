@@ -100,13 +100,16 @@ final class TestSchemeContentBlockerUserScriptConfig: ContentBlockerUserScriptCo
 
     public let privacyConfiguration: PrivacyConfiguration
     public let trackerData: TrackerData?
+    public let ctlTrackerData: TrackerData?
 
     public private(set) var source: String
 
     public init(privacyConfiguration: PrivacyConfiguration,
-                trackerData: TrackerData?) {
+                trackerData: TrackerData?,
+                ctlTrackerData: TrackerData?) {
         self.privacyConfiguration = privacyConfiguration
         self.trackerData = trackerData
+        self.ctlTrackerData = ctlTrackerData
 
         // UserScripts contain TrackerAllowlist rules in form of regular expressions - we need to ensure test scheme is matched instead of http/https
         let orginalSource = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)

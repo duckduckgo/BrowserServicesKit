@@ -121,7 +121,8 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             webView.navigationDelegate = self.navigationDelegateMock
 
             let config = TestSchemeContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
-                                                                  trackerData: trackerData)
+                                                                  trackerData: trackerData,
+                                                                  ctlTrackerData: nil)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate

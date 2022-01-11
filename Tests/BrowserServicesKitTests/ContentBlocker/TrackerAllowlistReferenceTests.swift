@@ -83,7 +83,8 @@ class TrackerAllowlistReferenceTests: XCTestCase {
                                                                       exceptions: [])
 
             let config = TestSchemeContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
-                                                                  trackerData: trackerData)
+                                                                  trackerData: trackerData,
+                                                                  ctlTrackerData: nil)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate

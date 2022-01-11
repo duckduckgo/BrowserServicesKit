@@ -170,7 +170,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -207,7 +207,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -241,7 +241,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -275,7 +275,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = {
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
