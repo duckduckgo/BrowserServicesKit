@@ -157,27 +157,32 @@ public class ContentBlockerRulesSourceManager {
      Process information about last failed compilation in order to update `brokenSources` state.
      */
     func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers, with error: Error) {
-
+        
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             // We failed compilation for non-embedded TDS, marking it as broken.
             brokenSources = ContentBlockerRulesSourceIdentifiers(name: rulesList.name,
                                                                  tdsIdentfier: input.tdsIdentifier)
+            
             errorReporting?.fire(.contentBlockingTDSCompilationFailed,
+                                 scope: input.name,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tdsIdentifier])
         } else if input.tempListIdentifier != nil {
             brokenSources?.tempListIdentifier = input.tempListIdentifier
             errorReporting?.fire(.contentBlockingTempListCompilationFailed,
+                                 scope: input.name,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tempListIdentifier ?? "empty"])
         } else if input.allowListIdentifier != nil {
             brokenSources?.allowListIdentifier = input.allowListIdentifier
             errorReporting?.fire(.contentBlockingAllowListCompilationFailed,
+                                 scope: input.name,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.allowListIdentifier ?? "empty"])
         } else if input.unprotectedSitesIdentifier != nil {
             brokenSources?.unprotectedSitesIdentifier = input.unprotectedSitesIdentifier
             errorReporting?.fire(.contentBlockingUnpSitesCompilationFailed,
+                                 scope: input.name,
                                  error: error)
         } else {
             // We failed for embedded data, this is unlikely.
@@ -187,6 +192,7 @@ public class ContentBlockerRulesSourceManager {
             let params = [ContentBlockerDebugEvents.Parameters.errorDescription: errorDesc.isEmpty ? "empty" : errorDesc]
 
             errorReporting?.fire(.contentBlockingFallbackCompilationFailed,
+                                 scope: input.name,
                                  error: error,
                                  parameters: params,
                                  onComplete: { _ in
