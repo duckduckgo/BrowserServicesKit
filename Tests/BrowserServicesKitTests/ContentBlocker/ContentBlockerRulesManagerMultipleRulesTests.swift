@@ -201,7 +201,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                                                  firstTD: Self.makeDataSet(tds: Self.invalidRules, etag: invalidRulesETag),
                                                                  firstFallbackTD: Self.makeDataSet(tds: firstRules),
                                                                  secondName: "second",
-                                                                 secondTD: nil,
+                                                                 secondTD: Self.makeDataSet(tds: Self.invalidRules, etag: invalidRulesETag),
                                                                  secondFallbackTD: Self.makeDataSet(tds: secondRules))
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
@@ -210,13 +210,31 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
+        
+        let errorExp = expectation(description: "No error reported")
+        errorExp.expectedFulfillmentCount = 2
+        var brokenLists = Set<String>()
+        var errorEvents = Set<ContentBlockerDebugEvents>()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+            guard let scope = scope else {
+                XCTFail("Missing scope")
+                return
+            }
+            brokenLists.insert(scope)
+            errorEvents.insert(event)
+            errorExp.fulfill()
+        }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
+                                              errorReporting: errorHandler,
                                               logger: .disabled)
 
-        wait(for: [exp], timeout: 15.0)
+        wait(for: [exp, errorExp], timeout: 15.0)
+        
+        XCTAssertEqual(brokenLists, Set(["first", "second"]))
+        XCTAssertEqual(errorEvents, Set([.contentBlockingTDSCompilationFailed]))
         
         XCTAssertFalse(cbrm.currentRules.isEmpty)
         
