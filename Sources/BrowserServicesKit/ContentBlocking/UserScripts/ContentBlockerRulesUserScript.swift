@@ -45,10 +45,18 @@ public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConf
     public private(set) var source: String
 
     public init(privacyConfiguration: PrivacyConfiguration,
-                trackerData: TrackerData?,
-                ctlTrackerData: TrackerData?) { // This should be non-optional
+                trackerData: TrackerData?, // This should be non-optional
+                ctlTrackerData: TrackerData?,
+                trackerDataManager: TrackerDataManager? = nil) {
+        
+        if trackerData == nil {
+            // Fallback to embedded
+            self.trackerData = trackerDataManager?.trackerData
+        } else {
+            self.trackerData = trackerData
+        }
+
         self.privacyConfiguration = privacyConfiguration
-        self.trackerData = trackerData
         self.ctlTrackerData = ctlTrackerData
 
         source = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)
