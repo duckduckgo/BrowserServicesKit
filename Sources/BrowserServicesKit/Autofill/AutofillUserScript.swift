@@ -56,23 +56,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
 public protocol OverlayProtocol {
     func getContentOverlayPopover(_ response: AutofillMessaging) -> ContentOverlayPopover?
-    var view: NSView { get }
 }
-
-/*
-protocol AutofillHostProvider {
-
-    func hostForMessage(_ message: WKScriptMessage) -> String
-
-}
-
-struct SecurityOriginHostProvider: AutofillHostProvider {
-
-    public func hostForMessage(_ message: WKScriptMessage) -> String {
-        return message.frameInfo.securityOrigin.host
-    }
-
-}*/
 
 
 public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
@@ -86,25 +70,11 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         case showAutofillParent
         case closeAutofillParent
         case emailHandlerStoreToken
-/*
-        case emailHandlerGetAlias
-        case emailHandlerRefreshAlias
- */
+
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
 
         case pmHandlerGetAutofillInitData
-/*
-        case pmHandlerStoreCredentials
-        case pmHandlerGetAccounts
-        case pmHandlerGetAutofillCredentials
-        case pmHandlerGetIdentity
-        case pmHandlerGetCreditCard
-
-        case pmHandlerOpenManageCreditCards
-        case pmHandlerOpenManageIdentities
-        case pmHandlerOpenManagePasswords
- */
     }
 
     public var topView: OverlayProtocol?
@@ -142,30 +112,13 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
         print("got message \(message)")
         switch message {
-            
         case .showAutofillParent: return showAutofillParent
         case .closeAutofillParent: return closeAutofillParent
         case .emailHandlerStoreToken: return emailStoreToken
-/*
-        case .emailHandlerGetAlias: return emailGetAlias
-        case .emailHandlerRefreshAlias: return emailRefreshAlias
- */
         case .emailHandlerGetAddresses: return emailGetAddresses
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
-/*
-        case .pmHandlerStoreCredentials: return pmStoreCredentials
-        case .pmHandlerGetAccounts: return pmGetAccounts
-        case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
-
-        case .pmHandlerGetIdentity: return pmGetIdentity
-        case .pmHandlerGetCreditCard: return pmGetCreditCard
-
-        case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
-        case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
-        case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
- */
         }
     }
     
@@ -263,13 +216,14 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     
     func showAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.body as? [String: Any],
-              let left = dict["inputLeft"] as? Int,
-              let top = dict["inputTop"] as? Int,
-              let height = dict["inputHeight"] as? Int,
-              let width = dict["inputWidth"] as? Int,
+              let left = dict["inputLeft"] as? CGFloat,
+              let top = dict["inputTop"] as? CGFloat,
+              let height = dict["inputHeight"] as? CGFloat,
+              let width = dict["inputWidth"] as? CGFloat,
               let inputType = dict["inputType"] as? String,
-              let topView = topView else { return }
-
+              let topView = topView else {
+                  return
+              }
         lastOpenHost = hostProvider.hostForMessage(message)
         print("show autofill parent x: \(left), y: \(top)- \(dict)")
         
@@ -279,16 +233,9 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         print("zoom: \(popover.zoomFactor) it: \(inputType)")
         let zf = popover.zoomFactor!
 
-        let rect = NSRect(x: left, y: top, width: width, height: height)
+        let rect = NSRect(x: left * zf, y: top * zf, width: width * zf, height: height * zf)
         // Convert to webview coordinate system
-        let outRect = topView.view.convert(rect, to: popover.webView)
-        /* Debug rect placement
-        let view = NSView(frame: rect)
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.blue.cgColor
-        topView.view.addSubview(view)
-         */
-        print("\(rect) ... \(outRect)")
+        let outRect = popover.webView?.convert(rect, to: popover.webView)
         
         // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
         if let insetBy = popover.value(forKeyPath: "anchorSize")! as? CGSize {

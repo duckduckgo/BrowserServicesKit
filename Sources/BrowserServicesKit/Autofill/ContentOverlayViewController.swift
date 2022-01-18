@@ -51,6 +51,7 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     public override func viewDidLoad() {
         // privacyDashboardScript.delegate = self
         initWebView()
+        topAutofillUserScript.contentOverlay = self
         topAutofillUserScript.messageInterfaceBack = messageInterfaceBack
         topAutofillUserScript.emailDelegate = emailManager
         topAutofillUserScript.vaultDelegate = vaultManager
@@ -126,6 +127,12 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     }
     // swiftlint:enable function_parameter_count
     
+}
+
+extension ContentOverlayViewController: TopAutofillUserScriptDelegate {
+    public func setSize(height: CGFloat, width: CGFloat) {
+        self.preferredContentSize = CGSize(width: width, height: height)
+    }
 }
 
 extension ContentOverlayViewController: SecureVaultManagerDelegate {

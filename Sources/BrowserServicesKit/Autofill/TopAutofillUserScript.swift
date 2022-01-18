@@ -20,13 +20,12 @@
 import WebKit
 
 public protocol TopAutofillUserScriptDelegate: AnyObject {
-
-    func clickTriggered(_ script: TopAutofillUserScript)
-
+    func setSize(height: CGFloat, width: CGFloat)
 }
 
 public class TopAutofillUserScript: NSObject, UserScript {
     
+    public var contentOverlay: TopAutofillUserScriptDelegate?
     
     public var messageInterfaceBack: AutofillMessaging?
     
@@ -35,6 +34,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
     }
 
     private enum MessageName: String, CaseIterable {
+        case setSize
         case selectedDetail
 
         case emailHandlerStoreToken
@@ -62,7 +62,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
         print("got top message \(message)")
         switch message {
-            
+        case .setSize: return setSize
         case .selectedDetail: return selectedDetail
 
         case .emailHandlerStoreToken: return emailStoreToken
@@ -87,6 +87,16 @@ public class TopAutofillUserScript: NSObject, UserScript {
         }
     }
     
+    func setSize(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard let dict = message.body as? [String: Any],
+              let width = dict["width"] as? CGFloat,
+              let height = dict["height"] as? CGFloat else {
+                  return
+              }
+        self.contentOverlay?.setSize(height: height, width: width)
+        replyHandler(nil)
+    }
+    
     public weak var emailDelegate: TopAutofillEmailDelegate?
     public weak var vaultDelegate: TopAutofillSecureVaultDelegate?
     public var inputType: String?
@@ -97,8 +107,9 @@ public class TopAutofillUserScript: NSObject, UserScript {
     func selectedDetail(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.body as? [String: Any],
               let chosenCredential = dict["data"] as? [String: String],
-              let configType = dict["configType"] as? String else { return }
-        messageInterfaceBack!.messageSelectedCredential(chosenCredential, configType)
+              let configType = dict["configType"] as? String,
+              let messageInterfaceBack = messageInterfaceBack else { return }
+        messageInterfaceBack.messageSelectedCredential(chosenCredential, configType)
     }
 
     typealias MessageReplyHandler = (String?) -> Void
@@ -125,13 +136,14 @@ public class TopAutofillUserScript: NSObject, UserScript {
         return true
     }
     
-    init(encrypter: AutofillEncrypter, hostProvider: AutofillHostProvider) {
+    init(encrypter: AutofillEncrypter, hostProvider: AutofillHostProvider, overlay: TopAutofillUserScriptDelegate?) {
+        self.contentOverlay = overlay
         self.encrypter = encrypter
         self.hostProvider = hostProvider
     }
 
     public convenience override init() {
-        self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+        self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider(), overlay: nil)
     }
 
 }
@@ -159,7 +171,6 @@ extension TopAutofillUserScript: WKScriptMessageHandlerWithReply {
 extension TopAutofillUserScript {
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        print("got top mesage", message)
         guard let messageName = MessageName(rawValue: message.name),
               let body = message.body as? [String: Any],
               let messageHandling = body["messageHandling"] as? [String: Any],
@@ -167,7 +178,6 @@ extension TopAutofillUserScript {
               // If this does not match the page is playing shenanigans.
               secret == generatedSecret
         else { return }
-        print("got top mesage \(messageName)")
 
         messageHandlerFor(messageName)(message) { reply in
             guard let reply = reply,
