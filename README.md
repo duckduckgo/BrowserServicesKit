@@ -22,7 +22,7 @@ Run `git submodule update --init --recursive`
 
 ## Testing
 
-Run `swift test` on the project root folder.
+Run `swift test` on the project root folder. Please note that running the tests on Xcode will not work.
 
 
 ### SwiftLint
