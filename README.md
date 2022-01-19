@@ -19,6 +19,12 @@ Run `git submodule update --init --recursive`
 1. Build the `BrowserServicesKit` scheme by opening the Swift package in Xcode
 2. Run `swift build -c release` to build a release binary
 
+
+## Testing
+
+run `swift test` on the project root folder.
+
+
 ### SwiftLint
 
 We use [SwiftLint](https://github.com/realm/SwiftLint) for enforcing Swift style and conventions, so you'll need to [install it](https://github.com/realm/SwiftLint#installation).
