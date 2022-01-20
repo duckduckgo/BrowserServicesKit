@@ -35,8 +35,10 @@ public final class ContentScopeProperties: Encodable {
 public struct ContentScopePlatform: Encodable {
     #if os(macOS)
     let name = "macos"
-    #else
+    #elseif os(iOS)
     let name = "ios"
+    #else
+    let name = "unknown"
     #endif
 }
 
