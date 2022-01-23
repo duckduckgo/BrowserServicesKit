@@ -179,15 +179,7 @@ final class SuggestionProcessing {
         for (i, suggestion) in suggestions.enumerated() {
             guard i <= Self.maximumNumberOfTopHits else { break }
 
-            if case let .historyEntry(title: _, url: _, allowedInTopHits: allowedInTopHits) = suggestion {
-                if allowedInTopHits {
-                    topHits.append(suggestion)
-                } else {
-                    break
-                }
-            } else if case .website = suggestion {
-                topHits.append(suggestion)
-            } else if case .bookmark = suggestion {
+            if suggestion.allowedInTopHits {
                 topHits.append(suggestion)
             } else {
                 break

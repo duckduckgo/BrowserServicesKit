@@ -52,11 +52,15 @@ public enum Suggestion: Equatable {
         }
     }
 
-    public var allowedForAutocompletion: Bool {
+    public var allowedInTopHits: Bool {
         switch self {
-        case .historyEntry, .bookmark:
+        case .website:
             return true
-        case .phrase, .website,.unknown:
+        case .historyEntry(title: _, url: _, allowedInTopHits: let allowedInTopHits):
+            return allowedInTopHits
+        case .bookmark(title: _, url: _, isFavorite: let isFavorite):
+            return isFavorite
+        case .phrase, .unknown:
             return false
         }
     }
@@ -70,8 +74,13 @@ extension Suggestion {
     }
 
     init(historyEntry: HistoryEntry) {
-        let allowedInTopHits = !(historyEntry.failedToLoad || historyEntry.isDownload)
-        self = .historyEntry(title: historyEntry.title, url: historyEntry.url, allowedInTopHits: allowedInTopHits)
+        let areVisitsLow = historyEntry.numberOfVisits < 4
+        let allowedInTopHits = !(historyEntry.failedToLoad ||
+                                 historyEntry.isDownload ||
+                                 (areVisitsLow && !historyEntry.url.isRoot))
+        self = .historyEntry(title: historyEntry.title,
+                             url: historyEntry.url,
+                             allowedInTopHits: allowedInTopHits)
     }
 
     init(url: URL) {

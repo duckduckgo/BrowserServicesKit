@@ -36,8 +36,20 @@ public struct SuggestionResult: Equatable {
         self.historyAndBookmarks = historyAndBookmarks
     }
 
-    var isEmpty: Bool {
+    public var isEmpty: Bool {
         topHits.isEmpty && duckduckgoSuggestions.isEmpty && historyAndBookmarks.isEmpty
+    }
+
+    public var array: [Suggestion] {
+        topHits + duckduckgoSuggestions + historyAndBookmarks
+    }
+
+    public var count: Int {
+        topHits.count + duckduckgoSuggestions.count + historyAndBookmarks.count
+    }
+
+    public var canBeAutocompleted: Bool {
+        !topHits.isEmpty
     }
 
 }
