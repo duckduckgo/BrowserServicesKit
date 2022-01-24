@@ -84,13 +84,14 @@ private class CompilationTask {
     private func compilationFailed(for model: ContentBlockerRulesSourceModel,
                                    with error: Error,
                                    completionHandler: @escaping Completion) {
-        os_log("Failed to compile %{public}s rules %{public}s", log: logger, type: .error, rulesList.name, error.localizedDescription)
+        workQueue.async {
+            os_log("Failed to compile %{public}s rules %{public}s", log: self.logger, type: .error, self.rulesList.name, error.localizedDescription)
+            
+            // Retry after marking failed state in the source
+            self.sourceManager.compilationFailed(for: model, with: error)
+            let newModel = self.sourceManager.makeModel()
 
-        // Retry after marking failed state in the source
-        sourceManager.compilationFailed(for: model, with: error)
-        let newModel = sourceManager.makeModel()
-
-        self.workQueue.async {
+        
             self.compile(model: newModel, completionHandler: completionHandler)
         }
     }
