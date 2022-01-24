@@ -83,6 +83,7 @@ public class ContentBlockerRulesSourceManager {
      Identifiers of sources that have caused compilation process to fail.
      */
     public private(set) var brokenSources: ContentBlockerRulesSourceIdentifiers?
+    public private(set) var fallbackTDSFailure = false
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
 
@@ -99,7 +100,10 @@ public class ContentBlockerRulesSourceManager {
 
      This method takes into account changes to `dataSource` that could fix previously corrupted data set - in such case `brokenSources` state is updated.
      */
-    func makeModel() -> ContentBlockerRulesSourceModel {
+    func makeModel() -> ContentBlockerRulesSourceModel? {
+        guard !fallbackTDSFailure else {
+            return nil
+        }
 
         // Fetch identifiers up-front
         let tempListIdentifier = exceptionsSource.tempListEtag
@@ -200,6 +204,8 @@ public class ContentBlockerRulesSourceManager {
                     fatalError("Could not compile embedded rules list")
                 }
             })
+            
+            fallbackTDSFailure = true
         }
     }
 }

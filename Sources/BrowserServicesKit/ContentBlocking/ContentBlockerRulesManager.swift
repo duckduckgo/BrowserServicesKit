@@ -34,13 +34,14 @@ public protocol ContentBlockerRulesUpdating {
  Encapsulates compilation steps for a single Task
  */
 private class CompilationTask {
-    typealias Completion = () -> Void
+    typealias Completion = (_ success: Bool) -> Void
     let workQueue: DispatchQueue
     let rulesList: ContentBlockerRulesList
     let sourceManager: ContentBlockerRulesSourceManager
     let logger: OSLog
 
-    var completed: Bool { result != nil }
+    var completed: Bool { result != nil || compilationImpossible }
+    var compilationImpossible = false
     var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
 
     init(workQueue: DispatchQueue,
@@ -55,7 +56,11 @@ private class CompilationTask {
 
     func start(completionHandler: @escaping Completion) {
 
-        let model = sourceManager.makeModel()
+        guard let model = sourceManager.makeModel() else {
+            compilationImpossible = true
+            completionHandler(false)
+            return
+        }
 
         // Delegate querying to main thread - crashes were observed in background.
         DispatchQueue.main.async {
@@ -77,7 +82,7 @@ private class CompilationTask {
                                      completionHandler: @escaping Completion) {
         workQueue.async {
             self.result = (compiledRulesList, model)
-            completionHandler()
+            completionHandler(true)
         }
     }
 
@@ -89,10 +94,13 @@ private class CompilationTask {
             
             // Retry after marking failed state in the source
             self.sourceManager.compilationFailed(for: model, with: error)
-            let newModel = self.sourceManager.makeModel()
-
-        
-            self.compile(model: newModel, completionHandler: completionHandler)
+            
+            if let newModel = self.sourceManager.makeModel() {
+                self.compile(model: newModel, completionHandler: completionHandler)
+            } else {
+                self.compilationImpossible = true
+                completionHandler(false)
+            }
         }
     }
     
@@ -255,7 +263,7 @@ public class ContentBlockerRulesManager {
 
     private func executeNextTask() {
         if let nextTask = currentTasks.first(where: { !$0.completed }) {
-            nextTask.start {
+            nextTask.start { _ in
                 self.executeNextTask()
             }
         } else {
@@ -301,9 +309,10 @@ public class ContentBlockerRulesManager {
         
         lock.lock()
         
-        let newRules: [Rules] = currentTasks.map { task in
+        let newRules: [Rules] = currentTasks.compactMap { task in
             guard let result = task.result else {
-                fatalError("Task not completed!")
+                os_log("Failed to complete task %{public}s ", log: self.logger, type: .error, task.rulesList.name)
+                return nil
             }
             
             let surrogateTDS = Self.extractSurrogates(from: result.model.tds)

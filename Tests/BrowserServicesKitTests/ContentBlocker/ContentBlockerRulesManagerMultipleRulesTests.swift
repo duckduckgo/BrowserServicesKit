@@ -315,4 +315,49 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         }
     }
     
+    func testBrokenFallbackTDSFailure() {
+        
+        let mockRulesSource = MockContentBlockerRulesListsSource(firstName: "first",
+                                                                 firstTD: Self.makeDataSet(tds: Self.invalidRules),
+                                                                 firstFallbackTD: Self.makeDataSet(tds: Self.invalidRules),
+                                                                 secondName: "second",
+                                                                 secondTD: nil,
+                                                                 secondFallbackTD: Self.makeDataSet(tds: secondRules))
+        let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
+        XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
+
+        let exp = expectation(description: "Rules Compiled")
+        rulesUpdateListener.onRulesUpdated = { _ in
+            exp.fulfill()
+        }
+        
+        let errorExp = expectation(description: "No error reported")
+        errorExp.expectedFulfillmentCount = 2
+        var brokenLists = Set<String>()
+        var errorEvents = Set<ContentBlockerDebugEvents>()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+            guard let scope = scope else {
+                XCTFail("Missing scope")
+                return
+            }
+            brokenLists.insert(scope)
+            errorEvents.insert(event)
+            errorExp.fulfill()
+        }
+
+        let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                              exceptionsSource: mockExceptionsSource,
+                                              updateListener: rulesUpdateListener,
+                                              errorReporting: errorHandler,
+                                              logger: .disabled)
+
+        wait(for: [exp, errorExp], timeout: 15.0)
+        
+        XCTAssertEqual(brokenLists, Set(["first"]))
+        XCTAssertEqual(errorEvents, Set([.contentBlockingTDSCompilationFailed, .contentBlockingFallbackCompilationFailed]))
+        
+        XCTAssertEqual(cbrm.currentRules.count, 1)
+        XCTAssertEqual(cbrm.currentRules.first?.name, "second")
+    }
+    
 }
