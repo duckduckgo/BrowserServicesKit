@@ -196,7 +196,9 @@ public class ContentBlockerRulesSourceManager {
                                  error: error,
                                  parameters: params,
                                  onComplete: { _ in
-                fatalError("Could not compile embedded rules list")
+                if input.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
+                    fatalError("Could not compile embedded rules list")
+                }
             })
         }
     }
