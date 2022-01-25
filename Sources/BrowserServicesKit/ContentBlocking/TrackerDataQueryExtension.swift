@@ -48,15 +48,22 @@ extension TrackerData {
     
     public func findTracker(forUrl url: String) -> KnownTracker? {
         guard let host = URL(string: url)?.host else { return nil }
-        for host in variations(of: host) {
+        
+        let variations = variations(of: host)
+        for host in variations {
             if let tracker = trackers[host] {
                 return tracker
-            } else if let cname = cnames?[host] {
+            }
+        }
+        
+        for host in variations {
+            if let cname = cnames?[host] {
                 var tracker = findTracker(byCname: cname)
                 tracker = tracker?.copy(withNewDomain: cname)
                 return tracker
             }
         }
+        
         return nil
     }
 }
