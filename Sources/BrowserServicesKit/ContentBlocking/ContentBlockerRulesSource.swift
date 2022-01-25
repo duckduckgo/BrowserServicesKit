@@ -21,36 +21,66 @@ import Foundation
 import TrackerRadarKit
 
 /**
- Represents all sources used to build Content Blocking Rules along with their state information.
+ Represents all sources used to build Content Blocking Rules.
  */
-public protocol ContentBlockerRulesSource {
+public protocol ContentBlockerRulesListsSource {
 
-    var trackerData: TrackerDataManager.DataSet? { get }
-    var embeddedTrackerData: TrackerDataManager.DataSet { get }
+    var contentBlockerRulesLists: [ContentBlockerRulesList] { get }
+}
+
+/**
+ Represents sources used to prepare exceptions to content blocking Rules.
+ */
+public protocol ContentBlockerRulesExceptionsSource {
+
     var tempListEtag: String { get }
     var tempList: [String] { get }
     var allowListEtag: String { get }
     var allowList: [TrackerException] { get }
     var unprotectedSites: [String] { get }
-
 }
 
-public class DefaultContentBlockerRulesSource: ContentBlockerRulesSource {
+public struct ContentBlockerRulesList {
 
-    let trackerDataManager: TrackerDataManager
+    public let trackerData: TrackerDataManager.DataSet?
+    public let fallbackTrackerData: TrackerDataManager.DataSet
+
+    public let name: String
+    
+    public init(name: String,
+                trackerData: TrackerDataManager.DataSet?,
+                fallbackTrackerData: TrackerDataManager.DataSet) {
+        self.name = name
+        self.trackerData = trackerData
+        self.fallbackTrackerData = fallbackTrackerData
+    }
+}
+
+open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
+    
+    public struct Constants {
+        public static let trackerDataSetRulesListName = "TrackerDataSet"
+    }
+
+    private let trackerDataManger: TrackerDataManager
+
+    public init(trackerDataManger: TrackerDataManager) {
+        self.trackerDataManger = trackerDataManger
+    }
+    
+    open var contentBlockerRulesLists: [ContentBlockerRulesList] {
+        return [ContentBlockerRulesList(name: Constants.trackerDataSetRulesListName,
+                                        trackerData: trackerDataManger.fetchedData,
+                                        fallbackTrackerData: trackerDataManger.embeddedData)]
+    }
+}
+
+public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExceptionsSource {
+
     let privacyConfigManager: PrivacyConfigurationManager
 
-    public init(trackerDataManager: TrackerDataManager, privacyConfigManager: PrivacyConfigurationManager) {
-        self.trackerDataManager = trackerDataManager
+    public init(privacyConfigManager: PrivacyConfigurationManager) {
         self.privacyConfigManager = privacyConfigManager
-    }
-
-    public var trackerData: TrackerDataManager.DataSet? {
-        return trackerDataManager.fetchedData
-    }
-
-    public var embeddedTrackerData: TrackerDataManager.DataSet {
-        return trackerDataManager.embeddedData
     }
 
     public var tempListEtag: String {

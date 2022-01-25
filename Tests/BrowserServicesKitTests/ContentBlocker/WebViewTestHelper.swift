@@ -36,7 +36,7 @@ final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
     }
 }
 
-final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate {
+final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate  {
 
     var shouldProcessTrackers = true
     var onTrackerDetected: ((DetectedTracker) -> Void)?
@@ -48,6 +48,10 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
 
     func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
         return shouldProcessTrackers
+    }
+
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
+        return true
     }
 
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
@@ -96,13 +100,16 @@ final class TestSchemeContentBlockerUserScriptConfig: ContentBlockerUserScriptCo
 
     public let privacyConfiguration: PrivacyConfiguration
     public let trackerData: TrackerData?
+    public let ctlTrackerData: TrackerData?
 
     public private(set) var source: String
 
     public init(privacyConfiguration: PrivacyConfiguration,
-                trackerData: TrackerData?) {
+                trackerData: TrackerData?,
+                ctlTrackerData: TrackerData?) {
         self.privacyConfiguration = privacyConfiguration
         self.trackerData = trackerData
+        self.ctlTrackerData = ctlTrackerData
 
         // UserScripts contain TrackerAllowlist rules in form of regular expressions - we need to ensure test scheme is matched instead of http/https
         let orginalSource = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)

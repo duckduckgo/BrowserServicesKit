@@ -47,21 +47,33 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     public let encodedSurrogateTrackerData: String?
 
     public let source: String
-
+    
     public init(privacyConfig: PrivacyConfiguration,
-         surrogates: String,
-         trackerData: TrackerData?,
-         encodedSurrogateTrackerData: String?,
-         isDebugBuild: Bool) {
+                surrogates: String,
+                trackerData: TrackerData?,
+                encodedSurrogateTrackerData: String?,
+                trackerDataManager: TrackerDataManager,
+                isDebugBuild: Bool) {
+        
+        if trackerData == nil {
+            // Fallback to embedded
+            self.trackerData = trackerDataManager.trackerData
+            
+            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: trackerDataManager.trackerData)
+            let encodedData = try? JSONEncoder().encode(surrogateTDS)
+            let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
+            self.encodedSurrogateTrackerData = encodedTrackerData
+        } else {
+            self.trackerData = trackerData
+            self.encodedSurrogateTrackerData = encodedSurrogateTrackerData
+        }
 
         self.privacyConfig = privacyConfig
         self.surrogates = surrogates
-        self.trackerData = trackerData
-        self.encodedSurrogateTrackerData = encodedSurrogateTrackerData
 
-        source = SurrogatesUserScript.generateSource(privacyConfiguration: privacyConfig,
-                                                     surrogates: surrogates,
-                                                     encodedSurrogateTrackerData: encodedSurrogateTrackerData,
+        source = SurrogatesUserScript.generateSource(privacyConfiguration: self.privacyConfig,
+                                                     surrogates: self.surrogates,
+                                                     encodedSurrogateTrackerData: self.encodedSurrogateTrackerData,
                                                      isDebugBuild: isDebugBuild)
     }
 }
