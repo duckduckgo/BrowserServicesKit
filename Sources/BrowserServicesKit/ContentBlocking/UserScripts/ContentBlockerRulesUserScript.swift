@@ -23,6 +23,7 @@ import TrackerRadarKit
 public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 
     func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
+    func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
                                        detectedTracker tracker: DetectedTracker)
 
@@ -32,20 +33,31 @@ public protocol ContentBlockerUserScriptConfig: UserScriptSourceProviding {
 
     var privacyConfiguration: PrivacyConfiguration { get }
     var trackerData: TrackerData? { get }
-
+    var ctlTrackerData: TrackerData? { get }
 }
 
 public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConfig {
 
     public let privacyConfiguration: PrivacyConfiguration
     public let trackerData: TrackerData?
+    public let ctlTrackerData: TrackerData?
 
     public private(set) var source: String
 
     public init(privacyConfiguration: PrivacyConfiguration,
-                trackerData: TrackerData?) { // This should be non-optional
+                trackerData: TrackerData?, // This should be non-optional
+                ctlTrackerData: TrackerData?,
+                trackerDataManager: TrackerDataManager? = nil) {
+        
+        if trackerData == nil {
+            // Fallback to embedded
+            self.trackerData = trackerDataManager?.trackerData
+        } else {
+            self.trackerData = trackerData
+        }
+
         self.privacyConfiguration = privacyConfiguration
-        self.trackerData = trackerData
+        self.ctlTrackerData = ctlTrackerData
 
         source = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)
     }
@@ -91,6 +103,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let delegate = delegate else { return }
         guard delegate.contentBlockerRulesUserScriptShouldProcessTrackers(self) else { return }
+        let ctlEnabled = delegate.contentBlockerRulesUserScriptShouldProcessCTLTrackers(self)
         
         guard let dict = message.body as? [String: Any] else { return }
         
@@ -105,6 +118,22 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         }
 
         let privacyConfiguration = configuration.privacyConfiguration
+        
+        if ctlEnabled, let ctlTrackerData = configuration.ctlTrackerData {
+            let resolver = TrackerResolver(tds: ctlTrackerData,
+                                           unprotectedSites: privacyConfiguration.userUnprotectedDomains,
+                                           tempList: temporaryUnprotectedDomains)
+            
+            if let tracker = resolver.trackerFromUrl(trackerUrlString,
+                                                     pageUrlString: pageUrlStr,
+                                                     resourceType: resourceType,
+                                                     potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
+                if tracker.blocked {
+                    delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
+                    return
+                }
+            }
+        }
 
         let resolver = TrackerResolver(tds: currentTrackerData,
                                        unprotectedSites: privacyConfiguration.userUnprotectedDomains,

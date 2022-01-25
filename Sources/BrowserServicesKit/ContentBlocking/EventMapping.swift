@@ -20,7 +20,10 @@
 import Foundation
 
 public class EventMapping<BSKEvent> {
-    public typealias Mapping = (_ event: BSKEvent, _ error: Error?, _ params: [String: String]?, _ onComplete: @escaping (Error?) -> Void) -> Void
+    public typealias Mapping = (_ event: BSKEvent,
+                                _ scope: String?,
+                                _ error: Error?,
+                                _ params: [String: String]?, _ onComplete: @escaping (Error?) -> Void) -> Void
 
     private let eventMapper: Mapping
 
@@ -28,7 +31,7 @@ public class EventMapping<BSKEvent> {
         eventMapper = mapping
     }
 
-    public func fire(_ event: BSKEvent, error: Error? = nil, parameters: [String: String]? = nil, onComplete: @escaping (Error?) -> Void = {_ in }) {
-        eventMapper(event, error, parameters, onComplete)
+    public func fire(_ event: BSKEvent, scope: String? = nil, error: Error? = nil, parameters: [String: String]? = nil, onComplete: @escaping (Error?) -> Void = {_ in }) {
+        eventMapper(event, scope, error, parameters, onComplete)
     }
 }

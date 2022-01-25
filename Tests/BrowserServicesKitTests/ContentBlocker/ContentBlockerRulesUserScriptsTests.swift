@@ -102,7 +102,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
         var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimWhitespace().isEmpty }
         tempUnprotected.append(contentsOf: privacyConfig.exceptionsList(forFeature: .contentBlocking))
 
-        let exceptions = DefaultContentBlockerRulesSource.transform(allowList: privacyConfig.trackerAllowlist)
+        let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: privacyConfig.trackerAllowlist)
 
         WebKitTestHelper.prepareContentBlockingRules(trackerData: trackerData,
                                                      exceptions: privacyConfig.userUnprotectedDomains,
@@ -121,7 +121,8 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             webView.navigationDelegate = self.navigationDelegateMock
 
             let config = TestSchemeContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
-                                                                  trackerData: trackerData)
+                                                                  trackerData: trackerData,
+                                                                  ctlTrackerData: nil)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate
