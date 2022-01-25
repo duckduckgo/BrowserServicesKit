@@ -36,7 +36,7 @@
         domainParts.shift()
     }
 
-    if (!unprotectedDomain && topLevelUrl.host != null) {
+    if (!unprotectedDomain && topLevelUrl.host != null && topLevelUrl.host.length > 0) {
         unprotectedDomain = `
         $USER_UNPROTECTED_DOMAINS$
         `.split('\n').filter(domain => domain.trim() === topLevelUrl.host).length > 0
