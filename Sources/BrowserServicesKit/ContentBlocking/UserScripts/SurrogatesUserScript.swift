@@ -54,11 +54,11 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
                 encodedSurrogateTrackerData: String?,
                 trackerDataManager: TrackerDataManager,
                 isDebugBuild: Bool) {
-        
+
         if trackerData == nil {
             // Fallback to embedded
             self.trackerData = trackerDataManager.trackerData
-            
+
             let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: trackerDataManager.trackerData)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
@@ -79,7 +79,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
 }
 
 open class SurrogatesUserScript: NSObject, UserScript {
-    
+
     struct TrackerDetectedKey {
         static let protectionId = "protectionId"
         static let blocked = "blocked"
@@ -100,19 +100,19 @@ open class SurrogatesUserScript: NSObject, UserScript {
     open var source: String {
         return configuration.source
     }
-    
+
     public var injectionTime: WKUserScriptInjectionTime = .atDocumentStart
-    
+
     public var forMainFrameOnly: Bool = false
-    
+
     public var messageNames: [String] = [ "trackerDetectedMessage" ]
 
     public weak var delegate: SurrogatesUserScriptDelegate?
-    
+
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let delegate = delegate else { return }
         guard delegate.surrogatesUserScriptShouldProcessTrackers(self) else { return }
-        
+
         guard let dict = message.body as? [String: Any] else { return }
         guard let blocked = dict[TrackerDetectedKey.blocked] as? Bool else { return }
         guard let urlString = dict[TrackerDetectedKey.url] as? String else { return }
@@ -124,7 +124,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
             delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
         }
     }
-            
+
     private func trackerFromUrl(_ urlString: String, pageUrlString: String, _ blocked: Bool) -> DetectedTracker {
         let currentTrackerData = configuration.trackerData
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)

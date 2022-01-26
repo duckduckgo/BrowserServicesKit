@@ -161,12 +161,12 @@ public class ContentBlockerRulesSourceManager {
      Process information about last failed compilation in order to update `brokenSources` state.
      */
     func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers, with error: Error) {
-        
+
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             // We failed compilation for non-embedded TDS, marking it as broken.
             brokenSources = ContentBlockerRulesSourceIdentifiers(name: rulesList.name,
                                                                  tdsIdentfier: input.tdsIdentifier)
-            
+
             errorReporting?.fire(.contentBlockingTDSCompilationFailed,
                                  scope: input.name,
                                  error: error,
@@ -204,7 +204,7 @@ public class ContentBlockerRulesSourceManager {
                     fatalError("Could not compile embedded rules list")
                 }
             })
-            
+
             fallbackTDSFailure = true
         }
     }
