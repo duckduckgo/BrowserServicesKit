@@ -92,4 +92,6 @@ public enum PrivacyFeature: String {
     case gpc
     case httpsUpgrade = "https"
     case navigatorCredentials
+    case ampLinks
+    case trackingParameters
 }
