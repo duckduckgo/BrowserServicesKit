@@ -91,7 +91,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
         guard let dict = message.body as? [String: Any],
               let width = dict["width"] as? CGFloat,
               let height = dict["height"] as? CGFloat else {
-                  return
+                  return replyHandler(nil)
               }
         self.contentOverlay?.setSize(height: height, width: width)
         replyHandler(nil)

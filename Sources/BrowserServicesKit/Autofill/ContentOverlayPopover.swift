@@ -26,6 +26,8 @@ public final class ContentOverlayPopover: NSPopover {
 
     public override init() {
         super.init()
+        animates = false
+        appearance = NSAppearance(named: NSAppearance.Name.vibrantLight)
 
 #if DEBUG
         behavior = .semitransient
@@ -55,9 +57,17 @@ public final class ContentOverlayPopover: NSPopover {
     
     
     public func setTypes(inputType: String) {
-        print("setting types: \(inputType)")
         let c = contentViewController as! ContentOverlayViewController
         c.zoomFactor = zoomFactor
         c.inputType = inputType
+    }
+    
+    public func display(rect: NSRect, of: NSView, width: CGFloat) {
+        guard let insetBy = self.value(forKeyPath: "anchorSize")! as? CGSize else {
+            return
+        }
+        // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
+        self.show(relativeTo: rect.insetBy(dx: insetBy.width, dy: insetBy.height), of: of, preferredEdge: .minY)
+        self.contentSize = NSSize.init(width: width, height: 200)
     }
 }

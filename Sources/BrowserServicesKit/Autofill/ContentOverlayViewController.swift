@@ -49,14 +49,11 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     }()
     
     public override func viewDidLoad() {
-        // privacyDashboardScript.delegate = self
         initWebView()
         topAutofillUserScript.contentOverlay = self
         topAutofillUserScript.messageInterfaceBack = messageInterfaceBack
         topAutofillUserScript.emailDelegate = emailManager
         topAutofillUserScript.vaultDelegate = vaultManager
-        print("view did load \(inputType)")
-        // TODO I think this probably would race
         topAutofillUserScript.inputType = inputType
 
         webView.configuration.userContentController.addHandler(topAutofillUserScript)
@@ -84,11 +81,8 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
 #endif
         
         let webView = WKWebView(frame: .zero, configuration: configuration)
-        // webView.navigationDelegate = self
         self.webView = webView
-        print("init webview:")
         if let zoomFactor = zoomFactor {
-            print("zf: \(zoomFactor)")
             webView.magnification = zoomFactor
         }
         view.addAndLayout(webView)
@@ -131,7 +125,15 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
 
 extension ContentOverlayViewController: TopAutofillUserScriptDelegate {
     public func setSize(height: CGFloat, width: CGFloat) {
-        self.preferredContentSize = CGSize(width: width, height: height)
+        var widthOut = width
+        if (widthOut < 150) {
+            widthOut = 150
+        }
+        var heightOut = height
+        if (heightOut < 80) {
+            heightOut = 80
+        }
+        self.preferredContentSize = CGSize(width: widthOut, height: heightOut)
     }
 }
 

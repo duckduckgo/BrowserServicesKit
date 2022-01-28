@@ -18,7 +18,12 @@
 //
 
 import WebKit
-// import SwiftUI
+
+public protocol AutofillUserScriptDelegate: AnyObject {
+
+    func clickTriggered(clickPoint: NSPoint)
+
+}
 
 public protocol AutofillEmailDelegate: AnyObject {
 
@@ -55,6 +60,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 }
 
 public protocol OverlayProtocol {
+    var view: NSView { get }
     func getContentOverlayPopover(_ response: AutofillMessaging) -> ContentOverlayPopover?
 }
 
@@ -78,6 +84,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     }
 
     public var topView: OverlayProtocol?
+    public var clickPoint: NSPoint?
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
@@ -110,7 +117,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
-        print("got message \(message)")
+        print("got message \(message) \(self) \(#function) ")
         switch message {
         case .showAutofillParent: return showAutofillParent
         case .closeAutofillParent: return closeAutofillParent
@@ -184,7 +191,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     }
     
     public func messageSelectedCredential<T: Encodable>(_ data: [String: T], _ configType: String) {
-        print("messsaged to af! \(data)")
+        print("messsaged to af! \(data) \(lastOpenHost)")
         guard let topView = topView else { return }
         topView.getContentOverlayPopover(self)?.close()
         guard let currentWebView = currentWebView else { return }
@@ -200,50 +207,64 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
                 document.dispatchEvent(event);
             })()
             """
-            currentWebView.evaluateJavaScript(script)
+            /// currentWebView.evaluateJavaScript(script)
+            if #available(macOS 11.0, *) {
+                currentWebView.evaluateJavaScript(script, in: currentFrame, in: .defaultClient, completionHandler: nil)
+            } else {
+                // Fallback on earlier versions
+            }
         }
     }
     
     weak var currentWebView: WKWebView?
+    weak var currentFrame: WKFrameInfo?
     
     func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let topView = topView else { return }
         let popover = topView.getContentOverlayPopover(self)!;
         currentWebView = nil
+        currentFrame = nil
         popover.close()
         replyHandler(nil)
     }
     
     func showAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        print("\(self) \(#function) \(topView) \(clickPoint)")
         guard let dict = message.body as? [String: Any],
               let left = dict["inputLeft"] as? CGFloat,
               let top = dict["inputTop"] as? CGFloat,
               let height = dict["inputHeight"] as? CGFloat,
-              let width = dict["inputWidth"] as? CGFloat,
+              var width = dict["inputWidth"] as? CGFloat,
               let inputType = dict["inputType"] as? String,
-              let topView = topView else {
+              let topView = topView,
+              let clickPoint = clickPoint else {
                   return
               }
+        // Sets the last message host, so we can message back to it
         lastOpenHost = hostProvider.hostForMessage(message)
-        print("show autofill parent x: \(left), y: \(top)- \(dict)")
+        currentWebView = message.webView
+        currentFrame = message.frameInfo
         
         let popover = topView.getContentOverlayPopover(self)!;
         popover.setTypes(inputType: inputType)
-        
-        print("zoom: \(popover.zoomFactor) it: \(inputType)")
         let zf = popover.zoomFactor!
+        // Combines native click with offset of dax click.
+        let clickX = CGFloat(clickPoint.x);
+        let clickY = CGFloat(clickPoint.y);
+        let y = (clickY - top) * zf;
+        let x = (clickX - left) * zf;
+        print("calc click x \(clickX) click y \(clickY) top: \(top) y: \(y) x: \(x)")
 
-        let rect = NSRect(x: left * zf, y: top * zf, width: width * zf, height: height * zf)
+        let rect = NSRect(x: x, y: y, width: width * zf, height: height * zf)
         // Convert to webview coordinate system
+        print("pos: \(rect) -- \(top) \(height) -- click: \(clickPoint)")
         let outRect = popover.webView?.convert(rect, to: popover.webView)
-        
-        // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
-        if let insetBy = popover.value(forKeyPath: "anchorSize")! as? CGSize {
-            currentWebView = message.webView
-            popover.show(relativeTo: rect.insetBy(dx: insetBy.width, dy: insetBy.height), of: popover.webView!, preferredEdge: .maxY)
-            popover.contentSize = NSSize.init(width: width, height: 200)
-            replyHandler(nil)
+        // TODO make 150 a constant
+        if (width < 150) {
+            width = 150
         }
+        popover.display(rect: rect, of: self.topView!.view, width: width)
+        replyHandler(nil)
     }
 
     let encrypter: AutofillEncrypter
