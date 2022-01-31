@@ -21,14 +21,7 @@ import Foundation
 import WebKit
 import os.log
 import TrackerRadarKit
-
-public protocol ContentBlockerRulesUpdating {
-
-    func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules: [ContentBlockerRulesManager.Rules],
-                      changes: [String: ContentBlockerRulesIdentifier.Difference],
-                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
-}
+import Combine
 
 public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCache: [String: Date] { get set }
@@ -170,7 +163,17 @@ public class ContentBlockerRulesManager {
     private let rulesSource: ContentBlockerRulesListsSource
     private let cache: ContentBlockerRulesCaching?
     private let exceptionsSource: ContentBlockerRulesExceptionsSource
-    private let updateListener: ContentBlockerRulesUpdating?
+
+    public struct UpdateEvent {
+        public let rules: [ContentBlockerRulesManager.Rules]
+        public let changes: [String: ContentBlockerRulesIdentifier.Difference]
+        public let completionTokens: [ContentBlockerRulesManager.CompletionToken]
+    }
+    private let updatesSubject = PassthroughSubject<UpdateEvent, Never>()
+    public var updatesPublisher: AnyPublisher<UpdateEvent, Never> {
+        updatesSubject.eraseToAnyPublisher()
+    }
+
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let logger: OSLog
 
@@ -184,13 +187,11 @@ public class ContentBlockerRulesManager {
     public init(rulesSource: ContentBlockerRulesListsSource,
                 exceptionsSource: ContentBlockerRulesExceptionsSource,
                 cache: ContentBlockerRulesCaching? = nil,
-                updateListener: ContentBlockerRulesUpdating,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 logger: OSLog = .disabled) {
         self.rulesSource = rulesSource
         self.exceptionsSource = exceptionsSource
         self.cache = cache
-        self.updateListener = updateListener
         self.errorReporting = errorReporting
         self.logger = logger
 
@@ -367,12 +368,8 @@ public class ContentBlockerRulesManager {
         lock.unlock()
 
         let currentIdentifiers: [String] = newRules.map { $0.identifier.stringValue }
+        self.updatesSubject.send ( UpdateEvent(rules: newRules, changes: changes, completionTokens: completionTokens) )
         DispatchQueue.main.async {
-            self.updateListener?.rulesManager(self,
-                                              didUpdateRules: newRules,
-                                              changes: changes,
-                                              completionTokens: completionTokens)
-
             self.cleanup(currentIdentifiers: currentIdentifiers)
         }
     }
