@@ -50,9 +50,8 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .copy("UserScript/testUserScript.js"),
-                .copy("MockFiles"),
-                .copy("Resources")
+                .process("UserScript/testUserScript.js"),
+                .process("Resources")
             ])
     ]
 )
