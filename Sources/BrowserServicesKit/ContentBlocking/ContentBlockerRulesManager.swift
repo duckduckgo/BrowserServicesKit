@@ -412,12 +412,14 @@ public class ContentBlockerRulesManager {
 extension ContentBlockerRulesManager {
 
     public convenience init(rulesSource: ContentBlockerRulesListsSource,
-                exceptionsSource: ContentBlockerRulesExceptionsSource,
-                updateListener: ContentBlockerRulesUpdating,
-                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                logger: OSLog = .disabled) {
+                            exceptionsSource: ContentBlockerRulesExceptionsSource,
+                            cache: ContentBlockerRulesCaching? = nil,
+                            updateListener: ContentBlockerRulesUpdating,
+                            errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+                            logger: OSLog = .disabled) {
         self.init(rulesSource: rulesSource,
                   exceptionsSource: exceptionsSource,
+                  cache: cache,
                   errorReporting: errorReporting,
                   logger: logger)
 
