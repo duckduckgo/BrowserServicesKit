@@ -70,7 +70,9 @@ extension UserScript {
         return js
     }
 
-    static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, requiresRunInPageContentWorld: Bool = false) -> WKUserScript {
+    static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime,
+                                 forMainFrameOnly: Bool,
+                                 requiresRunInPageContentWorld: Bool = false) -> WKUserScript {
         if #available(macOS 11.0, iOS 14.0, *) {
             let contentWorld = getContentWorld(requiresRunInPageContentWorld)
             return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
@@ -80,7 +82,10 @@ extension UserScript {
     }
 
     public func makeWKUserScript() -> WKUserScript {
-        return Self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, requiresRunInPageContentWorld: requiresRunInPageContentWorld)
+        return Self.makeWKUserScript(source: source,
+                                     injectionTime: injectionTime,
+                                     forMainFrameOnly: forMainFrameOnly,
+                                     requiresRunInPageContentWorld: requiresRunInPageContentWorld)
     }
 
 }

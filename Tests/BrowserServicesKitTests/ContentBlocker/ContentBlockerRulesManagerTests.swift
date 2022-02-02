@@ -23,6 +23,8 @@ import BrowserServicesKit
 import WebKit
 
 // swiftlint:disable file_length
+// swiftlint:disable function_body_length
+// swiftlint:disable identifier_name
 
 class ContentBlockerRulesManagerTests: XCTestCase {
     
@@ -192,7 +194,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: (Self.fakeEmbeddedDataSet.tds, Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
-        XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
+        XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag,
+                          mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
@@ -201,7 +204,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         
         let errorExp = expectation(description: "No error reported")
         errorExp.isInverted = true
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { _, _, _, _, _ in
             errorExp.fulfill()
         }
 
@@ -238,7 +241,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
         
         let errorExp = expectation(description: "Error reported")
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, _, _ in
             XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
             XCTAssertEqual(event, .contentBlockingTDSCompilationFailed)
             errorExp.fulfill()
@@ -520,7 +523,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let errorExp = expectation(description: "Error reported")
         errorExp.expectedFulfillmentCount = 4
         var errorEvents = [ContentBlockerDebugEvents]()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, _, _ in
             
             XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
             errorEvents.append(event)
@@ -545,16 +548,20 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         
         // TDS is also marked as invalid to simplify flow
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier,
+                       mockRulesSource.trackerData?.etag)
         
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier, mockExceptionsSource.tempListEtag)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier,
+                       mockExceptionsSource.tempListEtag)
 
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier, mockExceptionsSource.allowListEtag)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier,
+                       mockExceptionsSource.allowListEtag)
         
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier, mockExceptionsSource.unprotectedSitesHash)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier,
+                       mockExceptionsSource.unprotectedSitesHash)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
@@ -564,8 +571,6 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      unprotectedSitesHash: nil))
     }
 }
-
-// swiftlint:enable type_body_length
 
 class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
@@ -905,7 +910,7 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
         var cbrm: ContentBlockerRulesManager!
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { rules in
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -948,7 +953,7 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
         var cbrm: ContentBlockerRulesManager!
 
         let exp = expectation(description: "Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { rules in
+        rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
 
@@ -996,6 +1001,8 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
     }
 
 }
+
+// swiftlint:enable type_body_length
 
 class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
@@ -1099,7 +1106,8 @@ extension WKContentRuleListStore {
         completionHandler(nil)
     }
 
-
 }
 
+// swiftlint:enable identifier_name
+// swiftlint:enable function_body_length
 // swiftlint:enable file_length
