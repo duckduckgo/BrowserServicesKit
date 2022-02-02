@@ -20,14 +20,14 @@
 import XCTest
 import BrowserServicesKit
 
-class MockPrivacyConfigurationDataProvider: PrivacyConfigurationEmbeddedDataProvider {
-    var embeddedPrivacyConfigEtag: String
+class MockEmbeddedDataProvider: EmbeddedDataProvider {
+    var embeddedDataEtag: String
 
-    var embeddedPrivacyConfig: Data
+    var embeddedData: Data
 
     init(data: Data, etag: String) {
-        embeddedPrivacyConfig = data
-        embeddedPrivacyConfigEtag = etag
+        embeddedData = data
+        embeddedDataEtag = etag
     }
 }
 
@@ -70,14 +70,14 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
     func testWhenDownloadedDataIsMissing_ThenEmbeddedIsUsed() {
 
-        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore())
 
-        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertEqual(manager.reload(etag: nil, data: nil), PrivacyConfigurationManager.ReloadResult.embedded)
 
         XCTAssertNil(manager.fetchedConfigData)
@@ -95,14 +95,14 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
     func testWhenDataIsPresent_ThenItIsUsed() {
 
-        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let manager = PrivacyConfigurationManager(fetchedETag: downloadedConfigETag,
                                                   fetchedData: downloadedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore())
 
-        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertEqual(manager.fetchedConfigData?.etag, downloadedConfigETag)
 
         let config = manager.privacyConfig
@@ -117,14 +117,14 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
     func testWhenDownloadedDataIsReloaded_ThenItIsUsed() {
 
-        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore())
 
-        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
 
         XCTAssertEqual(manager.reload(etag: downloadedConfigETag, data: downloadedConfig), .downloaded)
@@ -141,14 +141,14 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
     func testWhenPresentDataIsCorrupted_ThenEmbeddedIsUsed() {
 
-        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore())
 
-        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
 
         // Should use embedded
@@ -168,14 +168,14 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
     func testWhenReloadedDataIsCorrupted_ThenEmbeddedIsUsed() {
 
-        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore())
 
-        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
 
         // Should use embedded
@@ -195,7 +195,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
     func testWhenCheckingUnprotectedSites_ThenProtectionStoreIsUsed() {
 
-        let mockEmbeddedData = MockPrivacyConfigurationDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let mockProtectionStore = MockDomainsProtectionStore()
         mockProtectionStore.enableProtection(forDomain: "enabled.com")
@@ -205,7 +205,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: mockProtectionStore)
 
-        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedPrivacyConfigEtag)
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
 
         let config = manager.privacyConfig
