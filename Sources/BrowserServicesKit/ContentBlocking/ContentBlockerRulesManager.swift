@@ -60,6 +60,20 @@ public class ContentBlockerRulesManager {
         public let encodedTrackerData: String
         public let etag: String
         public let identifier: ContentBlockerRulesIdentifier
+
+        public init(name: String,
+                    rulesList: WKContentRuleList,
+                    trackerData: TrackerData,
+                    encodedTrackerData: String,
+                    etag: String,
+                    identifier: ContentBlockerRulesIdentifier) {
+            self.name = name
+            self.rulesList = rulesList
+            self.trackerData = trackerData
+            self.encodedTrackerData = encodedTrackerData
+            self.etag = etag
+            self.identifier = identifier
+        }
     }
 
     private let rulesSource: ContentBlockerRulesListsSource
@@ -70,6 +84,14 @@ public class ContentBlockerRulesManager {
         public let rules: [ContentBlockerRulesManager.Rules]
         public let changes: [String: ContentBlockerRulesIdentifier.Difference]
         public let completionTokens: [ContentBlockerRulesManager.CompletionToken]
+
+        public init(rules: [ContentBlockerRulesManager.Rules],
+                    changes: [String: ContentBlockerRulesIdentifier.Difference],
+                    completionTokens: [ContentBlockerRulesManager.CompletionToken]) {
+            self.rules = rules
+            self.changes = changes
+            self.completionTokens = completionTokens
+        }
     }
     private let updatesSubject = PassthroughSubject<UpdateEvent, Never>()
     public var updatesPublisher: AnyPublisher<UpdateEvent, Never> {
