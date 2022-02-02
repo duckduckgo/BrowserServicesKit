@@ -29,11 +29,6 @@ public protocol TrackerDataProvider {
 
 public class TrackerDataManager {
     
-    public struct Constants {
-        public static let embeddedDataSetETag = "\"b5a369bfb768bc327fb22575c792a348\""
-        public static let embeddedDataSetSHA = "b85c321da42d5f2286982e1242d2d1985307d443a7e3c2d195fda92d012f77ef"
-    }
-    
     public enum ReloadResult: Equatable {
         case embedded
         case embeddedFallback
@@ -68,9 +63,9 @@ public class TrackerDataManager {
             if let embedded = _embeddedData {
                 data = embedded
             } else {
-                let embedded = (try? Data(contentsOf: Self.embeddedUrl)) ?? Data()
+                let embedded = embeddedDataProvider.embeddedData
                 let trackerData = try? JSONDecoder().decode(TrackerData.self, from: embedded)
-                _embeddedData = (trackerData!, Constants.embeddedDataSetETag)
+                _embeddedData = (trackerData!, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedData
             }
             lock.unlock()
@@ -90,9 +85,14 @@ public class TrackerDataManager {
         return embeddedData.tds
     }
 
+    private let embeddedDataProvider: EmbeddedDataProvider
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
 
-    public init(etag: String?, data: Data?, errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+    public init(etag: String?,
+                data: Data?,
+                embeddedDataProvider: EmbeddedDataProvider,
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+        self.embeddedDataProvider = embeddedDataProvider
         self.errorReporting = errorReporting
 
         reload(etag: etag, data: data)
@@ -122,9 +122,5 @@ public class TrackerDataManager {
         }
         
         return result
-    }
-
-    static var embeddedUrl: URL {
-        return Bundle.module.url(forResource: "trackerData", withExtension: "json")!
     }
 }
