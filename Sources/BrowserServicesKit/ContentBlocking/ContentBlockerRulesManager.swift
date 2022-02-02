@@ -28,6 +28,14 @@ public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCacheInterval: TimeInterval { get }
 }
 
+public protocol ContentBlockerRulesUpdating {
+
+    func rulesManager(_ manager: ContentBlockerRulesManager,
+                      didUpdateRules: [ContentBlockerRulesManager.Rules],
+                      changes: [String: ContentBlockerRulesIdentifier.Difference],
+                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
+}
+
 /**
  Encapsulates compilation steps for a single Task
  */
@@ -397,6 +405,36 @@ public class ContentBlockerRulesManager {
                 WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: id) { _ in }
             }
         }
+    }
+
+}
+
+extension ContentBlockerRulesManager {
+
+    public convenience init(rulesSource: ContentBlockerRulesListsSource,
+                exceptionsSource: ContentBlockerRulesExceptionsSource,
+                updateListener: ContentBlockerRulesUpdating,
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+                logger: OSLog = .disabled) {
+        self.init(rulesSource: rulesSource,
+                  exceptionsSource: exceptionsSource,
+                  errorReporting: errorReporting,
+                  logger: logger)
+
+        var cancellable: AnyCancellable?
+        cancellable = self.updatesPublisher.receive(on: DispatchQueue.main)
+            .sink { [weak self] update in
+                guard let self = self else {
+                    cancellable?.cancel()
+                    return
+                }
+                withExtendedLifetime(cancellable) {
+                    updateListener.rulesManager(self,
+                                                didUpdateRules: update.rules,
+                                                changes: update.changes,
+                                                completionTokens: update.completionTokens)
+                }
+            }
     }
 
 }
