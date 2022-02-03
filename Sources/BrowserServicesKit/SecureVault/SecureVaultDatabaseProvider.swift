@@ -18,6 +18,7 @@
 
 import Foundation
 import GRDB
+import os.log
 
 protocol SecureVaultDatabaseProvider {
 
@@ -67,7 +68,14 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
 
         let file = try Self.dbFile()
-        db = try DatabaseQueue(path: file.path, configuration: config)
+
+        do {
+            db = try DatabaseQueue(path: file.path, configuration: config)
+        } catch (let error) {
+            os_log("database initialization failed with %{public}s, recreating", type: .error, error.localizedDescription)
+            try? FileManager.default.removeItem(at: file)
+            db = try DatabaseQueue(path: file.path, configuration: config)
+        }
 
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
