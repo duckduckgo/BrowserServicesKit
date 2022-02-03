@@ -128,6 +128,7 @@ final class SuggestionProcessing {
 
     private func removeDuplicates(from suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
 
+        // Finds a duplicate with the same URL and available title
         func duplicateWithTitle(to suggestion: Suggestion,
                                 nakedUrl: URL,
                                 from suggestions: [Suggestion]) -> Suggestion? {
@@ -139,16 +140,25 @@ final class SuggestionProcessing {
             }) ?? nil
         }
 
+        // Finds a bookmark duplicate for history entry and copies allowedInTopHits value
         func bookmarkDuplicate(to suggestion: Suggestion,
                                nakedUrl: URL,
                                from sugestions: [Suggestion]) -> Suggestion? {
             guard case .historyEntry = suggestion else {
                 return nil
             }
-            return suggestions.first(where: {
+            if let newSuggestion = suggestions.first(where: {
                 if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
                 return false
-            }) ?? nil
+            }), case let Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = newSuggestion {
+                // Allow in Top Hits section if original suggestion is allowed
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: suggestion.allowedInTopHits)
+            } else {
+                return nil
+            }
         }
 
         var newSuggestions = [Suggestion]()
