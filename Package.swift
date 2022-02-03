@@ -56,8 +56,7 @@ let package = Package(
                 .process("Resources/duckduckgo-autofill/dist/autofill.js"),
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
-                .process("Resources/content-scope-scripts/build/apple/contentScope.js"),
-                .copy("Resources/trackerData.json")
+                .process("Resources/content-scope-scripts/build/apple/contentScope.js")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
@@ -65,9 +64,8 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .copy("UserScript/testUserScript.js"),
-                .copy("MockFiles"),
-                .copy("Resources")
+                .process("UserScript/testUserScript.js"),
+                .process("Resources")
             ])
     ]
 )

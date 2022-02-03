@@ -19,10 +19,10 @@
 
 import Foundation
 
-public protocol PrivacyConfigurationEmbeddedDataProvider {
+public protocol EmbeddedDataProvider {
 
-    var embeddedPrivacyConfigEtag: String { get }
-    var embeddedPrivacyConfig: Data { get }
+    var embeddedDataEtag: String { get }
+    var embeddedData: Data { get }
 }
 
 public class PrivacyConfigurationManager {
@@ -40,7 +40,7 @@ public class PrivacyConfigurationManager {
     public typealias ConfigurationData = (rawData: Data, data: PrivacyConfigurationData, etag: String)
     
     private let lock = NSLock()
-    private let embeddedDataProvider: PrivacyConfigurationEmbeddedDataProvider
+    private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
     
     private var _fetchedConfigData: ConfigurationData?
@@ -68,10 +68,10 @@ public class PrivacyConfigurationManager {
             if let embedded = _embeddedConfigData {
                 data = embedded
             } else {
-                let jsonData = embeddedDataProvider.embeddedPrivacyConfig
+                let jsonData = embeddedDataProvider.embeddedData
                 let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
                 let configData = PrivacyConfigurationData(json: json!)
-                _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedPrivacyConfigEtag)
+                _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData
             }
             lock.unlock()
@@ -88,7 +88,7 @@ public class PrivacyConfigurationManager {
 
     public init(fetchedETag: String?,
                 fetchedData: Data?,
-                embeddedDataProvider: PrivacyConfigurationEmbeddedDataProvider,
+                embeddedDataProvider: EmbeddedDataProvider,
                 localProtection: DomainsProtectionStore,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
         self.embeddedDataProvider = embeddedDataProvider
