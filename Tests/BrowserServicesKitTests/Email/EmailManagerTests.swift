@@ -38,7 +38,7 @@ var events = [EmailManagerTestEvent]()
 
 class EmailManagerTests: XCTestCase {
     
-    func getAutofillScript -> AutofillUserScript {
+    func getAutofillScript() -> AutofillUserScript {
         let embeddedConfig =
         """
         {
