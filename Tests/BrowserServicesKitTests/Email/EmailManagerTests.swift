@@ -80,17 +80,33 @@ class EmailManagerTests: XCTestCase {
         let emailManager = EmailManager(storage: storage)
         storage.mockUsername = "username"
         storage.mockToken = "token"
+        
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill" {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfigManager = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let userScript = AutofillUserScript(privacyConfigurationManager: privacyConfigManager,
+                                            properties: ContentScopeProperties(gpcEnabled: false, sessionKey: "1234"))
 
-        var status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
+        var status = emailManager.autofillUserScriptDidRequestSignedInStatus(userScript)
         XCTAssertTrue(status)
 
         storage.mockUsername = nil
-        status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
+        status = emailManager.autofillUserScriptDidRequestSignedInStatus(userScript)
         XCTAssertFalse(status)
 
         storage.mockUsername = "username"
         storage.mockToken = nil
-        status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
+        status = emailManager.autofillUserScriptDidRequestSignedInStatus(userScript)
         XCTAssertFalse(status)
     }
 
@@ -205,7 +221,23 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
         
-        emailManager.autofillUserScript(AutofillUserScript(), didRequestStoreToken: "token", username: "username", cohort: "internal_beta")
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill" {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfigManager = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let userScript = AutofillUserScript(privacyConfigurationManager: privacyConfigManager,
+                                            properties: ContentScopeProperties(gpcEnabled: false, sessionKey: "1234"))
+        
+        emailManager.autofillUserScript(userScript, didRequestStoreToken: "token", username: "username", cohort: "internal_beta")
         
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
@@ -226,8 +258,24 @@ class EmailManagerTests: XCTestCase {
             .aliasRequestMade,
             .storeAliasCalled
         ]
+        
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill" {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfigManager = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let userScript = AutofillUserScript(privacyConfigurationManager: privacyConfigManager,
+                                            properties: ContentScopeProperties(gpcEnabled: false, sessionKey: "1234"))
 
-        emailManager.autofillUserScriptDidRequestUsernameAndAlias(AutofillUserScript()) { username, alias, error in
+        emailManager.autofillUserScriptDidRequestUsernameAndAlias(userScript) { username, alias, error in
             XCTAssertNil(error)
             XCTAssertEqual(username, "username")
             XCTAssertEqual(alias, "testAlias2")

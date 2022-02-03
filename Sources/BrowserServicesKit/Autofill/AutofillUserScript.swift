@@ -47,6 +47,9 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
+    
+    private var privacyConfigurationManager: PrivacyConfigurationManager
+    private var properties: ContentScopeProperties
 
     public lazy var source: String = {
         var replacements: [String: String] = [:]
@@ -59,6 +62,18 @@ public class AutofillUserScript: NSObject, UserScript {
         } else {
             replacements["PLACEHOLDER_SECRET"] = generatedSecret
         }
+        
+        guard let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8),
+              let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
+              let userUnprotectedDomainsString = String(data: userUnprotectedDomains, encoding: .utf8),
+              let jsonProperties = try? JSONEncoder().encode(properties),
+              let jsonPropertiesString = String(data: jsonProperties, encoding: .utf8)
+              else {
+            return ""
+        }
+        replacements["$CONTENT_SCOPE$"] = privacyConfigJson
+        replacements["$USER_UNPROTECTED_DOMAINS$"] = userUnprotectedDomainsString
+        replacements["$USER_PREFERENCES$"] = jsonPropertiesString
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
@@ -102,13 +117,11 @@ public class AutofillUserScript: NSObject, UserScript {
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
 
-    init(encrypter: AutofillEncrypter, hostProvider: AutofillHostProvider) {
-        self.encrypter = encrypter
-        self.hostProvider = hostProvider
-    }
-
-    public convenience override init() {
-        self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+    public init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+        self.properties = properties
+        self.encrypter = AESGCMAutofillEncrypter()
+        self.hostProvider = SecurityOriginHostProvider()
     }
 
 }

@@ -23,7 +23,24 @@ import WebKit
 
 class AutofillEmailUserScriptTests: XCTestCase {
 
-    let userScript = AutofillUserScript(encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
+    let userScript: AutofillUserScript = {
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill": {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
+        
+        return AutofillUserScript(privacyConfigurationManager: privacyConfig, properties: properties)
+    }()
     let userContentController = WKUserContentController()
 
     var encryptedMessagingParams: [String: Any] {
@@ -54,7 +71,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
 
     func testWhenRunningOnModernWebkit_ThenInjectsAPIFlag() {
         if #available(iOS 14, macOS 11, *) {
-            XCTAssertTrue(AutofillUserScript().source.contains("hasModernWebkitAPI = true"))
+            XCTAssertTrue(userScript.source.contains("hasModernWebkitAPI = true"))
         } else {
             XCTFail("Expected to run on at least iOS 14 or macOS 11")
         }

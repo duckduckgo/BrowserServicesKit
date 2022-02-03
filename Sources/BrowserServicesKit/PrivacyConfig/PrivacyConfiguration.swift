@@ -93,4 +93,5 @@ public enum PrivacyFeature: String {
     case httpsUpgrade = "https"
     case autoconsent
     case clickToPlay
+    case autofill
 }

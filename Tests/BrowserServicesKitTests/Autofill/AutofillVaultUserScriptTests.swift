@@ -24,8 +24,25 @@ import WebKit
 @testable import BrowserServicesKit
 
 class AutofillVaultUserScriptTests: XCTestCase {
-
-    let userScript = AutofillUserScript(encrypter: NoneEncryptingEncrypter(), hostProvider: MockAutofillHostProvider())
+    
+    let userScript: AutofillUserScript = {
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill" {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
+        
+        return AutofillUserScript(privacyConfigurationManager: privacyConfig, properties: properties)
+    }()
     let userContentController = WKUserContentController()
 
     var encryptedMessagingParams: [String: Any] {
