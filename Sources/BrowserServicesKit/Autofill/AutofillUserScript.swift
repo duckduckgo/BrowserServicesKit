@@ -236,6 +236,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
               let height = dict["inputHeight"] as? CGFloat,
               var width = dict["inputWidth"] as? CGFloat,
               let inputType = dict["inputType"] as? String,
+              let inputSubtype = dict["inputSubtype"] as? String,
               let topView = topView,
               let clickPoint = clickPoint else {
                   return
@@ -246,7 +247,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         currentFrame = message.frameInfo
         
         let popover = topView.getContentOverlayPopover(self)!;
-        popover.setTypes(inputType: inputType)
+        popover.setTypes(inputType: inputType, inputSubtype: inputSubtype)
         let zf = popover.zoomFactor!
         // Combines native click with offset of dax click.
         let clickX = CGFloat(clickPoint.x);

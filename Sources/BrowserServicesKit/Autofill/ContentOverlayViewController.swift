@@ -33,6 +33,7 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     @Published var pendingUpdates = Set<String>()
     public var zoomFactor: CGFloat?
     public var inputType: String?
+    public var inputSubtype: String?
     
     public var messageInterfaceBack: AutofillMessaging?
     
@@ -55,6 +56,7 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
         topAutofillUserScript.emailDelegate = emailManager
         topAutofillUserScript.vaultDelegate = vaultManager
         topAutofillUserScript.inputType = inputType
+        topAutofillUserScript.inputSubtype = inputSubtype
 
         webView.configuration.userContentController.addHandler(topAutofillUserScript)
         webView.configuration.userContentController.addUserScript(topAutofillUserScript.makeWKUserScript())

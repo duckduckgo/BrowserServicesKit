@@ -56,10 +56,11 @@ public final class ContentOverlayPopover: NSPopover {
     // swiftlint:enable force_cast
     
     
-    public func setTypes(inputType: String) {
+    public func setTypes(inputType: String, inputSubtype: String) {
         let c = contentViewController as! ContentOverlayViewController
         c.zoomFactor = zoomFactor
         c.inputType = inputType
+        c.inputSubtype = inputSubtype
     }
     
     public func display(rect: NSRect, of: NSView, width: CGFloat) {
