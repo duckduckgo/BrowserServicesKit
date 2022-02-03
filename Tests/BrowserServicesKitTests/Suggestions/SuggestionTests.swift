@@ -158,18 +158,6 @@ final class SuggestionTests: XCTestCase {
         XCTAssert(suggestion.allowedInTopHits)
     }
 
-    func testWhenSuggestionIsDownloadLink_ThenCantBeInTopHits() {
-        let historyEntry = HistoryEntryMock(identifier: UUID(),
-                                            url: .aURL,
-                                            title: "Title",
-                                            numberOfVisits: 100,
-                                            lastVisit: Date(),
-                                            failedToLoad: false,
-                                            isDownload: true)
-        let suggestion = Suggestion(historyEntry: historyEntry)
-        XCTAssertFalse(suggestion.allowedInTopHits)
-    }
-
     func testWhenSuggestionIsFailingLink_ThenCantBeInTopHits() {
         let historyEntry = HistoryEntryMock(identifier: UUID(),
                                             url: .aURL,

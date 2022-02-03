@@ -79,7 +79,6 @@ extension Suggestion {
     init(historyEntry: HistoryEntry) {
         let areVisitsLow = historyEntry.numberOfVisits < 4
         let allowedInTopHits = !(historyEntry.failedToLoad ||
-                                 historyEntry.isDownload ||
                                  (areVisitsLow && !historyEntry.url.isRoot))
         self = .historyEntry(title: historyEntry.title,
                              url: historyEntry.url,
