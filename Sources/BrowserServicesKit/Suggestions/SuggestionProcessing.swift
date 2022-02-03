@@ -130,13 +130,25 @@ final class SuggestionProcessing {
 
         func duplicateWithTitle(to suggestion: Suggestion,
                                 nakedUrl: URL,
-                                from suggestions: [Suggestion]) -> Suggestion {
+                                from suggestions: [Suggestion]) -> Suggestion? {
             guard suggestion.title == nil else {
-                return suggestion
+                return nil
             }
             return suggestions.first(where: {
                 $0.url?.naked == nakedUrl && $0.title != nil
-            }) ?? suggestion
+            }) ?? nil
+        }
+
+        func bookmarkDuplicate(to suggestion: Suggestion,
+                               nakedUrl: URL,
+                               from sugestions: [Suggestion]) -> Suggestion? {
+            guard case .historyEntry = suggestion else {
+                return nil
+            }
+            return suggestions.first(where: {
+                if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
+                return false
+            }) ?? nil
         }
 
         var newSuggestions = [Suggestion]()
@@ -149,19 +161,30 @@ final class SuggestionProcessing {
                 continue
             }
 
-            // Sometimes, duplicates with a lower score have more information
+            var newSuggestion: Suggestion?
             // The point of the code below is to prioritise duplicates that
             // provide a higher value
-            var suggestion = suggestion
+
+            // If there is a historyEntry and bookmark with the same URL, suggest the bookmark
             switch suggestion {
-            case .bookmark, .historyEntry:
-                suggestion = duplicateWithTitle(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .phrase, .website, .unknown:
+            case .historyEntry:
+                newSuggestion = bookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
+            case .bookmark, .phrase, .website, .unknown:
                 break
             }
 
+            // Sometimes, duplicates with a lower score have more information
+            if newSuggestion == nil {
+                switch suggestion {
+                case .historyEntry:
+                    newSuggestion = duplicateWithTitle(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
+                case .bookmark, .phrase, .website, .unknown:
+                    break
+                }
+            }
+
             urls.insert(suggestionNakedUrl)
-            newSuggestions.append(suggestion)
+            newSuggestions.append(newSuggestion ?? suggestion)
 
             if let maximum = maximum, newSuggestions.count >= maximum {
                 break
