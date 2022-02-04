@@ -91,8 +91,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         XCTAssertTrue(config.isTempUnprotected(domain: "www.domain1.com"))
     }
-
-
+    
     func testWhenDataIsPresent_ThenItIsUsed() {
 
         let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
@@ -198,7 +197,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
         let mockProtectionStore = MockDomainsProtectionStore()
-        mockProtectionStore.enableProtection(forDomain: "enabled.com")
+        mockProtectionStore.disableProtection(forDomain: "enabled.com")
 
         let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
                                                   fetchedData: corruptedConfig,
@@ -212,8 +211,54 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         XCTAssertTrue(config.isUserUnprotected(domain: "enabled.com"))
 
-        mockProtectionStore.enableProtection(forDomain: "enabled2.com")
+        config.userDisabledProtection(forDomain: "enabled2.com")
         XCTAssertTrue(config.isUserUnprotected(domain: "enabled2.com"))
     }
 
+    let exampleConfig =
+    """
+    {
+        "features": {
+            "gpc": {
+                "state": "enabled",
+                "exceptions": [
+                    {
+                        "domain": "example.com",
+                        "reason": "site breakage"
+                    }
+                ]
+            }
+        },
+        "unprotectedTemporary": [
+            {
+                "domain": "unp.com",
+                "reason": "site breakage"
+            }
+        ]
+    }
+    """.data(using: .utf8)!
+    
+    func testWhenCheckingFeatureState_ThenValidStateIsReturned() {
+
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleConfig, etag: "test")
+
+        let mockProtectionStore = MockDomainsProtectionStore()
+        mockProtectionStore.disableProtection(forDomain: "disabled.com")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: mockProtectionStore)
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
+        XCTAssertNil(manager.fetchedConfigData)
+
+        let config = manager.privacyConfig
+
+        XCTAssertTrue(config.isFeature(.gpc, enabledForDomain: nil))
+        XCTAssertTrue(config.isFeature(.gpc, enabledForDomain: "test.com"))
+        XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "disabled.com"))
+        XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "example.com"))
+        XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "unp.com"))
+    }
 }
