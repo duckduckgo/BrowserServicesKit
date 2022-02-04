@@ -22,13 +22,13 @@ import XCTest
 final class SuggestionTests: XCTestCase {
 
     func testSuggestionInitializedFromBookmark() {
-        let url = URL(string: "duckduckgo.com")!
+        let url = URL.aURL
         let title = "DuckDuckGo"
         let isFavorite = true
         let bookmarkMock = BookmarkMock(url: url, title: title, isFavorite: isFavorite)
         let suggestion = Suggestion(bookmark: bookmarkMock)
 
-        XCTAssertEqual(suggestion, Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite))
+        XCTAssertEqual(suggestion, Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: isFavorite))
     }
 
     func testWhenSuggestionKeyIsPhrase_ThenSuggestionIsPhrase() {
@@ -48,12 +48,14 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testWhenUrlIsAccessed_ThenOnlySuggestionsThatContainUrlReturnsIt() {
-        let url = URL(string: "https://www.duckduckgo.com")!
+        let url = URL.aURL
 
         let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
         let websiteSuggestion = Suggestion.website(url: url)
-        let bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true)
-        let historyEntrySuggestion = Suggestion.historyEntry(title: "Title", url: url, allowedInTopHits: true)
+        let bookmarkSuggestion = Suggestion.bookmark(title: "Title", url: url, isFavorite: true, allowedInTopHits: true)
+        let historyEntrySuggestion = Suggestion.historyEntry(title: "Title",
+                                                             url: url,
+                                                             allowedInTopHits: true)
         _ = Suggestion.unknown(value: "phrase")
 
         XCTAssertNil(phraseSuggestion.url)
@@ -64,12 +66,12 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testWhenTitleIsAccessed_ThenOnlySuggestionsThatContainUrlStoreIt() {
-        let url = URL(string: "https://www.duckduckgo.com")!
+        let url = URL.aURL
         let title = "Original Title"
 
         let phraseSuggestion = Suggestion.phrase(phrase: "phrase")
         let websiteSuggestion = Suggestion.website(url: url)
-        let bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true)
+        let bookmarkSuggestion = Suggestion.bookmark(title: title, url: url, isFavorite: true, allowedInTopHits: true)
         let historyEntrySuggestion = Suggestion.historyEntry(title: title, url: url, allowedInTopHits: true)
         _ = Suggestion.unknown(value: "phrase")
 
@@ -81,7 +83,7 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testWhenInitFromHistoryEntry_ThenHistroryEntrySuggestionIsInitialized() {
-        let url = URL(string: "https://www.duckduckgo.com")!
+        let url = URL.aURL
         let title = "Title"
 
 
@@ -98,7 +100,7 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testWhenInitFromBookmark_ThenBookmarkSuggestionIsInitialized() {
-        let url = URL(string: "https://www.duckduckgo.com")!
+        let url = URL.aURL
         let title = "Title"
 
 
@@ -115,7 +117,7 @@ final class SuggestionTests: XCTestCase {
     }
 
     func testWhenInitFromURL_ThenWebsiteSuggestionIsInitialized() {
-        let url = URL(string: "https://www.duckduckgo.com")!
+        let url = URL.aURL
         let suggestion = Suggestion(url: url)
 
         guard case .website(let websiteUrl) = suggestion else {
@@ -126,5 +128,62 @@ final class SuggestionTests: XCTestCase {
         XCTAssertEqual(suggestion.url, url)
         XCTAssertEqual(websiteUrl, url)
     }
+
+    func testWhenSuggestionIsWebsite_ThenCanBeInTopHits() {
+        let suggestion = Suggestion.website(url: .aURL)
+        XCTAssert(suggestion.allowedInTopHits)
+    }
+
+    func testWhenSuggestionIsLowVisitNonRootHistoryEntry_ThenCantBeInTopHits() {
+        let historyEntry = HistoryEntryMock(identifier: UUID(),
+                                            url: .aNonRootUrl,
+                                            title: "Title",
+                                            numberOfVisits: 1,
+                                            lastVisit: Date(),
+                                            failedToLoad: false,
+                                            isDownload: false)
+        let suggestion = Suggestion(historyEntry: historyEntry)
+        XCTAssertFalse(suggestion.allowedInTopHits)
+    }
+
+    func testWhenSuggestionIsLowVisitRootHistoryEntry_ThenCanBeInTopHits() {
+        let historyEntry = HistoryEntryMock(identifier: UUID(),
+                                            url: .aRootUrl,
+                                            title: "Title",
+                                            numberOfVisits: 1,
+                                            lastVisit: Date(),
+                                            failedToLoad: false,
+                                            isDownload: false)
+        let suggestion = Suggestion(historyEntry: historyEntry)
+        XCTAssert(suggestion.allowedInTopHits)
+    }
+
+    func testWhenSuggestionIsFailingLink_ThenCantBeInTopHits() {
+        let historyEntry = HistoryEntryMock(identifier: UUID(),
+                                            url: .aURL,
+                                            title: "Title",
+                                            numberOfVisits: 100,
+                                            lastVisit: Date(),
+                                            failedToLoad: true,
+                                            isDownload: false)
+        let suggestion = Suggestion(historyEntry: historyEntry)
+        XCTAssertFalse(suggestion.allowedInTopHits)
+    }
+
+    func testWhenSuggestionIsBookmark_ThenCanOrCantBeInTopHits() {
+        let suggestion = Suggestion.bookmark(title: "Title", url: .aURL, isFavorite: false, allowedInTopHits: false)
+        XCTAssertFalse(suggestion.allowedInTopHits)
+
+        let suggestion2 = Suggestion.bookmark(title: "Title", url: .aURL, isFavorite: false, allowedInTopHits: true)
+        XCTAssert(suggestion2.allowedInTopHits)
+    }
+
+}
+
+fileprivate extension URL {
+
+    static let aURL = URL(string: "https://www.duckduckgo.com")!
+    static let aRootUrl = aURL
+    static let aNonRootUrl = URL(string: "https://www.duckduckgo.com/traffic")!
 
 }

@@ -22,7 +22,7 @@ public enum Suggestion: Equatable {
     
     case phrase(phrase: String)
     case website(url: URL)
-    case bookmark(title: String, url: URL, isFavorite: Bool)
+    case bookmark(title: String, url: URL, isFavorite: Bool, allowedInTopHits: Bool)
     case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
     case unknown(value: String)
 
@@ -31,7 +31,7 @@ public enum Suggestion: Equatable {
             switch self {
             case .website(url: let url),
                  .historyEntry(title: _, url: let url, allowedInTopHits: _),
-                 .bookmark(title: _, url: let url, isFavorite: _):
+                 .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _):
                 return url
             case .phrase, .unknown:
                 return nil
@@ -44,7 +44,7 @@ public enum Suggestion: Equatable {
             switch self {
             case .historyEntry(title: let title, url: _, allowedInTopHits: _):
                 return title
-            case .bookmark(title: let title, url: _, isFavorite: _):
+            case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _):
                 return title
             case .phrase, .website,.unknown:
                 return nil
@@ -52,11 +52,15 @@ public enum Suggestion: Equatable {
         }
     }
 
-    public var allowedForAutocompletion: Bool {
+    public var allowedInTopHits: Bool {
         switch self {
-        case .historyEntry, .bookmark:
+        case .website:
             return true
-        case .phrase, .website,.unknown:
+        case .historyEntry(title: _, url: _, allowedInTopHits: let allowedInTopHits):
+            return allowedInTopHits
+        case .bookmark(title: _, url: _, isFavorite: _, allowedInTopHits: let allowedInTopHits):
+            return allowedInTopHits
+        case .phrase, .unknown:
             return false
         }
     }
@@ -66,12 +70,19 @@ public enum Suggestion: Equatable {
 extension Suggestion {
 
     init(bookmark: Bookmark) {
-        self = .bookmark(title: bookmark.title, url: bookmark.url, isFavorite: bookmark.isFavorite)
+        self = .bookmark(title: bookmark.title,
+                         url: bookmark.url,
+                         isFavorite: bookmark.isFavorite,
+                         allowedInTopHits: bookmark.isFavorite)
     }
 
     init(historyEntry: HistoryEntry) {
-        let allowedInTopHits = !(historyEntry.failedToLoad || historyEntry.isDownload)
-        self = .historyEntry(title: historyEntry.title, url: historyEntry.url, allowedInTopHits: allowedInTopHits)
+        let areVisitsLow = historyEntry.numberOfVisits < 4
+        let allowedInTopHits = !(historyEntry.failedToLoad ||
+                                 (areVisitsLow && !historyEntry.url.isRoot))
+        self = .historyEntry(title: historyEntry.title,
+                             url: historyEntry.url,
+                             allowedInTopHits: allowedInTopHits)
     }
 
     init(url: URL) {
