@@ -40,7 +40,7 @@ public struct SuggestionResult: Equatable {
         topHits.isEmpty && duckduckgoSuggestions.isEmpty && historyAndBookmarks.isEmpty
     }
 
-    public var array: [Suggestion] {
+    public var all: [Suggestion] {
         topHits + duckduckgoSuggestions + historyAndBookmarks
     }
 
