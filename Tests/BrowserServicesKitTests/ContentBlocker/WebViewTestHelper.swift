@@ -88,11 +88,11 @@ final class MockDomainsProtectionStore: DomainsProtectionStore {
     var unprotectedDomains = Set<String>()
 
     func disableProtection(forDomain domain: String) {
-        unprotectedDomains.remove(domain)
+        unprotectedDomains.insert(domain)
     }
 
     func enableProtection(forDomain domain: String) {
-        unprotectedDomains.insert(domain)
+        unprotectedDomains.remove(domain)
     }
 }
 
