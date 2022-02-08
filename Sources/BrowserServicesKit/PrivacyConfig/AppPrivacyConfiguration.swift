@@ -66,7 +66,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         if let domain = domain,
            isTempUnprotected(domain: domain) ||
             isUserUnprotected(domain: domain) ||
-            isInExceptionList(domain: domain, forFeature: .contentBlocking) {
+            isInExceptionList(domain: domain, forFeature: feature) {
             return false
         }
         return true

@@ -26,6 +26,5 @@ public protocol HistoryEntry {
     var numberOfVisits: Int { get }
     var lastVisit: Date { get }
     var failedToLoad: Bool { get }
-    var isDownload: Bool { get }
 
 }
