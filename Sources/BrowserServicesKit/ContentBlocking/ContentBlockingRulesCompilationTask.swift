@@ -17,11 +17,12 @@ extension ContentBlockerRulesManager {
      */
     class CompilationTask {
         // swiftlint:disable:next nesting
-        typealias Completion = (_ success: Bool) -> Void
+        typealias Completion = (_ success: Bool, _ compilationTime: TimeInterval?) -> Void
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
         let logger: OSLog
+        private var start: TimeInterval?
 
         var completed: Bool { result != nil || compilationImpossible }
         var compilationImpossible = false
@@ -38,10 +39,11 @@ extension ContentBlockerRulesManager {
         }
 
         func start(completionHandler: @escaping Completion) {
+            self.start = CACurrentMediaTime()
 
             guard let model = sourceManager.makeModel() else {
                 compilationImpossible = true
-                completionHandler(false)
+                completionHandler(false, nil)
                 return
             }
 
@@ -50,7 +52,10 @@ extension ContentBlockerRulesManager {
                 WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
                                                                         completionHandler: { ruleList, _ in
                     if let ruleList = ruleList {
-                        self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
+                        self.compilationSucceded(with: ruleList,
+                                                 model: model,
+                                                 compilationTime: nil,
+                                                 completionHandler: completionHandler)
                     } else {
                         self.workQueue.async {
                             self.compile(model: model, completionHandler: completionHandler)
@@ -62,10 +67,11 @@ extension ContentBlockerRulesManager {
 
         private func compilationSucceded(with compiledRulesList: WKContentRuleList,
                                          model: ContentBlockerRulesSourceModel,
+                                         compilationTime: TimeInterval?,
                                          completionHandler: @escaping Completion) {
             workQueue.async {
                 self.result = (compiledRulesList, model)
-                completionHandler(true)
+                completionHandler(true, compilationTime)
             }
         }
 
@@ -86,7 +92,7 @@ extension ContentBlockerRulesManager {
                     self.compile(model: newModel, completionHandler: completionHandler)
                 } else {
                     self.compilationImpossible = true
-                    completionHandler(false)
+                    completionHandler(false, nil)
                 }
             }
         }
@@ -111,10 +117,13 @@ extension ContentBlockerRulesManager {
 
             let ruleList = String(data: data, encoding: .utf8)!
             WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
-                                         encodedContentRuleList: ruleList) { ruleList, error in
+                                         encodedContentRuleList: ruleList) { [start] ruleList, error in
 
                 if let ruleList = ruleList {
-                    self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
+                    self.compilationSucceded(with: ruleList,
+                                             model: model,
+                                             compilationTime: start.map { start in CACurrentMediaTime() - start },
+                                             completionHandler: completionHandler)
                 } else if let error = error {
                     self.compilationFailed(for: model, with: error, completionHandler: completionHandler)
                 } else {

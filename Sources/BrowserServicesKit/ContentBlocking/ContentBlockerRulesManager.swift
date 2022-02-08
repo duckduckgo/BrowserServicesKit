@@ -196,7 +196,14 @@ public class ContentBlockerRulesManager {
 
     private func executeNextTask() {
         if let nextTask = currentTasks.first(where: { !$0.completed }) {
-            nextTask.start { _ in
+            nextTask.start { [errorReporting] success, compilationTime in
+                if success,
+                   let compilationTime = compilationTime,
+                   let errorReporting = errorReporting {
+
+                    errorReporting.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
+                }
+
                 self.executeNextTask()
             }
         } else {

@@ -38,4 +38,6 @@ public enum ContentBlockerDebugEvents {
     case contentBlockingAllowListCompilationFailed
     case contentBlockingUnpSitesCompilationFailed
     case contentBlockingFallbackCompilationFailed
+
+    case contentBlockingCompilationTime
 }
