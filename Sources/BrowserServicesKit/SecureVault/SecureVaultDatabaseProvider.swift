@@ -683,9 +683,9 @@ extension DefaultDatabaseProvider {
         for i in 0... {
             var path = originalPath
             if i > 0 {
-                path = path + "_\(i)"
+                path += "_\(i)"
             }
-            path = path + "." + ext
+            path += "." + ext
 
             if !FileManager.default.fileExists(atPath: path) {
                 return URL(fileURLWithPath: path)
