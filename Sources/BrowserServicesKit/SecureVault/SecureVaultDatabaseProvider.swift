@@ -61,20 +61,17 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     let db: DatabaseQueue
 
-    init(key: Data) throws {
+    init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
         }
 
-        let file = try Self.dbFile()
-
         do {
             db = try DatabaseQueue(path: file.path, configuration: config)
         } catch (let error) {
-            os_log("database initialization failed with %{public}s, recreating", type: .error, error.localizedDescription)
-            try? FileManager.default.removeItem(at: file)
-            db = try DatabaseQueue(path: file.path, configuration: config)
+            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
+            throw error
         }
 
         var migrator = DatabaseMigrator()
@@ -88,9 +85,32 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         do {
             try migrator.migrate(db)
         } catch {
-            print(error)
+            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
             throw error
         }
+    }
+
+    static func recreateDatabase(withKey key: Data) throws -> DefaultDatabaseProvider {
+        let dbFile = self.dbFile()
+
+        guard FileManager.default.fileExists(atPath: dbFile.path) else {
+            return try Self(file: dbFile, key: key)
+        }
+
+        // make sure we can create an empty db first and release it then
+        let newDbFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension)
+        try autoreleasepool {
+            try _=Self(file: newDbFile, key: key)
+        }
+
+        // backup old db file
+        let backupFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension + ".bak")
+        try FileManager.default.moveItem(at: dbFile, to: backupFile)
+
+        // place just created new db in place of dbFile
+        try FileManager.default.moveItem(at: newDbFile, to: dbFile)
+
+        return try Self(file: dbFile, key: key)
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
@@ -624,7 +644,7 @@ struct MigrationUtility {
 
 extension DefaultDatabaseProvider {
 
-    static internal func dbFile() throws -> URL {
+    static internal func dbFile() -> URL {
 
         let fm = FileManager.default
 
@@ -655,6 +675,24 @@ extension DefaultDatabaseProvider {
         }
 
         return subDir.appendingPathComponent("Vault.db")
+    }
+
+    static internal func nonExistingDBFile(withExtension ext: String) -> URL {
+        let originalPath = Self.dbFile().deletingPathExtension().path
+
+        for i in 0... {
+            var path = originalPath
+            if i > 0 {
+                path = path + "_\(i)"
+            }
+            path = path + "." + ext
+
+            if !FileManager.default.fileExists(atPath: path) {
+                return URL(fileURLWithPath: path)
+            }
+        }
+
+        fatalError()
     }
 
 }

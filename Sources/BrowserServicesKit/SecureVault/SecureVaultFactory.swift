@@ -72,7 +72,11 @@ public class SecureVaultFactory {
             let databaseProvider: SecureVaultDatabaseProvider
 
             if let existingL1Key = try keystoreProvider.l1Key() {
-                databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
+                do {
+                    databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
+                } catch {
+                    databaseProvider = try DefaultDatabaseProvider.recreateDatabase(withKey: existingL1Key)
+                }
             } else {
                 throw SecureVaultError.noL1Key
             }
