@@ -204,8 +204,21 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         
         let errorExp = expectation(description: "No error reported")
         errorExp.isInverted = true
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { _, _, _, _, _ in
-            errorExp.fulfill()
+        let compilationTimeExp = expectation(description: "Compilation Time reported")
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTDSCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+                errorExp.fulfill()
+
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+                compilationTimeExp.fulfill()
+
+            default:
+                XCTFail("Unexpected \(event)")
+            }
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -214,7 +227,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler,
                                               logger: .disabled)
 
-        wait(for: [exp, errorExp], timeout: 5.0)
+        wait(for: [exp, errorExp, compilationTimeExp], timeout: 15.0)
         
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -241,10 +254,18 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
         
         let errorExp = expectation(description: "Error reported")
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, _, _ in
-            XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
-            XCTAssertEqual(event, .contentBlockingTDSCompilationFailed)
-            errorExp.fulfill()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTDSCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+
+                errorExp.fulfill()
+            default:
+                XCTFail()
+            }
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -521,13 +542,23 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
         
         let errorExp = expectation(description: "Error reported")
-        errorExp.expectedFulfillmentCount = 4
+        errorExp.expectedFulfillmentCount = 5
         var errorEvents = [ContentBlockerDebugEvents]()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, _, _ in
-            
-            XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
-            errorEvents.append(event)
-            errorExp.fulfill()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTempListCompilationFailed, .contentBlockingAllowListCompilationFailed,
+                 .contentBlockingTDSCompilationFailed, .contentBlockingUnpSitesCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+                errorEvents.append(event)
+                errorExp.fulfill()
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+
+                errorExp.fulfill()
+            default:
+                XCTFail("Unexpected \(event)")
+            }
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
