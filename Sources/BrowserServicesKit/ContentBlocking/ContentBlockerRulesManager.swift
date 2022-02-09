@@ -121,7 +121,6 @@ public class ContentBlockerRulesManager {
 
         requestCompilation(token: "")
     }
-
     /**
      Variables protected by this lock:
       - state
@@ -218,7 +217,6 @@ public class ContentBlockerRulesManager {
                 rule.surrogate != nil
             }) != nil
         }
-
         var domains = [TrackerData.TrackerDomain: TrackerData.EntityName]()
         var entities = [TrackerData.EntityName: Entity]()
         for tracker in trackers {
@@ -227,7 +225,6 @@ public class ContentBlockerRulesManager {
                 entities[entityName] = tds.entities[entityName]
             }
         }
-
         var cnames = [TrackerData.CnameDomain: TrackerData.TrackerDomain]()
         if let tdsCnames = tds.cnames {
             for pair in tdsCnames {
@@ -239,7 +236,6 @@ public class ContentBlockerRulesManager {
                 }
             }
         }
-
         return TrackerData(trackers: trackers, entities: entities, domains: domains, cnames: cnames)
     }
 

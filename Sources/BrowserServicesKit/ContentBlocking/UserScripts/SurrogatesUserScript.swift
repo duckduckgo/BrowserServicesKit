@@ -79,7 +79,6 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
 }
 
 open class SurrogatesUserScript: NSObject, UserScript {
-
     struct TrackerDetectedKey {
         static let protectionId = "protectionId"
         static let blocked = "blocked"
@@ -124,7 +123,6 @@ open class SurrogatesUserScript: NSObject, UserScript {
             delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
         }
     }
-
     private func trackerFromUrl(_ urlString: String, pageUrlString: String, _ blocked: Bool) -> DetectedTracker {
         let currentTrackerData = configuration.trackerData
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
