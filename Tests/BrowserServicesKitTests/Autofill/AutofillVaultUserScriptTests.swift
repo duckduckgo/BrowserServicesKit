@@ -146,9 +146,10 @@ class AutofillVaultUserScriptTests: XCTestCase {
         body["password"] = "password"
 
         let mockWebView = MockWebView()
-        let message = MockWKScriptMessage(name: "pmHandlerStoreCredentials", body: body, webView: mockWebView)
+        let message = MockAutofillMessage(name: "pmHandlerStoreCredentials", body: body,
+                                          host: "example.com", webView: mockWebView)
 
-        userScript.userContentController(userContentController, didReceive: message)
+        userScript.processMessage(userContentController, didReceive: message)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
         XCTAssertEqual(delegate.lastUsername, "username@example.com")
@@ -262,9 +263,10 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
-        let message = MockWKScriptMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams, webView: mockWebView)
+        let message = MockAutofillMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams,
+                                          host: "example.com", webView: mockWebView)
 
-        userScript.userContentController(userContentController, didReceive: message)
+        userScript.processMessage(userContentController, didReceive: message)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
@@ -275,9 +277,10 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
-        let message = MockWKScriptMessage(name: "pmHandlerOpenManageCreditCards", body: encryptedMessagingParams, webView: mockWebView)
+        let message = MockAutofillMessage(name: "pmHandlerOpenManageCreditCards", body: encryptedMessagingParams,
+                                          host: "example.com", webView: mockWebView)
 
-        userScript.userContentController(userContentController, didReceive: message)
+        userScript.processMessage(userContentController, didReceive: message)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
@@ -288,9 +291,10 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
-        let message = MockWKScriptMessage(name: "pmHandlerOpenManageIdentities", body: encryptedMessagingParams, webView: mockWebView)
+        let message = MockAutofillMessage(name: "pmHandlerOpenManageIdentities", body: encryptedMessagingParams,
+                                          host: "example.com", webView: mockWebView)
 
-        userScript.userContentController(userContentController, didReceive: message)
+        userScript.processMessage(userContentController, didReceive: message)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
@@ -349,10 +353,4 @@ struct NoneEncryptingEncrypter: AutofillEncrypter {
         return (reply.data(using: .utf8)!, Data())
     }
 
-}
-
-struct MockAutofillHostProvider: AutofillHostProvider {
-    func hostForMessage(_ message: WKScriptMessage) -> String {
-        return "example.com"
-    }
 }
