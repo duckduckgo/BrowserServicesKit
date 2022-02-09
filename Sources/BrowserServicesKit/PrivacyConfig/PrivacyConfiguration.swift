@@ -94,4 +94,6 @@ public enum PrivacyFeature: String {
     case autoconsent
     case clickToPlay
     case autofill
+    case ampLinks
+    case trackingParameters
 }

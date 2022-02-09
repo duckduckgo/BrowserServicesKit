@@ -57,7 +57,7 @@ final class SuggestionProcessing {
         let maximumOfNavigationalSuggestions = min(
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
             query.count + 1)
-        navigationalSuggestions = removeDuplicates(from: navigationalSuggestions,
+        navigationalSuggestions = merge(navigationalSuggestions,
                                                    maximum: maximumOfNavigationalSuggestions)
 
         // Split the Top Hits and the History and Bookmarks section
@@ -124,19 +124,63 @@ final class SuggestionProcessing {
         return historyAndBookmarkSuggestions
     }
 
-    // MARK: - Elimination of duplicates
+    // MARK: - Elimination of duplicates and merging of suggestions
 
-    private func removeDuplicates(from suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
+    // The point of this method is to prioritise duplicates that
+    // provide a higher value or replace history suggestions with bookmark suggestions
+    private func merge(_ suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
 
-        func duplicateWithTitle(to suggestion: Suggestion,
-                                nakedUrl: URL,
-                                from suggestions: [Suggestion]) -> Suggestion {
+        // Finds a duplicate with the same URL and available title
+        func findDuplicateContainingTitle(_ suggestion: Suggestion,
+                                          nakedUrl: URL,
+                                          from suggestions: [Suggestion]) -> Suggestion? {
             guard suggestion.title == nil else {
-                return suggestion
+                return nil
             }
             return suggestions.first(where: {
                 $0.url?.naked == nakedUrl && $0.title != nil
-            }) ?? suggestion
+            }) ?? nil
+        }
+
+        // Finds a bookmark duplicate for history entry and copies allowedInTopHits value
+        func findBookmarkDuplicate(to historySuggestion: Suggestion,
+                                   nakedUrl: URL,
+                                   from sugestions: [Suggestion]) -> Suggestion? {
+            guard case .historyEntry = historySuggestion else {
+                return nil
+            }
+            if let newSuggestion = suggestions.first(where: {
+                if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
+                return false
+            }), case let Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = newSuggestion {
+                // Copy allowedInTopHits from original suggestion
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: historySuggestion.allowedInTopHits)
+            } else {
+                return nil
+            }
+        }
+
+        // Finds a history entry duplicate for bookmark
+        func findAndMergeHistoryDuplicate(with bookmarkSuggestion: Suggestion,
+                                          nakedUrl: URL,
+                                          from sugestions: [Suggestion]) -> Suggestion? {
+            guard case let .bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = bookmarkSuggestion else {
+                return nil
+            }
+            if let historySuggestion = suggestions.first(where: {
+                if case .historyEntry = $0, $0.url?.naked == nakedUrl { return true }
+                return false
+            }), historySuggestion.allowedInTopHits {
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: historySuggestion.allowedInTopHits)
+            } else {
+                return nil
+            }
         }
 
         var newSuggestions = [Suggestion]()
@@ -149,19 +193,30 @@ final class SuggestionProcessing {
                 continue
             }
 
-            // Sometimes, duplicates with a lower score have more information
-            // The point of the code below is to prioritise duplicates that
-            // provide a higher value
-            var suggestion = suggestion
+            var newSuggestion: Suggestion?
+
             switch suggestion {
-            case .bookmark, .historyEntry:
-                suggestion = duplicateWithTitle(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
+            case .historyEntry:
+                // If there is a historyEntry and bookmark with the same URL, suggest the bookmark
+                newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
+            case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _):
+                newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
             case .phrase, .website, .unknown:
                 break
             }
 
+            // Sometimes, duplicates with a lower score have more information
+            if newSuggestion == nil {
+                switch suggestion {
+                case .historyEntry:
+                    newSuggestion = findDuplicateContainingTitle(suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
+                case .bookmark, .phrase, .website, .unknown:
+                    break
+                }
+            }
+
             urls.insert(suggestionNakedUrl)
-            newSuggestions.append(suggestion)
+            newSuggestions.append(newSuggestion ?? suggestion)
 
             if let maximum = maximum, newSuggestions.count >= maximum {
                 break
@@ -179,15 +234,7 @@ final class SuggestionProcessing {
         for (i, suggestion) in suggestions.enumerated() {
             guard i <= Self.maximumNumberOfTopHits else { break }
 
-            if case let .historyEntry(title: _, url: _, allowedInTopHits: allowedInTopHits) = suggestion {
-                if allowedInTopHits {
-                    topHits.append(suggestion)
-                } else {
-                    break
-                }
-            } else if case .website = suggestion {
-                topHits.append(suggestion)
-            } else if case .bookmark = suggestion {
+            if suggestion.allowedInTopHits {
                 topHits.append(suggestion)
             } else {
                 break
