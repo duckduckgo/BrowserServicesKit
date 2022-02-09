@@ -11,18 +11,33 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
     ],
     dependencies: [
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0"))
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3"))
     ],
     targets: [
         .target(
             name: "BrowserServicesKit",
             dependencies: [
-                "GRDB"
+                "GRDB",
+                "TrackerRadarKit"
             ],
             exclude: [
+                "Resources/content-scope-scripts/README.md",
+                "Resources/content-scope-scripts/package-lock.json",
+                "Resources/content-scope-scripts/package.json",
+                "Resources/content-scope-scripts/LICENSE.md",
+                "Resources/content-scope-scripts/src/",
+                "Resources/content-scope-scripts/unit-test/",
+                "Resources/content-scope-scripts/integration-test/",
+                "Resources/content-scope-scripts/scripts/",
+                "Resources/content-scope-scripts/inject/",
+                "Resources/content-scope-scripts/lib/",
+                "Resources/content-scope-scripts/build/chrome/",
+                "Resources/content-scope-scripts/build/firefox/",
+                "Resources/content-scope-scripts/build/integration/",
                 "Resources/duckduckgo-autofill/Gruntfile.js",
                 "Resources/duckduckgo-autofill/package.json",
                 "Resources/duckduckgo-autofill/package-lock.json",
@@ -34,10 +49,19 @@ let package = Package(
                 "Resources/duckduckgo-autofill/jest.setup.js",
                 "Resources/duckduckgo-autofill/dist/autofill-host-styles_chrome.css",
                 "Resources/duckduckgo-autofill/jest.config.js",
-                "Resources/duckduckgo-autofill/jest-test-environment.js"
+                "Resources/duckduckgo-autofill/jest-test-environment.js",
+                "Resources/duckduckgo-autofill/scripts/release.js",
+                "Resources/duckduckgo-autofill/jesthtmlreporter.config.json",
+                "Resources/duckduckgo-autofill/types.d.ts",
+                "Resources/duckduckgo-autofill/tsconfig.json",
+                "Resources/duckduckgo-autofill/docs/real-world-html-tests.md",
+                "Resources/duckduckgo-autofill/docs/matcher-configuration.md"
             ],
             resources: [
-                .process("Resources/duckduckgo-autofill/dist/autofill.js")
+                .process("Resources/duckduckgo-autofill/dist/autofill.js"),
+                .process("ContentBlocking/UserScripts/contentblockerrules.js"),
+                .process("ContentBlocking/UserScripts/surrogates.js"),
+                .process("Resources/content-scope-scripts/build/apple/contentScope.js")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
@@ -45,7 +69,8 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .copy("UserScript/testUserScript.js")
+                .process("UserScript/testUserScript.js"),
+                .process("Resources")
             ])
     ]
 )

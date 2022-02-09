@@ -25,12 +25,27 @@ protocol SecureVaultDatabaseProvider {
 
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
-
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
-
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
+
+    func notes() throws -> [SecureVaultModels.Note]
+    func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note?
+    @discardableResult
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64
+    func deleteNoteForNoteId(_ noteId: Int64) throws
+
+    func identities() throws -> [SecureVaultModels.Identity]
+    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity?
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
+    func deleteIdentityForIdentityId(_ identityId: Int64) throws
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard]
+    func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard?
+    @discardableResult
+    func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64
+    func deleteCreditCardForCreditCardId(_ cardId: Int64) throws
 
 }
 
@@ -59,10 +74,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
         migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
         } catch {
+            print(error)
             throw error
         }
     }
@@ -170,6 +188,170 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    // MARK: Notes
+
+    func notes() throws -> [SecureVaultModels.Note] {
+        return try db.read {
+            return try SecureVaultModels.Note.fetchAll($0)
+        }
+    }
+
+    func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note? {
+        try db.read {
+            return try SecureVaultModels.Note.fetchOne($0, sql: """
+                SELECT
+                    *
+                FROM
+                    \(SecureVaultModels.Note.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Note.Columns.id.name) = ?
+                """, arguments: [noteId])
+        }
+    }
+
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+        if let id = note.id {
+            try updateNote(note, usingId: id)
+            return id
+        } else {
+            return try insertNote(note)
+        }
+    }
+
+    func deleteNoteForNoteId(_ noteId: Int64) throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.Note.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Note.Columns.id.name) = ?
+                """, arguments: [noteId])
+        }
+    }
+
+    func updateNote(_ note: SecureVaultModels.Note, usingId id: Int64) throws {
+        try db.write {
+            try note.update($0)
+        }
+    }
+
+    func insertNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+        try db.write {
+            try note.insert($0)
+            return $0.lastInsertedRowID
+        }
+    }
+
+    // MARK: Identities
+
+    func identities() throws -> [SecureVaultModels.Identity] {
+        return try db.read {
+            return try SecureVaultModels.Identity.fetchAll($0)
+        }
+    }
+
+    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
+        try db.read {
+            return try SecureVaultModels.Identity.fetchOne($0, sql: """
+                SELECT
+                    *
+                FROM
+                    \(SecureVaultModels.Identity.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Identity.Columns.id.name) = ?
+                """, arguments: [identityId])
+        }
+    }
+
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        if let id = identity.id {
+            try updateIdentity(identity, usingId: id)
+            return id
+        } else {
+            return try insertIdentity(identity)
+        }
+    }
+
+    func deleteIdentityForIdentityId(_ identityId: Int64) throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.Identity.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.Identity.Columns.id.name) = ?
+                """, arguments: [identityId])
+        }
+    }
+
+    func updateIdentity(_ identity: SecureVaultModels.Identity, usingId id: Int64) throws {
+        try db.write {
+            try identity.update($0)
+        }
+    }
+
+    func insertIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        try db.write {
+            try identity.insert($0)
+            return $0.lastInsertedRowID
+        }
+    }
+
+    // MARK: Credit Cards
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+        return try db.read {
+            return try SecureVaultModels.CreditCard.fetchAll($0)
+        }
+    }
+
+    func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
+        try db.read {
+            return try SecureVaultModels.CreditCard.fetchOne($0, sql: """
+                SELECT
+                    *
+                FROM
+                    \(SecureVaultModels.CreditCard.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.CreditCard.Columns.id.name) = ?
+                """, arguments: [cardId])
+        }
+    }
+
+    @discardableResult
+    func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
+        if let id = creditCard.id {
+            try updateCreditCard(creditCard)
+            return id
+        } else {
+            return try insertCreditCard(creditCard)
+        }
+    }
+
+    func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.CreditCard.databaseTableName)
+                WHERE
+                    \(SecureVaultModels.CreditCard.Columns.id.name) = ?
+                """, arguments: [cardId])
+        }
+    }
+
+    func updateCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws {
+        try db.write {
+            try creditCard.update($0)
+        }
+    }
+
+    func insertCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
+        try db.write {
+            try creditCard.insert($0)
+            return $0.lastInsertedRowID
+        }
+    }
+
 }
 
 // MARK: - Database Migrations
@@ -224,7 +406,6 @@ extension DefaultDatabaseProvider {
         try database.rename(table: Credentials.databaseTableName,
                             to: Credentials.databaseTableName + "Old")
 
-
         try database.create(table: Account.databaseTableName) {
             $0.autoIncrementedPrimaryKey(Account.Columns.id.name)
             $0.column(Account.Columns.username.name, .text)
@@ -267,9 +448,171 @@ extension DefaultDatabaseProvider {
 
     }
 
+    static func migrateV5(database: Database) throws {
+
+        try database.create(table: SecureVaultModels.Note.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.Note.Columns.id.name)
+
+            $0.column(SecureVaultModels.Note.Columns.title.name, .text)
+            $0.column(SecureVaultModels.Note.Columns.created.name, .date)
+            $0.column(SecureVaultModels.Note.Columns.lastUpdated.name, .date)
+
+            $0.column(SecureVaultModels.Note.Columns.associatedDomain.name, .text)
+            $0.column(SecureVaultModels.Note.Columns.text.name, .text)
+        }
+
+        try database.create(table: SecureVaultModels.Identity.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.Identity.Columns.id.name)
+
+            $0.column(SecureVaultModels.Identity.Columns.title.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.created.name, .date)
+            $0.column(SecureVaultModels.Identity.Columns.lastUpdated.name, .date)
+
+            $0.column(SecureVaultModels.Identity.Columns.firstName.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.middleName.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.lastName.name, .text)
+
+            $0.column(SecureVaultModels.Identity.Columns.birthdayDay.name, .integer)
+            $0.column(SecureVaultModels.Identity.Columns.birthdayMonth.name, .integer)
+            $0.column(SecureVaultModels.Identity.Columns.birthdayYear.name, .integer)
+
+            $0.column(SecureVaultModels.Identity.Columns.addressStreet.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressCity.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressProvince.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressPostalCode.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.addressCountryCode.name, .text)
+
+            $0.column(SecureVaultModels.Identity.Columns.homePhone.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.mobilePhone.name, .text)
+            $0.column(SecureVaultModels.Identity.Columns.emailAddress.name, .text)
+        }
+
+        try database.create(table: SecureVaultModels.CreditCard.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.CreditCard.Columns.id.name)
+
+            $0.column(SecureVaultModels.CreditCard.Columns.title.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.created.name, .date)
+            $0.column(SecureVaultModels.CreditCard.Columns.lastUpdated.name, .date)
+
+            $0.column(SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardholderName.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
+            $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
+        }
+
+    }
+    
+    static func migrateV6(database: Database) throws {
+
+        try database.alter(table: SecureVaultModels.Identity.databaseTableName) {
+            $0.add(column: SecureVaultModels.Identity.Columns.addressStreet2.name, .text)
+        }
+
+        // The initial version of the credit card model stored the credit card number as L1 data. This migration
+        // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
+        // initialization logic.
+
+        // 1. Rename the existing table so that old data can be copied over to the new table:
+
+        let oldTableName = SecureVaultModels.CreditCard.databaseTableName + "Old"
+        try database.rename(table: SecureVaultModels.CreditCard.databaseTableName, to: oldTableName)
+        
+        // 2. Create the new table with suffix and card data values:
+        
+        try database.create(table: SecureVaultModels.CreditCard.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.CreditCard.Columns.id.name)
+
+            $0.column(SecureVaultModels.CreditCard.Columns.title.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.created.name, .date)
+            $0.column(SecureVaultModels.CreditCard.Columns.lastUpdated.name, .date)
+
+            $0.column(SecureVaultModels.CreditCard.Columns.cardSuffix.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardNumberData.name, .blob)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardholderName.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name, .text)
+            $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
+            $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
+        }
+        
+        // 3. Iterate over existing records - read their numbers, store the suffixes, and then update the new table:
+        
+        let rows = try Row.fetchCursor(database, sql: "SELECT * FROM \(oldTableName)")
+
+        while let row = try rows.next() {
+            
+            // Generate the encrypted card number and plaintext suffix:
+
+            let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
+            let plaintextCardSuffix = SecureVaultModels.CreditCard.suffix(from: number)
+            let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!)
+            
+            // Insert data from the old table into the new one:
+            
+            try database.execute(sql: """
+                INSERT INTO
+                    \(SecureVaultModels.CreditCard.databaseTableName)
+                (
+                    \(SecureVaultModels.CreditCard.Columns.id.name),
+
+                    \(SecureVaultModels.CreditCard.Columns.title.name),
+                    \(SecureVaultModels.CreditCard.Columns.created.name),
+                    \(SecureVaultModels.CreditCard.Columns.lastUpdated.name),
+
+                    \(SecureVaultModels.CreditCard.Columns.cardSuffix.name),
+                    \(SecureVaultModels.CreditCard.Columns.cardNumberData.name),
+                    \(SecureVaultModels.CreditCard.Columns.cardholderName.name),
+                    \(SecureVaultModels.CreditCard.Columns.cardSecurityCode.name),
+                    \(SecureVaultModels.CreditCard.Columns.expirationMonth.name),
+                    \(SecureVaultModels.CreditCard.Columns.expirationYear.name)
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, arguments: [row[SecureVaultModels.CreditCard.Columns.id.name],
+
+                             row[SecureVaultModels.CreditCard.Columns.title.name],
+                             row[SecureVaultModels.CreditCard.Columns.created.name],
+                             row[SecureVaultModels.CreditCard.Columns.lastUpdated.name],
+
+                             plaintextCardSuffix,
+                             encryptedCardNumber,
+                             row[SecureVaultModels.CreditCard.Columns.cardholderName.name],
+                             row[SecureVaultModels.CreditCard.Columns.cardSecurityCode.name],
+                             row[SecureVaultModels.CreditCard.Columns.expirationMonth.name],
+                             row[SecureVaultModels.CreditCard.Columns.expirationYear.name]
+                            ])
+        }
+        
+        // 4. Drop the old database:
+
+        try database.drop(table: oldTableName)
+
+    }
+
 }
 
 // MARK: - Utility functions
+
+struct MigrationUtility {
+    
+    static func l2encrypt(data: Data) throws -> Data {
+        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+        
+        guard let generatedPassword = try keyStore.generatedPassword() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
+
+        guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
+        
+        return try crypto.encrypt(data, withKey: decryptedL2Key)
+    }
+    
+}
 
 extension DefaultDatabaseProvider {
 
@@ -313,7 +656,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-           case id, title, username, domain, created, lastUpdated
+        case id, title, username, domain, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -341,9 +684,176 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 extension SecureVaultModels.WebsiteCredentials {
 
     enum Columns: String, ColumnExpression {
-           case id, password
+        case id, password
     }
 
     public static var databaseTableName: String = "website_passwords"
+
+}
+
+extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case title
+        case created
+        case lastUpdated
+        
+        case cardNumberData
+        case cardSuffix
+        case cardholderName
+        case cardSecurityCode
+
+        case expirationMonth
+        case expirationYear
+    }
+    
+    enum DeprecatedColumns: String, ColumnExpression {
+        case cardNumber
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        title = row[Columns.title]
+        created = row[Columns.created]
+        lastUpdated = row[Columns.lastUpdated]
+
+        cardNumberData = row[Columns.cardNumberData]
+        cardSuffix = row[Columns.cardSuffix]
+        cardholderName = row[Columns.cardholderName]
+        cardSecurityCode = row[Columns.cardSecurityCode]
+        expirationMonth = row[Columns.expirationMonth]
+        expirationYear = row[Columns.expirationYear]
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.title] = title
+        container[Columns.created] = created
+        container[Columns.lastUpdated] = Date()
+        container[Columns.cardNumberData] = cardNumberData
+        container[Columns.cardSuffix] = cardSuffix
+        container[Columns.cardholderName] = cardholderName
+        container[Columns.cardSecurityCode] = cardSecurityCode
+        container[Columns.expirationMonth] = expirationMonth
+        container[Columns.expirationYear] = expirationYear
+    }
+
+    public static var databaseTableName: String = "credit_cards"
+
+}
+
+extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
+
+    enum Columns: String, ColumnExpression {
+        case id, title, created, lastUpdated, associatedDomain, text
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        title = row[Columns.title]
+        created = row[Columns.created]
+        lastUpdated = row[Columns.lastUpdated]
+        associatedDomain = row[Columns.associatedDomain]
+        text = row[Columns.text]
+        
+        displayTitle = generateDisplayTitle()
+        displaySubtitle = generateDisplaySubtitle()
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.title] = title
+        container[Columns.created] = created
+        container[Columns.lastUpdated] = Date()
+        container[Columns.associatedDomain] = associatedDomain
+        container[Columns.text] = text
+    }
+
+    public static var databaseTableName: String = "notes"
+
+}
+
+extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
+
+    enum Columns: String, ColumnExpression {
+        case id
+        case title
+        case created
+        case lastUpdated
+
+        case firstName
+        case middleName
+        case lastName
+
+        case birthdayDay
+        case birthdayMonth
+        case birthdayYear
+
+        case addressStreet
+        case addressStreet2
+        case addressCity
+        case addressProvince
+        case addressPostalCode
+        case addressCountryCode
+
+        case homePhone
+        case mobilePhone
+        case emailAddress
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        title = row[Columns.title]
+        created = row[Columns.created]
+        lastUpdated = row[Columns.lastUpdated]
+
+        firstName = row[Columns.firstName]
+        middleName = row[Columns.middleName]
+        lastName = row[Columns.lastName]
+
+        birthdayDay = row[Columns.birthdayDay]
+        birthdayMonth = row[Columns.birthdayMonth]
+        birthdayYear = row[Columns.birthdayYear]
+
+        addressStreet = row[Columns.addressStreet]
+        addressStreet2 = row[Columns.addressStreet2]
+        addressCity = row[Columns.addressCity]
+        addressProvince = row[Columns.addressProvince]
+        addressPostalCode = row[Columns.addressPostalCode]
+        addressCountryCode = row[Columns.addressCountryCode]
+
+        homePhone = row[Columns.homePhone]
+        mobilePhone = row[Columns.mobilePhone]
+        emailAddress = row[Columns.emailAddress]
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.title] = title
+        container[Columns.created] = created
+        container[Columns.lastUpdated] = Date()
+
+        container[Columns.firstName] = firstName
+        container[Columns.middleName] = middleName
+        container[Columns.lastName] = lastName
+
+        container[Columns.birthdayDay] = birthdayDay
+        container[Columns.birthdayMonth] = birthdayMonth
+        container[Columns.birthdayYear] = birthdayYear
+
+        container[Columns.addressStreet] = addressStreet
+        container[Columns.addressStreet2] = addressStreet2
+        container[Columns.addressCity] = addressCity
+        container[Columns.addressProvince] = addressProvince
+        container[Columns.addressPostalCode] = addressPostalCode
+        container[Columns.addressCountryCode] = addressCountryCode
+
+        container[Columns.homePhone] = homePhone
+        container[Columns.mobilePhone] = mobilePhone
+        container[Columns.emailAddress] = emailAddress
+    }
+
+    public static var databaseTableName: String = "identities"
 
 }

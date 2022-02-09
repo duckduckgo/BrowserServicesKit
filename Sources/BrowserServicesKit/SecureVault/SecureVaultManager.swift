@@ -21,11 +21,18 @@ import Foundation
 import Combine
 import os
 
+public enum AutofillType {
+    case password
+    case card
+    case identity
+}
+
 public protocol SecureVaultManagerDelegate: AnyObject {
 
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
 
+    func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
 }
 
 public class SecureVaultManager {
@@ -38,6 +45,25 @@ public class SecureVaultManager {
 
 // Later these catches should check if it is an auth error and call the delegate to ask for user authentication.
 extension SecureVaultManager: AutofillSecureVaultDelegate {
+
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestAutoFillInitDataForDomain domain: String,
+                                   completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
+                                                                 [SecureVaultModels.Identity],
+                                                                 [SecureVaultModels.CreditCard]) -> Void) {
+
+        do {
+            let vault = try SecureVaultFactory.default.makeVault()
+            let accounts = try vault.accountsFor(domain: domain)
+            let identities = try vault.identities()
+            let cards = try vault.creditCards()
+
+            completionHandler(accounts, identities, cards)
+        } catch {
+            os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
+            completionHandler([], [], [])
+        }
+    }
 
     public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         // no-op at this point
@@ -85,11 +111,36 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             completionHandler(try SecureVaultFactory.default.makeVault().websiteCredentialsFor(accountId: accountId))
+            delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
             completionHandler(nil)
         }
 
+    }
+
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestCreditCardWithId creditCardId: Int64,
+                                   completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
+        do {
+            completionHandler(try SecureVaultFactory.default.makeVault().creditCardFor(id: creditCardId))
+            delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: creditCardId)
+        } catch {
+            os_log(.error, "Error requesting credit card: %{public}@", error.localizedDescription)
+            completionHandler(nil)
+        }
+    }
+
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestIdentityWithId identityId: Int64,
+                                   completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
+        do {
+            completionHandler(try SecureVaultFactory.default.makeVault().identityFor(id: identityId))
+            delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: identityId)
+        } catch {
+            os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)
+            completionHandler(nil)
+        }
     }
 
 }

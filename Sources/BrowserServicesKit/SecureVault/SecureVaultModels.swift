@@ -69,4 +69,204 @@ public struct SecureVaultModels {
 
     }
 
+    public struct CreditCard {
+
+        public var id: Int64?
+        public var title: String
+        public let created: Date
+        public let lastUpdated: Date
+
+        public var cardNumberData: Data
+        public var cardSuffix: String // Stored as L1 data, used when presenting a list of cards in the Autofill UI
+        public var cardholderName: String?
+        public var cardSecurityCode: String?
+        public var expirationMonth: Int?
+        public var expirationYear: Int?
+        
+        public var cardNumber: String {
+            return String(data: cardNumberData, encoding: .utf8)!
+        }
+
+        public var displayName: String {
+            let type = CreditCardValidation.type(for: cardNumber)
+            return "\(type.displayName) (\(cardSuffix))"
+        }
+        
+        static func suffix(from cardNumber: String) -> String {
+            let trimmedCardNumber = cardNumber.trimmingCharacters(in: .whitespacesAndNewlines)
+            return String(trimmedCardNumber.suffix(4))
+        }
+
+        public init(id: Int64? = nil,
+                    title: String? = nil,
+                    cardNumber: String,
+                    cardholderName: String?,
+                    cardSecurityCode: String?,
+                    expirationMonth: Int?,
+                    expirationYear: Int?) {
+            self.id = id
+            self.title = title ?? ""
+            self.created = Date()
+            self.lastUpdated = self.created
+
+            self.cardNumberData = cardNumber.data(using: .utf8)!
+            self.cardSuffix = Self.suffix(from: cardNumber)
+            self.cardholderName = cardholderName
+            self.cardSecurityCode = cardSecurityCode
+            self.expirationMonth = expirationMonth
+            self.expirationYear = expirationYear
+        }
+
+    }
+
+    public struct Note {
+
+        public var id: Int64?
+        public var title: String
+        public let created: Date
+        public let lastUpdated: Date
+
+        public var associatedDomain: String?
+        public var text: String {
+            didSet {
+                self.displayTitle = generateDisplayTitle()
+                self.displaySubtitle = generateDisplaySubtitle()
+            }
+        }
+
+        public init(title: String? = nil, associatedDomain: String? = nil, text: String) {
+            self.id = nil
+            self.title = title ?? ""
+            self.created = Date()
+            self.lastUpdated = self.created
+
+            self.associatedDomain = associatedDomain
+            self.text = text
+            
+            self.displayTitle = generateDisplayTitle()
+            self.displaySubtitle = generateDisplaySubtitle()
+        }
+        
+        // Display Properties:
+        
+        public internal(set) var displayTitle: String?
+        public internal(set) var displaySubtitle: String = ""
+        
+        /// If a note has a title, it will be used when displaying the note in the UI. If it doesn't have a title and it has body text, the first non-empty line of the body text
+        /// will be used. If it doesn't have a title or body text, a placeholder string is used.
+        internal func generateDisplayTitle() -> String? {
+            guard title.isEmpty else {
+                return title
+            }
+
+            // If a note doesn't have a title, the first non-empty line will be used instead.
+            let noteLines = text.components(separatedBy: .newlines)
+            return noteLines.first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
+        }
+        
+        /// If a note has a title, the first non-empty line of the note is used as the subtitle. If it doesn't have a title, the first non-empty line will be used as a title, so the
+        /// second non-empty line will then be used as the subtitle. If there is no title or body text, an empty string is returned.
+        internal func generateDisplaySubtitle() -> String {
+            guard title.isEmpty else {
+                return firstNonEmptyLine ?? ""
+            }
+
+            // The title's empty, so assume that the first non-empty line is used as the title, and find the second non-
+            // empty line instead.
+            
+            let noteLines = text.components(separatedBy: .newlines)
+            var alreadyFoundFirstNonEmptyLine = false
+            
+            for line in noteLines where !line.isEmpty {
+                if !alreadyFoundFirstNonEmptyLine {
+                    alreadyFoundFirstNonEmptyLine = true
+                } else if alreadyFoundFirstNonEmptyLine {
+                    return line
+                }
+            }
+            
+            return ""
+        }
+        
+        private var firstNonEmptyLine: String? {
+            let noteLines = text.components(separatedBy: .newlines)
+            return noteLines.first(where: { !$0.isEmpty })
+        }
+
+    }
+
+    public struct Identity {
+
+        public var id: Int64?
+        public var title: String
+        public let created: Date
+        public let lastUpdated: Date
+
+        public var firstName: String?
+        public var middleName: String?
+        public var lastName: String?
+
+        public var birthdayDay: Int?
+        public var birthdayMonth: Int?
+        public var birthdayYear: Int?
+
+        public var addressStreet: String?
+        public var addressStreet2: String?
+        public var addressCity: String?
+        public var addressProvince: String?
+        public var addressPostalCode: String?
+
+        /// ISO country code, e.g. `CA`
+        public var addressCountryCode: String?
+
+        public var homePhone: String?
+        public var mobilePhone: String?
+        public var emailAddress: String?
+
+        public init() {
+            self.init(id: nil, title: "", created: Date(), lastUpdated: Date())
+        }
+
+        public init(id: Int64? = nil,
+                    title: String? = nil,
+                    created: Date,
+                    lastUpdated: Date,
+                    firstName: String? = nil,
+                    middleName: String? = nil,
+                    lastName: String? = nil,
+                    birthdayDay: Int? = nil,
+                    birthdayMonth: Int? = nil,
+                    birthdayYear: Int? = nil,
+                    addressStreet: String? = nil,
+                    addressStreet2: String? = nil,
+                    addressCity: String? = nil,
+                    addressProvince: String? = nil,
+                    addressPostalCode: String? = nil,
+                    addressCountryCode: String? = nil,
+                    homePhone: String? = nil,
+                    mobilePhone: String? = nil,
+                    emailAddress: String? = nil) {
+            self.id = id
+            self.title = title ?? ""
+            self.created = created
+            self.lastUpdated = lastUpdated
+            self.firstName = firstName
+            self.middleName = middleName
+            self.lastName = lastName
+            self.birthdayDay = birthdayDay
+            self.birthdayMonth = birthdayMonth
+            self.birthdayYear = birthdayYear
+            self.addressStreet = addressStreet
+            self.addressStreet2 = addressStreet2
+            self.addressCity = addressCity
+            self.addressProvince = addressProvince
+            self.addressPostalCode = addressPostalCode
+            self.addressCountryCode = addressCountryCode
+            self.homePhone = homePhone
+            self.mobilePhone = mobilePhone
+            self.emailAddress = emailAddress
+        }
+
+    }
+
 }

@@ -20,6 +20,10 @@ import Foundation
 
 extension String {
 
+    public func trimWhitespace() -> String {
+        return trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     func dropping(prefix: String) -> String {
         return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
     }

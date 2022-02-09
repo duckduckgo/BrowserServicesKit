@@ -32,12 +32,29 @@ public protocol SecureVault {
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-    func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
 
+    func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func deleteWebsiteCredentialsFor(accountId: Int64) throws
-    
+
+    func notes() throws -> [SecureVaultModels.Note]
+    func noteFor(id: Int64) throws -> SecureVaultModels.Note?
+    @discardableResult
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64
+    func deleteNoteFor(noteId: Int64) throws
+
+    func identities() throws -> [SecureVaultModels.Identity]
+    func identityFor(id: Int64) throws -> SecureVaultModels.Identity?
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
+    func deleteIdentityFor(identityId: Int64) throws
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard]
+    func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard?
+    @discardableResult
+    func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
+    func deleteCreditCardFor(cardId: Int64) throws
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -91,7 +108,6 @@ class DefaultSecureVault: SecureVault {
         defer {
             lock.unlock()
         }
-
 
         // Whatever happens, force a re-auth on future calls
         self.expiringPassword.value = nil
@@ -164,6 +180,8 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
+    // MARK: - Credentials
+
     public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         lock.lock()
         defer {
@@ -200,19 +218,125 @@ class DefaultSecureVault: SecureVault {
     }
 
     func deleteWebsiteCredentialsFor(accountId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        }
+    }
+
+    // MARK: - Notes
+
+    func notes() throws -> [SecureVaultModels.Note] {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.notes()
+        }
+    }
+
+    func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.noteForNoteId(id)
+        }
+    }
+
+    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.storeNote(note)
+        }
+    }
+
+    func deleteNoteFor(noteId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteNoteForNoteId(noteId)
+        }
+    }
+
+    // MARK: - Identities
+
+    func identities() throws -> [SecureVaultModels.Identity] {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.identities()
+        }
+    }
+
+    func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.identityForIdentityId(id)
+        }
+    }
+
+    @discardableResult
+    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.storeIdentity(identity)
+        }
+    }
+
+    func deleteIdentityFor(identityId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteIdentityForIdentityId(identityId)
+        }
+    }
+
+    // MARK: - Credit Cards
+
+    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+        return try executeThrowingDatabaseOperation {
+            let cards =  try self.providers.database.creditCards()
+            
+            let decryptedCards: [SecureVaultModels.CreditCard] = try cards.map { card in
+                var mutableCard = card
+                mutableCard.cardNumberData = try self.l2Decrypt(data: mutableCard.cardNumberData)
+                
+                return mutableCard
+            }
+            
+            return decryptedCards
+        }
+    }
+
+    func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
+        return try executeThrowingDatabaseOperation {
+            guard var card = try self.providers.database.creditCardForCardId(id) else {
+                return nil
+            }
+
+            card.cardNumberData = try self.l2Decrypt(data: card.cardNumberData)
+
+            return card
+        }
+    }
+
+    @discardableResult
+    func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
+        return try executeThrowingDatabaseOperation {
+            var mutableCard = card
+            
+            mutableCard.cardSuffix = SecureVaultModels.CreditCard.suffix(from: mutableCard.cardNumber)
+            mutableCard.cardNumberData = try self.l2Encrypt(data: mutableCard.cardNumberData)
+            
+            return try self.providers.database.storeCreditCard(mutableCard)
+        }
+    }
+
+    func deleteCreditCardFor(cardId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteCreditCardForCreditCardId(cardId)
+        }
+    }
+
+    // MARK: - Private
+
+    private func executeThrowingDatabaseOperation<DatabaseResult>(_ operation: () throws -> DatabaseResult) throws -> DatabaseResult {
         lock.lock()
         defer {
             lock.unlock()
         }
 
         do {
-            try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+            return try operation()
         } catch {
             throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
         }
     }
-
-    // MARK: - private
 
     private func passwordInUse() throws -> Data {
         if let generatedPassword = try providers.keystore.generatedPassword() {

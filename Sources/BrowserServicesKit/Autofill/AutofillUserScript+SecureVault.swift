@@ -21,28 +21,155 @@ import WebKit
 
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
+    func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
+        [SecureVaultModels.WebsiteAccount],
+        [SecureVaultModels.Identity],
+        [SecureVaultModels.CreditCard]
+    ) -> Void)
+
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
+    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void)
+    func autofillUserScript(_: AutofillUserScript, didRequestIdentityWithId identityId: Int64,
+                            completionHandler: @escaping (SecureVaultModels.Identity?) -> Void)
 
 }
 
 extension AutofillUserScript {
 
-    struct RequestVaultAccountsResponse: Codable {
+    // MARK: - Response Objects
 
-        struct Account: Codable {
-            let id: Int64
-            let username: String
-            let lastUpdated: TimeInterval
+    struct IdentityObject: Codable {
+        let id: Int64
+        let title: String
+
+        let firstName: String?
+        let middleName: String?
+        let lastName: String?
+
+        let birthdayDay: Int?
+        let birthdayMonth: Int?
+        let birthdayYear: Int?
+
+        let addressStreet: String?
+        let addressStreet2: String?
+        let addressCity: String?
+        let addressProvince: String?
+        let addressPostalCode: String?
+        let addressCountryCode: String?
+
+        let phone: String?
+        let emailAddress: String?
+
+        static func from(identity: SecureVaultModels.Identity) -> IdentityObject? {
+            guard let id = identity.id else { return nil }
+
+            return IdentityObject(id: id,
+                                  title: identity.title,
+                                  firstName: identity.firstName,
+                                  middleName: identity.middleName,
+                                  lastName: identity.lastName,
+                                  birthdayDay: identity.birthdayDay,
+                                  birthdayMonth: identity.birthdayMonth,
+                                  birthdayYear: identity.birthdayYear,
+                                  addressStreet: identity.addressStreet,
+                                  addressStreet2: identity.addressStreet2,
+                                  addressCity: identity.addressCity,
+                                  addressProvince: identity.addressProvince,
+                                  addressPostalCode: identity.addressPostalCode,
+                                  addressCountryCode: identity.addressCountryCode,
+                                  phone: identity.homePhone, // Replace with single "phone number" column
+                                  emailAddress: identity.emailAddress)
         }
-
-        let success: [Account]
     }
 
+    struct CreditCardObject: Codable {
+        let id: Int64
+        let title: String
+        let displayNumber: String
+
+        let cardName: String?
+        let cardNumber: String?
+        let cardSecurityCode: String?
+        let expirationMonth: Int?
+        let expirationYear: Int?
+
+        static func from(card: SecureVaultModels.CreditCard) -> CreditCardObject? {
+            guard let id = card.id else { return nil }
+
+            return CreditCardObject(id: id,
+                                    title: card.title,
+                                    displayNumber: card.displayName,
+                                    cardName: card.cardholderName,
+                                    cardNumber: card.cardNumber,
+                                    cardSecurityCode: card.cardSecurityCode,
+                                    expirationMonth: card.expirationMonth,
+                                    expirationYear: card.expirationYear)
+        }
+
+        /// Provides a minimal summary of the card, suitable for presentation in the credit card selection list. This intentionally omits secure data, such as card number and cardholder name.
+        static func autofillInitializationValueFrom(card: SecureVaultModels.CreditCard) -> CreditCardObject? {
+            guard let id = card.id else { return nil }
+
+            return CreditCardObject(id: id,
+                                    title: card.title,
+                                    displayNumber: card.displayName,
+                                    cardName: nil,
+                                    cardNumber: nil,
+                                    cardSecurityCode: nil,
+                                    expirationMonth: nil,
+                                    expirationYear: nil)
+        }
+    }
+
+    struct CredentialObject: Codable {
+        let id: Int64
+        let username: String
+    }
+
+    // MARK: - Responses
+
+    // swiftlint:disable nesting
+    struct RequestAutoFillInitDataResponse: Codable {
+
+        struct AutofillInitSuccess: Codable {
+            let credentials: [CredentialObject]
+            let creditCards: [CreditCardObject]
+            let identities: [IdentityObject]
+        }
+
+        let success: AutofillInitSuccess
+        let error: String?
+
+    }
+    // swiftlint:enable nesting
+
+    struct RequestAutoFillCreditCardResponse: Codable {
+
+        let success: CreditCardObject
+        let error: String?
+
+    }
+
+    struct RequestAutoFillIdentityResponse: Codable {
+
+        let success: IdentityObject
+        let error: String?
+
+    }
+
+    struct RequestVaultAccountsResponse: Codable {
+
+        let success: [CredentialObject]
+
+    }
+
+    // swiftlint:disable nesting
     struct RequestVaultCredentialsResponse: Codable {
 
         struct Credential: Codable {
@@ -53,6 +180,33 @@ extension AutofillUserScript {
         }
 
         let success: Credential
+
+    }
+    // swiftlint:enable nesting
+
+    // MARK: - Message Handlers
+
+    func pmGetAutoFillInitData(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+
+        let domain = hostProvider.hostForMessage(message)
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+            let credentials: [CredentialObject] = accounts.compactMap {
+                guard let id = $0.id else { return nil }
+                return .init(id: id, username: $0.username)
+            }
+
+            let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
+            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
+
+            let success = RequestAutoFillInitDataResponse.AutofillInitSuccess(credentials: credentials,
+                                                                              creditCards: cards,
+                                                                              identities: identities)
+
+            let response = RequestAutoFillInitDataResponse(success: success, error: nil)
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
+        }
 
     }
 
@@ -74,9 +228,9 @@ extension AutofillUserScript {
     func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostProvider.hostForMessage(message)) { credentials in
-            let credentials: [RequestVaultAccountsResponse.Account] = credentials.compactMap {
+            let credentials: [CredentialObject] = credentials.compactMap {
                 guard let id = $0.id else { return nil }
-                return .init(id: id, username: $0.username, lastUpdated: $0.lastUpdated.timeIntervalSince1970)
+                return .init(id: id, username: $0.username)
             }
 
             let response = RequestVaultAccountsResponse(success: credentials)
@@ -108,6 +262,54 @@ extension AutofillUserScript {
                 replyHandler(jsonString)
             }
         }
+    }
+
+    func pmGetCreditCard(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.body as? [String: Any],
+              let id = body["id"] as? String,
+              let cardId = Int64(id) else {
+            return
+        }
+
+        vaultDelegate?.autofillUserScript(self, didRequestCreditCardWithId: Int64(cardId)) {
+            guard let card = $0, let cardObject = CreditCardObject.from(card: card) else { return }
+
+            let response = RequestAutoFillCreditCardResponse(success: cardObject, error: nil)
+
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
+        }
+    }
+
+    func pmGetIdentity(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.body as? [String: Any],
+              let id = body["id"] as? String,
+              let accountId = Int64(id) else {
+            return
+        }
+
+        vaultDelegate?.autofillUserScript(self, didRequestIdentityWithId: Int64(accountId)) {
+            guard let identity = $0, let identityObject = IdentityObject.from(identity: identity) else { return }
+
+            let response = RequestAutoFillIdentityResponse(success: identityObject, error: nil)
+
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
+        }
+    }
+
+    // MARK: Open Management Views
+
+    func pmOpenManageCreditCards(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        replyHandler(nil)
+    }
+
+    func pmOpenManageIdentities(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        replyHandler(nil)
     }
 
     func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {

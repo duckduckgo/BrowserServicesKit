@@ -19,6 +19,8 @@
 
 import Foundation
 
+// swiftlint:disable file_length
+
 public protocol EmailManagerStorage: AnyObject {
     func getUsername() -> String?
     func getToken() -> String?
@@ -574,3 +576,5 @@ extension EmailManager {
     }
 
 }
+
+// swiftlint:enable file_length

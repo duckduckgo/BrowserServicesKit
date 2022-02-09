@@ -582,8 +582,8 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     func emailManager(_ emailManager: EmailManager,
                       requested url: URL,
                       method: String,
-                      headers: [String : String],
-                      parameters: [String : String]?,
+                      headers: [String: String],
+                      parameters: [String: String]?,
                       httpBody: Data?,
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void) {
