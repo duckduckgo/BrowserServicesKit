@@ -319,8 +319,8 @@ public class ContentBlockerRulesManager {
             let now = Date()
             let cacheInterval = self.cache?.contentRulesCacheInterval ?? 0
             // cleanup not available or outdated lists from cache
-            cachedRules = cachedRules.filter {
-                availableIds.contains($0) && now.timeIntervalSince($1) < cacheInterval && $1 < now
+            cachedRules = cachedRules.filter { id, lastUsed in
+                availableIds.contains(id) && now.timeIntervalSince(lastUsed) < cacheInterval && lastUsed < now
             }
             // touch current rules
             for id in currentIdentifiers {
