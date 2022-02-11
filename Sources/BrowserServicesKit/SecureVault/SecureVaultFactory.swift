@@ -18,6 +18,10 @@
 
 import Foundation
 
+public protocol SecureVaultErrorReporting: AnyObject {
+    func secureVaultInitFailed(_ error: SecureVaultError)
+}
+
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
 public class SecureVaultFactory {
 
@@ -41,7 +45,8 @@ public class SecureVaultFactory {
     /// * Generates a secret key for L2 encryption
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
-    public func makeVault(authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> SecureVault {
+    public func makeVault(errorReporter: SecureVaultErrorReporting?,
+                          authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> SecureVault {
 
         if let vault = self.vault, authExpiration == vault.authExpiry {
             return vault
@@ -59,7 +64,11 @@ public class SecureVaultFactory {
 
                 return vault
 
+            } catch let error as SecureVaultError {
+                errorReporter?.secureVaultInitFailed(error)
+                throw error
             } catch {
+                errorReporter?.secureVaultInitFailed(SecureVaultError.initFailed(cause: error))
                 throw SecureVaultError.initFailed(cause: error)
             }
         }
@@ -67,24 +76,28 @@ public class SecureVaultFactory {
     }
     
     internal func makeSecureVaultProviders() throws -> SecureVaultProviders {
+        let (cryptoProvider, keystoreProvider): (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider)
         do {
-            let (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
-            let databaseProvider: SecureVaultDatabaseProvider
-
-            if let existingL1Key = try keystoreProvider.l1Key() {
-                do {
-                    databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
-                } catch {
-                    databaseProvider = try DefaultDatabaseProvider.recreateDatabase(withKey: existingL1Key)
-                }
-            } else {
-                throw SecureVaultError.noL1Key
-            }
-            
-            return SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
+            (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
         } catch {
             throw SecureVaultError.initFailed(cause: error)
         }
+        guard let existingL1Key = try keystoreProvider.l1Key() else { throw SecureVaultError.noL1Key }
+
+        let databaseProvider: SecureVaultDatabaseProvider
+        do {
+
+            do {
+                databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
+            } catch DefaultDatabaseProvider.DbError.nonRecoverable {
+                databaseProvider = try DefaultDatabaseProvider.recreateDatabase(withKey: existingL1Key)
+            }
+
+        } catch {
+            throw SecureVaultError.failedToOpenDatabase(cause: error)
+        }
+
+        return SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
     }
 
     internal func makeCryptoProvider() -> SecureVaultCryptoProvider {
