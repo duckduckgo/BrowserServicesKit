@@ -19,54 +19,92 @@
 import Cocoa
 import WebKit
 
-public final class ContentOverlayPopover: NSPopover {
+public final class ContentOverlayPopover: NSMenu {
     
     public var zoomFactor: CGFloat?
     public var webView: WKWebView?
+    
+    /*
+    public override init(contentRect: NSRect, styleMask style: NSWindow.StyleMask, backing backingStoreType: NSWindow.BackingStoreType, defer flag: Bool) {
+        super.init(contentRect: contentRect, styleMask: style, backing: backingStoreType, defer: flag)
+        setupContentController()
+    }
+     */
 
-    public override init() {
-        super.init()
-        animates = false
+    public override init(title: String) {
+
+
+        let storyboard = NSStoryboard(name: "ContentOverlay", bundle: Bundle.module)
+        let controller = storyboard
+            .instantiateController(withIdentifier: "ContentOverlayViewController") as! ContentOverlayViewController
+        
+        contentViewController = controller
+        
+        super.init(title: title)
+        
+        let item = NSMenuItem(title: "test", action: nil, keyEquivalent: "s")
+        self.addItem(item)
+        item.view = contentViewController.view
+        
+        
+        
+        //animates = false
         appearance = NSAppearance(named: NSAppearance.Name.vibrantLight)
-
+/*
 #if DEBUG
         behavior = .semitransient
 #else
         behavior = .transient
 #endif
+ */
 
-        setupContentController()
+        //setupContentController()
+    }
+    
+    public func close() {
+       // TODOJKT check
+        self.cancelTracking()
     }
 
-    public required init?(coder: NSCoder) {
+    public required init(coder: NSCoder) {
         fatalError("ContentOverlayPopover: Bad initializer")
     }
     
+    public var contentViewController: NSViewController
+ 
     // swiftlint:disable force_cast
     public var viewController: ContentOverlayViewController { contentViewController as! ContentOverlayViewController }
     // swiftlint:enable force_cast
 
     // swiftlint:disable force_cast
     private func setupContentController() {
+        let item = NSMenuItem(title: "test", action: nil, keyEquivalent: "s")
+        self.addItem(item)
+
         let storyboard = NSStoryboard(name: "ContentOverlay", bundle: Bundle.module)
         let controller = storyboard
             .instantiateController(withIdentifier: "ContentOverlayViewController") as! ContentOverlayViewController
+        item.view = controller.view
         contentViewController = controller
     }
     // swiftlint:enable force_cast
     
     public func display(rect: NSRect, of: NSView, width: CGFloat, inputType: String) {
         // Ensure existing one is closed
-        self.close()
-        let c = contentViewController as! ContentOverlayViewController
-        c.setType(inputType: inputType, zoomFactor: zoomFactor)
+        //self.close()
+        viewController.setType(inputType: inputType, zoomFactor: zoomFactor)
+        /*
         guard let insetBy = self.value(forKeyPath: "anchorSize")! as? CGSize else {
             return
-        }
+        }*/
         // Inset the rectangle by the anchor size as setting the anchorSize to 0 seems impossible
         // Inset removal causes positioning issues for small / iframes
-        self.show(relativeTo: rect/*.insetBy(dx: insetBy.width, dy: insetBy.height)*/, of: of, preferredEdge: .minY)
+        //self.cascadeTopLeft(from: NSPoint.init(x: 0, y: 0))
+        //self.show(relativeTo: rect/*.insetBy(dx: insetBy.width, dy: insetBy.height)*/, of: of, preferredEdge: .minY)
+        self.popUp(positioning: nil, at: NSPoint.init(x: rect.minX, y: rect.minY), in: of)
         // TODOJKT constant 56
-        self.contentSize = NSSize.init(width: width, height: 56)
+        //self.maxSize = NSSize.init(width: width, height: 56)
+        self.minimumWidth = width
+        //self.size = NSSize.init(width: width, height: 56)
     }
 }
