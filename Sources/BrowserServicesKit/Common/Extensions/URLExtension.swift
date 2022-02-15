@@ -53,5 +53,45 @@ extension URL {
             user == nil &&
             password == nil
     }
+    
+    // MARK: - Parameters
+
+    public enum ParameterError: Error {
+        case parsingFailed
+        case encodingFailed
+        case creatingFailed
+    }
+
+    public func addParameters(_ parameters: [String: String]) throws -> URL {
+        var url = self
+
+        for parameter in parameters {
+            url = try url.addParameter(name: parameter.key, value: parameter.value)
+        }
+
+        return url
+    }
+
+    public func addParameter(name: String, value: String) throws -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
+        var queryItems = components.queryItems ?? [URLQueryItem]()
+        let newQueryItem = URLQueryItem(name: name, value: value)
+        queryItems.append(newQueryItem)
+        components.queryItems = queryItems
+        guard let encodedQuery = components.percentEncodedQuery else { throw ParameterError.encodingFailed }
+        components.percentEncodedQuery = encodedQuery.encodingPluses()
+        guard let newUrl = components.url else { throw ParameterError.creatingFailed }
+        return newUrl
+    }
+
+    public func getParameter(name: String) throws -> String? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
+        guard let encodedQuery = components.percentEncodedQuery else { throw ParameterError.encodingFailed }
+        components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
+        let queryItem = components.queryItems?.first(where: { (queryItem) -> Bool in
+            queryItem.name == name
+        })
+        return queryItem?.value
+    }
 
 }
