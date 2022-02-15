@@ -36,6 +36,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
     private enum MessageName: String, CaseIterable {
         case setSize
         case selectedDetail
+        case closeAutofillParent
 
         case emailHandlerStoreToken
         case emailHandlerGetAlias
@@ -60,10 +61,11 @@ public class TopAutofillUserScript: NSObject, UserScript {
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
-        print("got top message \(message)")
+        print("TODOJKT got top message \(message)")
         switch message {
         case .setSize: return setSize
         case .selectedDetail: return selectedDetail
+        case .closeAutofillParent: return closeAutofillParent
 
         case .emailHandlerStoreToken: return emailStoreToken
         case .emailHandlerGetAlias: return emailGetAlias
@@ -112,6 +114,12 @@ public class TopAutofillUserScript: NSObject, UserScript {
               let messageInterfaceBack = messageInterfaceBack else { return }
         messageInterfaceBack.messageSelectedCredential(chosenCredential, configType)
     }
+    
+    func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard let messageInterfaceBack = messageInterfaceBack else { return }
+        messageInterfaceBack.close()
+        replyHandler(nil)
+    }
 
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
@@ -129,7 +137,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
             replacements["PLACEHOLDER_SECRET"] = generatedSecret
         }
 
-        return TopAutofillUserScript.loadJS("topAutofill", from: Bundle.module, withReplacements: replacements)
+        return TopAutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -158,7 +166,7 @@ extension TopAutofillUserScript: WKScriptMessageHandlerWithReply {
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
         guard let messageName = MessageName(rawValue: message.name) else { return }
-        print("got top mesage \(messageName)")
+        print("TODOJKT got top mesage \(messageName)")
 
         messageHandlerFor(messageName)(message) {
             replyHandler($0, nil)

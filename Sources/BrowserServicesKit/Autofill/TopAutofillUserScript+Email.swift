@@ -37,14 +37,12 @@ extension TopAutofillUserScript {
     struct emailCheckSignedInStatusResponse: Codable {
         var isAppSignedIn: String
         var inputType: String
-        var inputSubtype: String
     }
 
     func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.topAutofillUserScriptDidRequestSignedInStatus(self) ?? false
-        guard let inputType = inputType,
-              let inputSubtype = inputSubtype else { return }
-        let response = emailCheckSignedInStatusResponse(isAppSignedIn: String(signedIn), inputType: inputType, inputSubtype: inputSubtype)
+        guard let inputType = inputType else { return }
+        let response = emailCheckSignedInStatusResponse(isAppSignedIn: String(signedIn), inputType: inputType)
         if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
             replyHandler(jsonString)
         }

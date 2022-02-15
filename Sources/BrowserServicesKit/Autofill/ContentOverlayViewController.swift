@@ -22,7 +22,8 @@ import Combine
 
 public protocol AutofillMessaging {
     var lastOpenHost: String? { get }
-    func messageSelectedCredential<T: Encodable>(_ data: [String: T], _ configType: String)
+    func messageSelectedCredential(_ data: [String: String], _ configType: String)
+    func close()
 }
 
 public final class ContentOverlayViewController: NSViewController, EmailManagerRequestDelegate {
@@ -33,7 +34,6 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     @Published var pendingUpdates = Set<String>()
     public var zoomFactor: CGFloat?
     public var inputType: String?
-    public var inputSubtype: String?
     
     public var messageInterfaceBack: AutofillMessaging?
     
@@ -51,23 +51,24 @@ public final class ContentOverlayViewController: NSViewController, EmailManagerR
     
     public override func viewDidLoad() {
         initWebView()
-        topAutofillUserScript.contentOverlay = self
-        topAutofillUserScript.messageInterfaceBack = messageInterfaceBack
-        topAutofillUserScript.emailDelegate = emailManager
-        topAutofillUserScript.vaultDelegate = vaultManager
-        topAutofillUserScript.inputType = inputType
-        topAutofillUserScript.inputSubtype = inputSubtype
-
+        print("TODOJKT viewDidLoad \(inputType)")
         webView.configuration.userContentController.addHandler(topAutofillUserScript)
         webView.configuration.userContentController.addUserScript(topAutofillUserScript.makeWKUserScript())
     }
 
     public override func viewWillAppear() {
+        topAutofillUserScript.contentOverlay = self
+        topAutofillUserScript.messageInterfaceBack = messageInterfaceBack
+        topAutofillUserScript.emailDelegate = emailManager
+        topAutofillUserScript.vaultDelegate = vaultManager
+        topAutofillUserScript.inputType = inputType
+        print("TODOJKT viewWillAppear \(inputType)")
         let url = Bundle.module.url(forResource: "TopAutofill", withExtension: "html")!
         webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
 
     public override func viewWillDisappear() {
+        print("TODOJKT viewWillDisappear")
         cancellables.removeAll()
     }
 

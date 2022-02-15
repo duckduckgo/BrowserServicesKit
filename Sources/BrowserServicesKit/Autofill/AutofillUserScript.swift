@@ -73,6 +73,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     public var lastOpenHost: String?
 
     private enum MessageName: String, CaseIterable {
+        case getSelectedCredentials
         case showAutofillParent
         case closeAutofillParent
         case emailHandlerStoreToken
@@ -117,8 +118,9 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
-        print("got message \(message) \(self) \(#function) ")
+        print("TODOJKT got message \(message) \(self) \(#function) ")
         switch message {
+        case .getSelectedCredentials: return getSelectedCredentials
         case .showAutofillParent: return showAutofillParent
         case .closeAutofillParent: return closeAutofillParent
         case .emailHandlerStoreToken: return emailStoreToken
@@ -190,82 +192,86 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         }
     }
     
-    public func messageSelectedCredential<T: Encodable>(_ data: [String: T], _ configType: String) {
-        print("messsaged to af! \(data) \(lastOpenHost)")
+    public func messageSelectedCredential(_ data: [String: String], _ configType: String) {
+        print("TODOJKT messsaged to af! \(data) \(lastOpenHost)")
         guard let topView = topView else { return }
         topView.getContentOverlayPopover(self)?.close()
-        guard let currentWebView = currentWebView else { return }
-        if let json = try? JSONEncoder().encode(data), let jsonString = String(data: json, encoding: .utf8) {
-            let script = """
-            (() => {
-                const event = new CustomEvent("InboundCredential", {
-                    detail: {
-                        data: \(jsonString),
-                        configType: "\(configType)"
-                    }
-                });
-                document.dispatchEvent(event);
-            })()
-            """
-            /// currentWebView.evaluateJavaScript(script)
-            if #available(macOS 11.0, *) {
-                currentWebView.evaluateJavaScript(script, in: currentFrame, in: .defaultClient, completionHandler: nil)
-            } else {
-                // Fallback on earlier versions
-            }
-        }
+        selectedCredential = data
     }
     
-    weak var currentWebView: WKWebView?
-    weak var currentFrame: WKFrameInfo?
+    public func close() {
+        guard let topView = topView else { return }
+        topView.getContentOverlayPopover(self)?.close()
+        // TODO cleanup injected script
+    }
+    
+    var selectedCredential: [String: String]?
     
     func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let topView = topView else { return }
         let popover = topView.getContentOverlayPopover(self)!;
-        currentWebView = nil
-        currentFrame = nil
+        selectedCredential = nil
+        lastOpenHost = nil
         popover.close()
         replyHandler(nil)
     }
     
     func showAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        print("\(self) \(#function) \(topView) \(clickPoint)")
+        print("TODOJKT showAutofillParent \(self) \(#function) \(topView) \(clickPoint)")
         guard let dict = message.body as? [String: Any],
               let left = dict["inputLeft"] as? CGFloat,
               let top = dict["inputTop"] as? CGFloat,
               let height = dict["inputHeight"] as? CGFloat,
               var width = dict["inputWidth"] as? CGFloat,
               let inputType = dict["inputType"] as? String,
-              let inputSubtype = dict["inputSubtype"] as? String,
               let topView = topView,
               let clickPoint = clickPoint else {
                   return
               }
-        // Sets the last message host, so we can message back to it
+        print("TODOJKT showAutofillParent \(inputType)")
+        // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
-        currentWebView = message.webView
-        currentFrame = message.frameInfo
         
         let popover = topView.getContentOverlayPopover(self)!;
-        popover.setTypes(inputType: inputType, inputSubtype: inputSubtype)
+        // Ensure existing one is closed
+        popover.close()
+        popover.setTypes(inputType: inputType)
         let zf = popover.zoomFactor!
         // Combines native click with offset of dax click.
         let clickX = CGFloat(clickPoint.x);
         let clickY = CGFloat(clickPoint.y);
-        let y = (clickY - top) * zf;
+        let y = (clickY - (height - top)) * zf;
         let x = (clickX - left) * zf;
-        print("calc click x \(clickX) click y \(clickY) top: \(top) y: \(y) x: \(x)")
+        print("TODOJKT calc click x \(clickX) click y \(clickY) top: \(top) y: \(y) x: \(x) zf: \(zf)")
 
         let rect = NSRect(x: x, y: y, width: width * zf, height: height * zf)
         // Convert to webview coordinate system
-        print("pos: \(rect) -- \(top) \(height) -- click: \(clickPoint)")
-        let outRect = popover.webView?.convert(rect, to: popover.webView)
+        print("TODOJKT pos: \(rect) -- \(top) \(height) -- click: \(clickPoint)")
         // TODO make 150 a constant
         if (width < 150) {
             width = 150
         }
-        popover.display(rect: rect, of: self.topView!.view, width: width)
+        popover.display(rect: rect, of: topView.view, width: width)
         replyHandler(nil)
+    }
+    
+    struct getSelectedCredentialsResponse: Encodable {
+        var type: String
+        var data: [String: String]?
+    }
+    
+    func getSelectedCredentials(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        print("TODOJKT - \(message.frameInfo.securityOrigin) \(lastOpenHost)")
+        var response = getSelectedCredentialsResponse(type: "none")
+        if (lastOpenHost == nil || message.frameInfo.securityOrigin.host != lastOpenHost!) {
+            response = getSelectedCredentialsResponse(type: "stop")
+        } else if (selectedCredential != nil) {
+            response = getSelectedCredentialsResponse(type: "ok", data: selectedCredential!)
+        }
+        if let json = try? JSONEncoder().encode(response),
+           let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
+        }
     }
 
     let encrypter: AutofillEncrypter
