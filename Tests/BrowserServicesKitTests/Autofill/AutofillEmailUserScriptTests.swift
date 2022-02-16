@@ -39,7 +39,8 @@ class AutofillEmailUserScriptTests: XCTestCase {
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
         let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
         
-        return AutofillUserScript(privacyConfigurationManager: privacyConfig, properties: properties)
+        return AutofillUserScript(privacyConfigurationManager: privacyConfig, properties: properties,
+                                  encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
     let userContentController = WKUserContentController()
 

@@ -117,13 +117,19 @@ public class AutofillUserScript: NSObject, UserScript {
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+    init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties,
+         encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
+         hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.properties = properties
-        self.encrypter = AESGCMAutofillEncrypter()
-        self.hostProvider = SecurityOriginHostProvider()
+        self.hostProvider = hostProvider
+        self.encrypter = encrypter
     }
-
+    
+    public convenience init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+        self.init(privacyConfigurationManager: privacyConfigurationManager, properties: properties,
+                  encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+    }
 }
 
 @available(iOS 14, *)
