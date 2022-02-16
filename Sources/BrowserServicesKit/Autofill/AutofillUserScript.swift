@@ -71,9 +71,9 @@ public class AutofillUserScript: NSObject, UserScript {
               else {
             return ""
         }
-        replacements["// INJECT contentScope HERE"] = privacyConfigJson
-        replacements["// INJECT userUnprotectedDomains HERE"] = userUnprotectedDomainsString
-        replacements["// INJECT userPreferences HERE"] = jsonPropertiesString
+        replacements["// INJECT contentScope HERE"] = "contentScope = " + privacyConfigJson + ";"
+        replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"
+        replacements["// INJECT userPreferences HERE"] = "userPreferences = " + jsonPropertiesString + ";"
 
         return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }()
