@@ -28,7 +28,16 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     private var privacyConfigurationManager: PrivacyConfigurationManager
     private var properties: ContentScopeProperties
     
+    private var sourceStr: String
+    
     public var source: String {
+        return sourceStr
+    }
+    
+    init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+        self.properties = properties
+        
         var replacements: [String: String] = [:]
         #if os(macOS)
             replacements["// INJECT isApp HERE"] = "isApp = true;"
@@ -50,11 +59,6 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
         replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"
         replacements["// INJECT userPreferences HERE"] = "userPreferences = " + jsonPropertiesString + ";"
 
-        return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
-    }
-    
-    init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-        self.properties = properties
+        sourceStr = AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
     }
 }
