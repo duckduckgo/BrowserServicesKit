@@ -48,34 +48,10 @@ public class AutofillUserScript: NSObject, UserScript {
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
     
-    private var privacyConfigurationManager: PrivacyConfigurationManager
-    private var properties: ContentScopeProperties
+    private var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     public lazy var source: String = {
-        var replacements: [String: String] = [:]
-        #if os(macOS)
-            replacements["// INJECT isApp HERE"] = "isApp = true;"
-        #endif
-
-        if #available(iOS 14, macOS 11, *) {
-            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
-        } else {
-            replacements["PLACEHOLDER_SECRET"] = generatedSecret
-        }
-        
-        guard let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8),
-              let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
-              let userUnprotectedDomainsString = String(data: userUnprotectedDomains, encoding: .utf8),
-              let jsonProperties = try? JSONEncoder().encode(properties),
-              let jsonPropertiesString = String(data: jsonProperties, encoding: .utf8)
-              else {
-            return ""
-        }
-        replacements["// INJECT contentScope HERE"] = "contentScope = " + privacyConfigJson + ";"
-        replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"
-        replacements["// INJECT userPreferences HERE"] = "userPreferences = " + jsonPropertiesString + ";"
-
-        return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
+        return scriptSourceProvider.source.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -117,18 +93,18 @@ public class AutofillUserScript: NSObject, UserScript {
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
 
-    init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties,
+    init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
          hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-        self.properties = properties
+        self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
     }
     
-    public convenience init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
-        self.init(privacyConfigurationManager: privacyConfigurationManager, properties: properties,
-                  encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+        self.init(scriptSourceProvider: scriptSourceProvider,
+                  encrypter: AESGCMAutofillEncrypter(),
+                  hostProvider: SecurityOriginHostProvider())
     }
 }
 

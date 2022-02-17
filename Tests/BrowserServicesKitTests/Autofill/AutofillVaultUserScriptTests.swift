@@ -40,8 +40,9 @@ class AutofillVaultUserScriptTests: XCTestCase {
         """.data(using: .utf8)!
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
         let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
-        
-        return AutofillUserScript(privacyConfigurationManager: privacyConfig, properties: properties)
+        let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
+                                                           properties: properties)
+        return AutofillUserScript(scriptSourceProvider: sourceProvider)
     }()
     let userContentController = WKUserContentController()
 

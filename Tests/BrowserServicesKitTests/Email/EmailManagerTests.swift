@@ -52,8 +52,9 @@ class EmailManagerTests: XCTestCase {
         }
         """.data(using: .utf8)!
         let privacyConfigManager = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
-        let userScript = AutofillUserScript(privacyConfigurationManager: privacyConfigManager,
-                                            properties: ContentScopeProperties(gpcEnabled: false, sessionKey: "1234"))
+        let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfigManager,
+                                                           properties: ContentScopeProperties(gpcEnabled: false, sessionKey: "1234"))
+        let userScript = AutofillUserScript(scriptSourceProvider: sourceProvider)
         return userScript
     }
 
