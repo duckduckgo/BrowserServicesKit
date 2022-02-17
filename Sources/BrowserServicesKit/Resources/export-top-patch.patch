@@ -1,0 +1,911 @@
+diff --git a/Gruntfile.js b/Gruntfile.js
+index 7f2e80e..815b23a 100644
+--- a/Gruntfile.js
++++ b/Gruntfile.js
+@@ -16,7 +16,8 @@ module.exports = function (grunt) {
+                     ]
+                 },
+                 files: {
+-                    'dist/autofill.js': ['src/autofill.js']
++                    'dist/autofill.js': ['src/autofill.js'],
++                    'dist/topAutofill.js': ['src/topAutofill.js']
+                 }
+             }
+         },
+@@ -29,6 +30,7 @@ module.exports = function (grunt) {
+         exec: {
+             copyAutofillStylesToCSS: 'cp src/UI/styles/autofill-tooltip-styles.js dist/autofill.css && sed -i "" \'/`/d\' dist/autofill.css',
+             copyHostStyles: 'cp src/UI/styles/autofill-host-styles.css dist/autofill-host-styles_chrome.css && cp src/UI/styles/autofill-host-styles.css dist/autofill-host-styles_firefox.css',
++            copyHtml: 'cp src/TopAutofill.html dist/TopAutofill.html',
+             // Firefox and Chrome treat relative url differently in injected scripts. This fixes it.
+             updateFirefoxRelativeUrl: `sed -i "" "s/chrome-extension:\\/\\/__MSG_@@extension_id__\\/public/../g" dist/autofill-host-styles_firefox.css`
+         },
+@@ -41,6 +43,10 @@ module.exports = function (grunt) {
+                 files: ['src/**/*.js'],
+                 tasks: ['browserify']
+             },
++            html: {
++                files: ['src/**/*.html'],
++                tasks: ['exec:copyHtml']
++            },
+             styles: {
+                 files: ['src/**/*.css', 'src/UI/styles/*'],
+                 tasks: ['exec:copyAutofillStylesToCSS', 'exec:copyHostStyles', 'exec:updateFirefoxRelativeUrl']
+@@ -51,6 +57,7 @@ module.exports = function (grunt) {
+     grunt.registerTask('default', [
+         'eslint',
+         'browserify',
++        'exec:copyHtml',
+         'exec:copyAutofillStylesToCSS',
+         'exec:copyHostStyles',
+         'exec:updateFirefoxRelativeUrl'
+diff --git a/dist/TopAutofill.html b/dist/TopAutofill.html
+new file mode 100644
+index 0000000..107cc01
+--- /dev/null
++++ b/dist/TopAutofill.html
+@@ -0,0 +1,13 @@
++<html>
++<head>
++<style>
++    html, body {
++        margin: 0;
++        background-color: rgba(242, 240, 240, 0.9);
++    }
++</style>
++</head>
++<body id="topAutofill">
++  <main></main>
++</body>
++</html>
+diff --git a/src/DeviceInterface.js b/src/DeviceInterface.js
+index 65dce1c..ce3a644 100644
+--- a/src/DeviceInterface.js
++++ b/src/DeviceInterface.js
+@@ -1,19 +1,38 @@
+ const EmailAutofill = require('./UI/EmailAutofill')
+ const DataAutofill = require('./UI/DataAutofill')
+ const {
+-    isApp, notifyWebApp, isDDGApp, isAndroid,
+-    isDDGDomain, sendAndWaitForAnswer, setValue,
+-    formatDuckAddress, isMobileApp, ADDRESS_DOMAIN
++    isApp,
++    isTopFrame,
++    notifyWebApp,
++    isDDGApp,
++    isAndroid,
++    isDDGDomain,
++    sendAndWaitForAnswer,
++    setValue,
++    formatDuckAddress,
++    isMobileApp,
++    getDaxBoundingBox,
++    ADDRESS_DOMAIN
+ } = require('./autofill-utils')
+ const {wkSend, wkSendAndWait} = require('./appleDeviceUtils/appleDeviceUtils')
+ const {scanForInputs, forms} = require('./scanForInputs.js')
+ const {formatFullName} = require('./Form/formatters')
++const getInputConfig = require('./Form/inputTypeConfig')
+ 
+ const SIGN_IN_MSG = { signMeIn: true }
+ 
+-const attachTooltip = function (form, input) {
+-    form.activeInput = input
++let currentAttached = {}
++
+ 
++const attachTooltip = function (form, input, e) {
++    console.log("attach tooltip", input, e)
++    const inputType = getInputConfig(input).type
++    if (!isTopFrame) {
++        DeviceInterface.showTooltip(form, input, inputType, e)
++        return
++    }
++    form.activeInput = input
++    // TODO get working again
+     if (isMobileApp) {
+         this.getAlias().then((alias) => {
+             if (alias) form.autofillEmail(alias)
+@@ -21,8 +40,8 @@ const attachTooltip = function (form, input) {
+         })
+     } else {
+         if (form.tooltip) return
+-
+-        form.tooltip = !isApp
++        form.activeInput = input
++        form.tooltip = inputType === 'emailNew'
+             ? new EmailAutofill(input, form, this)
+             : new DataAutofill(input, form, this)
+         form.intObs.observe(input)
+@@ -31,6 +50,15 @@ const attachTooltip = function (form, input) {
+     }
+ }
+ 
++// TODO move somewhere apple specific
++document.addEventListener('InboundCredential', function (e) {
++    if ('email' in e.detail.data) {
++        currentAttached.form.autofillEmail(e.detail.data.email)
++    } else {
++        currentAttached.form.autofillData(e.detail.data, e.detail.configType)
++    }
++})
++
+ let attempts = 0
+ 
+ class InterfacePrototype {
+@@ -97,13 +125,17 @@ class InterfacePrototype {
+         return [...identities, ...newIdentities]
+     }
+ 
++    stripCredentials = false
++
+     /**
+      * Stores init data coming from the device
+      * @param { PMData } data
+      */
+     storeLocalData (data) {
+-        data.credentials.forEach((cred) => delete cred.password)
+-        data.creditCards.forEach((cc) => delete cc.cardNumber && delete cc.cardSecurityCode)
++        if (this.stripCredentials) {
++            data.credentials.forEach((cred) => delete cred.password)
++            data.creditCards.forEach((cc) => delete cc.cardNumber && delete cc.cardSecurityCode)
++        }
+         // Store the full name as a separate field to simplify autocomplete
+         const updatedIdentities = data.identities.map((identity) => ({
+             ...identity,
+@@ -133,10 +165,13 @@ class InterfacePrototype {
+     }
+ 
+     init () {
++        console.log(">>>>>>>> init")
+         this.attachTooltip = attachTooltip.bind(this)
+-        const start = () => {
++        const start = async () => {
+             this.addDeviceListeners()
+-            this.setupAutofill()
++            await this.setupAutofill()
++            const event = new CustomEvent('InitComplete', {})
++            window.dispatchEvent(event)
+         }
+         if (document.readyState === 'complete') {
+             start()
+@@ -144,6 +179,10 @@ class InterfacePrototype {
+             window.addEventListener('load', start)
+         }
+     }
++    getActiveForm () {
++        return [...forms.values()].find((form) => form.tooltip)
++    }
++    setActiveForm () {}
+     setupAutofill () {}
+     getAddresses () {}
+     refreshAlias () {}
+@@ -180,7 +219,7 @@ class ExtensionInterface extends InterfacePrototype {
+         this.isDeviceSignedIn = () => this.hasLocalAddresses
+ 
+         this.setupAutofill = ({shouldLog} = {shouldLog: false}) => {
+-            this.getAddresses().then(addresses => {
++            return this.getAddresses().then(addresses => {
+                 if (this.hasLocalAddresses) {
+                     notifyWebApp({ deviceSignedIn: {value: true, shouldLog} })
+                     scanForInputs(this)
+@@ -288,17 +327,20 @@ class AndroidInterface extends InterfacePrototype {
+ class AppleDeviceInterface extends InterfacePrototype {
+     constructor () {
+         super()
++        if (isTopFrame) {
++            this.stripCredentials = false
++        }
+ 
+         this.setupAutofill = async ({shouldLog} = {shouldLog: false}) => {
+             if (isDDGDomain()) {
+                 // Tell the web app whether we're in the app
+                 notifyWebApp({isApp})
+             }
+-
+             if (isApp) {
+                 await this.getAutofillInitData()
+             }
+ 
++            // TODO is this needed when the field type is email?
+             const signedIn = await this._checkDeviceSignedIn()
+             if (signedIn) {
+                 if (isApp) {
+@@ -313,6 +355,34 @@ class AppleDeviceInterface extends InterfacePrototype {
+             scanForInputs(this)
+         }
+ 
++        this.getActiveForm = () => {
++            if (currentAttached.form) return currentAttached.form
++            return [...forms.values()].find((form) => form.tooltip)
++        }
++        // TODO
++        this.setActiveForm = (input, form) => {
++            currentAttached.form = form
++            currentAttached.input = input
++            form.activeInput = input
++            const inputType = getInputConfig(input).type
++            form.tooltip = inputType === 'emailNew'
++                ? new EmailAutofill(input, form, this)
++                : new DataAutofill(input, form, this)
++            form.intObs.observe(input)
++            window.addEventListener('pointerdown', form.removeTooltip, {capture: true})
++            window.addEventListener('input', form.removeTooltip, {once: true})
++            this.setSize()
++        }
++
++        this.setSize = async (details) => {
++            const innerNode = document.querySelector('ddg-autofill').shadowRoot.querySelector('.wrapper--data')
++            await wkSend('setSize', {height: innerNode.clientHeight, width: innerNode.clientWidth})
++        }
++
++        this.closeTooltip = async () => {
++            await wkSend('closeAutofillParent', {})
++        }
++
+         this.getAddresses = async () => {
+             if (!isApp) return this.getAlias()
+ 
+@@ -362,12 +432,13 @@ class AppleDeviceInterface extends InterfacePrototype {
+          * Gets the init data from the device
+          * @returns {APIResponse<PMData>}
+          */
+-        this.getAutofillInitData = () =>
+-            wkSendAndWait('pmHandlerGetAutofillInitData')
++        this.getAutofillInitData = () => {
++            return wkSendAndWait('pmHandlerGetAutofillInitData')
+                 .then((response) => {
+                     this.storeLocalData(response.success)
+                     return response
+                 })
++        }
+ 
+         /**
+          * Gets credentials ready for autofill
+@@ -410,6 +481,68 @@ class AppleDeviceInterface extends InterfacePrototype {
+         this.getAutofillCreditCard = (id) =>
+             wkSendAndWait('pmHandlerGetCreditCard', { id })
+     }
++
++    // Used to encode data to send back to the child autofill
++    async selectedDetail (detailIn, configType) {
++        let detailsEntries = Object.entries(detailIn).map(([key, value]) => {
++            return [key, String(value)]
++        })
++        const data = Object.fromEntries(detailsEntries)
++        wkSend('selectedDetail', { data, configType })
++    }
++
++    async getInputType () {
++        const {inputType} = await wkSendAndWait('emailHandlerCheckAppSignedInStatus')
++        return inputType
++    }
++    async showTooltip (form, input, inputType, e) {
++        if (e.type !== "pointerdown") {
++            return
++        }
++        let dimensions = getDaxBoundingBox(input)
++        const inputClientDimensions = input.getBoundingClientRect()
++        console.log(dimensions, e, input, inputClientDimensions)
++        // TODO check screenX/Y is correct over clientX, layerX, etc
++        let diffX = Math.floor(e.clientX - dimensions.x)
++        let diffY = Math.floor(e.clientY - dimensions.y)
++        const inputLeft = Math.floor(inputClientDimensions.x)
++        const inputTop = Math.floor(inputClientDimensions.y)
++
++        /*
++        const red = document.createElement("div");
++        //const calcTop = e.pageY + inputTop;
++        const calcTop = inputTop;
++        //const calcLeft = e.pageX - inputLeft;
++        const calcLeft = inputLeft;
++        red.style = `
++            background:red;
++            display: block;
++            height: ${inputClientDimensions.height}px;
++            width: ${inputClientDimensions.width}px;
++            position: absolute;
++            top: ${calcTop}px;
++            left: ${calcLeft}px;
++        `
++        document.body.appendChild(red)
++        */
++        // TODO top and left need to be the offset from the current click to the top/left of the input field
++        const details = {
++            inputTop: diffY,
++            inputLeft: diffX,
++            height: dimensions.height,
++            width: dimensions.width,
++            inputHeight: Math.floor(inputClientDimensions.height),
++            inputWidth: Math.floor(inputClientDimensions.width),
++            //inputTop: inputTop,
++            //inputLeft: inputLeft,
++            inputType: inputType
++        }
++        currentAttached = {form, input}
++
++        console.log('show autofill parent', details)
++        await wkSend('showAutofillParent', details)
++    }
+ }
+ 
+diff --git a/src/Form/Form.js b/src/Form/Form.js
+index 7647fd0..2b5ef26 100644
+--- a/src/Form/Form.js
++++ b/src/Form/Form.js
+@@ -225,7 +225,7 @@ class Form {
+                 }
+ 
+                 this.touched.add(e.target)
+-                this.attachTooltip(this, e.target)
++                this.attachTooltip(this, e.target, e)
+             }
+         }
+ 
+diff --git a/src/Form/input-classifiers.js b/src/Form/input-classifiers.js
+index ffb3a50..83ebac7 100644
+--- a/src/Form/input-classifiers.js
++++ b/src/Form/input-classifiers.js
+@@ -196,8 +196,8 @@ const getInputMainType = (input) =>
+  * @returns {SupportedSubTypes}
+  */
+ const getInputSubtype = (input) =>
+-    input.getAttribute(ATTR_INPUT_TYPE)?.split('.')[1] ||
+-    input.getAttribute(ATTR_INPUT_TYPE)?.split('.')[0] ||
++    input?.getAttribute(ATTR_INPUT_TYPE)?.split('.')[1] ||
++    input?.getAttribute(ATTR_INPUT_TYPE)?.split('.')[0] ||
+     'unknown'
+ 
+ /**
+diff --git a/src/Form/listenForFormSubmission.js b/src/Form/listenForFormSubmission.js
+index 3dc9918..029c5bf 100644
+--- a/src/Form/listenForFormSubmission.js
++++ b/src/Form/listenForFormSubmission.js
+@@ -1,6 +1,5 @@
+ const {forms} = require('../scanForInputs')
+ const isApp = require('../autofill-utils')
+-
+ const listenForGlobalFormSubmission = () => {
+     if (!isApp) return
+ 
+diff --git a/src/TopAutofill.html b/src/TopAutofill.html
+new file mode 100644
+index 0000000..107cc01
+--- /dev/null
++++ b/src/TopAutofill.html
+@@ -0,0 +1,13 @@
++<html>
++<head>
++<style>
++    html, body {
++        margin: 0;
++        background-color: rgba(242, 240, 240, 0.9);
++    }
++</style>
++</head>
++<body id="topAutofill">
++  <main></main>
++</body>
++</html>
+diff --git a/src/UI/DataAutofill.js b/src/UI/DataAutofill.js
+index 247e579..fc010ac 100644
+--- a/src/UI/DataAutofill.js
++++ b/src/UI/DataAutofill.js
+@@ -1,5 +1,6 @@
+ const {
+     isApp,
++    isTopFrame,
+     escapeXML
+ } = require('../autofill-utils')
+ const Tooltip = require('./Tooltip')
+@@ -32,9 +33,13 @@ class DataAutofill extends Tooltip {
+             return shouldShow
+         }
+ 
++        // TODO
++        const isDesktop = true
++        const desktopClass = isDesktop ? 'desktop' : ''
++
+         this.shadow.innerHTML = `
+ ${includeStyles}
+-<div class="wrapper wrapper--data">
++<div class="wrapper wrapper--data ${desktopClass}">
+     <div class="tooltip tooltip--data" hidden>
+         ${this.data.map((singleData) => `
+             ${shouldShowSeparator(singleData.id) ? '<hr />' : ''}
+@@ -63,7 +68,7 @@ ${escapeXML(singleData[config.displaySubtitlePropName] || config.displaySubtitle
+             this.registerClickableButton(btn, () => {
+                 this.interface[`${config.autofillMethod}`](btn.id).then(({success, error}) => {
+                     if (success) {
+-                        this.associatedForm.autofillData(success, config.type)
++                        this.fillForm(success, config.type)
+                         if (btn.id === 'privateAddress') this.interface.refreshAlias()
+                     }
+                 })
+@@ -72,6 +77,13 @@ ${escapeXML(singleData[config.displaySubtitlePropName] || config.displaySubtitle
+ 
+         this.init()
+     }
++    fillForm (detail, configType) {
++        if (isTopFrame) {
++            this.interface.selectedDetail(detail, configType)
++        } else {
++            this.associatedForm.autofillData(detail, configType)
++        }
++    }
+ }
+ 
+ module.exports = DataAutofill
+diff --git a/src/UI/EmailAutofill.js b/src/UI/EmailAutofill.js
+index d5b2950..9ed997a 100644
+--- a/src/UI/EmailAutofill.js
++++ b/src/UI/EmailAutofill.js
+@@ -1,7 +1,8 @@
+ const {
+     isApp,
+     formatDuckAddress,
+-    escapeXML
++    escapeXML,
++    isTopFrame
+ } = require('../autofill-utils')
+ const Tooltip = require('./Tooltip')
+ 
+@@ -15,10 +16,14 @@ class EmailAutofill extends Tooltip {
+             ? `<style>${require('./styles/autofill-tooltip-styles.js')}</style>`
+             : `<link rel="stylesheet" href="${chrome.runtime.getURL('public/css/autofill.css')}" crossorigin="anonymous">`
+ 
++        // TODO
++        const isDesktop = true
++        const desktopClass = isDesktop ? 'desktop' : ''
++
+         this.shadow.innerHTML = `
+ ${includeStyles}
+-<div class="wrapper wrapper--email">
+-    <div class="tooltip tooltip--email" hidden>
++<div class="wrapper wrapper--email ${desktopClass}">
++    <div class="tooltip tooltip--data" hidden>
+         <button class="tooltip__button tooltip__button--email js-use-personal">
+             <span class="tooltip__button--email__primary-text">
+                 Use <span class="js-address">${formatDuckAddress(escapeXML(this.addresses.personalAddress))}</span>
+@@ -44,11 +49,12 @@ ${includeStyles}
+             }
+         }
+         this.registerClickableButton(this.usePersonalButton, () => {
+-            this.associatedForm.autofillEmail(formatDuckAddress(this.addresses.personalAddress))
++            this.fillForm(this.addresses.personalAddress)
+         })
+         this.registerClickableButton(this.usePrivateButton, () => {
+-            this.associatedForm.autofillEmail(formatDuckAddress(this.addresses.privateAddress))
++            const email = this.addresses.privateAddress
+             this.interface.refreshAlias()
++            this.fillForm(email)
+         })
+ 
+         // Get the alias from the extension
+@@ -56,6 +62,14 @@ ${includeStyles}
+ 
+         this.init()
+     }
++    fillForm (address) {
++        const formattedAddress = formatDuckAddress(address)
++        if (isTopFrame) {
++            this.interface.selectedDetail({email: formattedAddress}, 'email')
++        } else {
++            this.associatedForm.autofillEmail(formattedAddress)
++        }
++    }
+ }
+ 
+ module.exports = EmailAutofill
+diff --git a/src/UI/Tooltip.js b/src/UI/Tooltip.js
+index 6c7f5ad..43b6162 100644
+--- a/src/UI/Tooltip.js
++++ b/src/UI/Tooltip.js
+@@ -1,4 +1,4 @@
+-const {safeExecute, addInlineStyles, getDaxBoundingBox} = require('../autofill-utils')
++const {safeExecute, addInlineStyles, getDaxBoundingBox, isTopFrame} = require('../autofill-utils')
+ const {getInputMainType} = require('../Form/input-classifiers')
+ 
+ const updatePosition = function ({left, top}) {
+@@ -20,7 +20,10 @@ const updatePosition = function ({left, top}) {
+         this.transformRuleIndex = shadow.styleSheets[0].rules.length
+     }
+ 
+-    const newRule = `.wrapper {transform: translate(${left}px, ${top}px);}`
++    let newRule = `.wrapper {transform: translate(${left}px, ${top}px);}`
++    if (isTopFrame) {
++        newRule = '.wrapper {transform: none; }'
++    }
+     shadow.styleSheets[0].insertRule(newRule, this.transformRuleIndex)
+ }
+ 
+@@ -64,7 +67,8 @@ const ensureIsLastInDOM = function () {
+ 
+ class Tooltip {
+     constructor (input, associatedForm, Interface) {
+-        this.shadow = document.createElement('ddg-autofill').attachShadow({mode: 'closed'})
++        const mode = isTopFrame ? 'open' : 'closed'
++        this.shadow = document.createElement('ddg-autofill').attachShadow({ mode })
+         this.host = this.shadow.host
+         this.tooltip = null
+         const forcedVisibilityStyles = {
+@@ -142,6 +146,14 @@ class Tooltip {
+         this.resObs.observe(document.body)
+         this.mutObs.observe(document.body, {childList: true, subtree: true, attributes: true})
+         window.addEventListener('scroll', this.checkPosition, {passive: true, capture: true})
++        this.interface.setSize()
++
++        // TODO Not ideal, we wait till after the form is filled.
++        requestIdleCallback(() => {
++            requestIdleCallback(() => {
++                this.interface.setSize()
++            })
++        })
+     }
+ }
+ 
+diff --git a/src/UI/styles/autofill-tooltip-styles.js b/src/UI/styles/autofill-tooltip-styles.js
+index b20e06b..43baaa6 100644
+--- a/src/UI/styles/autofill-tooltip-styles.js
++++ b/src/UI/styles/autofill-tooltip-styles.js
+@@ -15,33 +15,37 @@ module.exports = `
+     transform: translate(-1000px);
+     z-index: 2147483647;
+ }
+-.wrapper--data {
++:not(.desktop).wrapper--data {
+     font-family: 'SF Pro Text', -apple-system,
+     BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+ }
+-.tooltip {
++:not(.desktop) .tooltip {
+     position: absolute;
+     width: 300px;
+     max-width: calc(100vw - 25px);
+     z-index: 2147483647;
+ }
+-.tooltip--data {
+-    top: 100%;
+-    left: 100%;
+-    width: 315px;
+-    padding: 4px;
+-    border: 0.5px solid rgba(0, 0, 0, 0.2);
+-    border-radius: 6px;
++.tooltip--data, #topAutofill {
+     background-color: rgba(242, 240, 240, 0.9);
+     -webkit-backdrop-filter: blur(40px);
+     backdrop-filter: blur(40px);
++}
++.tooltip--data {
++    padding: 4px;
+     font-size: 13px;
+     line-height: 14px;
+     color: #222222;
+     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.32);
+ }
+-.tooltip--email {
++:not(.desktop) .tooltip--data {
++    top: 100%;
++    left: 100%;
++    width: 315px;
++    border: 0.5px solid rgba(0, 0, 0, 0.2);
++    border-radius: 6px;
++}
++:not(.desktop) .tooltip--email {
+     top: calc(100% + 6px);
+     right: calc(100% - 46px);
+     padding: 8px;
+diff --git a/src/appleDeviceUtils/appleDeviceUtils.js b/src/appleDeviceUtils/appleDeviceUtils.js
+index 86e3830..b547e55 100644
+--- a/src/appleDeviceUtils/appleDeviceUtils.js
++++ b/src/appleDeviceUtils/appleDeviceUtils.js
+@@ -13,8 +13,10 @@ const ddgGlobals = require('./captureDdgGlobals')
+  * @param {*} data
+  * @returns {*}
+  */
+-const wkSend = (handler, data = {}) =>
+-    window.webkit.messageHandlers[handler].postMessage({...data, messageHandling: {...data.messageHandling, secret}})
++const wkSend = (handler, data = {}) => {
++    console.log('wkSend', handler, data)
++    return window.webkit.messageHandlers[handler].postMessage({...data, messageHandling: {...data.messageHandling, secret}})
++}
+ 
+ /**
+  * Generate a random method name and adds it to the global scope
+@@ -44,6 +46,7 @@ const generateRandomMethod = (randomMethodName, callback) => {
+ const wkSendAndWait = async (handler, data = {}) => {
+     if (hasModernWebkitAPI) {
+         const response = await wkSend(handler, data)
++        console.log('got response', {response, handler, data})
+         return ddgGlobals.JSONparse(response || '{}')
+     }
+ 
+diff --git a/src/autofill-utils.js b/src/autofill-utils.js
+index c0d28db..de3dfb2 100644
+--- a/src/autofill-utils.js
++++ b/src/autofill-utils.js
+@@ -1,13 +1,18 @@
+ const {getInputSubtype} = require('./Form/input-classifiers')
+ 
+ let isApp = false
++let isTopFrame = false
+ // Do not modify or remove the next line -- the app code will replace it with `isApp = true;`
+ // INJECT isApp HERE
++// INJECT isTopFrame HERE
+ 
+-const isDDGApp = /(iPhone|iPad|Android|Mac).*DuckDuckGo\/[0-9]/i.test(window.navigator.userAgent) || isApp
+-
++// TODO find something better than this for the top frame.
++if (isTopFrame) {
++//    isApp = true
++}
++let isDDGApp = /(iPhone|iPad|Android|Mac).*DuckDuckGo\/[0-9]/i.test(window.navigator.userAgent) || isApp || isTopFrame
++isDDGApp = true // TODO fix
+ const isAndroid = isDDGApp && /Android/i.test(window.navigator.userAgent)
+-
+ const isMobileApp = isDDGApp && !isApp
+ 
+ const DDG_DOMAIN_REGEX = new RegExp(/^https:\/\/(([a-z0-9-_]+?)\.)?duckduckgo\.com\/email/)
+@@ -235,6 +240,7 @@ function escapeXML (str) {
+ 
+ module.exports = {
+     isApp,
++    isTopFrame,
+     isDDGApp,
+     isAndroid,
+     isMobileApp,
+diff --git a/src/autofill.js b/src/autofill.js
+index 69ae49d..fb25a1e 100644
+--- a/src/autofill.js
++++ b/src/autofill.js
+@@ -1,57 +1,26 @@
+ (() => {
+     try {
+         if (!window.isSecureContext) return
+-
++        console.log('start norm autofill')
+         const listenForGlobalFormSubmission = require('./Form/listenForFormSubmission')
+-        const {forms} = require('./scanForInputs')
+-        const {isApp} = require('./autofill-utils')
+-
+         const inject = () => {
+-            // Polyfills/shims
+-            require('./requestIdleCallback')
+-            const DeviceInterface = require('./DeviceInterface')
+-
+-            // Global listener for event delegation
+-            window.addEventListener('pointerdown', (e) => {
+-                if (!e.isTrusted) return
+-
+-                if (e.target.nodeName === 'DDG-AUTOFILL') {
+-                    e.preventDefault()
+-                    e.stopImmediatePropagation()
+-
+-                    const activeForm = [...forms.values()].find((form) => form.tooltip)
+-                    if (activeForm) {
+-                        activeForm.tooltip.dispatchClick()
+-                    }
+-                }
+-
+-                if (!isApp) return
+-
+-                // Check for clicks on submit buttons
+-                const matchingForm = [...forms.values()].find(
+-                    (form) => {
+-                        const btns = [...form.submitButtons]
+-                        if (btns.includes(e.target)) return true
+-
+-                        if (btns.find((btn) => btn.contains(e.target))) return true
+-                    }
+-                )
+-                matchingForm?.submitHandler()
+-            }, true)
+-
+-            if (isApp) {
+-                window.addEventListener('submit', (e) =>
+-                    forms.get(e.target)?.submitHandler(),
+-                true)
+-            }
+-
+-            DeviceInterface.init()
++            require('./init')
+         }
+ 
+         // chrome is only present in desktop browsers
+         if (typeof chrome === 'undefined') {
++            const DeviceInterface = require('./DeviceInterface')
++            const observePageChanges = () => {
++                // TODO debounce these
++                // TODO we might want to duplicate this in the tabview to reduce the lag.
++                document.addEventListener('scroll', () => {
++                    DeviceInterface.closeTooltip()
++                })
++                // TODO add mutation observer to hide on sizing changes of the page
++            }
+             listenForGlobalFormSubmission()
+             inject()
++            observePageChanges()
+         } else {
+             // Check if the site is marked to skip autofill
+             chrome.runtime.sendMessage(
+diff --git a/src/init.js b/src/init.js
+new file mode 100644
+index 0000000..9ac7512
+--- /dev/null
++++ b/src/init.js
+@@ -0,0 +1,42 @@
++// Polyfills/shims
++require('./requestIdleCallback')
++
++const {forms} = require('./scanForInputs')
++const {isApp} = require('./autofill-utils')
++const DeviceInterface = require('./DeviceInterface')
++
++// Global listener for event delegation
++window.addEventListener('pointerdown', (e) => {
++    console.log('PD', e)
++    if (!e.isTrusted) return
++
++    if (e.target.nodeName === 'DDG-AUTOFILL') {
++        e.preventDefault()
++        e.stopImmediatePropagation()
++
++        const activeForm = DeviceInterface.getActiveForm()
++        if (activeForm) {
++            activeForm.tooltip.dispatchClick()
++        }
++    }
++
++    if (!isApp) return
++
++    // Check for clicks on submit buttons
++    const matchingForm = [...forms.values()].find(
++        (form) => {
++            const btns = [...form.submitButtons]
++            if (btns.includes(e.target)) return true
++
++            if (btns.find((btn) => btn.contains(e.target))) return true
++        }
++    )
++    matchingForm?.submitHandler()
++}, true)
++
++if (isApp) {
++    window.addEventListener('submit', (e) =>
++        forms.get(e.target)?.submitHandler(),
++    true)
++}
++DeviceInterface.init()
+diff --git a/src/scanForInputs.js b/src/scanForInputs.js
+index 6681b4a..a18f6ef 100644
+--- a/src/scanForInputs.js
++++ b/src/scanForInputs.js
+@@ -5,9 +5,29 @@ const {SUBMIT_BUTTON_SELECTOR, FORM_ELS_SELECTOR} = require('./Form/selectors')
+ /** @type Map<HTMLFormElement, Form> */
+ const forms = new Map()
+ 
++/* TODO check if we need this / should combine with getParentFormElement for a faster lookup
++const getParentFormInstance = (input, parentFormElement) => {
++    // Note that el.contains returns true for el itself
++    return [...forms.keys()].find((form) => form.contains(parentFormElement))
++}
++*/
++
++const getParentFormInstance = (parentFormElement) => {
++    return forms.get(parentFormElement)
++}
++
++const getOrCreateParentFormInstance = (input, parentFormElement, DeviceInterface) => {
++    let parentFormInstance = getParentFormInstance(input, parentFormElement)
++    if (!parentFormInstance) {
++        parentFormInstance = new Form(parentFormElement, input, DeviceInterface)
++        forms.set(parentFormElement, parentFormInstance)
++    }
++    return parentFormInstance
++}
++
+ // Accepts the DeviceInterface as an explicit dependency
+ const scanForInputs = (DeviceInterface) => {
+-    const getParentForm = (input) => {
++    const getParentFormElement = (input) => {
+         if (input.form) return input.form
+ 
+         let element = input
+@@ -22,27 +42,16 @@ const scanForInputs = (DeviceInterface) => {
+                 return element
+             }
+         }
+-
+-        return input
+     }
+ 
+     const addInput = (input) => {
+-        const parentForm = getParentForm(input)
++        const parentFormElement = getParentFormElement(input)
+ 
+-        // Note that el.contains returns true for el itself
+-        const previouslyFoundParent = [...forms.keys()].find((form) => form.contains(parentForm))
++        // if this form is an ancestor of an existing form, remove that before adding this
++        const childForm = [...forms.keys()].find((form) => parentFormElement.contains(form))
++        forms.delete(childForm)
+ 
+-        if (previouslyFoundParent) {
+-            // If we've already met the form or a descendant, add the input
+-            forms.get(previouslyFoundParent).addInput(input)
+-        } else {
+-            // if this form is an ancestor of an existing form, remove that before adding this
+-            const childForm = [...forms.keys()].find((form) => parentForm.contains(form))
+-            forms.get(childForm)?.destroy()
+-            forms.delete(childForm)
+-
+-            forms.set(parentForm, new Form(parentForm, input, DeviceInterface))
+-        }
++        getOrCreateParentFormInstance(input, parentFormElement, DeviceInterface)
+     }
+ 
+     const findEligibleInput = (context) => {
+@@ -90,4 +99,4 @@ const scanForInputs = (DeviceInterface) => {
+     })
+ }
+ 
+-module.exports = {scanForInputs, forms}
++module.exports = {scanForInputs, forms, getOrCreateParentFormInstance}
+diff --git a/src/topAutofill.js b/src/topAutofill.js
+new file mode 100644
+index 0000000..5f86989
+--- /dev/null
++++ b/src/topAutofill.js
+@@ -0,0 +1,52 @@
++function makeField (outputType) {
++    let field = document.createElement('input')
++    field.type = outputType
++    field.name = outputType
++    field.autocomplete = outputType
++    return field
++}
++
++function setupFakeForm (inputType) {
++    let main = document.querySelector('main')
++    // TODO hey we're a PoC let's just fake the code to get it working
++    let fakeForm = document.createElement('form')
++    let fakeInput = makeField('email')
++    // TODO add support for identities
++    if (inputType === 'identities') {
++        inputType = 'emailNew'
++    }
++    if (inputType !== 'emailNew') {
++        fakeInput = makeField('username')
++        fakeForm.appendChild(fakeInput)
++
++        const fakePassword = makeField('password')
++        fakePassword.autocomplete = 'current-password'
++        fakeForm.appendChild(fakePassword)
++
++        let fakeButton = document.createElement('button')
++        fakeButton.textContent = 'Log in'
++        fakeForm.appendChild(fakeButton)
++    } else {
++        fakeForm.appendChild(fakeInput)
++    }
++
++    fakeForm.style.visibility = 'collapse'
++    main.appendChild(fakeForm)
++    return {fakeInput, fakeForm}
++}
++
++async function init () {
++    const DeviceInterface = require('./DeviceInterface')
++    const inputType = await DeviceInterface.getInputType()
++    const {fakeInput, fakeForm} = setupFakeForm(inputType)
++    function triggerFormSetup () {
++        const {getOrCreateParentFormInstance} = require('./scanForInputs')
++        const parentFormInstance = getOrCreateParentFormInstance(fakeInput, fakeForm, DeviceInterface)
++        DeviceInterface.setActiveForm(fakeInput, parentFormInstance)
++    }
++    window.addEventListener('InitComplete', () => {
++        triggerFormSetup()
++    })
++    require('./init')
++}
++window.addEventListener('load', init)

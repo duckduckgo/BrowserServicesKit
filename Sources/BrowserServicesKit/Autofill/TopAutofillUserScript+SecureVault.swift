@@ -209,21 +209,6 @@ extension TopAutofillUserScript {
 
     }
 
-    func pmStoreCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        defer {
-            replyHandler(nil)
-        }
-
-        guard let body = message.body as? [String: Any],
-              let username = body["username"] as? String,
-              let password = body["password"] as? String else {
-            return
-        }
-
-        let domain = hostForMessage()
-        vaultDelegate?.topAutofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
-    }
-
     func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         vaultDelegate?.topAutofillUserScript(self, didRequestAccountsForDomain: hostForMessage()) { credentials in

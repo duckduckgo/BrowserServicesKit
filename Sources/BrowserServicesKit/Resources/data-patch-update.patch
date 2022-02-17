@@ -1,0 +1,821 @@
+diff --git a/src/DeviceInterface/AppleDeviceInterface.js b/src/DeviceInterface/AppleDeviceInterface.js
+index b33756e..4114f63 100644
+--- a/src/DeviceInterface/AppleDeviceInterface.js
++++ b/src/DeviceInterface/AppleDeviceInterface.js
+@@ -1,30 +1,41 @@
+ const InterfacePrototype = require('./InterfacePrototype.js')
+ const {wkSend, wkSendAndWait} = require('../appleDeviceUtils/appleDeviceUtils')
+ const {
+-    isApp, notifyWebApp,
++    isApp,
++    notifyWebApp,
+     isTopFrame,
+     isDDGDomain,
+     formatDuckAddress
+ } = require('../autofill-utils')
+-const EmailAutofill = require('../UI/EmailAutofill')
+-const DataAutofill = require('../UI/DataAutofill')
+ const {scanForInputs, forms} = require('../scanForInputs.js')
+-const getInputConfig = require('../Form/inputTypeConfig')
+-let currentAttached = {}
+-
+-document.addEventListener('InboundCredential', function (e) {
+-    if ('email' in e.detail.data) {
+-        currentAttached.form.autofillEmail(e.detail.data.email)
+-    } else {
+-        currentAttached.form.autofillData(e.detail.data, e.detail.configType)
+-    }
+-})
+ 
+ class AppleDeviceInterface extends InterfacePrototype {
+     constructor () {
+         super()
+         if (isTopFrame) {
+             this.stripCredentials = false
++        } else {
++            document.addEventListener('InboundCredential', this)
++        }
++    }
++
++    handleEvent (event) {
++        switch (event.type) {
++        case 'InboundCredential':
++            this.inboundCredential(event)
++            break
++        case 'scroll':
++            this.removeTooltip()
++            break
++        }
++    }
++
++    inboundCredential (e) {
++        const activeForm = this.getActiveForm()
++        if ('email' in e.detail.data) {
++            activeForm.autofillEmail(e.detail.data.email)
++        } else {
++            activeForm.autofillData(e.detail.data, e.detail.configType)
+         }
+     }
+ 
+@@ -73,59 +84,31 @@ class AppleDeviceInterface extends InterfacePrototype {
+         return !!isAppSignedIn
+     }
+ 
+-    getActiveForm () {
+-        if (currentAttached.form) return currentAttached.form
+-        return [...forms.values()].find((form) => form.tooltip)
+-    }
+-
+-    setActiveForm (input, form) {
+-        currentAttached.form = form
+-        currentAttached.input = input
+-        form.activeInput = input
+-        const inputType = getInputConfig(input).type
+-        form.tooltip = inputType === 'emailNew'
+-            ? new EmailAutofill(input, form, this)
+-            : new DataAutofill(input, form, this)
+-        form.intObs.observe(input)
+-        window.addEventListener('pointerdown', form.removeTooltip, {capture: true})
+-        window.addEventListener('input', form.removeTooltip, {once: true})
+-    }
+-
+     async setSize (details) {
+         await wkSend('setSize', details)
+     }
+ 
+-    async showTooltip (form, input, inputType, e) {
+-        if (e.type !== 'pointerdown') {
+-            return
+-        }
+-        const inputClientDimensions = input.getBoundingClientRect()
+-        console.log(e, input, inputClientDimensions)
+-        // TODO check screenX/Y is correct over clientX, layerX, etc
+-        let diffX = Math.floor(e.clientX - inputClientDimensions.x)
+-        let diffY = Math.floor(e.clientY - inputClientDimensions.y)
+-        // const inputLeft = Math.floor(inputClientDimensions.x)
+-        // const inputTop = Math.floor(inputClientDimensions.y)
+-
+-        // TODO top and left need to be the offset from the current click to the top/left of the input field
++    async showTopTooltip (inputType, inputSubtype, coordinates) {
++        window.addEventListener('scroll', this, {once: true})
++
++        let diffX = Math.floor(coordinates.click.x - coordinates.input.x)
++        let diffY = Math.floor(coordinates.click.y - coordinates.input.y)
++
+         const details = {
+             inputTop: diffY,
+             inputLeft: diffX,
+-            height: inputClientDimensions.height,
+-            width: inputClientDimensions.width,
+-            inputHeight: Math.floor(inputClientDimensions.height),
+-            inputWidth: Math.floor(inputClientDimensions.width),
+-            // inputTop: inputTop,
+-            // inputLeft: inputLeft,
+-            inputType: inputType
++            height: coordinates.input.height,
++            width: coordinates.input.width,
++            inputHeight: Math.floor(coordinates.input.height),
++            inputWidth: Math.floor(coordinates.input.width),
++            inputType: inputType,
++            inputSubtype: inputSubtype
+         }
+-        currentAttached = {form, input}
+ 
+-        console.log('show autofill parent', details)
+         await wkSend('showAutofillParent', details)
+     }
+ 
+-    async closeTooltip () {
++    async removeTooltip () {
+         await wkSend('closeAutofillParent', {})
+     }
+ 
+@@ -206,16 +189,20 @@ class AppleDeviceInterface extends InterfacePrototype {
+ 
+     // Used to encode data to send back to the child autofill
+     async selectedDetail (detailIn, configType) {
+-        let detailsEntries = Object.entries(detailIn).map(([key, value]) => {
+-            return [key, String(value)]
+-        })
+-        const data = Object.fromEntries(detailsEntries)
+-        wkSend('selectedDetail', { data, configType })
++        if (isTopFrame) {
++            let detailsEntries = Object.entries(detailIn).map(([key, value]) => {
++                return [key, String(value)]
++            })
++            const data = Object.fromEntries(detailsEntries)
++            wkSend('selectedDetail', { data, configType })
++        } else {
++            this.activeFormSelectedDetail(detailIn, configType)
++        }
+     }
+ 
+-    async getInputType () {
+-        const {inputType} = await wkSendAndWait('emailHandlerCheckAppSignedInStatus')
+-        return inputType
++    async getInputTypes () {
++        const {inputSubtype, inputType} = await wkSendAndWait('emailHandlerCheckAppSignedInStatus')
++        return {inputSubtype, inputType}
+     }
+ 
+     async getAlias () {
+diff --git a/src/DeviceInterface/InterfacePrototype.js b/src/DeviceInterface/InterfacePrototype.js
+index d96d889..a735ceb 100644
+--- a/src/DeviceInterface/InterfacePrototype.js
++++ b/src/DeviceInterface/InterfacePrototype.js
+@@ -8,15 +8,18 @@ const {
+     sendAndWaitForAnswer,
+     formatDuckAddress
+ } = require('../autofill-utils')
+-const {getInputMainType} = require('../Form/matching')
++const {getInputMainType, getInputSubtype} = require('../Form/matching')
+ const {forms} = require('../scanForInputs')
+ const {
+     formatFullName
+ } = require('../Form/formatters')
+ const EmailAutofill = require('../UI/EmailAutofill')
+ const DataAutofill = require('../UI/DataAutofill')
++const {getInputConfigFromType} = require('../Form/inputTypeConfig')
+ 
+ let attempts = 0
++let currentAttached
++let currentTooltip = null
+ 
+ class InterfacePrototype {
+     stripCredentials = true
+@@ -141,12 +144,44 @@ class InterfacePrototype {
+         }
+     }
+ 
+-    attachTooltip (form, input, e) {
++    async selectedDetail (data, type) {
++        this.activeFormSelectedDetail(data, type)
++    }
++
++    activeFormSelectedDetail (data, type) {
++        const form = this.getActiveForm()
++        if (type === 'email') {
++            form.autofillEmail(data.email)
++        } else {
++            form.autofillData(data, type)
++        }
++    }
++
++    createTooltip (inputType, subtype, coordinates) {
++        window.addEventListener('pointerdown', () => this.removeTooltip(), {capture: true, once: true})
++        window.addEventListener('input', () => this.removeTooltip(), {once: true})
++
++        const config = getInputConfigFromType(inputType)
++
++        if (isApp) {
++            return new DataAutofill(config, subtype, coordinates.input, this)
++        } else {
++            return new EmailAutofill(config, subtype, coordinates.input, this)
++        }
++    }
++
++    attachTooltip (form, input, coordinates) {
+         form.activeInput = input
++        this.setActiveForm(form)
+ 
+-        if (!isTopFrame) {
+-            const inputType = getInputMainType(input)
+-            this.showTooltip(form, input, inputType, e)
++        const inputType = getInputMainType(input)
++        const subtype = getInputSubtype(input)
++        if (!isTopFrame && isApp) {
++            // TODO currently only mouse supported
++            if (!coordinates.click) {
++                return
++            }
++            this.showTopTooltip(inputType, subtype, coordinates)
+             return
+         }
+ 
+@@ -156,20 +191,37 @@ class InterfacePrototype {
+                 else form.activeInput.focus()
+             })
+         } else {
+-            if (form.tooltip) return
+-
+-            form.tooltip = !isApp
+-                ? new EmailAutofill(input, form, this)
+-                : new DataAutofill(input, form, this)
++            if (currentTooltip) return
++            currentTooltip = this.createTooltip(inputType, subtype, coordinates)
+             form.intObs.observe(input)
+-            window.addEventListener('pointerdown', form.removeTooltip, {capture: true})
+-            window.addEventListener('input', form.removeTooltip, {once: true})
+         }
+     }
+ 
++    async removeTooltip () {
++        if (currentTooltip) {
++            currentTooltip.remove()
++            currentTooltip = null
++        }
++    }
++
++    getActiveTooltip () {
++        return currentTooltip
++    }
++
++    setActiveTooltip (tooltip) {
++        currentTooltip = tooltip
++    }
++
+     getActiveForm () {
++        if (currentAttached) return currentAttached
+         return [...forms.values()].find((form) => form.tooltip)
+     }
++
++    setActiveForm (form) {
++        currentAttached = form
++    }
++
++    handleEvent (_event) {}
+     setupAutofill (_opts) {}
+     getAddresses () {}
+     refreshAlias () {}
+diff --git a/src/Form/Form.js b/src/Form/Form.js
+index 4e050ff..8a5717c 100644
+--- a/src/Form/Form.js
++++ b/src/Form/Form.js
+@@ -1,9 +1,9 @@
+ const FormAnalyzer = require('./FormAnalyzer')
+-const {addInlineStyles, removeInlineStyles, setValue, isEventWithinDax, isMobileApp, isApp} = require('../autofill-utils')
++const {addInlineStyles, removeInlineStyles, setValue, isEventWithinDax, isMobileApp, isApp, getDaxBoundingBox} = require('../autofill-utils')
+ const {getInputSubtype, getInputMainType} = require('./matching')
+ const {getIconStylesAutofilled, getIconStylesBase} = require('./inputStyles')
+ const {ATTR_AUTOFILL} = require('../constants')
+-const getInputConfig = require('./inputTypeConfig.js')
++const {getInputConfig} = require('./inputTypeConfig.js')
+ const {getUnifiedExpiryDate, formatCCYear, getCountryName} = require('./formatters')
+ const {Matching} = require('./matching')
+ const {matchingConfiguration} = require('./matching-configuration')
+@@ -38,7 +38,6 @@ class Form {
+ 
+         this.touched = new Set()
+         this.listeners = new Set()
+-        this.tooltip = null
+         this.activeInput = null
+         // We set this to true to skip event listeners while we're autofilling
+         this.isAutofilling = false
+@@ -90,15 +89,15 @@ class Form {
+         })
+ 
+         this.removeTooltip = (e) => {
++            const tooltip = this.device.getActiveTooltip()
+             if (
+                 this.isAutofilling ||
+-                !this.tooltip ||
+-                (e && e.target === this.tooltip.host)
++                !tooltip ||
++                (e && e.target === tooltip.host)
+             ) {
+                 return
+             }
+-            this.tooltip.remove()
+-            this.tooltip = null
++            this.device.removeTooltip()
+             this.intObs?.disconnect()
+             window.removeEventListener('pointerdown', this.removeTooltip, {capture: true})
+         }
+@@ -228,24 +227,41 @@ class Form {
+         }
+ 
+         const handler = (e) => {
+-            if (this.tooltip || this.isAutofilling) return
+-
++            if (this.device.getActiveTooltip() || this.isAutofilling) return
++
++            const input = e.target
++            // In extensions, the tooltip is centered on the Dax icon
++            const inputClientDimensions = isApp ? input.getBoundingClientRect() : getDaxBoundingBox(input)
++            let coordinates = {
++                input: {
++                    height: inputClientDimensions.height,
++                    width: inputClientDimensions.width,
++                    x: inputClientDimensions.x,
++                    y: inputClientDimensions.y,
++                    bottom: inputClientDimensions.bottom,
++                    left: inputClientDimensions.left
++                }
++            }
+             // Checks for mousedown event
+             if (e.type === 'pointerdown') {
+                 if (!e.isTrusted) return
+                 const isMainMouseButton = e.button === 0
+                 if (!isMainMouseButton) return
++                coordinates.click = {
++                    x: e.clientX,
++                    y: e.clientY
++                }
+             }
+ 
+-            if (this.shouldOpenTooltip(e, e.target)) {
+-                if (isEventWithinDax(e, e.target) || isMobileApp) {
++            if (this.shouldOpenTooltip(e, input)) {
++                if (isEventWithinDax(e, input) || isMobileApp) {
+                     e.preventDefault()
+                     e.stopImmediatePropagation()
+                 }
+ 
+-                this.touched.add(e.target)
++                this.touched.add(input)
+                 // @ts-ignore
+-                this.device.attachTooltip(this, e.target, e)
++                this.device.attachTooltip(this, input, coordinates)
+             }
+         }
+ 
+@@ -295,9 +311,7 @@ class Form {
+             dataType
+         )
+         this.isAutofilling = false
+-        if (this.tooltip) {
+-            this.removeTooltip()
+-        }
++        this.removeTooltip()
+     }
+ 
+     autofillData (data, dataType) {
+@@ -325,9 +339,7 @@ class Form {
+ 
+         this.isAutofilling = false
+ 
+-        if (this.tooltip) {
+-            this.removeTooltip()
+-        }
++        this.removeTooltip()
+     }
+ }
+ 
+diff --git a/src/Form/inputStyles.js b/src/Form/inputStyles.js
+index a47901e..9522d96 100644
+--- a/src/Form/inputStyles.js
++++ b/src/Form/inputStyles.js
+@@ -1,4 +1,4 @@
+-const getInputConfig = require('./inputTypeConfig.js')
++const {getInputConfig} = require('./inputTypeConfig.js')
+ 
+ /**
+  * Returns the css-ready base64 encoding of the icon for the given input
+diff --git a/src/Form/inputTypeConfig.js b/src/Form/inputTypeConfig.js
+index 19d195c..8aca5f8 100644
+--- a/src/Form/inputTypeConfig.js
++++ b/src/Form/inputTypeConfig.js
+@@ -33,7 +33,7 @@ const inputTypeConfig = {
+         getIconFilled: () => ddgPasswordIcons.ddgPasswordIconFilled,
+         shouldDecorate: (_input, {isLogin, device}) => isLogin && device.hasLocalCredentials,
+         dataType: 'Credentials',
+-        displayTitlePropName: (_input, data) => data.username,
++        displayTitlePropName: (_subtype, data) => data.username,
+         displaySubtitlePropName: '•••••••••••••••',
+         autofillMethod: 'getAutofillCredentials'
+     },
+@@ -44,7 +44,7 @@ const inputTypeConfig = {
+         getIconFilled: () => '',
+         shouldDecorate: (_input, {device}) => device.hasLocalCreditCards,
+         dataType: 'CreditCards',
+-        displayTitlePropName: (_input, data) => data.title,
++        displayTitlePropName: (_subtype, data) => data.title,
+         displaySubtitlePropName: 'displayNumber',
+         autofillMethod: 'getAutofillCreditCard'
+     },
+@@ -67,8 +67,7 @@ const inputTypeConfig = {
+             return false
+         },
+         dataType: 'Identities',
+-        displayTitlePropName: (input, data) => {
+-            const subtype = getInputSubtype(input)
++        displayTitlePropName: (subtype, data) => {
+             if (subtype === 'addressCountryCode') {
+                 return getCountryDisplayName('en', data.addressCountryCode)
+             }
+@@ -97,7 +96,19 @@ const inputTypeConfig = {
+  */
+ const getInputConfig = (input) => {
+     const inputType = getInputMainType(input)
++    return getInputConfigFromType(inputType)
++}
++
++/**
++ * Retrieves configs from an input type
++ * @param {string} inputType
++ * @returns {InputTypeConfig}
++ */
++const getInputConfigFromType = (inputType) => {
+     return inputTypeConfig[inputType || 'unknown']
+ }
+ 
+-module.exports = getInputConfig
++module.exports = {
++    getInputConfig,
++    getInputConfigFromType
++}
+diff --git a/src/UI/DataAutofill.js b/src/UI/DataAutofill.js
+index 81b84b5..bd2b9cd 100644
+--- a/src/UI/DataAutofill.js
++++ b/src/UI/DataAutofill.js
+@@ -4,15 +4,11 @@ const {
+     escapeXML
+ } = require('../autofill-utils')
+ const Tooltip = require('./Tooltip')
+-const getInputConfig = require('../Form/inputTypeConfig')
+-const {getInputSubtype} = require('../Form/matching')
+ 
+ class DataAutofill extends Tooltip {
+-    constructor (input, associatedForm, deviceInterface) {
+-        super(input, associatedForm, deviceInterface)
++    constructor (config, subtype, position, deviceInterface) {
++        super(config, subtype, position, deviceInterface)
+ 
+-        const config = getInputConfig(input)
+-        const subtype = getInputSubtype(input)
+         this.config = config
+ 
+         this.data = this.interface[`getLocal${config.dataType}`]()
+@@ -49,7 +45,7 @@ ${includeStyles}
+                 <span class="tooltip__button__text-container">
+                     <span class="tooltip__button__primary-text">
+ ${singleData.id === 'privateAddress' ? 'Generated Private Address\n' : ''}
+-${escapeXML(config.displayTitlePropName(input, singleData))}
++${escapeXML(config.displayTitlePropName(subtype, singleData))}
+                     </span><br />
+                     <span class="tooltip__button__secondary-text">
+ ${escapeXML(singleData[config.displaySubtitlePropName] || config.displaySubtitlePropName)}
+@@ -77,11 +73,7 @@ ${escapeXML(singleData[config.displaySubtitlePropName] || config.displaySubtitle
+         this.init()
+     }
+     fillForm (data) {
+-        if (isTopFrame) {
+-            this.interface.selectedDetail(data, this.config.type)
+-        } else {
+-            this.associatedForm.autofillData(data, this.config.type)
+-        }
++        this.interface.selectedDetail(data, this.config.type)
+     }
+ }
+ 
+diff --git a/src/UI/EmailAutofill.js b/src/UI/EmailAutofill.js
+index 918d3f3..43a470c 100644
+--- a/src/UI/EmailAutofill.js
++++ b/src/UI/EmailAutofill.js
+@@ -7,8 +7,8 @@ const {
+ const Tooltip = require('./Tooltip')
+ 
+ class EmailAutofill extends Tooltip {
+-    constructor (input, associatedForm, deviceInterface) {
+-        super(input, associatedForm, deviceInterface)
++    constructor (config, subtype, position, deviceInterface) {
++        super(config, subtype, position, deviceInterface)
+ 
+         this.addresses = this.interface.getLocalAddresses()
+ 
+@@ -62,11 +62,7 @@ ${includeStyles}
+     }
+     fillForm (address) {
+         const formattedAddress = formatDuckAddress(address)
+-        if (isTopFrame) {
+-            this.interface.selectedDetail({email: formattedAddress}, 'email')
+-        } else {
+-            this.associatedForm.autofillEmail(formattedAddress)
+-        }
++        this.interface.selectedDetail({email: formattedAddress}, 'email')
+     }
+ }
+ 
+diff --git a/src/UI/Tooltip.js b/src/UI/Tooltip.js
+index 487a90d..b90e681 100644
+--- a/src/UI/Tooltip.js
++++ b/src/UI/Tooltip.js
+@@ -1,82 +1,11 @@
+-const {safeExecute, addInlineStyles, getDaxBoundingBox, isApp, isTopFrame} = require('../autofill-utils')
+-
+-/**
+- * @this {Tooltip}
+- */
+-const updatePosition = function ({left, top}) {
+-    const shadow = this.shadow
+-    // If the stylesheet is not loaded wait for load (Chrome bug)
+-    if (!shadow.styleSheets.length) {
+-        this.stylesheet?.addEventListener('load', this.checkPosition)
+-        return
+-    }
+-
+-    this.left = left
+-    this.top = top
+-
+-    if (this.transformRuleIndex && shadow.styleSheets[0].rules[this.transformRuleIndex]) {
+-        // If we have already set the rule, remove it…
+-        shadow.styleSheets[0].deleteRule(this.transformRuleIndex)
+-    } else {
+-        // …otherwise, set the index as the very last rule
+-        this.transformRuleIndex = shadow.styleSheets[0].rules.length
+-    }
+-
+-    let newRule = `.wrapper {transform: translate(${left}px, ${top}px);}`
+-    if (isTopFrame) {
+-        newRule = '.wrapper {transform: none; }'
+-    }
+-    shadow.styleSheets[0].insertRule(newRule, this.transformRuleIndex)
+-}
+-
+-/**
+- * @this {Tooltip}
+- */
+-const checkPosition = function () {
+-    if (this.animationFrame) {
+-        window.cancelAnimationFrame(this.animationFrame)
+-    }
+-
+-    this.animationFrame = window.requestAnimationFrame(() => {
+-        // In extensions, the tooltip is centered on the Dax icon
+-        const position = isApp ? this.input.getBoundingClientRect()
+-            : getDaxBoundingBox(this.input)
+-        const {left, bottom} = position
+-
+-        if (left !== this.left || bottom !== this.top) {
+-            this.updatePosition({left, top: bottom})
+-        }
+-
+-        this.animationFrame = null
+-    })
+-}
+-
+-/**
+- * @this {Tooltip}
+- */
+-const ensureIsLastInDOM = function () {
+-    this.count = this.count || 0
+-    // If DDG el is not the last in the doc, move it there
+-    if (document.body.lastElementChild !== this.host) {
+-        // Try up to 15 times to avoid infinite loop in case someone is doing the same
+-        if (this.count < 15) {
+-            this.lift()
+-            this.append()
+-            this.checkPosition()
+-            this.count++
+-        } else {
+-            // Remove the tooltip from the form to cleanup listeners and observers
+-            this.associatedForm.removeTooltip()
+-            console.info(`DDG autofill bailing out`)
+-        }
+-    }
+-}
++const {safeExecute, addInlineStyles, isTopFrame} = require('../autofill-utils')
+ 
+ class Tooltip {
+-    constructor (input, associatedForm, deviceInterface) {
++    constructor (config, subtype, position, deviceInterface) {
+         this.shadow = document.createElement('ddg-autofill').attachShadow({mode: 'closed'})
+         this.host = this.shadow.host
+         this.tooltip = null
++        this.position = position
+         const forcedVisibilityStyles = {
+             'display': 'block',
+             'visibility': 'visible',
+@@ -84,8 +13,7 @@ class Tooltip {
+         }
+         // @ts-ignore how to narrow this.host to HTMLElement?
+         addInlineStyles(this.host, forcedVisibilityStyles)
+-        this.input = input
+-        this.associatedForm = associatedForm
++
+         this.interface = deviceInterface
+         this.count = 0
+     }
+@@ -93,7 +21,7 @@ class Tooltip {
+         document.body.appendChild(this.host)
+     }
+     remove () {
+-        window.removeEventListener('scroll', this.checkPosition, {capture: true})
++        window.removeEventListener('scroll', () => this.checkPosition(), {capture: true})
+         this.resObs.disconnect()
+         this.mutObs.disconnect()
+         this.lift()
+@@ -103,10 +31,64 @@ class Tooltip {
+         this.top = null
+         document.body.removeChild(this.host)
+     }
+-    checkPosition = checkPosition.bind(this)
+-    updatePosition = updatePosition.bind(this)
+-    ensureIsLastInDOM = ensureIsLastInDOM.bind(this)
+-    resObs = new ResizeObserver(entries => entries.forEach(this.checkPosition))
++    checkPosition () {
++        if (this.animationFrame) {
++            window.cancelAnimationFrame(this.animationFrame)
++        }
++
++        this.animationFrame = window.requestAnimationFrame(() => {
++            const {left, bottom} = this.position
++
++            if (left !== this.left || bottom !== this.top) {
++                this.updatePosition({left, top: bottom})
++            }
++
++            this.animationFrame = null
++        })
++    }
++    updatePosition ({left, top}) {
++        const shadow = this.shadow
++        // If the stylesheet is not loaded wait for load (Chrome bug)
++        if (!shadow.styleSheets.length) {
++            this.stylesheet?.addEventListener('load', () => this.checkPosition())
++            return
++        }
++
++        this.left = left
++        this.top = top
++
++        if (this.transformRuleIndex && shadow.styleSheets[0].rules[this.transformRuleIndex]) {
++            // If we have already set the rule, remove it…
++            shadow.styleSheets[0].deleteRule(this.transformRuleIndex)
++        } else {
++            // …otherwise, set the index as the very last rule
++            this.transformRuleIndex = shadow.styleSheets[0].rules.length
++        }
++
++        let newRule = `.wrapper {transform: translate(${left}px, ${top}px);}`
++        if (isTopFrame) {
++            newRule = '.wrapper {transform: none; }'
++        }
++        shadow.styleSheets[0].insertRule(newRule, this.transformRuleIndex)
++    }
++    ensureIsLastInDOM () {
++        this.count = this.count || 0
++        // If DDG el is not the last in the doc, move it there
++        if (document.body.lastElementChild !== this.host) {
++            // Try up to 15 times to avoid infinite loop in case someone is doing the same
++            if (this.count < 15) {
++                this.lift()
++                this.append()
++                this.checkPosition()
++                this.count++
++            } else {
++                // Remove the tooltip from the form to cleanup listeners and observers
++                this.device.removeTooltip()
++                console.info(`DDG autofill bailing out`)
++            }
++        }
++    }
++    resObs = new ResizeObserver(entries => entries.forEach(() => this.checkPosition()))
+     mutObs = new MutationObserver((mutationList) => {
+         for (const mutationRecord of mutationList) {
+             if (mutationRecord.type === 'childList') {
+@@ -157,7 +139,7 @@ class Tooltip {
+         this.append()
+         this.resObs.observe(document.body)
+         this.mutObs.observe(document.body, {childList: true, subtree: true, attributes: true})
+-        window.addEventListener('scroll', this.checkPosition, {capture: true})
++        window.addEventListener('scroll', () => this.checkPosition(), {capture: true})
+         this.setSize()
+ 
+         // TODO Not ideal, we wait till after the form is filled.
+diff --git a/src/autofill.js b/src/autofill.js
+index a651e40..c287a67 100644
+--- a/src/autofill.js
++++ b/src/autofill.js
+@@ -7,18 +7,8 @@
+ 
+         // chrome is only present in desktop browsers
+         if (typeof chrome === 'undefined') {
+-            const deviceInterface = require('./DeviceInterface')
+-            const observePageChanges = () => {
+-                // TODO debounce these
+-                // TODO we might want to duplicate this in the tabview to reduce the lag.
+-                document.addEventListener('scroll', () => {
+-                    deviceInterface.closeTooltip()
+-                })
+-                // TODO add mutation observer to hide on sizing changes of the page
+-            }
+             listenForGlobalFormSubmission()
+             inject()
+-            observePageChanges()
+         } else {
+             // Check if the site is marked to skip autofill
+             chrome.runtime.sendMessage(
+diff --git a/src/inject.js b/src/inject.js
+index 85d65a4..cf4e6dd 100644
+--- a/src/inject.js
++++ b/src/inject.js
+@@ -15,10 +15,9 @@ const inject = () => {
+             e.preventDefault()
+             e.stopImmediatePropagation()
+ 
+-            // @ts-ignore
+-            const activeForm = deviceInterface.getActiveForm()
+-            if (activeForm) {
+-                activeForm.tooltip.dispatchClick()
++            const activeTooltip = deviceInterface.getActiveTooltip()
++            if (activeTooltip) {
++                activeTooltip.dispatchClick()
+             }
+         }
+ 
+diff --git a/src/topAutofill.js b/src/topAutofill.js
+index 0beb05a..3950dab 100644
+--- a/src/topAutofill.js
++++ b/src/topAutofill.js
+@@ -1,48 +1,18 @@
+-function makeField (outputType) {
+-    let field = document.createElement('input')
+-    field.type = outputType
+-    field.name = outputType
+-    field.autocomplete = outputType
+-    return field
+-}
+-
+-function setupFakeForm (inputType) {
+-    let main = document.querySelector('main')
+-    // TODO hey we're a PoC let's just fake the code to get it working
+-    let fakeForm = document.createElement('form')
+-    let fakeInput = makeField('email')
+-    // TODO add support for identities
+-    if (inputType === 'identities') {
+-        inputType = 'emailNew'
+-    }
+-    if (inputType !== 'emailNew') {
+-        fakeInput = makeField('username')
+-        fakeForm.appendChild(fakeInput)
+-
+-        const fakePassword = makeField('password')
+-        fakePassword.autocomplete = 'current-password'
+-        fakeForm.appendChild(fakePassword)
+-
+-        let fakeButton = document.createElement('button')
+-        fakeButton.textContent = 'Log in'
+-        fakeForm.appendChild(fakeButton)
+-    } else {
+-        fakeForm.appendChild(fakeInput)
+-    }
+-
+-    fakeForm.style.visibility = 'collapse'
+-    main.appendChild(fakeForm)
+-    return {fakeInput, fakeForm}
+-}
+-
+ async function init () {
+     const DeviceInterface = require('./DeviceInterface')
+-    const inputType = await DeviceInterface.getInputType()
+-    const {fakeInput, fakeForm} = setupFakeForm(inputType)
++    const {inputType, inputSubtype} = await DeviceInterface.getInputTypes()
+     function triggerFormSetup () {
+-        const {getOrCreateParentFormInstance} = require('./scanForInputs')
+-        const parentFormInstance = getOrCreateParentFormInstance(fakeInput, fakeForm, DeviceInterface)
+-        DeviceInterface.setActiveForm(fakeInput, parentFormInstance)
++        // TODO pass this
++        const coordinates = {
++            input: {
++                x: 0,
++                y: 0,
++                height: 50,
++                width: 50
++            }
++        }
++        const tooltip = DeviceInterface.createTooltip(inputType, inputSubtype, coordinates)
++        DeviceInterface.setActiveTooltip(tooltip)
+     }
+     window.addEventListener('InitComplete', () => {
+         triggerFormSetup()

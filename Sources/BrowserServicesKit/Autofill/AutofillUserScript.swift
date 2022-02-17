@@ -19,6 +19,12 @@
 
 import WebKit
 
+public protocol AutofillMessaging {
+    var lastOpenHost: String? { get }
+    func messageSelectedCredential(_ data: [String: String], _ configType: String)
+    func close()
+}
+
 public protocol AutofillUserScriptDelegate: AnyObject {
 
     func clickTriggered(clickPoint: NSPoint)
@@ -61,7 +67,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
 public protocol OverlayProtocol {
     var view: NSView { get }
-    func getContentOverlayPopover(_ response: AutofillMessaging) -> ContentOverlayPopover?
+    func closeOverlay()
+    func displayOverlay(rect: NSRect, of: NSView, width: CGFloat, inputType: String, messageInterface: AutofillMessaging)
 }
 
 
@@ -82,6 +89,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         case emailHandlerCheckAppSignedInStatus
 
         case pmHandlerGetAutofillInitData
+        case pmHandlerStoreCredentials
     }
 
     public var topView: OverlayProtocol?
@@ -118,7 +126,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
-        print("TODOJKT got message \(message) \(self) \(#function) ")
+        //print("TODOJKT got message \(message) \(self) \(#function) ")
         switch message {
         case .getSelectedCredentials: return getSelectedCredentials
         case .showAutofillParent: return showAutofillParent
@@ -128,7 +136,23 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
+        case .pmHandlerStoreCredentials: return pmStoreCredentials
         }
+    }
+
+    func pmStoreCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        defer {
+            replyHandler(nil)
+        }
+
+        guard let body = message.body as? [String: Any],
+              let username = body["username"] as? String,
+              let password = body["password"] as? String else {
+            return
+        }
+
+        let domain = hostProvider.hostForMessage(message)
+        vaultDelegate?.autofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
     }
     
     func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
@@ -195,14 +219,14 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     public func messageSelectedCredential(_ data: [String: String], _ configType: String) {
         print("TODOJKT messsaged to af! \(data) \(lastOpenHost) \(self) \(#function) ")
         guard let topView = topView else { return }
-        topView.getContentOverlayPopover(self)?.close()
+        topView.closeOverlay()
         selectedCredential = data
         selectedConfigType = configType
     }
     
     public func close() {
         guard let topView = topView else { return }
-        topView.getContentOverlayPopover(self)?.close()
+        topView.closeOverlay()
         // TODO cleanup injected script
     }
     
@@ -211,11 +235,11 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     
     func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let topView = topView else { return }
-        let popover = topView.getContentOverlayPopover(self)!;
+        //let popover = topView.getContentOverlayPopover(self)!;
         selectedCredential = nil
         selectedConfigType = nil
         lastOpenHost = nil
-        popover.close()
+        topView.closeOverlay()
         replyHandler(nil)
     }
     
@@ -235,8 +259,8 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
         
-        let popover = topView.getContentOverlayPopover(self)!;
-        let zf = popover.zoomFactor!
+        //let popover = topView.getContentOverlayPopover(self)!;
+        let zf = 1.0 //popover.zoomFactor!
         // Combines native click with offset of dax click.
         let clickX = CGFloat(clickPoint.x);
         let clickY = CGFloat(clickPoint.y);
@@ -255,7 +279,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
         if (width < 315) {
             width = 315
         }
-        popover.display(rect: rect, of: topView.view, width: width, inputType: inputType)
+        topView.displayOverlay(rect: rect, of: topView.view, width: width, inputType: inputType, messageInterface: self)
         replyHandler(nil)
     }
     
