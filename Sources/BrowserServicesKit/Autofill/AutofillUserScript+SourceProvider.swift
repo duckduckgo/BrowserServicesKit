@@ -25,9 +25,6 @@ public protocol AutofillUserScriptSourceProvider {
 
 public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     
-    private var privacyConfigurationManager: PrivacyConfigurationManager
-    private var properties: ContentScopeProperties
-    
     private var sourceStr: String
     
     public var source: String {
@@ -35,9 +32,6 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     }
     
     init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-        self.properties = properties
-        
         var replacements: [String: String] = [:]
         #if os(macOS)
             replacements["// INJECT isApp HERE"] = "isApp = true;"
@@ -53,7 +47,8 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
               let jsonProperties = try? JSONEncoder().encode(properties),
               let jsonPropertiesString = String(data: jsonProperties, encoding: .utf8)
               else {
-            return ""
+            sourceStr = ""
+            return
         }
         replacements["// INJECT contentScope HERE"] = "contentScope = " + privacyConfigJson + ";"
         replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"

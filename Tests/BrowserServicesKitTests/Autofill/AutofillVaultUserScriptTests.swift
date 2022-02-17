@@ -30,7 +30,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         """
         {
             "features": {
-                "autofill" {
+                "autofill": {
                     "status": "enabled",
                     "exceptions": []
                 }

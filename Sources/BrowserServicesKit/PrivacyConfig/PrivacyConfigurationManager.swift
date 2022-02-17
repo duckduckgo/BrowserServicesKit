@@ -68,14 +68,18 @@ public class PrivacyConfigurationManager {
             if let embedded = _embeddedConfigData {
                 data = embedded
             } else {
+                do {
                 let jsonData = embeddedDataProvider.embeddedData
-                let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+                let json = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
                 let configData = PrivacyConfigurationData(json: json!)
                 _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData
+                } catch {
+                    print(String(describing: error))
+                }
             }
             lock.unlock()
-            return data
+            return _embeddedConfigData
         }
         set {
             lock.lock()

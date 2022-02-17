@@ -43,7 +43,7 @@ class EmailManagerTests: XCTestCase {
         """
         {
             "features": {
-                "autofill" {
+                "autofill": {
                     "status": "enabled",
                     "exceptions": []
                 }
