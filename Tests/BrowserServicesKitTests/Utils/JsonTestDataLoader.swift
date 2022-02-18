@@ -26,14 +26,9 @@ enum FileError: Error {
 
 final class FileLoader {
 
-    func load(fileName: String, fromBundle bundle: Bundle) throws -> Data {
+    func load(filePath: String, fromBundle bundle: Bundle) throws -> Data {
 
-        let fileUrl = URL(fileURLWithPath: fileName)
-        let baseName = fileUrl.deletingPathExtension().lastPathComponent
-        let ext = fileUrl.pathExtension
-
-        guard let path = bundle.path(forResource: baseName, ofType: ext) else { throw  FileError.unknownFile }
-        let url = URL(fileURLWithPath: path)
+        guard let url = bundle.resourceURL?.appendingPathComponent(filePath) else { throw  FileError.unknownFile }
         guard let data = try? Data(contentsOf: url, options: [.mappedIfSafe]) else { throw  FileError.invalidFileContents }
         return data
     }
@@ -50,18 +45,18 @@ final class JsonTestDataLoader {
     }
 
     func unexpected() -> Data {
-        guard let data = try? FileLoader().load(fileName: "MockFiles/unexpected.json", fromBundle: bundle) else {
+        guard let data = try? FileLoader().load(filePath: "MockFiles/unexpected.json", fromBundle: bundle) else {
             fatalError("Failed to load MockFiles/unexpected.json")
         }
         return data
     }
 
-    func fromJsonFile(_ fileName: String) -> Data {
+    func fromJsonFile(_ filePath: String) -> Data {
 
         do {
-            return try FileLoader().load(fileName: fileName, fromBundle: bundle)
+            return try FileLoader().load(filePath: filePath, fromBundle: bundle)
         } catch {
-            fatalError("Unable to load \(fileName) error \(error)")
+            fatalError("Unable to load \(filePath) error \(error)")
         }
     }
 
