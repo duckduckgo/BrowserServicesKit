@@ -27,9 +27,26 @@ enum FileError: Error {
 final class FileLoader {
 
     func load(filePath: String, fromBundle bundle: Bundle) throws -> Data {
+        
+        guard let resourceUrl = bundle.resourceURL else { throw FileError.unknownFile }
+        
+        let url = resourceUrl.appendingPathComponent(filePath)
+        
+        let finalURL: URL
+        if FileManager.default.fileExists(atPath: url.path) {
+            finalURL = url
+        } else {
+            // Workaround for resource bundle having a different structure when running tests from command line.
+            let url = resourceUrl.deletingLastPathComponent().appendingPathComponent(filePath)
+            
+            if FileManager.default.fileExists(atPath: url.path) {
+                finalURL = url
+            } else {
+                throw FileError.unknownFile
+            }
+        }
 
-        guard let url = bundle.resourceURL?.appendingPathComponent(filePath) else { throw  FileError.unknownFile }
-        guard let data = try? Data(contentsOf: url, options: [.mappedIfSafe]) else { throw  FileError.invalidFileContents }
+        guard let data = try? Data(contentsOf: finalURL, options: [.mappedIfSafe]) else { throw  FileError.invalidFileContents }
         return data
     }
 }
