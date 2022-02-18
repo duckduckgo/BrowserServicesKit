@@ -114,6 +114,7 @@ public class TopAutofillUserScript: NSObject, UserScript {
     
     func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let messageInterfaceBack = messageInterfaceBack else { return }
+        self.contentOverlay?.setSize(height: 0, width: 0)
         messageInterfaceBack.close()
         replyHandler(nil)
     }
