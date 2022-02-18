@@ -45,13 +45,35 @@ extension URL {
         components.password = nil
         return components.url
     }
-
+    
     public var isRoot: Bool {
-        return (path.isEmpty || path == "/") &&
-            query == nil &&
-            fragment == nil &&
-            user == nil &&
-            password == nil
+        (path.isEmpty || path == "/") &&
+        query == nil &&
+        fragment == nil &&
+        user == nil &&
+        password == nil
+    }
+    
+    // MARK: - HTTP/HTTPS
+    
+    public enum URLProtocol: String {
+        case http
+        case https
+
+        public var scheme: String {
+            return "\(rawValue)://"
+        }
+    }
+
+    public func toHttps() -> URL? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        guard components.scheme == URLProtocol.http.rawValue else { return self }
+        components.scheme = URLProtocol.https.rawValue
+        return components.url
+    }
+    
+    public var isHttp: Bool {
+        scheme == "http"
     }
 
 }

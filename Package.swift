@@ -18,11 +18,13 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3"))
     ],
     targets: [
+        
         .target(
             name: "BrowserServicesKit",
             dependencies: [
                 "GRDB",
-                "TrackerRadarKit"
+                "TrackerRadarKit",
+                "BloomFilterWrapper"
             ],
             exclude: [
                 "Resources/content-scope-scripts/README.md",
@@ -63,6 +65,14 @@ let package = Package(
                 .process("ContentBlocking/UserScripts/surrogates.js"),
                 .process("Resources/content-scope-scripts/build/apple/contentScope.js")
             ]),
+        .target(
+            name: "BloomFilterWrapper",
+            dependencies: [
+                "BloomFilter"
+            ]),
+        .target(
+            name: "BloomFilter"
+        ),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
