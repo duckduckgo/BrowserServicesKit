@@ -19,16 +19,53 @@
 
 import WebKit
 
-public class AutofillUserScript: NSObject, UserScript {
+public protocol AutofillUserScriptDelegate: AnyObject {
+    func setSize(height: CGFloat, width: CGFloat)
+}
+public protocol ChildAutofillUserScriptDelegate: AnyObject {
+    func clickTriggered(clickPoint: NSPoint)
+}
+
+public protocol AutofillMessaging {
+    var lastOpenHost: String? { get }
+    func messageSelectedCredential(_ data: [String: String], _ configType: String)
+    func close()
+}
+
+public protocol OverlayProtocol {
+    var view: NSView { get }
+    func closeOverlay()
+    func displayOverlay(rect: NSRect, of: NSView, width: CGFloat, inputType: String, messageInterface: AutofillMessaging)
+}
+
+
+public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
 
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
 
-    private enum MessageName: String, CaseIterable {
+    public var lastOpenHost: String?
+    public var contentOverlay: AutofillUserScriptDelegate?
+    public var messageInterfaceBack: AutofillMessaging?
+    func hostForMessage(_ message: WKScriptMessage) -> String {
+        if (topAutofill) {
+            return messageInterfaceBack?.lastOpenHost ?? ""
+        } else {
+            return hostProvider.hostForMessage(message)
+        }
+    }
 
+    private enum MessageName: String, CaseIterable {
+        case setSize
+        case selectedDetail
+        case closeAutofillParent
+
+        case getSelectedCredentials
+        case showAutofillParent
         case emailHandlerStoreToken
         case emailHandlerGetAlias
         case emailHandlerRefreshAlias
+
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
 
@@ -45,13 +82,20 @@ public class AutofillUserScript: NSObject, UserScript {
         case pmHandlerOpenManagePasswords
     }
 
+    public var topAutofill: Bool
+    public var topView: OverlayProtocol?
+    public var clickPoint: NSPoint?
+    public var inputType: String?
+
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
 
     public lazy var source: String = {
         var replacements: [String: String] = [:]
         #if os(macOS)
+            replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
             replacements["// INJECT isApp HERE"] = "isApp = true;"
+            replacements["// INJECT isTopFrame HERE"] = "isTopFrame = \(topAutofill ? "true" : "false");"
         #endif
 
         if #available(iOS 14, macOS 11, *) {
@@ -65,17 +109,24 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool {
+        if topAutofill { return true }
         if #available(iOS 14, macOS 11, *) {
             return false
         }
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
+    public var requiresRunInPageContentWorld: Bool = true
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
         switch message {
+        case .setSize: return setSize
+        case .selectedDetail: return selectedDetail
 
+        case .getSelectedCredentials: return getSelectedCredentials
+        case .showAutofillParent: return showAutofillParent
+        case .closeAutofillParent: return closeAutofillParent
         case .emailHandlerStoreToken: return emailStoreToken
         case .emailHandlerGetAlias: return emailGetAlias
         case .emailHandlerRefreshAlias: return emailRefreshAlias
@@ -94,7 +145,109 @@ public class AutofillUserScript: NSObject, UserScript {
         case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
         case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
-            
+        }
+    }
+
+    func setSize(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard let dict = message.body as? [String: Any],
+              let width = dict["width"] as? CGFloat,
+              let height = dict["height"] as? CGFloat else {
+                  return replyHandler(nil)
+              }
+        self.contentOverlay?.setSize(height: height, width: width)
+        replyHandler(nil)
+    }
+
+    func selectedDetail(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let dict = message.body as? [String: Any],
+              let chosenCredential = dict["data"] as? [String: String],
+              let configType = dict["configType"] as? String,
+              let messageInterfaceBack = messageInterfaceBack else { return }
+        messageInterfaceBack.messageSelectedCredential(chosenCredential, configType)
+    }
+
+    func closeAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        if (topAutofill) {
+            guard let messageInterfaceBack = messageInterfaceBack else { return }
+            self.contentOverlay?.setSize(height: 0, width: 0)
+            messageInterfaceBack.close()
+            replyHandler(nil)
+        } else {
+            guard let topView = topView else { return }
+            selectedCredential = nil
+            selectedConfigType = nil
+            lastOpenHost = nil
+            topView.closeOverlay()
+            replyHandler(nil)
+        }
+    }
+
+    public func messageSelectedCredential(_ data: [String: String], _ configType: String) {
+        guard let topView = topView else { return }
+        topView.closeOverlay()
+        selectedCredential = data
+        selectedConfigType = configType
+    }
+
+    public func close() {
+        guard let topView = topView else { return }
+        topView.closeOverlay()
+        // TODO cleanup injected script
+    }
+
+    var selectedCredential: [String: String]?
+    var selectedConfigType: String?
+
+    func showAutofillParent(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard let dict = message.body as? [String: Any],
+              let left = dict["inputLeft"] as? CGFloat,
+              let top = dict["inputTop"] as? CGFloat,
+              let height = dict["inputHeight"] as? CGFloat,
+              var width = dict["inputWidth"] as? CGFloat,
+              let inputType = dict["inputType"] as? String,
+              let topView = topView,
+              let clickPoint = clickPoint else {
+                  return
+              }
+        // Sets the last message host, so we can check when it messages back
+        lastOpenHost = hostProvider.hostForMessage(message)
+
+        let zf = 1.0 //popover.zoomFactor!
+        // Combines native click with offset of dax click.
+        let clickX = CGFloat(clickPoint.x);
+        let clickY = CGFloat(clickPoint.y);
+        let y = (clickY - (height - top)) * zf;
+        let x = (clickX - left) * zf;
+        var rectWidth = width * zf
+        // If the field is wider we want to left assign the rectangle anchoring
+        if (width > 315) {
+            rectWidth = 315 * zf
+        }
+        let rect = NSRect(x: x, y: y, width: rectWidth, height: height * zf)
+        // TODO make 315 a constant
+        if (width < 315) {
+            width = 315
+        }
+        topView.displayOverlay(rect: rect, of: topView.view, width: width, inputType: inputType, messageInterface: self)
+        replyHandler(nil)
+    }
+
+    struct getSelectedCredentialsResponse: Encodable {
+        var type: String
+        var data: [String: String]?
+        var configType: String?
+    }
+
+    func getSelectedCredentials(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+        var response = getSelectedCredentialsResponse(type: "none")
+        if (lastOpenHost == nil || message.frameInfo.securityOrigin.host != lastOpenHost!) {
+            response = getSelectedCredentialsResponse(type: "stop")
+        } else if (selectedCredential != nil) {
+            response = getSelectedCredentialsResponse(type: "ok", data: selectedCredential!, configType: selectedConfigType)
+        }
+        if let json = try? JSONEncoder().encode(response),
+           let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
         }
     }
 
@@ -105,10 +258,17 @@ public class AutofillUserScript: NSObject, UserScript {
     init(encrypter: AutofillEncrypter, hostProvider: AutofillHostProvider) {
         self.encrypter = encrypter
         self.hostProvider = hostProvider
+        self.topAutofill = false
     }
 
     public convenience override init() {
         self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+    }
+
+    public convenience init(overlay: AutofillUserScriptDelegate) {
+        self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+        self.topAutofill = true
+        self.contentOverlay = overlay
     }
 
 }

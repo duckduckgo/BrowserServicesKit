@@ -34,12 +34,17 @@ public protocol AutofillEmailDelegate: AnyObject {
 
 extension AutofillUserScript {
 
+    struct emailCheckSignedInStatusResponse: Codable {
+        var isAppSignedIn: String
+        var inputType: String?
+    }
+
     func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        let signedInString = String(signedIn)
-        replyHandler("""
-            { "isAppSignedIn": \(signedInString) }
-        """)
+        let response = emailCheckSignedInStatusResponse(isAppSignedIn: String(signedIn), inputType: inputType)
+        if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
+        }
     }
 
     func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
