@@ -38,7 +38,6 @@ public protocol OverlayProtocol {
     func displayOverlay(rect: NSRect, of: NSView, width: CGFloat, inputType: String, messageInterface: AutofillMessaging)
 }
 
-
 public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
 
     typealias MessageReplyHandler = (String?) -> Void
@@ -91,20 +90,39 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessaging {
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
 
     public lazy var source: String = {
+
+        struct DDGGlobals: Codable {
+            var supportsTopFrame: Bool = true;
+            var isApp: Bool = true;
+            var isTopFrame = false;
+            var hasModernWebkitAPI = false;
+            var secret: String?;
+        }
+
+        var ddgGlobals = DDGGlobals();
         var replacements: [String: String] = [:]
+
         #if os(macOS)
-            replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
-            replacements["// INJECT isApp HERE"] = "isApp = true;"
-            replacements["// INJECT isTopFrame HERE"] = "isTopFrame = \(topAutofill ? "true" : "false");"
+            ddgGlobals.isTopFrame = topAutofill
         #endif
 
         if #available(iOS 14, macOS 11, *) {
-            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
+            ddgGlobals.hasModernWebkitAPI = true;
         } else {
-            replacements["PLACEHOLDER_SECRET"] = generatedSecret
+            ddgGlobals.secret = generatedSecret;
+        }
+        
+        var s = "((DDGGlobals) => {\n"
+        s += AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
+
+        guard let json = try? JSONEncoder().encode(ddgGlobals),
+           let jsonString = String(data: json, encoding: .utf8) else {
+            return ""
         }
 
-        return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
+        s += ";\n})(\(jsonString));"
+
+        return s
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
