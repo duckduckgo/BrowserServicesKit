@@ -33,6 +33,8 @@ public protocol SecureVaultManagerDelegate: AnyObject {
                             promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
+    
+    func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
 }
 
 public class SecureVaultManager {
@@ -123,7 +125,16 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestCreditCardWithId creditCardId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
         do {
-            completionHandler(try SecureVaultFactory.default.makeVault().creditCardFor(id: creditCardId))
+            let card = try SecureVaultFactory.default.makeVault().creditCardFor(id: creditCardId)
+            
+            delegate?.secureVaultManager(self, didRequestAuthenticationWithCompletionHandler: { authenticated in
+                if authenticated {
+                    completionHandler(card)
+                } else {
+                    completionHandler(nil)
+                }
+            })
+            
             delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: creditCardId)
         } catch {
             os_log(.error, "Error requesting credit card: %{public}@", error.localizedDescription)
