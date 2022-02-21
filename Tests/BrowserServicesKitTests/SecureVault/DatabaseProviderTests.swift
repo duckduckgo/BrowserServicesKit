@@ -27,7 +27,13 @@ class DatabaseProviderTests: XCTestCase {
 
     private func deleteDbFile() throws {
         do {
-            try FileManager.default.removeItem(atPath: (try DefaultDatabaseProvider.dbFile()).path)
+            let dbFile = DefaultDatabaseProvider.dbFile()
+            let dbFileContainer = dbFile.deletingLastPathComponent()
+            for file in try FileManager.default.contentsOfDirectory(atPath: dbFileContainer.path) {
+                guard ["db", "bak"].contains((file as NSString).pathExtension) else { continue }
+                try FileManager.default.removeItem(atPath: dbFileContainer.appendingPathComponent(file).path)
+            }
+
         } catch let error as NSError {
             // File not found
             if error.domain != NSCocoaErrorDomain || error.code != 4 {
@@ -177,6 +183,24 @@ class DatabaseProviderTests: XCTestCase {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
         let results = try database.websiteAccountsForDomain("example.com")
         XCTAssertTrue(results.isEmpty)
+    }
+
+    func test_when_database_is_corrupt_then_it_can_be_recreated_with_backup() throws {
+        do {
+            try! "asdf".data(using: .utf8)!.write(to: DefaultDatabaseProvider.dbFile())
+            try _=DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+            XCTFail("should throw an error at this point")
+        } catch {
+            let database = try DefaultDatabaseProvider.recreateDatabase(withKey: simpleL1Key)
+            let backupURL = DefaultDatabaseProvider.dbFile().appendingPathExtension("bak")
+            XCTAssertEqual(try! Data(contentsOf: backupURL), "asdf".data(using: .utf8))
+
+            let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+            let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+            try database.storeWebsiteCredentials(credentials)
+
+            XCTAssertEqual(1, try database.accounts().count)
+        }
     }
 
     func test_when_credentials_are_deleted_then_they_are_removed_from_the_database() throws {
