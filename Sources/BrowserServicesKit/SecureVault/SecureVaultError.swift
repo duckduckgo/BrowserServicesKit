@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import GRDB
 
 public enum SecureVaultError: Error {
 
@@ -33,4 +34,53 @@ public enum SecureVaultError: Error {
     case secError(status: Int32)
     case generalCryptoError
     
+}
+
+extension SecureVaultError: CustomNSError {
+
+    public static var errorDomain: String { "SecureVaultError" }
+
+    public var errorCode: Int {
+        switch self {
+        case .initFailed: return 1
+        case .authRequired: return 2
+        case .invalidPassword: return 3
+        case .noL1Key: return 4
+        case .noL2Key: return 5
+        case .authError: return 6
+        case .failedToOpenDatabase: return 7
+        case .databaseError: return 8
+        case .duplicateRecord: return 9
+        case .keystoreError: return 10
+        case .secError: return 11
+        case .generalCryptoError: return 12
+        }
+    }
+
+    public var errorUserInfo: [String : Any] {
+        var errorUserInfo = [String : Any]()
+        switch self {
+        case .initFailed(cause: let error), .authError(cause: let error),
+             .failedToOpenDatabase(cause: let error), .databaseError(cause: let error):
+            if let secureVaultError = error as? SecureVaultError {
+                return secureVaultError.errorUserInfo
+            }
+
+            errorUserInfo["NSUnderlyingError"] = error as NSError
+            if let sqliteError = error as? DatabaseError ?? (error as? DefaultDatabaseProvider.DbError)?.databaseError {
+                errorUserInfo["SQLiteResultCode"] = NSNumber(value: sqliteError.resultCode.rawValue)
+                errorUserInfo["SQLiteExtendedResultCode"] = NSNumber(value: sqliteError.extendedResultCode.rawValue)
+            }
+
+        case .keystoreError(status: let code):
+            errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreError", code: Int(code), userInfo: nil)
+        case .secError(status: let code):
+            errorUserInfo["NSUnderlyingError"] = NSError(domain: "secError", code: Int(code), userInfo: nil)
+
+        case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError:
+            errorUserInfo["NSUnderlyingError"] = NSError(domain: "\(self)", code: 0, userInfo: nil)
+        }
+        return errorUserInfo
+    }
+
 }
