@@ -27,7 +27,7 @@ public enum AutofillType {
     case identity
 }
 
-public protocol SecureVaultManagerDelegate: AnyObject {
+public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
@@ -53,7 +53,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  [SecureVaultModels.CreditCard]) -> Void) {
 
         do {
-            let vault = try SecureVaultFactory.default.makeVault()
+            let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             let accounts = try vault.accountsFor(domain: domain)
             let identities = try vault.identities()
             let cards = try vault.creditCards()
@@ -74,7 +74,9 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
 
-            if let account = try SecureVaultFactory.default.makeVault().accountsFor(domain: domain).first(where: { $0.username == username }) {
+            if let account = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                .accountsFor(domain: domain)
+                .first(where: { $0.username == username }) {
 
                 let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                 delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
@@ -97,7 +99,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void) {
 
         do {
-            completionHandler(try SecureVaultFactory.default.makeVault().accountsFor(domain: domain))
+            completionHandler(try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                                .accountsFor(domain: domain))
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
             completionHandler([])
@@ -110,7 +113,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
 
         do {
-            completionHandler(try SecureVaultFactory.default.makeVault().websiteCredentialsFor(accountId: accountId))
+            completionHandler(try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                                .websiteCredentialsFor(accountId: accountId))
             delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
@@ -123,7 +127,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestCreditCardWithId creditCardId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
         do {
-            completionHandler(try SecureVaultFactory.default.makeVault().creditCardFor(id: creditCardId))
+            completionHandler(try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                                .creditCardFor(id: creditCardId))
             delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: creditCardId)
         } catch {
             os_log(.error, "Error requesting credit card: %{public}@", error.localizedDescription)
@@ -135,7 +140,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestIdentityWithId identityId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
         do {
-            completionHandler(try SecureVaultFactory.default.makeVault().identityFor(id: identityId))
+            completionHandler(try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                                .identityFor(id: identityId))
             delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: identityId)
         } catch {
             os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)

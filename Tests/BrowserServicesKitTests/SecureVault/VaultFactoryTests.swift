@@ -44,7 +44,7 @@ class VaultFactoryTests: XCTestCase {
     func test() throws {
         let testHarness = VaultFactoryTestHarness()
         testHarness.mockKeystoreProvider._l1Key = "samplekey".data(using: .utf8)
-        _ = try testHarness.makeVault()
+        _ = try testHarness.makeVault(errorReporter: nil)
     }
 
 }
