@@ -23,7 +23,7 @@ import BloomFilterWrapper
 
 public struct HTTPSUpgradeError: Error {}
 
-public class HTTPSUpgrade {
+public final class HTTPSUpgrade {
     
     private let dataReloadLock = NSLock()
     private let store: HTTPSUpgradeStore
@@ -31,8 +31,8 @@ public class HTTPSUpgrade {
    
     private var bloomFilter: BloomFilterWrapper?
     
-    init(store: HTTPSUpgradeStore,
-         privacyManager: PrivacyConfigurationManager) {
+    public init(store: HTTPSUpgradeStore,
+                privacyManager: PrivacyConfigurationManager) {
         self.store = store
         self.privacyManager = privacyManager
     }
@@ -86,4 +86,5 @@ public class HTTPSUpgrade {
         bloomFilter = store.bloomFilter
         dataReloadLock.unlock()
     }
+    
 }

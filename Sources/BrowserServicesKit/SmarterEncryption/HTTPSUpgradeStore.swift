@@ -18,11 +18,17 @@
 
 import BloomFilterWrapper
 
-protocol HTTPSUpgradeStore {
+public protocol HTTPSUpgradeStore {
+    
+    // MARK: - Bloom filter
+    
     var bloomFilter: BloomFilterWrapper? { get }
     var bloomFilterSpecification: HTTPSBloomFilterSpecification? { get }
     @discardableResult func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) -> Bool
     
+    // MARK: - Excluded domains
+    
     func hasExcludedDomain(_ domain: String) -> Bool
     @discardableResult func persistExcludedDomains(_ domains: [String]) -> Bool
+    
 }

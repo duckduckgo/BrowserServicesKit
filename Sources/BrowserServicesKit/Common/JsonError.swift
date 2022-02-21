@@ -1,7 +1,8 @@
 //
-//  HTTPSBloomFilterSpecification.swift
+//  JsonError.swift
+//  DuckDuckGo
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,18 +19,7 @@
 
 import Foundation
 
-public struct HTTPSBloomFilterSpecification: Equatable, Decodable {
-   
-    public let bitCount: Int
-    public let errorRate: Double
-    public let totalEntries: Int
-    public let sha256: String
-    
-    public init(bitCount: Int, errorRate: Double, totalEntries: Int, sha256: String) {
-        self.bitCount = bitCount
-        self.errorRate = errorRate
-        self.totalEntries = totalEntries
-        self.sha256 = sha256
-    }
-    
+public enum JsonError: Error {
+    case invalidJson
+    case typeMismatch
 }

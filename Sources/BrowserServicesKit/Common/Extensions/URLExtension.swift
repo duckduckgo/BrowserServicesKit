@@ -75,5 +75,9 @@ extension URL {
     public var isHttp: Bool {
         scheme == "http"
     }
+    
+    public var isHttps: Bool {
+        scheme == "https"
+    }
 
 }
