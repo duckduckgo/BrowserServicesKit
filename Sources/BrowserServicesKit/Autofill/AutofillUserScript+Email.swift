@@ -34,7 +34,7 @@ public protocol AutofillEmailDelegate: AnyObject {
 
 extension AutofillUserScript {
 
-    func emailCheckSignedInStatus(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+    func emailCheckSignedInStatus(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let signedInString = String(signedIn)
         replyHandler("""
@@ -42,8 +42,8 @@ extension AutofillUserScript {
         """)
     }
 
-    func emailStoreToken(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
-        guard let dict = message.body as? [String: Any],
+    func emailStoreToken(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+        guard let dict = message.messageBody as? [String: Any],
               let token = dict["token"] as? String,
               let username = dict["username"] as? String else { return }
         let cohort = dict["cohort"] as? String
@@ -51,8 +51,8 @@ extension AutofillUserScript {
         replyHandler(nil)
     }
 
-    func emailGetAlias(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        guard let dict = message.body as? [String: Any],
+    func emailGetAlias(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let dict = message.messageBody as? [String: Any],
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
 
@@ -69,12 +69,12 @@ extension AutofillUserScript {
         }
     }
 
-    func emailRefreshAlias(_ message: WKScriptMessage, _ replyHandler: MessageReplyHandler) {
+    func emailRefreshAlias(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
         replyHandler(nil)
     }
 
-    func emailGetAddresses(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func emailGetAddresses(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
             let addresses: String
             if let username = username, let alias = alias {
