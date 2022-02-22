@@ -63,7 +63,7 @@ public final class ContentScopeUserScript: NSObject, UserScript {
         return loadJS("contentScope", from: Bundle.module, withReplacements: [
             "$CONTENT_SCOPE$": privacyConfigJson,
             "$USER_UNPROTECTED_DOMAINS$": userUnprotectedDomainsString,
-            "$USER_PREFERENCES$": jsonPropertiesString,
+            "$USER_PREFERENCES$": jsonPropertiesString
         ])
     }
 
