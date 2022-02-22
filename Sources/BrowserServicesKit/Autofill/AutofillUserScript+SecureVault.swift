@@ -186,7 +186,7 @@ extension AutofillUserScript {
 
     // MARK: - Message Handlers
 
-    func pmGetAutoFillInitData(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetAutoFillInitData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         let domain = hostProvider.hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
@@ -210,12 +210,12 @@ extension AutofillUserScript {
 
     }
 
-    func pmStoreCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmStoreCredentials(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)
         }
 
-        guard let body = message.body as? [String: Any],
+        guard let body = message.messageBody as? [String: Any],
               let username = body["username"] as? String,
               let password = body["password"] as? String else {
             return
@@ -225,7 +225,7 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
     }
 
-    func pmGetAccounts(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetAccounts(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostProvider.hostForMessage(message)) { credentials in
             let credentials: [CredentialObject] = credentials.compactMap {
@@ -241,9 +241,9 @@ extension AutofillUserScript {
 
     }
 
-    func pmGetAutofillCredentials(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetAutofillCredentials(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
-        guard let body = message.body as? [String: Any],
+        guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String,
               let accountId = Int64(id) else {
             return
@@ -264,8 +264,8 @@ extension AutofillUserScript {
         }
     }
 
-    func pmGetCreditCard(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        guard let body = message.body as? [String: Any],
+    func pmGetCreditCard(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String,
               let cardId = Int64(id) else {
             return
@@ -282,8 +282,8 @@ extension AutofillUserScript {
         }
     }
 
-    func pmGetIdentity(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        guard let body = message.body as? [String: Any],
+    func pmGetIdentity(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String,
               let accountId = Int64(id) else {
             return
@@ -302,17 +302,17 @@ extension AutofillUserScript {
 
     // MARK: Open Management Views
 
-    func pmOpenManageCreditCards(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmOpenManageCreditCards(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
         replyHandler(nil)
     }
 
-    func pmOpenManageIdentities(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmOpenManageIdentities(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
         replyHandler(nil)
     }
 
-    func pmOpenManagePasswords(_ message: WKScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmOpenManagePasswords(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
         replyHandler(nil)
     }

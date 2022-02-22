@@ -22,7 +22,7 @@ import WebKit
 public class AutofillUserScript: NSObject, UserScript {
 
     typealias MessageReplyHandler = (String?) -> Void
-    typealias MessageHandler = (WKScriptMessage, @escaping MessageReplyHandler) -> Void
+    typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
 
     private enum MessageName: String, CaseIterable {
 
@@ -47,20 +47,11 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
+    
+    private var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     public lazy var source: String = {
-        var replacements: [String: String] = [:]
-        #if os(macOS)
-            replacements["// INJECT isApp HERE"] = "isApp = true;"
-        #endif
-
-        if #available(iOS 14, macOS 11, *) {
-            replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
-        } else {
-            replacements["PLACEHOLDER_SECRET"] = generatedSecret
-        }
-
-        return AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
+        return scriptSourceProvider.source.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -102,15 +93,19 @@ public class AutofillUserScript: NSObject, UserScript {
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
 
-    init(encrypter: AutofillEncrypter, hostProvider: AutofillHostProvider) {
-        self.encrypter = encrypter
+    init(scriptSourceProvider: AutofillUserScriptSourceProvider,
+         encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
+         hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
+        self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
+        self.encrypter = encrypter
     }
-
-    public convenience override init() {
-        self.init(encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+    
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+        self.init(scriptSourceProvider: scriptSourceProvider,
+                  encrypter: AESGCMAutofillEncrypter(),
+                  hostProvider: SecurityOriginHostProvider())
     }
-
 }
 
 @available(iOS 14, *)
@@ -132,11 +127,10 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
 
 // Fallback for older iOS / macOS version
 extension AutofillUserScript {
-
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-
-        guard let messageName = MessageName(rawValue: message.name),
-              let body = message.body as? [String: Any],
+    
+    func processMessage(_ userContentController: WKUserContentController, didReceive message: AutofillMessage) {
+        guard let messageName = MessageName(rawValue: message.messageName),
+              let body = message.messageBody as? [String: Any],
               let messageHandling = body["messageHandling"] as? [String: Any],
               let secret = messageHandling["secret"] as? String,
               // If this does not match the page is playing shenanigans.
@@ -168,10 +162,14 @@ extension AutofillUserScript {
             })();
             """
 
-            assert(message.webView != nil)
+            assert(message.messageWebView != nil)
             dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
-            message.webView?.evaluateJavaScript(script)
+            message.messageWebView?.evaluateJavaScript(script)
         }
+    }
+
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        processMessage(userContentController, didReceive: message)
     }
 
 }

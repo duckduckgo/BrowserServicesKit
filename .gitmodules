@@ -4,3 +4,6 @@
 [submodule "Sources/BrowserServicesKit/Resources/content-scope-scripts"]
 	path = Sources/BrowserServicesKit/Resources/content-scope-scripts
 	url = https://github.com/duckduckgo/content-scope-scripts
+[submodule "Tests/BrowserServicesKitTests/Resources/privacy-reference-tests"]
+	path = Tests/BrowserServicesKitTests/Resources/privacy-reference-tests
+	url = https://github.com/duckduckgo/privacy-reference-tests

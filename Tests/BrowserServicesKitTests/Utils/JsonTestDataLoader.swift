@@ -26,15 +26,27 @@ enum FileError: Error {
 
 final class FileLoader {
 
-    func load(fileName: String, fromBundle bundle: Bundle) throws -> Data {
+    func load(filePath: String, fromBundle bundle: Bundle) throws -> Data {
+        
+        guard let resourceUrl = bundle.resourceURL else { throw FileError.unknownFile }
+        
+        let url = resourceUrl.appendingPathComponent(filePath)
+        
+        let finalURL: URL
+        if FileManager.default.fileExists(atPath: url.path) {
+            finalURL = url
+        } else {
+            // Workaround for resource bundle having a different structure when running tests from command line.
+            let url = resourceUrl.deletingLastPathComponent().appendingPathComponent(filePath)
+            
+            if FileManager.default.fileExists(atPath: url.path) {
+                finalURL = url
+            } else {
+                throw FileError.unknownFile
+            }
+        }
 
-        let fileUrl = URL(fileURLWithPath: fileName)
-        let baseName = fileUrl.deletingPathExtension().lastPathComponent
-        let ext = fileUrl.pathExtension
-
-        guard let path = bundle.path(forResource: baseName, ofType: ext) else { throw  FileError.unknownFile }
-        let url = URL(fileURLWithPath: path)
-        guard let data = try? Data(contentsOf: url, options: [.mappedIfSafe]) else { throw  FileError.invalidFileContents }
+        guard let data = try? Data(contentsOf: finalURL, options: [.mappedIfSafe]) else { throw  FileError.invalidFileContents }
         return data
     }
 }
@@ -50,18 +62,18 @@ final class JsonTestDataLoader {
     }
 
     func unexpected() -> Data {
-        guard let data = try? FileLoader().load(fileName: "MockFiles/unexpected.json", fromBundle: bundle) else {
+        guard let data = try? FileLoader().load(filePath: "MockFiles/unexpected.json", fromBundle: bundle) else {
             fatalError("Failed to load MockFiles/unexpected.json")
         }
         return data
     }
 
-    func fromJsonFile(_ fileName: String) -> Data {
+    func fromJsonFile(_ filePath: String) -> Data {
 
         do {
-            return try FileLoader().load(fileName: fileName, fromBundle: bundle)
+            return try FileLoader().load(filePath: filePath, fromBundle: bundle)
         } catch {
-            fatalError("Unable to load \(fileName) error \(error)")
+            fatalError("Unable to load \(filePath) error \(error)")
         }
     }
 

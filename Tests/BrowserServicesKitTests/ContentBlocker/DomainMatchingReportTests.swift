@@ -27,8 +27,8 @@ class DomainMatchingReportTests: XCTestCase {
     private var data = JsonTestDataLoader()
 
     func testRegularDomainMatchingRules() throws {
-        let trackerJSON = data.fromJsonFile("Resources/tracker_radar_reference.json")
-        let testJSON = data.fromJsonFile("Resources/domain_matching_tests.json")
+        let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json")
+        let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
 
         let trackerData = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
         
@@ -37,7 +37,14 @@ class DomainMatchingReportTests: XCTestCase {
         
         let resolver = TrackerResolver(tds: trackerData, unprotectedSites: [], tempList: [])
 
-        for test in tests {            
+        for test in tests {
+            
+            let skip = test.exceptPlatforms?.contains("ios-browser")
+            if skip == true {
+                os_log("!!SKIPPING TEST: %s", test.name)
+                continue
+            }
+            
             let tracker = resolver.trackerFromUrl(test.requestURL,
                                                   pageUrlString: test.siteURL,
                                                   resourceType: test.requestType,
