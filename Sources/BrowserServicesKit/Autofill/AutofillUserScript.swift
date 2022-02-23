@@ -32,7 +32,7 @@ public protocol AutofillMessagingToChild {
     func close()
 }
 
-public protocol OverlayProtocol {
+public protocol OverlayProtocol: AnyObject {
     var view: NSView { get }
     func closeOverlay()
     func displayOverlay(of: NSView, messageInterface: AutofillMessagingToChild, serializedInputContext: String, click: NSPoint, inputPosition: CGRect)
@@ -83,7 +83,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
     }
 
     public var topAutofill: Bool
-    public var topView: OverlayProtocol?
+    public weak var topView: OverlayProtocol?
     public var clickPoint: NSPoint?
     public var serializedInputContext: String?
 
