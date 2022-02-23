@@ -37,6 +37,26 @@ enum EmailManagerTestEvent {
 var events = [EmailManagerTestEvent]()
 
 class EmailManagerTests: XCTestCase {
+    
+    func getAutofillScript() -> AutofillUserScript {
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill": {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfigManager = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfigManager,
+                                                           properties: ContentScopeProperties(gpcEnabled: false, sessionKey: "1234"))
+        let userScript = AutofillUserScript(scriptSourceProvider: sourceProvider)
+        return userScript
+    }
 
     func testWhenGettingUserEmailAndUserIsSignedInThenEmailAddressIsValid() {
         let username = "dax"
@@ -80,17 +100,18 @@ class EmailManagerTests: XCTestCase {
         let emailManager = EmailManager(storage: storage)
         storage.mockUsername = "username"
         storage.mockToken = "token"
-
-        var status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
+        
+        let userScript = getAutofillScript()
+        var status = emailManager.autofillUserScriptDidRequestSignedInStatus(userScript)
         XCTAssertTrue(status)
 
         storage.mockUsername = nil
-        status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
+        status = emailManager.autofillUserScriptDidRequestSignedInStatus(userScript)
         XCTAssertFalse(status)
 
         storage.mockUsername = "username"
         storage.mockToken = nil
-        status = emailManager.autofillUserScriptDidRequestSignedInStatus(AutofillUserScript())
+        status = emailManager.autofillUserScriptDidRequestSignedInStatus(userScript)
         XCTAssertFalse(status)
     }
 
@@ -205,7 +226,9 @@ class EmailManagerTests: XCTestCase {
             .storeAliasCalled
         ]
         
-        emailManager.autofillUserScript(AutofillUserScript(), didRequestStoreToken: "token", username: "username", cohort: "internal_beta")
+        let userScript = getAutofillScript()
+        
+        emailManager.autofillUserScript(userScript, didRequestStoreToken: "token", username: "username", cohort: "internal_beta")
         
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
@@ -226,8 +249,10 @@ class EmailManagerTests: XCTestCase {
             .aliasRequestMade,
             .storeAliasCalled
         ]
+        
+        let userScript = getAutofillScript()
 
-        emailManager.autofillUserScriptDidRequestUsernameAndAlias(AutofillUserScript()) { username, alias, error in
+        emailManager.autofillUserScriptDidRequestUsernameAndAlias(userScript) { username, alias, error in
             XCTAssertNil(error)
             XCTAssertEqual(username, "username")
             XCTAssertEqual(alias, "testAlias2")

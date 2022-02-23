@@ -105,10 +105,10 @@ class TrackerAllowlistReferenceTests: XCTestCase {
     func testDomainAllowlist() throws {
 
         let data = JsonTestDataLoader()
-        let trackerJSON = data.fromJsonFile("privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_allowlist_tds_reference.json")
-        let testJSON = data.fromJsonFile("privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_allowlist_matching_tests.json")
+        let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_allowlist_tds_reference.json")
+        let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_allowlist_matching_tests.json")
 
-        let allowlistReference = data.fromJsonFile("privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_allowlist_reference.json")
+        let allowlistReference = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_allowlist_reference.json")
 
         tds = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
 
