@@ -42,6 +42,7 @@ let package = Package(
                 "Resources/duckduckgo-autofill/package.json",
                 "Resources/duckduckgo-autofill/package-lock.json",
                 "Resources/duckduckgo-autofill/packages/",
+                "Resources/duckduckgo-autofill/integration-test/",
                 "Resources/duckduckgo-autofill/LICENSE.md",
                 "Resources/duckduckgo-autofill/README.md",
                 "Resources/duckduckgo-autofill/src",
