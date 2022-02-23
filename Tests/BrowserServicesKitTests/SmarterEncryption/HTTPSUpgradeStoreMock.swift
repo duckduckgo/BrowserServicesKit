@@ -1,5 +1,6 @@
 //
-//  HTTPSUpgradeStore.swift
+//  HTTPSUpgradeStoreMock.swift
+//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -16,17 +17,17 @@
 //  limitations under the License.
 //
 
-import BloomFilterWrapper
+@testable import BrowserServicesKit
+@testable import BloomFilterWrapper
 
-public protocol HTTPSUpgradeStore {
+struct HTTPSUpgradeStoreMock: HTTPSUpgradeStore {
     
-    // MARK: - Bloom filter
+    var bloomFilter: BloomFilterWrapper?
+    var bloomFilterSpecification: HTTPSBloomFilterSpecification?
     
-    var bloomFilter: BloomFilterWrapper? { get }
-    var bloomFilterSpecification: HTTPSBloomFilterSpecification? { get }
-    
-    // MARK: - Excluded domains
-    
-    func hasExcludedDomain(_ domain: String) -> Bool
+    var excludedDomains: [String]
+    func hasExcludedDomain(_ domain: String) -> Bool {
+        excludedDomains.contains(domain)
+    }
     
 }

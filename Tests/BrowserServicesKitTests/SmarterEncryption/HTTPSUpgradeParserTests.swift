@@ -20,7 +20,7 @@
 import XCTest
 @testable import BrowserServicesKit
 
-class HTTPSUpgradeParserTests: XCTestCase {
+final class HTTPSUpgradeParserTests: XCTestCase {
     
     func testWhenExcludedDomainsJSONIsUnexpectedThenTypeMismatchErrorThrown() {
         let data = JsonTestDataLoader().unexpected()
@@ -37,7 +37,7 @@ class HTTPSUpgradeParserTests: XCTestCase {
     }
     
     func testWhenExcludedDomainsJSONIsValidThenDomainsReturned() {
-        let data = JsonTestDataLoader().fromJsonFile("MockFiles/https_excluded_domains.json")
+        let data = JsonTestDataLoader().fromJsonFile("Resources/https_excluded_domains.json")
         let result = try? HTTPSUpgradeParser.convertExcludedDomainsData(data)
         XCTAssertEqual(Set<String>(["www.example.com", "example.com", "test.com", "anothertest.com"]), Set<String>(result!))
     }
@@ -57,7 +57,7 @@ class HTTPSUpgradeParserTests: XCTestCase {
     }
     
     func testWhenBloomFilterSpecificationIsValidThenSpecificationReturned() {
-        let data = JsonTestDataLoader().fromJsonFile("MockFiles/https_bloom_spec.json")
+        let data = JsonTestDataLoader().fromJsonFile("Resources/https_bloom_spec.json")
         let result = try? HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data)
         XCTAssertNotNil(result)
         XCTAssertEqual(1250000, result?.bitCount)

@@ -71,8 +71,10 @@ let package = Package(
                 "BloomFilter"
             ]),
         .target(
-            name: "BloomFilter"
-        ),
+            name: "BloomFilter",
+            resources: [
+                .process("CMakeLists.txt")
+            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [

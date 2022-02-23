@@ -1,5 +1,5 @@
 //
-//  SmarterEncryptionTests.swift
+//  HTTPSUpgradeReferenceTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -21,8 +21,9 @@ import Foundation
 import XCTest
 import os.log
 @testable import BrowserServicesKit
+@testable import BloomFilterWrapper
 
-struct HTTPSUpgradesRefTests: Decodable {
+private struct HTTPSUpgradesRefTests: Decodable {
     struct HTTPSUpgradesTests: Decodable {
         let name: String
         let desc: String
@@ -46,18 +47,28 @@ struct HTTPSUpgradesRefTests: Decodable {
 
 // swiftlint:disable force_try
 // swiftlint:disable force_cast
-@available(iOS 14.0, *)
-final class SmarterEncryptionTests: XCTestCase {
+final class HTTPSUpgradeReferenceTests: XCTestCase {
     
     private enum Resource {
-        static let config = "privacy-reference-tests/https-upgrades/config_reference.json"
-        static let tests = "privacy-reference-tests/https-upgrades/tests.json"
-        static let allowList = "privacy-reference-tests/https-upgrades/https_allowlist_reference.json"
-        static let bloomFilterSpec = "privacy-reference-tests/https-upgrades/https_bloomfilter_spec_reference.json"
-        static let bloomFilter = "privacy-reference-tests/https-upgrades/https_bloomfilter_reference"
+        static let config = "Resources/privacy-reference-tests/https-upgrades/config_reference.json"
+        static let tests = "Resources/privacy-reference-tests/https-upgrades/tests.json"
+        static let allowList = "Resources/privacy-reference-tests/https-upgrades/https_allowlist_reference.json"
+        static let bloomFilterSpec = "Resources/privacy-reference-tests/https-upgrades/https_bloomfilter_spec_reference.json"
+        static let bloomFilter = "Resources/privacy-reference-tests/https-upgrades/https_bloomfilter_reference"
     }
     
     private let data = JsonTestDataLoader()
+    
+    private lazy var privacyManager: PrivacyConfigurationManager = {
+        let configJSON = data.fromJsonFile(Resource.config)
+        let embeddedDataProvider = MockEmbeddedDataProvider(data: configJSON,
+                                                            etag: "embedded")
+        
+        return PrivacyConfigurationManager(fetchedETag: nil,
+                                           fetchedData: nil,
+                                           embeddedDataProvider: embeddedDataProvider,
+                                           localProtection: MockDomainsProtectionStore())
+    }()
     
     private lazy var appConfig: PrivacyConfiguration = {
         let localProtection = MockDomainsProtectionStore()
@@ -85,20 +96,20 @@ final class SmarterEncryptionTests: XCTestCase {
     }()
     
     private lazy var bloomFilter: BloomFilterWrapper? = {
-        let path = Bundle(for: type(of: self)).path(forResource: Resource.bloomFilter, ofType: "bin")!
+        let path = Bundle.module.path(forResource: Resource.bloomFilter, ofType: "bin")!
         return BloomFilterWrapper(fromPath: path,
                                   withBitCount: Int32(bloomFilterSpecification.bitCount),
                                   andTotalItems: Int32(bloomFilterSpecification.totalEntries))
     }()
     
     private lazy var mockStore: HTTPSUpgradeStore = {
-        MockHTTPSUpgradeStore(bloomFilter: bloomFilter, bloomFilterSpecification: bloomFilterSpecification, excludedDomains: excludedDomains)
+        HTTPSUpgradeStoreMock(bloomFilter: bloomFilter, bloomFilterSpecification: bloomFilterSpecification, excludedDomains: excludedDomains)
     }()
     
     func testHTTPSUpgradesNavigations() async {
         let tests = httpsUpgradesTestSuite.navigations.tests
-        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyConfig: appConfig)
-        httpsUpgrade.loadData() // do we like this api?
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: privacyManager)
+        httpsUpgrade.loadData()
         
         for test in tests {
             os_log("TEST: %s", test.name)
@@ -113,29 +124,14 @@ final class SmarterEncryptionTests: XCTestCase {
                 return
             }
              
-            var resultUrl = url
+            var resultURL = url
             let result = await httpsUpgrade.upgrade(url: url)
-            if case let .success(upgradedUrl) = result {
-                resultUrl = upgradedUrl
+            if case let .success(upgradedURL) = result {
+                resultURL = upgradedURL
             }
 
-            XCTAssertEqual(resultUrl.absoluteString, test.expectURL, "FAILED: \(test.name)")
+            XCTAssertEqual(resultURL.absoluteString, test.expectURL, "FAILED: \(test.name)")
         }
     }
     
-}
-
-private struct MockHTTPSUpgradeStore: HTTPSUpgradeStore {
-    
-    var bloomFilter: BloomFilterWrapper?
-    var bloomFilterSpecification: HTTPSBloomFilterSpecification?
-    var excludedDomains: [String]
-    
-    func hasExcludedDomain(_ domain: String) -> Bool {
-        excludedDomains.contains(domain)
-    }
-    
-    func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) -> Bool { return true }
-    func persistExcludedDomains(_ domains: [String]) -> Bool { return true }
-
 }
