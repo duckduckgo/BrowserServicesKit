@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import Cocoa
 import WebKit
 
 extension WKUserContentController {
@@ -29,7 +28,7 @@ extension WKUserContentController {
 
     public func addHandler(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
-            if #available(macOS 11.0, *) {
+            if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
                 if let handlerWithReply = userScript as? WKScriptMessageHandlerWithReply {
                     addScriptMessageHandler(handlerWithReply, contentWorld: contentWorld, name: messageName)
@@ -44,7 +43,7 @@ extension WKUserContentController {
 
     public func removeHandler(_ userScript: UserScript) {
         userScript.messageNames.forEach {
-            if #available(macOS 11.0, *) {
+            if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
                 removeScriptMessageHandler(forName: $0, contentWorld: contentWorld)
             } else {
