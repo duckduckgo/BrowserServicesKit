@@ -23,7 +23,25 @@ import WebKit
 
 class AutofillEmailUserScriptTests: XCTestCase {
 
-    let userScript = AutofillUserScript(encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
+    let userScript: AutofillUserScript = {
+        let embeddedConfig =
+        """
+        {
+            "features": {
+                "autofill": {
+                    "status": "enabled",
+                    "exceptions": []
+                }
+            },
+            "unprotectedTemporary": []
+        }
+        """.data(using: .utf8)!
+        let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
+        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
+        let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
+                                                           properties: properties)
+        return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
+    }()
     let userContentController = WKUserContentController()
 
     var encryptedMessagingParams: [String: Any] {
@@ -42,8 +60,9 @@ class AutofillEmailUserScriptTests: XCTestCase {
         userScript.emailDelegate = mock
 
         let mockWebView = MockWebView()
-        let message = MockWKScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams, webView: mockWebView)
-        userScript.userContentController(userContentController, didReceive: message)
+        let message = MockAutofillMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams,
+                                          host: "example.com", webView: mockWebView)
+        userScript.processMessage(userContentController, didReceive: message)
 
         let expectedReply = "reply".data(using: .utf8)?.withUnsafeBytes {
             $0.map { String($0) }
@@ -54,7 +73,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
 
     func testWhenRunningOnModernWebkit_ThenInjectsAPIFlag() {
         if #available(iOS 14, macOS 11, *) {
-            XCTAssertTrue(AutofillUserScript().source.contains("hasModernWebkitAPI = true"))
+            XCTAssertTrue(userScript.source.contains("hasModernWebkitAPI = true"))
         } else {
             XCTFail("Expected to run on at least iOS 14 or macOS 11")
         }
@@ -188,6 +207,37 @@ class MockWKScriptMessage: WKScriptMessage {
         self.mockedBody = body
         self.mockedWebView = webView
         super.init()
+    }
+}
+
+class MockAutofillMessage: AutofillMessage {
+    
+    let mockedName: String
+    let mockedBody: Any
+    let mockedHost: String
+    let mockedWebView: WKWebView?
+    
+    var messageName: String {
+        return mockedName
+    }
+    
+    var messageBody: Any {
+        return mockedBody
+    }
+
+    var messageWebView: WKWebView? {
+        return mockedWebView
+    }
+    
+    var messageHost: String {
+        return mockedHost
+    }
+    
+    init(name: String, body: Any, host: String, webView: WKWebView? = nil) {
+        self.mockedName = name
+        self.mockedBody = body
+        self.mockedWebView = webView
+        self.mockedHost = host
     }
 }
 

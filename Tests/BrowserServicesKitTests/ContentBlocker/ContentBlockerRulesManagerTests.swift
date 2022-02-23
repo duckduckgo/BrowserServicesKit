@@ -20,8 +20,11 @@
 import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
+import WebKit
 
 // swiftlint:disable file_length
+// swiftlint:disable function_body_length
+// swiftlint:disable identifier_name
 
 class ContentBlockerRulesManagerTests: XCTestCase {
     
@@ -191,7 +194,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: (Self.fakeEmbeddedDataSet.tds, Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
-        XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag, mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
+        XCTAssertNotEqual(mockRulesSource.contentBlockerRulesLists.first?.trackerData?.etag,
+                          mockRulesSource.contentBlockerRulesLists.first?.fallbackTrackerData.etag)
 
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
@@ -200,8 +204,21 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         
         let errorExp = expectation(description: "No error reported")
         errorExp.isInverted = true
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
-            errorExp.fulfill()
+        let compilationTimeExp = expectation(description: "Compilation Time reported")
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTDSCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+                errorExp.fulfill()
+
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+                compilationTimeExp.fulfill()
+
+            default:
+                XCTFail("Unexpected \(event)")
+            }
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -210,7 +227,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler,
                                               logger: .disabled)
 
-        wait(for: [exp, errorExp], timeout: 5.0)
+        wait(for: [exp, errorExp, compilationTimeExp], timeout: 15.0)
         
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -237,10 +254,18 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
         
         let errorExp = expectation(description: "Error reported")
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
-            XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
-            XCTAssertEqual(event, .contentBlockingTDSCompilationFailed)
-            errorExp.fulfill()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTDSCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+
+                errorExp.fulfill()
+            default:
+                XCTFail()
+            }
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -517,13 +542,23 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
         
         let errorExp = expectation(description: "Error reported")
-        errorExp.expectedFulfillmentCount = 4
+        errorExp.expectedFulfillmentCount = 5
         var errorEvents = [ContentBlockerDebugEvents]()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
-            
-            XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
-            errorEvents.append(event)
-            errorExp.fulfill()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTempListCompilationFailed, .contentBlockingAllowListCompilationFailed,
+                 .contentBlockingTDSCompilationFailed, .contentBlockingUnpSitesCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+                errorEvents.append(event)
+                errorExp.fulfill()
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+
+                errorExp.fulfill()
+            default:
+                XCTFail("Unexpected \(event)")
+            }
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -544,16 +579,20 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         
         // TDS is also marked as invalid to simplify flow
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier,
+                       mockRulesSource.trackerData?.etag)
         
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier, mockExceptionsSource.tempListEtag)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier,
+                       mockExceptionsSource.tempListEtag)
 
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier, mockExceptionsSource.allowListEtag)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier,
+                       mockExceptionsSource.allowListEtag)
         
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier, mockExceptionsSource.unprotectedSitesHash)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier,
+                       mockExceptionsSource.unprotectedSitesHash)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
@@ -563,8 +602,6 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      unprotectedSitesHash: nil))
     }
 }
-
-// swiftlint:enable type_body_length
 
 class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
@@ -871,6 +908,133 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
     }
 }
 
+class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, ContentBlockerRulesCaching {
+    var contentRulesCache: [String: Date] = [:]
+    var contentRulesCacheInterval: TimeInterval = 1 * 24 * 3600
+
+    var getAvailableContentRuleListIdentifiersCallback: ((inout [String]?) -> Void)?
+    var removeContentRuleListCallback: ((String) -> Void)?
+
+    override func setUp() {
+        WKContentRuleListStore.swizzleGetAvailableContentRuleListIdentifiers { identifiers in
+            self.getAvailableContentRuleListIdentifiersCallback?(&identifiers)
+        }
+        WKContentRuleListStore.swizzleRemoveContentRuleList { identifier in
+            self.removeContentRuleListCallback?(identifier)
+        }
+    }
+
+    override func tearDown() {
+        WKContentRuleListStore.swizzleGetAvailableContentRuleListIdentifiers(with: nil)
+        WKContentRuleListStore.swizzleRemoveContentRuleList(with: nil)
+        getAvailableContentRuleListIdentifiersCallback = nil
+        removeContentRuleListCallback = nil
+    }
+
+    private let rulesUpdateListener = RulesUpdateListener()
+
+    // When cache not passed to ContentRulesBlockerManager only actual ContentRuleList should remain
+    func test_No_Cache_WhenContentBlockerRuleListIsCompiled_ThenAllOtherRuleListsAreRemoved() {
+        let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: (Self.fakeEmbeddedDataSet.tds, Self.makeEtag()),
+                                                                       embeddedTrackerData: Self.fakeEmbeddedDataSet)
+        let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
+        var cbrm: ContentBlockerRulesManager!
+
+        let exp = expectation(description: "Rules Compiled")
+        rulesUpdateListener.onRulesUpdated = { _ in
+            exp.fulfill()
+        }
+
+        // return some extra cached lists
+        var ruleIdentifiersToRemove: Set = ["a", "b", "c"]
+        // get available content rule lists
+        self.getAvailableContentRuleListIdentifiersCallback = { /*inout*/ identifiers in
+            identifiers = identifiers ?? []
+            // return our fake identifiers, they should be removed later
+            identifiers!.append(contentsOf: ruleIdentifiersToRemove)
+            ruleIdentifiersToRemove.formUnion(identifiers ?? [])
+            ruleIdentifiersToRemove.remove(cbrm.currentRules[0].identifier.stringValue)
+        }
+
+        // should remove all identifiers except compiled (cbrm.currentRules[0].identifier)
+        let rem_exp = expectation(description: "Cached Rules Removed")
+        self.removeContentRuleListCallback = { identifier in
+            let removed = ruleIdentifiersToRemove.remove(identifier)
+            XCTAssertNotNil(removed)
+            if ruleIdentifiersToRemove.isEmpty {
+                rem_exp.fulfill()
+            }
+        }
+
+        cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                          exceptionsSource: mockExceptionsSource,
+                                          updateListener: rulesUpdateListener,
+                                          errorReporting: nil,
+                                          logger: .disabled)
+        withExtendedLifetime(cbrm) {
+            waitForExpectations(timeout: 1)
+        }
+    }
+
+    // When cache passed to ContentRulesBlockerManager cache should contain most recent ContentRuleLists and the actual one
+    func test_Cache_WhenContentBlockerRuleListIsCompiled_ThenOldAndUnknownRuleListsShouldBeRemoved() {
+        let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: (Self.fakeEmbeddedDataSet.tds, Self.makeEtag()),
+                                                                       embeddedTrackerData: Self.fakeEmbeddedDataSet)
+        let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
+        var cbrm: ContentBlockerRulesManager!
+
+        let exp = expectation(description: "Rules Compiled")
+        rulesUpdateListener.onRulesUpdated = { _ in
+            exp.fulfill()
+        }
+
+        // let's say there's couple of outdated and couple of recent rule lists
+        self.contentRulesCache = ["outdated1": Date().addingTimeInterval(-1 * 25 * 3600),
+                                  "outdated2": Date().addingTimeInterval(2 * 25 * 3600),
+                                  "outdated3": Date().addingTimeInterval(2 * 25 * 3600), // not present on fs
+                                  "current1": Date().addingTimeInterval(-10 * 3600),
+                                  "current2": Date().addingTimeInterval(-23 * 3600)]
+
+        // return some extra cached lists not present in our "cache"
+        var ruleIdentifiersToRemove: Set = ["a", "b", "c", "outdated1", "outdated2", "current1", "current2"]
+        // get available content rule lists
+        self.getAvailableContentRuleListIdentifiersCallback = { /*inout*/ identifiers in
+            identifiers = identifiers ?? []
+            // return our fake identifiers, they should be removed later
+            identifiers!.append(contentsOf: ruleIdentifiersToRemove)
+            ruleIdentifiersToRemove.formUnion(identifiers ?? [])
+            // shouldn't remove actual and current rule lists
+            ruleIdentifiersToRemove.remove(cbrm.currentRules[0].identifier.stringValue)
+            ruleIdentifiersToRemove.remove("current1")
+            ruleIdentifiersToRemove.remove("current2")
+        }
+
+        // should remove all identifiers except compiled (cbrm.currentRules[0].identifier)
+        let rem_exp = expectation(description: "Cached Rules Removed")
+        self.removeContentRuleListCallback = { identifier in
+            let removed = ruleIdentifiersToRemove.remove(identifier)
+            XCTAssertNotNil(removed)
+            if ruleIdentifiersToRemove.isEmpty {
+                rem_exp.fulfill()
+            }
+        }
+
+        cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                          exceptionsSource: mockExceptionsSource,
+                                          cache: self,
+                                          updateListener: rulesUpdateListener,
+                                          errorReporting: nil,
+                                          logger: .disabled)
+        withExtendedLifetime(cbrm) {
+            waitForExpectations(timeout: 1)
+        }
+        XCTAssertEqual(Set(contentRulesCache.keys), Set(["current1", "current2", cbrm.currentRules[0].identifier.stringValue]))
+    }
+
+}
+
+// swiftlint:enable type_body_length
+
 class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
     var trackerData: TrackerDataManager.DataSet? {
@@ -915,4 +1079,66 @@ class MockContentBlockerRulesExceptionsSource: ContentBlockerRulesExceptionsSour
         return ContentBlockerRulesIdentifier.hash(domains: unprotectedSites)
     }
 }
+
+extension WKContentRuleListStore {
+
+    private static var getAvailableContentRuleListIdentifiers: ((inout [String]?) -> Void)?
+    private static let originalGetAvailableContentRuleListIdentifiers = {
+        class_getInstanceMethod(WKContentRuleListStore.self,
+                                #selector(WKContentRuleListStore.getAvailableContentRuleListIdentifiers(_:)))!
+    }()
+    private static let swizzledGetAvailableContentRuleListIdentifiers = {
+        class_getInstanceMethod(WKContentRuleListStore.self,
+                                #selector(WKContentRuleListStore.swizzledGetAvailableContentRuleListIdentifiers(_:)))!
+    }()
+
+    private static var removeContentRuleList: ((String) -> Void)?
+    private static let originalRemoveContentRuleList = {
+        class_getInstanceMethod(WKContentRuleListStore.self,
+                                #selector(WKContentRuleListStore.removeContentRuleList(forIdentifier:completionHandler:)))!
+    }()
+    private static var swizzledRemoveContentRuleList = {
+        class_getInstanceMethod(WKContentRuleListStore.self,
+                                #selector(WKContentRuleListStore.swizzledRemoveContentRuleList))!
+    }()
+
+    static func swizzleGetAvailableContentRuleListIdentifiers(with block: ((inout [String]?) -> Void)?) {
+        if (self.getAvailableContentRuleListIdentifiers == nil) != (block == nil) {
+            method_exchangeImplementations(originalGetAvailableContentRuleListIdentifiers,
+                                           swizzledGetAvailableContentRuleListIdentifiers)
+        }
+        self.getAvailableContentRuleListIdentifiers = block
+    }
+
+    static func swizzleRemoveContentRuleList(with removeContentRuleList: ((String) -> Void)?) {
+        if (self.removeContentRuleList == nil) != (removeContentRuleList == nil) {
+            method_exchangeImplementations(originalRemoveContentRuleList, swizzledRemoveContentRuleList)
+        }
+        self.removeContentRuleList = removeContentRuleList
+    }
+
+    @objc open func swizzledGetAvailableContentRuleListIdentifiers(_ completionHandler: (([String]?) -> Void)!) {
+        method_exchangeImplementations(Self.originalGetAvailableContentRuleListIdentifiers,
+                                       Self.swizzledGetAvailableContentRuleListIdentifiers)
+        defer {
+            method_exchangeImplementations(Self.originalGetAvailableContentRuleListIdentifiers,
+                                           Self.swizzledGetAvailableContentRuleListIdentifiers)
+        }
+
+        self.getAvailableContentRuleListIdentifiers { identifiers in
+            var identifiers = identifiers
+            Self.getAvailableContentRuleListIdentifiers!(&identifiers)
+            completionHandler!(identifiers)
+        }
+    }
+
+    @objc func swizzledRemoveContentRuleList(forIdentifier identifier: String!, completionHandler: ((Error?) -> Void)!) {
+        Self.removeContentRuleList!(identifier)
+        completionHandler(nil)
+    }
+
+}
+
+// swiftlint:enable identifier_name
+// swiftlint:enable function_body_length
 // swiftlint:enable file_length

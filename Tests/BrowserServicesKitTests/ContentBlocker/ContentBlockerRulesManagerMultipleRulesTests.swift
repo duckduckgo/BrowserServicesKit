@@ -216,6 +216,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         var brokenLists = Set<String>()
         var errorEvents = Set<ContentBlockerDebugEvents>()
         let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+            if case .contentBlockingCompilationTime = event { return }
             guard let scope = scope else {
                 XCTFail("Missing scope")
                 return
@@ -336,6 +337,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         var brokenLists = Set<String>()
         var errorEvents = Set<ContentBlockerDebugEvents>()
         let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
+            if case .contentBlockingCompilationTime = event { return }
             guard let scope = scope else {
                 XCTFail("Missing scope")
                 return

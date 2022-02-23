@@ -91,7 +91,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         XCTAssertTrue(config.isTempUnprotected(domain: "www.domain1.com"))
     }
-    
+
     func testWhenDataIsPresent_ThenItIsUsed() {
 
         let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
