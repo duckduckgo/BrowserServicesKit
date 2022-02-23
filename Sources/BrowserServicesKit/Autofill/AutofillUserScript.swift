@@ -20,25 +20,21 @@
 import WebKit
 
 public protocol AutofillUserScriptDelegate: AnyObject {
-    func setSize(height: CGFloat, width: CGFloat)
-}
-public protocol ChildAutofillUserScriptDelegate: AnyObject {
-    func clickTriggered(clickPoint: NSPoint)
+    func requestResizeToSize(width: CGFloat, height: CGFloat)
 }
 
-public protocol AutofillMessagingToChild {
+public protocol AutofillMessagingToChildDelegate {
     var lastOpenHost: String? { get }
     func messageSelectedCredential(_ data: [String: String], _ configType: String)
     func close()
 }
 
-public protocol OverlayProtocol: AnyObject {
+public protocol ContentOverlayGetterDelegate: AnyObject {
     var view: NSView { get }
-    func closeOverlay()
-    func displayOverlay(of: NSView, messageInterface: AutofillMessagingToChild, serializedInputContext: String, click: NSPoint, inputPosition: CGRect)
+    var contentOverlayPopover: AutofillOverlayDelegate { get }
 }
 
-public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild {
+public class AutofillUserScript: NSObject, UserScript {
 
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
@@ -46,7 +42,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
     public var lastOpenHost: String?
     public var contentOverlay: AutofillUserScriptDelegate?
     // Used as a message channel from parent WebView to the relevant in page AutofillUserScript
-    public var autofillInterfaceToChild: AutofillMessagingToChild?
+    public var autofillInterfaceToChild: AutofillMessagingToChildDelegate?
     func hostForMessage(_ message: AutofillMessage) -> String {
         if topAutofill {
             return autofillInterfaceToChild?.lastOpenHost ?? ""
@@ -56,12 +52,14 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
     }
 
     private enum MessageName: String, CaseIterable {
+#if !os(iOS)
         case setSize
         case selectedDetail
         case closeAutofillParent
 
         case getSelectedCredentials
         case showAutofillParent
+#endif
         case emailHandlerStoreToken
         case emailHandlerGetAlias
         case emailHandlerRefreshAlias
@@ -83,8 +81,12 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
     }
 
     public var topAutofill: Bool
-    public weak var topView: OverlayProtocol?
-    public var clickPoint: NSPoint?
+    #if !os(iOS)
+    var selectedCredential: [String: String]?
+    var selectedConfigType: String?
+    public weak var currentOverlayTab: AutofillOverlayDelegate?
+    #endif
+    public var clickPoint: CGPoint?
     public var serializedInputContext: String?
 
     public weak var emailDelegate: AutofillEmailDelegate?
@@ -112,6 +114,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
         switch message {
+#if !os(iOS)
         // Top Autofill specific messages
         case .setSize: return setSize
         case .selectedDetail: return selectedDetail
@@ -120,8 +123,11 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
         case .getSelectedCredentials: return getSelectedCredentials
         case .showAutofillParent: return showAutofillParent
 
-        // Generic Autofill messages
+        // For child and parent autofill
         case .closeAutofillParent: return closeAutofillParent
+#endif
+
+        // Generic Autofill messages
         case .emailHandlerStoreToken: return emailStoreToken
         case .emailHandlerGetAlias: return emailGetAlias
         case .emailHandlerRefreshAlias: return emailRefreshAlias
@@ -149,7 +155,7 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
               let height = dict["height"] as? CGFloat else {
                   return replyHandler(nil)
               }
-        self.contentOverlay?.setSize(height: height, width: width)
+        self.contentOverlay?.requestResizeToSize(width: width, height: height)
         replyHandler(nil)
     }
 
@@ -162,81 +168,10 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
         autofillInterfaceToChild.messageSelectedCredential(chosenCredential, configType)
     }
 
-    func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
-        if topAutofill {
-            guard let autofillInterfaceToChild = autofillInterfaceToChild else { return }
-            self.contentOverlay?.setSize(height: 0, width: 0)
-            autofillInterfaceToChild.close()
-            replyHandler(nil)
-        } else {
-            close()
-            replyHandler(nil)
-        }
-    }
-
-    public func messageSelectedCredential(_ data: [String: String], _ configType: String) {
-        guard let topView = topView else { return }
-        topView.closeOverlay()
-        selectedCredential = data
-        selectedConfigType = configType
-    }
-
-    func clearSelectedCredentials() {
-        selectedCredential = nil
-        selectedConfigType = nil
-    }
-
-    public func close() {
-        guard let topView = topView else { return }
-        topView.closeOverlay()
-        clearSelectedCredentials()
-        lastOpenHost = nil
-    }
-
-    var selectedCredential: [String: String]?
-    var selectedConfigType: String?
-
-    func showAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
-        guard let dict = message.messageBody as? [String: Any],
-              let left = dict["inputLeft"] as? CGFloat,
-              let top = dict["inputTop"] as? CGFloat,
-              let height = dict["inputHeight"] as? CGFloat,
-              let width = dict["inputWidth"] as? CGFloat,
-              let serializedInputContext = dict["serializedInputContext"] as? String,
-              let topView = topView,
-              let clickPoint = clickPoint else {
-                  return
-              }
-        // Sets the last message host, so we can check when it messages back
-        lastOpenHost = hostProvider.hostForMessage(message)
-
-        topView.displayOverlay(of: topView.view,
-                               messageInterface: self,
-                               serializedInputContext: serializedInputContext,
-                               click: clickPoint,
-                               inputPosition: CGRect(x: left, y: top, width: width, height: height))
-        replyHandler(nil)
-    }
-
     struct GetSelectedCredentialsResponse: Encodable {
         var type: String
         var data: [String: String]?
         var configType: String?
-    }
-
-    /* Called from the child autofill */
-    func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
-        var response = GetSelectedCredentialsResponse(type: "none")
-        if lastOpenHost == nil || message.messageHost != lastOpenHost {
-            response = GetSelectedCredentialsResponse(type: "stop")
-        } else if let selectedCredential = selectedCredential {
-            response = GetSelectedCredentialsResponse(type: "ok", data: selectedCredential, configType: selectedConfigType)
-            clearSelectedCredentials()
-        }
-        if let json = try? JSONEncoder().encode(response),
-           let jsonString = String(data: json, encoding: .utf8) {
-            replyHandler(jsonString)
-        }
     }
 
     let encrypter: AutofillEncrypter
@@ -265,6 +200,84 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
     }
 
 }
+
+#if !os(iOS)
+public protocol AutofillOverlayDelegate: AnyObject {
+    var view: NSView { get }
+    func autofillCloseOverlay(_ autofillUserScript: AutofillMessagingToChildDelegate?)
+    func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, of: NSView, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
+}
+
+extension AutofillUserScript: AutofillMessagingToChildDelegate {
+    /* Called from the child autofill */
+    func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+        var response = GetSelectedCredentialsResponse(type: "none")
+        if lastOpenHost == nil || message.messageHost != lastOpenHost {
+            response = GetSelectedCredentialsResponse(type: "stop")
+        } else if let selectedCredential = selectedCredential {
+            response = GetSelectedCredentialsResponse(type: "ok", data: selectedCredential, configType: selectedConfigType)
+            clearSelectedCredentials()
+        }
+        if let json = try? JSONEncoder().encode(response),
+           let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
+        }
+    }
+    
+    func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+        if topAutofill {
+            guard let autofillInterfaceToChild = autofillInterfaceToChild else { return }
+            self.contentOverlay?.requestResizeToSize(width: 0, height: 0)
+            autofillInterfaceToChild.close()
+            replyHandler(nil)
+        } else {
+            close()
+            replyHandler(nil)
+        }
+    }
+    
+    public func messageSelectedCredential(_ data: [String: String], _ configType: String) {
+        guard let currentOverlayTab = currentOverlayTab else { return }
+        currentOverlayTab.autofillCloseOverlay(self)
+        selectedCredential = data
+        selectedConfigType = configType
+    }
+
+    func clearSelectedCredentials() {
+        selectedCredential = nil
+        selectedConfigType = nil
+    }
+
+    public func close() {
+        guard let currentOverlayTab = currentOverlayTab else { return }
+        currentOverlayTab.autofillCloseOverlay(self)
+        clearSelectedCredentials()
+        lastOpenHost = nil
+    }
+
+    func showAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+        guard let dict = message.messageBody as? [String: Any],
+              let left = dict["inputLeft"] as? CGFloat,
+              let top = dict["inputTop"] as? CGFloat,
+              let height = dict["inputHeight"] as? CGFloat,
+              let width = dict["inputWidth"] as? CGFloat,
+              let serializedInputContext = dict["serializedInputContext"] as? String,
+              let currentOverlayTab = currentOverlayTab,
+              let clickPoint = clickPoint else {
+                  return
+              }
+        // Sets the last message host, so we can check when it messages back
+        lastOpenHost = hostProvider.hostForMessage(message)
+
+        currentOverlayTab.autofillDisplayOverlay(self,
+                                                 of: currentOverlayTab.view,
+                                                 serializedInputContext: serializedInputContext,
+                                                 click: clickPoint,
+                                                 inputPosition: CGRect(x: left, y: top, width: width, height: height))
+        replyHandler(nil)
+    }
+}
+#endif
 
 @available(iOS 14, *)
 @available(macOS 11, *)
