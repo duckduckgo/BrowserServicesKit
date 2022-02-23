@@ -19,7 +19,7 @@
 
 import WebKit
 
-public protocol AutofillUserScriptDelegate: AnyObject {
+public protocol TopOverlayAutofillUserScriptDelegate: AnyObject {
     func requestResizeToSize(width: CGFloat, height: CGFloat)
 }
 
@@ -29,10 +29,13 @@ public protocol AutofillMessagingToChildDelegate {
     func close()
 }
 
-public protocol ContentOverlayGetterDelegate: AnyObject {
+#if !os(iOS)
+public protocol ChildOverlayAutofillUserScriptDelegate: AnyObject {
     var view: NSView { get }
-    var contentOverlayPopover: AutofillOverlayDelegate { get }
+    func autofillCloseOverlay(_ autofillUserScript: AutofillMessagingToChildDelegate?)
+    func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, of: NSView, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
 }
+#endif
 
 public class AutofillUserScript: NSObject, UserScript {
 
@@ -40,7 +43,7 @@ public class AutofillUserScript: NSObject, UserScript {
     typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
 
     public var lastOpenHost: String?
-    public var contentOverlay: AutofillUserScriptDelegate?
+    public var contentOverlay: TopOverlayAutofillUserScriptDelegate?
     // Used as a message channel from parent WebView to the relevant in page AutofillUserScript
     public var autofillInterfaceToChild: AutofillMessagingToChildDelegate?
     func hostForMessage(_ message: AutofillMessage) -> String {
@@ -84,7 +87,7 @@ public class AutofillUserScript: NSObject, UserScript {
     #if !os(iOS)
     var selectedCredential: [String: String]?
     var selectedConfigType: String?
-    public weak var currentOverlayTab: AutofillOverlayDelegate?
+    public weak var currentOverlayTab: ChildOverlayAutofillUserScriptDelegate?
     #endif
     public var clickPoint: CGPoint?
     public var serializedInputContext: String?
@@ -193,7 +196,7 @@ public class AutofillUserScript: NSObject, UserScript {
                   hostProvider: SecurityOriginHostProvider())
     }
 
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: AutofillUserScriptDelegate) {
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: TopOverlayAutofillUserScriptDelegate) {
         self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
         self.topAutofill = true
         self.contentOverlay = overlay
@@ -202,12 +205,6 @@ public class AutofillUserScript: NSObject, UserScript {
 }
 
 #if !os(iOS)
-public protocol AutofillOverlayDelegate: AnyObject {
-    var view: NSView { get }
-    func autofillCloseOverlay(_ autofillUserScript: AutofillMessagingToChildDelegate?)
-    func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, of: NSView, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
-}
-
 extension AutofillUserScript: AutofillMessagingToChildDelegate {
     /* Called from the child autofill */
     func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
