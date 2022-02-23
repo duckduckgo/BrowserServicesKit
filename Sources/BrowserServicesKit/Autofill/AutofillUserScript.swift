@@ -108,7 +108,6 @@ public class AutofillUserScript: NSObject, UserScript, AutofillMessagingToChild 
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
-    public var requiresRunInPageContentWorld: Bool = true
     public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
     private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
