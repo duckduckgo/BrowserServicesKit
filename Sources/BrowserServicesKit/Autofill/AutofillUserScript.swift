@@ -19,20 +19,29 @@
 
 import WebKit
 
+#if !os(iOS)
+/// Handles calls from the top Autofill context to the overlay
 public protocol TopOverlayAutofillUserScriptDelegate: AnyObject {
+    /// Provides a size that the overlay should be resized to
     func requestResizeToSize(width: CGFloat, height: CGFloat)
 }
 
+/// Is used by the top Autofill to reference into the child autofill
 public protocol AutofillMessagingToChildDelegate {
+    /// Represents the last tab host, is used to verify messages origin from and selecting of credentials
     var lastOpenHost: String? { get }
+    /// Handles filling the credentials back from the top autofill into the child
     func messageSelectedCredential(_ data: [String: String], _ configType: String)
+    /// Closes the overlay
     func close()
 }
 
-#if !os(iOS)
+/// Handles calls from the child Autofill context to the overlay.
 public protocol ChildOverlayAutofillUserScriptDelegate: AnyObject {
     var view: NSView { get }
+    /// Closes the overlay
     func autofillCloseOverlay(_ autofillUserScript: AutofillMessagingToChildDelegate?)
+    /// Opens the overlay
     func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, of: NSView, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
 }
 #endif
@@ -44,10 +53,10 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public var lastOpenHost: String?
     public var contentOverlay: TopOverlayAutofillUserScriptDelegate?
-    // Used as a message channel from parent WebView to the relevant in page AutofillUserScript
+    /// Used as a message channel from parent WebView to the relevant in page AutofillUserScript.
     public var autofillInterfaceToChild: AutofillMessagingToChildDelegate?
     func hostForMessage(_ message: AutofillMessage) -> String {
-        if topAutofill {
+        if isTopAutofillContext {
             return autofillInterfaceToChild?.lastOpenHost ?? ""
         } else {
             return hostProvider.hostForMessage(message)
@@ -83,14 +92,19 @@ public class AutofillUserScript: NSObject, UserScript {
         case pmHandlerOpenManagePasswords
     }
 
-    public var topAutofill: Bool
+    /// Represents if the autofill is loaded into the top autofill context.
+    public var isTopAutofillContext: Bool
     #if !os(iOS)
-    var selectedCredential: [String: String]?
-    var selectedConfigType: String?
+    /// Last user selected details in the top autofill overlay stored in the child.
+    var selectedDetailsData: SelectedDetailsData?
+    /// Holds a reference to the tab that is displaying the content overlay.
     public weak var currentOverlayTab: ChildOverlayAutofillUserScriptDelegate?
-    #endif
+    /// Last user click position, used to position the overlay
     public var clickPoint: CGPoint?
+    /// Serialized JSON string of any format to be passed from child to parent autofill.
+    ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
     public var serializedInputContext: String?
+    #endif
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
@@ -100,13 +114,13 @@ public class AutofillUserScript: NSObject, UserScript {
     public lazy var source: String = {
         var js = scriptSourceProvider.source
         js = js.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
-        js = js.replacingOccurrences(of: "// INJECT isTopFrame HERE", with: "isTopFrame = \(topAutofill ? "true" : "false");")
+        js = js.replacingOccurrences(of: "// INJECT isTopFrame HERE", with: "isTopFrame = \(isTopAutofillContext ? "true" : "false");")
         return js
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool {
-        if topAutofill { return true }
+        if isTopAutofillContext { return true }
         if #available(iOS 14, macOS 11, *) {
             return false
         }
@@ -162,19 +176,13 @@ public class AutofillUserScript: NSObject, UserScript {
         replyHandler(nil)
     }
 
-    /* Called from top context */
+    /// Called from top autofill messages and stores the details the user clicked on into the child autofill
     func selectedDetail(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let chosenCredential = dict["data"] as? [String: String],
               let configType = dict["configType"] as? String,
               let autofillInterfaceToChild = autofillInterfaceToChild else { return }
         autofillInterfaceToChild.messageSelectedCredential(chosenCredential, configType)
-    }
-
-    struct GetSelectedCredentialsResponse: Encodable {
-        var type: String
-        var data: [String: String]?
-        var configType: String?
     }
 
     let encrypter: AutofillEncrypter
@@ -187,7 +195,7 @@ public class AutofillUserScript: NSObject, UserScript {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
-        self.topAutofill = false
+        self.isTopAutofillContext = false
     }
     
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
@@ -196,24 +204,39 @@ public class AutofillUserScript: NSObject, UserScript {
                   hostProvider: SecurityOriginHostProvider())
     }
 
+    /// Used to create a top autofill context script for injecting into a ContentOverlay
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: TopOverlayAutofillUserScriptDelegate) {
         self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
-        self.topAutofill = true
+        self.isTopAutofillContext = true
         self.contentOverlay = overlay
     }
 
 }
 
 #if !os(iOS)
+struct GetSelectedCredentialsResponse: Encodable {
+    /// Represents the mode the JS should take, valid values are 'none', 'stop', 'ok'
+    var type: String
+    /// Key value data passed from the JS to be retuned to the child
+    var data: [String: String]?
+    var configType: String?
+}
+
+/// Represents data after the user clicks to be sent back into the JS child context
+struct SelectedDetailsData {
+    var data: [String: String]?
+    var configType: String?
+}
+
 extension AutofillUserScript: AutofillMessagingToChildDelegate {
-    /* Called from the child autofill */
+    /// Called from the child autofill to return referenced credentials
     func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: "none")
         if lastOpenHost == nil || message.messageHost != lastOpenHost {
             response = GetSelectedCredentialsResponse(type: "stop")
-        } else if let selectedCredential = selectedCredential {
-            response = GetSelectedCredentialsResponse(type: "ok", data: selectedCredential, configType: selectedConfigType)
-            clearSelectedCredentials()
+        } else if let selectedDetailsData = selectedDetailsData {
+            response = GetSelectedCredentialsResponse(type: "ok", data: selectedDetailsData.data, configType: selectedDetailsData.configType)
+            self.selectedDetailsData = nil
         }
         if let json = try? JSONEncoder().encode(response),
            let jsonString = String(data: json, encoding: .utf8) {
@@ -222,7 +245,7 @@ extension AutofillUserScript: AutofillMessagingToChildDelegate {
     }
     
     func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
-        if topAutofill {
+        if isTopAutofillContext {
             guard let autofillInterfaceToChild = autofillInterfaceToChild else { return }
             self.contentOverlay?.requestResizeToSize(width: 0, height: 0)
             autofillInterfaceToChild.close()
@@ -236,19 +259,13 @@ extension AutofillUserScript: AutofillMessagingToChildDelegate {
     public func messageSelectedCredential(_ data: [String: String], _ configType: String) {
         guard let currentOverlayTab = currentOverlayTab else { return }
         currentOverlayTab.autofillCloseOverlay(self)
-        selectedCredential = data
-        selectedConfigType = configType
-    }
-
-    func clearSelectedCredentials() {
-        selectedCredential = nil
-        selectedConfigType = nil
+        selectedDetailsData = SelectedDetailsData(data: data, configType: configType)
     }
 
     public func close() {
         guard let currentOverlayTab = currentOverlayTab else { return }
         currentOverlayTab.autofillCloseOverlay(self)
-        clearSelectedCredentials()
+        selectedDetailsData = nil
         lastOpenHost = nil
     }
 
