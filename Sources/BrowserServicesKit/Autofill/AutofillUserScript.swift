@@ -52,9 +52,11 @@ public class AutofillUserScript: NSObject, UserScript {
     typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
 
     public var lastOpenHost: String?
+#if !os(iOS)
     public var contentOverlay: TopOverlayAutofillUserScriptDelegate?
     /// Used as a message channel from parent WebView to the relevant in page AutofillUserScript.
     public var autofillInterfaceToChild: AutofillMessagingToChildDelegate?
+
     func hostForMessage(_ message: AutofillMessage) -> String {
         if isTopAutofillContext {
             return autofillInterfaceToChild?.lastOpenHost ?? ""
@@ -62,6 +64,11 @@ public class AutofillUserScript: NSObject, UserScript {
             return hostProvider.hostForMessage(message)
         }
     }
+#else
+    func hostForMessage(_ message: AutofillMessage) -> String {
+        return hostProvider.hostForMessage(message)
+    }
+#endif
 
     private enum MessageName: String, CaseIterable {
 #if !os(iOS)
@@ -94,6 +101,9 @@ public class AutofillUserScript: NSObject, UserScript {
 
     /// Represents if the autofill is loaded into the top autofill context.
     public var isTopAutofillContext: Bool
+    /// Serialized JSON string of any format to be passed from child to parent autofill.
+    ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
+    public var serializedInputContext: String?
     #if !os(iOS)
     /// Last user selected details in the top autofill overlay stored in the child.
     var selectedDetailsData: SelectedDetailsData?
@@ -101,9 +111,6 @@ public class AutofillUserScript: NSObject, UserScript {
     public weak var currentOverlayTab: ChildOverlayAutofillUserScriptDelegate?
     /// Last user click position, used to position the overlay
     public var clickPoint: CGPoint?
-    /// Serialized JSON string of any format to be passed from child to parent autofill.
-    ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
-    public var serializedInputContext: String?
     #endif
 
     public weak var emailDelegate: AutofillEmailDelegate?
@@ -166,6 +173,42 @@ public class AutofillUserScript: NSObject, UserScript {
         }
     }
 
+    let encrypter: AutofillEncrypter
+    let hostProvider: AutofillHostProvider
+    let generatedSecret: String = UUID().uuidString
+
+    init(scriptSourceProvider: AutofillUserScriptSourceProvider,
+         encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
+         hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
+        self.scriptSourceProvider = scriptSourceProvider
+        self.hostProvider = hostProvider
+        self.encrypter = encrypter
+        self.isTopAutofillContext = false
+    }
+    
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+        self.init(scriptSourceProvider: scriptSourceProvider,
+                  encrypter: AESGCMAutofillEncrypter(),
+                  hostProvider: SecurityOriginHostProvider())
+    }
+}
+
+#if !os(iOS)
+struct GetSelectedCredentialsResponse: Encodable {
+    /// Represents the mode the JS should take, valid values are 'none', 'stop', 'ok'
+    var type: String
+    /// Key value data passed from the JS to be retuned to the child
+    var data: [String: String]?
+    var configType: String?
+}
+
+/// Represents data after the user clicks to be sent back into the JS child context
+struct SelectedDetailsData {
+    var data: [String: String]?
+    var configType: String?
+}
+
+extension AutofillUserScript: AutofillMessagingToChildDelegate {
     func setSize(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let width = dict["width"] as? CGFloat,
@@ -185,25 +228,6 @@ public class AutofillUserScript: NSObject, UserScript {
         autofillInterfaceToChild.messageSelectedCredential(chosenCredential, configType)
     }
 
-    let encrypter: AutofillEncrypter
-    let hostProvider: AutofillHostProvider
-    let generatedSecret: String = UUID().uuidString
-
-    init(scriptSourceProvider: AutofillUserScriptSourceProvider,
-         encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
-         hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
-        self.scriptSourceProvider = scriptSourceProvider
-        self.hostProvider = hostProvider
-        self.encrypter = encrypter
-        self.isTopAutofillContext = false
-    }
-    
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
-        self.init(scriptSourceProvider: scriptSourceProvider,
-                  encrypter: AESGCMAutofillEncrypter(),
-                  hostProvider: SecurityOriginHostProvider())
-    }
-
     /// Used to create a top autofill context script for injecting into a ContentOverlay
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: TopOverlayAutofillUserScriptDelegate) {
         self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
@@ -211,24 +235,6 @@ public class AutofillUserScript: NSObject, UserScript {
         self.contentOverlay = overlay
     }
 
-}
-
-#if !os(iOS)
-struct GetSelectedCredentialsResponse: Encodable {
-    /// Represents the mode the JS should take, valid values are 'none', 'stop', 'ok'
-    var type: String
-    /// Key value data passed from the JS to be retuned to the child
-    var data: [String: String]?
-    var configType: String?
-}
-
-/// Represents data after the user clicks to be sent back into the JS child context
-struct SelectedDetailsData {
-    var data: [String: String]?
-    var configType: String?
-}
-
-extension AutofillUserScript: AutofillMessagingToChildDelegate {
     /// Called from the child autofill to return referenced credentials
     func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: "none")
