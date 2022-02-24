@@ -135,7 +135,7 @@ class TrackerResolverTests: XCTestCase {
         XCTAssertEqual(result?.knownTracker, tracker)
     }
     
-    func testWhenTrackerIsOnAssociatedPageThenItIsNotReported() {
+    func testWhenTrackerIsOnAssociatedPageThenItIsNotBlocked() {
         
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
@@ -158,7 +158,8 @@ class TrackerResolverTests: XCTestCase {
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
-        XCTAssertNil(result)
+        XCTAssertNotNil(result)
+        XCTAssertFalse(result!.blocked)
     }
     
     func testWhenTrackerIsACnameThenItIsReportedAsSuch() {
