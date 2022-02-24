@@ -97,16 +97,23 @@ extension AutofillUserScript {
         }
     }
 
+    private struct UserData: Encodable {
+        public let userName: String
+        public let nextAlias: String
+        public let token: String
+    }
+
     func emailGetUserData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestUserData(self) { username, alias, token, _ in
             if let username = username, let alias = alias, let token = token {
-                replyHandler("""
-                {
-                    "userName": "\(username)",
-                    "nextAlias": "\(alias)",
-                    "token": "\(token)"
+
+                let userData = UserData(userName: username, nextAlias: alias, token: token)
+                if let json = try? JSONEncoder().encode(userData), let jsonString = String(data: json, encoding: .utf8) {
+                    replyHandler(jsonString)
+                } else {
+                    replyHandler(nil)
                 }
-                """)
+
             } else {
                 replyHandler(nil)
             }
