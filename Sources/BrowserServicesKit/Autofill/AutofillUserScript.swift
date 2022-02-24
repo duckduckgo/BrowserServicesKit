@@ -42,7 +42,7 @@ public protocol ChildOverlayAutofillUserScriptDelegate: AnyObject {
     /// Closes the overlay
     func autofillCloseOverlay(_ autofillUserScript: AutofillMessagingToChildDelegate?)
     /// Opens the overlay
-    func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, of: NSView, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
+    func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, of view: NSView, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
 }
 #endif
 
