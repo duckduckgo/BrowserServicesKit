@@ -52,7 +52,7 @@ let package = Package(
                 "Resources/duckduckgo-autofill/dist/autofill-host-styles_chrome.css",
                 "Resources/duckduckgo-autofill/jest.config.js",
                 "Resources/duckduckgo-autofill/jest-test-environment.js",
-                "Resources/duckduckgo-autofill/scripts/release.js",
+                "Resources/duckduckgo-autofill/scripts/",
                 "Resources/duckduckgo-autofill/jesthtmlreporter.config.json",
                 "Resources/duckduckgo-autofill/types.d.ts",
                 "Resources/duckduckgo-autofill/tsconfig.json",
