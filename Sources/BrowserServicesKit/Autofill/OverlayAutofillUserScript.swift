@@ -21,16 +21,16 @@ import CoreGraphics
 import Foundation
 
 /// Handles calls from the top Autofill context to the overlay
-public protocol OverlayAutofillUserScriptToOverlayDelegate: AnyObject {
+public protocol OverlayAutofillUserScriptPresentationDelegate: AnyObject {
     /// Provides a size that the overlay should be resized to
-    func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, requestResizeToSize: CGFloat, height: CGFloat)
+    func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, requestResizeToSize: CGSize)
 }
 
 public class OverlayAutofillUserScript: AutofillUserScript {
 
-    public var contentOverlay: OverlayAutofillUserScriptToOverlayDelegate?
+    public weak var contentOverlay: OverlayAutofillUserScriptPresentationDelegate?
     /// Used as a message channel from parent WebView to the relevant in page AutofillUserScript.
-    public var websiteAutofillInstance: AutofillMessagingToChildDelegate?
+    public weak var websiteAutofillInstance: AutofillMessagingToChildDelegate?
 
     internal enum OverlayAutofillMessageName: String, CaseIterable {
         case setSize
@@ -60,13 +60,13 @@ public class OverlayAutofillUserScript: AutofillUserScript {
 
     func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         guard let websiteAutofillInstance = websiteAutofillInstance else { return }
-        self.contentOverlay?.overlayAutofillUserScript(self, requestResizeToSize: 0, height: 0)
+        self.contentOverlay?.overlayAutofillUserScript(self, requestResizeToSize: CGSize(width: 0, height: 0))
         websiteAutofillInstance.overlayAutofillUserScriptClose(self)
         replyHandler(nil)
     }
 
     /// Used to create a top autofill context script for injecting into a ContentOverlay
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: OverlayAutofillUserScriptToOverlayDelegate) {
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: OverlayAutofillUserScriptPresentationDelegate) {
         self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
         self.isTopAutofillContext = true
         self.contentOverlay = overlay
@@ -78,7 +78,7 @@ public class OverlayAutofillUserScript: AutofillUserScript {
               let height = dict["height"] as? CGFloat else {
                   return replyHandler(nil)
               }
-        self.contentOverlay?.overlayAutofillUserScript(self, requestResizeToSize: width, height: height)
+        self.contentOverlay?.overlayAutofillUserScript(self, requestResizeToSize: CGSize(width: width, height: height))
         replyHandler(nil)
     }
 
