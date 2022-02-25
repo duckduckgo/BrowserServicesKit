@@ -58,10 +58,6 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
     }
 
-    override func hostForMessage(_ message: AutofillMessage) -> String {
-        return hostProvider.hostForMessage(message)
-    }
-
     func showAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let left = dict["inputLeft"] as? CGFloat,

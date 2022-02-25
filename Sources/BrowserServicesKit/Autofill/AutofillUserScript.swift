@@ -108,7 +108,7 @@ public class AutofillUserScript: NSObject, UserScript {
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
     func hostForMessage(_ message: AutofillMessage) -> String {
-        return ""
+        return hostProvider.hostForMessage(message)
     }
 
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
