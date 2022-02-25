@@ -71,7 +71,7 @@ public class TrackerResolver {
            let pageHost = pageUrl.host,
            let pageEntity = tds.findEntity(forHost: pageHost),
            pageEntity.displayName == entity.displayName {
-            return nil
+            return DetectedTracker(url: trackerUrlString, knownTracker: tracker, entity: entity, blocked: false, pageUrl: pageUrlString)
         }
 
         return DetectedTracker(url: trackerUrlString, knownTracker: tracker, entity: entity, blocked: blocked, pageUrl: pageUrlString)

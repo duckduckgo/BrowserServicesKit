@@ -41,6 +41,8 @@ let package = Package(
                 "Resources/duckduckgo-autofill/Gruntfile.js",
                 "Resources/duckduckgo-autofill/package.json",
                 "Resources/duckduckgo-autofill/package-lock.json",
+                "Resources/duckduckgo-autofill/packages/",
+                "Resources/duckduckgo-autofill/integration-test/",
                 "Resources/duckduckgo-autofill/LICENSE.md",
                 "Resources/duckduckgo-autofill/README.md",
                 "Resources/duckduckgo-autofill/src",
@@ -50,7 +52,7 @@ let package = Package(
                 "Resources/duckduckgo-autofill/dist/autofill-host-styles_chrome.css",
                 "Resources/duckduckgo-autofill/jest.config.js",
                 "Resources/duckduckgo-autofill/jest-test-environment.js",
-                "Resources/duckduckgo-autofill/scripts/release.js",
+                "Resources/duckduckgo-autofill/scripts/",
                 "Resources/duckduckgo-autofill/jesthtmlreporter.config.json",
                 "Resources/duckduckgo-autofill/types.d.ts",
                 "Resources/duckduckgo-autofill/tsconfig.json",
@@ -59,6 +61,7 @@ let package = Package(
             ],
             resources: [
                 .process("Resources/duckduckgo-autofill/dist/autofill.js"),
+                .process("Resources/duckduckgo-autofill/dist/TopAutofill.html"),
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
                 .process("Resources/content-scope-scripts/build/apple/contentScope.js")
