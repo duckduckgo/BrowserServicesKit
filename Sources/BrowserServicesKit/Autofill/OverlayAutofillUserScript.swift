@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import CoreGraphics
 import Foundation
 
 /// Handles calls from the top Autofill context to the overlay

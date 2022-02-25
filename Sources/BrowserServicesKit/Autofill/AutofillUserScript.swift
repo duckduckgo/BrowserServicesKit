@@ -111,6 +111,12 @@ public class AutofillUserScript: NSObject, UserScript {
         return ""
     }
 
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+        self.init(scriptSourceProvider: scriptSourceProvider,
+                  encrypter: AESGCMAutofillEncrypter(),
+                  hostProvider: SecurityOriginHostProvider())
+    }
+
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
          hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
@@ -121,7 +127,6 @@ public class AutofillUserScript: NSObject, UserScript {
     }
 }
 
-#if !os(iOS)
 struct GetSelectedCredentialsResponse: Encodable {
     /// Represents the mode the JS should take, valid values are 'none', 'stop', 'ok'
     var type: String
@@ -135,7 +140,6 @@ struct SelectedDetailsData {
     var data: [String: String]?
     var configType: String?
 }
-#endif
 
 @available(iOS 14, *)
 @available(macOS 11, *)

@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import CoreGraphics
 import Foundation
 
 /// Handles calls from the website Autofill context to the overlay.
@@ -40,12 +41,6 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         return WebsiteAutofillMessageName.allCases.map(\.rawValue) + super.messageNames
     }
 
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
-        self.init(scriptSourceProvider: scriptSourceProvider,
-                  encrypter: AESGCMAutofillEncrypter(),
-                  hostProvider: SecurityOriginHostProvider())
-    }
-
     private enum WebsiteAutofillMessageName: String, CaseIterable {
         case closeAutofillParent
         case getSelectedCredentials
@@ -56,7 +51,6 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         guard let websiteAutofillMessageName = WebsiteAutofillMessageName(rawValue: messageName) else {
             return super.messageHandlerFor(messageName)
         }
-
         switch websiteAutofillMessageName {
         case .getSelectedCredentials: return getSelectedCredentials
         case .showAutofillParent: return showAutofillParent
