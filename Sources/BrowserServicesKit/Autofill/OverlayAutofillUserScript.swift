@@ -20,6 +20,16 @@
 import CoreGraphics
 import Foundation
 
+/// Is used by the top Autofill to reference into the child autofill
+public protocol OverlayAutofillUserScriptDelegate: AnyObject {
+    /// Represents the last tab host, is used to verify messages origin from and selecting of credentials
+    var overlayAutofillUserScriptLastOpenHost: String? { get }
+    /// Handles filling the credentials back from the top autofill into the child
+    func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, messageSelectedCredential: [String: String], _ configType: String)
+    /// Closes the overlay
+    func overlayAutofillUserScriptClose(_ overlayAutofillUserScript: OverlayAutofillUserScript)
+}
+
 /// Handles calls from the top Autofill context to the overlay
 public protocol OverlayAutofillUserScriptPresentationDelegate: AnyObject {
     /// Provides a size that the overlay should be resized to
@@ -30,7 +40,7 @@ public class OverlayAutofillUserScript: AutofillUserScript {
 
     public weak var contentOverlay: OverlayAutofillUserScriptPresentationDelegate?
     /// Used as a message channel from parent WebView to the relevant in page AutofillUserScript.
-    public weak var websiteAutofillInstance: AutofillMessagingToChildDelegate?
+    public weak var websiteAutofillInstance: OverlayAutofillUserScriptDelegate?
 
     internal enum OverlayAutofillMessageName: String, CaseIterable {
         case setSize

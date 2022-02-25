@@ -107,18 +107,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     }
 }
 
-
-/// Is used by the top Autofill to reference into the child autofill
-public protocol AutofillMessagingToChildDelegate: AnyObject {
-    /// Represents the last tab host, is used to verify messages origin from and selecting of credentials
-    var overlayAutofillUserScriptLastOpenHost: String? { get }
-    /// Handles filling the credentials back from the top autofill into the child
-    func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, messageSelectedCredential: [String: String], _ configType: String)
-    /// Closes the overlay
-    func overlayAutofillUserScriptClose(_ overlayAutofillUserScript: OverlayAutofillUserScript)
-}
-
-extension WebsiteAutofillUserScript: AutofillMessagingToChildDelegate {
+extension WebsiteAutofillUserScript: OverlayAutofillUserScriptDelegate {
     public var overlayAutofillUserScriptLastOpenHost: String? {
         return lastOpenHost
     }
