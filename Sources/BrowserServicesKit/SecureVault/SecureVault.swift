@@ -46,12 +46,14 @@ public protocol SecureVault {
 
     func identities() throws -> [SecureVaultModels.Identity]
     func identityFor(id: Int64) throws -> SecureVaultModels.Identity?
+    func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity?
     @discardableResult
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
     func deleteIdentityFor(identityId: Int64) throws
 
     func creditCards() throws -> [SecureVaultModels.CreditCard]
     func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard?
+    func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard?
     @discardableResult
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardFor(cardId: Int64) throws
@@ -275,6 +277,14 @@ class DefaultSecureVault: SecureVault {
             try self.providers.database.deleteIdentityForIdentityId(identityId)
         }
     }
+    
+    func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
+        let identities = try self.identities()
+        
+        return identities.first { existingIdentity in
+            existingIdentity.hasAutofillEquality(comparedTo: proposedIdentity)
+        }
+    }
 
     // MARK: - Credit Cards
 
@@ -302,6 +312,14 @@ class DefaultSecureVault: SecureVault {
             card.cardNumberData = try self.l2Decrypt(data: card.cardNumberData)
 
             return card
+        }
+    }
+    
+    func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
+        let cards = try self.creditCards()
+        
+        return cards.first { existingCard in
+            existingCard.hasAutofillEquality(comparedTo: proposedCard)
         }
     }
 

@@ -27,12 +27,18 @@ public enum AutofillType {
     case identity
 }
 
+public struct AutofillData {
+    public let identity: SecureVaultModels.Identity?
+    public let credentials: SecureVaultModels.WebsiteCredentials?
+    public let creditCard: SecureVaultModels.CreditCard?
+}
+
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
-    func secureVaultManager(_: SecureVaultManager,
-                            promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
+    func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
+
 }
 
 public class SecureVaultManager {
@@ -68,30 +74,52 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         // no-op at this point
     }
-
-    public func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String) {
-        guard let passwordData = password.data(using: .utf8) else { return }
-
+    
+    /// Receives each of the types of data that the Autofill script has detected, and determines whether the user should be prompted to save them.
+    /// This involves checking each proposed object to determine whether it already exists in the store.
+    /// Currently, only one new type of data is presented to the user, but that decision is handled client-side so that it's easier to adapt in the future when multiple types are presented at once.
+    public func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData) {
         do {
+            let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+            
+            // Determine if the identity should be sent to the client app:
 
-            if let account = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
-                .accountsFor(domain: domain)
-                .first(where: { $0.username == username }) {
-
-                let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
-
-            } else {
-
-                let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
-                let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
-
+            var proposedIdentity: SecureVaultModels.Identity?
+            
+            if let identity = data.identity, try vault.existingIdentityForAutofill(matching: identity) == nil {
+                proposedIdentity = identity
             }
-        } catch {
-            os_log(.error, "Error storing accounts: %{public}@", error.localizedDescription)
-        }
+            
+            // Determine if the credentials should be sent to the client app:
+            
+            var proposedCredentials: SecureVaultModels.WebsiteCredentials?
 
+            if let credentials = data.credentials, let passwordData = credentials.password.data(using: .utf8) {
+                if let account = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                    .accountsFor(domain: domain)
+                    .first(where: { $0.username == credentials.username }) {
+                    proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+                } else {
+                    let account = SecureVaultModels.WebsiteAccount(username: credentials.username, domain: domain)
+                    proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+                }
+            }
+            
+            // Determine if the payment method should be sent to the client app:
+            
+            var proposedCard: SecureVaultModels.CreditCard?
+            
+            if let card = data.creditCard, try vault.existingCardForAutofill(matching: card) == nil {
+                proposedCard = card
+            }
+            
+            // Assemble data and send to the delegate:
+            
+            let autofillData = AutofillData(identity: proposedIdentity, credentials: proposedCredentials, creditCard: proposedCard)
+            delegate?.secureVaultManager(self, promptUserToStoreAutofillData: autofillData)
+        } catch {
+            os_log(.error, "Error storing data: %{public}@", error.localizedDescription)
+        }
     }
 
     public func autofillUserScript(_: AutofillUserScript,

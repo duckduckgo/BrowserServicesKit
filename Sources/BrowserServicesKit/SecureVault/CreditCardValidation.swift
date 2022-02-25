@@ -31,7 +31,7 @@ public struct CreditCardValidation {
 
         case unknown
 
-        var displayName: String {
+        public var displayName: String {
             switch self {
             case .amex:
                 return "American Express"

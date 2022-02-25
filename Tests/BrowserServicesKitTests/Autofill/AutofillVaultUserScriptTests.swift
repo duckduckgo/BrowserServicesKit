@@ -137,17 +137,16 @@ class AutofillVaultUserScriptTests: XCTestCase {
     }
 
     @available(macOS 11, iOS 14, *)
-    func testWhenStoreCredentialsCalled_ThenDelegateIsCalled() {
+    func testWhenStoreDataCalled_ThenDelegateIsCalled() {
 
         let delegate = MockSecureVaultDelegate()
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
-        body["username"] = "username@example.com"
-        body["password"] = "password"
+        body["credentials"] = ["username": "username@example.com", "password": "password"]
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "pmHandlerStoreCredentials", body: body,
+        let message = MockAutofillMessage(name: "pmHandlerStoreData", body: body,
                                           host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
@@ -312,12 +311,10 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         lastDomain = domain
     }
 
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String,
-                            username: String,
-                            password: String) {
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData) {
         lastDomain = domain
-        lastUsername = username
-        lastPassword = password
+        lastUsername = data.credentials?.username
+        lastPassword = data.credentials?.password
     }
 
     func autofillUserScript(_: AutofillUserScript,

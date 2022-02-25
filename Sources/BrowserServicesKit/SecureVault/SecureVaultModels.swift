@@ -116,6 +116,20 @@ public struct SecureVaultModels {
             self.expirationMonth = expirationMonth
             self.expirationYear = expirationYear
         }
+        
+        public init?(dictionary: [String: Any]) {
+            guard let cardNumber = dictionary["cardNumber"] as? String else {
+                return nil
+            }
+
+            self.init(id: nil,
+                      title: nil,
+                      cardNumber: cardNumber,
+                      cardholderName: dictionary["cardholderName"] as? String,
+                      cardSecurityCode: dictionary["cardSecurityCode"] as? String,
+                      expirationMonth: dictionary["expirationMonth"] as? Int,
+                      expirationYear: dictionary["expirationYear"] as? Int)
+        }
 
     }
 
@@ -197,6 +211,22 @@ public struct SecureVaultModels {
 
     public struct Identity {
 
+        private static let personNameComponentsFormatter: PersonNameComponentsFormatter = {
+            let nameFormatter = PersonNameComponentsFormatter()
+            nameFormatter.style = .medium
+
+            return nameFormatter
+        }()
+        
+        public var formattedName: String {
+            var nameComponents = PersonNameComponents()
+            nameComponents.givenName = firstName
+            nameComponents.middleName = middleName
+            nameComponents.familyName = lastName
+
+            return Self.personNameComponentsFormatter.string(from: nameComponents)
+        }
+
         public var id: Int64?
         public var title: String
         public let created: Date
@@ -266,7 +296,65 @@ public struct SecureVaultModels {
             self.mobilePhone = mobilePhone
             self.emailAddress = emailAddress
         }
+        
+        public init(dictionary: [String: Any]) {
+            self.init(id: nil,
+                      title: nil,
+                      created: Date(),
+                      lastUpdated: Date(),
+                      firstName: dictionary["firstName"] as? String,
+                      middleName: dictionary["middleName"] as? String,
+                      lastName: dictionary["lastName"] as? String,
+                      birthdayDay: dictionary["birthdayDay"] as? Int,
+                      birthdayMonth: dictionary["birthdayMonth"] as? Int,
+                      birthdayYear: dictionary["birthdayYear"] as? Int,
+                      addressStreet: dictionary["addressStreet"] as? String,
+                      addressStreet2: dictionary["addressStreet2"] as? String,
+                      addressCity: dictionary["addressCity"] as? String,
+                      addressProvince: dictionary["addressProvince"] as? String,
+                      addressPostalCode: dictionary["addressPostalCode"] as? String,
+                      addressCountryCode: dictionary["addressCountryCode"] as? String,
+                      homePhone: dictionary["homePhone"] as? String,
+                      mobilePhone: dictionary["mobilePhone"] as? String,
+                      emailAddress: dictionary["emailAddress"] as? String)
+        }
 
     }
 
+}
+
+// MARK: - Autofill Equality
+
+protocol SecureVaultAutofillEquatable {
+    
+    func hasAutofillEquality(comparedTo object: Self) -> Bool
+    
+}
+
+extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
+
+    func hasAutofillEquality(comparedTo object: SecureVaultModels.Identity) -> Bool {
+        if self.formattedName.normalizingDiacritics() != object.formattedName.normalizingDiacritics() {
+            return false
+        }
+        
+        if self.addressStreet?.normalizingDiacritics() != object.addressStreet?.normalizingDiacritics() {
+            return false
+        }
+        
+        return true
+    }
+    
+}
+
+extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
+    
+    func hasAutofillEquality(comparedTo object: Self) -> Bool {
+        if self.cardNumber == object.cardNumber {
+            return true
+        }
+        
+        return false
+    }
+    
 }

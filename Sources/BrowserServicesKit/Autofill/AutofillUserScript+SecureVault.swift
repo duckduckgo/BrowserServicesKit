@@ -28,7 +28,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     ) -> Void)
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
@@ -131,6 +131,49 @@ extension AutofillUserScript {
         let id: Int64
         let username: String
     }
+    
+    // MARK: - Requests
+    
+    public struct IncomingCredentials {
+        let username: String
+        let password: String
+    }
+    
+    public struct DetectedAutofillData {
+        
+        public let identity: SecureVaultModels.Identity?
+        public let credentials: IncomingCredentials?
+        public let creditCard: SecureVaultModels.CreditCard?
+        
+        init(dictionary: [String: Any]) {
+            if let identitiesDictionary = dictionary["identities"] as? [String: Any] {
+                self.identity = .init(dictionary: identitiesDictionary)
+            } else {
+                self.identity = nil
+            }
+            
+            if let cardsDictionary = dictionary["creditCards"] as? [String: Any] {
+                self.creditCard = .init(dictionary: cardsDictionary)
+            } else {
+                self.creditCard = nil
+            }
+            
+            if let credentialsDictionary = dictionary["credentials"] as? [String: String],
+               let username = credentialsDictionary["username"],
+               let password = credentialsDictionary["password"] {
+                self.credentials = IncomingCredentials(username: username, password: password)
+            } else {
+                self.credentials = nil
+            }
+        }
+        
+        init(identity: SecureVaultModels.Identity?, credentials: AutofillUserScript.IncomingCredentials?, creditCard: SecureVaultModels.CreditCard?) {
+            self.identity = identity
+            self.credentials = credentials
+            self.creditCard = creditCard
+        }
+        
+    }
 
     // MARK: - Responses
 
@@ -209,20 +252,29 @@ extension AutofillUserScript {
         }
 
     }
-
-    func pmStoreCredentials(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    
+    func pmStoreData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)
         }
-
-        guard let body = message.messageBody as? [String: Any],
-              let username = body["username"] as? String,
-              let password = body["password"] as? String else {
+        
+        guard var body = message.messageBody as? [String: Any] else {
             return
         }
-
+        
+        // TODO: Remove this, temporary to make testing easier
+        body["creditCards"] = [
+            "cardNumber": "5555555555555555",
+            "cardholderName": "Test User",
+            "cardSecurityCode": "123",
+            "expirationMonth": 1,
+            "expirationYear": 2025
+        ]
+        
+        let incomingData = DetectedAutofillData(dictionary: body)
         let domain = hostProvider.hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
+        
+        vaultDelegate?.autofillUserScript(self, didRequestStoreDataForDomain: domain, data: incomingData)
     }
 
     func pmGetAccounts(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {

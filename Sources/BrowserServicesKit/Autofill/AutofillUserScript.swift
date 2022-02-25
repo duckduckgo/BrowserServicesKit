@@ -34,7 +34,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
         case pmHandlerGetAutofillInitData
 
-        case pmHandlerStoreCredentials
+        case pmHandlerStoreData
         case pmHandlerGetAccounts
         case pmHandlerGetAutofillCredentials
         case pmHandlerGetIdentity
@@ -75,7 +75,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
 
-        case .pmHandlerStoreCredentials: return pmStoreCredentials
+        case .pmHandlerStoreData: return pmStoreData
         case .pmHandlerGetAccounts: return pmGetAccounts
         case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
 

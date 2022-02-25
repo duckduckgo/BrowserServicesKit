@@ -32,4 +32,9 @@ extension String {
         self.dropping(prefix: "www.")
     }
 
+    func normalizingDiacritics() -> String {
+        return self.folding(options: .diacriticInsensitive, locale: .current)
+    }
+    
 }
+
