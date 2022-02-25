@@ -145,7 +145,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
         guard let messageHandler = messageHandlerFor(message.name) else {
-            assertionFailure("Got message type for which no handler exists: \(message.name)")
+            // Unsupported message fail silently
             return
         }
 
@@ -162,7 +162,7 @@ extension AutofillUserScript {
     
     func processMessage(_ userContentController: WKUserContentController, didReceive message: AutofillMessage) {
         guard let messageHandler = messageHandlerFor(message.messageName) else {
-            assertionFailure("Got message type for which no handler exists: \(message.messageName)")
+            // Unsupported message fail silently
             return
         }
 
