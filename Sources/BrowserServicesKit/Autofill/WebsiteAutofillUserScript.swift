@@ -22,9 +22,9 @@ import Foundation
 /// Handles calls from the website Autofill context to the overlay.
 public protocol ContentOverlayUserScriptDelegate: AnyObject {
     /// Closes the overlay
-    func autofillCloseOverlay(_ autofillUserScript: AutofillMessagingToChildDelegate?)
+    func websiteAutofillUserScriptCloseOverlay(_ websiteAutofillUserScript: WebsiteAutofillUserScript?)
     /// Opens the overlay
-    func autofillDisplayOverlay(_ messageInterface: AutofillMessagingToChildDelegate, serializedInputContext: String, click: CGPoint, inputPosition: CGRect)
+    func websiteAutofillUserScript(_ websiteAutofillUserScript: WebsiteAutofillUserScript, willDisplayOverlayAtClick: CGPoint, serializedInputContext: String, inputPosition: CGRect)
 }
 
 public class WebsiteAutofillUserScript: AutofillUserScript {
@@ -82,9 +82,9 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
 
-        currentOverlayTab.autofillDisplayOverlay(self,
-                                                 serializedInputContext: serializedInputContext,
-                                                 click: clickPoint,
+        currentOverlayTab.websiteAutofillUserScript(self,
+                                                 willDisplayOverlayAtClick: clickPoint,
+                                                serializedInputContext: serializedInputContext,
                                                  inputPosition: CGRect(x: left, y: top, width: width, height: height))
         replyHandler(nil)
     }
@@ -96,7 +96,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
 
     internal func close() {
         guard let currentOverlayTab = currentOverlayTab else { return }
-        currentOverlayTab.autofillCloseOverlay(self)
+        currentOverlayTab.websiteAutofillUserScriptCloseOverlay(self)
         selectedDetailsData = nil
         lastOpenHost = nil
     }
@@ -139,7 +139,7 @@ extension WebsiteAutofillUserScript: AutofillMessagingToChildDelegate {
 
     public func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, messageSelectedCredential: [String: String], _ configType: String) {
         guard let currentOverlayTab = currentOverlayTab else { return }
-        currentOverlayTab.autofillCloseOverlay(self)
+        currentOverlayTab.websiteAutofillUserScriptCloseOverlay(self)
         selectedDetailsData = SelectedDetailsData(data: messageSelectedCredential, configType: configType)
     }
 }
