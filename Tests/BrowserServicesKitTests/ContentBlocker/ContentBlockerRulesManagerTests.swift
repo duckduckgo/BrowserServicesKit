@@ -202,14 +202,12 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
             exp.fulfill()
         }
         
-        let errorExp = expectation(description: "No error reported")
-        errorExp.isInverted = true
         let compilationTimeExp = expectation(description: "Compilation Time reported")
         let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
             switch event {
             case .contentBlockingTDSCompilationFailed:
                 XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
-                errorExp.fulfill()
+                XCTFail("No error should be reported")
 
             case .contentBlockingCompilationTime:
                 XCTAssertNil(scope)
@@ -227,7 +225,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler,
                                               logger: .disabled)
 
-        wait(for: [exp, errorExp, compilationTimeExp], timeout: 15.0)
+        wait(for: [exp, compilationTimeExp], timeout: 15.0)
         
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
