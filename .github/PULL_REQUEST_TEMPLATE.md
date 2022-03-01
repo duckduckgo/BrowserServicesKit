@@ -1,10 +1,18 @@
 <!--
-Note: This checklist is a reminder of our shared engineering expectations. Feel free to change it, although assigning a GitHub reviewer and the items in bold are required.
+Note: This checklist is a reminder of our shared engineering expectations.
 -->
 
+**Required**:
+
 Task/Issue URL:
+iOS PR: 
+macOS PR:
+
+**Optional**:
+
 Tech Design URL:
 CC:
+
 
 **Description**:
 
