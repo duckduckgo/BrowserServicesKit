@@ -2,20 +2,18 @@
 Note: This checklist is a reminder of our shared engineering expectations.
 -->
 
+Please review the release process for BrowserServicesKit [here](https://app.asana.com/0/1200194497630846/1200837094583426).
+
 **Required**:
 
 Task/Issue URL: 
-
 iOS PR:  
-
 macOS PR: 
 
 **Optional**:
 
 Tech Design URL:
-
 CC:
-
 
 **Description**:
 
