@@ -4,13 +4,16 @@ Note: This checklist is a reminder of our shared engineering expectations.
 
 **Required**:
 
-Task/Issue URL:
-iOS PR: 
-macOS PR:
+Task/Issue URL: 
+
+iOS PR:  
+
+macOS PR: 
 
 **Optional**:
 
 Tech Design URL:
+
 CC:
 
 
