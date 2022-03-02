@@ -19,6 +19,28 @@
 
 import WebKit
 
+public final class ContentScopeProperties: Encodable {
+    public let globalPrivacyControlValue: Bool
+    public let debug: Bool = false
+    public let sessionKey: String
+    public let platform = ContentScopePlatform()
+
+    public init(gpcEnabled: Bool, sessionKey: String) {
+        self.globalPrivacyControlValue = gpcEnabled
+        self.sessionKey = sessionKey
+    }
+}
+
+public struct ContentScopePlatform: Encodable {
+    #if os(macOS)
+    let name = "macos"
+    #elseif os(iOS)
+    let name = "ios"
+    #else
+    let name = "unknown"
+    #endif
+}
+
 public protocol UserScript: WKScriptMessageHandler {
 
     var source: String { get }
