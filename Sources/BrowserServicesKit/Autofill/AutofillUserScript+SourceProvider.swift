@@ -34,6 +34,7 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     public init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
         var replacements: [String: String] = [:]
         #if os(macOS)
+            replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
             replacements["// INJECT isApp HERE"] = "isApp = true;"
         #endif
 

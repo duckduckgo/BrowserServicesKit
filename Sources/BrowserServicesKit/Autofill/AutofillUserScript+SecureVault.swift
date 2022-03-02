@@ -181,6 +181,7 @@ extension AutofillUserScript {
     struct RequestAutoFillInitDataResponse: Codable {
 
         struct AutofillInitSuccess: Codable {
+            let serializedInputContext: String?
             let credentials: [CredentialObject]
             let creditCards: [CreditCardObject]
             let identities: [IdentityObject]
@@ -230,8 +231,7 @@ extension AutofillUserScript {
     // MARK: - Message Handlers
 
     func pmGetAutoFillInitData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-
-        let domain = hostProvider.hostForMessage(message)
+        let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
             let credentials: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
@@ -241,7 +241,8 @@ extension AutofillUserScript {
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
             let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
 
-            let success = RequestAutoFillInitDataResponse.AutofillInitSuccess(credentials: credentials,
+            let success = RequestAutoFillInitDataResponse.AutofillInitSuccess(serializedInputContext: self.serializedInputContext,
+                                                                              credentials: credentials,
                                                                               creditCards: cards,
                                                                               identities: identities)
 
@@ -279,7 +280,7 @@ extension AutofillUserScript {
 
     func pmGetAccounts(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
-        vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostProvider.hostForMessage(message)) { credentials in
+        vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostForMessage(message)) { credentials in
             let credentials: [CredentialObject] = credentials.compactMap {
                 guard let id = $0.id else { return nil }
                 return .init(id: id, username: $0.username)
@@ -355,17 +356,17 @@ extension AutofillUserScript {
     // MARK: Open Management Views
 
     func pmOpenManageCreditCards(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
     func pmOpenManageIdentities(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
     func pmOpenManagePasswords(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostProvider.hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
