@@ -20,11 +20,30 @@ import Foundation
 import WebKit
 import Combine
 
+// This can grow to support any new features
+public struct FeatureSettings: Encodable {
+    public let autofill = FeatureConfig(AutofillSetting())
+}
+
+// For now, we're
+public struct FeatureConfig<T>: Encodable where T: Encodable {
+    var settings: T
+    init(_ settings: T) {
+        self.settings = settings
+    }
+}
+
+// An example of per-feature settings
+public struct AutofillSetting: Encodable {
+    let passwordEnabled = true;
+}
+
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
     public let debug: Bool = false
     public let sessionKey: String
     public let platform = ContentScopePlatform()
+    public let features = FeatureSettings()
 
     public init(gpcEnabled: Bool, sessionKey: String) {
         self.globalPrivacyControlValue = gpcEnabled
