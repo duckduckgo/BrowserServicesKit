@@ -259,18 +259,18 @@ extension AutofillUserScript {
             replyHandler(nil)
         }
         
-        guard var body = message.messageBody as? [String: Any] else {
+        guard let body = message.messageBody as? [String: Any] else {
             return
         }
         
-        // TODO: Remove this, temporary to make testing easier
-        body["creditCards"] = [
-            "cardNumber": "5555555555555555",
-            "cardholderName": "Test User",
-            "cardSecurityCode": "123",
-            "expirationMonth": 1,
-            "expirationYear": 2025
-        ]
+        // TODO: Remove this, it's temporary to make testing easier
+//        body["creditCards"] = [
+//            "cardNumber": "5555555555555555",
+//            "cardholderName": "Test User",
+//            "cardSecurityCode": "123",
+//            "expirationMonth": 1,
+//            "expirationYear": 2025
+//        ]
         
         let incomingData = DetectedAutofillData(dictionary: body)
         let domain = hostProvider.hostForMessage(message)
