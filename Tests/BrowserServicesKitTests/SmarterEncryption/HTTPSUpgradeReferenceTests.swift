@@ -57,28 +57,24 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         static let bloomFilter = "Resources/privacy-reference-tests/https-upgrades/https_bloomfilter_reference"
     }
     
+    private enum Const {
+        static let exampleDomain = "firsttest.com"
+    }
+    
     private let data = JsonTestDataLoader()
     
-    private lazy var privacyManager: PrivacyConfigurationManager = {
+    private func makePrivacyManager(withUnprotectedDomains unprotectedDomains: [String] = []) -> PrivacyConfigurationManager {
         let configJSON = data.fromJsonFile(Resource.config)
         let embeddedDataProvider = MockEmbeddedDataProvider(data: configJSON,
                                                             etag: "embedded")
+        let localProtection = MockDomainsProtectionStore()
+        localProtection.unprotectedDomains = Set(unprotectedDomains)
         
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
-                                           localProtection: MockDomainsProtectionStore())
-    }()
-    
-    private lazy var appConfig: PrivacyConfiguration = {
-        let localProtection = MockDomainsProtectionStore()
-        localProtection.unprotectedDomains = []
-        
-        let configJSON = data.fromJsonFile(Resource.config)
-        let configDict = try! JSONSerialization.jsonObject(with: configJSON, options: []) as! [String: Any]
-        let configData = PrivacyConfigurationData(json: configDict)
-        return AppPrivacyConfiguration(data: configData, identifier: "", localProtection: localProtection)
-    }()
+                                           localProtection: localProtection)
+    }
     
     private lazy var httpsUpgradesTestSuite: HTTPSUpgradesRefTests = {
         let tests = data.fromJsonFile(Resource.tests)
@@ -108,7 +104,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
     
     func testHTTPSUpgradesNavigations() async {
         let tests = httpsUpgradesTestSuite.navigations.tests
-        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: privacyManager)
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager())
         httpsUpgrade.loadData()
         
         for test in tests {
@@ -129,9 +125,24 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
             if case let .success(upgradedURL) = result {
                 resultURL = upgradedURL
             }
-
             XCTAssertEqual(resultURL.absoluteString, test.expectURL, "FAILED: \(test.name)")
         }
+    }
+    
+    func testLocalUnprotectedDomainShouldNotUpgradeToHTTPS() async {
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(withUnprotectedDomains: [(Const.exampleDomain)]))
+        httpsUpgrade.loadData()
+        
+        let url = URL(string: "http://\(Const.exampleDomain)")!
+        
+        var resultURL = url
+        let result = await httpsUpgrade.upgrade(url: url)
+        if case let .success(upgradedURL) = result {
+            resultURL = upgradedURL
+        }
+        print(resultURL)
+
+        XCTAssertEqual(resultURL.absoluteString, Const.exampleDomain, "FAILED: \(resultURL)")
     }
     
 }
