@@ -74,12 +74,17 @@ extension URL {
 
     public func addParameter(name: String, value: String) throws -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
-        var queryItems = components.queryItems ?? [URLQueryItem]()
+        var encodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+
         let newQueryItem = URLQueryItem(name: name, value: value)
-        queryItems.append(newQueryItem)
-        components.queryItems = queryItems
+        components.queryItems = [newQueryItem]
         guard let encodedQuery = components.percentEncodedQuery else { throw ParameterError.encodingFailed }
         components.percentEncodedQuery = encodedQuery.encodingPluses()
+
+        guard let encodedNewQueryItem = components.percentEncodedQueryItems?.first else { throw ParameterError.encodingFailed }
+        encodedQueryItems.append(encodedNewQueryItem)
+        components.percentEncodedQueryItems = encodedQueryItems
+
         guard let newUrl = components.url else { throw ParameterError.creatingFailed }
         return newUrl
     }

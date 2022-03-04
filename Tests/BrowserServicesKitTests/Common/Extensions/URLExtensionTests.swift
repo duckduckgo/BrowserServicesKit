@@ -44,4 +44,21 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertFalse(url.isRoot)
     }
 
+    func testWhenAddParameterIsCalled_ThenItDoesNotChangeExistingURL() {
+        let url = URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica")!
+
+        XCTAssertEqual(
+            try url.addParameter(name: "ia", value: "web"),
+            URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica&ia=web")!
+        )
+    }
+
+    func testWhenAddParameterIsCalled_ThenItEncodesPlusesInTheParameter() {
+        let url = URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica")!
+
+        XCTAssertEqual(
+            try url.addParameter(name: "ia", value: "web+ios and android"),
+            URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica&ia=web%2Bios%20and%20android")!
+        )
+    }
 }
