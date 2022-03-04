@@ -27,6 +27,7 @@ public class AutofillUserScript: NSObject, UserScript {
     internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
         case emailHandlerGetAlias
+        case emailHandlerGetUserData
         case emailHandlerRefreshAlias
 
         case emailHandlerGetAddresses
@@ -53,7 +54,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
-    
+
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     public lazy var source: String = {
@@ -85,6 +86,7 @@ public class AutofillUserScript: NSObject, UserScript {
         switch message {
             case .emailHandlerStoreToken: return emailStoreToken
             case .emailHandlerGetAlias: return emailGetAlias
+            case .emailHandlerGetUserData: return emailGetUserData
             case .emailHandlerRefreshAlias: return emailRefreshAlias
             case .emailHandlerGetAddresses: return emailGetAddresses
             case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
@@ -163,7 +165,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
 
 // Fallback for older iOS / macOS version
 extension AutofillUserScript {
-    
+
     func processMessage(_ userContentController: WKUserContentController, didReceive message: AutofillMessage) {
         guard let messageHandler = messageHandlerFor(message.messageName) else {
             // Unsupported message fail silently

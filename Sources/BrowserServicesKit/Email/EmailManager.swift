@@ -121,6 +121,7 @@ public struct EmailUrls {
 
 public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
 public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
+public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ token: String?, AliasRequestError?) -> Void
 
 public class EmailManager {
     
@@ -238,6 +239,17 @@ extension EmailManager: AutofillEmailDelegate {
             }
 
             completionHandler(self.username, alias, nil)
+        }
+    }
+
+    public func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion) {
+        getAliasIfNeeded { [weak self] alias, error in
+            guard let alias = alias, error == nil, let self = self else {
+                completionHandler(nil, nil, nil, error)
+                return
+            }
+
+            completionHandler(self.username, alias, self.token, nil)
         }
     }
     
