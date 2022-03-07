@@ -57,15 +57,22 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         static let bloomFilter = "Resources/privacy-reference-tests/https-upgrades/https_bloomfilter_reference"
     }
     
-    private enum Const {
-        static let exampleDomain = "firsttest.com"
+    private static let data = JsonTestDataLoader()
+    
+    private static let config = data.fromJsonFile(Resource.config)
+    private static let emptyConfig =
+    """
+    {
+        "features": {
+            "https": {
+                "state": "enabled"
+            }
+        }
     }
+    """.data(using: .utf8)!
     
-    private let data = JsonTestDataLoader()
-    
-    private func makePrivacyManager(withUnprotectedDomains unprotectedDomains: [String] = []) -> PrivacyConfigurationManager {
-        let configJSON = data.fromJsonFile(Resource.config)
-        let embeddedDataProvider = MockEmbeddedDataProvider(data: configJSON,
+    private func makePrivacyManager(config: Data? = config, unprotectedDomains: [String] = []) -> PrivacyConfigurationManager {
+        let embeddedDataProvider = MockEmbeddedDataProvider(data: config ?? Self.emptyConfig,
                                                             etag: "embedded")
         let localProtection = MockDomainsProtectionStore()
         localProtection.unprotectedDomains = Set(unprotectedDomains)
@@ -77,17 +84,17 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
     }
     
     private lazy var httpsUpgradesTestSuite: HTTPSUpgradesRefTests = {
-        let tests = data.fromJsonFile(Resource.tests)
+        let tests = Self.data.fromJsonFile(Resource.tests)
         return try! JSONDecoder().decode(HTTPSUpgradesRefTests.self, from: tests)
     }()
     
     private lazy var excludedDomains: [String] = {
-        let allowListData = data.fromJsonFile(Resource.allowList)
+        let allowListData = Self.data.fromJsonFile(Resource.allowList)
         return try! HTTPSUpgradeParser.convertExcludedDomainsData(allowListData)
     }()
     
     private lazy var bloomFilterSpecification: HTTPSBloomFilterSpecification = {
-        let data = data.fromJsonFile(Resource.bloomFilterSpec)
+        let data = Self.data.fromJsonFile(Resource.bloomFilterSpec)
         return try! HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data)
     }()
     
@@ -130,10 +137,10 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
     }
     
     func testLocalUnprotectedDomainShouldNotUpgradeToHTTPS() async {
-        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(withUnprotectedDomains: [(Const.exampleDomain)]))
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["secure.thirdtest.com"]))
         httpsUpgrade.loadData()
         
-        let url = URL(string: "http://\(Const.exampleDomain)")!
+        let url = URL(string: "http://secure.thirdtest.com")!
         
         var resultURL = url
         let result = await httpsUpgrade.upgrade(url: url)
@@ -142,7 +149,23 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         }
         print(resultURL)
 
-        XCTAssertEqual(resultURL.absoluteString, Const.exampleDomain, "FAILED: \(resultURL)")
+        XCTAssertEqual(resultURL.absoluteString, url.absoluteString, "FAILED: \(resultURL)")
     }
     
+    func testLocalUnprotectedDomainShouldUpgradeToHTTPSForSubdomain() async {
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["thirdtest.com"]))
+        httpsUpgrade.loadData()
+        
+        let url = URL(string: "http://secure.thirdtest.com")!
+        
+        var resultURL = url
+        let result = await httpsUpgrade.upgrade(url: url)
+        if case let .success(upgradedURL) = result {
+            resultURL = upgradedURL
+        }
+        print(resultURL)
+
+        XCTAssertEqual(resultURL.absoluteString, url.toHttps()?.absoluteString, "FAILED: \(resultURL)")
+    }
+
 }
