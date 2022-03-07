@@ -177,6 +177,24 @@ class AutofillEmailUserScriptTests: XCTestCase {
         XCTAssertNotNil(mockWebView.javaScriptString)
     }
 
+    func testWhenReceivesEmailGetUserDataMessageThenCallsDelegateMethod() {
+        let mock = MockAutofillEmailDelegate()
+        userScript.emailDelegate = mock
+
+        let expect = expectation(description: "testWhenReceivesRequestUserDataMessageThenCallsDelegateMethod")
+        mock.requestUserDataCallback = {
+            expect.fulfill()
+        }
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "emailHandlerGetUserData", body: encryptedMessagingParams, webView: mockWebView)
+        userScript.userContentController(userContentController, didReceive: message)
+
+        waitForExpectations(timeout: 1.0, handler: nil)
+
+        XCTAssertNotNil(mockWebView.javaScriptString)
+    }
+
     func testWhenUnknownMessageReceivedThenNoProblem() {
         let message = MockWKScriptMessage(name: "unknownmessage", body: "")
         userScript.userContentController(userContentController, didReceive: message)
@@ -248,6 +266,7 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     var requestStoreTokenCallback: ((String, String, String?) -> Void)?
     var refreshAliasCallback: (() -> Void)?
     var requestUsernameAndAliasCallback: (() -> Void)?
+    var requestUserDataCallback: (() -> Void)?
 
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
         signedInCallback?()
@@ -275,6 +294,10 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         completionHandler("username", "alias", nil)
     }
 
+    func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion) {
+        requestUserDataCallback?()
+        completionHandler("username", "alias", "token", nil)
+    }
 }
 
 class MockWebView: WKWebView {

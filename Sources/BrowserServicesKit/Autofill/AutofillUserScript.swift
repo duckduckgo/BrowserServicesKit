@@ -24,11 +24,12 @@ public class AutofillUserScript: NSObject, UserScript {
     typealias MessageReplyHandler = (String?) -> Void
     typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
 
-    private enum MessageName: String, CaseIterable {
-
+    internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
         case emailHandlerGetAlias
+        case emailHandlerGetUserData
         case emailHandlerRefreshAlias
+
         case emailHandlerGetAddresses
         case emailHandlerCheckAppSignedInStatus
 
@@ -45,53 +46,78 @@ public class AutofillUserScript: NSObject, UserScript {
         case pmHandlerOpenManagePasswords
     }
 
+    /// Represents if the autofill is loaded into the top autofill context.
+    public var isTopAutofillContext: Bool
+    /// Serialized JSON string of any format to be passed from child to parent autofill.
+    ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
+    public var serializedInputContext: String?
+
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
-    
-    private var scriptSourceProvider: AutofillUserScriptSourceProvider
+
+    internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     public lazy var source: String = {
-        return scriptSourceProvider.source.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
+        var js = scriptSourceProvider.source
+        js = js.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
+        js = js.replacingOccurrences(of: "// INJECT isTopFrame HERE", with: "isTopFrame = \(isTopAutofillContext ? "true" : "false");")
+        return js
     }()
 
     public var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     public var forMainFrameOnly: Bool {
+        if isTopAutofillContext { return true }
         if #available(iOS 14, macOS 11, *) {
             return false
         }
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
-    public var messageNames: [String] { MessageName.allCases.map(\.rawValue) }
 
-    private func messageHandlerFor(_ message: MessageName) -> MessageHandler {
+    public var messageNames: [String] {
+        return MessageName.allCases.map(\.rawValue)
+    }
+
+    internal func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+        guard let message = MessageName(rawValue: messageName) else {
+            return nil
+        }
+
         switch message {
+            case .emailHandlerStoreToken: return emailStoreToken
+            case .emailHandlerGetAlias: return emailGetAlias
+            case .emailHandlerGetUserData: return emailGetUserData
+            case .emailHandlerRefreshAlias: return emailRefreshAlias
+            case .emailHandlerGetAddresses: return emailGetAddresses
+            case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
-        case .emailHandlerStoreToken: return emailStoreToken
-        case .emailHandlerGetAlias: return emailGetAlias
-        case .emailHandlerRefreshAlias: return emailRefreshAlias
-        case .emailHandlerGetAddresses: return emailGetAddresses
-        case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
+            case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
 
-        case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
+            case .pmHandlerStoreCredentials: return pmStoreCredentials
+            case .pmHandlerGetAccounts: return pmGetAccounts
+            case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
 
-        case .pmHandlerStoreCredentials: return pmStoreCredentials
-        case .pmHandlerGetAccounts: return pmGetAccounts
-        case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
+            case .pmHandlerGetIdentity: return pmGetIdentity
+            case .pmHandlerGetCreditCard: return pmGetCreditCard
 
-        case .pmHandlerGetIdentity: return pmGetIdentity
-        case .pmHandlerGetCreditCard: return pmGetCreditCard
-
-        case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
-        case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
-        case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
-            
+            case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
+            case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
+            case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
     }
 
     let encrypter: AutofillEncrypter
     let hostProvider: AutofillHostProvider
     let generatedSecret: String = UUID().uuidString
+    func hostForMessage(_ message: AutofillMessage) -> String {
+        return hostProvider.hostForMessage(message)
+    }
+
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+        self.init(scriptSourceProvider: scriptSourceProvider,
+                  encrypter: AESGCMAutofillEncrypter(),
+                  hostProvider: SecurityOriginHostProvider())
+    }
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
@@ -99,13 +125,22 @@ public class AutofillUserScript: NSObject, UserScript {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
+        self.isTopAutofillContext = false
     }
-    
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
-        self.init(scriptSourceProvider: scriptSourceProvider,
-                  encrypter: AESGCMAutofillEncrypter(),
-                  hostProvider: SecurityOriginHostProvider())
-    }
+}
+
+struct GetSelectedCredentialsResponse: Encodable {
+    /// Represents the mode the JS should take, valid values are 'none', 'stop', 'ok'
+    var type: String
+    /// Key value data passed from the JS to be retuned to the child
+    var data: [String: String]?
+    var configType: String?
+}
+
+/// Represents data after the user clicks to be sent back into the JS child context
+struct SelectedDetailsData {
+    var data: [String: String]?
+    var configType: String?
 }
 
 @available(iOS 14, *)
@@ -115,9 +150,12 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
     public func userContentController(_ userContentController: WKUserContentController,
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
-        guard let messageName = MessageName(rawValue: message.name) else { return }
+        guard let messageHandler = messageHandlerFor(message.name) else {
+            // Unsupported message fail silently
+            return
+        }
 
-        messageHandlerFor(messageName)(message) {
+        messageHandler(message) {
             replyHandler($0, nil)
         }
 
@@ -127,17 +165,21 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
 
 // Fallback for older iOS / macOS version
 extension AutofillUserScript {
-    
+
     func processMessage(_ userContentController: WKUserContentController, didReceive message: AutofillMessage) {
-        guard let messageName = MessageName(rawValue: message.messageName),
-              let body = message.messageBody as? [String: Any],
+        guard let messageHandler = messageHandlerFor(message.messageName) else {
+            // Unsupported message fail silently
+            return
+        }
+
+        guard let body = message.messageBody as? [String: Any],
               let messageHandling = body["messageHandling"] as? [String: Any],
               let secret = messageHandling["secret"] as? String,
               // If this does not match the page is playing shenanigans.
               secret == generatedSecret
         else { return }
 
-        messageHandlerFor(messageName)(message) { reply in
+        messageHandler(message) { reply in
             guard let reply = reply,
                   let messageHandling = body["messageHandling"] as? [String: Any],
                   let key = messageHandling["key"] as? [UInt8],

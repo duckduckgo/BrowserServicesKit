@@ -36,6 +36,7 @@ enum EmailManagerTestEvent {
 
 var events = [EmailManagerTestEvent]()
 
+// swiftlint:disable type_body_length
 class EmailManagerTests: XCTestCase {
     
     func getAutofillScript() -> AutofillUserScript {
@@ -261,7 +262,36 @@ class EmailManagerTests: XCTestCase {
         waitForExpectations(timeout: 1.0) { _ in
             XCTAssertEqual(events, expectedEvents)
         }
+    }
 
+    func testWhenRequestingUserDataThenTheyAreReturned() {
+        let expect = expectation(description: "test")
+        let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: true, expectationToFulfill: expect)
+        storage.mockToken = "token"
+        let emailManager = EmailManager(storage: storage)
+        let requestDelegate = MockEmailManagerRequestDelegate()
+        requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
+        emailManager.requestDelegate = requestDelegate
+
+        events.removeAll()
+
+        let expectedEvents: [EmailManagerTestEvent] = [
+            .aliasRequestMade,
+            .storeAliasCalled
+        ]
+
+        let userScript = getAutofillScript()
+
+        emailManager.autofillUserScriptDidRequestUserData(userScript) { username, alias, token, error in
+            XCTAssertNil(error)
+            XCTAssertEqual(username, "username")
+            XCTAssertEqual(token, "token")
+            XCTAssertEqual(alias, "testAlias2")
+        }
+
+        waitForExpectations(timeout: 1.0) { _ in
+            XCTAssertEqual(events, expectedEvents)
+        }
     }
 
     func testWhenGettingWaitListStateAndWaitlistHasNoTokenOrInviteCodeThenStatusIsNotJoinedQueue() {
