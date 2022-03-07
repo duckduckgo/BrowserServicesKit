@@ -147,12 +147,11 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         if case let .success(upgradedURL) = result {
             resultURL = upgradedURL
         }
-        print(resultURL)
-
+        
         XCTAssertEqual(resultURL.absoluteString, url.absoluteString, "FAILED: \(resultURL)")
     }
     
-    func testLocalUnprotectedDomainShouldUpgradeToHTTPSForSubdomain() async {
+    func testLocalUnprotectedDomainShouldUpgradeSubdomainToHTTPS() async {
         let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["thirdtest.com"]))
         httpsUpgrade.loadData()
         
@@ -163,7 +162,6 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         if case let .success(upgradedURL) = result {
             resultURL = upgradedURL
         }
-        print(resultURL)
 
         XCTAssertEqual(resultURL.absoluteString, url.toHttps()?.absoluteString, "FAILED: \(resultURL)")
     }
