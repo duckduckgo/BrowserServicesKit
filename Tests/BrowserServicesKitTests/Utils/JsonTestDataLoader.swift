@@ -62,8 +62,8 @@ final class JsonTestDataLoader {
     }
 
     func unexpected() -> Data {
-        guard let data = try? FileLoader().load(filePath: "MockFiles/unexpected.json", fromBundle: bundle) else {
-            fatalError("Failed to load MockFiles/unexpected.json")
+        guard let data = try? FileLoader().load(filePath: "Resources/unexpected.json", fromBundle: bundle) else {
+            fatalError("Failed to load Resources/unexpected.json")
         }
         return data
     }
