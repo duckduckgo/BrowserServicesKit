@@ -227,25 +227,42 @@ public struct SecureVaultModels {
             return Self.personNameComponentsFormatter.string(from: nameComponents)
         }()
         
-        var autofillEqualityName: String {
-            let nameString = (firstName ?? "") + (middleName ?? "") + (lastName ?? "")
-            return nameString.autofillNormalized()
-        }
+        private(set) var autofillEqualityName: String?
+        private(set) var autofillEqualityAddressStreet: String?
 
         public var id: Int64?
         public var title: String
         public let created: Date
         public let lastUpdated: Date
 
-        public var firstName: String?
-        public var middleName: String?
-        public var lastName: String?
+        public var firstName: String? {
+            didSet {
+                autofillEqualityName = normalizedAutofillName()
+            }
+        }
+
+        public var middleName: String? {
+            didSet {
+                autofillEqualityName = normalizedAutofillName()
+            }
+        }
+
+        public var lastName: String? {
+            didSet {
+                autofillEqualityName = normalizedAutofillName()
+            }
+        }
 
         public var birthdayDay: Int?
         public var birthdayMonth: Int?
         public var birthdayYear: Int?
 
-        public var addressStreet: String?
+        public var addressStreet: String? {
+            didSet {
+                autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
+            }
+        }
+
         public var addressStreet2: String?
         public var addressCity: String?
         public var addressProvince: String?
@@ -300,6 +317,9 @@ public struct SecureVaultModels {
             self.homePhone = homePhone
             self.mobilePhone = mobilePhone
             self.emailAddress = emailAddress
+            
+            self.autofillEqualityName = normalizedAutofillName()
+            self.autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
         }
         
         public init(dictionary: [String: Any]) {
@@ -323,6 +343,11 @@ public struct SecureVaultModels {
                       mobilePhone: dictionary["mobilePhone"] as? String,
                       emailAddress: dictionary["emailAddress"] as? String)
         }
+        
+        private func normalizedAutofillName() -> String {
+            let nameString = (firstName ?? "") + (middleName ?? "") + (lastName ?? "")
+            return nameString.autofillNormalized()
+        }
 
     }
 
@@ -339,10 +364,8 @@ protocol SecureVaultAutofillEquatable {
 extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
 
     func hasAutofillEquality(comparedTo otherIdentity: SecureVaultModels.Identity) -> Bool {
-        // TODO: Avoid doing the normalization work on the fly, it should be cached on each object.
-
         let hasNameEquality = self.autofillEqualityName == otherIdentity.autofillEqualityName
-        let hasAddressEquality = self.addressStreet?.autofillNormalized() == otherIdentity.addressStreet?.autofillNormalized()
+        let hasAddressEquality = self.autofillEqualityAddressStreet == otherIdentity.autofillEqualityAddressStreet
         
         return hasNameEquality && hasAddressEquality
     }
