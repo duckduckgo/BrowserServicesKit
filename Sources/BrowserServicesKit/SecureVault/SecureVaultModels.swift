@@ -127,8 +127,8 @@ public struct SecureVaultModels {
                       cardNumber: cardNumber,
                       cardholderName: dictionary["cardholderName"] as? String,
                       cardSecurityCode: dictionary["cardSecurityCode"] as? String,
-                      expirationMonth: dictionary["expirationMonth"] as? Int,
-                      expirationYear: dictionary["expirationYear"] as? Int)
+                      expirationMonth: Int(dictionary["expirationMonth"] as? String ?? ""),
+                      expirationYear: Int(dictionary["expirationYear"] as? String ?? ""))
         }
 
     }
