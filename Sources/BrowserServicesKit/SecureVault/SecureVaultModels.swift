@@ -340,15 +340,11 @@ extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
 
     func hasAutofillEquality(comparedTo otherIdentity: SecureVaultModels.Identity) -> Bool {
         // TODO: Avoid doing the normalization work on the fly, it should be cached on each object.
-        if self.autofillEqualityName != otherIdentity.autofillEqualityName {
-            return false
-        }
+
+        let hasNameEquality = self.autofillEqualityName == otherIdentity.autofillEqualityName
+        let hasAddressEquality = self.addressStreet?.autofillNormalized() == otherIdentity.addressStreet?.autofillNormalized()
         
-        if self.addressStreet?.autofillNormalized() != otherIdentity.addressStreet?.autofillNormalized() {
-            return false
-        }
-        
-        return true
+        return hasNameEquality && hasAddressEquality
     }
     
 }

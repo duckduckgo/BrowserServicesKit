@@ -18,6 +18,20 @@ class SecureVaultModelTests: XCTestCase {
         XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
     }
     
+    func testWhenIdentitiesHaveTheSameNames_AndNoAddress_ThenAutoFillEqualityIsTrue() {
+        let identity1 = identity(named: ("First", "Middle", "Last"), addressStreet: nil)
+        let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: nil)
+        
+        XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
+    }
+    
+    func testWhenIdentitiesHaveTheSameNames_AndDifferentAddresses_ThenAutoFillEqualityIsFalse() {
+        let identity1 = identity(named: ("First", "Middle", "Last"), addressStreet: "First Address")
+        let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: "Second Address")
+        
+        XCTAssertFalse(identity1.hasAutofillEquality(comparedTo: identity2))
+    }
+    
     func testWhenIdentitiesHaveTheSameNames_AndHaveArbitraryWhitespace_ThenAutoFillEqualityIsTrue() {
         let identity1 = identity(named: ("First ", " Middle", " Last"), addressStreet: " Address Street ")
         let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
@@ -55,7 +69,7 @@ class SecureVaultModelTests: XCTestCase {
     
     // MARK: - Test Utilities
     
-    private func identity(named name: (String, String, String), addressStreet: String) -> SecureVaultModels.Identity {
+    private func identity(named name: (String, String, String), addressStreet: String?) -> SecureVaultModels.Identity {
         return SecureVaultModels.Identity(id: nil,
                                           title: nil,
                                           created: Date(),
@@ -66,7 +80,7 @@ class SecureVaultModelTests: XCTestCase {
                                           birthdayDay: nil,
                                           birthdayMonth: nil,
                                           birthdayYear: nil,
-                                          addressStreet: nil,
+                                          addressStreet: addressStreet,
                                           addressStreet2: nil,
                                           addressCity: nil,
                                           addressProvince: nil,
