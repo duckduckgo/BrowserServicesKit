@@ -218,14 +218,14 @@ public struct SecureVaultModels {
             return nameFormatter
         }()
         
-        public lazy var formattedName: String = {
+        public var formattedName: String {
             var nameComponents = PersonNameComponents()
             nameComponents.givenName = firstName
             nameComponents.middleName = middleName
             nameComponents.familyName = lastName
 
             return Self.personNameComponentsFormatter.string(from: nameComponents)
-        }()
+        }
         
         private(set) var autofillEqualityName: String?
         private(set) var autofillEqualityAddressStreet: String?
