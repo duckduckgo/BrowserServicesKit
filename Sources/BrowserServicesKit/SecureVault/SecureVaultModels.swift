@@ -218,13 +218,18 @@ public struct SecureVaultModels {
             return nameFormatter
         }()
         
-        public var formattedName: String {
+        public lazy var formattedName: String = {
             var nameComponents = PersonNameComponents()
             nameComponents.givenName = firstName
             nameComponents.middleName = middleName
             nameComponents.familyName = lastName
 
             return Self.personNameComponentsFormatter.string(from: nameComponents)
+        }()
+        
+        var autofillEqualityName: String {
+            let nameString = (firstName ?? "") + (middleName ?? "") + (lastName ?? "")
+            return nameString.autofillNormalized()
         }
 
         public var id: Int64?
@@ -333,12 +338,13 @@ protocol SecureVaultAutofillEquatable {
 
 extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
 
-    func hasAutofillEquality(comparedTo object: SecureVaultModels.Identity) -> Bool {
-        if self.formattedName.normalizingDiacritics() != object.formattedName.normalizingDiacritics() {
+    func hasAutofillEquality(comparedTo otherIdentity: SecureVaultModels.Identity) -> Bool {
+        // TODO: Avoid doing the normalization work on the fly, it should be cached on each object.
+        if self.autofillEqualityName != otherIdentity.autofillEqualityName {
             return false
         }
         
-        if self.addressStreet?.normalizingDiacritics() != object.addressStreet?.normalizingDiacritics() {
+        if self.addressStreet?.autofillNormalized() != otherIdentity.addressStreet?.autofillNormalized() {
             return false
         }
         

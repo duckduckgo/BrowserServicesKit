@@ -44,8 +44,21 @@ extension String {
         return replacingOccurrences(of: "+", with: "%20")
     }
     
-    func normalizingDiacritics() -> String {
-        return self.folding(options: .diacriticInsensitive, locale: .current)
+    func removingCharacters(in set: CharacterSet) -> String {
+      let filtered = unicodeScalars.filter { !set.contains($0) }
+      return String(String.UnicodeScalarView(filtered))
+    }
+    
+    func autofillNormalized() -> String {
+        let autofillCharacterSet = CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters).union(.symbols)
+        
+        var normalizedString = self
+
+        normalizedString = normalizedString.removingCharacters(in: autofillCharacterSet)
+        normalizedString = normalizedString.folding(options: .diacriticInsensitive, locale: .current)
+        normalizedString = normalizedString.localizedLowercase
+        
+        return normalizedString
     }
 
 }

@@ -18,8 +18,29 @@ class SecureVaultModelTests: XCTestCase {
         XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
     }
     
+    func testWhenIdentitiesHaveTheSameNames_AndHaveArbitraryWhitespace_ThenAutoFillEqualityIsTrue() {
+        let identity1 = identity(named: ("First ", " Middle", " Last"), addressStreet: " Address Street ")
+        let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
+        
+        XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
+    }
+    
     func testWhenIdentitiesHaveTheSameNames_AndSomeNamesHaveDiacritics_ThenAutoFillEqualityIsTrue() {
         let identity1 = identity(named: ("Fírst", "Mïddlé", "Lâst"), addressStreet: "Address Street")
+        let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
+        
+        XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
+    }
+    
+    func testWhenIdentitiesHaveTheSameNames_AndSomeNamesHaveEmoji_ThenAutoFillEqualityIsTrue() {
+        let identity1 = identity(named: ("First 😎", "Middle", "Last"), addressStreet: "Address Street")
+        let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
+        
+        XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
+    }
+    
+    func testWhenIdentitiesHaveTheFullNameInOneField_ThenAutoFillEqualityIsTrue() {
+        let identity1 = identity(named: ("First Middle Last", "", ""), addressStreet: "Address Street")
         let identity2 = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
         
         XCTAssertTrue(identity1.hasAutofillEquality(comparedTo: identity2))
