@@ -125,7 +125,7 @@ public struct SecureVaultModels {
             self.init(id: nil,
                       title: nil,
                       cardNumber: cardNumber,
-                      cardholderName: dictionary["cardholderName"] as? String,
+                      cardholderName: dictionary["cardName"] as? String,
                       cardSecurityCode: dictionary["cardSecurityCode"] as? String,
                       expirationMonth: Int(dictionary["expirationMonth"] as? String ?? ""),
                       expirationYear: Int(dictionary["expirationYear"] as? String ?? ""))
