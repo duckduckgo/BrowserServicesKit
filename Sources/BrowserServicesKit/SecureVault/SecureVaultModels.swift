@@ -227,8 +227,8 @@ public struct SecureVaultModels {
             return Self.personNameComponentsFormatter.string(from: nameComponents)
         }
         
-        private(set) var autofillEqualityName: String?
-        private(set) var autofillEqualityAddressStreet: String?
+        var autofillEqualityName: String?
+        var autofillEqualityAddressStreet: String?
 
         public var id: Int64?
         public var title: String
@@ -339,12 +339,12 @@ public struct SecureVaultModels {
                       addressProvince: dictionary["addressProvince"] as? String,
                       addressPostalCode: dictionary["addressPostalCode"] as? String,
                       addressCountryCode: dictionary["addressCountryCode"] as? String,
-                      homePhone: dictionary["homePhone"] as? String,
-                      mobilePhone: dictionary["mobilePhone"] as? String,
+                      homePhone: dictionary["phone"] as? String,
+                      mobilePhone: nil,
                       emailAddress: dictionary["emailAddress"] as? String)
         }
-        
-        private func normalizedAutofillName() -> String {
+
+        func normalizedAutofillName() -> String {
             let nameString = (firstName ?? "") + (middleName ?? "") + (lastName ?? "")
             return nameString.autofillNormalized()
         }

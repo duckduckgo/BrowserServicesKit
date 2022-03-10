@@ -878,6 +878,9 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
         homePhone = row[Columns.homePhone]
         mobilePhone = row[Columns.mobilePhone]
         emailAddress = row[Columns.emailAddress]
+        
+        autofillEqualityName = normalizedAutofillName()
+        autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
     }
 
     public func encode(to container: inout PersistenceContainer) {
