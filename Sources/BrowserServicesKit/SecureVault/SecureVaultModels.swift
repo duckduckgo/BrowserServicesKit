@@ -389,7 +389,7 @@ extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
 extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
     
     func hasAutofillEquality(comparedTo object: Self) -> Bool {
-        if self.cardNumber == object.cardNumber {
+        if self.cardNumber.autofillNormalized() == object.cardNumber.autofillNormalized() {
             return true
         }
         

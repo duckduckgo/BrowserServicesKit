@@ -22,6 +22,8 @@ import XCTest
 
 class SecureVaultModelTests: XCTestCase {
     
+    // MARK: - Identities
+    
     func testWhenCreatingIdentities_ThenTheyHaveCachedAutofillProperties() {
         let identity = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
 
@@ -115,6 +117,43 @@ class SecureVaultModelTests: XCTestCase {
         }
     }
     
+    // MARK: - Payment Methods
+
+    func testWhenCardNumbersAreTheSame_ThenAutofillEqualityIsTrue() {
+        let card1 = paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        let card2 = paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        
+        XCTAssertTrue(card1.hasAutofillEquality(comparedTo: card2))
+    }
+    
+    func testWhenCardNumbersAreTheSame_ButTheyHaveDifferentSpacing_ThenAutofillEqualityIsTrue() {
+        let card1 = paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        let card2 = paymentMethod(cardNumber: "5555 5555 5555 5557", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        
+        XCTAssertTrue(card1.hasAutofillEquality(comparedTo: card2))
+    }
+    
+    func testWhenCardNumbersAreDifferent_ThenAutofillEqualityIsFalse() {
+        let card1 = paymentMethod(cardNumber: "1234 1234 1234 1234", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        let card2 = paymentMethod(cardNumber: "5555 5555 5555 5557", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        
+        XCTAssertFalse(card1.hasAutofillEquality(comparedTo: card2))
+    }
+    
+    func testPaymentMethodEqualityPerformance() {
+        let paymentMethod = paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name", cvv: "123", month: 1, year: 3000)
+        
+        let cardsToCheck = (1...10000).map {
+            return self.paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name \($0)", cvv: "123", month: 1, year: 3000)
+        }
+
+        measure {
+            for cardToCheck in cardsToCheck {
+                _ = paymentMethod.hasAutofillEquality(comparedTo: cardToCheck)
+            }
+        }
+    }
+    
     // MARK: - Test Utilities
     
     private func identity(named name: (String, String, String), addressStreet: String?) -> SecureVaultModels.Identity {
@@ -137,6 +176,20 @@ class SecureVaultModelTests: XCTestCase {
                                           homePhone: nil,
                                           mobilePhone: nil,
                                           emailAddress: nil)
+    }
+    
+    private func paymentMethod(cardNumber: String,
+                               cardholderName: String,
+                               cvv: String,
+                               month: Int,
+                               year: Int) -> SecureVaultModels.CreditCard {
+        return SecureVaultModels.CreditCard(id: nil,
+                                            title: nil,
+                                            cardNumber: cardNumber,
+                                            cardholderName: cardholderName,
+                                            cardSecurityCode: cvv,
+                                            expirationMonth: month,
+                                            expirationYear: year)
     }
 
 }
