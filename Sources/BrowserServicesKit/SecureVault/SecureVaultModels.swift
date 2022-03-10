@@ -211,20 +211,34 @@ public struct SecureVaultModels {
 
     public struct Identity {
 
-        private static let personNameComponentsFormatter: PersonNameComponentsFormatter = {
+        private static let mediumPersonNameComponentsFormatter: PersonNameComponentsFormatter = {
             let nameFormatter = PersonNameComponentsFormatter()
             nameFormatter.style = .medium
-
             return nameFormatter
         }()
         
-        public var formattedName: String {
+        private static let longPersonNameComponentsFormatter: PersonNameComponentsFormatter = {
+            let nameFormatter = PersonNameComponentsFormatter()
+            nameFormatter.style = .long
+            return nameFormatter
+        }()
+        
+        private var nameComponents: PersonNameComponents {
             var nameComponents = PersonNameComponents()
+
             nameComponents.givenName = firstName
             nameComponents.middleName = middleName
             nameComponents.familyName = lastName
 
-            return Self.personNameComponentsFormatter.string(from: nameComponents)
+            return nameComponents
+        }
+        
+        public var formattedName: String {
+            return Self.mediumPersonNameComponentsFormatter.string(from: nameComponents)
+        }
+        
+        public var longFormattedName: String {
+            return Self.longPersonNameComponentsFormatter.string(from: nameComponents)
         }
         
         var autofillEqualityName: String?
