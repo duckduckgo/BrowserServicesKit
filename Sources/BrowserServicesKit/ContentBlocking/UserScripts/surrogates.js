@@ -687,14 +687,18 @@
     const observer = new MutationObserver(debounce((mutations, o) => {
         processPage()
     }, 100))
-    const rootElement = document.body || document.documentElement
-    observer.observe(rootElement, { childList: true, subtree: true });
 
     // Init
-    (function () {
+    ;(function () {
         duckduckgoDebugMessaging.log('installing load detection')
+        processPage()
         window.addEventListener('load', function (event) {
             processPage()
+            const rootElement = document.body || document.documentElement
+            // delay observing to allow page to settle
+            setTimeout(() => {
+                observer.observe(rootElement, { childList: true, subtree: true });
+            }, 500)
         }, false)
 
         try {

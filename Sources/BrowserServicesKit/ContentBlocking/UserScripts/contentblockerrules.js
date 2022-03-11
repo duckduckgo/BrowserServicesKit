@@ -200,6 +200,18 @@
             [].slice.apply(document.querySelectorAll('iframe')).forEach(function (el) { sendMessage(el.src, 'iframe') })
         }
 
+        function processPage() {
+            onLoadNativeCallback()
+            // delay observing to allow the page to settle
+            setTimeout(() => {
+                mutationObserver.observe(document.documentElement, {
+                    childList: true,
+                    subtree: true
+                })
+            }, 500)
+        }
+        
+
         let originalOpen = null
         let originalSend = null
         let originalImageSrc = null
@@ -212,9 +224,9 @@
                 if (originalOpen) {
                     return
                 }
-                window.addEventListener('load', onLoadNativeCallback, false)
+                window.addEventListener('load', processPage, false)
             } else {
-                window.removeEventListener('load', onLoadNativeCallback, false)
+                window.removeEventListener('load', processPage, false)
 
                 if (originalOpen) { // if one is set, then all the enable code has run
                     XMLHttpRequest.prototype.open = originalOpen
@@ -321,11 +333,6 @@
                         }
                     })
                 })
-            })
-
-            mutationObserver.observe(document.documentElement, {
-                childList: true,
-                subtree: true
             })
         }
 
