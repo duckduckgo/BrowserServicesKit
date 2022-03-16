@@ -135,7 +135,7 @@ extension AutofillUserScript {
     // MARK: - Requests
     
     public struct IncomingCredentials {
-        let username: String
+        let username: String?
         let password: String
     }
     
@@ -159,9 +159,8 @@ extension AutofillUserScript {
             }
             
             if let credentialsDictionary = dictionary["credentials"] as? [String: String],
-               let username = credentialsDictionary["username"],
                let password = credentialsDictionary["password"] {
-                self.credentials = IncomingCredentials(username: username, password: password)
+                self.credentials = IncomingCredentials(username: credentialsDictionary["username"], password: password)
             } else {
                 self.credentials = nil
             }

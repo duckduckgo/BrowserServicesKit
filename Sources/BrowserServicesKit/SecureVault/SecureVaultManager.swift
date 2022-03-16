@@ -101,7 +101,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     .first(where: { $0.username == credentials.username }) {
                     proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                 } else {
-                    let account = SecureVaultModels.WebsiteAccount(username: credentials.username, domain: domain)
+                    let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
                     proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                 }
             }

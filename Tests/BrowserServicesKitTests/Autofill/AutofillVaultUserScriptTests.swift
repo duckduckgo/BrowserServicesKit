@@ -298,6 +298,45 @@ class AutofillVaultUserScriptTests: XCTestCase {
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
+    
+    func testWhenInitializingAutofillData_WhenCredentialsAreProvidedWithoutAUsername_ThenAutofillDataIsStillInitialized() {
+        let password = "password"
+        let detectedAutofillData = [
+            "credentials": [
+                "password": password
+            ]
+        ]
+        
+        let autofillData = AutofillUserScript.DetectedAutofillData(dictionary: detectedAutofillData)
+        
+        XCTAssertNil(autofillData.creditCard)
+        XCTAssertNil(autofillData.identity)
+        XCTAssertNotNil(autofillData.credentials)
+        
+        XCTAssertEqual(autofillData.credentials?.username, nil)
+        XCTAssertEqual(autofillData.credentials?.password, password)
+    }
+    
+    func testWhenInitializingAutofillData_WhenCredentialsAreProvidedWithAUsername_ThenAutofillDataIsStillInitialized() {
+        let username = "username"
+        let password = "password"
+        
+        let detectedAutofillData = [
+            "credentials": [
+                "username": username,
+                "password": password
+            ]
+        ]
+        
+        let autofillData = AutofillUserScript.DetectedAutofillData(dictionary: detectedAutofillData)
+        
+        XCTAssertNil(autofillData.creditCard)
+        XCTAssertNil(autofillData.identity)
+        XCTAssertNotNil(autofillData.credentials)
+        
+        XCTAssertEqual(autofillData.credentials?.username, username)
+        XCTAssertEqual(autofillData.credentials?.password, password)
+    }
 
 }
 
