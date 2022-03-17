@@ -160,10 +160,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         var proposedIdentity: SecureVaultModels.Identity?
         
         if let identity = autofillData.identity, try vault.existingIdentityForAutofill(matching: identity) == nil {
-            os_log("Got new identity/address to save", log: .passwordManager, type: .info)
+            os_log("Got new identity/address to save", log: .passwordManager)
             proposedIdentity = identity
         } else {
-            os_log("No new identity/address found, avoid prompting user", log: .passwordManager, type: .info)
+            os_log("No new identity/address found, avoid prompting user", log: .passwordManager)
         }
         
         // Determine if the credentials should be sent to the client app:
@@ -178,20 +178,20 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 if let existingAccountID = account.id,
                    let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID),
                    existingCredentials.password == passwordData {
-                    os_log("Found duplicate credentials, avoid prompting user", log: .passwordManager, type: .info)
+                    os_log("Found duplicate credentials, avoid prompting user", log: .passwordManager)
                     proposedCredentials = nil
                 } else {
-                    os_log("Found existing credentials to update", log: .passwordManager, type: .info)
+                    os_log("Found existing credentials to update", log: .passwordManager)
                     proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                 }
 
             } else {
-                os_log("Received new credentials to save", log: .passwordManager, type: .info)
+                os_log("Received new credentials to save", log: .passwordManager)
                 let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
                 proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
             }
         } else {
-            os_log("No new credentials found, avoid prompting user", log: .passwordManager, type: .info)
+            os_log("No new credentials found, avoid prompting user", log: .passwordManager)
         }
         
         // Determine if the payment method should be sent to the client app:
@@ -199,10 +199,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         var proposedCard: SecureVaultModels.CreditCard?
         
         if let card = autofillData.creditCard, try vault.existingCardForAutofill(matching: card) == nil {
-            os_log("Got new payment method to save", log: .passwordManager, type: .info)
+            os_log("Got new payment method to save", log: .passwordManager)
             proposedCard = card
         } else {
-            os_log("No new payment method found, avoid prompting user", log: .passwordManager, type: .info)
+            os_log("No new payment method found, avoid prompting user", log: .passwordManager)
         }
         
         // Assemble data and send to the delegate:
