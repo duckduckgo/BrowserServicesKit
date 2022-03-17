@@ -163,7 +163,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             os_log("Got new identity/address to save", log: .passwordManager, type: .info)
             proposedIdentity = identity
         } else {
-            os_log("No identity/address, avoid prompting user", log: .passwordManager, type: .info)
+            os_log("No new identity/address found, avoid prompting user", log: .passwordManager, type: .info)
         }
         
         // Determine if the credentials should be sent to the client app:
@@ -190,6 +190,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
                 proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
             }
+        } else {
+            os_log("No new credentials found, avoid prompting user", log: .passwordManager, type: .info)
         }
         
         // Determine if the payment method should be sent to the client app:
@@ -200,7 +202,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             os_log("Got new payment method to save", log: .passwordManager, type: .info)
             proposedCard = card
         } else {
-            os_log("No payment method, avoid prompting user", log: .passwordManager, type: .info)
+            os_log("No new payment method found, avoid prompting user", log: .passwordManager, type: .info)
         }
         
         // Assemble data and send to the delegate:
