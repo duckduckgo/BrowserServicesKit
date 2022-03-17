@@ -252,7 +252,7 @@ extension AutofillUserScript {
         }
 
     }
-    
+     
     func pmStoreData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)

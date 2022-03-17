@@ -18,6 +18,7 @@
 //
 
 import WebKit
+import os.log
 
 public class AutofillUserScript: NSObject, UserScript {
 
@@ -80,8 +81,11 @@ public class AutofillUserScript: NSObject, UserScript {
 
     internal func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
+            os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
             return nil
         }
+        
+        os_log("AutofillUserScript: received '%{public}s'", log: .userScripts, type: .debug, messageName)
 
         switch message {
             case .emailHandlerStoreToken: return emailStoreToken
