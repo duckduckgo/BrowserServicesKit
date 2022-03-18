@@ -100,16 +100,16 @@ extension URL {
 
     public func addParameter(name: String, value: String) throws -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
-        var encodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
-
-        let newQueryItem = URLQueryItem(name: name, value: value)
-        components.queryItems = [newQueryItem]
-        guard let encodedQuery = components.percentEncodedQuery else { throw ParameterError.encodingFailed }
-        components.percentEncodedQuery = encodedQuery.encodingPluses()
-
-        guard let encodedNewQueryItem = components.percentEncodedQueryItems?.first else { throw ParameterError.encodingFailed }
-        encodedQueryItems.append(encodedNewQueryItem)
-        components.percentEncodedQueryItems = encodedQueryItems
+        
+        guard let percentEncodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed),
+              let percentEncodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed)
+        else {
+            throw ParameterError.encodingFailed
+        }
+        
+        var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+        percentEncodedQueryItems.append(URLQueryItem(name: percentEncodedName, value: percentEncodedValue))
+        components.percentEncodedQueryItems = percentEncodedQueryItems
 
         guard let newUrl = components.url else { throw ParameterError.creatingFailed }
         return newUrl
@@ -124,5 +124,19 @@ extension URL {
         })
         return queryItem?.value
     }
+
+}
+
+fileprivate extension CharacterSet {
+
+    /**
+     * As per [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2.2).
+     *
+     * This set contains all reserved characters that are otherwise
+     * included in `CharacterSet.urlQueryAllowed` but still need to be percent-escaped.
+     */
+    static let urlQueryReserved = CharacterSet(charactersIn: ":/?#[]@!$&'()*+,;=")
+    
+    static let urlQueryParameterAllowed = CharacterSet.urlQueryAllowed.subtracting(Self.urlQueryReserved)
 
 }

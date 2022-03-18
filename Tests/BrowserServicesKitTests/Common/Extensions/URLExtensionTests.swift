@@ -53,12 +53,26 @@ final class URLExtensionTests: XCTestCase {
         )
     }
 
-    func testWhenAddParameterIsCalled_ThenItEncodesPlusesInTheParameter() {
-        let url = URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica")!
+    func testWhenAddParameterIsCalled_ThenItEncodesRFC3986QueryReservedCharactersInTheParameter() {
+        let url = URL(string: "https://duck.com/")!
 
-        XCTAssertEqual(
-            try url.addParameter(name: "ia", value: "web+ios and android"),
-            URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica&ia=web%2Bios%20and%20android")!
-        )
+        XCTAssertEqual(try url.addParameter(name: ":", value: ":"), URL(string: "https://duck.com/?%3A=%3A")!)
+        XCTAssertEqual(try url.addParameter(name: "/", value: "/"), URL(string: "https://duck.com/?%2F=%2F")!)
+        XCTAssertEqual(try url.addParameter(name: "?", value: "?"), URL(string: "https://duck.com/?%3F=%3F")!)
+        XCTAssertEqual(try url.addParameter(name: "#", value: "#"), URL(string: "https://duck.com/?%23=%23")!)
+        XCTAssertEqual(try url.addParameter(name: "[", value: "["), URL(string: "https://duck.com/?%5B=%5B")!)
+        XCTAssertEqual(try url.addParameter(name: "]", value: "]"), URL(string: "https://duck.com/?%5D=%5D")!)
+        XCTAssertEqual(try url.addParameter(name: "@", value: "@"), URL(string: "https://duck.com/?%40=%40")!)
+        XCTAssertEqual(try url.addParameter(name: "!", value: "!"), URL(string: "https://duck.com/?%21=%21")!)
+        XCTAssertEqual(try url.addParameter(name: "$", value: "$"), URL(string: "https://duck.com/?%24=%24")!)
+        XCTAssertEqual(try url.addParameter(name: "&", value: "&"), URL(string: "https://duck.com/?%26=%26")!)
+        XCTAssertEqual(try url.addParameter(name: "'", value: "'"), URL(string: "https://duck.com/?%27=%27")!)
+        XCTAssertEqual(try url.addParameter(name: "(", value: "("), URL(string: "https://duck.com/?%28=%28")!)
+        XCTAssertEqual(try url.addParameter(name: ")", value: ")"), URL(string: "https://duck.com/?%29=%29")!)
+        XCTAssertEqual(try url.addParameter(name: "*", value: "*"), URL(string: "https://duck.com/?%2A=%2A")!)
+        XCTAssertEqual(try url.addParameter(name: "+", value: "+"), URL(string: "https://duck.com/?%2B=%2B")!)
+        XCTAssertEqual(try url.addParameter(name: ",", value: ","), URL(string: "https://duck.com/?%2C=%2C")!)
+        XCTAssertEqual(try url.addParameter(name: ";", value: ";"), URL(string: "https://duck.com/?%3B=%3B")!)
+        XCTAssertEqual(try url.addParameter(name: "=", value: "="), URL(string: "https://duck.com/?%3D=%3D")!)
     }
 }
