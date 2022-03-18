@@ -84,7 +84,7 @@ extension AutofillUserScript {
                                   addressPostalCode: identity.addressPostalCode,
                                   addressCountryCode: identity.addressCountryCode,
                                   phone: identity.homePhone, // Replace with single "phone number" column
-                                  emailAddress: identity.emailAddress)
+                                  emailAddress: identity.emailAddress ?? "")
         }
     }
 
