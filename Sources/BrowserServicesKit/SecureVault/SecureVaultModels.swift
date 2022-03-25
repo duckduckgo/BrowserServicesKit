@@ -117,18 +117,26 @@ public struct SecureVaultModels {
             self.expirationYear = expirationYear
         }
         
-        public init?(dictionary: [String: Any]) {
-            guard let cardNumber = dictionary["cardNumber"] as? String else {
+        public init?(autofillDictionary: [String: Any]) {
+            guard let creditCardsDictionary = autofillDictionary["creditCards"] as? [String: Any] else {
+                return nil
+            }
+            
+            self.init(creditCardsDictionary: creditCardsDictionary)
+        }
+        
+        public init?(creditCardsDictionary: [String: Any]) {
+            guard let cardNumber = creditCardsDictionary["cardNumber"] as? String else {
                 return nil
             }
 
             self.init(id: nil,
                       title: nil,
                       cardNumber: cardNumber,
-                      cardholderName: dictionary["cardName"] as? String,
-                      cardSecurityCode: dictionary["cardSecurityCode"] as? String,
-                      expirationMonth: Int(dictionary["expirationMonth"] as? String ?? ""),
-                      expirationYear: Int(dictionary["expirationYear"] as? String ?? ""))
+                      cardholderName: creditCardsDictionary["cardName"] as? String,
+                      cardSecurityCode: creditCardsDictionary["cardSecurityCode"] as? String,
+                      expirationMonth: Int(creditCardsDictionary["expirationMonth"] as? String ?? ""),
+                      expirationYear: Int(creditCardsDictionary["expirationYear"] as? String ?? ""))
         }
 
     }
@@ -185,9 +193,7 @@ public struct SecureVaultModels {
                 return firstNonEmptyLine ?? ""
             }
 
-            // The title's empty, so assume that the first non-empty line is used as the title, and find the second non-
-            // empty line instead.
-            
+            // The title is empty, so assume that the first non-empty line is used as the title, and find the second non-empty line instead.
             let noteLines = text.components(separatedBy: .newlines)
             var alreadyFoundFirstNonEmptyLine = false
             
@@ -336,26 +342,34 @@ public struct SecureVaultModels {
             self.autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
         }
         
-        public init(dictionary: [String: Any]) {
+        public init?(autofillDictionary: [String: Any]) {
+            guard let dictionary = autofillDictionary["identities"] as? [String: Any] else {
+                return nil
+            }
+            
+            self.init(identityDictionary: dictionary)
+        }
+
+        public init(identityDictionary: [String: Any]) {
             self.init(id: nil,
                       title: nil,
                       created: Date(),
                       lastUpdated: Date(),
-                      firstName: dictionary["firstName"] as? String,
-                      middleName: dictionary["middleName"] as? String,
-                      lastName: dictionary["lastName"] as? String,
-                      birthdayDay: dictionary["birthdayDay"] as? Int,
-                      birthdayMonth: dictionary["birthdayMonth"] as? Int,
-                      birthdayYear: dictionary["birthdayYear"] as? Int,
-                      addressStreet: dictionary["addressStreet"] as? String,
-                      addressStreet2: dictionary["addressStreet2"] as? String,
-                      addressCity: dictionary["addressCity"] as? String,
-                      addressProvince: dictionary["addressProvince"] as? String,
-                      addressPostalCode: dictionary["addressPostalCode"] as? String,
-                      addressCountryCode: dictionary["addressCountryCode"] as? String,
-                      homePhone: dictionary["phone"] as? String,
+                      firstName: identityDictionary["firstName"] as? String,
+                      middleName: identityDictionary["middleName"] as? String,
+                      lastName: identityDictionary["lastName"] as? String,
+                      birthdayDay: identityDictionary["birthdayDay"] as? Int,
+                      birthdayMonth: identityDictionary["birthdayMonth"] as? Int,
+                      birthdayYear: identityDictionary["birthdayYear"] as? Int,
+                      addressStreet: identityDictionary["addressStreet"] as? String,
+                      addressStreet2: identityDictionary["addressStreet2"] as? String,
+                      addressCity: identityDictionary["addressCity"] as? String,
+                      addressProvince: identityDictionary["addressProvince"] as? String,
+                      addressPostalCode: identityDictionary["addressPostalCode"] as? String,
+                      addressCountryCode: identityDictionary["addressCountryCode"] as? String,
+                      homePhone: identityDictionary["phone"] as? String,
                       mobilePhone: nil,
-                      emailAddress: dictionary["emailAddress"] as? String)
+                      emailAddress: identityDictionary["emailAddress"] as? String)
         }
 
         func normalizedAutofillName() -> String {

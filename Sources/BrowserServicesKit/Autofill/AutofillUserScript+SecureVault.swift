@@ -137,8 +137,26 @@ extension AutofillUserScript {
     public struct IncomingCredentials {
         let username: String?
         let password: String
+        
+        init(username: String?, password: String) {
+            self.username = username
+            self.password = password
+        }
+        
+        init?(autofillDictionary: [String: Any]) {
+            guard let credentialsDictionary = autofillDictionary["credentials"] as? [String: String],
+                  let password = credentialsDictionary["password"] else {
+                      return nil
+                  }
+            
+            self.init(username: credentialsDictionary["username"], password: password)
+        }
     }
     
+    /// Represents the incoming Autofill data provided by the user script.
+    ///
+    /// Identities and Credit Cards can be converted to their final model objects directly, but credentials cannot as they have to looked up in the Secure Vault first, hence the existence of a standalone
+    /// `IncomingCredentials` type.
     public struct DetectedAutofillData {
         
         public let identity: SecureVaultModels.Identity?
@@ -146,24 +164,9 @@ extension AutofillUserScript {
         public let creditCard: SecureVaultModels.CreditCard?
         
         init(dictionary: [String: Any]) {
-            if let identitiesDictionary = dictionary["identities"] as? [String: Any] {
-                self.identity = .init(dictionary: identitiesDictionary)
-            } else {
-                self.identity = nil
-            }
-            
-            if let cardsDictionary = dictionary["creditCards"] as? [String: Any] {
-                self.creditCard = .init(dictionary: cardsDictionary)
-            } else {
-                self.creditCard = nil
-            }
-            
-            if let credentialsDictionary = dictionary["credentials"] as? [String: String],
-               let password = credentialsDictionary["password"] {
-                self.credentials = IncomingCredentials(username: credentialsDictionary["username"], password: password)
-            } else {
-                self.credentials = nil
-            }
+            self.identity = .init(autofillDictionary: dictionary)
+            self.creditCard = .init(autofillDictionary: dictionary)
+            self.credentials = IncomingCredentials(autofillDictionary: dictionary)
         }
         
         init(identity: SecureVaultModels.Identity?, credentials: AutofillUserScript.IncomingCredentials?, creditCard: SecureVaultModels.CreditCard?) {
