@@ -138,7 +138,7 @@ extension AutofillUserScript {
         
         private enum Constants {
             static let credentialsKey = "credentials"
-            static let usernameKey = "credentials"
+            static let usernameKey = "username"
             static let passwordKey = "password"
         }
         
