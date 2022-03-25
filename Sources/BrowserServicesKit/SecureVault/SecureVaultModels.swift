@@ -75,9 +75,9 @@ public struct SecureVaultModels {
             static let creditCardsKey = "creditCards"
             static let cardNumberKey = "cardNumber"
             static let cardNameKey = "cardName"
-            static let cardSecurityCodeKey = "cardSecurityCodeKey"
-            static let expirationMonthKey = "expirationMonthKey"
-            static let expirationYearKey = "expirationYearKey"
+            static let cardSecurityCodeKey = "cardSecurityCode"
+            static let expirationMonthKey = "expirationMonth"
+            static let expirationYearKey = "expirationYear"
         }
         
         public var id: Int64?
