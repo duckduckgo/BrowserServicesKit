@@ -71,6 +71,15 @@ public struct SecureVaultModels {
 
     public struct CreditCard {
 
+        private enum Constants {
+            static let creditCardsKey = "creditCards"
+            static let cardNumberKey = "cardNumber"
+            static let cardNameKey = "cardName"
+            static let cardSecurityCodeKey = "cardSecurityCodeKey"
+            static let expirationMonthKey = "expirationMonthKey"
+            static let expirationYearKey = "expirationYearKey"
+        }
+        
         public var id: Int64?
         public var title: String
         public let created: Date
@@ -118,7 +127,7 @@ public struct SecureVaultModels {
         }
         
         public init?(autofillDictionary: [String: Any]) {
-            guard let creditCardsDictionary = autofillDictionary["creditCards"] as? [String: Any] else {
+            guard let creditCardsDictionary = autofillDictionary[Constants.creditCardsKey] as? [String: Any] else {
                 return nil
             }
             
@@ -126,17 +135,17 @@ public struct SecureVaultModels {
         }
         
         public init?(creditCardsDictionary: [String: Any]) {
-            guard let cardNumber = creditCardsDictionary["cardNumber"] as? String else {
+            guard let cardNumber = creditCardsDictionary[Constants.cardNumberKey] as? String else {
                 return nil
             }
 
             self.init(id: nil,
                       title: nil,
                       cardNumber: cardNumber,
-                      cardholderName: creditCardsDictionary["cardName"] as? String,
-                      cardSecurityCode: creditCardsDictionary["cardSecurityCode"] as? String,
-                      expirationMonth: Int(creditCardsDictionary["expirationMonth"] as? String ?? ""),
-                      expirationYear: Int(creditCardsDictionary["expirationYear"] as? String ?? ""))
+                      cardholderName: creditCardsDictionary[Constants.cardNameKey] as? String,
+                      cardSecurityCode: creditCardsDictionary[Constants.cardSecurityCodeKey] as? String,
+                      expirationMonth: Int(creditCardsDictionary[Constants.expirationMonthKey] as? String ?? ""),
+                      expirationYear: Int(creditCardsDictionary[Constants.expirationYearKey] as? String ?? ""))
         }
 
     }

@@ -135,6 +135,13 @@ extension AutofillUserScript {
     // MARK: - Requests
     
     public struct IncomingCredentials {
+        
+        private enum Constants {
+            static let credentialsKey = "credentials"
+            static let usernameKey = "credentials"
+            static let passwordKey = "password"
+        }
+        
         let username: String?
         let password: String
         
@@ -144,13 +151,15 @@ extension AutofillUserScript {
         }
         
         init?(autofillDictionary: [String: Any]) {
-            guard let credentialsDictionary = autofillDictionary["credentials"] as? [String: String],
-                  let password = credentialsDictionary["password"] else {
+            guard let credentialsDictionary = autofillDictionary[Constants.credentialsKey] as? [String: String],
+                  let password = credentialsDictionary[Constants.passwordKey] else {
                       return nil
                   }
             
-            self.init(username: credentialsDictionary["username"], password: password)
+            // Usernames are optional, as the Autofill script can pass a generated password through without a corresponding username.
+            self.init(username: credentialsDictionary[Constants.usernameKey], password: password)
         }
+
     }
     
     /// Represents the incoming Autofill data provided by the user script.
