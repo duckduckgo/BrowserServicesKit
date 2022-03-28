@@ -34,10 +34,10 @@ extension OSLog {
 
 struct Logging {
 
-    fileprivate static let userScriptsEnabled = true
+    fileprivate static let userScriptsEnabled = false
     fileprivate static let userScriptsLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "User Scripts")
     
-    fileprivate static let passwordManagerEnabled = true
+    fileprivate static let passwordManagerEnabled = false
     fileprivate static let passwordManagerLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Password Manager")
 
 }
