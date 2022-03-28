@@ -152,24 +152,29 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
     
     func existingEntries(for domain: String, autofillData: AutofillUserScript.DetectedAutofillData) throws -> AutofillData {
-        
         let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
         
-        // Determine if the identity should be sent to the client app:
-
-        var proposedIdentity: SecureVaultModels.Identity?
+        let proposedIdentity = try existingIdentity(with: autofillData, vault: vault)
+        let proposedCredentials = try existingCredentials(with: autofillData, domain: domain, vault: vault)
+        let proposedCard = try existingPaymentMethod(with: autofillData, vault: vault)
         
+        return AutofillData(identity: proposedIdentity, credentials: proposedCredentials, creditCard: proposedCard)
+    }
+    
+    private func existingIdentity(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                  vault: SecureVault) throws -> SecureVaultModels.Identity? {
         if let identity = autofillData.identity, try vault.existingIdentityForAutofill(matching: identity) == nil {
             os_log("Got new identity/address to save", log: .passwordManager)
-            proposedIdentity = identity
+            return identity
         } else {
             os_log("No new identity/address found, avoid prompting user", log: .passwordManager)
+            return nil
         }
-        
-        // Determine if the credentials should be sent to the client app:
-        
-        var proposedCredentials: SecureVaultModels.WebsiteCredentials?
-
+    }
+    
+    private func existingCredentials(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                     domain: String,
+                                     vault: SecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
         if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
             if let account = try vault
                 .accountsFor(domain: domain)
@@ -179,35 +184,33 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                    let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID),
                    existingCredentials.password == passwordData {
                     os_log("Found duplicate credentials, avoid prompting user", log: .passwordManager)
-                    proposedCredentials = nil
+                    return nil
                 } else {
                     os_log("Found existing credentials to update", log: .passwordManager)
-                    proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+                    return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                 }
 
             } else {
                 os_log("Received new credentials to save", log: .passwordManager)
                 let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
-                proposedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+                return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
             }
         } else {
             os_log("No new credentials found, avoid prompting user", log: .passwordManager)
         }
         
-        // Determine if the payment method should be sent to the client app:
-        
-        var proposedCard: SecureVaultModels.CreditCard?
-        
+        return nil
+    }
+    
+    private func existingPaymentMethod(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                  vault: SecureVault) throws -> SecureVaultModels.CreditCard? {
         if let card = autofillData.creditCard, try vault.existingCardForAutofill(matching: card) == nil {
             os_log("Got new payment method to save", log: .passwordManager)
-            proposedCard = card
+            return card
         } else {
             os_log("No new payment method found, avoid prompting user", log: .passwordManager)
+            return nil
         }
-        
-        // Assemble data and send to the delegate:
-        
-        return AutofillData(identity: proposedIdentity, credentials: proposedCredentials, creditCard: proposedCard)
     }
 
 }
