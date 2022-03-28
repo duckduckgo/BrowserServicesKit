@@ -33,10 +33,9 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     
     public init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
         var replacements: [String: String] = [:]
-        #if os(macOS)
-            replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
-            replacements["// INJECT isApp HERE"] = "isApp = true;"
-        #endif
+        // For testing purporses we pretend we're the macOS app, even if we're iOS
+        replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
+        replacements["// INJECT isApp HERE"] = "isApp = true;"
 
         if #available(iOS 14, macOS 11, *) {
             replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
