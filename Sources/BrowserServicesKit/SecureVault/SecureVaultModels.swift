@@ -71,6 +71,15 @@ public struct SecureVaultModels {
 
     public struct CreditCard {
 
+        private enum Constants {
+            static let creditCardsKey = "creditCards"
+            static let cardNumberKey = "cardNumber"
+            static let cardNameKey = "cardName"
+            static let cardSecurityCodeKey = "cardSecurityCode"
+            static let expirationMonthKey = "expirationMonth"
+            static let expirationYearKey = "expirationYear"
+        }
+        
         public var id: Int64?
         public var title: String
         public let created: Date
@@ -115,6 +124,28 @@ public struct SecureVaultModels {
             self.cardSecurityCode = cardSecurityCode
             self.expirationMonth = expirationMonth
             self.expirationYear = expirationYear
+        }
+        
+        public init?(autofillDictionary: [String: Any]) {
+            guard let creditCardsDictionary = autofillDictionary[Constants.creditCardsKey] as? [String: Any] else {
+                return nil
+            }
+            
+            self.init(creditCardsDictionary: creditCardsDictionary)
+        }
+        
+        public init?(creditCardsDictionary: [String: Any]) {
+            guard let cardNumber = creditCardsDictionary[Constants.cardNumberKey] as? String else {
+                return nil
+            }
+
+            self.init(id: nil,
+                      title: nil,
+                      cardNumber: cardNumber,
+                      cardholderName: creditCardsDictionary[Constants.cardNameKey] as? String,
+                      cardSecurityCode: creditCardsDictionary[Constants.cardSecurityCodeKey] as? String,
+                      expirationMonth: Int(creditCardsDictionary[Constants.expirationMonthKey] as? String ?? ""),
+                      expirationYear: Int(creditCardsDictionary[Constants.expirationYearKey] as? String ?? ""))
         }
 
     }
@@ -171,9 +202,7 @@ public struct SecureVaultModels {
                 return firstNonEmptyLine ?? ""
             }
 
-            // The title's empty, so assume that the first non-empty line is used as the title, and find the second non-
-            // empty line instead.
-            
+            // The title is empty, so assume that the first non-empty line is used as the title, and find the second non-empty line instead.
             let noteLines = text.components(separatedBy: .newlines)
             var alreadyFoundFirstNonEmptyLine = false
             
@@ -197,20 +226,72 @@ public struct SecureVaultModels {
 
     public struct Identity {
 
+        private static let mediumPersonNameComponentsFormatter: PersonNameComponentsFormatter = {
+            let nameFormatter = PersonNameComponentsFormatter()
+            nameFormatter.style = .medium
+            return nameFormatter
+        }()
+        
+        private static let longPersonNameComponentsFormatter: PersonNameComponentsFormatter = {
+            let nameFormatter = PersonNameComponentsFormatter()
+            nameFormatter.style = .long
+            return nameFormatter
+        }()
+        
+        private var nameComponents: PersonNameComponents {
+            var nameComponents = PersonNameComponents()
+
+            nameComponents.givenName = firstName
+            nameComponents.middleName = middleName
+            nameComponents.familyName = lastName
+
+            return nameComponents
+        }
+        
+        public var formattedName: String {
+            return Self.mediumPersonNameComponentsFormatter.string(from: nameComponents)
+        }
+        
+        public var longFormattedName: String {
+            return Self.longPersonNameComponentsFormatter.string(from: nameComponents)
+        }
+        
+        var autofillEqualityName: String?
+        var autofillEqualityAddressStreet: String?
+
         public var id: Int64?
         public var title: String
         public let created: Date
         public let lastUpdated: Date
 
-        public var firstName: String?
-        public var middleName: String?
-        public var lastName: String?
+        public var firstName: String? {
+            didSet {
+                autofillEqualityName = normalizedAutofillName()
+            }
+        }
+
+        public var middleName: String? {
+            didSet {
+                autofillEqualityName = normalizedAutofillName()
+            }
+        }
+
+        public var lastName: String? {
+            didSet {
+                autofillEqualityName = normalizedAutofillName()
+            }
+        }
 
         public var birthdayDay: Int?
         public var birthdayMonth: Int?
         public var birthdayYear: Int?
 
-        public var addressStreet: String?
+        public var addressStreet: String? {
+            didSet {
+                autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
+            }
+        }
+
         public var addressStreet2: String?
         public var addressCity: String?
         public var addressProvince: String?
@@ -265,8 +346,77 @@ public struct SecureVaultModels {
             self.homePhone = homePhone
             self.mobilePhone = mobilePhone
             self.emailAddress = emailAddress
+            
+            self.autofillEqualityName = normalizedAutofillName()
+            self.autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
+        }
+        
+        public init?(autofillDictionary: [String: Any]) {
+            guard let dictionary = autofillDictionary["identities"] as? [String: Any] else {
+                return nil
+            }
+            
+            self.init(identityDictionary: dictionary)
+        }
+
+        public init(identityDictionary: [String: Any]) {
+            self.init(id: nil,
+                      title: nil,
+                      created: Date(),
+                      lastUpdated: Date(),
+                      firstName: identityDictionary["firstName"] as? String,
+                      middleName: identityDictionary["middleName"] as? String,
+                      lastName: identityDictionary["lastName"] as? String,
+                      birthdayDay: identityDictionary["birthdayDay"] as? Int,
+                      birthdayMonth: identityDictionary["birthdayMonth"] as? Int,
+                      birthdayYear: identityDictionary["birthdayYear"] as? Int,
+                      addressStreet: identityDictionary["addressStreet"] as? String,
+                      addressStreet2: identityDictionary["addressStreet2"] as? String,
+                      addressCity: identityDictionary["addressCity"] as? String,
+                      addressProvince: identityDictionary["addressProvince"] as? String,
+                      addressPostalCode: identityDictionary["addressPostalCode"] as? String,
+                      addressCountryCode: identityDictionary["addressCountryCode"] as? String,
+                      homePhone: identityDictionary["phone"] as? String,
+                      mobilePhone: nil,
+                      emailAddress: identityDictionary["emailAddress"] as? String)
+        }
+
+        func normalizedAutofillName() -> String {
+            let nameString = (firstName ?? "") + (middleName ?? "") + (lastName ?? "")
+            return nameString.autofillNormalized()
         }
 
     }
 
+}
+
+// MARK: - Autofill Equality
+
+protocol SecureVaultAutofillEquatable {
+    
+    func hasAutofillEquality(comparedTo object: Self) -> Bool
+    
+}
+
+extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
+
+    func hasAutofillEquality(comparedTo otherIdentity: SecureVaultModels.Identity) -> Bool {
+        let hasNameEquality = self.autofillEqualityName == otherIdentity.autofillEqualityName
+        let hasAddressEquality = self.autofillEqualityAddressStreet == otherIdentity.autofillEqualityAddressStreet
+        
+        return hasNameEquality && hasAddressEquality
+    }
+    
+}
+
+extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
+    
+    func hasAutofillEquality(comparedTo object: Self) -> Bool {
+        if self.cardNumber.autofillNormalized() == object.cardNumber.autofillNormalized() {
+            return true
+        }
+        
+        return false
+    }
+    
 }

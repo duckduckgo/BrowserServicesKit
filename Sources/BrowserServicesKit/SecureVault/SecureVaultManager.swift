@@ -27,10 +27,15 @@ public enum AutofillType {
     case identity
 }
 
+public struct AutofillData {
+    public let identity: SecureVaultModels.Identity?
+    public let credentials: SecureVaultModels.WebsiteCredentials?
+    public let creditCard: SecureVaultModels.CreditCard?
+}
+
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
-    func secureVaultManager(_: SecureVaultManager,
-                            promptUserToStoreCredentials credentials: SecureVaultModels.WebsiteCredentials)
+    func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
     
@@ -70,30 +75,17 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         // no-op at this point
     }
-
-    public func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String) {
-        guard let passwordData = password.data(using: .utf8) else { return }
-
+    
+    /// Receives each of the types of data that the Autofill script has detected, and determines whether the user should be prompted to save them.
+    /// This involves checking each proposed object to determine whether it already exists in the store.
+    /// Currently, only one new type of data is presented to the user, but that decision is handled client-side so that it's easier to adapt in the future when multiple types are presented at once.
+    public func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData) {
         do {
-
-            if let account = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
-                .accountsFor(domain: domain)
-                .first(where: { $0.username == username }) {
-
-                let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
-
-            } else {
-
-                let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
-                let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                delegate?.secureVaultManager(self, promptUserToStoreCredentials: credentials)
-
-            }
+            let dataToPrompt = try existingEntries(for: domain, autofillData: data)
+            delegate?.secureVaultManager(self, promptUserToStoreAutofillData: dataToPrompt)
         } catch {
-            os_log(.error, "Error storing accounts: %{public}@", error.localizedDescription)
+            os_log(.error, "Error storing data: %{public}@", error.localizedDescription)
         }
-
     }
 
     public func autofillUserScript(_: AutofillUserScript,
@@ -156,6 +148,68 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         } catch {
             os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)
             completionHandler(nil)
+        }
+    }
+    
+    func existingEntries(for domain: String, autofillData: AutofillUserScript.DetectedAutofillData) throws -> AutofillData {
+        let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+        
+        let proposedIdentity = try existingIdentity(with: autofillData, vault: vault)
+        let proposedCredentials = try existingCredentials(with: autofillData, domain: domain, vault: vault)
+        let proposedCard = try existingPaymentMethod(with: autofillData, vault: vault)
+        
+        return AutofillData(identity: proposedIdentity, credentials: proposedCredentials, creditCard: proposedCard)
+    }
+    
+    private func existingIdentity(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                  vault: SecureVault) throws -> SecureVaultModels.Identity? {
+        if let identity = autofillData.identity, try vault.existingIdentityForAutofill(matching: identity) == nil {
+            os_log("Got new identity/address to save", log: .passwordManager)
+            return identity
+        } else {
+            os_log("No new identity/address found, avoid prompting user", log: .passwordManager)
+            return nil
+        }
+    }
+    
+    private func existingCredentials(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                     domain: String,
+                                     vault: SecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
+        if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
+            if let account = try vault
+                .accountsFor(domain: domain)
+                .first(where: { $0.username == credentials.username }) {
+                
+                if let existingAccountID = account.id,
+                   let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID),
+                   existingCredentials.password == passwordData {
+                    os_log("Found duplicate credentials, avoid prompting user", log: .passwordManager)
+                    return nil
+                } else {
+                    os_log("Found existing credentials to update", log: .passwordManager)
+                    return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+                }
+
+            } else {
+                os_log("Received new credentials to save", log: .passwordManager)
+                let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
+                return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+            }
+        } else {
+            os_log("No new credentials found, avoid prompting user", log: .passwordManager)
+        }
+        
+        return nil
+    }
+    
+    private func existingPaymentMethod(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                  vault: SecureVault) throws -> SecureVaultModels.CreditCard? {
+        if let card = autofillData.creditCard, try vault.existingCardForAutofill(matching: card) == nil {
+            os_log("Got new payment method to save", log: .passwordManager)
+            return card
+        } else {
+            os_log("No new payment method found, avoid prompting user", log: .passwordManager)
+            return nil
         }
     }
 
