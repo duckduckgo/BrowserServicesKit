@@ -52,7 +52,7 @@ public class LinkCleaner {
         lastAMPURLString = nil
         guard privacyConfig.isEnabled(featureKey: .ampLinks) else { return nil }
         guard let url = url, !isURLExcluded(url: url) else { return nil }
-        if let initiator = initiator { }, isURLExcluded(url: initiator) {
+        if let initiator = initiator, isURLExcluded(url: initiator) {
             return nil
         }
         
