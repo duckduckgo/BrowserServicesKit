@@ -53,6 +53,7 @@ struct AmpRefTests: Decodable {
     let ampKeywords: AmpKeywordTests
 }
 
+// swiftlint:disable force_try
 final class AmpMatchingTests: XCTestCase {
     
     private enum Resource {

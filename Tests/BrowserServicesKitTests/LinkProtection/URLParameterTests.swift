@@ -39,6 +39,7 @@ struct URLParamRefTests: Decodable {
     let trackingParameters: URLParamTests
 }
 
+// swiftlint:disable force_try
 final class URLParameterTests: XCTestCase {
         
     private enum Resource {
