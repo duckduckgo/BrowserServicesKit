@@ -28,7 +28,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     ) -> Void)
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
-    func autofillUserScript(_: AutofillUserScript, didRequestStoreCredentialsForDomain domain: String, username: String, password: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
@@ -84,7 +84,7 @@ extension AutofillUserScript {
                                   addressPostalCode: identity.addressPostalCode,
                                   addressCountryCode: identity.addressCountryCode,
                                   phone: identity.homePhone, // Replace with single "phone number" column
-                                  emailAddress: identity.emailAddress)
+                                  emailAddress: identity.emailAddress ?? "")
         }
     }
 
@@ -130,6 +130,60 @@ extension AutofillUserScript {
     struct CredentialObject: Codable {
         let id: Int64
         let username: String
+    }
+    
+    // MARK: - Requests
+    
+    public struct IncomingCredentials {
+        
+        private enum Constants {
+            static let credentialsKey = "credentials"
+            static let usernameKey = "username"
+            static let passwordKey = "password"
+        }
+        
+        let username: String?
+        let password: String
+        
+        init(username: String?, password: String) {
+            self.username = username
+            self.password = password
+        }
+        
+        init?(autofillDictionary: [String: Any]) {
+            guard let credentialsDictionary = autofillDictionary[Constants.credentialsKey] as? [String: String],
+                  let password = credentialsDictionary[Constants.passwordKey] else {
+                      return nil
+                  }
+            
+            // Usernames are optional, as the Autofill script can pass a generated password through without a corresponding username.
+            self.init(username: credentialsDictionary[Constants.usernameKey], password: password)
+        }
+
+    }
+    
+    /// Represents the incoming Autofill data provided by the user script.
+    ///
+    /// Identities and Credit Cards can be converted to their final model objects directly, but credentials cannot as they have to looked up in the Secure Vault first, hence the existence of a standalone
+    /// `IncomingCredentials` type.
+    public struct DetectedAutofillData {
+        
+        public let identity: SecureVaultModels.Identity?
+        public let credentials: IncomingCredentials?
+        public let creditCard: SecureVaultModels.CreditCard?
+        
+        init(dictionary: [String: Any]) {
+            self.identity = .init(autofillDictionary: dictionary)
+            self.creditCard = .init(autofillDictionary: dictionary)
+            self.credentials = IncomingCredentials(autofillDictionary: dictionary)
+        }
+        
+        init(identity: SecureVaultModels.Identity?, credentials: AutofillUserScript.IncomingCredentials?, creditCard: SecureVaultModels.CreditCard?) {
+            self.identity = identity
+            self.credentials = credentials
+            self.creditCard = creditCard
+        }
+        
     }
 
     // MARK: - Responses
@@ -210,20 +264,20 @@ extension AutofillUserScript {
         }
 
     }
-
-    func pmStoreCredentials(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+     
+    func pmStoreData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)
         }
-
-        guard let body = message.messageBody as? [String: Any],
-              let username = body["username"] as? String,
-              let password = body["password"] as? String else {
+        
+        guard let body = message.messageBody as? [String: Any] else {
             return
         }
-
+        
+        let incomingData = DetectedAutofillData(dictionary: body)
         let domain = hostProvider.hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestStoreCredentialsForDomain: domain, username: username, password: password)
+        
+        vaultDelegate?.autofillUserScript(self, didRequestStoreDataForDomain: domain, data: incomingData)
     }
 
     func pmGetAccounts(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
