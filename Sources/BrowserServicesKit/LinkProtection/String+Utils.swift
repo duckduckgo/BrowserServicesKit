@@ -26,8 +26,8 @@ extension String {
         return NSRange(location: 0, length: count)
     }
 
-    func matches(pattern: String) -> Bool {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+    func matches(pattern: String, options: NSRegularExpression.Options = [.caseInsensitive]) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
             return false
         }
         let matches = regex.matches(in: self, options: .anchored, range: fullRange)
