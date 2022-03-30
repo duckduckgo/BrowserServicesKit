@@ -22,16 +22,16 @@ import Foundation
 internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
     // swiftlint:disable identifier_name
-    var _accounts =  [SecureVaultModels.WebsiteAccount]()
-    var _notes =  [SecureVaultModels.Note]()
-    var _identities =  [SecureVaultModels.Identity]()
-    var _creditCards =  [SecureVaultModels.CreditCard]()
+    var _accounts = [SecureVaultModels.WebsiteAccount]()
+    var _notes = [SecureVaultModels.Note]()
+    var _identities = [SecureVaultModels.Identity]()
+    var _creditCards = [Int64: SecureVaultModels.CreditCard]()
     var _forDomain = [String]()
     var _credentials: SecureVaultModels.WebsiteCredentials?
     var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     var _note: SecureVaultModels.Note?
     var _identity: SecureVaultModels.Identity?
-    var _creditCard: SecureVaultModels.CreditCard?
+    // var _creditCard: SecureVaultModels.CreditCard?
     // swiftlint:enable identifier_name
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
@@ -91,20 +91,24 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func creditCards() throws -> [SecureVaultModels.CreditCard] {
-        return _creditCards
+        return Array(_creditCards.values)
     }
 
     func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
-        return _creditCard
+        return _creditCards[cardId]
     }
 
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
-        _creditCard = creditCard
-        return creditCard.id ?? -1
+        if let cardID = creditCard.id {
+            _creditCards[cardID] = creditCard
+            return cardID
+        } else {
+            return -1
+        }
     }
 
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
-        self._creditCards = self._creditCards.filter { $0.id != cardId }
+        _creditCards.removeValue(forKey: cardId)
     }
 }
 
