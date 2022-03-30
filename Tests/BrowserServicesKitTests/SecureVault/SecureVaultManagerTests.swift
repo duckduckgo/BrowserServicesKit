@@ -21,7 +21,7 @@ import XCTest
 
 class SecureVaultManagerTests: XCTestCase {
     
-    var mockCryptoProvider = MockCryptoProvider()
+    var mockCryptoProvider = NoOpCryptoProvider()
     var mockDatabaseProvider = MockDatabaseProvider()
     var mockKeystoreProvider = MockKeystoreProvider()
     
@@ -30,9 +30,7 @@ class SecureVaultManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
         mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)
-        mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
 
         let providers = SecureVaultProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)

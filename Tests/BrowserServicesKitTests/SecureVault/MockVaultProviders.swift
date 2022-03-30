@@ -157,6 +157,34 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
 }
 
+internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+
+    func generateSecretKey() throws -> Data {
+        return Data()
+    }
+
+    func generatePassword() throws -> Data {
+        return Data()
+    }
+
+    func deriveKeyFromPassword(_ password: Data) throws -> Data {
+        return password
+    }
+
+    func generateNonce() throws -> Data {
+        return Data()
+    }
+
+    func encrypt(_ data: Data, withKey key: Data) throws -> Data {
+        return data
+    }
+
+    func decrypt(_ data: Data, withKey key: Data) throws -> Data {
+        return data
+    }
+
+}
+
 internal class MockKeystoreProvider: SecureVaultKeyStoreProvider {
 
     // swiftlint:disable identifier_name
