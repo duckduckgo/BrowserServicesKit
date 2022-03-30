@@ -134,7 +134,7 @@ extension AutofillUserScript {
     
     // MARK: - Requests
     
-    public struct IncomingCredentials {
+    public struct IncomingCredentials: Equatable {
         
         private enum Constants {
             static let credentialsKey = "credentials"

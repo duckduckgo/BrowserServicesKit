@@ -24,23 +24,28 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     // swiftlint:disable identifier_name
     var _accounts = [SecureVaultModels.WebsiteAccount]()
     var _notes = [SecureVaultModels.Note]()
-    var _identities = [SecureVaultModels.Identity]()
+    var _identities = [Int64: SecureVaultModels.Identity]()
     var _creditCards = [Int64: SecureVaultModels.CreditCard]()
     var _forDomain = [String]()
     var _credentials: SecureVaultModels.WebsiteCredentials?
-    var _lastCredentials: SecureVaultModels.WebsiteCredentials?
+    var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
+    // var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     var _note: SecureVaultModels.Note?
-    var _identity: SecureVaultModels.Identity?
-    // var _creditCard: SecureVaultModels.CreditCard?
     // swiftlint:enable identifier_name
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
-        _lastCredentials = credentials
-        return _lastCredentials?.account.id ?? -1
+        if let accountID = credentials.account.id {
+            _credentialsDict[accountID] = credentials
+            return accountID
+        } else {
+            _credentialsDict[-1] = credentials
+            return -1
+        }
     }
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
-        return _credentials
+        return _credentialsDict[accountId]
+        // return _credentials
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
@@ -74,20 +79,24 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func identities() throws -> [SecureVaultModels.Identity] {
-        return _identities
+        return Array(_identities.values)
     }
 
     func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
-        return _identity
+        return _identities[identityId]
     }
 
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
-        _identity = identity
-        return identity.id ?? -1
+        if let identityID = identity.id {
+            _identities[identityID] = identity
+            return identityID
+        } else {
+            return -1
+        }
     }
 
     func deleteIdentityForIdentityId(_ identityId: Int64) throws {
-        self._identities = self._identities.filter { $0.id != identityId }
+        _identities.removeValue(forKey: identityId)
     }
 
     func creditCards() throws -> [SecureVaultModels.CreditCard] {

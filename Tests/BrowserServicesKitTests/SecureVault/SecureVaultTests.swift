@@ -147,7 +147,7 @@ class SecureVaultTests: XCTestCase {
 
         try testVault.storeWebsiteCredentials(credentials)
 
-        XCTAssertNotNil(mockDatabaseProvider._lastCredentials)
+        XCTAssertNotNil(mockDatabaseProvider._credentialsDict.first)
         XCTAssertEqual(mockCryptoProvider._lastDataToEncrypt, passwordToEncrypt)
 
     }
