@@ -1,5 +1,5 @@
 //
-//  AMPProtection.swift
+//  LinkProtection.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import WebKit
 
-public struct AMPProtection {
+public struct LinkProtection {
     
     private let linkCleaner: LinkCleaner
     private let ampExtractor: AMPCanonicalExtractor
