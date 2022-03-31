@@ -31,7 +31,10 @@ public struct LinkProtection {
                                              errorReporting: errorReporting)
     }
     
-    public func getCleanURL(from url: URL, onExtracting: () -> Void, completion: @escaping (URL) -> Void) {
+    public func getCleanURL(from url: URL,
+                            onStartExtracting: () -> Void,
+                            onFinishExtracting: @escaping () -> Void,
+                            completion: @escaping (URL) -> Void) {
         var urlToLoad = url
         if let cleanURL = linkCleaner.cleanTrackingParameters(initiator: nil, url: urlToLoad) {
             urlToLoad = cleanURL
@@ -40,8 +43,9 @@ public struct LinkProtection {
         if let cleanURL = linkCleaner.extractCanonicalFromAMPLink(initiator: nil, destination: urlToLoad) {
             completion(cleanURL)
         } else if ampExtractor.urlContainsAMPKeyword(urlToLoad) {
-            onExtracting()
+            onStartExtracting()
             ampExtractor.getCanonicalURL(initiator: nil, url: urlToLoad) { canonical in
+                onFinishExtracting()
                 if let canonical = canonical {
                     completion(canonical)
                 } else {
@@ -53,9 +57,9 @@ public struct LinkProtection {
         }
     }
     
-    public func getCleanURL(from url: URL, onExtracting: () -> Void) async -> URL {
+    public func getCleanURL(from url: URL, onStartExtracting: () -> Void, onFinishExtracting: @escaping () -> Void) async -> URL {
         await withCheckedContinuation { continuation in
-            getCleanURL(from: url, onExtracting: onExtracting) { url in
+            getCleanURL(from: url, onStartExtracting: onStartExtracting, onFinishExtracting: onFinishExtracting) { url in
                 continuation.resume(returning: url)
             }
         }
@@ -63,7 +67,8 @@ public struct LinkProtection {
     
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
-                                           onExtracting: () -> Void,
+                                           onStartExtracting: () -> Void,
+                                           onFinishExtracting: @escaping () -> Void,
                                            onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void,
                                            policyDecisionHandler: @escaping (WKNavigationActionPolicy) -> Void) -> Bool {
         let destinationURL = navigationAction.request.url
@@ -74,8 +79,9 @@ public struct LinkProtection {
             onLinkRewrite(newURL, navigationAction)
             didRewriteLink = true
         } else if ampExtractor.urlContainsAMPKeyword(destinationURL) {
-            onExtracting()
+            onStartExtracting()
             ampExtractor.getCanonicalURL(initiator: initiatingURL, url: destinationURL) { canonical in
+                onFinishExtracting()
                 guard let canonical = canonical, canonical != destinationURL else {
                     policyDecisionHandler(.allow)
                     return
@@ -99,12 +105,14 @@ public struct LinkProtection {
     
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
-                                           onExtracting: () -> Void,
+                                           onStartExtracting: () -> Void,
+                                           onFinishExtracting: @escaping () -> Void,
                                            onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void) async -> WKNavigationActionPolicy? {
         await withCheckedContinuation { continuation in
             let didRewriteLink = requestTrackingLinkRewrite(initiatingURL: initiatingURL,
                                                             navigationAction: navigationAction,
-                                                            onExtracting: onExtracting,
+                                                            onStartExtracting: onStartExtracting,
+                                                            onFinishExtracting: onFinishExtracting,
                                                             onLinkRewrite: onLinkRewrite) { navigationActionPolicy in
                 continuation.resume(returning: navigationActionPolicy)
             }
