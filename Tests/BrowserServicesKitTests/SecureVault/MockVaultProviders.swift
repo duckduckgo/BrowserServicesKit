@@ -27,9 +27,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     var _identities = [Int64: SecureVaultModels.Identity]()
     var _creditCards = [Int64: SecureVaultModels.CreditCard]()
     var _forDomain = [String]()
-    var _credentials: SecureVaultModels.WebsiteCredentials?
     var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
-    // var _lastCredentials: SecureVaultModels.WebsiteCredentials?
     var _note: SecureVaultModels.Note?
     // swiftlint:enable identifier_name
 
@@ -45,7 +43,6 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         return _credentialsDict[accountId]
-        // return _credentials
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
@@ -150,7 +147,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
     func encrypt(_ data: Data, withKey key: Data) throws -> Data {
         _lastDataToEncrypt = data
         _lastKey = key
-        return Data()
+        return data
     }
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data {

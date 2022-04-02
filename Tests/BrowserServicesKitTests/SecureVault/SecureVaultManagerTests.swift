@@ -234,17 +234,10 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
         self.promptedAutofillData = data
     }
     
-    func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64) {
-        
-    }
+    func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64) {}
     
-    func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void) {
-        
-    }
+    func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void) {}
     
-    func secureVaultInitFailed(_ error: SecureVaultError) {
-        
-    }
-    
+    func secureVaultInitFailed(_ error: SecureVaultError) {}
     
 }
