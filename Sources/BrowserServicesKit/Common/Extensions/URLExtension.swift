@@ -98,11 +98,18 @@ extension URL {
         return url
     }
 
-    public func addParameter(name: String, value: String) throws -> URL {
+    public func addParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
         
-        guard let percentEncodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed),
-              let percentEncodedValue = value.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed)
+        let allowedCharacters: CharacterSet = {
+            if let allowedReservedCharacters = allowedReservedCharacters {
+                return .urlQueryParameterAllowed.union(allowedReservedCharacters)
+            }
+            return .urlQueryParameterAllowed
+        }()
+        
+        guard let percentEncodedName = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters),
+              let percentEncodedValue = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)
         else {
             throw ParameterError.encodingFailed
         }

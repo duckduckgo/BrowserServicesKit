@@ -75,4 +75,17 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(try url.addParameter(name: ";", value: ";"), URL(string: "https://duck.com/?%3B=%3B")!)
         XCTAssertEqual(try url.addParameter(name: "=", value: "="), URL(string: "https://duck.com/?%3D=%3D")!)
     }
+
+    func testWhenAddParameterIsCalled_ThenItAllowsUnescapedReservedCharactersAsSpecified() {
+        let url = URL(string: "https://duck.com/")!
+
+        XCTAssertEqual(
+            try url.addParameter(
+                name: "domains",
+                value: "test.com,example.com/test,localhost:8000/api",
+                allowedReservedCharacters: .init(charactersIn: ",:")
+            ),
+            URL(string: "https://duck.com/?domains=test.com,example.com%2Ftest,localhost:8000%2Fapi")!
+        )
+    }
 }
