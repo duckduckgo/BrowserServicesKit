@@ -143,6 +143,10 @@ public class ContentBlockerRulesManager {
             lock.unlock()
         }
     }
+    
+    public var currentTDSRules: Rules? {
+        currentRules.first(where: { $0.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName })
+    }
 
     @discardableResult
     public func scheduleCompilation() -> CompletionToken {
