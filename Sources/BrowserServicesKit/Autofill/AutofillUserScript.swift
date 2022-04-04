@@ -75,6 +75,7 @@ public class AutofillUserScript: NSObject, UserScript {
     }
 
     public var messageNames: [String] {
+        print("MessageNames is being accessed on AutofillUserScript")
         return MessageName.allCases.map(\.rawValue)
     }
 
