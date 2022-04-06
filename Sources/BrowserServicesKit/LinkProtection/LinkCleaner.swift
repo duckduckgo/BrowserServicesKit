@@ -117,7 +117,7 @@ public class LinkCleaner {
         guard var urlsComps = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return url
         }
-        guard let queryParams = urlsComps.queryItems, queryParams.count > 0 else {
+        guard let queryParams = urlsComps.percentEncodedQueryItems, queryParams.count > 0 else {
             return url
         }
         
@@ -132,7 +132,7 @@ public class LinkCleaner {
             return true
         }
         
-        urlsComps.queryItems = preservedParams.count > 0 ? preservedParams.percentEncoded() : nil
+        urlsComps.queryItems = preservedParams.count > 0 ? preservedParams : nil
         
         return urlsComps.url
     }
