@@ -19,6 +19,26 @@
 
 import Foundation
 
+extension URLQueryItem {
+    func percentEncoded() -> URLQueryItem {
+        /// encode paramter values with percent equivalents
+        /// When rewriting tracking parameters URLComponents tries to automatically decode
+        /// parameter values. This will re-encode them when we rewrite URLs as decoding them
+        /// will cause website breakge
+        
+        var newQueryItem = self
+        newQueryItem.value = value?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
+        
+        return newQueryItem
+    }
+}
+
+extension Array where Element == URLQueryItem {
+    func percentEncoded() -> Array<Element> {
+        return map { $0.percentEncoded() }
+    }
+}
+
 public class LinkCleaner {
     
     public var lastAMPURLString: String?
@@ -112,7 +132,7 @@ public class LinkCleaner {
             return true
         }
         
-        urlsComps.queryItems = preservedParams.count > 0 ? preservedParams : nil
+        urlsComps.queryItems = preservedParams.count > 0 ? preservedParams.percentEncoded() : nil
         
         return urlsComps.url
     }
