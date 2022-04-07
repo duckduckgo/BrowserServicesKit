@@ -112,8 +112,10 @@ public class LinkCleaner {
             return true
         }
         
-        urlsComps.percentEncodedQueryItems = preservedParams.count > 0 ? preservedParams : nil
-        
-        return urlsComps.url
+        if urlParametersRemoved {
+            urlsComps.percentEncodedQueryItems = preservedParams.count > 0 ? preservedParams : nil
+            return urlsComps.url
+        }
+        return url
     }
 }
