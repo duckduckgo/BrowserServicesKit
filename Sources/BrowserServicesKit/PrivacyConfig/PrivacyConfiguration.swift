@@ -84,7 +84,7 @@ public protocol PrivacyConfiguration {
     func userDisabledProtection(forDomain: String)
 }
 
-extension PrivacyConfiguration {
+public extension PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature) -> Bool {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
