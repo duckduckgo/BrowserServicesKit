@@ -31,6 +31,18 @@ class MockEmbeddedDataProvider: EmbeddedDataProvider {
     }
 }
 
+class MockAppVersionProvider: AppVersionProvider {
+    var mockedVersion: String
+    
+    override func appVersion() -> String {
+        return mockedVersion
+    }
+    
+    init(appVersion: String) {
+        self.mockedVersion = appVersion
+    }
+}
+
 class AppPrivacyConfigurationTests: XCTestCase {
 
     let embeddedConfig =
@@ -260,5 +272,67 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "disabled.com"))
         XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "example.com"))
         XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "unp.com"))
+    }
+    
+    let exampleVersionConfig =
+    """
+    {
+        "features": {
+            "gpc": {
+                "state": "enabled",
+                "exceptions": [
+                    {
+                        "domain": "example.com",
+                        "reason": "site breakage"
+                    }
+                ]
+            },
+            "trackingParameters": {
+                "state": "enabled",
+                "minSupportedVersion": "0.22.2",
+                "exceptions": []
+            },
+            "ampLinks": {
+                "state": "enabled",
+                "minSupportedVersion": "7.66.1.0",
+                "exceptions": []
+            }
+        },
+        "unprotectedTemporary": [
+            {
+                "domain": "unp.com",
+                "reason": "site breakage"
+            }
+        ]
+    }
+    """.data(using: .utf8)!
+    
+    func testMinSupportedVersionCheckReturnsCorrectly() {
+        var appVersion = MockAppVersionProvider(appVersion: "0.22.2")
+        
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleVersionConfig, etag: "test")
+        let mockProtectionStore = MockDomainsProtectionStore()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: mockProtectionStore)
+
+        let config = manager.privacyConfig
+        
+        XCTAssertTrue(config.isEnabled(featureKey: .gpc, versionProvider: appVersion))
+        XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+        
+        appVersion = MockAppVersionProvider(appVersion: "0.22.3")
+        XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+        
+        // Test invalid version format
+        XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
+        
+        // Test unsupported version
+        appVersion = MockAppVersionProvider(appVersion: "0.22.0")
+        XCTAssertFalse(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+        appVersion = MockAppVersionProvider(appVersion: "7.65.1.0")
+        XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
     }
 }
