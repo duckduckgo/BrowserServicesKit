@@ -1,0 +1,37 @@
+# Hash generated from the Hash Generator at the top of
+# https://argon2.online/.  I just hashed some arbitary string
+HASHED_PASSWORD='$argon2id$v=19$m=32768,t=3,p=1$9hU7/9YlZsIlQTLTRgdnieIx4YIovq5pY08QfneDqqI$WqF7UI3gjjMqukhT8edBLY+8rF4ZaI/nlmBJd/JLx9Y'
+PROTECTED_ENCRYPTION_KEY="*%G1pNz3fkMxGrIcfM'0MTjKpKMoP99b" 
+API_HOST=https://5ada-20-75-144-152.ngrok.io
+USER_ID=abe-123
+
+curl -v -X POST -k \
+    -d '{"user_id": "'$USER_ID'", "hashed_password": "'$HASHED_PASSWORD'", "protected_encryption_key": "'$PROTECTED_ENCRYPTION_KEY'", "device_id": "DID", "device_name":"AARON PHONE"}' \
+    "$API_HOST/sports.js?path=sync-auth/signup"
+
+# This token came from the "token" attribute of the signup endpoint's
+# JSON response
+TOKEN='eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWJlLTEyMyIsImUyZWVfaWQiOiIwZWFlMDBkYi1mY2E1LTQzZjUtYWJkZC1lNTgxMjZjMGJlN2YiLCJpc3MiOiJEdWNrRHVja0dvLVN5bmMiLCJkZXZpY2VfaWQiOiJESUQifQ.esiraQr4lgxDTyNDUxTceA2TMboHHR8-OvC8lxEUCYZ_hnQhu3hzjo2oVkyqwDyB4A8akVFvbK3pm6YHjghHBA'
+
+curl -v -X GET -k \
+    -H "Authorization: Bearer $TOKEN" \
+    "$API_HOST/sports.js?path=sync-auth/devices"
+
+curl -v -X POST -k \
+    -d '{"user_id": "'$USER_ID'", "hashed_password": "'$HASHED_PASSWORD'", "device_id": "OTHER-DID", "device_name":"AARON LAPTOP"}' \
+    "$API_HOST/sports.js?path=sync-auth/login"
+
+curl -v -X GET -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"types": ["bookmarks", "favorites"]}' \
+    "$API_HOST/sports.js?path=sync-data/sync"
+
+curl -v -X PATCH -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"bookmarks":{"most_recent_version": 0, "updates": [{"id":"b-1", "name": "DuckDuckGo", "url": "https://duckduckgo.com"}]}}' \
+    "$API_HOST/sports.js?path=sync-data/sync"
+
+curl -v -X GET -k \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"types":["bookmarks", "favorites"]}' \
+    "$API_HOST/sports.js?path=sync-data/sync"

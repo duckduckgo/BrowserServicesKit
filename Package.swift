@@ -11,7 +11,16 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
+        // 3rd Party Submodules
+        .library(name: "argon2", targets: ["argon2"]),
+        // .library(name: "libsodium", targets: ["libsodium"]),
+
+        // Intermediate dependencies
+        .library(name: "DDGSyncAuth", targets: ["DDGSyncAuth"]),
+
+        // Exported libraries
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "DDGSync", targets: ["DDGSync"]),
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
@@ -78,6 +87,56 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
+//        .target(
+//            name: "libsodium",
+//            resources: [
+//                .process("Makefile.in")
+//            ]
+//        ),
+        .target(
+            name: "argon2",
+            exclude: [
+                "kats",
+                "vs2015",
+                "latex",
+                "libargon2.pc.in",
+                "export.sh",
+                "appveyor.yml",
+                "Argon2.sln",
+                "argon2-specs.pdf",
+                "CHANGELOG.md",
+                "LICENSE",
+                "Makefile",
+                "man",
+                "README.md",
+                "src/bench.c",
+                "src/genkat.c",
+                "src/opt.c",
+                "src/run.c",
+                "src/test.c",
+            ],
+            sources: [
+                "src/blake2/blake2b.c",
+                "src/argon2.c",
+                "src/core.c",
+                "src/encoding.c",
+                "src/ref.c",
+                "src/thread.c"
+            ]
+        ),
+        .target(
+            name: "DDGSyncAuth",
+            dependencies: [
+                "argon2",
+                // "libsodium"
+            ]
+        ),
+        .target(
+            name: "DDGSync",
+            dependencies: [
+                "DDGSyncAuth"
+            ]
+        ),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -86,6 +145,11 @@ let package = Package(
             resources: [
                 .process("UserScript/testUserScript.js"),
                 .copy("Resources")
+            ]),
+        .testTarget(
+            name: "DDGSyncTests",
+            dependencies: [
+                "DDGSync"
             ])
     ]
 )

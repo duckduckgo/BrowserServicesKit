@@ -7,3 +7,14 @@
 [submodule "Tests/BrowserServicesKitTests/Resources/privacy-reference-tests"]
 	path = Tests/BrowserServicesKitTests/Resources/privacy-reference-tests
 	url = https://github.com/duckduckgo/privacy-reference-tests
+[submodule "Sources/DDGSyncAuth/libs/libsodium"]
+	path = Sources/DDGSyncAuth/libs/libsodium
+	url = https://github.com/jedisct1/libsodium
+	branch = stable
+[submodule "Sources/libsodium"]
+	path = Sources/libsodium
+	url = https://github.com/jedisct1/libsodium
+	branch = stable
+[submodule "Sources/argon2"]
+	path = Sources/argon2
+	url = https://github.com/P-H-C/phc-winner-argon2

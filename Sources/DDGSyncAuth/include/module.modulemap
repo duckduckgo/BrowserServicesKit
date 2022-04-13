@@ -1,0 +1,5 @@
+
+module DDGSyncAuth {
+    header "DDGSyncAuth.h"
+    export *
+}
