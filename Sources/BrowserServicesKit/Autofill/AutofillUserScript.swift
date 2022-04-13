@@ -27,8 +27,10 @@ public class AutofillUserScript: NSObject, UserScript {
 
     internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
+        case emailHandlerRemoveToken
         case emailHandlerGetAlias
         case emailHandlerGetUserData
+        case emailHandlerGetCapabilities
         case emailHandlerRefreshAlias
 
         case emailHandlerGetAddresses
@@ -89,8 +91,10 @@ public class AutofillUserScript: NSObject, UserScript {
 
         switch message {
             case .emailHandlerStoreToken: return emailStoreToken
+            case .emailHandlerRemoveToken: return emailRemoveToken
             case .emailHandlerGetAlias: return emailGetAlias
             case .emailHandlerGetUserData: return emailGetUserData
+            case .emailHandlerGetCapabilities: return emailGetDeviceCapabilities
             case .emailHandlerRefreshAlias: return emailRefreshAlias
             case .emailHandlerGetAddresses: return emailGetAddresses
             case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
