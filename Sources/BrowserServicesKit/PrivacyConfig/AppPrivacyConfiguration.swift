@@ -50,19 +50,21 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return versionString.split(separator: ".").map { Int($0) ?? 0 }
     }
     
-    func staisfiesMinVersion(feature: PrivacyConfigurationData.PrivacyFeature,
+    func satisfiesMinVersion(feature: PrivacyConfigurationData.PrivacyFeature,
                              versionProvider: AppVersionProvider) -> Bool {
         if let minSupportedVersion = feature.minSupportedVersion,
            let appVersion = versionProvider.appVersion() {
             let minVersion = parse(versionString: minSupportedVersion)
             let currentVersion = parse(versionString: appVersion)
-            if minVersion.count != currentVersion.count {
-                // Config error
-                return false
-            }
             
-            for i in 0..<minVersion.count {
-                if minVersion[i] > currentVersion[i] {
+            for i in 0..<max(minVersion.count, currentVersion.count) {
+                let minSegment = i < minVersion.count ? minVersion[i] : 0
+                let currSegment = i < currentVersion.count ? currentVersion[i] : 0
+                
+                if currSegment > minSegment {
+                    return true
+                }
+                if currSegment < minSegment {
                     return false
                 }
             }
@@ -75,7 +77,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
         guard let feature = data.features[featureKey.rawValue] else { return false }
         
-        return staisfiesMinVersion(feature: feature, versionProvider: versionProvider)
+        return satisfiesMinVersion(feature: feature, versionProvider: versionProvider)
                 && feature.state == PrivacyConfigurationData.State.enabled
     }
     

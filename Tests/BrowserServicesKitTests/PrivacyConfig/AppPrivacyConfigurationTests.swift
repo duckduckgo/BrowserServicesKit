@@ -325,6 +325,10 @@ class AppPrivacyConfigurationTests: XCTestCase {
         
         appVersion = MockAppVersionProvider(appVersion: "0.22.3")
         XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+        appVersion = MockAppVersionProvider(appVersion: "1.0.0")
+        XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+        appVersion = MockAppVersionProvider(appVersion: "1.0.0.0")
+        XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
         
         // Test invalid version format
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
