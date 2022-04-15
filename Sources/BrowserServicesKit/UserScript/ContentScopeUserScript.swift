@@ -25,11 +25,41 @@ public final class ContentScopeProperties: Encodable {
     public let debug: Bool = false
     public let sessionKey: String
     public let platform = ContentScopePlatform()
+    public let features: [String: ContentScopeFeature]
 
     public init(gpcEnabled: Bool, sessionKey: String) {
         self.globalPrivacyControlValue = gpcEnabled
         self.sessionKey = sessionKey
+        features = [
+            "autofill": ContentScopeFeature()
+        ]
     }
+}
+public struct ContentScopeFeature: Encodable {
+    public let settings: [String: FeatureToggles]
+    public init() {
+        self.settings = ["featureToggles": FeatureToggles()]
+    }
+}
+public struct ContentScopeFeatureToggles: Encodable {
+    public let featureToggles = FeatureToggles();
+}
+public struct FeatureToggles: Encodable {
+    #if os(iOS)
+    public let inputType_credentials = true
+    public let inputType_identities = false
+    public let inputType_creditCards = false
+    public let emailProtection = true
+    public let password_generation = false
+    public let credentials_saving = true
+    #else
+    public let inputType_credentials = true
+    public let inputType_identities = true
+    public let inputType_creditCards = true
+    public let emailProtection = true
+    public let password_generation = true
+    public let credentials_saving = true
+    #endif
 }
 
 public struct ContentScopePlatform: Encodable {
