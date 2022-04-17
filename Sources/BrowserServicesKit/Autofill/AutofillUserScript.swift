@@ -48,6 +48,7 @@ public class AutofillUserScript: NSObject, UserScript {
 
         case getAvailableInputTypes
         case getAutofillData
+        case storeFormData
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -102,6 +103,7 @@ public class AutofillUserScript: NSObject, UserScript {
             
             case .getAvailableInputTypes: return getAvailableInputTypes
             case .getAutofillData: return getAutofillData
+            case .storeFormData: return pmStoreData
 
             case .pmHandlerStoreData: return pmStoreData
             case .pmHandlerGetAccounts: return pmGetAccounts
