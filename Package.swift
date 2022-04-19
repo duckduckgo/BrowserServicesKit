@@ -12,8 +12,7 @@ let package = Package(
     ],
     products: [
         // 3rd Party Submodules
-        .library(name: "argon2", targets: ["argon2"]),
-        // .library(name: "libsodium", targets: ["libsodium"]),
+        .library(name: "Clibsodium", targets: ["Clibsodium"]),
 
         // Intermediate dependencies
         .library(name: "DDGSyncAuth", targets: ["DDGSyncAuth"]),
@@ -87,48 +86,13 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
-//        .target(
-//            name: "libsodium",
-//            resources: [
-//                .process("Makefile.in")
-//            ]
-//        ),
-        .target(
-            name: "argon2",
-            exclude: [
-                "kats",
-                "vs2015",
-                "latex",
-                "libargon2.pc.in",
-                "export.sh",
-                "appveyor.yml",
-                "Argon2.sln",
-                "argon2-specs.pdf",
-                "CHANGELOG.md",
-                "LICENSE",
-                "Makefile",
-                "man",
-                "README.md",
-                "src/bench.c",
-                "src/genkat.c",
-                "src/opt.c",
-                "src/run.c",
-                "src/test.c",
-            ],
-            sources: [
-                "src/blake2/blake2b.c",
-                "src/argon2.c",
-                "src/core.c",
-                "src/encoding.c",
-                "src/ref.c",
-                "src/thread.c"
-            ]
-        ),
+        .binaryTarget(
+                name: "Clibsodium",
+                path: "Clibsodium.xcframework"),
         .target(
             name: "DDGSyncAuth",
             dependencies: [
-                "argon2",
-                // "libsodium"
+                "Clibsodium"
             ]
         ),
         .target(
@@ -137,6 +101,8 @@ let package = Package(
                 "DDGSyncAuth"
             ]
         ),
+
+        // Test Targets
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -150,6 +116,11 @@ let package = Package(
             name: "DDGSyncTests",
             dependencies: [
                 "DDGSync"
+            ]),
+        .testTarget(
+            name: "DDGSyncAuthTests",
+            dependencies: [
+                "DDGSyncAuth"
             ])
     ]
 )
