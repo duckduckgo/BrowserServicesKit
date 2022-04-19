@@ -6,7 +6,7 @@
 DDGSyncAuthResult ddgSyncCreateKeyAndPasswordHash(
     char *userId,                                      // IN - use a UUID
     char *password,                                    // IN - use a UUID
-    char primaryKey[DDDGSYNCAUTH_PRIMARY_KEY_SIZE],    // OUT - store this securely
+    char primaryKey[DDGSYNCAUTH_PRIMARY_KEY_SIZE],    // OUT - store this securely
     char passwordHash[DDGSYNCAUTH_HASH_SIZE]           // OUT - Use in API calls but don't store it
 ) {
 
@@ -18,7 +18,7 @@ DDGSyncAuthResult ddgSyncCreateKeyAndPasswordHash(
 }
 
 DDGSyncAuthResult ddgSyncCreatePasswordHash(
-    const char primaryKey[DDDGSYNCAUTH_PRIMARY_KEY_SIZE],   // IN
+    const char primaryKey[DDGSYNCAUTH_PRIMARY_KEY_SIZE],   // IN
     char passwordHash[DDGSYNCAUTH_HASH_SIZE]                // OUT - Use in API calls but don't store it
 ) {
 
