@@ -234,6 +234,11 @@ class MockAutofillMessage: AutofillMessage {
     let mockedBody: Any
     let mockedHost: String
     let mockedWebView: WKWebView?
+    let mockedMainFrame: Bool
+
+    var isMainFrame: Bool {
+        return mockedMainFrame
+    }
     
     var messageName: String {
         return mockedName
@@ -256,6 +261,7 @@ class MockAutofillMessage: AutofillMessage {
         self.mockedBody = body
         self.mockedWebView = webView
         self.mockedHost = host
+        self.mockedMainFrame = true
     }
 }
 
