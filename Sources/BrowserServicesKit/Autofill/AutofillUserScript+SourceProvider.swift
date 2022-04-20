@@ -34,12 +34,15 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     public init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
         var replacements: [String: String] = [:]
         #if os(macOS)
-            replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
             replacements["// INJECT isApp HERE"] = "isApp = true;"
         #endif
 
         if #available(iOS 14, macOS 11, *) {
             replacements["// INJECT hasModernWebkitAPI HERE"] = "hasModernWebkitAPI = true;"
+            
+            #if os(macOS)
+                replacements["// INJECT supportsTopFrame HERE"] = "supportsTopFrame = true;"
+            #endif
         }
         
         guard let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8),
