@@ -7,9 +7,10 @@
 
 #define DDGSYNCAUTH_HASH_SIZE 32
 
-// TODO use the constants, but get them compiled here
-#define DDGSYNCAUTH_PRIMARY_KEY_SIZE 32 // crypto_box_SEEDBYTES
-#define DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE 128 // crypto_secretbox_MACBYTES + DDGSYNCAUTH_PRIMARY_KEY_SIZE
+// TODO how to use the constants?  These defines aren't available in the swift layer if the constants from sodium/*.h are used.
+#define DDGSYNCAUTH_PRIMARY_KEY_SIZE 32                                                           // crypto_box_SEEDBYTES
+#define DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE DDGSYNCAUTH_PRIMARY_KEY_SIZE * 2
+#define DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE 16 + DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE      // crypto_secretbox_MACBYTES + DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE
 
 typedef enum : int {
     DDGSYNCAUTH_OK,
@@ -38,7 +39,5 @@ extern DDGSyncAuthResult ddgSyncCreateAccount(
     const char *userId,
     const char *password
 );
-
-// TODO get secret key from protected symmetric key?
 
 #endif /* DDGSyncAuth_h */

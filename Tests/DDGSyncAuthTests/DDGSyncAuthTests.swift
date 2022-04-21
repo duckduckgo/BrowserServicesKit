@@ -9,6 +9,12 @@ class DDGSyncAuthTests: XCTestCase {
         let protectedSymmetricKey = UnsafeMutablePointer<CChar>.allocate(capacity: Int(DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE))
         let passwordHash = UnsafeMutablePointer<CChar>.allocate(capacity: Int(DDGSYNCAUTH_HASH_SIZE))
 
+        defer {
+            primaryKey.deallocate()
+            protectedSymmetricKey.deallocate()
+            passwordHash.deallocate()
+        }
+
         XCTAssertTrue(String(cString: primaryKey).isEmpty)
         XCTAssertTrue(String(cString: protectedSymmetricKey).isEmpty)
         XCTAssertTrue(String(cString: passwordHash).isEmpty)
@@ -18,6 +24,7 @@ class DDGSyncAuthTests: XCTestCase {
         XCTAssertFalse(String(cString: primaryKey).isEmpty)
         XCTAssertFalse(String(cString: protectedSymmetricKey).isEmpty)
         XCTAssertFalse(String(cString: passwordHash).isEmpty)
+
     }
 
 }

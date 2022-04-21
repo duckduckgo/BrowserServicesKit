@@ -11,9 +11,6 @@
 #define DDGSYNC_STRETCHED_PRIMARY_KEY_CONTEXT "Stretchy"
 #define DDGSYNC_PASSWORD_HASH_CONTEXT "Password"
 
-// Other private macros
-#define DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE DDGSYNCAUTH_PRIMARY_KEY_SIZE * 2
-
 enum DDGSyncAuthSubkeyIds : int {
 
     DDGSyncAuthPasswordHashSubkey = 1,
@@ -28,13 +25,15 @@ DDGSyncAuthResult ddgSyncCreateAccount(
     const char *userId,
     const char *password) {
 
-    // Define VARS
+    // Define vars
+
     unsigned char salt[crypto_pwhash_SALTBYTES];
     unsigned char stretchedPrimaryKey[DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE];
     unsigned char secretKey[crypto_secretbox_KEYBYTES];
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
 
     // Validate inputs
+
     if (NULL == userId) {
         return DDGSYNCAUTH_INVALID_USERID;
     }
@@ -44,6 +43,7 @@ DDGSyncAuthResult ddgSyncCreateAccount(
     }
 
     // Prepare salt
+
     memset(salt, 0, crypto_pwhash_SALTBYTES);
     memcpy(salt, userId, min(crypto_pwhash_SALTBYTES, strlen(userId)));
 
@@ -66,6 +66,7 @@ DDGSyncAuthResult ddgSyncCreateAccount(
                                         DDGSyncAuthPasswordHashSubkey,
                                         DDGSYNC_PASSWORD_HASH_CONTEXT,
                                         primaryKey)) {
+
         return DDGSYNCAUTH_CREATE_PASSWORD_HASH_FAILED;
     }
 
@@ -74,6 +75,7 @@ DDGSyncAuthResult ddgSyncCreateAccount(
                                         DDGSyncAuthStretchedPrimaryKeySubkey,
                                         DDGSYNC_STRETCHED_PRIMARY_KEY_CONTEXT,
                                         primaryKey)) {
+
         return DDGSYNCAUTH_CREATE_STRETCHED_PRIMARY_KEY_FAILED;
     }
 
@@ -85,6 +87,7 @@ DDGSyncAuthResult ddgSyncCreateAccount(
                                    DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE,
                                    nonceBytes,
                                    secretKey)) {
+
         return DDGSYNCAUTH_CREATE_PROTECTED_SECRET_KEY_FAILED;
     }
 
