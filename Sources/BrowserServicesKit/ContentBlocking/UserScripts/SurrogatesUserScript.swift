@@ -141,6 +141,9 @@ open class SurrogatesUserScript: NSObject, UserScript {
         // Construct a JavaScript object for function lookup
         let surrogatesOut = surrogateScripts.map { (surrogate) -> String in
             var codeLines = surrogate.split(separator: "\n")
+            if (codeLines.isEmpty) {
+                return ""
+            }
             let instructionsRow = codeLines.removeFirst()
             let pattern = instructionsRow.split(separator: " ")[0].split(separator: "/")[1]
             let stringifiedFunction = codeLines.joined(separator: "\n")
