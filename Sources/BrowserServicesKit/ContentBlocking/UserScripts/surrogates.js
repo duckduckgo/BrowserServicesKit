@@ -474,7 +474,7 @@
     }
 
     // public
-    function shouldBlock (trackerUrl, type) {
+    function shouldBlock (trackerUrl, type, element) {
         seenUrls.add(trackerUrl)
         const startTime = performance.now()
 
@@ -504,9 +504,17 @@
         // Tracker blocking is dealt with by content rules
         // Only handle surrogates here
         if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl)) {
+            // Remove error handlers on the original element
+            if (element && element.onerror) {
+                element.onerror = () => {}
+            }
             if (!loadedSurrogates[result.matchedRule.surrogate]) {
                 loadSurrogate(result.matchedRule.surrogate)
                 loadedSurrogates[result.matchedRule.surrogate] = true
+                // Trigger a load event on the original element
+                if (element && element.onload) {
+                    element.onload(new Event('load'))
+                }
             }
 
             const pageUrl = window.location.href
@@ -532,31 +540,35 @@
 
     const seenUrls = new Set()
     function hasNotSeen (url) {
+        // Ignore elements with no url
+        if (!url) {
+            return false
+        }
         return !seenUrls.has(url)
     }
 
     function processPage () {
-        [...document.scripts].filter(hasNotSeen).forEach((el) => {
-            if (shouldBlock(el.src, 'SCRIPT')) {
+        [...document.scripts].filter((el) => hasNotSeen(el.src)).forEach((el) => {
+            if (shouldBlock(el.src, 'SCRIPT', el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         });
-        [...document.images].filter(hasNotSeen).forEach((el) => {
+        [...document.images].filter((el) => hasNotSeen(el.src)).forEach((el) => {
             // If the image's natural width is zero, then it has not loaded so we
             // can assume that it may have been blocked.
             if (el.naturalWidth === 0) {
-                if (shouldBlock(el.src, 'IMG')) {
+                if (shouldBlock(el.src, 'IMG', el)) {
                     duckduckgoDebugMessaging.log('blocking load')
                 }
             }
         });
-        [...document.querySelectorAll('link')].filter(hasNotSeen).forEach((el) => {
-            if (shouldBlock(el.href, 'LINK')) {
+        [...document.querySelectorAll('link')].filter((el) => hasNotSeen(el.href)).forEach((el) => {
+            if (shouldBlock(el.href, 'LINK', el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         });
-        [...document.querySelectorAll('iframe')].filter(hasNotSeen).forEach((el) => {
-            if (shouldBlock(el.src, 'IFRAME')) {
+        [...document.querySelectorAll('iframe')].filter((el) => hasNotSeen(el.src)).forEach((el) => {
+            if (shouldBlock(el.src, 'IFRAME', el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         })
