@@ -29,7 +29,7 @@ DDGSyncAuthResult ddgSyncCreateAccount(
 
     unsigned char salt[crypto_pwhash_SALTBYTES];
     unsigned char stretchedPrimaryKey[DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE];
-    unsigned char secretKey[crypto_secretbox_KEYBYTES];
+    unsigned char secretKey[DDGSYNCAUTH_SECRET_KEY_SIZE];
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
 
     // Validate inputs
@@ -79,17 +79,18 @@ DDGSyncAuthResult ddgSyncCreateAccount(
         return DDGSYNCAUTH_CREATE_STRETCHED_PRIMARY_KEY_FAILED;
     }
 
-    randombytes_buf(secretKey, crypto_secretbox_KEYBYTES);
+    randombytes_buf(secretKey, DDGSYNCAUTH_SECRET_KEY_SIZE);
     randombytes_buf(nonceBytes, crypto_secretbox_NONCEBYTES);
 
     if (0 != crypto_secretbox_easy(protectedSymmetricKey,
-                                   stretchedPrimaryKey,
-                                   DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE,
+                                   secretKey,
+                                   DDGSYNCAUTH_SECRET_KEY_SIZE,
                                    nonceBytes,
-                                   secretKey)) {
-
+                                   stretchedPrimaryKey)) {
         return DDGSYNCAUTH_CREATE_PROTECTED_SECRET_KEY_FAILED;
     }
+
+    memcpy(&protectedSymmetricKey[crypto_secretbox_MACBYTES + DDGSYNCAUTH_SECRET_KEY_SIZE], nonceBytes, crypto_secretbox_NONCEBYTES);
 
     return DDGSYNCAUTH_OK;
 }
