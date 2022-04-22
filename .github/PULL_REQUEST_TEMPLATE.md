@@ -9,6 +9,7 @@ Please review the release process for BrowserServicesKit [here](https://app.asan
 Task/Issue URL: 
 iOS PR:  
 macOS PR: 
+What kind of version bump will this require?: Major/Minor/Patch
 
 **Optional**:
 
