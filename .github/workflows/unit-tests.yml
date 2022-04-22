@@ -1,0 +1,37 @@
+name: Unit tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  swiftlint:
+    if: github.event_name == 'pull_request'
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v3
+    - name: Fetch PR's target branch
+      run: git fetch --no-tags --prune --depth=1 origin ${{ github.base_ref }}
+    - name: Run SwiftLint on files changed in the PR
+      uses: norio-nomura/action-swiftlint@3.2.1
+      with:
+        args: --force-exclude
+      env:
+        DIFF_BASE: ${{ github.base_ref }}
+
+  unit-tests:
+
+    runs-on: macos-latest
+
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    - name: Run tests
+      run: swift test
