@@ -28,13 +28,15 @@ typedef enum : int {
  * Used to create data needed to create an account.  Once the server returns a JWT, then store primary and secret key.
  *
  * @param primaryKey OUT - store this.  In combination with user id, this is the recovery key.
- * @param protectedSymmetricKey OUT - store this. Used to encrypt and decrypt e2e data.
+ * @param secretKey OUT - store this. This is used to encrypt an decrypt e2e data.
+ * @param protectedSymmetricKey OUT - do not store this.  Send to /sign up endpoint.
  * @param passwordHash OUT - do not store this.  Send to /signup endpoint.
  * @param userId IN
  * @param password IN
  */
-extern DDGSyncAuthResult ddgSyncCreateAccount(
+extern DDGSyncAuthResult ddgSyncGenerateAccountKeys(
     unsigned char primaryKey[DDGSYNCAUTH_PRIMARY_KEY_SIZE],
+    unsigned char secretKey[DDGSYNCAUTH_SECRET_KEY_SIZE],
     unsigned char protectedSymmetricKey[DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE],
     unsigned char passwordHash[DDGSYNCAUTH_HASH_SIZE],
     const char *userId,

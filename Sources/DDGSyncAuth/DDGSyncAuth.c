@@ -18,8 +18,9 @@ enum DDGSyncAuthSubkeyIds : int {
 
 };
 
-DDGSyncAuthResult ddgSyncCreateAccount(
+DDGSyncAuthResult ddgSyncGenerateAccountKeys(
     unsigned char primaryKey[DDGSYNCAUTH_PRIMARY_KEY_SIZE],
+    unsigned char secretKey[DDGSYNCAUTH_SECRET_KEY_SIZE],
     unsigned char protectedSymmetricKey[DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE],
     unsigned char passwordHash[DDGSYNCAUTH_HASH_SIZE],
     const char *userId,
@@ -29,7 +30,6 @@ DDGSyncAuthResult ddgSyncCreateAccount(
 
     unsigned char salt[crypto_pwhash_SALTBYTES];
     unsigned char stretchedPrimaryKey[DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE];
-    unsigned char secretKey[DDGSYNCAUTH_SECRET_KEY_SIZE];
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
 
     // Validate inputs
