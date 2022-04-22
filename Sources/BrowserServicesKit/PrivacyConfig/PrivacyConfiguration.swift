@@ -37,7 +37,7 @@ public protocol PrivacyConfiguration {
     /// Trackers that has been allow listed because of site breakage
     var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData { get }
 
-    func isEnabled(featureKey: PrivacyFeature) -> Bool
+    func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -82,6 +82,12 @@ public protocol PrivacyConfiguration {
     func userEnabledProtection(forDomain: String)
     /// Adds given domain to locally unprotected list.
     func userDisabledProtection(forDomain: String)
+}
+
+public extension PrivacyConfiguration {
+    func isEnabled(featureKey: PrivacyFeature) -> Bool {
+        return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
+    }
 }
 
 public enum PrivacyFeature: String {
