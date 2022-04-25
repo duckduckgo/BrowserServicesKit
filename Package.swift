@@ -20,6 +20,7 @@ let package = Package(
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
+        .executable(name: "ddgsynccli", targets: ["DDGSyncCLI"])
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
@@ -99,6 +100,12 @@ let package = Package(
             name: "DDGSync",
             dependencies: [
                 "DDGSyncAuth"
+            ]
+        ),
+        .target(
+            name: "DDGSyncCLI",
+            dependencies: [
+                "DDGSync"
             ]
         ),
 

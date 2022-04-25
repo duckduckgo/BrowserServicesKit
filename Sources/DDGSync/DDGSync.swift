@@ -1,11 +1,40 @@
 
 import Foundation
-import DDGSyncAuth
+import Combine
 
-struct DDGSync {
+public class DDGSync: DDGSyncing {
 
-    func doAuth() {
+    public private (set) var state: SyncState
 
+    public init() {
+        state = .noToken
     }
 
+    public func statePublisher() -> AnyPublisher<SyncState, Never> {
+        return CurrentValueSubject(state).eraseToAnyPublisher()
+    }
+
+    public func createAccount() async throws {
+        try guardValidToken()
+        throw SyncError.notImplemented
+    }
+
+    public func bookmarksPublisher() -> AnyPublisher<SyncEvent<SyncableBookmark>, Never> {
+        return PassthroughSubject().eraseToAnyPublisher()
+    }
+
+    public func sender() throws -> AtomicSender {
+        try guardValidToken()
+        throw SyncError.notImplemented
+    }
+
+    public func fetch() async throws {
+        try guardValidToken()
+    }
+
+    private func guardValidToken() throws {
+        guard state != .validToken else {
+            throw SyncError.unexpectedState(state: state)
+        }
+    }
 }

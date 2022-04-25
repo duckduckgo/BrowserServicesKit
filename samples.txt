@@ -2,12 +2,12 @@
 # https://argon2.online/.  I just hashed some arbitary string
 HASHED_PASSWORD='$argon2id$v=19$m=32768,t=3,p=1$9hU7/9YlZsIlQTLTRgdnieIx4YIovq5pY08QfneDqqI$WqF7UI3gjjMqukhT8edBLY+8rF4ZaI/nlmBJd/JLx9Y'
 PROTECTED_ENCRYPTION_KEY="*%G1pNz3fkMxGrIcfM'0MTjKpKMoP99b" 
-API_HOST=https://5ada-20-75-144-152.ngrok.io
+API_HOST=https://435e-20-75-144-152.ngrok.io
 USER_ID=abe-123
 
 curl -v -X POST -k \
-    -d '{"user_id": "'$USER_ID'", "hashed_password": "'$HASHED_PASSWORD'", "protected_encryption_key": "'$PROTECTED_ENCRYPTION_KEY'", "device_id": "DID", "device_name":"AARON PHONE"}' \
-    "$API_HOST/sports.js?path=sync-auth/signup"
+    -d '{"user_id": "'$USER_ID'", "hashed_password": "'$HASHED_PASSWORD'", "protected_encryption_key": "'$PROTECTED_ENCRYPTION_KEY'", "device_id": "BT1", "device_name":"BRINDY TEST 1"}' \
+    "$API_HOST/ssync-auth/signup"
 
 # This token came from the "token" attribute of the signup endpoint's
 # JSON response
