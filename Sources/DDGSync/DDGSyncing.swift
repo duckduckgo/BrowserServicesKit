@@ -23,7 +23,7 @@ public protocol DDGSyncing {
      * The JWT token contains the authorisation required to call an endpoint.  If a device is removed from sync the token will be invalidated on the server and subsequent calls will fail.
 
      */
-    func createAccount() async throws
+    func createAccount(device: DeviceDetails) async throws
 
     /**
     Creates an atomic sender.  Add items to the sender and then call send to send them all in a single package.  Will automatically re-try if there is a network failure.

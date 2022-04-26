@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -7,8 +7,8 @@ import Foundation
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("13.0"),
-        .macOS("10.15")
+        .iOS(.v13),
+        .macOS(.v10_15)
     ],
     products: [
         // 3rd Party Submodules
@@ -20,11 +20,12 @@ let package = Package(
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
+
         .executable(name: "ddgsynccli", targets: ["DDGSyncCLI"])
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3"))
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3")),
     ],
     targets: [
         
@@ -99,10 +100,13 @@ let package = Package(
         .target(
             name: "DDGSync",
             dependencies: [
+                "BrowserServicesKit",
                 "DDGSyncAuth"
             ]
         ),
-        .target(
+
+        // Command line app targets
+        .executableTarget(
             name: "DDGSyncCLI",
             dependencies: [
                 "DDGSync"
