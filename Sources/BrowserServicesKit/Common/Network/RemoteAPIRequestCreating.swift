@@ -28,7 +28,7 @@ public protocol HTTPRequesting {
 
     mutating func addParameter(_ name: String, value: String)
 
-    func execute() async -> HTTPURLResponse
+    func execute() async throws -> HTTPURLResponse
 
 }
 

@@ -23,7 +23,7 @@ struct AccountCreation: AccountCreating {
         request.addParameter("device_id", value: device.id.uuidString)
         request.addParameter("device_name", value: device.name)
 
-        let result = await request.execute()
+        let result = try await request.execute()
         guard (200 ..< 300).contains(result.statusCode) else {
             throw SyncError.unexpectedStatusCode(result.statusCode)
         }
