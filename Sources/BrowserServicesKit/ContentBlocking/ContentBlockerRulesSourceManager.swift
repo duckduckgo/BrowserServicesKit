@@ -74,18 +74,10 @@ public class ContentBlockerRulesSourceManager {
     
     public class RulesSourceBreakageInfo {
 
-        public let name: String
         public internal(set) var tdsIdentifier: String?
-
         public internal(set) var tempListIdentifier: String?
-
         public internal(set) var allowListIdentifier: String?
-
         public internal(set) var unprotectedSitesIdentifier: String?
-
-        init(name: String) {
-            self.name = name
-        }
     }
 
     /**
@@ -178,7 +170,7 @@ public class ContentBlockerRulesSourceManager {
      */
     func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers, with error: Error) {
         guard let brokenSources = brokenSources else {
-            let brokenSources = RulesSourceBreakageInfo(name: rulesList.name)
+            let brokenSources = RulesSourceBreakageInfo()
             self.brokenSources = brokenSources
             compilationFailed(for: input, with: error, brokenSources: brokenSources)
             return
