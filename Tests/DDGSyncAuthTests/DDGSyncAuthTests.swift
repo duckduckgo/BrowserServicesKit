@@ -45,6 +45,9 @@ class DDGSyncAuthTests: XCTestCase {
                                                                   "UserID",
                                                                   "Password"))
 
+        assertValidKey(primaryKey1)
+        assertValidKey(primaryKey2)
+
         XCTAssertEqual(primaryKey1, primaryKey2)
     }
 

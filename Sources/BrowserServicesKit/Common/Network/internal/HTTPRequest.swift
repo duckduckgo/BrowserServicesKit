@@ -58,6 +58,7 @@ struct HTTPRequest: HTTPRequesting {
         }
 
         var request = URLRequest(url: url)
+        request.httpMethod = method.rawValue
         defaultHeaders.forEach { header in
             request.addValue(header.value, forHTTPHeaderField: header.key)
         }
