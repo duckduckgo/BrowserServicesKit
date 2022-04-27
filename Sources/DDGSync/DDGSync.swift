@@ -42,7 +42,7 @@ public class DDGSync: DDGSyncing {
         return PassthroughSubject().eraseToAnyPublisher()
     }
 
-    public func sender() throws -> AtomicSender {
+    public func sender() throws -> AtomicSending {
         try guardValidToken()
         throw SyncError.notImplemented
     }

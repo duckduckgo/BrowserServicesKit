@@ -24,6 +24,7 @@ public struct SyncAccount {
     let primaryKey: Data
     let secretKey: Data
     let token: String
+    let baseDataURL: URL
 
 }
 

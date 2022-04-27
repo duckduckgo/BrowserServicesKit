@@ -32,7 +32,7 @@ public protocol DDGSyncing {
         * Delete bookmark
         * Add the favorite
      */
-    func sender() throws -> AtomicSender
+    func sender() throws -> AtomicSending
 
     /**
     Call this to call the server and get updates.
@@ -46,11 +46,11 @@ public protocol DDGSyncing {
 
 }
 
-public protocol AtomicSender {
+public protocol AtomicSending {
 
-    func persistBookmark(_ bookmark: SyncableBookmark) -> AtomicSender
+    func persistBookmark(_ bookmark: SyncableBookmark) -> AtomicSending
 
-    func deleteBookmark(_ bookmark: SyncableBookmark) -> AtomicSender
+    func deleteBookmark(_ bookmark: SyncableBookmark) -> AtomicSending
 
     func send() async
 

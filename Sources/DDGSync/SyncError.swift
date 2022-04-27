@@ -7,9 +7,10 @@ public enum SyncError: Error {
     case notImplemented
 
     case failedToCreateAccountKeys
-
+    case noResponseBody
     case unexpectedState(SyncState)
-
     case unexpectedStatusCode(Int)
-    
+    case unableToDecodeResponse(String)
+    case invalidDataInResponse(String)
+
 }

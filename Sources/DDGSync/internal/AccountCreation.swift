@@ -24,11 +24,35 @@ struct AccountCreation: AccountCreating {
         request.addParameter("device_name", value: device.name)
 
         let result = try await request.execute()
-        guard (200 ..< 300).contains(result.statusCode) else {
-            throw SyncError.unexpectedStatusCode(result.statusCode)
+        guard (200 ..< 300).contains(result.response.statusCode) else {
+            throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }
 
-        return SyncAccount(userId: userId, primaryKey: Data(), secretKey: Data(), token: "")
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
+        }
+
+        guard let signupResult = try? JSONDecoder().decode(Result.self, from: body) else {
+            throw SyncError.unableToDecodeResponse("signup result")
+        }
+
+        guard let baseDataURL = URL(string: signupResult.data_url_base) else {
+            throw SyncError.invalidDataInResponse("signup result data_url_base")
+        }
+
+        return SyncAccount(userId: userId,
+                           primaryKey: Data(accountKeys.primaryKey),
+                           secretKey: Data(accountKeys.secretKey),
+                           token: signupResult.token,
+                           baseDataURL: baseDataURL)
+    }
+
+    struct Result: Decodable {
+
+        let user_id: String
+        let token: String
+        let data_url_base: String
+
     }
 
 }
