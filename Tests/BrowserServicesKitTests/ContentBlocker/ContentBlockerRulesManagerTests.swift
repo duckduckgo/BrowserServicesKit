@@ -264,7 +264,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
                 errorExp.fulfill()
             default:
-                XCTFail()
+                XCTFail("Unexpected event received: \(event)")
             }
         }
 
