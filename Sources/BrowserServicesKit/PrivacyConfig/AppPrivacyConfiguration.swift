@@ -46,10 +46,39 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return data.trackerAllowlist.state == PrivacyConfigurationData.State.enabled ? data.trackerAllowlist.entries : [:]
     }
     
-    public func isEnabled(featureKey: PrivacyFeature) -> Bool {
+    func parse(versionString: String) -> [Int] {
+        return versionString.split(separator: ".").map { Int($0) ?? 0 }
+    }
+    
+    func satisfiesMinVersion(feature: PrivacyConfigurationData.PrivacyFeature,
+                             versionProvider: AppVersionProvider) -> Bool {
+        if let minSupportedVersion = feature.minSupportedVersion,
+           let appVersion = versionProvider.appVersion() {
+            let minVersion = parse(versionString: minSupportedVersion)
+            let currentVersion = parse(versionString: appVersion)
+            
+            for i in 0..<max(minVersion.count, currentVersion.count) {
+                let minSegment = i < minVersion.count ? minVersion[i] : 0
+                let currSegment = i < currentVersion.count ? currentVersion[i] : 0
+                
+                if currSegment > minSegment {
+                    return true
+                }
+                if currSegment < minSegment {
+                    return false
+                }
+            }
+        }
+        
+        return true
+    }
+    
+    public func isEnabled(featureKey: PrivacyFeature,
+                          versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
         guard let feature = data.features[featureKey.rawValue] else { return false }
         
-        return feature.state == PrivacyConfigurationData.State.enabled
+        return satisfiesMinVersion(feature: feature, versionProvider: versionProvider)
+                && feature.state == PrivacyConfigurationData.State.enabled
     }
     
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {

@@ -80,6 +80,14 @@ class SurrogatesUserScriptsTests: XCTestCase {
 """
 
     static let exampleSurrogates = """
+        # This file contains "surrogates". Surrogates are small scripts that our apps and extensions serve in place of trackers that cause site breakage when blocked.
+        # Learn more: https://github.com/duckduckgo/tracker-surrogates
+        badtracker.net/track.js application/javascript
+        (() => {
+            'use strict';
+            window.bad = 1;
+        })();
+
         tracker.com/script.js application/javascript
         (() => {
             'use strict';
@@ -92,6 +100,12 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 }
             }()
             window.surrT = surrogatesScriptTest
+        })();
+
+        othertracker.net/track.js application/javascript
+        (() => {
+            'use strict';
+            window.other = 1;
         })();
         """
 
