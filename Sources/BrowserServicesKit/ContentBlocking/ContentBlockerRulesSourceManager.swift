@@ -71,6 +71,22 @@ public class ContentBlockerRulesSourceModel: ContentBlockerRulesSourceIdentifier
  Manages sources that are used to compile Content Blocking Rules, handles possible broken state by filtering out sources that are potentially corrupted.
  */
 public class ContentBlockerRulesSourceManager {
+    
+    public class RulesSourceBreakageInfo {
+
+        public let name: String
+        public internal(set) var tdsIdentifier: String?
+
+        public internal(set) var tempListIdentifier: String?
+
+        public internal(set) var allowListIdentifier: String?
+
+        public internal(set) var unprotectedSitesIdentifier: String?
+
+        init(name: String) {
+            self.name = name
+        }
+    }
 
     /**
      Data source for all of the exception info used during compilation.
@@ -82,7 +98,7 @@ public class ContentBlockerRulesSourceManager {
     /**
      Identifiers of sources that have caused compilation process to fail.
      */
-    public private(set) var brokenSources: ContentBlockerRulesSourceIdentifiers?
+    public private(set) var brokenSources: RulesSourceBreakageInfo?
     public private(set) var fallbackTDSFailure = false
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
@@ -156,33 +172,48 @@ public class ContentBlockerRulesSourceManager {
 
         return result
     }
-
+    
     /**
      Process information about last failed compilation in order to update `brokenSources` state.
      */
     func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers, with error: Error) {
+        guard let brokenSources = brokenSources else {
+            let brokenSources = RulesSourceBreakageInfo(name: rulesList.name)
+            self.brokenSources = brokenSources
+            compilationFailed(for: input, with: error, brokenSources: brokenSources)
+            return
+        }
+        
+        compilationFailed(for: input, with: error, brokenSources: brokenSources)
+    }
+
+    /**
+     Process information about last failed compilation in order to update `brokenSources` state.
+     */
+    private func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers,
+                                   with error: Error,
+                                   brokenSources: RulesSourceBreakageInfo) {
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             // We failed compilation for non-embedded TDS, marking it as broken.
-            brokenSources = ContentBlockerRulesSourceIdentifiers(name: rulesList.name,
-                                                                 tdsIdentfier: input.tdsIdentifier)
+            brokenSources.tdsIdentifier = input.tdsIdentifier
             errorReporting?.fire(.contentBlockingTDSCompilationFailed,
                                  scope: input.name,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tdsIdentifier])
         } else if input.tempListIdentifier != nil {
-            brokenSources?.tempListIdentifier = input.tempListIdentifier
+            brokenSources.tempListIdentifier = input.tempListIdentifier
             errorReporting?.fire(.contentBlockingTempListCompilationFailed,
                                  scope: input.name,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tempListIdentifier ?? "empty"])
         } else if input.allowListIdentifier != nil {
-            brokenSources?.allowListIdentifier = input.allowListIdentifier
+            brokenSources.allowListIdentifier = input.allowListIdentifier
             errorReporting?.fire(.contentBlockingAllowListCompilationFailed,
                                  scope: input.name,
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.allowListIdentifier ?? "empty"])
         } else if input.unprotectedSitesIdentifier != nil {
-            brokenSources?.unprotectedSitesIdentifier = input.unprotectedSitesIdentifier
+            brokenSources.unprotectedSitesIdentifier = input.unprotectedSitesIdentifier
             errorReporting?.fire(.contentBlockingUnpSitesCompilationFailed,
                                  scope: input.name,
                                  error: error)
