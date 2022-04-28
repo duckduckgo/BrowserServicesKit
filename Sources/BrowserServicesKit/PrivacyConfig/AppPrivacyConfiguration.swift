@@ -35,11 +35,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public var userUnprotectedDomains: [String] {
-        return Array(locallyUnprotected.unprotectedDomains)
+        return Array(locallyUnprotected.unprotectedDomains).normalizedDomainsForContentBlocking()
     }
     
     public var tempUnprotectedDomains: [String] {
-        return data.unprotectedTemporary.map { $0.domain }
+        return data.unprotectedTemporary.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
 
     public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData {
@@ -84,7 +84,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {
         guard let feature = data.features[featureKey.rawValue] else { return [] }
         
-        return feature.exceptions.map { $0.domain }
+        return feature.exceptions.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
 
     public func isFeature(_ feature: PrivacyFeature, enabledForDomain domain: String?) -> Bool {
@@ -111,7 +111,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isUserUnprotected(domain: String?) -> Bool {
         guard let domain = domain else { return false }
 
-        return locallyUnprotected.unprotectedDomains.contains(domain)
+        return userUnprotectedDomains.contains(domain)
     }
 
     public func isTempUnprotected(domain: String?) -> Bool {
@@ -153,4 +153,13 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         locallyUnprotected.disableProtection(forDomain: domain)
     }
     
+}
+
+extension Array where Element == String {
+    
+    func normalizedDomainsForContentBlocking() -> [String] {
+        map { domain in
+            domain.punycodeEncodedHostname.lowercased()
+        }
+    }
 }
