@@ -153,7 +153,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func userDisabledProtection(forDomain domain: String) {
-        locallyUnprotected.disableProtection(forDomain: domain)
+        locallyUnprotected.disableProtection(forDomain: domain.punycodeEncodedHostname.lowercased())
     }
     
 }
