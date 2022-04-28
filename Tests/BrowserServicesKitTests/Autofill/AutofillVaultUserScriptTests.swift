@@ -366,6 +366,9 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
                             didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
     }
+    
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String, completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+    }
 
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAutoFillInitDataForDomain domain: String,

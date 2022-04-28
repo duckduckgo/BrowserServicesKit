@@ -31,6 +31,10 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
+    
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
+    
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
@@ -252,6 +256,14 @@ extension AutofillUserScript {
         }
 
         let success: Credential
+        
+        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) -> Self? {
+            guard let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) else {
+                return nil
+            }
+            
+            return RequestVaultCredentialsResponse(success: Credential(id: id, username: credentials.account.username, password: password))
+        }
 
     }
     // swiftlint:enable nesting
@@ -298,10 +310,16 @@ extension AutofillUserScript {
             return
         }
         if mainType == "credentials" {
-            let success = RequestVaultCredentialsResponse.Credential(id: 01, username: "shane@example.com", password: "9876543210")
-            let response = RequestVaultCredentialsResponse(success: success)
-            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                replyHandler(jsonString)
+            let domain = hostForMessage(message)
+            vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials in
+                guard let credentials = credentials,
+                        let response = RequestVaultCredentialsResponse.responseFromSecureVaultWebsiteCredentials(credentials) else {
+                    return
+                }
+                
+                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                    replyHandler(jsonString)
+                }
             }
         }
     }

@@ -36,6 +36,8 @@ public struct AutofillData {
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
+    
+    func secureVaultManager(_: SecureVaultManager, promptUserToAutofillCredentialsForDomain domain: String, completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
     
@@ -100,6 +102,14 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             completionHandler([])
         }
 
+    }
+        
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestCredentialsForDomain domain: String,
+                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+        delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain) { credentials in
+            completionHandler(credentials)
+        }
     }
 
     public func autofillUserScript(_: AutofillUserScript,
