@@ -311,6 +311,7 @@ extension AutofillUserScript {
         }
         if mainType == "credentials" {
             let domain = hostForMessage(message)
+            
             vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials in
                 guard let credentials = credentials,
                         let response = RequestVaultCredentialsResponse.responseFromSecureVaultWebsiteCredentials(credentials) else {

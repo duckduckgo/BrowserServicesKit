@@ -37,7 +37,10 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
     
-    func secureVaultManager(_: SecureVaultManager, promptUserToAutofillCredentialsForDomain domain: String, completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
+    func secureVaultManager(_: SecureVaultManager,
+                            promptUserToAutofillCredentialsForDomain domain: String,
+                            withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                            completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
     
@@ -103,12 +106,30 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
 
     }
-        
+            
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
-        delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain) { credentials in
-            completionHandler(credentials)
+        do {
+            let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+            let accounts = try vault.accountsFor(domain: domain)
+            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account in
+                guard let accountID = account?.id else {
+                    completionHandler(nil)
+                    return
+                }
+                
+                do {
+                    let credentials = try vault.websiteCredentialsFor(accountId: accountID)
+                    completionHandler(credentials)
+                } catch {
+                    os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                    completionHandler(nil)
+                }
+            }
+        } catch {
+            os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
+            completionHandler(nil)
         }
     }
 
