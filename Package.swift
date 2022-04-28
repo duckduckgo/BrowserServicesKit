@@ -15,7 +15,8 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3"))
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3")),
+        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0"))
     ],
     targets: [
         
@@ -24,6 +25,7 @@ let package = Package(
             dependencies: [
                 "GRDB",
                 "TrackerRadarKit",
+                .product(name: "Punnycode", package: "Punycode"),
                 "BloomFilterWrapper"
             ],
             exclude: [
