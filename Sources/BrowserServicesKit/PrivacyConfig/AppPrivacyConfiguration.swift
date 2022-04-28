@@ -146,7 +146,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func userEnabledProtection(forDomain domain: String) {
-        locallyUnprotected.enableProtection(forDomain: domain)
+        let domainToRemove = locallyUnprotected.unprotectedDomains.first { unprotectedDomain in
+            unprotectedDomain.punycodeEncodedHostname.lowercased() == domain
+        }
+        locallyUnprotected.enableProtection(forDomain: domainToRemove ?? domain)
     }
 
     public func userDisabledProtection(forDomain domain: String) {
