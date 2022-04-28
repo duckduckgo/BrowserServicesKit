@@ -15,13 +15,21 @@ struct AccountCreation: AccountCreating {
 
         let accountKeys = try keyGenerator.createAccountCreationKeys(userId: userId, password: password)
 
-        // /sync-auth/signup and extra JWT token
+        let hashedPassword = Data(accountKeys.passwordHash).base64EncodedString()
+        let protectedEncyrptionKey = Data(accountKeys.protectedSymmetricKey).base64EncodedString()
+
+        let params = Parameters(user_id: userId,
+                                hashed_password: hashedPassword,
+                                protected_encryption_key: protectedEncyrptionKey,
+                                device_id: device.id.uuidString,
+                                device_name: device.name)
+
+        guard let paramJson = try? JSONEncoder().encode(params) else {
+            fatalError()
+        }
+
         var request = api.createRequest(url: endpoints.signup, method: .POST)
-        request.addParameter("user_id", value: userId)
-        request.addParameter("hashed_password", value: Data(accountKeys.passwordHash).base64EncodedString())
-        request.addParameter("protected_encryption_key", value: Data(accountKeys.protectedSymmetricKey).base64EncodedString())
-        request.addParameter("device_id", value: device.id.uuidString)
-        request.addParameter("device_name", value: device.name)
+        request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
@@ -52,6 +60,16 @@ struct AccountCreation: AccountCreating {
         let user_id: String
         let token: String
         let data_url_base: String
+
+    }
+
+    struct Parameters: Encodable {
+
+        let user_id: String
+        let hashed_password: String
+        let protected_encryption_key: String
+        let device_id: String
+        let device_name: String
 
     }
 

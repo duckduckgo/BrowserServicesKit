@@ -4,7 +4,11 @@ import Combine
 
 struct HTTPRequest: HTTPRequesting {
 
-    var defaultHeaders: [String: String] {
+    let appVersion: AppVersion = AppVersion()
+    let url: URL
+    let method: HTTPRequestMethod
+
+    private var defaultHeaders: [String: String] {
         let acceptEncoding = "gzip;q=1.0, compress;q=0.5"
         let languages = Locale.preferredLanguages.prefix(6)
         let acceptLanguage = languages.enumerated().map { index, language in
@@ -31,15 +35,18 @@ struct HTTPRequest: HTTPRequesting {
         return "ddg_\(ddg)/\(appVersion.versionNumber) (\(appVersion.identifier); \(platform) \(osVersion))"
     }
 
-    let appVersion: AppVersion = AppVersion()
-    let url: URL
-    let method: HTTPRequestMethod
-
     private var queryItems: [URLQueryItem]?
+    private var body: Data?
+    private var contentType: String?
 
     init(url: URL, method: HTTPRequestMethod) {
         self.url = url
         self.method = method
+    }
+
+    mutating public func setBody(body: Data, withContentType contentType: String) {
+        self.body = body
+        self.contentType = contentType
     }
 
     mutating public func addParameter(_ name: String, value: String) {
@@ -50,6 +57,14 @@ struct HTTPRequest: HTTPRequesting {
     }
 
     public func execute() async throws -> HTTPResult {
+        if body != nil, contentType == nil {
+            throw HTTPRequestError.bodyWithoutContentType
+        }
+
+        if contentType != nil, body == nil {
+            throw HTTPRequestError.contentTypeWithoutBody
+        }
+
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.queryItems = queryItems
 
@@ -61,6 +76,11 @@ struct HTTPRequest: HTTPRequesting {
         request.httpMethod = method.rawValue
         defaultHeaders.forEach { header in
             request.addValue(header.value, forHTTPHeaderField: header.key)
+        }
+
+        if let body = body, let contentType = contentType {
+            request.httpBody = body
+            request.setValue(contentType, forHTTPHeaderField: HTTPHeaderName.contentType)
         }
 
         // When we can use iOS 15 and macOS 12 only we can just use the async/await APIs for URL requests.

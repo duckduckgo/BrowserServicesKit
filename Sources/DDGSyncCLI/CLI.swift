@@ -8,7 +8,7 @@ struct CLI {
     static func main() async throws {
         print("ddgsync IN")
 
-        let baseURLString = CommandLine.arguments.count == 1 ? "https://75c5-20-75-144-152.ngrok.io" : CommandLine.arguments[1]
+        let baseURLString = CommandLine.arguments.count == 1 ? "https://cb74-20-75-144-152.ngrok.io" : CommandLine.arguments[1]
         let sync = DDGSync(baseURL: URL(string: baseURLString)!)
 
         let deviceId = UUID().uuidString

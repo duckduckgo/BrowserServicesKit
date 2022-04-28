@@ -28,6 +28,8 @@ public protocol HTTPRequesting {
 
     mutating func addParameter(_ name: String, value: String)
 
+    mutating func setBody(body: Data, withContentType contentType: String)
+
     func execute() async throws -> HTTPResult
 
 }
@@ -39,11 +41,14 @@ enum HTTPHeaderName {
     static let etag = "ETag"
     static let ifNoneMatch = "If-None-Match"
     static let moreInfo = "X-DuckDuckGo-MoreInfo"
+    static let contentType = "Content-Type"
 }
 
 enum HTTPRequestError: Error {
     case failedToCreateRequestUrl
     case notHTTPURLResponse(URLResponse?)
+    case bodyWithoutContentType
+    case contentTypeWithoutBody
 }
 
 public struct HTTPResult {

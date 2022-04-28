@@ -24,7 +24,7 @@ curl -v -X POST -k \
 curl -v -X GET -k \
     -H "Authorization: Bearer $TOKEN" \
     -d '{"types": ["bookmarks", "favorites"]}' \
-    "$API_HOST/sports.js?path=sync-data/sync"
+    "$API_HOST/sync-data/sync"
 
 curl -v -X PATCH -k \
     -H "Authorization: Bearer $TOKEN" \
