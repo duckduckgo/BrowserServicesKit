@@ -91,7 +91,7 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
         let config = privacyConfigManager.privacyConfig
         var tempUnprotected = config.tempUnprotectedDomains.filter { !$0.trimWhitespace().isEmpty }
         tempUnprotected.append(contentsOf: config.exceptionsList(forFeature: .contentBlocking))
-        return tempUnprotected
+        return tempUnprotected.normalizeDomains()
     }
 
     public var allowListEtag: String {
@@ -103,7 +103,7 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
     }
 
     public var unprotectedSites: [String] {
-        return privacyConfigManager.privacyConfig.userUnprotectedDomains
+        return privacyConfigManager.privacyConfig.userUnprotectedDomains.normalizeDomains()
     }
 
     public class func transform(allowList: PrivacyConfigurationData.TrackerAllowlistData) -> [TrackerException] {
@@ -116,9 +116,18 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
             if entry.domains.contains("<all>") {
                 return TrackerException(rule: entry.rule, matching: .all)
             } else {
-                return TrackerException(rule: entry.rule, matching: .domains(entry.domains))
+                return TrackerException(rule: entry.rule, matching: .domains(entry.domains.normalizeDomains()))
             }
         }
     }
 
+}
+
+fileprivate extension Array where Element == String {
+    
+    func normalizeDomains() -> [String] {
+        map { domain in
+            domain.punycodeEncodedHostname.lowercased()
+        }
+    }
 }
