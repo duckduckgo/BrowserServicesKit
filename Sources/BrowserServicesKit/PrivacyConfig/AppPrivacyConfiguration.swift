@@ -27,8 +27,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let locallyUnprotected: DomainsProtectionStore
 
     public init(data: PrivacyConfigurationData,
-         identifier: String,
-         localProtection: DomainsProtectionStore) {
+                identifier: String,
+                localProtection: DomainsProtectionStore) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
