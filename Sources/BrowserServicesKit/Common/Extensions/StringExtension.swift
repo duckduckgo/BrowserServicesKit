@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Punycode
 
 extension String {
 
@@ -57,3 +58,12 @@ extension String {
 
 }
 
+// MARK: - Punycode
+extension String {
+    public var punycodeEncodedHostname: String {
+        return self.split(separator: ".")
+            .map { String($0) }
+            .map { $0.idnaEncoded ?? $0 }
+            .joined(separator: ".")
+    }
+}
