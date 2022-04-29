@@ -35,10 +35,11 @@ jobs:
       matrix:
         os: [macos-11, macos-12]
         include:
+          # Skipping tests that are known to be failing on MacOS 12
           - skipped_tests: |
               --skip 'BrowserServicesKitTests.TrackerAllowlistReferenceTests' \
-              --skip 'BrowserServicesKitTests.SurrogatesUserScriptsTests/.*AreNotInjected' \
-              --skip 'BrowserServicesKitTests.ContentBlockerRulesUserScriptsTests/.*(?:Site).*ReportedButNotBlocked' \
+              --skip 'BrowserServicesKitTests.SurrogatesUserScriptsTests' \
+              --skip 'BrowserServicesKitTests.ContentBlockerRulesUserScriptsTests' \
             os: macos-12
 
     runs-on: ${{ matrix.os }}
@@ -51,6 +52,9 @@ jobs:
         submodules: recursive
 
     - name: Run tests
+      # BSK does not support running tests in parallel, but the flag is required
+      # to make XUnit output work. Making it parallel with 1 worker then.
+      # https://stackoverflow.com/a/70040836
       run: |
         swift test --parallel --num-workers=1 \
           ${{ matrix.skipped_tests }} \
