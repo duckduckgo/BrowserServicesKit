@@ -15,7 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3"))
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .branch("brad/cname-load-types"))
     ],
     targets: [
         
