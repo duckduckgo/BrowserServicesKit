@@ -145,7 +145,10 @@ open class SurrogatesUserScript: NSObject, UserScript {
                 return ""
             }
             let instructionsRow = codeLines.removeFirst()
-            let pattern = instructionsRow.split(separator: " ")[0].split(separator: "/")[1]
+            guard let path = instructionsRow.split(separator: " ").first,
+                  let pattern = path.split(separator: "/").last else {
+                return ""
+            }
             let stringifiedFunction = codeLines.joined(separator: "\n")
             return "surrogates['\(pattern)'] = function () {\(stringifiedFunction)}"
         }
