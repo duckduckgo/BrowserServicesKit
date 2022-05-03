@@ -271,37 +271,28 @@ extension AutofillUserScript {
     // MARK: - Message Handlers
     
     func getAvailableInputTypes(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-//        print("HEY IM HERE")
         let domain = hostForMessage(message)
-        #if os(iOS)
-            let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(email: true, credentials: true, creditCards: true, identities: true)
+        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+            let credentials: [CredentialObject] = accounts.compactMap {
+                guard let id = $0.id else { return nil }
+                return .init(id: id, username: $0.username)
+            }
+
+            let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
+            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
+
+            let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
+                    email: email,
+                    credentials: credentials.count > 0,
+                    creditCards: cards.count > 0,
+                    identities: identities.count > 0
+            )
             let response = RequestAvailableInputTypesResponse(success: success, error: nil)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
-        #else
-            let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-            vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
-                let credentials: [CredentialObject] = accounts.compactMap {
-                    guard let id = $0.id else { return nil }
-                    return .init(id: id, username: $0.username)
-                }
-
-                let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
-                let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
-
-                let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
-                        email: email,
-                        credentials: credentials.count > 0,
-                        creditCards: cards.count > 0,
-                        identities: identities.count > 0
-                )
-                let response = RequestAvailableInputTypesResponse(success: success, error: nil)
-                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                    replyHandler(jsonString)
-                }
-            }
-        #endif
+        }
     }
     
     func getAutofillData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
