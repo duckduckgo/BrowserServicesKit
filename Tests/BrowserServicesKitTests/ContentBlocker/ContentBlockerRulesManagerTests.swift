@@ -264,7 +264,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
                 errorExp.fulfill()
             default:
-                XCTFail()
+                XCTFail("Unexpected event received: \(event)")
             }
         }
 
@@ -581,6 +581,82 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier,
                        mockRulesSource.trackerData?.etag)
+        
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier,
+                       mockExceptionsSource.tempListEtag)
+
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier,
+                       mockExceptionsSource.allowListEtag)
+        
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier,
+                       mockExceptionsSource.unprotectedSitesHash)
+
+        XCTAssertEqual(cbrm.currentRules.first?.identifier,
+                       ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
+                                                     tdsEtag: mockRulesSource.embeddedTrackerData.etag,
+                                                     tempListEtag: nil,
+                                                     allowListEtag: nil,
+                                                     unprotectedSitesHash: nil))
+    }
+    
+    func test_CurrentTDSEqualToFallbackTDS_ValidTempList_ValidAllowList_BrokenUnprotectedSites() {
+        
+        let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.fakeEmbeddedDataSet,
+                                                                       embeddedTrackerData: Self.fakeEmbeddedDataSet)
+        let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
+        mockExceptionsSource.tempListEtag = Self.makeEtag()
+        mockExceptionsSource.tempList = validTempSites
+        mockExceptionsSource.allowListEtag = Self.makeEtag()
+        mockExceptionsSource.allowList = validAllowList
+        mockExceptionsSource.unprotectedSites = ["broken site Ltd. . 😉.com"]
+        
+        XCTAssertEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
+        
+        let exp = expectation(description: "Rules Compiled")
+        rulesUpdateListener.onRulesUpdated = { _ in
+            exp.fulfill()
+        }
+        
+        let errorExp = expectation(description: "Error reported")
+        errorExp.expectedFulfillmentCount = 4
+        var errorEvents = [ContentBlockerDebugEvents]()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, _, params, _ in
+            switch event {
+            case .contentBlockingTempListCompilationFailed,
+                    .contentBlockingAllowListCompilationFailed,
+                    .contentBlockingUnpSitesCompilationFailed:
+                XCTAssertEqual(scope, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
+                errorEvents.append(event)
+                errorExp.fulfill()
+            case .contentBlockingCompilationTime:
+                XCTAssertNil(scope)
+                XCTAssertNotNil(params?["compilationTime"])
+
+                errorExp.fulfill()
+            default:
+                XCTFail("Unexpected \(event)")
+            }
+        }
+
+        let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                              exceptionsSource: mockExceptionsSource,
+                                              updateListener: rulesUpdateListener,
+                                              errorReporting: errorHandler,
+                                              logger: .disabled)
+
+        wait(for: [exp, errorExp], timeout: 15.0)
+        
+        XCTAssertEqual(Set(errorEvents), Set([.contentBlockingTempListCompilationFailed,
+                                              .contentBlockingAllowListCompilationFailed,
+                                              .contentBlockingUnpSitesCompilationFailed]))
+        
+        XCTAssertNotNil(cbrm.currentRules.first?.etag)
+        XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
+        
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
         
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier,
