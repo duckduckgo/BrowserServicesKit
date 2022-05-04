@@ -65,7 +65,7 @@ class SecureVaultManagerTests: XCTestCase {
     
     func testWhenGettingExistingEntries_AndNoAutofillDataWasProvided_AndNoEntriesExist_ThenReturnValueIsNil() throws {
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: nil, creditCard: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -76,7 +76,7 @@ class SecureVaultManagerTests: XCTestCase {
         let card = paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name", cvv: "123", month: 1, year: 2022)
 
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: nil, creditCard: card)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -89,7 +89,7 @@ class SecureVaultManagerTests: XCTestCase {
         try self.testVault.storeCreditCard(card)
 
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: nil, creditCard: card)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -100,7 +100,7 @@ class SecureVaultManagerTests: XCTestCase {
         let identity = identity(name: ("First", "Middle", "Last"), addressStreet: "Address Street")
         
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: identity, credentials: nil, creditCard: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.creditCard)
@@ -113,7 +113,7 @@ class SecureVaultManagerTests: XCTestCase {
         try self.testVault.storeIdentity(identity)
 
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: identity, credentials: nil, creditCard: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
