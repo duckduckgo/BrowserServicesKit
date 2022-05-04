@@ -28,7 +28,6 @@ extension ContentBlockerRulesManager {
      Encapsulates compilation steps for a single Task
      */
     class CompilationTask {
-        // swiftlint:disable:next nesting
         typealias Completion = (_ success: Bool) -> Void
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList

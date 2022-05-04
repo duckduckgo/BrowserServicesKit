@@ -135,8 +135,7 @@ extension AutofillUserScript {
     // MARK: - Requests
     
     public struct IncomingCredentials: Equatable {
-        
-        // swiftlint:disable:next nesting
+
         private enum Constants {
             static let credentialsKey = "credentials"
             static let usernameKey = "username"
