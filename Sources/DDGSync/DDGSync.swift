@@ -38,13 +38,13 @@ public class DDGSync: DDGSyncing {
         state = .validToken
     }
 
-    public func bookmarksPublisher() -> AnyPublisher<SyncEvent<SyncableBookmark>, Never> {
+    public func eventPublisher() -> AnyPublisher<SyncEvent, Never> {
         return PassthroughSubject().eraseToAnyPublisher()
     }
 
     public func sender() throws -> AtomicSending {
         try guardValidToken()
-        throw SyncError.notImplemented
+        return AtomicSender()
     }
 
     public func fetch() async throws {

@@ -40,32 +40,35 @@ public protocol DDGSyncing {
     func fetch() async throws
 
     /**
-     Updates to bookmarks will be received via this publisher.  You can start receiving even if not authorised, it just won't work.
+     SyncEvents will be published here.
      */
-    func bookmarksPublisher() -> AnyPublisher<SyncEvent<SyncableBookmark>, Never>
+    func eventPublisher() -> AnyPublisher<SyncEvent, Never>
 
 }
 
 public protocol AtomicSending {
 
-    func persistBookmark(_ bookmark: SyncableBookmark) -> AtomicSending
+    mutating func persistBookmark(_ bookmark: SavedSite)
+    mutating func persistBookmarkFolder(_ folder: Folder)
+    mutating func deleteBookmark(_ bookmark: SavedSite)
+    mutating func deleteBookmarkFolder(_ folder: Folder)
 
-    func deleteBookmark(_ bookmark: SyncableBookmark) -> AtomicSending
+    mutating func persistFavorite(_ favorite: SavedSite)
+    mutating func persistFavoriteFolder(_ favorite: Folder)
+    mutating func deleteFavorite(_ favorite: SavedSite)
+    mutating func deleteFavoriteFolder(_ favorite: Folder)
 
-    func send() async
+    func send() async throws
 
 }
 
-public protocol Syncable {
+public enum SyncEvent {
 
-    var id: UUID { get }
-    var version: Int { get }
-
-}
-
-public enum SyncEvent<T: Syncable> {
-
-    case persisted(T)
-    case deleted(id: UUID)
+    case bookmarkUpdated(SavedSite)
+    case bookmarkFolderUpdated(Folder)
+    case bookmarkDeleted(id: String)
+    case favoriteUpdated(SavedSite)
+    case favoriteFolderUpdated(Folder)
+    case favoriteDeleted(id: String)
 
 }
