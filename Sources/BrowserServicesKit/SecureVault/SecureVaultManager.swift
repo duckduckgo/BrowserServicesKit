@@ -40,7 +40,9 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
     
+    // swiftlint:disable:next identifier_name
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
+
 }
 
 public class SecureVaultManager {
