@@ -8,6 +8,9 @@ on:
 
 jobs:
   swiftlint:
+
+    name: Run SwiftLint
+
     if: github.event_name == 'pull_request'
 
     runs-on: ubuntu-latest
@@ -26,12 +29,40 @@ jobs:
 
   unit-tests:
 
-    runs-on: macos-latest
+    name: Run unit tests
+
+    strategy:
+      matrix:
+        os: [macos-11, macos-12]
+        include:
+          # Skipping tests that are known to be failing on MacOS 12
+          - skipped_tests: |
+              --skip 'BrowserServicesKitTests.TrackerAllowlistReferenceTests' \
+              --skip 'BrowserServicesKitTests.SurrogatesUserScriptsTests' \
+              --skip 'BrowserServicesKitTests.ContentBlockerRulesUserScriptsTests' \
+            os: macos-12
+
+    runs-on: ${{ matrix.os }}
 
     steps:
+
     - name: Check out the code
       uses: actions/checkout@v3
       with:
         submodules: recursive
+
     - name: Run tests
-      run: swift test
+      # BSK does not support running tests in parallel, but the flag is required
+      # to make XUnit output work. Making it parallel with 1 worker then.
+      # https://stackoverflow.com/a/70040836
+      run: |
+        swift test --parallel --num-workers=1 \
+          ${{ matrix.skipped_tests }} \
+          --xunit-output tests-${{ matrix.os }}.xml
+
+    - name: Publish Unit Tests Report
+      uses: mikepenz/action-junit-report@v3
+      if: always()
+      with:
+        check_name: Test Report (${{ matrix.os }})
+        report_paths: tests-${{ matrix.os }}.xml
