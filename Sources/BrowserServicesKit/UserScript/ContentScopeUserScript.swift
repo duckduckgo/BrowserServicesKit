@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 import Combine
+import ContentScopeScripts
 
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
@@ -60,7 +61,7 @@ public final class ContentScopeUserScript: NSObject, UserScript {
             return ""
         }
         
-        return loadJS("contentScope", from: Bundle.module, withReplacements: [
+        return loadJS("contentScope", from: ContentScopeScripts.Bundle, withReplacements: [
             "$CONTENT_SCOPE$": privacyConfigJson,
             "$USER_UNPROTECTED_DOMAINS$": userUnprotectedDomainsString,
             "$USER_PREFERENCES$": jsonPropertiesString
