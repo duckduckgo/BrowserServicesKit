@@ -5,7 +5,7 @@ import BrowserServicesKit
 
 struct AccountCreation: AccountCreating {
 
-    let endpoints: EndpointURLs
+    let signUpUrl: URL
     let api: RemoteAPIRequestCreating
     let keyGenerator: KeyGenerating
 
@@ -28,7 +28,7 @@ struct AccountCreation: AccountCreating {
             fatalError()
         }
 
-        var request = api.createRequest(url: endpoints.signup, method: .POST)
+        var request = api.createRequest(url: signUpUrl, method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()

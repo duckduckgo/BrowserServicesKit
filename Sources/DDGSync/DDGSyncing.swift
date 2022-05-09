@@ -39,11 +39,6 @@ public protocol DDGSyncing {
      */
     func fetch() async throws
 
-    /**
-     SyncEvents will be published here.
-     */
-    func eventPublisher() -> AnyPublisher<SyncEvent, Never>
-
 }
 
 public protocol AtomicSending {
@@ -70,5 +65,44 @@ public enum SyncEvent {
     case favoriteUpdated(SavedSite)
     case favoriteFolderUpdated(Folder)
     case favoriteDeleted(id: String)
+
+}
+
+
+public struct SavedSite {
+
+    public let id: String
+
+    public let title: String
+    public let url: String
+    public let position: Double
+
+    public let parent: String?
+
+    public init(id: String, title: String, url: String, position: Double, parent: String?) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.position = position
+        self.parent = parent
+    }
+
+}
+
+public struct Folder {
+
+    public let id: String
+
+    public let title: String
+    public let position: Double
+
+    public let parent: String?
+
+    public init(id: String, title: String,position: Double, parent: String?) {
+        self.id = id
+        self.title = title
+        self.position = position
+        self.parent = parent
+    }
 
 }

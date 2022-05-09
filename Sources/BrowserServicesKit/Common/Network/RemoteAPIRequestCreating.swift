@@ -21,12 +21,15 @@ public enum HTTPRequestMethod: String {
 
     case GET
     case POST
+    case PATCH
 
 }
 
 public protocol HTTPRequesting {
 
     mutating func addParameter(_ name: String, value: String)
+
+    mutating func addHeader(_ name: String, value: String)
 
     mutating func setBody(body: Data, withContentType contentType: String)
 

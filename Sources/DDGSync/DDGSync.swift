@@ -10,25 +10,34 @@ public class DDGSync: DDGSyncing {
         public static let baseURL = URL(string: "https://sync.duckduckgo.com")!
     }
 
-    public private (set) var state: SyncState
+    public private (set) var state: SyncState {
+        didSet {
+            stateValueSubject.send(state)
+        }
+    }
 
+    let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
 
-    init(dependencies: SyncDependencies) {
+    private let stateValueSubject: CurrentValueSubject<SyncState, Never>
+
+    init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
         self.state = .noToken
+        self.stateValueSubject = CurrentValueSubject(state)
+        self.persistence = persistence
         self.dependencies = dependencies
     }
 
-    public convenience init() {
-        self.init(dependencies: ProductionDependencies(baseURL: Constants.baseURL))
+    public convenience init(persistence: LocalDataPersisting) {
+        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: Constants.baseURL))
     }
 
-    public convenience init(baseURL: URL) {
-        self.init(dependencies: ProductionDependencies(baseURL: baseURL))
+    public convenience init(persistence: LocalDataPersisting, baseURL: URL) {
+        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: baseURL))
     }
 
     public func statePublisher() -> AnyPublisher<SyncState, Never> {
-        return CurrentValueSubject(state).eraseToAnyPublisher()
+        return stateValueSubject.share().eraseToAnyPublisher()
     }
 
     public func createAccount(device: DeviceDetails) async throws {
@@ -38,13 +47,9 @@ public class DDGSync: DDGSyncing {
         state = .validToken
     }
 
-    public func eventPublisher() -> AnyPublisher<SyncEvent, Never> {
-        return PassthroughSubject().eraseToAnyPublisher()
-    }
-
     public func sender() throws -> AtomicSending {
         try guardValidToken()
-        return AtomicSender()
+        return try dependencies.createAtomicSender()
     }
 
     public func fetch() async throws {
@@ -56,4 +61,24 @@ public class DDGSync: DDGSyncing {
             throw SyncError.unexpectedState(state)
         }
     }
+}
+
+public protocol LocalDataPersisting {
+
+    func persistBookmark(_ bookmark: SavedSite) async throws
+
+    func persistFavorite(_ favorite: SavedSite) async throws
+
+    func persistBookmarkFolder(_ folder: Folder) async throws
+
+    func persistFavoritesFolder(_ folder: Folder) async throws
+
+    func deleteBookmark(_ bookmark: SavedSite) async throws
+
+    func deleteFavorite(_ favorite: SavedSite) async throws
+
+    func deleteBookmarksFolder(_ folder: Folder) async throws
+
+    func deleteFavoritesFolder(_ folder: Folder) async throws
+
 }

@@ -5,10 +5,11 @@ import BrowserServicesKit
 public protocol SyncDependencies {
 
     var accountCreation: AccountCreating { get }
-    var endpoints: EndpointURLs { get }
     var api: RemoteAPIRequestCreating { get }
     var keyGenerator: KeyGenerating { get }
     var secureStore: SecureStoring { get }
+
+    func createAtomicSender() throws -> AtomicSending
 
 }
 
@@ -46,5 +47,7 @@ public struct AccountCreationKeys {
 public protocol SecureStoring {
 
     func persistAccount(_ account: SyncAccount) throws
+
+    func account() throws -> SyncAccount
 
 }

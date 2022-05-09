@@ -38,6 +38,7 @@ struct HTTPRequest: HTTPRequesting {
     private var queryItems: [URLQueryItem]?
     private var body: Data?
     private var contentType: String?
+    private var customHeaders: [String: String]?
 
     init(url: URL, method: HTTPRequestMethod) {
         self.url = url
@@ -54,6 +55,13 @@ struct HTTPRequest: HTTPRequesting {
             queryItems = [URLQueryItem]()
         }
         queryItems?.append(URLQueryItem(name: name, value: value))
+    }
+
+    mutating public func addHeader(_ name: String, value: String) {
+        if customHeaders == nil {
+            customHeaders = [:]
+        }
+        customHeaders?[name] = value
     }
 
     public func execute() async throws -> HTTPResult {
@@ -73,8 +81,14 @@ struct HTTPRequest: HTTPRequesting {
         }
 
         var request = URLRequest(url: url)
+
         request.httpMethod = method.rawValue
+
         defaultHeaders.forEach { header in
+            request.addValue(header.value, forHTTPHeaderField: header.key)
+        }
+
+        customHeaders?.forEach { header in
             request.addValue(header.value, forHTTPHeaderField: header.key)
         }
 

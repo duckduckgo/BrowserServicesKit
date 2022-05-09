@@ -12,5 +12,6 @@ public enum SyncError: Error {
     case unexpectedStatusCode(Int)
     case unableToDecodeResponse(String)
     case invalidDataInResponse(String)
+    case accountNotFound
 
 }

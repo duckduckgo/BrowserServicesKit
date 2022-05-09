@@ -1,5 +1,6 @@
 
 import Foundation
+import BrowserServicesKit
 
 struct AtomicSender: AtomicSending {
 
@@ -19,137 +20,119 @@ struct AtomicSender: AtomicSending {
 
     }
 
+    public let syncUrl: URL
+    public let token: String
+    public let api: RemoteAPIRequestCreating
+
     private var bookmarks = [[String: Any]]()
     private var favorites = [[String: Any]]()
 
+    init(syncUrl: URL, token: String, api: RemoteAPIRequestCreating) {
+        self.syncUrl = syncUrl
+        self.token = token
+        self.api = api
+    }
+
     mutating func persistBookmark(_ bookmark: SavedSite) {
-        bookmarks.append(toDictionary(bookmark, asType: .bookmark))
+        bookmarks.append(toTypedDictionary(bookmark, asType: .bookmark))
     }
 
     mutating func persistBookmarkFolder(_ folder: Folder) {
-        bookmarks.append(toDictionary(folder, asType: .folder))
+        bookmarks.append(toTypedDictionary(folder, asType: .folder))
     }
 
     mutating func deleteBookmark(_ bookmark: SavedSite) {
-        bookmarks.append(toDictionary(bookmark, asType: .bookmark, deleted: true))
+        bookmarks.append(toTypedDictionary(bookmark, asType: .bookmark, deleted: true))
     }
 
     mutating func deleteBookmarkFolder(_ folder: Folder) {
-        bookmarks.append(toDictionary(folder, asType: .folder, deleted: true))
+        bookmarks.append(toTypedDictionary(folder, asType: .folder, deleted: true))
     }
 
     mutating func persistFavorite(_ favorite: SavedSite) {
-        favorites.append(toDictionary(favorite, asType: .favorite))
+        favorites.append(toTypedDictionary(favorite, asType: .favorite))
     }
 
     mutating func persistFavoriteFolder(_ folder: Folder) {
-        favorites.append(toDictionary(folder, asType: .folder))
+        favorites.append(toTypedDictionary(folder, asType: .folder))
     }
 
     mutating func deleteFavorite(_ favorite: SavedSite) {
-        favorites.append(toDictionary(favorite, asType: .favorite, deleted: true))
+        favorites.append(toTypedDictionary(favorite, asType: .favorite, deleted: true))
     }
 
     mutating func deleteFavoriteFolder(_ folder: Folder) {
-        favorites.append(toDictionary(folder, asType: .favorite, deleted: true))
+        favorites.append(toTypedDictionary(folder, asType: .favorite, deleted: true))
     }
 
     func send() async throws {
-
-        func updates(named name: String, updates: [[String: Any]], lastUpdated: String?) -> [String: Any] {
-            guard !updates.isEmpty else { return [:] }
-            var result: [String: Any] = [ "updates": updates ]
-            if let lastUpdated = lastUpdated {
-                result["since"] = lastUpdated
+        func updates(_ updates: [[String: Any]], since: String?) -> [String: Any] {
+            var dict = [String: Any]()
+            if let since = since {
+                dict["since"] = since
             }
-            return result
+            dict["updates"] = updates
+            return dict
         }
 
         var bookmarksLastUpdated: String?
         var favoritesLastUpdated: String?
 
-        var patchPayload:[String: Any] = [:]
-        patchPayload.merge(updates(named: "bookmarks",
-                                   updates: bookmarks,
-                                   lastUpdated: bookmarksLastUpdated), uniquingKeysWith: noDictionaryOverwrites)
+        var payload = [String: Any]()
 
-        patchPayload.merge(updates(named: "favorites",
-                                   updates: bookmarks,
-                                   lastUpdated: favoritesLastUpdated), uniquingKeysWith: noDictionaryOverwrites)
+        if !bookmarks.isEmpty {
+            payload["bookmarks"] = updates(bookmarks, since: bookmarksLastUpdated)
+        }
 
-        let jsonData = try JSONSerialization.data(withJSONObject: patchPayload, options: [])
+        if !favorites.isEmpty {
+            payload["favorites"] = updates(favorites, since: favoritesLastUpdated)
+        }
+
+        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
         print(String(data: jsonData, encoding: .utf8)!)
 
-        // TODO call the server
+        switch try await send(jsonData) {
+        case .success(let updates):
+            // TODO apply updates
+            // TODO save the version
+            break
 
-        // TODO if server call fails, save it for later
-
-        // TODO publish the updates
-
-        // TODO save the version
+        case .failure(let error):
+            // TODO save for later
+            break
+        }
 
         throw SyncError.notImplemented
     }
 
-    // https://stackoverflow.com/a/54671872/73479
-    private func toDictionary(_ thing: Any, asType type: DataType, deleted: Bool = false) -> [String: Any] {
-        let mirror = Mirror(reflecting: thing)
+    private func send(_ json: Data) async throws -> Result<[String], Error> {
+        var request = api.createRequest(url: syncUrl, method: .PATCH)
+        request.addHeader("Authorization", value: "bearer $token") // TODO $token
+        request.setBody(body: json, withContentType: "application/json")
+        let result = try await request.execute()
+        guard (200 ..< 300).contains(result.response.statusCode) else {
+            throw SyncError.unexpectedStatusCode(result.response.statusCode)
+        }
+        // TODO parse the result
+        return .success([])
+    }
 
-        var dict = Dictionary(uniqueKeysWithValues: mirror.children.lazy.map { (label: String?, value: Any) -> (String, Any)? in
+    // https://stackoverflow.com/a/54671872/73479
+    private func toDictionary(_ thing: Any) -> [String: Any] {
+        let mirror = Mirror(reflecting: thing)
+        return Dictionary(uniqueKeysWithValues: mirror.children.lazy.map { (label: String?, value: Any) -> (String, Any)? in
             guard let label = label else { return nil }
             return (label, value)
         }.compactMap { $0 })
+    }
 
-        dict.merge(type.toDict(), uniquingKeysWith: noDictionaryOverwrites)
-
+    private func toTypedDictionary(_ thing: Any, asType type: DataType, deleted: Bool = false) -> [String: Any] {
+        var dict = toDictionary(thing)
+        dict.merge(type.toDict()) { (_, new ) in new }
         if deleted {
             dict["deleted"] = 1
         }
-
         return dict
-    }
-
-    private func noDictionaryOverwrites(current: Any, new: Any) -> Any {
-        assert(current as? String == nil) // Existing entries should not be being replaced.
-        return new
-    }
-
-}
-
-public struct SavedSite {
-
-    public let id: String
-
-    public let title: String
-    public let url: String
-    public let position: Double
-
-    public let parent: String?
-
-    public init(id: String, title: String, url: String, position: Double, parent: String?) {
-        self.id = id
-        self.title = title
-        self.url = url
-        self.position = position
-        self.parent = parent
-    }
-
-}
-
-public struct Folder {
-
-    public let id: String
-
-    public let title: String
-    public let position: Double
-
-    public let parent: String?
-
-    public init(id: String, title: String,position: Double, parent: String?) {
-        self.id = id
-        self.title = title
-        self.position = position
-        self.parent = parent
     }
 
 }
