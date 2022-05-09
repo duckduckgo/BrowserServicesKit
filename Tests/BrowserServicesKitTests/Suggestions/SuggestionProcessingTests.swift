@@ -49,6 +49,16 @@ extension HistoryEntryMock {
         ]
     }
 
+    static let mock = HistoryEntryMock(
+        identifier: UUID(),
+        url: URL(string: "http://www.duckduckgo.com")!,
+        title: nil,
+        numberOfVisits: 1000,
+        lastVisit: Date(),
+        failedToLoad: false,
+        isDownload: false
+    )
+
 }
 
 extension BookmarkMock {

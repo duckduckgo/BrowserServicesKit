@@ -155,6 +155,42 @@ final class SuggestionLoadingTests: XCTestCase {
         waitForExpectations(timeout: 1)
     }
 
+    func testPerformance() {
+
+        let history: [HistoryEntry] = {
+            var h = [HistoryEntry]()
+
+            (0..<40000).forEach { i in
+                h.append(HistoryEntryMock(
+                    identifier: UUID(),
+                    url: .init(string: "https://domain\(i%6).com/\(i%4)/\(i%2)/\(i)")!,
+                    numberOfVisits: i,
+                    lastVisit: .init(timeIntervalSince1970: Double(i)),
+                    failedToLoad: i%19 == 0,
+                    isDownload: false)
+                )
+            }
+            return h
+        }()
+
+        let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData,
+                                                         history: history,
+                                                         bookmarks: BookmarkMock.someBookmarks)
+        let loader = SuggestionLoader(dataSource: dataSource)
+
+
+        measureMetrics([.wallClockTime], automaticallyStartMeasuring: false) {
+            let e = expectation(description: "suggestions callback")
+            startMeasuring()
+            loader.getSuggestions(query: "test") { (result, error) in
+                e.fulfill()
+            }
+            waitForExpectations(timeout: 10)
+            stopMeasuring()
+        }
+
+    }
+
 }
 
 fileprivate extension Data {
