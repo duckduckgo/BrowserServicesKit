@@ -39,36 +39,9 @@ struct CLI {
 }
 
 struct Persistence: LocalDataPersisting {
-    func deleteBookmark(_ bookmark: SavedSite) async throws {
-        print(#function, bookmark)
-    }
 
-    func deleteFavorite(_ favorite: SavedSite) async throws {
-        print(#function, favorite)
-    }
-
-    func deleteBookmarksFolder(_ folder: Folder) async throws {
-        print(#function, folder)
-    }
-
-    func deleteFavoritesFolder(_ folder: Folder) async throws {
-        print(#function, folder)
-    }
-
-    func persistBookmark(_ bookmark: SavedSite) async throws {
-        print(#function, bookmark)
-    }
-
-    func persistFavorite(_ favorite: SavedSite) async throws {
-        print(#function, favorite)
-    }
-
-    func persistBookmarkFolder(_ folder: Folder) async throws {
-        print(#function, folder)
-    }
-
-    func persistFavoritesFolder(_ folder: Folder) async throws {
-        print(#function, folder)
+    func persist(_ events: [SyncEvent]) async throws {
+        print(#function, events)
     }
 
 }

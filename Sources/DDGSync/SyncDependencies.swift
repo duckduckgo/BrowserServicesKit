@@ -8,8 +8,10 @@ public protocol SyncDependencies {
     var api: RemoteAPIRequestCreating { get }
     var keyGenerator: KeyGenerating { get }
     var secureStore: SecureStoring { get }
+    var dataLastUpdated: DataLastUpdatedPersisting { get }
 
     func createAtomicSender() throws -> AtomicSending
+    func createUpdatesFetcher() throws -> UpdatesFetching
 
 }
 

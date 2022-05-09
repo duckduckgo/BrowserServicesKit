@@ -29,11 +29,11 @@ public class DDGSync: DDGSyncing {
     }
 
     public convenience init(persistence: LocalDataPersisting) {
-        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: Constants.baseURL))
+        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: Constants.baseURL, persistence: persistence))
     }
 
     public convenience init(persistence: LocalDataPersisting, baseURL: URL) {
-        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: baseURL))
+        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: baseURL, persistence: persistence))
     }
 
     public func statePublisher() -> AnyPublisher<SyncState, Never> {
@@ -54,6 +54,7 @@ public class DDGSync: DDGSyncing {
 
     public func fetch() async throws {
         try guardValidToken()
+        try await dependencies.createUpdatesFetcher().fetch()
     }
 
     private func guardValidToken() throws {
@@ -61,24 +62,4 @@ public class DDGSync: DDGSyncing {
             throw SyncError.unexpectedState(state)
         }
     }
-}
-
-public protocol LocalDataPersisting {
-
-    func persistBookmark(_ bookmark: SavedSite) async throws
-
-    func persistFavorite(_ favorite: SavedSite) async throws
-
-    func persistBookmarkFolder(_ folder: Folder) async throws
-
-    func persistFavoritesFolder(_ folder: Folder) async throws
-
-    func deleteBookmark(_ bookmark: SavedSite) async throws
-
-    func deleteFavorite(_ favorite: SavedSite) async throws
-
-    func deleteBookmarksFolder(_ folder: Folder) async throws
-
-    func deleteFavoritesFolder(_ folder: Folder) async throws
-
 }

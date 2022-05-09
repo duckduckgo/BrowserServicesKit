@@ -20,17 +20,21 @@ struct AtomicSender: AtomicSending {
 
     }
 
-    public let syncUrl: URL
-    public let token: String
-    public let api: RemoteAPIRequestCreating
+    let syncUrl: URL
+    let token: String
+    let api: RemoteAPIRequestCreating
+    let responseHandler: ResponseHandling
+    let dataLastUpdated: DataLastUpdatedPersisting
 
     private var bookmarks = [[String: Any]]()
     private var favorites = [[String: Any]]()
 
-    init(syncUrl: URL, token: String, api: RemoteAPIRequestCreating) {
+    init(syncUrl: URL, token: String, api: RemoteAPIRequestCreating, responseHandler: ResponseHandling, dataLastUpdated: DataLastUpdatedPersisting) {
         self.syncUrl = syncUrl
         self.token = token
         self.api = api
+        self.responseHandler = responseHandler
+        self.dataLastUpdated = dataLastUpdated
     }
 
     mutating func persistBookmark(_ bookmark: SavedSite) {
@@ -75,9 +79,10 @@ struct AtomicSender: AtomicSending {
             return dict
         }
 
-        var bookmarksLastUpdated: String?
-        var favoritesLastUpdated: String?
+        let bookmarksLastUpdated = dataLastUpdated.bookmarks
+        let favoritesLastUpdated = dataLastUpdated.favorites
 
+        // TODO load existing payload and update it
         var payload = [String: Any]()
 
         if !bookmarks.isEmpty {
@@ -93,28 +98,33 @@ struct AtomicSender: AtomicSending {
 
         switch try await send(jsonData) {
         case .success(let updates):
-            // TODO apply updates
-            // TODO save the version
+            try await responseHandler.handleUpdates(updates)
             break
 
         case .failure(let error):
             // TODO save for later
             break
         }
-
-        throw SyncError.notImplemented
     }
 
-    private func send(_ json: Data) async throws -> Result<[String], Error> {
+    private func send(_ json: Data) async throws -> Result<[String: Any], Error> {
         var request = api.createRequest(url: syncUrl, method: .PATCH)
-        request.addHeader("Authorization", value: "bearer $token") // TODO $token
+        request.addHeader("Authorization", value: "bearer \(token)")
         request.setBody(body: json, withContentType: "application/json")
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }
-        // TODO parse the result
-        return .success([])
+
+        guard let data = result.data else {
+            return .success([:])
+        }
+
+        guard let updates = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SyncError.unableToDecodeResponse(message: "Failed to convert response to JSON dictionary of type [String: Any]")
+        }
+
+        return .success(updates)
     }
 
     // https://stackoverflow.com/a/54671872/73479

@@ -10,8 +10,8 @@ public enum SyncError: Error {
     case noResponseBody
     case unexpectedState(SyncState)
     case unexpectedStatusCode(Int)
-    case unableToDecodeResponse(String)
-    case invalidDataInResponse(String)
+    case unableToDecodeResponse(message: String)
+    case invalidDataInResponse(message: String)
     case accountNotFound
 
 }

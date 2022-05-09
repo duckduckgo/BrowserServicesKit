@@ -57,6 +57,18 @@ public protocol AtomicSending {
 
 }
 
+public protocol ResponseHandling {
+
+    func handleUpdates(_ updates: [String: Any]) async throws 
+
+}
+
+public protocol UpdatesFetching {
+
+    func fetch() async throws
+
+}
+
 public enum SyncEvent {
 
     case bookmarkUpdated(SavedSite)
