@@ -4,16 +4,15 @@ import BrowserServicesKit
 
 struct UpdatesFetcher: UpdatesFetching {
 
+    let dependencies: SyncDependencies
     let syncUrl: URL
     let token: String
-    let api: RemoteAPIRequestCreating
-    let responseHandler: ResponseHandling
 
     func fetch() async throws {
 
         switch try await send() {
         case .success(let updates):
-            try await responseHandler.handleUpdates(updates)
+            try await dependencies.responseHandler.handleUpdates(updates)
             break
 
         case .failure(let error):
@@ -22,7 +21,7 @@ struct UpdatesFetcher: UpdatesFetching {
     }
 
     private func send() async throws -> Result<[String: Any], Error> {
-        var request = api.createRequest(url: syncUrl, method: .GET)
+        var request = dependencies.api.createRequest(url: syncUrl, method: .GET)
 
         request.addHeader("Authorization", value: "bearer \(token)")
 

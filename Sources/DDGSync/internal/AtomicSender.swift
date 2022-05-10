@@ -20,22 +20,12 @@ struct AtomicSender: AtomicSending {
 
     }
 
+    let dependencies: SyncDependencies
     let syncUrl: URL
     let token: String
-    let api: RemoteAPIRequestCreating
-    let responseHandler: ResponseHandling
-    let dataLastUpdated: DataLastUpdatedPersisting
 
-    private var bookmarks = [[String: Any]]()
-    private var favorites = [[String: Any]]()
-
-    init(syncUrl: URL, token: String, api: RemoteAPIRequestCreating, responseHandler: ResponseHandling, dataLastUpdated: DataLastUpdatedPersisting) {
-        self.syncUrl = syncUrl
-        self.token = token
-        self.api = api
-        self.responseHandler = responseHandler
-        self.dataLastUpdated = dataLastUpdated
-    }
+    private(set) var bookmarks = [[String: Any]]()
+    private(set) var favorites = [[String: Any]]()
 
     mutating func persistBookmark(_ bookmark: SavedSite) {
         bookmarks.append(toTypedDictionary(bookmark, asType: .bookmark))
@@ -70,17 +60,24 @@ struct AtomicSender: AtomicSending {
     }
 
     func send() async throws {
+
         func updates(_ updates: [[String: Any]], since: String?) -> [String: Any] {
             var dict = [String: Any]()
-            if let since = since {
-                dict["since"] = since
-            }
+
+            // TODO
+//            if let since = since {
+//                dict["since"] = since
+//            }
+            dict["most_recent_version"] = 0
             dict["updates"] = updates
             return dict
         }
 
-        let bookmarksLastUpdated = dataLastUpdated.bookmarks
-        let favoritesLastUpdated = dataLastUpdated.favorites
+        let bookmarks = try self.bookmarks.map { try encrypt($0) }
+        let favorites = try self.favorites.map { try encrypt($0) }
+
+        let bookmarksLastUpdated = dependencies.dataLastUpdated.bookmarks
+        let favoritesLastUpdated = dependencies.dataLastUpdated.favorites
 
         // TODO load existing payload and update it
         var payload = [String: Any]()
@@ -98,7 +95,7 @@ struct AtomicSender: AtomicSending {
 
         switch try await send(jsonData) {
         case .success(let updates):
-            try await responseHandler.handleUpdates(updates)
+            try await dependencies.responseHandler.handleUpdates(updates)
             break
 
         case .failure(let error):
@@ -108,7 +105,7 @@ struct AtomicSender: AtomicSending {
     }
 
     private func send(_ json: Data) async throws -> Result<[String: Any], Error> {
-        var request = api.createRequest(url: syncUrl, method: .PATCH)
+        var request = dependencies.api.createRequest(url: syncUrl, method: .PATCH)
         request.addHeader("Authorization", value: "bearer \(token)")
         request.setBody(body: json, withContentType: "application/json")
         let result = try await request.execute()
@@ -143,6 +140,17 @@ struct AtomicSender: AtomicSending {
             dict["deleted"] = 1
         }
         return dict
+    }
+
+    private func encrypt(_ dict: [String: Any]) throws -> [String: Any] {
+        var encrypted = dict
+        try dict.forEach { key, value in
+            if ["title", "url"].contains(key), let value = value as? String {
+                let encryptedValue = try dependencies.crypter.encryptAndBase64Encode(value)
+                encrypted[key] = encryptedValue
+            }
+        }
+        return encrypted
     }
 
 }

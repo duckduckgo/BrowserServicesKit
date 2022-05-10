@@ -17,6 +17,7 @@ struct ProductionDependencies: SyncDependencies {
     let secureStore: SecureStoring
     let responseHandler: ResponseHandling
     let dataLastUpdated: DataLastUpdatedPersisting
+    let crypter: Crypting
 
     private let persistence: LocalDataPersisting
 
@@ -30,22 +31,26 @@ struct ProductionDependencies: SyncDependencies {
         keyGenerator = KeyGeneration()
         secureStore = SecureStorage()
 
+        crypter = Crypter(secureStore: secureStore)
         accountCreation = AccountCreation(signUpUrl: signUpUrl, api: api, keyGenerator: keyGenerator)
-        responseHandler = ResponseHandler(persistence: persistence, dataLastUpdated: dataLastUpdated)
+        responseHandler = ResponseHandler(persistence: persistence, dataLastUpdated: dataLastUpdated, crypter: crypter)
     }
 
     func createAtomicSender() throws -> AtomicSending {
         let account = try secureStore.account()
         let syncUrl = account.baseDataURL.appendingPathComponent(Endpoints.sync)
         let token = account.token
-        return AtomicSender(syncUrl: syncUrl, token: token, api: api, responseHandler: responseHandler, dataLastUpdated: dataLastUpdated)
+
+        return AtomicSender(dependencies: self,
+                            syncUrl: syncUrl,
+                            token: token)
     }
 
     func createUpdatesFetcher() throws -> UpdatesFetching {
         let account = try secureStore.account()
         let syncUrl = account.baseDataURL.appendingPathComponent(Endpoints.sync)
         let token = account.token
-        return UpdatesFetcher(syncUrl: syncUrl, token: token, api: api, responseHandler: responseHandler)
+        return UpdatesFetcher(dependencies: self, syncUrl: syncUrl, token: token)
     }
 
 }

@@ -9,6 +9,8 @@ public protocol SyncDependencies {
     var keyGenerator: KeyGenerating { get }
     var secureStore: SecureStoring { get }
     var dataLastUpdated: DataLastUpdatedPersisting { get }
+    var responseHandler: ResponseHandling { get }
+    var crypter: Crypting { get }
 
     func createAtomicSender() throws -> AtomicSending
     func createUpdatesFetcher() throws -> UpdatesFetching

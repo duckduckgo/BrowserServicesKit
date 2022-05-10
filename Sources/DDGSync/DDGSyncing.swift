@@ -69,6 +69,24 @@ public protocol UpdatesFetching {
 
 }
 
+public protocol DataLastUpdatedPersisting {
+
+    var bookmarks: String? { get }
+    var favorites: String? { get }
+
+    func bookmarksUpdated(_ lastUpdated: String)
+    func favoritesUpdated(_ lastUpdated: String)
+
+}
+
+public protocol Crypting {
+
+    func encryptAndBase64Encode(_ value: String) throws -> String
+
+    func base64DecodeAndDecrypt(_ value: String) throws -> String
+
+}
+
 public enum SyncEvent {
 
     case bookmarkUpdated(SavedSite)

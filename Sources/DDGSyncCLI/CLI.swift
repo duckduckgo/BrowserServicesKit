@@ -8,7 +8,7 @@ struct CLI {
     static func main() async throws {
         print("ddgsync IN")
 
-        let baseURLString = CommandLine.arguments.count == 1 ? "https://e54a-20-75-144-152.ngrok.io" : CommandLine.arguments[1]
+        let baseURLString = CommandLine.arguments.count == 1 ? "https://90b2-20-75-144-152.ngrok.io" : CommandLine.arguments[1]
         let sync = DDGSync(persistence: Persistence(), baseURL: URL(string: baseURLString)!)
 
         print("subscribe to state changes")
