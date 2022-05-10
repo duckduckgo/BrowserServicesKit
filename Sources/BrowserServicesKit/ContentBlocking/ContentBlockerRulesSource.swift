@@ -116,7 +116,7 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
             if entry.domains.contains("<all>") {
                 return TrackerException(rule: entry.rule, matching: .all)
             } else {
-                return TrackerException(rule: entry.rule, matching: .domains(entry.domains))
+                return TrackerException(rule: entry.rule, matching: .domains(entry.domains.normalizedDomainsForContentBlocking()))
             }
         }
     }

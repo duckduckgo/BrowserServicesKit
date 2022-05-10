@@ -23,6 +23,7 @@ protocol AutofillMessage {
     var messageName: String { get }
     var messageBody: Any { get }
     var messageHost: String { get }
+    var isMainFrame: Bool { get }
     var messageWebView: WKWebView? { get }
 }
 
@@ -37,6 +38,10 @@ extension WKScriptMessage: AutofillMessage {
     
     var messageHost: String {
         return frameInfo.securityOrigin.host
+    }
+
+    var isMainFrame: Bool {
+        return frameInfo.isMainFrame
     }
     
     var messageWebView: WKWebView? {

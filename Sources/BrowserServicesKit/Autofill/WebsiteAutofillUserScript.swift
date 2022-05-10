@@ -25,7 +25,7 @@ public protocol ContentOverlayUserScriptDelegate: AnyObject {
     /// Closes the overlay
     func websiteAutofillUserScriptCloseOverlay(_ websiteAutofillUserScript: WebsiteAutofillUserScript?)
     /// Opens the overlay
-    func websiteAutofillUserScript(_ websiteAutofillUserScript: WebsiteAutofillUserScript, willDisplayOverlayAtClick: CGPoint, serializedInputContext: String, inputPosition: CGRect)
+    func websiteAutofillUserScript(_ websiteAutofillUserScript: WebsiteAutofillUserScript, willDisplayOverlayAtClick: CGPoint?, serializedInputContext: String, inputPosition: CGRect)
 }
 
 public class WebsiteAutofillUserScript: AutofillUserScript {
@@ -64,18 +64,28 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
               let top = dict["inputTop"] as? CGFloat,
               let height = dict["inputHeight"] as? CGFloat,
               let width = dict["inputWidth"] as? CGFloat,
+              let wasFromClick = dict["wasFromClick"] as? Bool,
               let serializedInputContext = dict["serializedInputContext"] as? String,
-              let currentOverlayTab = currentOverlayTab,
-              let clickPoint = clickPoint else {
+              let currentOverlayTab = currentOverlayTab else {
+                  replyHandler(nil)
                   return
               }
+        if !wasFromClick {
+            // Click isn't relevant to the calculation for focuses
+            clickPoint = nil
+            // Ignore focus events in frames as the position is wrong
+            if !message.isMainFrame {
+                replyHandler(nil)
+                return
+            }
+        }
         // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
 
         currentOverlayTab.websiteAutofillUserScript(self,
-                                                 willDisplayOverlayAtClick: clickPoint,
-                                                serializedInputContext: serializedInputContext,
-                                                 inputPosition: CGRect(x: left, y: top, width: width, height: height))
+                                                    willDisplayOverlayAtClick: clickPoint,
+                                                    serializedInputContext: serializedInputContext,
+                                                    inputPosition: CGRect(x: left, y: top, width: width, height: height))
         replyHandler(nil)
     }
 
