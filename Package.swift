@@ -15,7 +15,7 @@ let package = Package(
         .library(name: "Clibsodium", targets: ["Clibsodium"]),
 
         // Intermediate dependencies
-        .library(name: "DDGSyncAuth", targets: ["DDGSyncAuth"]),
+        .library(name: "DDGSyncCrypto", targets: ["DDGSyncCrypto"]),
 
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
@@ -92,7 +92,7 @@ let package = Package(
                 name: "Clibsodium",
                 path: "Clibsodium.xcframework"),
         .target(
-            name: "DDGSyncAuth",
+            name: "DDGSyncCrypto",
             dependencies: [
                 "Clibsodium"
             ]
@@ -101,7 +101,7 @@ let package = Package(
             name: "DDGSync",
             dependencies: [
                 "BrowserServicesKit",
-                "DDGSyncAuth"
+                "DDGSyncCrypto"
             ]
         ),
 
@@ -129,9 +129,9 @@ let package = Package(
                 "DDGSync"
             ]),
         .testTarget(
-            name: "DDGSyncAuthTests",
+            name: "DDGSyncCryptoTests",
             dependencies: [
-                "DDGSyncAuth"
+                "DDGSyncCrypto"
             ])
     ]
 )

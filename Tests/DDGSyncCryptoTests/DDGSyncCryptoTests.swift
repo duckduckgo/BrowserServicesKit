@@ -1,17 +1,17 @@
 
 import XCTest
-import DDGSyncAuth
+import DDGSyncCrypto
 import Clibsodium
 
-class DDGSyncAuthTests: XCTestCase {
+class DDGSyncCryptoTests: XCTestCase {
 
     func testWhenGeneratingAccountKeysThenEachKeyIsValid() {
-        var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PRIMARY_KEY_SIZE.rawValue))
-        var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_SECRET_KEY_SIZE.rawValue))
-        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
-        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_HASH_SIZE.rawValue))
+        var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
+        var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
+        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
+        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
 
-        XCTAssertEqual(DDGSYNCAUTH_OK, ddgSyncGenerateAccountKeys(&primaryKey,
+        XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey,
                                                                   &protectedSymmetricKey,
                                                                   &passwordHash,
@@ -25,20 +25,20 @@ class DDGSyncAuthTests: XCTestCase {
     }
 
     func testWhenGeneratingAccountKeysThenPrimaryIsDeterministic() {
-        var primaryKey1 = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PRIMARY_KEY_SIZE.rawValue))
-        var primaryKey2 = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PRIMARY_KEY_SIZE.rawValue))
-        var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_SECRET_KEY_SIZE.rawValue))
-        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
-        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_HASH_SIZE.rawValue))
+        var primaryKey1 = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
+        var primaryKey2 = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
+        var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
+        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
+        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
 
-        XCTAssertEqual(DDGSYNCAUTH_OK, ddgSyncGenerateAccountKeys(&primaryKey1,
+        XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey1,
                                                                   &secretKey,
                                                                   &protectedSymmetricKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
 
-        XCTAssertEqual(DDGSYNCAUTH_OK, ddgSyncGenerateAccountKeys(&primaryKey2,
+        XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey2,
                                                                   &secretKey,
                                                                   &protectedSymmetricKey,
                                                                   &passwordHash,
@@ -52,20 +52,20 @@ class DDGSyncAuthTests: XCTestCase {
     }
 
     func testWhenGeneratingAccountKeysThenSecretKeyIsNonDeterministic() {
-        var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PRIMARY_KEY_SIZE.rawValue))
-        var secretKey1 = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_SECRET_KEY_SIZE.rawValue))
-        var secretKey2 = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_SECRET_KEY_SIZE.rawValue))
-        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
-        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCAUTH_HASH_SIZE.rawValue))
+        var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
+        var secretKey1 = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
+        var secretKey2 = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
+        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
+        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
 
-        XCTAssertEqual(DDGSYNCAUTH_OK, ddgSyncGenerateAccountKeys(&primaryKey,
+        XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey1,
                                                                   &protectedSymmetricKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
 
-        XCTAssertEqual(DDGSYNCAUTH_OK, ddgSyncGenerateAccountKeys(&primaryKey,
+        XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey2,
                                                                   &protectedSymmetricKey,
                                                                   &passwordHash,

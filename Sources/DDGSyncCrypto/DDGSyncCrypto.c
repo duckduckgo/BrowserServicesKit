@@ -1,7 +1,7 @@
 
 #include <string.h>
 
-#include "DDGSyncAuth.h"
+#include "DDGSyncCrypto.h"
 #include "sodium.h"
 
 // Seems mad that you still need to define this?!
@@ -11,35 +11,35 @@
 #define DDGSYNC_STRETCHED_PRIMARY_KEY_CONTEXT "Stretchy"
 #define DDGSYNC_PASSWORD_HASH_CONTEXT "Password"
 
-enum DDGSyncAuthSubkeyIds : int {
+enum DDGSyncCryptoSubkeyIds : int {
 
-    DDGSyncAuthPasswordHashSubkey = 1,
-    DDGSyncAuthStretchedPrimaryKeySubkey,
+    DDGSyncCryptoPasswordHashSubkey = 1,
+    DDGSyncCryptoStretchedPrimaryKeySubkey,
 
 };
 
-DDGSyncAuthResult ddgSyncGenerateAccountKeys(
-    unsigned char primaryKey[DDGSYNCAUTH_PRIMARY_KEY_SIZE],
-    unsigned char secretKey[DDGSYNCAUTH_SECRET_KEY_SIZE],
-    unsigned char protectedSymmetricKey[DDGSYNCAUTH_PROTECTED_SYMMETRIC_KEY_SIZE],
-    unsigned char passwordHash[DDGSYNCAUTH_HASH_SIZE],
+DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
+    unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE],
+    unsigned char secretKey[DDGSYNCCRYPTO_SECRET_KEY_SIZE],
+    unsigned char protectedSymmetricKey[DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE],
+    unsigned char passwordHash[DDGSYNCCRYPTO_HASH_SIZE],
     const char *userId,
     const char *password) {
 
     // Define vars
 
     unsigned char salt[crypto_pwhash_SALTBYTES];
-    unsigned char stretchedPrimaryKey[DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE];
+    unsigned char stretchedPrimaryKey[DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE];
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
 
     // Validate inputs
 
     if (NULL == userId) {
-        return DDGSYNCAUTH_INVALID_USERID;
+        return DDGSYNCCRYPTO_INVALID_USERID;
     }
 
     if (NULL == password) {
-        return DDGSYNCAUTH_INVALID_PASSWORD;
+        return DDGSYNCCRYPTO_INVALID_PASSWORD;
     }
 
     // Prepare salt
@@ -50,7 +50,7 @@ DDGSyncAuthResult ddgSyncGenerateAccountKeys(
     // Create hash and keys
 
     if (0 != crypto_pwhash(primaryKey,
-                           DDGSYNCAUTH_PRIMARY_KEY_SIZE,
+                           DDGSYNCCRYPTO_PRIMARY_KEY_SIZE,
                            password,
                            strlen(password),
                            salt,
@@ -58,39 +58,39 @@ DDGSyncAuthResult ddgSyncGenerateAccountKeys(
                            crypto_pwhash_MEMLIMIT_INTERACTIVE,
                            crypto_pwhash_ALG_DEFAULT)) {
 
-        return DDGSYNCAUTH_CREATE_PRIMARY_KEY_FAILED;
+        return DDGSYNCCRYPTO_CREATE_PRIMARY_KEY_FAILED;
     }
 
     if (0 != crypto_kdf_derive_from_key(passwordHash,
-                                        DDGSYNCAUTH_HASH_SIZE,
-                                        DDGSyncAuthPasswordHashSubkey,
+                                        DDGSYNCCRYPTO_HASH_SIZE,
+                                        DDGSyncCryptoPasswordHashSubkey,
                                         DDGSYNC_PASSWORD_HASH_CONTEXT,
                                         primaryKey)) {
 
-        return DDGSYNCAUTH_CREATE_PASSWORD_HASH_FAILED;
+        return DDGSYNCCRYPTO_CREATE_PASSWORD_HASH_FAILED;
     }
 
     if (0 != crypto_kdf_derive_from_key(stretchedPrimaryKey,
-                                        DDGSYNCAUTH_STRETCHED_PRIMARY_KEY_SIZE,
-                                        DDGSyncAuthStretchedPrimaryKeySubkey,
+                                        DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE,
+                                        DDGSyncCryptoStretchedPrimaryKeySubkey,
                                         DDGSYNC_STRETCHED_PRIMARY_KEY_CONTEXT,
                                         primaryKey)) {
 
-        return DDGSYNCAUTH_CREATE_STRETCHED_PRIMARY_KEY_FAILED;
+        return DDGSYNCCRYPTO_CREATE_STRETCHED_PRIMARY_KEY_FAILED;
     }
 
-    randombytes_buf(secretKey, DDGSYNCAUTH_SECRET_KEY_SIZE);
+    randombytes_buf(secretKey, DDGSYNCCRYPTO_SECRET_KEY_SIZE);
     randombytes_buf(nonceBytes, crypto_secretbox_NONCEBYTES);
 
     if (0 != crypto_secretbox_easy(protectedSymmetricKey,
                                    secretKey,
-                                   DDGSYNCAUTH_SECRET_KEY_SIZE,
+                                   DDGSYNCCRYPTO_SECRET_KEY_SIZE,
                                    nonceBytes,
                                    stretchedPrimaryKey)) {
-        return DDGSYNCAUTH_CREATE_PROTECTED_SECRET_KEY_FAILED;
+        return DDGSYNCCRYPTO_CREATE_PROTECTED_SECRET_KEY_FAILED;
     }
 
-    memcpy(&protectedSymmetricKey[crypto_secretbox_MACBYTES + DDGSYNCAUTH_SECRET_KEY_SIZE], nonceBytes, crypto_secretbox_NONCEBYTES);
+    memcpy(&protectedSymmetricKey[crypto_secretbox_MACBYTES + DDGSYNCCRYPTO_SECRET_KEY_SIZE], nonceBytes, crypto_secretbox_NONCEBYTES);
 
-    return DDGSYNCAUTH_OK;
+    return DDGSYNCCRYPTO_OK;
 }

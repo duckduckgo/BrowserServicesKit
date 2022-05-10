@@ -1,6 +1,6 @@
 
 import Foundation
-import DDGSyncAuth
+import DDGSyncCrypto
 import BrowserServicesKit
 
 struct AccountCreation: AccountCreating {

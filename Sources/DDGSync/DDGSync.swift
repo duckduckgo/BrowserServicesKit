@@ -2,7 +2,7 @@
 import Foundation
 import Combine
 
-import DDGSyncAuth
+import DDGSyncCrypto
 
 public class DDGSync: DDGSyncing {
 
