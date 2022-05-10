@@ -27,35 +27,64 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let locallyUnprotected: DomainsProtectionStore
 
     public init(data: PrivacyConfigurationData,
-         identifier: String,
-         localProtection: DomainsProtectionStore) {
+                identifier: String,
+                localProtection: DomainsProtectionStore) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
     }
 
     public var userUnprotectedDomains: [String] {
-        return Array(locallyUnprotected.unprotectedDomains)
+        return Array(locallyUnprotected.unprotectedDomains).normalizedDomainsForContentBlocking()
     }
     
     public var tempUnprotectedDomains: [String] {
-        return data.unprotectedTemporary.map { $0.domain }
+        return data.unprotectedTemporary.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
 
     public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData {
         return data.trackerAllowlist.state == PrivacyConfigurationData.State.enabled ? data.trackerAllowlist.entries : [:]
     }
     
-    public func isEnabled(featureKey: PrivacyFeature) -> Bool {
+    func parse(versionString: String) -> [Int] {
+        return versionString.split(separator: ".").map { Int($0) ?? 0 }
+    }
+    
+    func satisfiesMinVersion(feature: PrivacyConfigurationData.PrivacyFeature,
+                             versionProvider: AppVersionProvider) -> Bool {
+        if let minSupportedVersion = feature.minSupportedVersion,
+           let appVersion = versionProvider.appVersion() {
+            let minVersion = parse(versionString: minSupportedVersion)
+            let currentVersion = parse(versionString: appVersion)
+            
+            for i in 0..<max(minVersion.count, currentVersion.count) {
+                let minSegment = i < minVersion.count ? minVersion[i] : 0
+                let currSegment = i < currentVersion.count ? currentVersion[i] : 0
+                
+                if currSegment > minSegment {
+                    return true
+                }
+                if currSegment < minSegment {
+                    return false
+                }
+            }
+        }
+        
+        return true
+    }
+    
+    public func isEnabled(featureKey: PrivacyFeature,
+                          versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
         guard let feature = data.features[featureKey.rawValue] else { return false }
         
-        return feature.state == PrivacyConfigurationData.State.enabled
+        return satisfiesMinVersion(feature: feature, versionProvider: versionProvider)
+                && feature.state == PrivacyConfigurationData.State.enabled
     }
     
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {
         guard let feature = data.features[featureKey.rawValue] else { return [] }
         
-        return feature.exceptions.map { $0.domain }
+        return feature.exceptions.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
 
     public func isFeature(_ feature: PrivacyFeature, enabledForDomain domain: String?) -> Bool {
@@ -82,7 +111,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isUserUnprotected(domain: String?) -> Bool {
         guard let domain = domain else { return false }
 
-        return locallyUnprotected.unprotectedDomains.contains(domain)
+        return userUnprotectedDomains.contains(domain)
     }
 
     public func isTempUnprotected(domain: String?) -> Bool {
@@ -117,11 +146,23 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func userEnabledProtection(forDomain domain: String) {
-        locallyUnprotected.enableProtection(forDomain: domain)
+        let domainToRemove = locallyUnprotected.unprotectedDomains.first { unprotectedDomain in
+            unprotectedDomain.punycodeEncodedHostname.lowercased() == domain
+        }
+        locallyUnprotected.enableProtection(forDomain: domainToRemove ?? domain)
     }
 
     public func userDisabledProtection(forDomain domain: String) {
-        locallyUnprotected.disableProtection(forDomain: domain)
+        locallyUnprotected.disableProtection(forDomain: domain.punycodeEncodedHostname.lowercased())
     }
     
+}
+
+extension Array where Element == String {
+    
+    func normalizedDomainsForContentBlocking() -> [String] {
+        map { domain in
+            domain.punycodeEncodedHostname.lowercased()
+        }
+    }
 }

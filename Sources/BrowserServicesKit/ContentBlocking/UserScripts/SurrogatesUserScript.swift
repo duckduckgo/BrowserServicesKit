@@ -104,6 +104,8 @@ open class SurrogatesUserScript: NSObject, UserScript {
 
     public var forMainFrameOnly: Bool = false
 
+    public var requiresRunInPageContentWorld: Bool = true
+
     public var messageNames: [String] = [ "trackerDetectedMessage" ]
 
     public weak var delegate: SurrogatesUserScriptDelegate?
@@ -130,6 +132,29 @@ open class SurrogatesUserScript: NSObject, UserScript {
         return DetectedTracker(url: urlString, knownTracker: knownTracker, entity: entity, blocked: blocked, pageUrl: pageUrlString)
     }
 
+    private static func createSurrogateFunctions(_ surrogates: String) -> String {
+        let commentlessSurrogates = surrogates.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).filter {
+            return !$0.starts(with: "#")
+        }.joined(separator: "\n")
+        let surrogateScripts = commentlessSurrogates.components(separatedBy: "\n\n")
+
+        // Construct a JavaScript object for function lookup
+        let surrogatesOut = surrogateScripts.map { (surrogate) -> String in
+            var codeLines = surrogate.split(separator: "\n")
+            if (codeLines.isEmpty) {
+                return ""
+            }
+            let instructionsRow = codeLines.removeFirst()
+            guard let path = instructionsRow.split(separator: " ").first,
+                  let pattern = path.split(separator: "/").last else {
+                return ""
+            }
+            let stringifiedFunction = codeLines.joined(separator: "\n")
+            return "surrogates['\(pattern)'] = function () {\(stringifiedFunction)}"
+        }
+        return surrogatesOut.joined(separator: "\n")
+    }
+
     public static func generateSource(privacyConfiguration: PrivacyConfiguration,
                                       surrogates: String,
                                       encodedSurrogateTrackerData: String?,
@@ -153,7 +178,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
             "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
             "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist),
             "$TRACKER_DATA$": trackerData,
-            "$SURROGATES$": surrogates,
+            "$SURROGATES$": createSurrogateFunctions(surrogates),
             "$BLOCKING_ENABLED$": privacyConfiguration.isEnabled(featureKey: .contentBlocking) ? "true" : "false"
         ])
     }

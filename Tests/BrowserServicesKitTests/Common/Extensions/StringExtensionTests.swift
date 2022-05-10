@@ -17,7 +17,6 @@
 //
 
 import Foundation
-
 import XCTest
 @testable import BrowserServicesKit
 
@@ -64,5 +63,11 @@ final class StringExtensionTests: XCTestCase {
         
         XCTAssertEqual(normalizedString, "dax")
     }
-
+    
+    func testWhenEmojisArePresentInDomains_ThenTheseCanBePunycoded() {
+        
+        XCTAssertEqual("example.com".punycodeEncodedHostname, "example.com")
+        XCTAssertEqual("Dax🤔.com".punycodeEncodedHostname, "xn--dax-v153b.com")
+        XCTAssertEqual("🤔.com".punycodeEncodedHostname, "xn--wp9h.com")
+    }
 }

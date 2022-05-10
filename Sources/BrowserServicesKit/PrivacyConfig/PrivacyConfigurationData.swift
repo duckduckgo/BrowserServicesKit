@@ -88,16 +88,19 @@ public struct PrivacyConfigurationData {
         public typealias FeatureState = String
         public typealias ExceptionList = [ExceptionEntry]
         public typealias FeatureSettings = [String: Any]
+        public typealias FeatureSupportedVersion = String
 
         enum CodingKeys: String {
             case state
             case exceptions
             case settings
+            case minSupportedVersion
         }
 
         public let state: FeatureState
         public let exceptions: ExceptionList
         public let settings: FeatureSettings
+        public let minSupportedVersion: FeatureSupportedVersion?
 
         public init?(json: [String: Any]) {
             guard let state = json[CodingKeys.state.rawValue] as? String else { return nil }
@@ -110,12 +113,14 @@ public struct PrivacyConfigurationData {
             }
 
             self.settings = (json[CodingKeys.settings.rawValue] as? [String: Any]) ?? [:]
+            self.minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String
         }
 
-        public init(state: String, exceptions: [ExceptionEntry], settings: [String: Any] = [:]) {
+        public init(state: String, exceptions: [ExceptionEntry], settings: [String: Any] = [:], minSupportedVersion: String? = nil) {
             self.state = state
             self.exceptions = exceptions
             self.settings = settings
+            self.minSupportedVersion = minSupportedVersion
         }
     }
 
