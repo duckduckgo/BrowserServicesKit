@@ -126,14 +126,14 @@ extension AutofillUserScript {
         }
     }
 
-    private struct DeviceCapabilities: Encodable {
+    private struct DeviceEmailCapabilities: Encodable {
         public let addUserData: Bool
         public let getUserData: Bool
         public let removeUserData: Bool
     }
 
     func emailGetDeviceCapabilities(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        let capabilities = DeviceCapabilities(addUserData: true, getUserData: true, removeUserData: true)
+        let capabilities = DeviceEmailCapabilities(addUserData: true, getUserData: true, removeUserData: true)
         if let json = try? JSONEncoder().encode(capabilities), let jsonString = String(data: json, encoding: .utf8) {
             replyHandler(jsonString)
         } else {
