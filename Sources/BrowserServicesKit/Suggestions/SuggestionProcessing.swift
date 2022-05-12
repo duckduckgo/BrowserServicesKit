@@ -35,30 +35,33 @@ final class SuggestionProcessing {
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
 
-        let duckDuckGoSuggestions = (try? self.duckDuckGoSuggestions(from: apiResult)) ?? []
+        var duckDuckGoSuggestions = (try? self.duckDuckGoSuggestions(from: apiResult)) ?? []
+        var duckDuckGoDomainSuggestions = [Suggestion]()
 
-        // Get domain suggestions from the DuckDuckGo Suggestions section (for the Top Hits section)
-        let duckDuckGoDomainSuggestions = duckDuckGoSuggestions.compactMap { suggestion -> Suggestion? in
-            guard case let .phrase(phrase) = suggestion, let url = urlFactory(phrase) else {
-                return nil
+        // Remove domain suggestions from the DuckDuckGo Suggestions section
+        // into a separate array (for the Top Hits section)
+        var i = duckDuckGoSuggestions.startIndex
+        while i != duckDuckGoSuggestions.endIndex {
+            let suggestion = duckDuckGoSuggestions[i]
+            if case let .phrase(phrase) = suggestion, let url = urlFactory(phrase) {
+                duckDuckGoDomainSuggestions.append(Suggestion(url: url))
+                duckDuckGoSuggestions.remove(at: i)
+            } else {
+                i += 1
             }
-
-            return Suggestion(url: url)
         }
 
         // Get best matches from history and bookmarks
         let allHistoryAndBookmarkSuggestions = historyAndBookmarkSuggestions(from: history,
-                                                                          bookmarks: bookmarks,
-                                                                          query: query)
+                                                                             bookmarks: bookmarks,
+                                                                             query: query)
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
-        var navigationalSuggestions = allHistoryAndBookmarkSuggestions + duckDuckGoDomainSuggestions
-
-        let maximumOfNavigationalSuggestions = min(
-            Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
-            query.count + 1)
-        navigationalSuggestions = merge(navigationalSuggestions,
-                                                   maximum: maximumOfNavigationalSuggestions)
+        let maximumOfNavigationalSuggestions = Self.maximumNumberOfSuggestions - duckDuckGoSuggestions.count
+        let navigationalSuggestions = merge(
+            allHistoryAndBookmarkSuggestions + duckDuckGoDomainSuggestions,
+            maximum: maximumOfNavigationalSuggestions
+        )
 
         // Split the Top Hits and the History and Bookmarks section
         let topHits = topHits(from: navigationalSuggestions)
@@ -92,7 +95,7 @@ final class SuggestionProcessing {
         let queryTokens = Score.tokens(from: query)
 
         let historyAndBookmarkSuggestions: [Suggestion] = historyAndBookmarks
-            // Score items
+        // Score items
             .map { item -> (item: Any, score: Score) in
                 let score: Score
                 switch item {
@@ -105,12 +108,12 @@ final class SuggestionProcessing {
                 }
                 return (item, score)
             }
-            // Filter not relevant
+        // Filter not relevant
             .filter { $0.score > 0 }
-            // Sort according to the score
+        // Sort according to the score
             .sorted { $0.score > $1.score }
-            // Create suggestion array
-            .compactMap { 
+        // Create suggestion array
+            .compactMap {
                 switch $0.item {
                 case let bookmark as Bookmark:
                     return Suggestion(bookmark: bookmark)
@@ -251,20 +254,20 @@ final class SuggestionProcessing {
     static let minimumNumberInSuggestionGroup = 5
 
     private func makeResult(topHits: [Suggestion],
-                    duckduckgoSuggestions: [Suggestion],
-                    historyAndBookmarks: [Suggestion]) -> SuggestionResult {
+                            duckduckgoSuggestions: [Suggestion],
+                            historyAndBookmarks: [Suggestion]) -> SuggestionResult {
         // Top Hits
         let topHits = Array(topHits.prefix(2))
         var total = topHits.count
 
-        // History and Bookmarks
-        let prefixForHistoryAndBookmarks = Self.maximumNumberOfSuggestions - (total + Self.minimumNumberInSuggestionGroup)
-        let historyAndBookmarks = Array(historyAndBookmarks.prefix(prefixForHistoryAndBookmarks))
-        total += historyAndBookmarks.count
-
         // DuckDuckGo Suggestions
         let prefixForDuckDuckGoSuggestions = Self.maximumNumberOfSuggestions - total
         let duckduckgoSuggestions = Array(duckduckgoSuggestions.prefix(prefixForDuckDuckGoSuggestions))
+        total += duckduckgoSuggestions.count
+
+        // History and Bookmarks
+        let prefixForHistoryAndBookmarks = Self.maximumNumberOfSuggestions - total
+        let historyAndBookmarks = Array(historyAndBookmarks.prefix(prefixForHistoryAndBookmarks))
 
         return SuggestionResult(topHits: topHits,
                                 duckduckgoSuggestions: duckduckgoSuggestions,
