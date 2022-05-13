@@ -36,18 +36,19 @@ final class SuggestionProcessing {
         let query = query.lowercased()
 
         var duckDuckGoSuggestions = (try? self.duckDuckGoSuggestions(from: apiResult)) ?? []
-        var duckDuckGoDomainSuggestions = [Suggestion]()
 
         // Remove domain suggestions from the DuckDuckGo Suggestions section
         // into a separate array (for the Top Hits section)
-        var i = duckDuckGoSuggestions.startIndex
-        while i != duckDuckGoSuggestions.endIndex {
-            let suggestion = duckDuckGoSuggestions[i]
+        // Keep track of their indexes in the original suggestions array
+        // to later remove deduplicated entries
+        var duckDuckGoDomainSuggestions = [Suggestion]()
+        var duckDuckGoNavigationalSuggestionsIndexes = [URL: Int]()
+
+        for (i, suggestion) in duckDuckGoSuggestions.enumerated() {
             if case let .phrase(phrase) = suggestion, let url = urlFactory(phrase) {
-                duckDuckGoDomainSuggestions.append(Suggestion(url: url))
-                duckDuckGoSuggestions.remove(at: i)
-            } else {
-                i += 1
+                let websiteSuggestion = Suggestion(url: url)
+                duckDuckGoDomainSuggestions.append(websiteSuggestion)
+                duckDuckGoNavigationalSuggestionsIndexes[url] = i
             }
         }
 
@@ -57,14 +58,25 @@ final class SuggestionProcessing {
                                                                              query: query)
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
-        let maximumOfNavigationalSuggestions = Self.maximumNumberOfSuggestions - duckDuckGoSuggestions.count
+        let maximumOfNavigationalSuggestions = Self.maximumNumberOfSuggestions - (duckDuckGoSuggestions.count - duckDuckGoNavigationalSuggestionsIndexes.count)
+
         let navigationalSuggestions = merge(
-            allHistoryAndBookmarkSuggestions + duckDuckGoDomainSuggestions,
+            duckDuckGoDomainSuggestions + allHistoryAndBookmarkSuggestions,
             maximum: maximumOfNavigationalSuggestions
         )
 
         // Split the Top Hits and the History and Bookmarks section
         let topHits = topHits(from: navigationalSuggestions)
+
+        // Remove deduplicated DDG navigational suggestions from DDG suggestions
+        topHits
+            .compactMap(\.url)
+            .compactMap { url in
+                duckDuckGoNavigationalSuggestionsIndexes[url]
+            }
+            .sorted(by: >)
+            .forEach { duckDuckGoSuggestions.remove(at: $0) }
+
         let historyAndBookmarkSuggestions = Array(navigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
             case .bookmark, .historyEntry:
@@ -232,19 +244,7 @@ final class SuggestionProcessing {
     // MARK: - Top Hits
 
     private func topHits(from suggestions: [Suggestion]) -> [Suggestion] {
-        var topHits = [Suggestion]()
-
-        for (i, suggestion) in suggestions.enumerated() {
-            guard i <= Self.maximumNumberOfTopHits else { break }
-
-            if suggestion.allowedInTopHits {
-                topHits.append(suggestion)
-            } else {
-                break
-            }
-        }
-
-        return topHits
+        Array(suggestions.filter(\.allowedInTopHits).prefix(Self.maximumNumberOfTopHits))
     }
 
     // MARK: - Cutting off and making the result
@@ -257,7 +257,6 @@ final class SuggestionProcessing {
                             duckduckgoSuggestions: [Suggestion],
                             historyAndBookmarks: [Suggestion]) -> SuggestionResult {
         // Top Hits
-        let topHits = Array(topHits.prefix(2))
         var total = topHits.count
 
         // DuckDuckGo Suggestions
