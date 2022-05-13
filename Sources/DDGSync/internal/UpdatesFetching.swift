@@ -21,9 +21,15 @@ struct UpdatesFetcher: UpdatesFetching {
     }
 
     private func send() async throws -> Result<[String: Any], Error> {
-        var request = dependencies.api.createRequest(url: syncUrl, method: .GET)
+        let url = syncUrl.appendingPathComponent("favorites,bookmarks")
 
+        var request = dependencies.api.createRequest(url: url, method: .GET)
         request.addHeader("Authorization", value: "bearer \(token)")
+
+        let since = [dependencies.dataLastUpdated.favorites ?? "",
+                     dependencies.dataLastUpdated.bookmarks ?? ""]
+
+        request.addParameter("since", value: since.joined(separator: ","))
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
@@ -35,7 +41,7 @@ struct UpdatesFetcher: UpdatesFetching {
         }
 
         guard let updates = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SyncError.unableToDecodeResponse(message: "Failed to convert response to JSON dictionary of type [String: Any]")
+            throw SyncError.unableToDecodeResponse("Failed to convert response to JSON dictionary of type [String: Any]")
         }
 
         return .success(updates)

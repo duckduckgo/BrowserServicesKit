@@ -41,11 +41,11 @@ struct AccountCreation: AccountCreating {
         }
 
         guard let signupResult = try? JSONDecoder().decode(Result.self, from: body) else {
-            throw SyncError.unableToDecodeResponse(message: "Failed to decode signup result")
+            throw SyncError.unableToDecodeResponse("Failed to decode signup result")
         }
 
         guard let baseDataURL = URL(string: signupResult.data_url_base) else {
-            throw SyncError.invalidDataInResponse(message: "data_url_base missing from response")
+            throw SyncError.invalidDataInResponse("data_url_base missing from response")
         }
 
         return SyncAccount(userId: userId,

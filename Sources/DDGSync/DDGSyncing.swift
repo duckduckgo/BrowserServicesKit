@@ -35,9 +35,14 @@ public protocol DDGSyncing {
     func sender() throws -> AtomicSending
 
     /**
-    Call this to call the server and get updates.
+    Call this to call the server and get latest updated.
      */
-    func fetch() async throws
+    func fetchLatest() async throws
+
+    /**
+     Call this to fetch everything again.
+    */
+    func fetchEverything() async throws
 
 }
 

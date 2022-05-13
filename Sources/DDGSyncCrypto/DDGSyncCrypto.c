@@ -94,3 +94,46 @@ DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
 
     return DDGSYNCCRYPTO_OK;
 }
+
+DDGSyncCryptoResult ddgSyncEncrypt(
+    unsigned char *encryptedBytes,
+    unsigned char *rawBytes,
+    unsigned long long rawBytesLength,
+    unsigned char *secretKey) {
+
+    // Define vars
+    unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
+
+    // Prepare a nonce
+    randombytes_buf(nonceBytes, crypto_secretbox_NONCEBYTES);
+
+    // Encrypt the data
+    if (0 != crypto_secretbox_easy(encryptedBytes, rawBytes, rawBytesLength, nonceBytes, secretKey)) {
+        return DDGSYNCCRYPTO_ENCRYPTION_FAILED;
+    }
+
+    // Concat nonce to end of the value
+    memcpy(&encryptedBytes[crypto_secretbox_MACBYTES + rawBytesLength], nonceBytes, crypto_secretbox_NONCEBYTES);
+
+    return DDGSYNCCRYPTO_OK;
+}
+
+extern DDGSyncCryptoResult ddgSyncDecrypt(
+    unsigned char *rawBytes,
+    unsigned char *encryptedBytes,
+    unsigned long long encryptedBytesLength,
+    unsigned char *secretKey) {
+
+    // Define vars
+    unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
+
+    // Extract nonce
+    memcpy(nonceBytes, &encryptedBytes[encryptedBytesLength - crypto_secretbox_NONCEBYTES], crypto_secretbox_NONCEBYTES);
+
+    // Decrypt the data
+    if (0 != crypto_secretbox_open_easy(rawBytes, encryptedBytes, encryptedBytesLength - crypto_secretbox_NONCEBYTES, nonceBytes, secretKey)) {
+        return DDGSYNCCRYPTO_DECRYPTION_FAILED;
+    }
+
+    return DDGSYNCCRYPTO_OK;
+}

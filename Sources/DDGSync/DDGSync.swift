@@ -52,8 +52,14 @@ public class DDGSync: DDGSyncing {
         return try dependencies.createAtomicSender()
     }
 
-    public func fetch() async throws {
+    public func fetchLatest() async throws {
         try guardValidToken()
+        try await dependencies.createUpdatesFetcher().fetch()
+    }
+
+    public func fetchEverything() async throws {
+        try guardValidToken()
+        dependencies.dataLastUpdated.reset()
         try await dependencies.createUpdatesFetcher().fetch()
     }
 

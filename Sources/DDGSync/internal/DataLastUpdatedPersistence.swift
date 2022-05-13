@@ -1,20 +1,23 @@
 
 import Foundation
 
-struct DataLastUpdatedPersistence: DataLastUpdatedPersisting {
+// TODO change to struct writing data
+class DataLastUpdatedPersistence: DataLastUpdatedPersisting {
 
-    var bookmarks: String? {
-        return nil
-    }
-
-    var favorites: String? {
-        return nil
-    }
+    var bookmarks: String?
+    var favorites: String?
 
     func bookmarksUpdated(_ lastUpdated: String) {
+        bookmarks = lastUpdated
     }
 
     func favoritesUpdated(_ lastUpdated: String) {
+        favorites = lastUpdated
+    }
+
+    func reset() {
+        bookmarks = nil
+        favorites = nil
     }
 
 }

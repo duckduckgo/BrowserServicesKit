@@ -118,7 +118,7 @@ struct AtomicSender: AtomicSending {
         }
 
         guard let updates = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SyncError.unableToDecodeResponse(message: "Failed to convert response to JSON dictionary of type [String: Any]")
+            throw SyncError.unableToDecodeResponse("Failed to convert response to JSON dictionary of type [String: Any]")
         }
 
         return .success(updates)

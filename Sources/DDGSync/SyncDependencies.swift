@@ -76,6 +76,8 @@ public protocol DataLastUpdatedPersisting {
     func bookmarksUpdated(_ lastUpdated: String)
     func favoritesUpdated(_ lastUpdated: String)
 
+    func reset()
+
 }
 
 public protocol Crypting {
