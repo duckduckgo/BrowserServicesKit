@@ -23,12 +23,18 @@ public struct LinkProtection {
     private let linkCleaner: LinkCleaner
     private let ampExtractor: AMPCanonicalExtractor
     
+    private var mainFrameUrl: URL?
+    
     public init(privacyManager: PrivacyConfigurationManager, contentBlockingManager: ContentBlockerRulesManager, errorReporting: EventMapping<AMPProtectionDebugEvents>) {
         linkCleaner = LinkCleaner(privacyManager: privacyManager)
         ampExtractor = AMPCanonicalExtractor(linkCleaner: linkCleaner,
                                              privacyManager: privacyManager,
                                              contentBlockingManager: contentBlockingManager,
                                              errorReporting: errorReporting)
+    }
+    
+    public func setMainFrameUrl(_ url: URL?) {
+        mainFrameUrl = url
     }
     
     public func getCleanURL(from url: URL,
@@ -72,6 +78,11 @@ public struct LinkProtection {
                                            onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void,
                                            policyDecisionHandler: @escaping (WKNavigationActionPolicy) -> Void) -> Bool {
         let destinationURL = navigationAction.request.url
+        if let mainFrameUrl = mainFrameUrl, destinationURL != mainFrameUrl {
+            // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
+            // We do not rewrite redirects due to breakage concerns
+            return false
+        }
         
         var didRewriteLink = false
         if let newURL = linkCleaner.extractCanonicalFromAMPLink(initiator: initiatingURL, destination: destinationURL) {
