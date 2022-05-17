@@ -33,7 +33,7 @@ public struct LinkProtection {
                                              errorReporting: errorReporting)
     }
     
-    public func setMainFrameUrl(_ url: URL?) {
+    public mutating func setMainFrameUrl(_ url: URL?) {
         mainFrameUrl = url
     }
     
