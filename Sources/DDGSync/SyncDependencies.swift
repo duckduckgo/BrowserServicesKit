@@ -28,7 +28,7 @@ public struct SyncAccount {
     let userId: String
     let primaryKey: Data
     let secretKey: Data
-    let token: String
+    let token: String?
     let baseDataURL: URL
 
 }
@@ -52,7 +52,7 @@ public protocol SecureStoring {
 
     func persistAccount(_ account: SyncAccount) throws
 
-    func account() throws -> SyncAccount
+    func account() throws -> SyncAccount?
 
 }
 
@@ -86,4 +86,8 @@ public protocol Crypting {
 
     func base64DecodeAndDecrypt(_ value: String) throws -> String
 
+}
+
+extension SyncAccount: Codable { // TODO does this make codable part public?
+    
 }

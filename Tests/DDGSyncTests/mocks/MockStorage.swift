@@ -10,11 +10,8 @@ class MockStorage: SecureStoring {
         _account = account
     }
 
-    func account() throws -> SyncAccount {
-        guard let account = _account else {
-            throw SyncError.accountNotFound
-        }
-        return account
+    func account() throws -> SyncAccount? {
+        return _account
     }
 
 }

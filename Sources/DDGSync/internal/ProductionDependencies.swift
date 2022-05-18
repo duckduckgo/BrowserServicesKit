@@ -37,20 +37,30 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createAtomicSender() throws -> AtomicSending {
-        let account = try secureStore.account()
-        let syncUrl = account.baseDataURL.appendingPathComponent(Endpoints.sync)
-        let token = account.token
+        let auth = try accountAndToken()
+        let syncUrl = auth.account.baseDataURL.appendingPathComponent(Endpoints.sync)
 
         return AtomicSender(dependencies: self,
                             syncUrl: syncUrl,
-                            token: token)
+                            token: auth.token)
     }
 
     func createUpdatesFetcher() throws -> UpdatesFetching {
-        let account = try secureStore.account()
-        let syncUrl = account.baseDataURL.appendingPathComponent(Endpoints.sync)
-        let token = account.token
-        return UpdatesFetcher(dependencies: self, syncUrl: syncUrl, token: token)
+        let auth = try accountAndToken()
+        let syncUrl = auth.account.baseDataURL.appendingPathComponent(Endpoints.sync)
+        return UpdatesFetcher(dependencies: self, syncUrl: syncUrl, token: auth.token)
+    }
+
+    private func accountAndToken() throws -> (account: SyncAccount, token: String) {
+        guard let account = try secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        guard let token = account.token else {
+            throw SyncError.noToken
+        }
+
+        return (account, token)
     }
 
 }

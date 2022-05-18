@@ -5,9 +5,10 @@ import Combine
 
 public protocol DDGSyncing {
 
-    var state: SyncState { get }
-
-    func statePublisher() -> AnyPublisher<SyncState, Never>
+    /**
+     This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
+     */
+    var isAuthenticated: Bool { get }
 
     /**
      Creates an account.

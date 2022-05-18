@@ -1,29 +1,23 @@
 
 import Foundation
 
-// TODO use a struct if possible
-class SecureStorage: SecureStoring {
+// TODO this stuff needs stored in the keychain
+struct SecureStorage: SecureStoring {
 
-    private var _account: SyncAccount?
+    let accountFile = URL(fileURLWithPath: "account.json")
 
     func persistAccount(_ account: SyncAccount) throws {
-        self._account = account
-
-        // TODO save to keychain
-
         print("UserId", account.userId)
-        print("Token", account.token)
+        print("Token", account.token ?? "<no token>")
         print("SecretKey", account.secretKey.base64EncodedString())
         print("PrimaryKey", account.primaryKey.base64EncodedString())
 
+        try JSONEncoder().encode(account).write(to: accountFile, options: .atomic)
     }
 
-    func account() throws -> SyncAccount {
-        guard let account = _account else {
-            throw SyncError.accountNotFound
-        }
-
-        return account
+    func account() throws -> SyncAccount? {
+        guard let data = try? Data(contentsOf: accountFile) else { return nil }
+        return try JSONDecoder().decode(SyncAccount.self, from: data)
     }
 
 }
