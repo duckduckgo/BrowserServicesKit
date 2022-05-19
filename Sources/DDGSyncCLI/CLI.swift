@@ -7,10 +7,12 @@ struct CLI {
 
     enum CLIError: Error {
         case general(_ message: String)
+        case args(_ message: String)
     }
 
     static func main() async throws {
-        print("ddgsync IN")
+        print("ddgsynccli")
+        print()
 
         guard CommandLine.arguments.count > 1 else {
             Self.usage()
@@ -18,34 +20,55 @@ struct CLI {
         }
 
         let baseURLString = CommandLine.arguments[1]
-        let command = Array(CommandLine.arguments.dropFirst())
+        let command = Array(CommandLine.arguments.dropFirst(2))
 
         let cli = CLI(baseURL: URL(string: baseURLString)!)
 
-        switch command[0] {
-        case "create-account":
-            try await cli.createAccount(Array(command.dropFirst()))
+        do {
+            switch command[0] {
+            case "create-account":
+                try checkArgs(command, min: 1)
+                try await cli.createAccount(Array(command.dropFirst()))
 
-        case "add-bookmark":
-            try await cli.addBookmark(Array(command.dropFirst()))
+            case "add-bookmark":
+                try checkArgs(command, min: 2)
+                try await cli.addBookmark(Array(command.dropFirst()))
 
-        case "reset-bookmarks":
-            cli.resetBookmarks()
+            case "reset-bookmarks":
+                cli.resetBookmarks()
 
-        case "view-bookmarks":
-            cli.viewBookmarks()
+            case "view-bookmarks":
+                cli.viewBookmarks()
 
-        case "fetch-all":
-            try await cli.fetchAll()
+            case "fetch-all":
+                try await cli.fetchAll()
 
-        case "fetch-missing":
-            try await cli.fetchMissing()
+            case "fetch-missing":
+                try await cli.fetchMissing()
 
-        default:
-            cli.help()
+            default:
+                cli.help()
+            }
+        } catch {
+            switch error {
+            case CLIError.general(let message):
+                print(message)
+
+            case CLIError.args(let message):
+                print(message)
+                print()
+                cli.help()
+
+            default:
+                throw error
+            }
         }
+    }
 
-        print("ddgsync OUT")
+    static func checkArgs(_ args: [String], min: Int) throws {
+        guard args.count >= min else {
+            throw CLIError.args("Minimum of \(min) args were expected")
+        }
     }
 
     static func usage() {
@@ -70,6 +93,11 @@ struct CLI {
 
         print("Command: login <path to existing client> \"device name\"")
         print("\tLogs in, simulating the scanning of a primary key by reading the info from the given path")
+        print()
+
+        print("Command: add-bookmark \"title\" \"valid url\" [parent id]")
+        print("\tAdd a bookmark with title and url and optional parent id")
+        print()
 
         print("Command: view-bookmarks")
         print("\tView bookmarks stored locally")
@@ -93,22 +121,21 @@ struct CLI {
     }
 
     func addBookmark(_ args: [String]) async throws {
-        let errorMessage = "usage: add-bookmark title url [parent folder id]"
+        let errorMessage = "\n\nusage: add-bookmark title url [parent folder id]"
 
-        guard args.count < 2 else {
-            throw CLIError.general(errorMessage)
+        guard args.count >= 2 else {
+            throw CLIError.general("Not enough args \(args)" + errorMessage)
         }
 
         let title = args[0]
         guard let url = URL(string: args[1]) else {
-            throw CLIError.general(errorMessage)
+            throw CLIError.general("URL was not valid" + errorMessage)
         }
 
         var parent: String?
         if args.count > 2 {
             parent = args[2]
         }
-
 
         var sender = try sync.sender()
         let savedSite = persistence.addBookmark(title: title, url: url, parent: parent)
@@ -117,7 +144,7 @@ struct CLI {
     }
 
     func viewBookmarks() {
-        dumpBookmarks(persistence.root?.children ?? [], indent: "")
+        dumpBookmarks(persistence.root.children ?? [], indent: "")
     }
 
     func fetchAll() async throws {
@@ -129,34 +156,29 @@ struct CLI {
     }
 
     func login(_ args: [String]) async throws {
-
     }
 
     func createAccount(_ args: [String]) async throws {
-
-        if !sync.isAuthenticated {
-            let deviceId = UUID().uuidString
-            print("creating account for device id: ", deviceId)
-            try await sync.createAccount(device: DeviceDetails(id: UUID(), name: "Test Device"))
-
-            assert(sync.isAuthenticated)
-
-            print("persisting bookmark")
-            var sender = try sync.sender()
-            sender.persistBookmark(SavedSite(id: UUID().uuidString, title: "Example", url: "https://example.com", position: 1.56, parent: nil))
-            try await sender.send()
+        guard !args.isEmpty else {
+            throw CLIError.general("create account requires a device name")
         }
 
+        let deviceId = UUID().uuidString
+        print("creating account for device id: ", deviceId)
+        try await sync.createAccount(device: DeviceDetails(id: UUID(), name: args[0]))
+        assert(sync.isAuthenticated)
     }
 
     private func dumpBookmarks(_ bookmarks: [Persistence.Bookmark], indent: String) {
+        print(indent, bookmarks.count, " bookmarks:")
         bookmarks.sorted { $0.position < $1.position }
             .forEach {
-                print($0.id, ":", $0.title)
+                print(indent, "   ", $0.id, ":", $0.title)
                 if let folder = $0.children {
                     dumpBookmarks(folder, indent: indent + "\t")
                 } else {
-                    print(indent, $0.url ?? "<url missing>")
+                    print(indent, "   ", "url:", $0.url ?? "<url missing>")
+                    print()
                 }
             }
     }
@@ -165,7 +187,7 @@ struct CLI {
 
 class Persistence: LocalDataPersisting {
 
-    struct Bookmark: Codable {
+    class Bookmark: Codable {
 
         var id: String
         var title: String
@@ -173,48 +195,75 @@ class Persistence: LocalDataPersisting {
         var position: Double
         var children: [Bookmark]?
 
-        mutating func addBookmark(title: String, url: String) -> Bookmark {
+        init(id: String, title: String, position: Double) {
+            self.id = id
+            self.title = title
+            self.position = position
+        }
+
+        func addBookmark(title: String, url: String) -> Bookmark {
             let position = (children?.sorted { $0.position < $1.position }.last?.position ?? 0) + 1.0
-            let bookmark = Bookmark(id: UUID().uuidString, title: title, url: url, position: position)
+            let bookmark = Bookmark(id: UUID().uuidString, title: title, position: position)
+            bookmark.url = url
             children?.append(bookmark)
             return bookmark
         }
 
+        func addSite(_ site: SavedSite) {
+            let bookmark = Bookmark(id: site.id, title: site.title, position: site.position)
+            bookmark.url = site.url
+            children?.append(bookmark)
+        }
+
+        func updateWithSite(_ site: SavedSite) {
+            guard self.id == site.id else { fatalError("Updating wrong bookmark!") }
+            self.title = site.title
+            self.url = site.url
+            self.position = site.position
+        }
+
     }
 
-    var events = [SyncEvent]()
-
-    var bookmarkFile: URL {
+    static var bookmarkFile: URL {
         return URL(fileURLWithPath: "bookmarks.json")
     }
 
-    var root: Bookmark? {
-        get {
-            return try? JSONDecoder().decode(Bookmark.self, from: Data(contentsOf: bookmarkFile))
-        }
-
-        set {
-            guard let root = newValue else {
-                try? FileManager.default.removeItem(at: bookmarkFile)
-                return
-            }
-            try? JSONEncoder().encode(root).write(to: bookmarkFile)
-        }
-    }
+    var root: Bookmark
 
     init() {
-        resetBookmarks()
+        root = (try? JSONDecoder().decode(Bookmark.self, from: Data(contentsOf: Self.bookmarkFile))) ?? Self.makeRoot()
     }
 
     func persist(_ events: [SyncEvent]) async throws {
-        print(#function, events)
-        self.events = events
+         events.forEach {
+            switch $0 {
+            case .bookmarkUpdated(let site):
+                updateBookmark(site)
+
+            default:
+                print("Unsupported sync event")
+                break
+            }
+        }
+
+    }
+
+    func updateBookmark(_ site: SavedSite) {
+        if let bookmark = findBookmarkWithId(site.id, root.children ?? []) {
+            bookmark.updateWithSite(site)
+        } else if let parent = site.parent {
+            let folder = findFolderWithId(parent, root.children ?? [])
+            folder.addSite(site)
+        } else {
+            root.addSite(site)
+        }
+        saveBookmarks()
     }
 
     func addBookmark(title: String, url: URL, parent: String?) -> SavedSite {
-        var targetFolder = findFolderWithId(parent, root?.children ?? [])
+        let targetFolder = findFolderWithId(parent, root.children ?? [])
         let bookmark = targetFolder.addBookmark(title: title, url: url.absoluteString)
-
+        saveBookmarks()
         return SavedSite(id: bookmark.id,
                          title: bookmark.title,
                          url: bookmark.url!,
@@ -223,11 +272,18 @@ class Persistence: LocalDataPersisting {
     }
 
     func resetBookmarks() {
-        root = Bookmark(id: "", title: "", position: 0.0, children: [])
+        root = Self.makeRoot()
+        saveBookmarks()
+    }
+
+    func saveBookmarks() {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        try? encoder.encode(root).write(to: Self.bookmarkFile)
     }
 
     private func findFolderWithId(_ id: String?, _ children: [Bookmark]) -> Bookmark {
-        guard let id = id else { return root! }
+        guard let id = id else { return root }
         for bookmark in children {
             if bookmark.id == id {
                 return bookmark
@@ -235,7 +291,24 @@ class Persistence: LocalDataPersisting {
                 return findFolderWithId(id, children)
             }
         }
-        return root!
+        return root
+    }
+
+    private func findBookmarkWithId(_ id: String, _ children: [Bookmark]) -> Bookmark? {
+        for bookmark in children {
+            if bookmark.id == id {
+                return bookmark
+            } else if let children = bookmark.children {
+                return findBookmarkWithId(id, children)
+            }
+        }
+        return nil
+    }
+
+    static func makeRoot() -> Bookmark {
+        let bookmark = Bookmark(id: "", title: "", position: 0)
+        bookmark.children = []
+        return bookmark
     }
 
 }

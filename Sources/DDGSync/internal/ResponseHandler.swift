@@ -8,8 +8,7 @@ struct ResponseHandler: ResponseHandling {
     let crypter: Crypting
 
     func handleUpdates(_ updates: [String : Any]) async throws {
-        print(#function, updates)
-
+        
         var events = [SyncEvent]()
         var bookmarksLastUpdated: String?
         var favoritesLastUpdated: String?
