@@ -25,7 +25,9 @@ public struct LinkProtection {
     
     private var mainFrameUrl: URL?
     
-    public init(privacyManager: PrivacyConfigurationManager, contentBlockingManager: ContentBlockerRulesManager, errorReporting: EventMapping<AMPProtectionDebugEvents>) {
+    public init(privacyManager: PrivacyConfigurationManager,
+                contentBlockingManager: ContentBlockerRulesManager,
+                errorReporting: EventMapping<AMPProtectionDebugEvents>) {
         linkCleaner = LinkCleaner(privacyManager: privacyManager)
         ampExtractor = AMPCanonicalExtractor(linkCleaner: linkCleaner,
                                              privacyManager: privacyManager,
@@ -71,6 +73,7 @@ public struct LinkProtection {
         }
     }
     
+    // swiftlint:disable function_parameter_count
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
                                            onStartExtracting: () -> Void,
@@ -112,7 +115,7 @@ public struct LinkProtection {
         
         return didRewriteLink
     }
-    
+    // swiftlint:enable function_parameter_count
     
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
