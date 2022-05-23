@@ -22,25 +22,27 @@ import Foundation
 internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
     // swiftlint:disable identifier_name
-    var _accounts =  [SecureVaultModels.WebsiteAccount]()
-    var _notes =  [SecureVaultModels.Note]()
-    var _identities =  [SecureVaultModels.Identity]()
-    var _creditCards =  [SecureVaultModels.CreditCard]()
+    var _accounts = [SecureVaultModels.WebsiteAccount]()
+    var _notes = [SecureVaultModels.Note]()
+    var _identities = [Int64: SecureVaultModels.Identity]()
+    var _creditCards = [Int64: SecureVaultModels.CreditCard]()
     var _forDomain = [String]()
-    var _credentials: SecureVaultModels.WebsiteCredentials?
-    var _lastCredentials: SecureVaultModels.WebsiteCredentials?
+    var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
     var _note: SecureVaultModels.Note?
-    var _identity: SecureVaultModels.Identity?
-    var _creditCard: SecureVaultModels.CreditCard?
     // swiftlint:enable identifier_name
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
-        _lastCredentials = credentials
-        return _lastCredentials?.account.id ?? -1
+        if let accountID = credentials.account.id {
+            _credentialsDict[accountID] = credentials
+            return accountID
+        } else {
+            _credentialsDict[-1] = credentials
+            return -1
+        }
     }
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
-        return _credentials
+        return _credentialsDict[accountId]
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
@@ -74,37 +76,45 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func identities() throws -> [SecureVaultModels.Identity] {
-        return _identities
+        return Array(_identities.values)
     }
 
     func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
-        return _identity
+        return _identities[identityId]
     }
 
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
-        _identity = identity
-        return identity.id ?? -1
+        if let identityID = identity.id {
+            _identities[identityID] = identity
+            return identityID
+        } else {
+            return -1
+        }
     }
 
     func deleteIdentityForIdentityId(_ identityId: Int64) throws {
-        self._identities = self._identities.filter { $0.id != identityId }
+        _identities.removeValue(forKey: identityId)
     }
 
     func creditCards() throws -> [SecureVaultModels.CreditCard] {
-        return _creditCards
+        return Array(_creditCards.values)
     }
 
     func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
-        return _creditCard
+        return _creditCards[cardId]
     }
 
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
-        _creditCard = creditCard
-        return creditCard.id ?? -1
+        if let cardID = creditCard.id {
+            _creditCards[cardID] = creditCard
+            return cardID
+        } else {
+            return -1
+        }
     }
 
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
-        self._creditCards = self._creditCards.filter { $0.id != cardId }
+        _creditCards.removeValue(forKey: cardId)
     }
 }
 
@@ -137,7 +147,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
     func encrypt(_ data: Data, withKey key: Data) throws -> Data {
         _lastDataToEncrypt = data
         _lastKey = key
-        return Data()
+        return data
     }
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data {
@@ -148,6 +158,34 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
             throw SecureVaultError.invalidPassword
         }
 
+        return data
+    }
+
+}
+
+internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+
+    func generateSecretKey() throws -> Data {
+        return Data()
+    }
+
+    func generatePassword() throws -> Data {
+        return Data()
+    }
+
+    func deriveKeyFromPassword(_ password: Data) throws -> Data {
+        return password
+    }
+
+    func generateNonce() throws -> Data {
+        return Data()
+    }
+
+    func encrypt(_ data: Data, withKey key: Data) throws -> Data {
+        return data
+    }
+
+    func decrypt(_ data: Data, withKey key: Data) throws -> Data {
         return data
     }
 
