@@ -211,10 +211,24 @@ extension AutofillUserScript {
         let error: String?
 
     }
+    
+    struct RequestAvailableInputTypesResponse: Codable {
+
+        struct AvailableInputTypesSuccess: Codable {
+            let email: Bool
+            let credentials: Bool
+            let creditCards: Bool
+            let identities: Bool
+        }
+
+        let success: AvailableInputTypesSuccess
+        let error: String?
+
+    }
     // swiftlint:enable nesting
-
+    
     struct RequestAutoFillCreditCardResponse: Codable {
-
+     
         let success: CreditCardObject
         let error: String?
 
@@ -249,6 +263,31 @@ extension AutofillUserScript {
     // swiftlint:enable nesting
 
     // MARK: - Message Handlers
+    
+    func getAvailableInputTypes(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        let domain = hostForMessage(message)
+        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+            let credentials: [CredentialObject] = accounts.compactMap {
+                guard let id = $0.id else { return nil }
+                return .init(id: id, username: $0.username)
+            }
+
+            let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
+            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
+
+            let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
+                    email: email,
+                    credentials: credentials.count > 0,
+                    creditCards: cards.count > 0,
+                    identities: identities.count > 0
+            )
+            let response = RequestAvailableInputTypesResponse(success: success, error: nil)
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
+        }
+    }
 
     func pmGetAutoFillInitData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
