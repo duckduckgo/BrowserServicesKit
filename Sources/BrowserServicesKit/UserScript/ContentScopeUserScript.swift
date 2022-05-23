@@ -56,6 +56,16 @@ public struct ContentScopeFeatureToggles: Encodable {
     
     public let passwordGeneration: Bool
     
+    // Explicitly defined memberwise init only so it can be public
+    public init(emailProtection: Bool, credentialsAutofill: Bool, identitiesAutofill: Bool, creditCardsAutofill: Bool, credentialsSaving: Bool, passwordGeneration: Bool) {
+        self.emailProtection = emailProtection
+        self.credentialsAutofill = credentialsAutofill
+        self.identitiesAutofill = identitiesAutofill
+        self.creditCardsAutofill = creditCardsAutofill
+        self.credentialsSaving = credentialsSaving
+        self.passwordGeneration = passwordGeneration
+    }
+    
     enum CodingKeys: String, CodingKey {
         case emailProtection = "emailProtection"
         
