@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "Autofill",
+        "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
+        "state": {
+          "branch": "shane/feature-toggles-impl",
+          "revision": "820a2029a9f7373197345f2c29af65a22bfb95e5",
+          "version": null
+        }
+      },
+      {
         "package": "GRDB",
         "repositoryURL": "https://github.com/duckduckgo/GRDB.swift.git",
         "state": {
