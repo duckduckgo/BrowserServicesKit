@@ -14,7 +14,7 @@ struct CLI {
         print("ddgsynccli")
         print()
 
-        guard CommandLine.arguments.count > 1 else {
+        guard CommandLine.arguments.count > 2 else {
             Self.usage()
             exit(1)
         }
@@ -137,10 +137,11 @@ struct CLI {
             parent = args[2]
         }
 
-        var sender = try sync.sender()
-        let savedSite = persistence.addBookmark(title: title, url: url, parent: parent)
-        sender.persistBookmark(savedSite)
-        try await sender.send()
+        let savedSite = persistence.addBookmark(title: title, url: url, isFavorite: false, nextItem: nil, parent: parent)
+        try await sync
+            .sender()
+            .persistingBookmark(savedSite)
+            .send()
     }
 
     func viewBookmarks() {
@@ -156,11 +157,22 @@ struct CLI {
     }
 
     func login(_ args: [String]) async throws {
+        guard args.count >= 2 else {
+            throw CLIError.general("usage: login path/to/existing/client \"Device Name\"")
+        }
+
+        let path = args[0]
+        let deviceName = args[1]
+
+        // TODO read account info from other client and generate a recovery key
+        let key = try loadRecoveryKey(path)
+
+        // TODO sync.login(recoveryKey: key, deviceName: deviceName)
     }
 
     func createAccount(_ args: [String]) async throws {
         guard !args.isEmpty else {
-            throw CLIError.general("create account requires a device name")
+            throw CLIError.general("create-account requires a device name")
         }
 
         let deviceId = UUID().uuidString
@@ -171,7 +183,7 @@ struct CLI {
 
     private func dumpBookmarks(_ bookmarks: [Persistence.Bookmark], indent: String) {
         print(indent, bookmarks.count, " bookmarks:")
-        bookmarks.sorted { $0.position < $1.position }
+        bookmarks
             .forEach {
                 print(indent, "   ", $0.id, ":", $0.title)
                 if let folder = $0.children {
@@ -183,6 +195,17 @@ struct CLI {
             }
     }
 
+    private func loadRecoveryKey(_ path: String) throws -> Data {
+        let url = URL(fileURLWithPath: path)
+        let account = try JSONDecoder().decode(SyncAccount.self, from: Data(contentsOf: url))
+
+        guard let userId = account.userId.data(using: .utf8) else {
+            throw CLIError.general("Failed to encode userId read from account")
+        }
+
+        return account.primaryKey + userId
+    }
+
 }
 
 class Persistence: LocalDataPersisting {
@@ -192,25 +215,24 @@ class Persistence: LocalDataPersisting {
         var id: String
         var title: String
         var url: String?
-        var position: Double
+        var isFavorite: Bool
         var children: [Bookmark]?
 
-        init(id: String, title: String, position: Double) {
+        init(id: String, title: String, isFavorite: Bool) {
             self.id = id
             self.title = title
-            self.position = position
+            self.isFavorite = isFavorite
         }
 
-        func addBookmark(title: String, url: String) -> Bookmark {
-            let position = (children?.sorted { $0.position < $1.position }.last?.position ?? 0) + 1.0
-            let bookmark = Bookmark(id: UUID().uuidString, title: title, position: position)
+        func addBookmark(title: String, url: String, isFavorite: Bool) -> Bookmark {
+            let bookmark = Bookmark(id: UUID().uuidString, title: title, isFavorite: isFavorite)
             bookmark.url = url
             children?.append(bookmark)
             return bookmark
         }
 
         func addSite(_ site: SavedSite) {
-            let bookmark = Bookmark(id: site.id, title: site.title, position: site.position)
+            let bookmark = Bookmark(id: site.id, title: site.title, isFavorite: isFavorite)
             bookmark.url = site.url
             children?.append(bookmark)
         }
@@ -219,9 +241,17 @@ class Persistence: LocalDataPersisting {
             guard self.id == site.id else { fatalError("Updating wrong bookmark!") }
             self.title = site.title
             self.url = site.url
-            self.position = site.position
+            self.isFavorite = site.isFavorite
         }
 
+        func nextItemIdForBookmark(_ child: Bookmark) -> String? {
+            guard let children = children,
+                  let index = children.firstIndex(where: { $0.id == child.id }),
+                  let sibling = children[safe: index + 1] else {
+                return nil
+            }
+            return sibling.id
+        }
     }
 
     static var bookmarkFile: URL {
@@ -260,14 +290,16 @@ class Persistence: LocalDataPersisting {
         saveBookmarks()
     }
 
-    func addBookmark(title: String, url: URL, parent: String?) -> SavedSite {
+    func addBookmark(title: String, url: URL, isFavorite: Bool, nextItem: String?, parent: String?) -> SavedSite {
         let targetFolder = findFolderWithId(parent, root.children ?? [])
-        let bookmark = targetFolder.addBookmark(title: title, url: url.absoluteString)
+        let bookmark = targetFolder.addBookmark(title: title, url: url.absoluteString, isFavorite: isFavorite)
         saveBookmarks()
         return SavedSite(id: bookmark.id,
                          title: bookmark.title,
                          url: bookmark.url!,
-                         position: bookmark.position,
+                         isFavorite: isFavorite,
+                         nextFavorite: nil,
+                         nextItem: targetFolder.nextItemIdForBookmark(bookmark),
                          parent: targetFolder.id.isEmpty ? nil : targetFolder.id)
     }
 
@@ -306,9 +338,17 @@ class Persistence: LocalDataPersisting {
     }
 
     static func makeRoot() -> Bookmark {
-        let bookmark = Bookmark(id: "", title: "", position: 0)
+        let bookmark = Bookmark(id: "", title: "", isFavorite: false)
         bookmark.children = []
         return bookmark
     }
 
+}
+
+extension Collection {
+
+    /// Returns the element at the specified index if it is within bounds, otherwise nil.
+    subscript (safe index: Index) -> Element? {
+        return indices.contains(index) ? self[index] : nil
+    }
 }

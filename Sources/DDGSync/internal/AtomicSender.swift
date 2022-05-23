@@ -7,13 +7,11 @@ struct AtomicSender: AtomicSending {
     enum DataType {
 
         case bookmark
-        case favorite
         case folder
 
         func toDict() -> [String: String] {
             switch self {
             case .bookmark: return ["type": "bookmark"]
-            case .favorite: return ["type": "favorite"]
             case .folder: return ["type": "folder"]
             }
         }
@@ -25,69 +23,41 @@ struct AtomicSender: AtomicSending {
     let token: String
 
     private(set) var bookmarks = [[String: Any]]()
-    private(set) var favorites = [[String: Any]]()
 
-    mutating func persistBookmark(_ bookmark: SavedSite) {
-        bookmarks.append(toTypedDictionary(bookmark, asType: .bookmark))
+    func persistingBookmark(_ bookmark: SavedSite) -> AtomicSending {
+        return appendingBookmark(toTypedDictionary(bookmark, asType: .bookmark))
     }
 
-    mutating func persistBookmarkFolder(_ folder: Folder) {
-        bookmarks.append(toTypedDictionary(folder, asType: .folder))
+    func persistingBookmarkFolder(_ folder: Folder) -> AtomicSending {
+        return appendingBookmark(toTypedDictionary(folder, asType: .folder))
     }
 
-    mutating func deleteBookmark(_ bookmark: SavedSite) {
-        bookmarks.append(toTypedDictionary(bookmark, asType: .bookmark, deleted: true))
+    func deletingBookmark(_ bookmark: SavedSite) -> AtomicSending {
+        return appendingBookmark(toTypedDictionary(bookmark, asType: .bookmark, deleted: true))
     }
 
-    mutating func deleteBookmarkFolder(_ folder: Folder) {
-        bookmarks.append(toTypedDictionary(folder, asType: .folder, deleted: true))
-    }
-
-    mutating func persistFavorite(_ favorite: SavedSite) {
-        favorites.append(toTypedDictionary(favorite, asType: .favorite))
-    }
-
-    mutating func persistFavoriteFolder(_ folder: Folder) {
-        favorites.append(toTypedDictionary(folder, asType: .folder))
-    }
-
-    mutating func deleteFavorite(_ favorite: SavedSite) {
-        favorites.append(toTypedDictionary(favorite, asType: .favorite, deleted: true))
-    }
-
-    mutating func deleteFavoriteFolder(_ folder: Folder) {
-        favorites.append(toTypedDictionary(folder, asType: .favorite, deleted: true))
+    func deletingBookmarkFolder(_ folder: Folder) -> AtomicSending {
+        return appendingBookmark(toTypedDictionary(folder, asType: .folder, deleted: true))
     }
 
     func send() async throws {
 
         func updates(_ updates: [[String: Any]], since: String?) -> [String: Any] {
             var dict = [String: Any]()
-
-            // TODO
-//            if let since = since {
-//                dict["since"] = since
-//            }
-            dict["most_recent_version"] = 0
+            dict["modified_since"] = since
             dict["updates"] = updates
             return dict
         }
 
         let bookmarks = try self.bookmarks.map { try encrypt($0) }
-        let favorites = try self.favorites.map { try encrypt($0) }
 
         let bookmarksLastUpdated = dependencies.dataLastUpdated.bookmarks
-        let favoritesLastUpdated = dependencies.dataLastUpdated.favorites
 
-        // TODO load existing payload and update it
+        // TODO load existing payload saved while offline, and update it
         var payload = [String: Any]()
 
         if !bookmarks.isEmpty {
             payload["bookmarks"] = updates(bookmarks, since: bookmarksLastUpdated)
-        }
-
-        if !favorites.isEmpty {
-            payload["favorites"] = updates(favorites, since: favoritesLastUpdated)
         }
 
         let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
@@ -100,6 +70,7 @@ struct AtomicSender: AtomicSending {
 
         case .failure(let error):
             // TODO save for later
+            print(error)
             break
         }
     }
@@ -151,6 +122,13 @@ struct AtomicSender: AtomicSending {
             }
         }
         return encrypted
+    }
+
+    private func appendingBookmark(_ bookmark: [String: Any]) -> AtomicSending {
+        return AtomicSender(dependencies: dependencies,
+                            syncUrl: syncUrl,
+                            token: token,
+                            bookmarks: bookmarks + [bookmark])
     }
 
 }

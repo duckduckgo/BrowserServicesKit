@@ -11,7 +11,6 @@ struct ResponseHandler: ResponseHandling {
         
         var events = [SyncEvent]()
         var bookmarksLastUpdated: String?
-        var favoritesLastUpdated: String?
 
         try updates.forEach { key, value in
             guard let dict = value as? [String: Any],
@@ -20,7 +19,6 @@ struct ResponseHandler: ResponseHandling {
 
             switch key {
             case "bookmarks": bookmarksLastUpdated = dict["last_modified"] as? String
-            case "favorites": favoritesLastUpdated = dict["last_modified"] as? String
             default: break
             }
 
@@ -33,38 +31,37 @@ struct ResponseHandler: ResponseHandling {
             dataLastUpdated.bookmarksUpdated(bookmarksLastUpdated)
         }
 
-        if let favoritesLastUpdated = favoritesLastUpdated {
-            dataLastUpdated.favoritesUpdated(favoritesLastUpdated)
-        }
     }
 
     private func folderFrom(_ entry: [String: Any]) throws -> Folder? {
         guard let id = entry["id"] as? String,
-              let encryptedTitle = entry["title"] as? String,
-              let position = positionFrom(entry)
+              let encryptedTitle = entry["title"] as? String
         else { return nil }
 
+        let nextItemId = entry["next_item"] as? String
         let parent = entry["parent"] as? String
 
         let title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
 
-        return Folder(id: id, title: title, position: position, parent: parent)
+        return Folder(id: id, title: title, nextItem: nextItemId, parent: parent)
     }
 
     private func siteFrom(_ entry: [String: Any]) throws -> SavedSite? {
 
         guard let id = entry["id"] as? String,
               let encryptedTitle = entry["title"] as? String,
-              let encryptedUrl = entry["url"] as? String,
-              let position = positionFrom(entry)
+              let encryptedUrl = entry["url"] as? String
         else { return nil }
 
+        let isFavorite =  entry["is_favorite"] as? Bool ?? false
+        let nextFavorite = entry["next_favorite"] as? String
+        let nextItemId = entry["next_item"] as? String
         let parent = entry["parent"] as? String
 
         let title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
         let url = try crypter.base64DecodeAndDecrypt(encryptedUrl)
 
-        return SavedSite(id: id, title: title, url: url, position: position, parent: parent)
+        return SavedSite(id: id, title: title, url: url, isFavorite: isFavorite, nextFavorite: nextFavorite, nextItem: nextItemId, parent: parent)
     }
 
     private func syncEventsFromEntries(_ entries: [[String : Any]], _ dataType: String) throws -> [SyncEvent] {
@@ -96,40 +93,10 @@ struct ResponseHandler: ResponseHandling {
                     assertionFailure("Unable to create bookmark folder from entry")
                 }
 
-            case "favorites" where deleted:
-                events.append(.favoriteDeleted(id: id))
-
-            case "favorites" where type == "favorite":
-                if let site = try siteFrom(entry) {
-                    events.append(.favoriteUpdated(site))
-                } else {
-                    assertionFailure("Unable to create favorite from entry")
-                }
-
-            case "favorites" where type == "folder":
-                if let folder = try folderFrom(entry) {
-                    events.append(.favoriteFolderUpdated(folder))
-                } else {
-                    assertionFailure("Unable to create favorite folder from entry")
-                }
-
             default: break
 
             }
         }
         return events
     }
-
-    private func positionFrom(_ entry: [String: Any]) -> Double? {
-        if let position = entry["position"] as? Double {
-            return position
-        }
-
-        if let position = entry["position"] as? Int {
-            return Double(position)
-        }
-
-        return nil
-    }
-
 }

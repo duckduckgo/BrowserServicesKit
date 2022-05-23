@@ -21,14 +21,16 @@ struct UpdatesFetcher: UpdatesFetching {
     }
 
     private func send() async throws -> Result<[String: Any], Error> {
-        let url = syncUrl.appendingPathComponent("favorites,bookmarks")
+        // A comma separated list of types
+        let url = syncUrl.appendingPathComponent("bookmarks")
 
         var request = dependencies.api.createRequest(url: url, method: .GET)
         request.addHeader("Authorization", value: "bearer \(token)")
 
-        let since = [dependencies.dataLastUpdated.favorites ?? "",
-                     dependencies.dataLastUpdated.bookmarks ?? ""]
-
+        // This array of last modified dates should match the order passed to the path
+        let since = [
+            dependencies.dataLastUpdated.bookmarks ?? ""
+        ]
         request.addParameter("since", value: since.joined(separator: ","))
 
         let result = try await request.execute()

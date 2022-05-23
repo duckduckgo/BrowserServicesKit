@@ -27,11 +27,7 @@ public protocol DDGSyncing {
     func createAccount(device: DeviceDetails) async throws
 
     /**
-    Creates an atomic sender.  Add items to the sender and then call send to send them all in a single package.  Will automatically re-try if there is a network failure.
-
-    Example: A bookmark has been moved to favorites so you want to do the following in a single unit:
-        * Delete bookmark
-        * Add the favorite
+    Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
      */
     func sender() throws -> AtomicSending
 
@@ -49,15 +45,10 @@ public protocol DDGSyncing {
 
 public protocol AtomicSending {
 
-    mutating func persistBookmark(_ bookmark: SavedSite)
-    mutating func persistBookmarkFolder(_ folder: Folder)
-    mutating func deleteBookmark(_ bookmark: SavedSite)
-    mutating func deleteBookmarkFolder(_ folder: Folder)
-
-    mutating func persistFavorite(_ favorite: SavedSite)
-    mutating func persistFavoriteFolder(_ favorite: Folder)
-    mutating func deleteFavorite(_ favorite: SavedSite)
-    mutating func deleteFavoriteFolder(_ favorite: Folder)
+    func persistingBookmark(_ bookmark: SavedSite) -> AtomicSending
+    func persistingBookmarkFolder(_ folder: Folder) -> AtomicSending
+    func deletingBookmark(_ bookmark: SavedSite) -> AtomicSending
+    func deletingBookmarkFolder(_ folder: Folder) -> AtomicSending
 
     func send() async throws
 
@@ -68,9 +59,6 @@ public enum SyncEvent {
     case bookmarkUpdated(SavedSite)
     case bookmarkFolderUpdated(Folder)
     case bookmarkDeleted(id: String)
-    case favoriteUpdated(SavedSite)
-    case favoriteFolderUpdated(Folder)
-    case favoriteDeleted(id: String)
 
 }
 
@@ -80,16 +68,29 @@ public struct SavedSite {
 
     public let title: String
     public let url: String
-    public let position: Double
 
+    public let isFavorite: Bool
+    public let nextFavorite: String?
+
+    public let nextItem: String?
     public let parent: String?
 
-    public init(id: String, title: String, url: String, position: Double, parent: String?) {
+    public init(id: String,
+         title: String,
+         url: String,
+         isFavorite: Bool,
+         nextFavorite: String?,
+         nextItem: String?,
+         parent: String?) {
+
         self.id = id
         self.title = title
         self.url = url
-        self.position = position
+        self.isFavorite = isFavorite
+        self.nextFavorite = nextFavorite
+        self.nextItem = nextItem
         self.parent = parent
+
     }
 
 }
@@ -99,14 +100,14 @@ public struct Folder {
     public let id: String
 
     public let title: String
-    public let position: Double
 
+    public let nextItem: String?
     public let parent: String?
 
-    public init(id: String, title: String,position: Double, parent: String?) {
+    public init(id: String, title: String, nextItem: String?, parent: String?) {
         self.id = id
         self.title = title
-        self.position = position
+        self.nextItem = nextItem
         self.parent = parent
     }
 

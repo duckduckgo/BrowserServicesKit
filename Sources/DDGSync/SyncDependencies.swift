@@ -25,11 +25,11 @@ public protocol AccountCreating {
 
 public struct SyncAccount {
 
-    let userId: String
-    let primaryKey: Data
-    let secretKey: Data
-    let token: String?
-    let baseDataURL: URL
+    public let userId: String
+    public let primaryKey: Data
+    public let secretKey: Data
+    public let token: String?
+    public let baseDataURL: URL
 
 }
 
@@ -71,10 +71,8 @@ public protocol UpdatesFetching {
 public protocol DataLastUpdatedPersisting {
 
     var bookmarks: String? { get }
-    var favorites: String? { get }
 
     func bookmarksUpdated(_ lastUpdated: String)
-    func favoritesUpdated(_ lastUpdated: String)
 
     func reset()
 
