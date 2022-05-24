@@ -19,10 +19,10 @@ struct CLI {
             exit(1)
         }
 
-        let baseURLString = CommandLine.arguments[1]
+        let baseUrlString = CommandLine.arguments[1]
         let command = Array(CommandLine.arguments.dropFirst(2))
 
-        let cli = CLI(baseURL: URL(string: baseURLString)!)
+        let cli = CLI(baseUrl: URL(string: baseUrlString)!)
 
         do {
             switch command[0] {
@@ -78,9 +78,9 @@ struct CLI {
     let persistence: Persistence
     var sync: DDGSyncing
 
-    init(baseURL: URL, persistence: Persistence = Persistence()) {
+    init(baseUrl: URL, persistence: Persistence = Persistence()) {
         self.persistence = persistence
-        self.sync = DDGSync(persistence: persistence, baseURL: baseURL)
+        self.sync = DDGSync(persistence: persistence, baseUrl: baseUrl)
     }
 
     func help() {
@@ -163,11 +163,10 @@ struct CLI {
 
         let path = args[0]
         let deviceName = args[1]
-
-        // TODO read account info from other client and generate a recovery key
         let key = try loadRecoveryKey(path)
 
-        // TODO sync.login(recoveryKey: key, deviceName: deviceName)
+        try await sync.login(recoveryKey: key, device: DeviceDetails(id: UUID(), name: deviceName))
+        assert(sync.isAuthenticated)
     }
 
     func createAccount(_ args: [String]) async throws {
@@ -175,9 +174,11 @@ struct CLI {
             throw CLIError.general("create-account requires a device name")
         }
 
-        let deviceId = UUID().uuidString
+        let deviceId = UUID()
+        let deviceName = args[0]
+
         print("creating account for device id: ", deviceId)
-        try await sync.createAccount(device: DeviceDetails(id: UUID(), name: args[0]))
+        try await sync.createAccount(device: DeviceDetails(id: deviceId, name: deviceName))
         assert(sync.isAuthenticated)
     }
 

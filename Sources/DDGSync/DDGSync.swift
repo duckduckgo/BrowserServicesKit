@@ -7,7 +7,7 @@ import DDGSyncCrypto
 public class DDGSync: DDGSyncing {
 
     enum Constants {
-        public static let baseURL = URL(string: "https://sync.duckduckgo.com")!
+        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
     }
 
     public var isAuthenticated: Bool {
@@ -23,11 +23,11 @@ public class DDGSync: DDGSyncing {
     }
 
     public convenience init(persistence: LocalDataPersisting) {
-        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: Constants.baseURL, persistence: persistence))
+        self.init(persistence: persistence, dependencies: ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence))
     }
 
-    public convenience init(persistence: LocalDataPersisting, baseURL: URL) {
-        self.init(persistence: persistence, dependencies: ProductionDependencies(baseURL: baseURL, persistence: persistence))
+    public convenience init(persistence: LocalDataPersisting, baseUrl: URL) {
+        self.init(persistence: persistence, dependencies: ProductionDependencies(baseUrl: baseUrl, persistence: persistence))
     }
 
     public func createAccount(device: DeviceDetails) async throws {
@@ -35,7 +35,16 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountAlreadyExists
         }
 
-        let account = try await dependencies.accountCreation.createAccount(device: device)
+        let account = try await dependencies.account.createAccount(device: device)
+        try dependencies.secureStore.persistAccount(account)
+    }
+
+    public func login(recoveryKey: Data, device: DeviceDetails) async throws {
+        guard try dependencies.secureStore.account() == nil else {
+            throw SyncError.accountAlreadyExists
+        }
+
+        let account = try await dependencies.account.login(recoveryKey: recoveryKey, device: device)
         try dependencies.secureStore.persistAccount(account)
     }
 

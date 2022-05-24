@@ -4,16 +4,8 @@ import BrowserServicesKit
 
 struct ProductionDependencies: SyncDependencies {
 
-    enum Endpoints {
-
-        static let signup = "sync-auth/signup"
-        static let sync = "sync-data/sync"
-
-    }
-
-    let accountCreation: AccountCreating
+    let account: AccountManaging
     let api: RemoteAPIRequestCreating
-    let keyGenerator: KeyGenerating
     let secureStore: SecureStoring
     let responseHandler: ResponseHandling
     let dataLastUpdated: DataLastUpdatedPersisting
@@ -21,24 +13,21 @@ struct ProductionDependencies: SyncDependencies {
 
     private let persistence: LocalDataPersisting
 
-    init(baseURL: URL, persistence: LocalDataPersisting) {
+    init(baseUrl: URL, persistence: LocalDataPersisting) {
         self.persistence = persistence
-
-        let signUpUrl = baseURL.appendingPathComponent(Endpoints.signup)
 
         dataLastUpdated = DataLastUpdatedPersistence()
         api = RemoteAPIRequestCreator()
-        keyGenerator = KeyGeneration()
         secureStore = SecureStorage()
 
         crypter = Crypter(secureStore: secureStore)
-        accountCreation = AccountCreation(signUpUrl: signUpUrl, api: api, keyGenerator: keyGenerator)
+        account = AccountManager(authUrl: baseUrl, api: api, crypter: crypter)
         responseHandler = ResponseHandler(persistence: persistence, dataLastUpdated: dataLastUpdated, crypter: crypter)
     }
 
     func createAtomicSender() throws -> AtomicSending {
         let auth = try accountAndToken()
-        let syncUrl = auth.account.baseDataURL.appendingPathComponent(Endpoints.sync)
+        let syncUrl = auth.account.baseDataUrl.appendingPathComponent(Endpoints.sync)
 
         return AtomicSender(dependencies: self,
                             syncUrl: syncUrl,
@@ -47,7 +36,7 @@ struct ProductionDependencies: SyncDependencies {
 
     func createUpdatesFetcher() throws -> UpdatesFetching {
         let auth = try accountAndToken()
-        let syncUrl = auth.account.baseDataURL.appendingPathComponent(Endpoints.sync)
+        let syncUrl = auth.account.baseDataUrl.appendingPathComponent(Endpoints.sync)
         return UpdatesFetcher(dependencies: self, syncUrl: syncUrl, token: auth.token)
     }
 

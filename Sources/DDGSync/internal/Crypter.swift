@@ -46,6 +46,37 @@ struct Crypter: Crypting {
         return result
     }
 
+    func createAccountCreationKeys(userId: String, password: String) throws ->
+            (primaryKey: Data, secretKey: Data, protectedSymmetricKey: Data, passwordHash: Data) {
+
+        var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
+        var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
+        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
+        var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
+
+        guard DDGSYNCCRYPTO_OK == ddgSyncGenerateAccountKeys(&primaryKey, &secretKey, &protectedSymmetricKey, &passwordHash, userId, password) else {
+            throw SyncError.failedToCreateAccountKeys
+        }
+
+        return (
+            primaryKey: Data(primaryKey),
+            secretKey: Data(secretKey),
+            protectedSymmetricKey: Data(protectedSymmetricKey),
+            passwordHash: Data(passwordHash)
+        )
+    }
+
+    func extractLoginInfo(recoveryKey: Data) throws
+            -> (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data) {
+
+        throw SyncError.failedToCreateAccountKeys
+    }
+
+    func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data {
+        
+        throw SyncError.failedToCreateAccountKeys
+    }
+
 }
 
 extension Data {

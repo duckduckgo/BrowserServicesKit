@@ -27,6 +27,17 @@ public protocol DDGSyncing {
     func createAccount(device: DeviceDetails) async throws
 
     /**
+     Logs in to an existing account.
+
+     The flow is:
+     * Extract primary key
+     * 
+
+     @param recoveryKey primary key + user id
+     */
+    func login(recoveryKey: Data, device: DeviceDetails) async throws
+
+    /**
     Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
      */
     func sender() throws -> AtomicSending

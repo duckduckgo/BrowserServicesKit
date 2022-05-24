@@ -4,9 +4,8 @@ import BrowserServicesKit
 
 public protocol SyncDependencies {
 
-    var accountCreation: AccountCreating { get }
+    var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
-    var keyGenerator: KeyGenerating { get }
     var secureStore: SecureStoring { get }
     var dataLastUpdated: DataLastUpdatedPersisting { get }
     var responseHandler: ResponseHandling { get }
@@ -17,9 +16,11 @@ public protocol SyncDependencies {
 
 }
 
-public protocol AccountCreating {
+public protocol AccountManaging {
 
     func createAccount(device: DeviceDetails) async throws -> SyncAccount
+
+    func login(recoveryKey: Data, device: DeviceDetails) async throws -> SyncAccount
 
 }
 
@@ -29,22 +30,7 @@ public struct SyncAccount {
     public let primaryKey: Data
     public let secretKey: Data
     public let token: String?
-    public let baseDataURL: URL
-
-}
-
-public protocol KeyGenerating {
-
-    func createAccountCreationKeys(userId: String, password: String) throws -> AccountCreationKeys
-
-}
-
-public struct AccountCreationKeys {
-
-    let primaryKey: [UInt8]
-    let secretKey: [UInt8]
-    let protectedSymmetricKey: [UInt8]
-    let passwordHash: [UInt8]
+    public let baseDataUrl: URL
 
 }
 
@@ -83,6 +69,14 @@ public protocol Crypting {
     func encryptAndBase64Encode(_ value: String) throws -> String
 
     func base64DecodeAndDecrypt(_ value: String) throws -> String
+
+    func createAccountCreationKeys(userId: String, password: String) throws ->
+        (primaryKey: Data, secretKey: Data, protectedSymmetricKey: Data, passwordHash: Data)
+
+    func extractLoginInfo(recoveryKey: Data) throws ->
+        (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data)
+
+    func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data
 
 }
 

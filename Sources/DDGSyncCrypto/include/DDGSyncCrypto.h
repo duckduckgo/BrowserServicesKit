@@ -47,6 +47,34 @@ extern DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
 );
 
 /**
+ * Prepare keys for calling /login when using a recovery code.
+ *
+ * @param passwordHash OUT
+ * @param stretchedPrimaryKey OUT
+ * @param primaryKey IN
+ * @param userId IN
+ */
+extern DDGSyncCryptoResult ddgSyncPrepareLogin(
+    unsigned char *passwordHash,
+    unsigned char *stretchedPrimaryKey,
+    unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE],
+    const char *userId
+);
+
+/**
+ * Extract secret after calling /login.
+ *
+ * @param secretKey OUT
+ * @param encryptedSecretKey IN
+ * @param stretchedPrimaryKey IN
+ */
+extern DDGSyncCryptoResult ddgSyncExtractSecretKey(
+    unsigned char *secretKey,
+    unsigned char encryptedSecretKey[DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE],
+    unsigned char stretchedPrimaryKey[DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE]
+);
+
+/**
  * @param encryptedBytes OUT - the size of this should be equal to the size of data to encrypt, plus crypto_secretbox_MACBYTES (16 bytes) plus crypto_secretbox_NONCEBYTES (16).  The output will be the encrypted data, plus MAC, plus nonce.
  * @param rawBytes IN - the data to be encrypted.  Should be of size specified by rawDataLength
  * @param rawBytesLength IN - the length of the data to be encrypted

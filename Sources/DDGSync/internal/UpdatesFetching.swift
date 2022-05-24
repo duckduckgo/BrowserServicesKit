@@ -27,11 +27,13 @@ struct UpdatesFetcher: UpdatesFetching {
         var request = dependencies.api.createRequest(url: url, method: .GET)
         request.addHeader("Authorization", value: "bearer \(token)")
 
-        // This array of last modified dates should match the order passed to the path
-        let since = [
-            dependencies.dataLastUpdated.bookmarks ?? ""
-        ]
-        request.addParameter("since", value: since.joined(separator: ","))
+        // The since parameter should be an array of each lasted updated timestamp, but don't pass anything if any of the types are missing.
+        if let bookmarksUpdatedSince = dependencies.dataLastUpdated.bookmarks {
+            let since = [
+                bookmarksUpdatedSince
+            ]
+            request.addParameter("since", value: since.joined(separator: ","))
+        }
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
