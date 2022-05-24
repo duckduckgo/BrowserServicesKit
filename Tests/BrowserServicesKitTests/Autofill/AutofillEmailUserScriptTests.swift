@@ -268,6 +268,7 @@ class MockAutofillMessage: AutofillMessage {
 class MockAutofillEmailDelegate: AutofillEmailDelegate {
 
     var signedInCallback: (() -> Void)?
+    var signedOutCallback: (() -> Void)?
     var requestAliasCallback: (() -> Void)?
     var requestStoreTokenCallback: ((String, String, String?) -> Void)?
     var refreshAliasCallback: (() -> Void)?
@@ -303,6 +304,10 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion) {
         requestUserDataCallback?()
         completionHandler("username", "alias", "token", nil)
+    }
+
+    func autofillUserScriptDidRequestSignOut(_: AutofillUserScript) {
+        signedOutCallback?()
     }
 }
 
