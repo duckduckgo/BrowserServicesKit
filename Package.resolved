@@ -5,9 +5,9 @@
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
-          "branch": "shane/feature-toggles-impl",
-          "revision": "820a2029a9f7373197345f2c29af65a22bfb95e5",
-          "version": null
+          "branch": null,
+          "revision": "bc91503bc5e94251e9f3186523862c2bf2e76345",
+          "version": "4.4.0"
         }
       },
       {
