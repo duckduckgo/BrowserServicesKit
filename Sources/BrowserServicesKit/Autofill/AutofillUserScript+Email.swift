@@ -29,6 +29,7 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
     func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
     func autofillUserScriptDidRequestUserData(_ : AutofillUserScript, completionHandler: @escaping UserDataCompletion)
+    func autofillUserScriptDidRequestSignOut(_ : AutofillUserScript)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
 
 }
@@ -49,6 +50,11 @@ extension AutofillUserScript {
               let username = dict["username"] as? String else { return }
         let cohort = dict["cohort"] as? String
         emailDelegate?.autofillUserScript(self, didRequestStoreToken: token, username: username, cohort: cohort)
+        replyHandler(nil)
+    }
+
+    func emailRemoveToken(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+        emailDelegate?.autofillUserScriptDidRequestSignOut(self)
         replyHandler(nil)
     }
 
@@ -117,6 +123,21 @@ extension AutofillUserScript {
             } else {
                 replyHandler(nil)
             }
+        }
+    }
+
+    private struct DeviceEmailCapabilities: Encodable {
+        public let addUserData: Bool
+        public let getUserData: Bool
+        public let removeUserData: Bool
+    }
+
+    func emailGetDeviceCapabilities(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        let capabilities = DeviceEmailCapabilities(addUserData: true, getUserData: true, removeUserData: true)
+        if let json = try? JSONEncoder().encode(capabilities), let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
+        } else {
+            replyHandler(nil)
         }
     }
 
