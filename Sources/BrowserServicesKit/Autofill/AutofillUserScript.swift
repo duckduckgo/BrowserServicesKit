@@ -27,8 +27,10 @@ public class AutofillUserScript: NSObject, UserScript {
 
     internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
+        case emailHandlerRemoveToken
         case emailHandlerGetAlias
         case emailHandlerGetUserData
+        case emailHandlerGetCapabilities
         case emailHandlerRefreshAlias
 
         case emailHandlerGetAddresses
@@ -88,24 +90,26 @@ public class AutofillUserScript: NSObject, UserScript {
         os_log("AutofillUserScript: received '%{public}s'", log: .userScripts, type: .debug, messageName)
 
         switch message {
-            case .emailHandlerStoreToken: return emailStoreToken
-            case .emailHandlerGetAlias: return emailGetAlias
-            case .emailHandlerGetUserData: return emailGetUserData
-            case .emailHandlerRefreshAlias: return emailRefreshAlias
-            case .emailHandlerGetAddresses: return emailGetAddresses
-            case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
+        case .emailHandlerStoreToken: return emailStoreToken
+        case .emailHandlerRemoveToken: return emailRemoveToken
+        case .emailHandlerGetAlias: return emailGetAlias
+        case .emailHandlerGetUserData: return emailGetUserData
+        case .emailHandlerGetCapabilities: return emailGetDeviceCapabilities
+        case .emailHandlerRefreshAlias: return emailRefreshAlias
+        case .emailHandlerGetAddresses: return emailGetAddresses
+        case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
-            case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
-            
-            case .pmHandlerStoreData: return pmStoreData
-            case .pmHandlerGetAccounts: return pmGetAccounts
-            case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
-            case .pmHandlerGetIdentity: return pmGetIdentity
-            case .pmHandlerGetCreditCard: return pmGetCreditCard
+        case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
 
-            case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
-            case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
-            case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
+        case .pmHandlerStoreData: return pmStoreData
+        case .pmHandlerGetAccounts: return pmGetAccounts
+        case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
+        case .pmHandlerGetIdentity: return pmGetIdentity
+        case .pmHandlerGetCreditCard: return pmGetCreditCard
+
+        case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
+        case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
+        case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
     }
 
