@@ -217,6 +217,13 @@ struct CLI {
 
 class Persistence: LocalDataPersisting {
 
+    struct Device: Encodable {
+        
+        let id: String
+        let name: String
+        
+    }
+    
     class Bookmark: Codable {
 
         var id: String
@@ -252,13 +259,17 @@ class Persistence: LocalDataPersisting {
         return URL(fileURLWithPath: "bookmarks.json")
     }
 
+    static var devicesFile: URL {
+        return URL(fileURLWithPath: "devices.json")
+    }
+
     var root = [Bookmark]()
 
     init() {
         root = (try? JSONDecoder().decode([Bookmark].self, from: Data(contentsOf: Self.bookmarkFile))) ?? []
     }
 
-    func persist(_ events: [SyncEvent]) async throws {
+    func persistEvents(_ events: [SyncEvent]) async throws {
          events.forEach {
             switch $0 {
             case .bookmarkUpdated(let site):
@@ -270,6 +281,12 @@ class Persistence: LocalDataPersisting {
             }
         }
 
+    }
+    
+    func persistDevices(_ devices: [RegisteredDevice]) async throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        try? encoder.encode(devices.map { Device(id: $0.id, name: $0.name) }).write(to: Self.devicesFile)
     }
 
     func updateBookmark(_ site: SavedSiteItem) {

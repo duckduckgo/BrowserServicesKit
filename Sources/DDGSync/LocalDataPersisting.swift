@@ -3,6 +3,7 @@ import Foundation
 
 public protocol LocalDataPersisting {
 
-    func persist(_ events: [SyncEvent]) async throws
+    func persistEvents(_ events: [SyncEvent]) async throws
+    func persistDevices(_ devices: [RegisteredDevice]) async throws
 
 }

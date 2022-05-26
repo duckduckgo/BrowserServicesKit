@@ -25,7 +25,7 @@ struct ResponseHandler: ResponseHandling {
             }
         }
         
-        try await persistence.persist(syncEvents)
+        try await persistence.persistEvents(syncEvents)
 
         // Only save this after things have been persisted
         if let bookmarksLastModified = deltas.bookmarks?.last_modified {

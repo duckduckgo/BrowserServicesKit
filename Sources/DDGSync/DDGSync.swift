@@ -44,8 +44,9 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountAlreadyExists
         }
 
-        let account = try await dependencies.account.login(recoveryKey: recoveryKey, device: device)
-        try dependencies.secureStore.persistAccount(account)
+        let result = try await dependencies.account.login(recoveryKey: recoveryKey, device: device)
+        try dependencies.secureStore.persistAccount(result.account)
+        try await persistence.persistDevices(result.devices)
     }
 
     public func sender() throws -> AtomicSending {

@@ -20,7 +20,7 @@ public protocol AccountManaging {
 
     func createAccount(device: DeviceDetails) async throws -> SyncAccount
 
-    func login(recoveryKey: Data, device: DeviceDetails) async throws -> SyncAccount
+    func login(recoveryKey: Data, device: DeviceDetails) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
 
 }
 
@@ -31,6 +31,13 @@ public struct SyncAccount {
     public let secretKey: Data
     public let token: String?
     public let baseDataUrl: URL
+
+}
+
+public struct RegisteredDevice {
+    
+    public let id: String
+    public let name: String
 
 }
 
