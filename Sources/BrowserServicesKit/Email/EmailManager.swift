@@ -252,6 +252,10 @@ extension EmailManager: AutofillEmailDelegate {
             completionHandler(self.username, alias, self.token, nil)
         }
     }
+
+    public func autofillUserScriptDidRequestSignOut(_: AutofillUserScript) {
+        self.signOut()
+    }
     
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,

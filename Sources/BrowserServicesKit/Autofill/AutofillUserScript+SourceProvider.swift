@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Autofill
 
 public protocol AutofillUserScriptSourceProvider {
     var source: String { get }
@@ -58,6 +59,6 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
         replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"
         replacements["// INJECT userPreferences HERE"] = "userPreferences = " + jsonPropertiesString + ";"
 
-        sourceStr = AutofillUserScript.loadJS("autofill", from: Bundle.module, withReplacements: replacements)
+        sourceStr = AutofillUserScript.loadJS("assets/autofill", from: Autofill.bundle, withReplacements: replacements)
     }
 }

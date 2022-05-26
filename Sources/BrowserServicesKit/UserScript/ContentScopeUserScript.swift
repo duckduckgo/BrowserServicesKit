@@ -27,39 +27,56 @@ public final class ContentScopeProperties: Encodable {
     public let platform = ContentScopePlatform()
     public let features: [String: ContentScopeFeature]
 
-    public init(gpcEnabled: Bool, sessionKey: String) {
+    public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
         self.sessionKey = sessionKey
         features = [
-            "autofill": ContentScopeFeature()
+            "autofill": ContentScopeFeature(featureToggles: featureToggles)
         ]
     }
 }
 public struct ContentScopeFeature: Encodable {
-    public let settings: [String: FeatureToggles]
-    public init() {
-        self.settings = ["featureToggles": FeatureToggles()]
+    
+    public let settings: [String: ContentScopeFeatureToggles]
+    
+    public init(featureToggles: ContentScopeFeatureToggles) {
+        self.settings = ["featureToggles": featureToggles]
     }
 }
+
 public struct ContentScopeFeatureToggles: Encodable {
-    public let featureToggles = FeatureToggles();
-}
-public struct FeatureToggles: Encodable {
-    #if os(iOS)
-    public let inputType_credentials = true
-    public let inputType_identities = false
-    public let inputType_creditCards = false
-    public let emailProtection = true
-    public let password_generation = false
-    public let credentials_saving = true
-    #else
-    public let inputType_credentials = true
-    public let inputType_identities = true
-    public let inputType_creditCards = true
-    public let emailProtection = true
-    public let password_generation = true
-    public let credentials_saving = true
-    #endif
+
+    public let emailProtection: Bool
+    
+    public let credentialsAutofill: Bool
+    public let identitiesAutofill: Bool
+    public let creditCardsAutofill: Bool
+    
+    public let credentialsSaving: Bool
+    
+    public let passwordGeneration: Bool
+    
+    // Explicitly defined memberwise init only so it can be public
+    public init(emailProtection: Bool, credentialsAutofill: Bool, identitiesAutofill: Bool, creditCardsAutofill: Bool, credentialsSaving: Bool, passwordGeneration: Bool) {
+        self.emailProtection = emailProtection
+        self.credentialsAutofill = credentialsAutofill
+        self.identitiesAutofill = identitiesAutofill
+        self.creditCardsAutofill = creditCardsAutofill
+        self.credentialsSaving = credentialsSaving
+        self.passwordGeneration = passwordGeneration
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case emailProtection = "emailProtection"
+        
+        case credentialsAutofill = "inputType_credentials"
+        case identitiesAutofill = "inputType_identities"
+        case creditCardsAutofill = "inputType_creditCards"
+    
+        case credentialsSaving = "credentials_saving"
+        
+        case passwordGeneration = "password_generation"
+    }
 }
 
 public struct ContentScopePlatform: Encodable {
