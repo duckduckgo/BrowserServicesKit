@@ -58,7 +58,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public func fetchEverything() async throws {
-        dependencies.dataLastUpdated.reset()
+        dependencies.dataLastModified.reset()
         try await dependencies.createUpdatesFetcher().fetch()
     }
 }

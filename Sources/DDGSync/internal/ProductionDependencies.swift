@@ -8,7 +8,7 @@ struct ProductionDependencies: SyncDependencies {
     let api: RemoteAPIRequestCreating
     let secureStore: SecureStoring
     let responseHandler: ResponseHandling
-    let dataLastUpdated: DataLastUpdatedPersisting
+    let dataLastModified: DataLastModifiedPersisting
     let crypter: Crypting
 
     private let persistence: LocalDataPersisting
@@ -16,13 +16,13 @@ struct ProductionDependencies: SyncDependencies {
     init(baseUrl: URL, persistence: LocalDataPersisting) {
         self.persistence = persistence
 
-        dataLastUpdated = DataLastUpdatedPersistence()
+        dataLastModified = DataLastModified()
         api = RemoteAPIRequestCreator()
         secureStore = SecureStorage()
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(authUrl: baseUrl, api: api, crypter: crypter)
-        responseHandler = ResponseHandler(persistence: persistence, dataLastUpdated: dataLastUpdated, crypter: crypter)
+        responseHandler = ResponseHandler(persistence: persistence, dataLastModified: dataLastModified, crypter: crypter)
     }
 
     func createAtomicSender() throws -> AtomicSending {

@@ -28,7 +28,7 @@ struct UpdatesFetcher: UpdatesFetching {
         request.addHeader("Authorization", value: "bearer \(token)")
 
         // The since parameter should be an array of each lasted updated timestamp, but don't pass anything if any of the types are missing.
-        if let bookmarksUpdatedSince = dependencies.dataLastUpdated.bookmarks {
+        if let bookmarksUpdatedSince = dependencies.dataLastModified.bookmarks {
             let since = [
                 bookmarksUpdatedSince
             ]

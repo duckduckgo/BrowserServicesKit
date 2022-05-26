@@ -7,7 +7,7 @@ public protocol SyncDependencies {
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
-    var dataLastUpdated: DataLastUpdatedPersisting { get }
+    var dataLastModified: DataLastModifiedPersisting { get }
     var responseHandler: ResponseHandling { get }
     var crypter: Crypting { get }
 
@@ -61,11 +61,11 @@ public protocol UpdatesFetching {
 
 }
 
-public protocol DataLastUpdatedPersisting {
+public protocol DataLastModifiedPersisting {
 
     var bookmarks: String? { get }
-
-    func bookmarksUpdated(_ lastUpdated: String)
+    
+    func updateBookmarks(_ lastModified: String)
 
     func reset()
 

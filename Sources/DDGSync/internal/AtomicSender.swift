@@ -56,7 +56,7 @@ struct AtomicSender: AtomicSending {
     func send() async throws {
         guard !bookmarks.isEmpty else { return }
         
-        let updates = Updates(bookmarks: BookmarkUpdates(modified_since: dependencies.dataLastUpdated.bookmarks, updates: bookmarks))
+        let updates = Updates(bookmarks: BookmarkUpdates(modified_since: dependencies.dataLastModified.bookmarks, updates: bookmarks))
         
         let encoder = JSONEncoder()
         let jsonData = try encoder.encode(updates)
