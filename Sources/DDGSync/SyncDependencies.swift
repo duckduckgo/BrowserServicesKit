@@ -78,7 +78,7 @@ public protocol Crypting {
     func base64DecodeAndDecrypt(_ value: String) throws -> String
 
     func createAccountCreationKeys(userId: String, password: String) throws ->
-        (primaryKey: Data, secretKey: Data, protectedSymmetricKey: Data, passwordHash: Data)
+        (primaryKey: Data, secretKey: Data, protectedSecretKey: Data, passwordHash: Data)
 
     func extractLoginInfo(recoveryKey: Data) throws ->
         (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data)

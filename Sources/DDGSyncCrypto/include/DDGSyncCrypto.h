@@ -10,7 +10,7 @@ typedef enum : int {
     DDGSYNCCRYPTO_PRIMARY_KEY_SIZE = 32,
     DDGSYNCCRYPTO_SECRET_KEY_SIZE = 32,
     DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE = 32,
-    DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE = (crypto_secretbox_MACBYTES + DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE + crypto_secretbox_NONCEBYTES),
+    DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE = (crypto_secretbox_MACBYTES + DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE + crypto_secretbox_NONCEBYTES),
     DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE = (crypto_secretbox_MACBYTES + crypto_secretbox_NONCEBYTES),
 } DDGSyncCryptoSizes;
 
@@ -32,7 +32,7 @@ typedef enum : int {
  *
  * @param primaryKey OUT - store this.  In combination with user id, this is the recovery key.
  * @param secretKey OUT - store this. This is used to encrypt an decrypt e2e data.
- * @param protectedSymmetricKey OUT - do not store this.  Send to /sign up endpoint.
+ * @param protectedSecretKey OUT - do not store this.  Send to /sign up endpoint.
  * @param passwordHash OUT - do not store this.  Send to /signup endpoint.
  * @param userId IN
  * @param password IN
@@ -40,7 +40,7 @@ typedef enum : int {
 extern DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
     unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE],
     unsigned char secretKey[DDGSYNCCRYPTO_SECRET_KEY_SIZE],
-    unsigned char protectedSymmetricKey[DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE],
+    unsigned char protectedSecretKey[DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE],
     unsigned char passwordHash[DDGSYNCCRYPTO_HASH_SIZE],
     const char *userId,
     const char *password

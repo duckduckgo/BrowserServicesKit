@@ -7,14 +7,14 @@ class DDGSyncCryptoTests: XCTestCase {
 
     var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
     var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
-    var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
+    var protectedSecretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE.rawValue))
     var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
 
     func testWhenEncryptingDataThenOutputCanBeDecryptedValid() {
 
         XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
-                                                                  &secretKey,
-                                                                  &protectedSymmetricKey,
+                                                                   &secretKey,
+                                                                  &protectedSecretKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
@@ -38,14 +38,14 @@ class DDGSyncCryptoTests: XCTestCase {
 
         XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey,
-                                                                  &protectedSymmetricKey,
+                                                                  &protectedSecretKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
 
         assertValidKey(primaryKey)
         assertValidKey(secretKey)
-        assertValidKey(protectedSymmetricKey)
+        assertValidKey(protectedSecretKey)
         assertValidKey(passwordHash)
     }
 
@@ -54,14 +54,14 @@ class DDGSyncCryptoTests: XCTestCase {
 
         XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey,
-                                                                  &protectedSymmetricKey,
+                                                                  &protectedSecretKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
 
         XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey2,
                                                                   &secretKey,
-                                                                  &protectedSymmetricKey,
+                                                                  &protectedSecretKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
@@ -77,14 +77,14 @@ class DDGSyncCryptoTests: XCTestCase {
 
         XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey,
-                                                                  &protectedSymmetricKey,
+                                                                  &protectedSecretKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))
 
         XCTAssertEqual(DDGSYNCCRYPTO_OK, ddgSyncGenerateAccountKeys(&primaryKey,
                                                                   &secretKey2,
-                                                                  &protectedSymmetricKey,
+                                                                  &protectedSecretKey,
                                                                   &passwordHash,
                                                                   "UserID",
                                                                   "Password"))

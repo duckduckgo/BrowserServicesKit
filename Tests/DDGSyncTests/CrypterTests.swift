@@ -18,7 +18,7 @@ class CrypterTests: XCTestCase {
 
         // The login flow calls the server to retreve the protected secret key, but we already have it so check we can decrypt it.
         
-        let secretKey = try crypter.extractSecretKey(protectedSecretKey: account.protectedSymmetricKey, stretchedPrimaryKey: login.stretchedPrimaryKey)
+        let secretKey = try crypter.extractSecretKey(protectedSecretKey: account.protectedSecretKey, stretchedPrimaryKey: login.stretchedPrimaryKey)
         XCTAssertEqual(account.secretKey, secretKey)
     }
     

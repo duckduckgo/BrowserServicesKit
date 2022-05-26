@@ -16,7 +16,7 @@ struct AccountManager: AccountManaging {
         let accountKeys = try crypter.createAccountCreationKeys(userId: userId, password: password)
 
         let hashedPassword = Data(accountKeys.passwordHash).base64EncodedString()
-        let protectedEncyrptionKey = Data(accountKeys.protectedSymmetricKey).base64EncodedString()
+        let protectedEncyrptionKey = Data(accountKeys.protectedSecretKey).base64EncodedString()
 
         let params = Signup.Parameters(user_id: userId,
                                 hashed_password: hashedPassword,

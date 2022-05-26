@@ -48,14 +48,14 @@ struct Crypter: Crypting {
         return decryptedValue
     }
 
-    func createAccountCreationKeys(userId: String, password: String) throws -> (primaryKey: Data, secretKey: Data, protectedSymmetricKey: Data, passwordHash: Data) {
+    func createAccountCreationKeys(userId: String, password: String) throws -> (primaryKey: Data, secretKey: Data, protectedSecretKey: Data, passwordHash: Data) {
 
         var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
         var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
-        var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
+        var protectedSecretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE.rawValue))
         var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
 
-        let result = ddgSyncGenerateAccountKeys(&primaryKey, &secretKey, &protectedSymmetricKey, &passwordHash, userId, password)
+        let result = ddgSyncGenerateAccountKeys(&primaryKey, &secretKey, &protectedSecretKey, &passwordHash, userId, password)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToCreateAccountKeys("ddgSyncGenerateAccountKeys() failed: \(result)")
         }
@@ -63,7 +63,7 @@ struct Crypter: Crypting {
         return (
             primaryKey: Data(primaryKey),
             secretKey: Data(secretKey),
-            protectedSymmetricKey: Data(protectedSymmetricKey),
+            protectedSecretKey: Data(protectedSecretKey),
             passwordHash: Data(passwordHash)
         )
     }
@@ -100,7 +100,7 @@ struct Crypter: Crypting {
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data {
         var secretKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
         var protectedSecretKeyBytes = protectedSecretKey.safeBytes
-        assert(protectedSecretKey.count == DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue)
+        assert(protectedSecretKey.count == DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE.rawValue)
         
         var stretchedPrimaryKeyBytes = stretchedPrimaryKey.safeBytes
         assert(stretchedPrimaryKeyBytes.count == DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue)

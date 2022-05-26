@@ -21,7 +21,7 @@ enum DDGSyncCryptoSubkeyIds : int {
 DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
     unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE],
     unsigned char secretKey[DDGSYNCCRYPTO_SECRET_KEY_SIZE],
-    unsigned char protectedSymmetricKey[DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE],
+    unsigned char protectedSecretKey[DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE],
     unsigned char passwordHash[DDGSYNCCRYPTO_HASH_SIZE],
     const char *userId,
     const char *password) {
@@ -74,7 +74,7 @@ DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
     randombytes_buf(secretKey, DDGSYNCCRYPTO_SECRET_KEY_SIZE);
     randombytes_buf(nonceBytes, crypto_secretbox_NONCEBYTES);
 
-    if (0 != crypto_secretbox_easy(protectedSymmetricKey,
+    if (0 != crypto_secretbox_easy(protectedSecretKey,
                                    secretKey,
                                    DDGSYNCCRYPTO_SECRET_KEY_SIZE,
                                    nonceBytes,
@@ -82,7 +82,7 @@ DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
         return DDGSYNCCRYPTO_CREATE_PROTECTED_SECRET_KEY_FAILED;
     }
 
-    memcpy(&protectedSymmetricKey[crypto_secretbox_MACBYTES + DDGSYNCCRYPTO_SECRET_KEY_SIZE], nonceBytes, crypto_secretbox_NONCEBYTES);
+    memcpy(&protectedSecretKey[crypto_secretbox_MACBYTES + DDGSYNCCRYPTO_SECRET_KEY_SIZE], nonceBytes, crypto_secretbox_NONCEBYTES);
 
     return DDGSYNCCRYPTO_OK;
 }
