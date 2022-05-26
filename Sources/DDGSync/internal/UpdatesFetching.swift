@@ -20,7 +20,7 @@ struct UpdatesFetcher: UpdatesFetching {
         }
     }
 
-    private func send() async throws -> Result<[String: Any], Error> {
+    private func send() async throws -> Result<Data, Error> {
         // A comma separated list of types
         let url = syncUrl.appendingPathComponent("bookmarks")
 
@@ -41,14 +41,10 @@ struct UpdatesFetcher: UpdatesFetching {
         }
 
         guard let data = result.data else {
-            return .success([:])
+            throw SyncError.noResponseBody
         }
 
-        guard let updates = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SyncError.unableToDecodeResponse("Failed to convert response to JSON dictionary of type [String: Any]")
-        }
-
-        return .success(updates)
+        return .success(data)
     }
 
 }

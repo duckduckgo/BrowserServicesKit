@@ -44,7 +44,7 @@ public protocol SecureStoring {
 
 public protocol ResponseHandling {
 
-    func handleUpdates(_ updates: [String: Any]) async throws
+    func handleUpdates(_ data: Data) async throws
 
 }
 

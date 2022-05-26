@@ -15,8 +15,9 @@ struct Crypter: Crypting {
         var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
         var secretKey = account.secretKey.safeBytes
 
-        guard DDGSYNCCRYPTO_OK == ddgSyncEncrypt(&encryptedBytes, &rawBytes, UInt64(rawBytes.count), &secretKey) else {
-            throw SyncError.failedToEncryptValue
+        let result = ddgSyncEncrypt(&encryptedBytes, &rawBytes, UInt64(rawBytes.count), &secretKey)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToEncryptValue("ddgSyncEncrypt failed: \(result)")
         }
 
         return Data(encryptedBytes).base64EncodedString()
@@ -35,27 +36,28 @@ struct Crypter: Crypting {
         var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
         var secretKey = account.secretKey.safeBytes
 
-        guard DDGSYNCCRYPTO_OK == ddgSyncDecrypt(&rawBytes, &encryptedBytes, UInt64(encryptedBytes.count), &secretKey) else {
-            throw SyncError.failedToDecryptValue("decryption failed")
+        let result = ddgSyncDecrypt(&rawBytes, &encryptedBytes, UInt64(encryptedBytes.count), &secretKey)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToDecryptValue("ddgSyncDecrypt failed: \(result)")
         }
 
-        guard let result = String(data: Data(rawBytes), encoding: .utf8) else {
+        guard let decryptedValue = String(data: Data(rawBytes), encoding: .utf8) else {
             throw SyncError.failedToDecryptValue("bytes could not be converted to string")
         }
 
-        return result
+        return decryptedValue
     }
 
-    func createAccountCreationKeys(userId: String, password: String) throws ->
-            (primaryKey: Data, secretKey: Data, protectedSymmetricKey: Data, passwordHash: Data) {
+    func createAccountCreationKeys(userId: String, password: String) throws -> (primaryKey: Data, secretKey: Data, protectedSymmetricKey: Data, passwordHash: Data) {
 
         var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
         var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
         var protectedSymmetricKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue))
         var passwordHash = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
 
-        guard DDGSYNCCRYPTO_OK == ddgSyncGenerateAccountKeys(&primaryKey, &secretKey, &protectedSymmetricKey, &passwordHash, userId, password) else {
-            throw SyncError.failedToCreateAccountKeys
+        let result = ddgSyncGenerateAccountKeys(&primaryKey, &secretKey, &protectedSymmetricKey, &passwordHash, userId, password)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToCreateAccountKeys("ddgSyncGenerateAccountKeys() failed: \(result)")
         }
 
         return (
@@ -66,15 +68,49 @@ struct Crypter: Crypting {
         )
     }
 
-    func extractLoginInfo(recoveryKey: Data) throws
-            -> (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data) {
+    func extractLoginInfo(recoveryKey: Data) throws -> (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data) {
+        let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
+        
+        var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
+        var userIdBytes = [UInt8](repeating: 0, count: recoveryKey.count - primaryKeySize)
+        var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
+        var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
 
-        throw SyncError.failedToCreateAccountKeys
+        recoveryKey.copyBytes(to: &primaryKeyBytes, from: 0 ..< primaryKeySize)
+        recoveryKey.copyBytes(to: &userIdBytes, from: primaryKeySize ..< recoveryKey.count)
+             
+        guard let userId = String(data: Data(userIdBytes), encoding: .utf8) else {
+            throw SyncError.failedToCreateAccountKeys("failed to get userId from recovery key")
+        }
+        
+        let result = ddgSyncPrepareForLogin(&passwordHashBytes, &strechedPrimaryKeyBytes, &primaryKeyBytes)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToCreateAccountKeys("ddgSyncPrepareForLogin failed: \(result)")
+        }
+        
+        return (
+            userId: userId,
+            primaryKey: Data(primaryKeyBytes),
+            passwordHash: Data(passwordHashBytes),
+            stretchedPrimaryKey: Data(strechedPrimaryKeyBytes)
+        )
+
     }
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data {
+        var secretKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
+        var protectedSecretKeyBytes = protectedSecretKey.safeBytes
+        assert(protectedSecretKey.count == DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE.rawValue)
         
-        throw SyncError.failedToCreateAccountKeys
+        var stretchedPrimaryKeyBytes = stretchedPrimaryKey.safeBytes
+        assert(stretchedPrimaryKeyBytes.count == DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue)
+
+        let result = ddgSyncDecrypt(&secretKeyBytes, &protectedSecretKeyBytes, UInt64(protectedSecretKeyBytes.count), &stretchedPrimaryKeyBytes)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToCreateAccountKeys("ddgSyncDecrypt failed: \(result)")
+        }
+        
+        return Data(secretKeyBytes)
     }
 
 }

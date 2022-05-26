@@ -7,96 +7,74 @@ struct ResponseHandler: ResponseHandling {
     let dataLastUpdated: DataLastUpdatedPersisting
     let crypter: Crypting
 
-    func handleUpdates(_ updates: [String : Any]) async throws {
+    func handleUpdates(_ data: Data) async throws {
+        guard !data.isEmpty else { throw SyncError.unableToDecodeResponse("Data is empty") }
         
-        var events = [SyncEvent]()
-        var bookmarksLastUpdated: String?
-
-        try updates.forEach { key, value in
-            guard let dict = value as? [String: Any],
-                  let entries = dict["entries"] as? [[String: Any]]
-            else { return }
-
-            switch key {
-            case "bookmarks": bookmarksLastUpdated = dict["last_modified"] as? String
-            default: break
-            }
-
-            events += try syncEventsFromEntries(entries, key)
-        }
-
-        try await persistence.persist(events)
-
-        if let bookmarksLastUpdated = bookmarksLastUpdated {
-            dataLastUpdated.bookmarksUpdated(bookmarksLastUpdated)
-        }
-
-    }
-
-    private func folderFrom(_ entry: [String: Any]) throws -> Folder? {
-        guard let id = entry["id"] as? String,
-              let encryptedTitle = entry["title"] as? String
-        else { return nil }
-
-        let nextItemId = entry["next_item"] as? String
-        let parent = entry["parent"] as? String
-
-        let title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
-
-        return Folder(id: id, title: title, nextItem: nextItemId, parent: parent)
-    }
-
-    private func siteFrom(_ entry: [String: Any]) throws -> SavedSite? {
-
-        guard let id = entry["id"] as? String,
-              let encryptedTitle = entry["title"] as? String,
-              let encryptedUrl = entry["url"] as? String
-        else { return nil }
-
-        let isFavorite =  entry["is_favorite"] as? Bool ?? false
-        let nextFavorite = entry["next_favorite"] as? String
-        let nextItemId = entry["next_item"] as? String
-        let parent = entry["parent"] as? String
-
-        let title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
-        let url = try crypter.base64DecodeAndDecrypt(encryptedUrl)
-
-        return SavedSite(id: id, title: title, url: url, isFavorite: isFavorite, nextFavorite: nextFavorite, nextItem: nextItemId, parent: parent)
-    }
-
-    private func syncEventsFromEntries(_ entries: [[String : Any]], _ dataType: String) throws -> [SyncEvent] {
-        var events = [SyncEvent]()
-
-        try entries.forEach { entry in
-            guard let id = entry["id"] as? String,
-                  let type = entry["type"] as? String
-            else { return } // TODO log/throw?
-
-            let deleted = entry["deleted"] as? Int == 1
-
-            switch dataType {
-
-            case "bookmarks" where deleted:
-                events.append(.bookmarkDeleted(id: id))
-
-            case "bookmarks" where type == "bookmark":
-                if let site = try siteFrom(entry) {
-                    events.append(.bookmarkUpdated(site))
-                } else {
-                    assertionFailure("Unable to create bookmark from entry")
-                }
-
-            case "bookmarks" where type == "folder":
-                if let folder = try folderFrom(entry) {
-                    events.append(.bookmarkFolderUpdated(folder))
-                } else {
-                    assertionFailure("Unable to create bookmark folder from entry")
-                }
-
-            default: break
-
+        let decoder = JSONDecoder()
+        let deltas = try decoder.decode(SyncDelta.self, from: data)
+        
+        var syncEvents = [SyncEvent]()
+        
+        deltas.bookmarks?.entries.forEach { bookmarkUpdate in
+            do {
+                guard let event = try bookmarkUpdateToEvent(bookmarkUpdate) else { return }
+                syncEvents.append(event)
+            } catch {
+                // Nothing much we can do here and we don't want to break everything because of some dodgy data, but we don't lose this info either in case something more critical is going wrong. 
+                // TODO log this error
             }
         }
-        return events
+        
+        try await persistence.persist(syncEvents)
+
+        // Only save this after things have been persisted
+        if let bookmarksLastModified = deltas.bookmarks?.last_modified {
+            dataLastUpdated.bookmarksUpdated(bookmarksLastModified)
+        }
     }
+    
+    private func bookmarkUpdateToEvent(_ bookmarkUpdate: BookmarkUpdate) throws -> SyncEvent? {
+        guard let id = bookmarkUpdate.id else { return nil }
+        guard let encryptedTitle = bookmarkUpdate.title else { return nil }
+        
+        let title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
+        
+        if bookmarkUpdate.deleted != nil {
+            
+            return .bookmarkDeleted(id:id)
+            
+        } else if bookmarkUpdate.folder != nil {
+            
+            return .bookmarkFolderUpdated(SavedSiteFolder(id: id,
+                                         title: title,
+                                         nextItem: bookmarkUpdate.next,
+                                         parent: bookmarkUpdate.parent))
+        } else {
+            
+            guard let encryptedUrl = bookmarkUpdate.page?.url else { return nil }
+            let url = try crypter.base64DecodeAndDecrypt(encryptedUrl)
+            let savedSite = SavedSiteItem(id: id,
+                                      title: title,
+                                      url: url,
+                                      isFavorite: bookmarkUpdate.favorite != nil,
+                                      nextFavorite: bookmarkUpdate.favorite?.next,
+                                      nextItem: bookmarkUpdate.next,
+                                      parent: bookmarkUpdate.parent)
+            return .bookmarkUpdated(savedSite)
+        }
+    }
+    
+    struct SyncDelta: Decodable {
+        
+        var bookmarks: BookmarkDeltas?
+        
+    }
+    
+    struct BookmarkDeltas: Decodable {
+        
+        var last_modified: String?
+        var entries: [BookmarkUpdate]
+        
+    }
+        
 }

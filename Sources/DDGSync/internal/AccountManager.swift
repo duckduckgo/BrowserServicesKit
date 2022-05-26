@@ -28,7 +28,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: authUrl.appendingPathComponent("signup"), method: .POST)
+        var request = api.createRequest(url: authUrl.appendingPathComponent(Endpoints.signup), method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()
@@ -67,7 +67,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: authUrl.appendingPathComponent("login"), method: .POST)
+        var request = api.createRequest(url: authUrl.appendingPathComponent(Endpoints.login), method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()

@@ -25,14 +25,10 @@ DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
     unsigned char passwordHash[DDGSYNCCRYPTO_HASH_SIZE],
     const char *userId,
     const char *password) {
-
-    // Define vars
-
+    
     unsigned char salt[crypto_pwhash_SALTBYTES];
     unsigned char stretchedPrimaryKey[DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE];
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
-
-    // Validate inputs
 
     if (NULL == userId) {
         return DDGSYNCCRYPTO_INVALID_USERID;
@@ -42,12 +38,8 @@ DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
         return DDGSYNCCRYPTO_INVALID_PASSWORD;
     }
 
-    // Prepare salt
-
     memset(salt, 0, crypto_pwhash_SALTBYTES);
     memcpy(salt, userId, min(crypto_pwhash_SALTBYTES, strlen(userId)));
-
-    // Create hash and keys
 
     if (0 != crypto_pwhash(primaryKey,
                            DDGSYNCCRYPTO_PRIMARY_KEY_SIZE,
@@ -95,24 +87,46 @@ DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
     return DDGSYNCCRYPTO_OK;
 }
 
+DDGSyncCryptoResult ddgSyncPrepareForLogin(
+    unsigned char *passwordHash,
+    unsigned char *stretchedPrimaryKey,
+    unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE]) {
+    
+    if (0 != crypto_kdf_derive_from_key(passwordHash,
+                                        DDGSYNCCRYPTO_HASH_SIZE,
+                                        DDGSyncCryptoPasswordHashSubkey,
+                                        DDGSYNC_PASSWORD_HASH_CONTEXT,
+                                        primaryKey)) {
+
+        return DDGSYNCCRYPTO_CREATE_PASSWORD_HASH_FAILED;
+    }
+    
+    if (0 != crypto_kdf_derive_from_key(stretchedPrimaryKey,
+                                        DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE,
+                                        DDGSyncCryptoStretchedPrimaryKeySubkey,
+                                        DDGSYNC_STRETCHED_PRIMARY_KEY_CONTEXT,
+                                        primaryKey)) {
+
+        return DDGSYNCCRYPTO_CREATE_STRETCHED_PRIMARY_KEY_FAILED;
+    }
+
+    return DDGSYNCCRYPTO_OK;
+}
+
 DDGSyncCryptoResult ddgSyncEncrypt(
     unsigned char *encryptedBytes,
     unsigned char *rawBytes,
     unsigned long long rawBytesLength,
     unsigned char *secretKey) {
 
-    // Define vars
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
 
-    // Prepare a nonce
     randombytes_buf(nonceBytes, crypto_secretbox_NONCEBYTES);
 
-    // Encrypt the data
     if (0 != crypto_secretbox_easy(encryptedBytes, rawBytes, rawBytesLength, nonceBytes, secretKey)) {
         return DDGSYNCCRYPTO_ENCRYPTION_FAILED;
     }
 
-    // Concat nonce to end of the value
     memcpy(&encryptedBytes[crypto_secretbox_MACBYTES + rawBytesLength], nonceBytes, crypto_secretbox_NONCEBYTES);
 
     return DDGSYNCCRYPTO_OK;
@@ -124,13 +138,10 @@ extern DDGSyncCryptoResult ddgSyncDecrypt(
     unsigned long long encryptedBytesLength,
     unsigned char *secretKey) {
 
-    // Define vars
     unsigned char nonceBytes[crypto_secretbox_NONCEBYTES];
 
-    // Extract nonce
     memcpy(nonceBytes, &encryptedBytes[encryptedBytesLength - crypto_secretbox_NONCEBYTES], crypto_secretbox_NONCEBYTES);
 
-    // Decrypt the data
     if (0 != crypto_secretbox_open_easy(rawBytes, encryptedBytes, encryptedBytesLength - crypto_secretbox_NONCEBYTES, nonceBytes, secretKey)) {
         return DDGSYNCCRYPTO_DECRYPTION_FAILED;
     }

@@ -45,9 +45,15 @@ struct CLI {
 
             case "fetch-missing":
                 try await cli.fetchMissing()
+                
+            case "login":
+                try await cli.login(Array(command.dropFirst()))
 
             default:
+                print("unknown command \(command[0])")
+                print()
                 cli.help()
+                
             }
         } catch {
             switch error {
@@ -145,7 +151,7 @@ struct CLI {
     }
 
     func viewBookmarks() {
-        dumpBookmarks(persistence.root.children ?? [], indent: "")
+        dumpBookmarks(persistence.root, indent: "")
     }
 
     func fetchAll() async throws {
@@ -197,7 +203,7 @@ struct CLI {
     }
 
     private func loadRecoveryKey(_ path: String) throws -> Data {
-        let url = URL(fileURLWithPath: path)
+        let url = URL(fileURLWithPath: path).appendingPathComponent("account.json")
         let account = try JSONDecoder().decode(SyncAccount.self, from: Data(contentsOf: url))
 
         guard let userId = account.userId.data(using: .utf8) else {
@@ -225,20 +231,7 @@ class Persistence: LocalDataPersisting {
             self.isFavorite = isFavorite
         }
 
-        func addBookmark(title: String, url: String, isFavorite: Bool) -> Bookmark {
-            let bookmark = Bookmark(id: UUID().uuidString, title: title, isFavorite: isFavorite)
-            bookmark.url = url
-            children?.append(bookmark)
-            return bookmark
-        }
-
-        func addSite(_ site: SavedSite) {
-            let bookmark = Bookmark(id: site.id, title: site.title, isFavorite: isFavorite)
-            bookmark.url = site.url
-            children?.append(bookmark)
-        }
-
-        func updateWithSite(_ site: SavedSite) {
+        func updateWithSite(_ site: SavedSiteItem) {
             guard self.id == site.id else { fatalError("Updating wrong bookmark!") }
             self.title = site.title
             self.url = site.url
@@ -259,10 +252,10 @@ class Persistence: LocalDataPersisting {
         return URL(fileURLWithPath: "bookmarks.json")
     }
 
-    var root: Bookmark
+    var root = [Bookmark]()
 
     init() {
-        root = (try? JSONDecoder().decode(Bookmark.self, from: Data(contentsOf: Self.bookmarkFile))) ?? Self.makeRoot()
+        root = (try? JSONDecoder().decode([Bookmark].self, from: Data(contentsOf: Self.bookmarkFile))) ?? []
     }
 
     func persist(_ events: [SyncEvent]) async throws {
@@ -279,33 +272,47 @@ class Persistence: LocalDataPersisting {
 
     }
 
-    func updateBookmark(_ site: SavedSite) {
-        if let bookmark = findBookmarkWithId(site.id, root.children ?? []) {
+    func updateBookmark(_ site: SavedSiteItem) {
+        if let bookmark = findBookmarkWithId(site.id, root) {
             bookmark.updateWithSite(site)
-        } else if let parent = site.parent {
-            let folder = findFolderWithId(parent, root.children ?? [])
-            folder.addSite(site)
+        } else if let parent = site.parent, let folder = findFolderWithId(parent, root) {
+            folder.children?.append(bookmarkFromSite(site))
         } else {
-            root.addSite(site)
+            root.append(bookmarkFromSite(site))
         }
         saveBookmarks()
     }
-
-    func addBookmark(title: String, url: URL, isFavorite: Bool, nextItem: String?, parent: String?) -> SavedSite {
-        let targetFolder = findFolderWithId(parent, root.children ?? [])
-        let bookmark = targetFolder.addBookmark(title: title, url: url.absoluteString, isFavorite: isFavorite)
+    
+    func bookmarkFromSite(_ site: SavedSiteItem) -> Bookmark {
+        let bookmark = Bookmark(id: site.id, title: site.title, isFavorite: site.isFavorite)
+        bookmark.url = site.url
+        return bookmark
+    }
+    
+    func addBookmark(title: String, url: URL, isFavorite: Bool, nextItem: String?, parent: String?) -> SavedSiteItem {
+        let bookmark = Bookmark(id: UUID().uuidString, title: title, isFavorite: isFavorite)
+        bookmark.url = url.absoluteString
+    
+        // TODO insert using nextItem
+        if let targetFolder = findFolderWithId(parent, root) {
+            targetFolder.children?.append(bookmark)
+        } else {
+            root.append(bookmark)
+        }
+        
         saveBookmarks()
-        return SavedSite(id: bookmark.id,
+        
+        return SavedSiteItem(id: bookmark.id,
                          title: bookmark.title,
                          url: bookmark.url!,
                          isFavorite: isFavorite,
                          nextFavorite: nil,
-                         nextItem: targetFolder.nextItemIdForBookmark(bookmark),
-                         parent: targetFolder.id.isEmpty ? nil : targetFolder.id)
+                         nextItem: nextItem,
+                         parent: parent)
     }
 
     func resetBookmarks() {
-        root = Self.makeRoot()
+        root = []
         saveBookmarks()
     }
 
@@ -315,8 +322,12 @@ class Persistence: LocalDataPersisting {
         try? encoder.encode(root).write(to: Self.bookmarkFile)
     }
 
-    private func findFolderWithId(_ id: String?, _ children: [Bookmark]) -> Bookmark {
-        guard let id = id else { return root }
+    private func nextItemIdForBookmark(_ bookmark: Bookmark, inFolder folder: [Bookmark]) -> String? {
+        return nil
+    }
+    
+    private func findFolderWithId(_ id: String?, _ children: [Bookmark]) -> Bookmark? {
+        guard let id = id else { return nil }
         for bookmark in children {
             if bookmark.id == id {
                 return bookmark
@@ -324,7 +335,7 @@ class Persistence: LocalDataPersisting {
                 return findFolderWithId(id, children)
             }
         }
-        return root
+        return nil
     }
 
     private func findBookmarkWithId(_ id: String, _ children: [Bookmark]) -> Bookmark? {

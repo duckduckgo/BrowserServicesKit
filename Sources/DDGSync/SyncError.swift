@@ -5,7 +5,7 @@ public enum SyncError: Error {
 
     case noToken
 
-    case failedToCreateAccountKeys
+    case failedToCreateAccountKeys(_ message: String)
     case accountNotFound
     case accountAlreadyExists
 
@@ -14,7 +14,7 @@ public enum SyncError: Error {
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
 
-    case failedToEncryptValue
+    case failedToEncryptValue(_ message: String)
     case failedToDecryptValue(_ message: String)
 
 }

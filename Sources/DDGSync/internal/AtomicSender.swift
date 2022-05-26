@@ -4,68 +4,69 @@ import BrowserServicesKit
 
 struct AtomicSender: AtomicSending {
 
-    enum DataType {
-
-        case bookmark
-        case folder
-
-        func toDict() -> [String: String] {
-            switch self {
-            case .bookmark: return ["type": "bookmark"]
-            case .folder: return ["type": "folder"]
-            }
-        }
-
-    }
-
     let dependencies: SyncDependencies
     let syncUrl: URL
     let token: String
 
-    private(set) var bookmarks = [[String: Any]]()
+    private(set) var bookmarks = [BookmarkUpdate]()
 
-    func persistingBookmark(_ bookmark: SavedSite) -> AtomicSending {
-        return appendingBookmark(toTypedDictionary(bookmark, asType: .bookmark))
+    func persistingBookmark(_ bookmark: SavedSiteItem) throws -> AtomicSending {
+        return try appendBookmark(bookmark, deleted: false)
     }
 
-    func persistingBookmarkFolder(_ folder: Folder) -> AtomicSending {
-        return appendingBookmark(toTypedDictionary(folder, asType: .folder))
+    func persistingBookmarkFolder(_ folder: SavedSiteFolder) throws -> AtomicSending {
+        return try appendFolder(folder, deleted: false)
     }
 
-    func deletingBookmark(_ bookmark: SavedSite) -> AtomicSending {
-        return appendingBookmark(toTypedDictionary(bookmark, asType: .bookmark, deleted: true))
+    func deletingBookmark(_ bookmark: SavedSiteItem) throws -> AtomicSending {
+        return try appendBookmark(bookmark, deleted: true)
     }
 
-    func deletingBookmarkFolder(_ folder: Folder) -> AtomicSending {
-        return appendingBookmark(toTypedDictionary(folder, asType: .folder, deleted: true))
+    func deletingBookmarkFolder(_ folder: SavedSiteFolder) throws -> AtomicSending {
+        return try appendFolder(folder, deleted: true)
+    }
+
+    private func appendBookmark(_ bookmark: SavedSiteItem, deleted: Bool) throws -> AtomicSending {
+        let encryptedTitle = try dependencies.crypter.encryptAndBase64Encode(bookmark.title)
+        let encryptedUrl = try dependencies.crypter.encryptAndBase64Encode(bookmark.url)
+        let update = BookmarkUpdate(id: bookmark.id,
+                                    title: encryptedTitle,
+                                    page: .init(url: encryptedUrl),
+                                    folder: nil,
+                                    favorite: bookmark.isFavorite ? .init(next: bookmark.nextFavorite) : nil,
+                                    parent: bookmark.parent,
+                                    next: bookmark.nextItem,
+                                    deleted: deleted ? "" : nil)
+        return AtomicSender(dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
+    }
+    
+    private func appendFolder(_ folder: SavedSiteFolder, deleted: Bool) throws -> AtomicSending {
+        let encryptedTitle = try dependencies.crypter.encryptAndBase64Encode(folder.title)
+        let update = BookmarkUpdate(id: folder.id,
+                                    title: encryptedTitle,
+                                    page: nil,
+                                    folder: .init(),
+                                    favorite: nil,
+                                    parent: folder.parent,
+                                    next: folder.nextItem,
+                                    deleted: deleted ? "" : nil)
+        return AtomicSender(dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
     }
 
     func send() async throws {
-
-        func updates(_ updates: [[String: Any]], since: String?) -> [String: Any] {
-            var dict = [String: Any]()
-            dict["modified_since"] = since
-            dict["updates"] = updates
-            return dict
-        }
-
-        let bookmarks = try self.bookmarks.map { try encrypt($0) }
-
-        let bookmarksLastUpdated = dependencies.dataLastUpdated.bookmarks
-
-        // TODO load existing payload saved while offline, and update it
-        var payload = [String: Any]()
-
-        if !bookmarks.isEmpty {
-            payload["bookmarks"] = updates(bookmarks, since: bookmarksLastUpdated)
-        }
-
-        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: [])
+        guard !bookmarks.isEmpty else { return }
+        
+        let updates = Updates(bookmarks: BookmarkUpdates(modified_since: dependencies.dataLastUpdated.bookmarks, updates: bookmarks))
+        
+        let encoder = JSONEncoder()
+        let jsonData = try encoder.encode(updates)
         print(String(data: jsonData, encoding: .utf8)!)
 
         switch try await send(jsonData) {
         case .success(let updates):
-            try await dependencies.responseHandler.handleUpdates(updates)
+            if !updates.isEmpty {
+                try await dependencies.responseHandler.handleUpdates(updates)
+            }
             break
 
         case .failure(let error):
@@ -75,7 +76,7 @@ struct AtomicSender: AtomicSending {
         }
     }
 
-    private func send(_ json: Data) async throws -> Result<[String: Any], Error> {
+    private func send(_ json: Data) async throws -> Result<Data, Error> {
         var request = dependencies.api.createRequest(url: syncUrl, method: .PATCH)
         request.addHeader("Authorization", value: "bearer \(token)")
         request.setBody(body: json, withContentType: "application/json")
@@ -85,50 +86,23 @@ struct AtomicSender: AtomicSending {
         }
 
         guard let data = result.data else {
-            return .success([:])
+            throw SyncError.noResponseBody
         }
 
-        guard let updates = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SyncError.unableToDecodeResponse("Failed to convert response to JSON dictionary of type [String: Any]")
-        }
-
-        return .success(updates)
+        return .success(data)
     }
 
-    // https://stackoverflow.com/a/54671872/73479
-    private func toDictionary(_ thing: Any) -> [String: Any] {
-        let mirror = Mirror(reflecting: thing)
-        return Dictionary(uniqueKeysWithValues: mirror.children.lazy.map { (label: String?, value: Any) -> (String, Any)? in
-            guard let label = label else { return nil }
-            return (label, value)
-        }.compactMap { $0 })
-    }
+    struct Updates: Encodable {
 
-    private func toTypedDictionary(_ thing: Any, asType type: DataType, deleted: Bool = false) -> [String: Any] {
-        var dict = toDictionary(thing)
-        dict.merge(type.toDict()) { (_, new ) in new }
-        if deleted {
-            dict["deleted"] = 1
-        }
-        return dict
+        var bookmarks: BookmarkUpdates
+        
     }
-
-    private func encrypt(_ dict: [String: Any]) throws -> [String: Any] {
-        var encrypted = dict
-        try dict.forEach { key, value in
-            if ["title", "url"].contains(key), let value = value as? String {
-                let encryptedValue = try dependencies.crypter.encryptAndBase64Encode(value)
-                encrypted[key] = encryptedValue
-            }
-        }
-        return encrypted
+    
+    struct BookmarkUpdates: Encodable {
+        
+        var modified_since: String?
+        var updates: [BookmarkUpdate]
+        
     }
-
-    private func appendingBookmark(_ bookmark: [String: Any]) -> AtomicSending {
-        return AtomicSender(dependencies: dependencies,
-                            syncUrl: syncUrl,
-                            token: token,
-                            bookmarks: bookmarks + [bookmark])
-    }
-
+    
 }

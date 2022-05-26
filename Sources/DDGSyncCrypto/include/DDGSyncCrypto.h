@@ -47,31 +47,16 @@ extern DDGSyncCryptoResult ddgSyncGenerateAccountKeys(
 );
 
 /**
- * Prepare keys for calling /login when using a recovery code.
+ * Prepare keys for calling /login when using a recovery code.  Once the protected secret key has been retrieved, use `ddgSyncDecrypt` to extract the secret key, using the stretched primary key as the secret key for the decryption.
  *
  * @param passwordHash OUT
  * @param stretchedPrimaryKey OUT
  * @param primaryKey IN
- * @param userId IN
  */
-extern DDGSyncCryptoResult ddgSyncPrepareLogin(
+extern DDGSyncCryptoResult ddgSyncPrepareForLogin(
     unsigned char *passwordHash,
     unsigned char *stretchedPrimaryKey,
-    unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE],
-    const char *userId
-);
-
-/**
- * Extract secret after calling /login.
- *
- * @param secretKey OUT
- * @param encryptedSecretKey IN
- * @param stretchedPrimaryKey IN
- */
-extern DDGSyncCryptoResult ddgSyncExtractSecretKey(
-    unsigned char *secretKey,
-    unsigned char encryptedSecretKey[DDGSYNCCRYPTO_PROTECTED_SYMMETRIC_KEY_SIZE],
-    unsigned char stretchedPrimaryKey[DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE]
+    unsigned char primaryKey[DDGSYNCCRYPTO_PRIMARY_KEY_SIZE]
 );
 
 /**

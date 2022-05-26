@@ -56,10 +56,10 @@ public protocol DDGSyncing {
 
 public protocol AtomicSending {
 
-    func persistingBookmark(_ bookmark: SavedSite) -> AtomicSending
-    func persistingBookmarkFolder(_ folder: Folder) -> AtomicSending
-    func deletingBookmark(_ bookmark: SavedSite) -> AtomicSending
-    func deletingBookmarkFolder(_ folder: Folder) -> AtomicSending
+    func persistingBookmark(_ bookmark: SavedSiteItem) throws -> AtomicSending
+    func persistingBookmarkFolder(_ folder: SavedSiteFolder) throws -> AtomicSending
+    func deletingBookmark(_ bookmark: SavedSiteItem) throws -> AtomicSending
+    func deletingBookmarkFolder(_ folder: SavedSiteFolder) throws -> AtomicSending
 
     func send() async throws
 
@@ -67,13 +67,13 @@ public protocol AtomicSending {
 
 public enum SyncEvent {
 
-    case bookmarkUpdated(SavedSite)
-    case bookmarkFolderUpdated(Folder)
+    case bookmarkUpdated(SavedSiteItem)
+    case bookmarkFolderUpdated(SavedSiteFolder)
     case bookmarkDeleted(id: String)
 
 }
 
-public struct SavedSite {
+public struct SavedSiteItem {
 
     public let id: String
 
@@ -106,7 +106,7 @@ public struct SavedSite {
 
 }
 
-public struct Folder {
+public struct SavedSiteFolder {
 
     public let id: String
 
