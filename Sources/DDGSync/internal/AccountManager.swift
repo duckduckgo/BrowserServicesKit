@@ -79,19 +79,20 @@ struct AccountManager: AccountManaging {
             throw SyncError.noResponseBody
         }
 
+        print(String(data: body, encoding: .utf8) ?? "invalid result.data")
         guard let result = try? JSONDecoder().decode(Login.Result.self, from: body) else {
-            throw SyncError.unableToDecodeResponse("Failed to decode signup result")
+            throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
 
         guard let baseDataUrl = URL(string: result.data_url_base) else {
             throw SyncError.invalidDataInResponse("data_url_base missing from response")
         }
 
-        guard let protectedSecretKey = Data(base64Encoded: result.protected_key) else {
+        guard let protectedSecretKey = Data(base64Encoded: result.protected_encryption_key) else {
             throw SyncError.invalidDataInResponse("protected_key missing from response")
         }
 
-        let token = result.data_url_base
+        let token = result.token
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
@@ -122,10 +123,16 @@ struct AccountManager: AccountManaging {
 
         struct Result: Decodable {
             let data_url_base: String
+            let devices: [Device]
             let token: String
-            let protected_key: String
+            let protected_encryption_key: String
         }
 
+        struct Device: Decodable {
+            let device_id: String
+            let device_name: String
+        }
+        
         struct Parameters: Encodable {
             let user_id: String
             let hashed_password: String
