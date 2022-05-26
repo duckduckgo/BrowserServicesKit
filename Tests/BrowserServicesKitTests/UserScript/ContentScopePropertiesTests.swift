@@ -23,7 +23,7 @@ import WebKit
 
 class ContentScopePropertiesTests: XCTestCase {
     func testContentScopePropertiesInitializeCorrectly() {
-        let properties = ContentScopeProperties(gpcEnabled: true, sessionKey: "123456");
+        let properties = ContentScopeProperties(gpcEnabled: true, sessionKey: "123456", featureToggles: ContentScopeFeatureToggles.allTogglesOn);
 
         // ensure the properties can be encoded to valid JSON
         XCTAssertNotNil(try? JSONEncoder().encode(properties))

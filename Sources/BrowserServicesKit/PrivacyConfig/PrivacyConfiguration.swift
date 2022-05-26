@@ -102,4 +102,5 @@ public enum PrivacyFeature: String {
     case autofill
     case ampLinks
     case trackingParameters
+    case customUserAgent
 }

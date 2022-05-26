@@ -37,7 +37,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
         }
         """.data(using: .utf8)!
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
-        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
+        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
                                                            properties: properties)
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
@@ -268,6 +268,7 @@ class MockAutofillMessage: AutofillMessage {
 class MockAutofillEmailDelegate: AutofillEmailDelegate {
 
     var signedInCallback: (() -> Void)?
+    var signedOutCallback: (() -> Void)?
     var requestAliasCallback: (() -> Void)?
     var requestStoreTokenCallback: ((String, String, String?) -> Void)?
     var refreshAliasCallback: (() -> Void)?
@@ -303,6 +304,10 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion) {
         requestUserDataCallback?()
         completionHandler("username", "alias", "token", nil)
+    }
+
+    func autofillUserScriptDidRequestSignOut(_: AutofillUserScript) {
+        signedOutCallback?()
     }
 }
 
