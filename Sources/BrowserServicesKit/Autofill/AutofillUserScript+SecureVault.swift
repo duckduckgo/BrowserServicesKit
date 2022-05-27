@@ -279,9 +279,9 @@ extension AutofillUserScript {
         
         let success: RequestVaultCredentialsResponseContents
         
-        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, action: RequestVaultCredentialsAction) -> Self? {
+        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials?, action: RequestVaultCredentialsAction) -> Self {
             let credential: Credential?
-            if let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
+            if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
                 credential = Credential(id: id, username: credentials.account.username, password: password)
             } else {
                 credential = nil
@@ -335,10 +335,7 @@ extension AutofillUserScript {
             let domain = hostForMessage(message)
             
             vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials, action in
-                guard let credentials = credentials,
-                      let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action) else {
-                    return
-                }
+                let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action)
                 
                 if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                     replyHandler(jsonString)
