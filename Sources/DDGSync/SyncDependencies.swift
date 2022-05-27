@@ -7,12 +7,11 @@ public protocol SyncDependencies {
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
-    var dataLastModified: DataLastModifiedPersisting { get }
     var responseHandler: ResponseHandling { get }
     var crypter: Crypting { get }
 
-    func createAtomicSender() throws -> AtomicSending
-    func createUpdatesFetcher() throws -> UpdatesFetching
+    func createAtomicSender(_ persistence: LocalDataPersisting) throws -> AtomicSending
+    func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
 
 }
 
@@ -58,16 +57,6 @@ public protocol ResponseHandling {
 public protocol UpdatesFetching {
 
     func fetch() async throws
-
-}
-
-public protocol DataLastModifiedPersisting {
-
-    var bookmarks: String? { get }
-    
-    func updateBookmarks(_ lastModified: String)
-
-    func reset()
 
 }
 

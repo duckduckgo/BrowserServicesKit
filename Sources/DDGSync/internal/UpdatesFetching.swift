@@ -4,6 +4,7 @@ import BrowserServicesKit
 
 struct UpdatesFetcher: UpdatesFetching {
 
+    let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
     let syncUrl: URL
     let token: String
@@ -28,7 +29,7 @@ struct UpdatesFetcher: UpdatesFetching {
         request.addHeader("Authorization", value: "bearer \(token)")
 
         // The since parameter should be an array of each lasted updated timestamp, but don't pass anything if any of the types are missing.
-        if let bookmarksUpdatedSince = dependencies.dataLastModified.bookmarks {
+        if let bookmarksUpdatedSince = persistence.bookmarksLastModified {
             let since = [
                 bookmarksUpdatedSince
             ]

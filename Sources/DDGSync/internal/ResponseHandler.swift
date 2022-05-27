@@ -4,7 +4,6 @@ import Foundation
 struct ResponseHandler: ResponseHandling {
 
     let persistence: LocalDataPersisting
-    let dataLastModified: DataLastModifiedPersisting
     let crypter: Crypting
 
     func handleUpdates(_ data: Data) async throws {
@@ -29,7 +28,7 @@ struct ResponseHandler: ResponseHandling {
 
         // Only save this after things have been persisted
         if let bookmarksLastModified = deltas.bookmarks?.last_modified {
-            dataLastModified.updateBookmarks(bookmarksLastModified)
+            persistence.updateBookmarksLastModified(bookmarksLastModified)
         }
     }
     

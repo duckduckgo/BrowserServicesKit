@@ -4,6 +4,7 @@ import BrowserServicesKit
 
 struct AtomicSender: AtomicSending {
 
+    let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
     let syncUrl: URL
     let token: String
@@ -37,7 +38,7 @@ struct AtomicSender: AtomicSending {
                                     parent: bookmark.parent,
                                     next: bookmark.nextItem,
                                     deleted: deleted ? "" : nil)
-        return AtomicSender(dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
+        return AtomicSender(persistence: persistence, dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
     }
     
     private func appendFolder(_ folder: SavedSiteFolder, deleted: Bool) throws -> AtomicSending {
@@ -50,13 +51,13 @@ struct AtomicSender: AtomicSending {
                                     parent: folder.parent,
                                     next: folder.nextItem,
                                     deleted: deleted ? "" : nil)
-        return AtomicSender(dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
+        return AtomicSender(persistence: persistence, dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
     }
 
     func send() async throws {
         guard !bookmarks.isEmpty else { return }
         
-        let updates = Updates(bookmarks: BookmarkUpdates(modified_since: dependencies.dataLastModified.bookmarks, updates: bookmarks))
+        let updates = Updates(bookmarks: BookmarkUpdates(modified_since: persistence.bookmarksLastModified, updates: bookmarks))
         
         let encoder = JSONEncoder()
         let jsonData = try encoder.encode(updates)

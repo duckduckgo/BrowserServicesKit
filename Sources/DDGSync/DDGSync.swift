@@ -50,15 +50,15 @@ public class DDGSync: DDGSyncing {
     }
 
     public func sender() throws -> AtomicSending {
-        return try dependencies.createAtomicSender()
+        return try dependencies.createAtomicSender(persistence)
     }
 
     public func fetchLatest() async throws {
-        try await dependencies.createUpdatesFetcher().fetch()
+        try await dependencies.createUpdatesFetcher(persistence).fetch()
     }
 
     public func fetchEverything() async throws {
-        dependencies.dataLastModified.reset()
-        try await dependencies.createUpdatesFetcher().fetch()
+        persistence.updateBookmarksLastModified(nil)
+        try await dependencies.createUpdatesFetcher(persistence).fetch()
     }
 }

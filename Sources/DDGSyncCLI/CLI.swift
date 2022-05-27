@@ -224,6 +224,12 @@ class Persistence: LocalDataPersisting {
         
     }
     
+    struct Meta: Codable {
+        
+        var bookmarksLastModified: String?
+        
+    }
+    
     class Bookmark: Codable {
 
         var id: String
@@ -259,14 +265,30 @@ class Persistence: LocalDataPersisting {
         return URL(fileURLWithPath: "bookmarks.json")
     }
 
+    static var metaFile: URL {
+        return URL(fileURLWithPath: "meta.json")
+    }
+
     static var devicesFile: URL {
         return URL(fileURLWithPath: "devices.json")
     }
 
+    var bookmarksLastModified: String? {
+        meta.bookmarksLastModified
+    }
+    
+    let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        return encoder
+    } ()
+    
     var root = [Bookmark]()
-
+    var meta: Meta
+    
     init() {
         root = (try? JSONDecoder().decode([Bookmark].self, from: Data(contentsOf: Self.bookmarkFile))) ?? []
+        meta = (try? JSONDecoder().decode(Meta.self, from: Data(contentsOf: Self.metaFile))) ?? Meta()
     }
 
     func persistEvents(_ events: [SyncEvent]) async throws {
@@ -277,7 +299,7 @@ class Persistence: LocalDataPersisting {
 
             default:
                 print("Unsupported sync event")
-                break
+                
             }
         }
 
@@ -287,6 +309,11 @@ class Persistence: LocalDataPersisting {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         try? encoder.encode(devices.map { Device(id: $0.id, name: $0.name) }).write(to: Self.devicesFile)
+    }
+    
+    func updateBookmarksLastModified(_ lastModified: String?) {
+        meta.bookmarksLastModified = lastModified
+        saveMeta()
     }
 
     func updateBookmark(_ site: SavedSiteItem) {
@@ -337,6 +364,12 @@ class Persistence: LocalDataPersisting {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
         try? encoder.encode(root).write(to: Self.bookmarkFile)
+    }
+
+    func saveMeta() {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        try? encoder.encode(meta).write(to: Self.metaFile)
     }
 
     private func nextItemIdForBookmark(_ bookmark: Bookmark, inFolder folder: [Bookmark]) -> String? {
