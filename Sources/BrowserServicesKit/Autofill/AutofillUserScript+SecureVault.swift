@@ -19,6 +19,12 @@
 
 import WebKit
 
+public enum RequestVaultCredentialsAction: String, Codable {
+    case none
+    case fill
+    case focus
+}
+
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
     func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
@@ -33,7 +39,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
     
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
-                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void)
     
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
@@ -254,27 +260,43 @@ extension AutofillUserScript {
         let success: [CredentialObject]
 
     }
+    
+    struct Credential: Codable {
+        let id: Int64
+        let username: String
+        let password: String
+    }
 
+    //request credentials for domain
+    //getAutofillData
     // swiftlint:disable nesting
-    struct RequestVaultCredentialsResponse: Codable {
+    struct RequestVaultCredentialsForDomainResponse: Codable {
 
-        struct Credential: Codable {
-            let id: Int64
-            let username: String
-            let password: String
+        struct RequestVaultCredentialsResponseContents: Codable {
+            let credentials: Credential?
+            let action: RequestVaultCredentialsAction
         }
-
-        let success: Credential
         
-        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) -> Self? {
-            guard let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) else {
-                return nil
+        let success: RequestVaultCredentialsResponseContents
+        
+        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, action: RequestVaultCredentialsAction) -> Self? {
+            let credential: Credential?
+            if let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
+                credential = Credential(id: id, username: credentials.account.username, password: password)
+            } else {
+                credential = nil
             }
             
-            return RequestVaultCredentialsResponse(success: Credential(id: id, username: credentials.account.username, password: password))
+            return RequestVaultCredentialsForDomainResponse(success: RequestVaultCredentialsResponseContents(credentials: credential, action: action))
         }
-
     }
+    
+    //pmGetAutofillCredentials
+    //credentials for account
+    struct RequestVaultCredentialsForAccountResponse: Codable {
+        let success: Credential
+    }
+
     // swiftlint:enable nesting
 
     // MARK: - Message Handlers
@@ -312,9 +334,9 @@ extension AutofillUserScript {
         if mainType == "credentials" {
             let domain = hostForMessage(message)
             
-            vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials in
+            vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials, action in
                 guard let credentials = credentials,
-                        let response = RequestVaultCredentialsResponse.responseFromSecureVaultWebsiteCredentials(credentials) else {
+                      let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action) else {
                     return
                 }
                 
@@ -393,9 +415,9 @@ extension AutofillUserScript {
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8) else { return }
 
-            let response = RequestVaultCredentialsResponse(success: .init(id: id,
-                                                                     username: credential.account.username,
-                                                                     password: password))
+            let response = RequestVaultCredentialsForAccountResponse(success: .init(id: id,
+                                                                    username: credential.account.username,
+                                                                    password: password))
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }

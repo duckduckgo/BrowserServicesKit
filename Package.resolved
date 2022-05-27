@@ -5,8 +5,8 @@
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
-          "branch": "shane/quick-wins/esm",
-          "revision": "0797a7408463fae82959a80b30c40d8b5ada55f2",
+          "branch": "shane/quick-wins/esm-elle-changes",
+          "revision": "f6a942ee7b604e5081949d683e2b2b3845c16db7",
           "version": null
         }
       },

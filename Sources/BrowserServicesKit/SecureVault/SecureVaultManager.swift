@@ -34,6 +34,11 @@ public struct AutofillData {
     public let automaticallySavedCredentials: Bool
 }
 
+public enum PromptUserToAutofillCredentialsCompletionAction: String {
+    case presentKeyboard
+    case none
+}
+
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
@@ -41,7 +46,7 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
-                            completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
+                            completionHandler: @escaping (SecureVaultModels.WebsiteAccount?, PromptUserToAutofillCredentialsCompletionAction) -> Void)
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
     
@@ -121,27 +126,30 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
-                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
         do {
             let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             let accounts = try vault.accountsFor(domain: domain)
-            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account in
+            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account, action  in
+                
+                let responseActionOnError: RequestVaultCredentialsAction = action == .presentKeyboard ? .focus : .none
+                
                 guard let accountID = account?.id else {
-                    completionHandler(nil)
+                    completionHandler(nil, responseActionOnError)
                     return
                 }
                 
                 do {
                     let credentials = try vault.websiteCredentialsFor(accountId: accountID)
-                    completionHandler(credentials)
+                    completionHandler(credentials, .fill)
                 } catch {
                     os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
-                    completionHandler(nil)
+                    completionHandler(nil, responseActionOnError)
                 }
             }
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
-            completionHandler(nil)
+            completionHandler(nil, .focus) // If we completely fail, focus the field as would have happened anyway
         }
     }
 
