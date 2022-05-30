@@ -46,7 +46,7 @@ public protocol SecureStoring {
 
     func account() throws -> SyncAccount?
 
-    func clearToken() throws 
+    func removeAccount() throws
 }
 
 public protocol ResponseHandling {

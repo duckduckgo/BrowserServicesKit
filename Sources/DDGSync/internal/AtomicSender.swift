@@ -70,9 +70,15 @@ struct AtomicSender: AtomicSending {
             break
 
         case .failure(let error):
-            // TODO save for later
-            print(error)
-            break
+            switch error {
+            case SyncError.unexpectedStatusCode(let statusCode):
+                if statusCode == 403 {
+                    try dependencies.secureStore.removeAccount()
+                }
+                
+            default: break
+            }
+            throw error
         }
     }
 

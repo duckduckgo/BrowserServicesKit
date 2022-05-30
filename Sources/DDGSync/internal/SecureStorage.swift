@@ -20,13 +20,8 @@ struct SecureStorage: SecureStoring {
         return try JSONDecoder().decode(SyncAccount.self, from: data)
     }
 
-    func clearToken() throws {
-        guard let account = try account() else { throw SyncError.accountNotFound }
-        try persistAccount(SyncAccount(userId: account.userId,
-                                       primaryKey: account.primaryKey,
-                                       secretKey: account.secretKey,
-                                       token: nil,
-                                       baseDataUrl: account.baseDataUrl))
+    func removeAccount() throws {
+        try FileManager.default.removeItem(at: accountFile)
     }
     
 }

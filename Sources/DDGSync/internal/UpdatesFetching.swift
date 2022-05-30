@@ -21,7 +21,7 @@ struct UpdatesFetcher: UpdatesFetching {
             switch error {
             case SyncError.unexpectedStatusCode(let statusCode):
                 if statusCode == 403 {
-                    try dependencies.secureStore.clearToken()
+                    try dependencies.secureStore.removeAccount()
                 }
                 
             default: break
