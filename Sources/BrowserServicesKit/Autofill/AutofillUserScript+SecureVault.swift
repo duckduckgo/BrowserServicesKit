@@ -261,8 +261,8 @@ extension AutofillUserScript {
 
     }
     
-    struct Credential: Codable {
-        let id: Int64
+    struct CredentialResponse: Codable {
+        let id: String
         let username: String
         let password: String
     }
@@ -273,16 +273,16 @@ extension AutofillUserScript {
     struct RequestVaultCredentialsForDomainResponse: Codable {
 
         struct RequestVaultCredentialsResponseContents: Codable {
-            let credentials: Credential?
+            let credentials: CredentialResponse?
             let action: RequestVaultCredentialsAction
         }
         
         let success: RequestVaultCredentialsResponseContents
         
         static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials?, action: RequestVaultCredentialsAction) -> Self {
-            let credential: Credential?
+            let credential: CredentialResponse?
             if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
-                credential = Credential(id: id, username: credentials.account.username, password: password)
+                credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password)
             } else {
                 credential = nil
             }
@@ -294,7 +294,7 @@ extension AutofillUserScript {
     //pmGetAutofillCredentials
     //credentials for account
     struct RequestVaultCredentialsForAccountResponse: Codable {
-        let success: Credential
+        let success: CredentialResponse
     }
 
     // swiftlint:enable nesting
@@ -412,7 +412,7 @@ extension AutofillUserScript {
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8) else { return }
 
-            let response = RequestVaultCredentialsForAccountResponse(success: .init(id: id,
+            let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
                                                                     username: credential.account.username,
                                                                     password: password))
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
