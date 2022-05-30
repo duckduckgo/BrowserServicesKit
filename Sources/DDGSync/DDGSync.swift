@@ -30,21 +30,21 @@ public class DDGSync: DDGSyncing {
         self.init(persistence: persistence, dependencies: ProductionDependencies(baseUrl: baseUrl, persistence: persistence))
     }
 
-    public func createAccount(device: DeviceDetails) async throws {
+    public func createAccount(deviceName: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
-        let account = try await dependencies.account.createAccount(device: device)
+        let account = try await dependencies.account.createAccount(deviceName: deviceName)
         try dependencies.secureStore.persistAccount(account)
     }
 
-    public func login(recoveryKey: Data, device: DeviceDetails) async throws {
+    public func login(recoveryKey: Data, deviceName: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
-        let result = try await dependencies.account.login(recoveryKey: recoveryKey, device: device)
+        let result = try await dependencies.account.login(recoveryKey: recoveryKey, deviceName: deviceName)
         try dependencies.secureStore.persistAccount(result.account)
         try await persistence.persistDevices(result.devices)
     }

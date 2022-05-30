@@ -40,7 +40,8 @@ class CrypterTests: XCTestCase {
         let mockStorage = MockStorage()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
-        try mockStorage.persistAccount(SyncAccount(userId: "userId",
+        try mockStorage.persistAccount(SyncAccount(deviceId: "deviceId",
+                                                   userId: "userId",
                                                    primaryKey: primaryKey,
                                                    secretKey: secretKey,
                                                    token: "token",
@@ -56,7 +57,8 @@ class CrypterTests: XCTestCase {
         let mockStorage = MockStorage()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
-        try mockStorage.persistAccount(SyncAccount(userId: "userId",
+        try mockStorage.persistAccount(SyncAccount(deviceId: "deviceId",
+                                                   userId: "userId",
                                                    primaryKey: primaryKey,
                                                    secretKey: secretKey,
                                                    token: "token",

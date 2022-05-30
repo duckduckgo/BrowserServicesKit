@@ -9,7 +9,8 @@ struct AccountManager: AccountManaging {
     let api: RemoteAPIRequestCreating
     let crypter: Crypting
 
-    func createAccount(device: DeviceDetails) async throws -> SyncAccount {
+    func createAccount(deviceName: String) async throws -> SyncAccount {
+        let deviceId = UUID().uuidString
         let userId = UUID().uuidString
         let password = UUID().uuidString
 
@@ -21,8 +22,8 @@ struct AccountManager: AccountManaging {
         let params = Signup.Parameters(user_id: userId,
                                 hashed_password: hashedPassword,
                                 protected_encryption_key: protectedEncyrptionKey,
-                                device_id: device.id.uuidString,
-                                device_name: device.name)
+                                device_id: deviceId,
+                                device_name: deviceName)
 
         guard let paramJson = try? JSONEncoder().encode(params) else {
             fatalError()
@@ -48,20 +49,22 @@ struct AccountManager: AccountManaging {
             throw SyncError.invalidDataInResponse("data_url_base missing from response")
         }
 
-        return SyncAccount(userId: userId,
+        return SyncAccount(deviceId: deviceId,
+                           userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
                            token: result.token,
                            baseDataUrl: baseDataUrl)
     }
 
-    func login(recoveryKey: Data, device: DeviceDetails) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+    func login(recoveryKey: Data, deviceName: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+        let deviceId = UUID().uuidString
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
 
         let params = Login.Parameters(user_id: recoveryInfo.userId,
                                       hashed_password: recoveryInfo.passwordHash.base64EncodedString(),
-                                      device_id: device.id.uuidString,
-                                      device_name: device.name)
+                                      device_id: deviceId,
+                                      device_name: deviceName)
 
         guard let paramJson = try? JSONEncoder().encode(params) else {
             fatalError()
@@ -96,7 +99,7 @@ struct AccountManager: AccountManaging {
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
-        return (account: SyncAccount(userId: recoveryInfo.userId, primaryKey: recoveryInfo.primaryKey, secretKey: secretKey, token: token, baseDataUrl: baseDataUrl),
+        return (account: SyncAccount(deviceId: deviceId, userId: recoveryInfo.userId, primaryKey: recoveryInfo.primaryKey, secretKey: secretKey, token: token, baseDataUrl: baseDataUrl),
                 devices: result.devices.map { RegisteredDevice(id: $0.device_id, name: $0.device_name) })
     }
 

@@ -171,7 +171,7 @@ struct CLI {
         let deviceName = args[1]
         let key = try loadRecoveryKey(path)
 
-        try await sync.login(recoveryKey: key, device: DeviceDetails(id: UUID(), name: deviceName))
+        try await sync.login(recoveryKey: key, deviceName: deviceName)
         assert(sync.isAuthenticated)
     }
 
@@ -180,11 +180,10 @@ struct CLI {
             throw CLIError.general("create-account requires a device name")
         }
 
-        let deviceId = UUID()
         let deviceName = args[0]
 
-        print("creating account for device id: ", deviceId)
-        try await sync.createAccount(device: DeviceDetails(id: deviceId, name: deviceName))
+        print("creating new account")
+        try await sync.createAccount(deviceName: deviceName)
         assert(sync.isAuthenticated)
     }
 

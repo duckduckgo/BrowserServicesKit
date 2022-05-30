@@ -17,14 +17,15 @@ public protocol SyncDependencies {
 
 public protocol AccountManaging {
 
-    func createAccount(device: DeviceDetails) async throws -> SyncAccount
+    func createAccount(deviceName: String) async throws -> SyncAccount
 
-    func login(recoveryKey: Data, device: DeviceDetails) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
+    func login(recoveryKey: Data, deviceName: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
 
 }
 
 public struct SyncAccount {
 
+    public let deviceId: String
     public let userId: String
     public let primaryKey: Data
     public let secretKey: Data
