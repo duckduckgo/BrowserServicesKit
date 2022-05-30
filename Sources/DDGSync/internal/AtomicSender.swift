@@ -6,8 +6,6 @@ struct AtomicSender: AtomicSending {
 
     let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
-    let syncUrl: URL
-    let token: String
 
     private(set) var bookmarks = [BookmarkUpdate]()
 
@@ -38,7 +36,7 @@ struct AtomicSender: AtomicSending {
                                     parent: bookmark.parent,
                                     next: bookmark.nextItem,
                                     deleted: deleted ? "" : nil)
-        return AtomicSender(persistence: persistence, dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
+        return AtomicSender(persistence: persistence, dependencies: dependencies, bookmarks: bookmarks + [update])
     }
     
     private func appendFolder(_ folder: SavedSiteFolder, deleted: Bool) throws -> AtomicSending {
@@ -51,11 +49,12 @@ struct AtomicSender: AtomicSending {
                                     parent: folder.parent,
                                     next: folder.nextItem,
                                     deleted: deleted ? "" : nil)
-        return AtomicSender(persistence: persistence, dependencies: dependencies, syncUrl: syncUrl, token: token, bookmarks: bookmarks + [update])
+        return AtomicSender(persistence: persistence, dependencies: dependencies, bookmarks: bookmarks + [update])
     }
 
     func send() async throws {
         guard !bookmarks.isEmpty else { return }
+        guard let token = try dependencies.secureStore.account()?.token else { throw SyncError.noToken }
         
         let updates = Updates(bookmarks: BookmarkUpdates(modified_since: persistence.bookmarksLastModified, updates: bookmarks))
         
@@ -63,7 +62,7 @@ struct AtomicSender: AtomicSending {
         let jsonData = try encoder.encode(updates)
         print(String(data: jsonData, encoding: .utf8)!)
 
-        switch try await send(jsonData) {
+        switch try await send(jsonData, withAuthorization: token) {
         case .success(let updates):
             if !updates.isEmpty {
                 try await dependencies.responseHandler.handleUpdates(updates)
@@ -77,9 +76,11 @@ struct AtomicSender: AtomicSending {
         }
     }
 
-    private func send(_ json: Data) async throws -> Result<Data, Error> {
+    private func send(_ json: Data, withAuthorization authorization: String) async throws -> Result<Data, Error> {
+        guard let syncUrl = try dependencies.secureStore.account()?.baseDataUrl.appendingPathComponent(Endpoints.sync) else { throw SyncError.accountNotFound }
+        
         var request = dependencies.api.createRequest(url: syncUrl, method: .PATCH)
-        request.addHeader("Authorization", value: "bearer \(token)")
+        request.addHeader("Authorization", value: "bearer \(authorization)")
         request.setBody(body: json, withContentType: "application/json")
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {

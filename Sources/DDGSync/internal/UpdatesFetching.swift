@@ -6,27 +6,38 @@ struct UpdatesFetcher: UpdatesFetching {
 
     let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
-    let syncUrl: URL
-    let token: String
-
+    
     func fetch() async throws {
-
-        switch try await send() {
+        guard let token = try dependencies.secureStore.account()?.token else {
+            throw SyncError.noToken
+        }
+        
+        switch try await send(token) {
         case .success(let updates):
             try await dependencies.responseHandler.handleUpdates(updates)
             break
 
         case .failure(let error):
+            switch error {
+            case SyncError.unexpectedStatusCode(let statusCode):
+                if statusCode == 403 {
+                    try dependencies.secureStore.clearToken()
+                }
+                
+            default: break
+            }
             throw error
         }
     }
 
-    private func send() async throws -> Result<Data, Error> {
+    private func send(_ authorization: String) async throws -> Result<Data, Error> {
+        guard let syncUrl = try dependencies.secureStore.account()?.baseDataUrl.appendingPathComponent(Endpoints.sync) else { throw SyncError.accountNotFound }
+
         // A comma separated list of types
         let url = syncUrl.appendingPathComponent("bookmarks")
 
         var request = dependencies.api.createRequest(url: url, method: .GET)
-        request.addHeader("Authorization", value: "bearer \(token)")
+        request.addHeader("Authorization", value: "bearer \(authorization)")
 
         // The since parameter should be an array of each lasted updated timestamp, but don't pass anything if any of the types are missing.
         if let bookmarksUpdatedSince = persistence.bookmarksLastModified {

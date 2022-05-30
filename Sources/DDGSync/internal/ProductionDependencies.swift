@@ -24,31 +24,11 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createAtomicSender(_ persistence: LocalDataPersisting) throws -> AtomicSending {
-        let auth = try accountAndToken()
-        let syncUrl = auth.account.baseDataUrl.appendingPathComponent(Endpoints.sync)
-
-        return AtomicSender(persistence: persistence,
-                            dependencies: self,
-                            syncUrl: syncUrl,
-                            token: auth.token)
+        return AtomicSender(persistence: persistence, dependencies: self)
     }
 
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching {
-        let auth = try accountAndToken()
-        let syncUrl = auth.account.baseDataUrl.appendingPathComponent(Endpoints.sync)
-        return UpdatesFetcher(persistence: persistence, dependencies: self, syncUrl: syncUrl, token: auth.token)
-    }
-
-    private func accountAndToken() throws -> (account: SyncAccount, token: String) {
-        guard let account = try secureStore.account() else {
-            throw SyncError.accountNotFound
-        }
-
-        guard let token = account.token else {
-            throw SyncError.noToken
-        }
-
-        return (account, token)
+        return UpdatesFetcher(persistence: persistence, dependencies: self)
     }
 
 }

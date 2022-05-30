@@ -3,7 +3,7 @@ import Foundation
 
 // TODO this stuff needs stored in the keychain
 struct SecureStorage: SecureStoring {
-
+    
     let accountFile = URL(fileURLWithPath: "account.json")
 
     func persistAccount(_ account: SyncAccount) throws {
@@ -20,4 +20,13 @@ struct SecureStorage: SecureStoring {
         return try JSONDecoder().decode(SyncAccount.self, from: data)
     }
 
+    func clearToken() throws {
+        guard let account = try account() else { throw SyncError.accountNotFound }
+        try persistAccount(SyncAccount(userId: account.userId,
+                                       primaryKey: account.primaryKey,
+                                       secretKey: account.secretKey,
+                                       token: nil,
+                                       baseDataUrl: account.baseDataUrl))
+    }
+    
 }
