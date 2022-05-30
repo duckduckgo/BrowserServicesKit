@@ -40,7 +40,7 @@ public protocol DDGSyncing {
     /**
     Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
      */
-    func sender() throws -> AtomicSending
+    func sender() throws -> UpdatesSending
 
     /**
     Call this to call the server and get latest updated.
@@ -54,12 +54,12 @@ public protocol DDGSyncing {
 
 }
 
-public protocol AtomicSending {
+public protocol UpdatesSending {
 
-    func persistingBookmark(_ bookmark: SavedSiteItem) throws -> AtomicSending
-    func persistingBookmarkFolder(_ folder: SavedSiteFolder) throws -> AtomicSending
-    func deletingBookmark(_ bookmark: SavedSiteItem) throws -> AtomicSending
-    func deletingBookmarkFolder(_ folder: SavedSiteFolder) throws -> AtomicSending
+    func persistingBookmark(_ bookmark: SavedSiteItem) throws -> UpdatesSending
+    func persistingBookmarkFolder(_ folder: SavedSiteFolder) throws -> UpdatesSending
+    func deletingBookmark(_ bookmark: SavedSiteItem) throws -> UpdatesSending
+    func deletingBookmarkFolder(_ folder: SavedSiteFolder) throws -> UpdatesSending
 
     func send() async throws
 

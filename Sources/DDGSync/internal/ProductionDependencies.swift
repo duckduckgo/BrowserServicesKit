@@ -23,8 +23,8 @@ struct ProductionDependencies: SyncDependencies {
         responseHandler = ResponseHandler(persistence: persistence, crypter: crypter)
     }
 
-    func createAtomicSender(_ persistence: LocalDataPersisting) throws -> AtomicSending {
-        return AtomicSender(persistence: persistence, dependencies: self)
+    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending {
+        return UpdatesSender(persistence: persistence, dependencies: self)
     }
 
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching {

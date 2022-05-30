@@ -10,7 +10,7 @@ public protocol SyncDependencies {
     var responseHandler: ResponseHandling { get }
     var crypter: Crypting { get }
 
-    func createAtomicSender(_ persistence: LocalDataPersisting) throws -> AtomicSending
+    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
 
 }

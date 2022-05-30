@@ -49,8 +49,8 @@ public class DDGSync: DDGSyncing {
         try await persistence.persistDevices(result.devices)
     }
 
-    public func sender() throws -> AtomicSending {
-        return try dependencies.createAtomicSender(persistence)
+    public func sender() throws -> UpdatesSending {
+        return try dependencies.createUpdatesSender(persistence)
     }
 
     public func fetchLatest() async throws {

@@ -13,6 +13,7 @@ public enum SyncError: Error {
     case unexpectedStatusCode(Int)
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
+    case accountRemoved
 
     case failedToEncryptValue(_ message: String)
     case failedToDecryptValue(_ message: String)
