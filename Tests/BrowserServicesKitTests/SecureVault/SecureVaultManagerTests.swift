@@ -238,4 +238,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultInitFailed(_ error: SecureVaultError) {}
     
+    func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool {
+        return true
+    }
 }
