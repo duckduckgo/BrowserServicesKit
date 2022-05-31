@@ -17,7 +17,8 @@ let package = Package(
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.5.0")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.3")),
-        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0"))
+        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
+        .package(name: "DomainParser", url: "https://github.com/ayoy/SwiftDomainParser.git", .exact("1.1.0"))
     ],
     targets: [
         
@@ -25,6 +26,7 @@ let package = Package(
             name: "BrowserServicesKit",
             dependencies: [
                 "Autofill",
+                "DomainParser",
                 "GRDB",
                 "TrackerRadarKit",
                 .product(name: "Punnycode", package: "Punycode"),
@@ -48,7 +50,8 @@ let package = Package(
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
-                .process("Resources/content-scope-scripts/build/apple/contentScope.js")
+                .process("Resources/content-scope-scripts/build/apple/contentScope.js"),
+                .process("Resources/public_suffix_list.dat")
             ]),
         .target(
             name: "BloomFilterWrapper",
