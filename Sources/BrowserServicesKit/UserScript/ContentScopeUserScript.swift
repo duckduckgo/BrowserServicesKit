@@ -59,7 +59,14 @@ public struct ContentScopeFeatureToggles: Encodable {
     public let inlineIconCredentials: Bool
     
     // Explicitly defined memberwise init only so it can be public
-    public init(emailProtection: Bool, credentialsAutofill: Bool, identitiesAutofill: Bool, creditCardsAutofill: Bool, credentialsSaving: Bool, passwordGeneration: Bool, inlineIconCredentials: Bool) {
+    public init(emailProtection: Bool,
+                credentialsAutofill: Bool,
+                identitiesAutofill: Bool,
+                creditCardsAutofill: Bool,
+                credentialsSaving: Bool,
+                passwordGeneration: Bool,
+                inlineIconCredentials: Bool) {
+        
         self.emailProtection = emailProtection
         self.credentialsAutofill = credentialsAutofill
         self.identitiesAutofill = identitiesAutofill
