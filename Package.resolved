@@ -41,9 +41,9 @@
         "package": "TrackerRadarKit",
         "repositoryURL": "https://github.com/duckduckgo/TrackerRadarKit",
         "state": {
-          "branch": "brad/cname-load-types",
-          "revision": "12c88a8b38db878668de6c3593d010af7145e534",
-          "version": null
+          "branch": null,
+          "revision": "f4f31cf466f78d9e85bd1c0fae85fd4f66e93347",
+          "version": "1.0.4"
         }
       }
     ]
