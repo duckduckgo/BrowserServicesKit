@@ -214,7 +214,7 @@ extension AutofillUserScript {
     // swiftlint:enable nesting
 
     struct RequestAutoFillCreditCardResponse: Codable {
-
+        
         let success: CreditCardObject
         let error: String?
 

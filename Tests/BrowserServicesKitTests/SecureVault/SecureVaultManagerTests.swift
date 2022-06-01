@@ -39,7 +39,7 @@ class SecureVaultManagerTests: XCTestCase {
         }
         """.data(using: .utf8)!
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
-        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234")
+        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
                                                            properties: properties)
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
@@ -236,4 +236,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultInitFailed(_ error: SecureVaultError) {}
     
+    func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool {
+        return true
+    }
 }
