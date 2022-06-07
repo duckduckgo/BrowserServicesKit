@@ -22,7 +22,6 @@ import WebKit
 public enum RequestVaultCredentialsAction: String, Codable {
     case none
     case fill
-    case focus
 }
 
 public protocol AutofillSecureVaultDelegate: AnyObject {
@@ -221,8 +220,7 @@ extension AutofillUserScript {
         let error: String?
 
     }
-    // swiftlint:enable nesting
-    // swiftlint:disable nesting
+
     struct RequestAvailableInputTypesResponse: Codable {
 
         struct AvailableInputTypesSuccess: Codable {
@@ -267,8 +265,6 @@ extension AutofillUserScript {
         let password: String
     }
 
-    //request credentials for domain
-    //getAutofillData
     // swiftlint:disable nesting
     struct RequestVaultCredentialsForDomainResponse: Codable {
 
@@ -291,8 +287,6 @@ extension AutofillUserScript {
         }
     }
     
-    //pmGetAutofillCredentials
-    //credentials for account
     struct RequestVaultCredentialsForAccountResponse: Codable {
         let success: CredentialResponse
     }

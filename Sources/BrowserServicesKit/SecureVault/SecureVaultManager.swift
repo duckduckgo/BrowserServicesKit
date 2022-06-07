@@ -34,11 +34,6 @@ public struct AutofillData {
     public let automaticallySavedCredentials: Bool
 }
 
-public enum PromptUserToAutofillCredentialsCompletionAction: String {
-    case presentKeyboard
-    case none
-}
-
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
@@ -46,7 +41,7 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
-                            completionHandler: @escaping (SecureVaultModels.WebsiteAccount?, PromptUserToAutofillCredentialsCompletionAction) -> Void)
+                            completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool
 
@@ -135,12 +130,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         do {
             let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             let accounts = try vault.accountsFor(domain: domain)
-            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account, action  in
-                
-                let responseActionOnError: RequestVaultCredentialsAction = action == .presentKeyboard ? .focus : .none
+            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account  in
                 
                 guard let accountID = account?.id else {
-                    completionHandler(nil, responseActionOnError)
+                    completionHandler(nil, .none)
                     return
                 }
                 
@@ -149,12 +142,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     completionHandler(credentials, .fill)
                 } catch {
                     os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
-                    completionHandler(nil, responseActionOnError)
+                    completionHandler(nil, .none)
                 }
             }
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
-            completionHandler(nil, .focus) // If we completely fail, focus the field as would have happened anyway
+            completionHandler(nil, .none)
         }
     }
 
