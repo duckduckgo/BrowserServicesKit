@@ -73,7 +73,7 @@ public enum SyncEvent {
 
 }
 
-public struct SavedSiteItem {
+public struct SavedSiteItem: Codable {
 
     public let id: String
 
@@ -106,7 +106,7 @@ public struct SavedSiteItem {
 
 }
 
-public struct SavedSiteFolder {
+public struct SavedSiteFolder: Codable {
 
     public let id: String
 

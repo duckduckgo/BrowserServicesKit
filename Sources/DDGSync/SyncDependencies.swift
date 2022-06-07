@@ -34,7 +34,7 @@ public struct SyncAccount {
 
 }
 
-public struct RegisteredDevice {
+public struct RegisteredDevice: Codable {
     
     public let id: String
     public let name: String

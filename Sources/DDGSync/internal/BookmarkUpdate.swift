@@ -4,15 +4,14 @@ import Foundation
 struct BookmarkUpdate: Codable {
     
     let id: String?
-    
+    let next: String?
+    let parent: String?
     let title: String?
 
     let page: Page?
-    let folder: Folder?
     let favorite: Favorite?
+    let folder: Folder?
 
-    let parent: String?
-    let next: String?
     let deleted: String?
     
     struct Page: Codable {

@@ -12,6 +12,7 @@ struct CLI {
 
     static func main() async throws {
         print("ddgsynccli")
+        print(FileManager.default.currentDirectoryPath)
         print()
 
         guard CommandLine.arguments.count > 2 else {
@@ -82,11 +83,16 @@ struct CLI {
     }
 
     let persistence: Persistence
+    let secureStore: SecureStoring
     var sync: DDGSyncing
 
-    init(baseUrl: URL, persistence: Persistence = Persistence()) {
-        self.persistence = persistence
-        self.sync = DDGSync(persistence: persistence, baseUrl: baseUrl)
+    init(baseUrl: URL) {
+        self.persistence = Persistence()
+        self.secureStore = SecureStore()
+        self.sync = DDGSync(persistence: persistence,
+                            fileStorageUrl: URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
+                            baseUrl: baseUrl,
+                            secureStore: secureStore)
     }
 
     func help() {
@@ -151,7 +157,7 @@ struct CLI {
     }
 
     func viewBookmarks() {
-        dumpBookmarks(persistence.root, indent: "")
+        persistence.printBookmarks()
     }
 
     func fetchAll() async throws {
@@ -187,20 +193,6 @@ struct CLI {
         assert(sync.isAuthenticated)
     }
 
-    private func dumpBookmarks(_ bookmarks: [Persistence.Bookmark], indent: String) {
-        print(indent, bookmarks.count, " bookmarks:")
-        bookmarks
-            .forEach {
-                print(indent, "   ", $0.id, ":", $0.title)
-                if let folder = $0.children {
-                    dumpBookmarks(folder, indent: indent + "\t")
-                } else {
-                    print(indent, "   ", "url:", $0.url ?? "<url missing>")
-                    print()
-                }
-            }
-    }
-
     private func loadRecoveryKey(_ path: String) throws -> Data {
         let url = URL(fileURLWithPath: path).appendingPathComponent("account.json")
         let account = try JSONDecoder().decode(SyncAccount.self, from: Data(contentsOf: url))
@@ -216,192 +208,86 @@ struct CLI {
 
 class Persistence: LocalDataPersisting {
 
-    struct Device: Encodable {
-        
-        let id: String
-        let name: String
-        
-    }
+    var bookmarksLastModified: String?
+    var events = Events.load()
     
-    struct Meta: Codable {
-        
-        var bookmarksLastModified: String?
-        
-    }
-    
-    class Bookmark: Codable {
-
-        var id: String
-        var title: String
-        var url: String?
-        var isFavorite: Bool
-        var children: [Bookmark]?
-
-        init(id: String, title: String, isFavorite: Bool) {
-            self.id = id
-            self.title = title
-            self.isFavorite = isFavorite
-        }
-
-        func updateWithSite(_ site: SavedSiteItem) {
-            guard self.id == site.id else { fatalError("Updating wrong bookmark!") }
-            self.title = site.title
-            self.url = site.url
-            self.isFavorite = site.isFavorite
-        }
-
-        func nextItemIdForBookmark(_ child: Bookmark) -> String? {
-            guard let children = children,
-                  let index = children.firstIndex(where: { $0.id == child.id }),
-                  let sibling = children[safe: index + 1] else {
-                return nil
-            }
-            return sibling.id
-        }
-    }
-
-    static var bookmarkFile: URL {
-        return URL(fileURLWithPath: "bookmarks.json")
-    }
-
-    static var metaFile: URL {
-        return URL(fileURLWithPath: "meta.json")
-    }
-
-    static var devicesFile: URL {
-        return URL(fileURLWithPath: "devices.json")
-    }
-
-    var bookmarksLastModified: String? {
-        meta.bookmarksLastModified
-    }
-    
-    let encoder: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        return encoder
-    } ()
-    
-    var root = [Bookmark]()
-    var meta: Meta
-    
-    init() {
-        root = (try? JSONDecoder().decode([Bookmark].self, from: Data(contentsOf: Self.bookmarkFile))) ?? []
-        meta = (try? JSONDecoder().decode(Meta.self, from: Data(contentsOf: Self.metaFile))) ?? Meta()
-    }
-
-    func persistEvents(_ events: [SyncEvent]) async throws {
-         events.forEach {
-            switch $0 {
-            case .bookmarkUpdated(let site):
-                updateBookmark(site)
-
-            default:
-                print("Unsupported sync event")
-                
-            }
-        }
-
+    func updateBookmarksLastModified(_ lastModified: String?) {
+        bookmarksLastModified = lastModified
     }
     
     func persistDevices(_ devices: [RegisteredDevice]) async throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        try? encoder.encode(devices.map { Device(id: $0.id, name: $0.name) }).write(to: Self.devicesFile)
+        JSONEncoder.write(devices, toFile: "devices.json")
     }
     
-    func updateBookmarksLastModified(_ lastModified: String?) {
-        meta.bookmarksLastModified = lastModified
-        saveMeta()
-    }
-
-    func updateBookmark(_ site: SavedSiteItem) {
-        if let bookmark = findBookmarkWithId(site.id, root) {
-            bookmark.updateWithSite(site)
-        } else if let parent = site.parent, let folder = findFolderWithId(parent, root) {
-            folder.children?.append(bookmarkFromSite(site))
-        } else {
-            root.append(bookmarkFromSite(site))
+    func persistEvents(_ events: [SyncEvent]) async throws {
+        
+        events.forEach { event in
+            switch event {
+            case .bookmarkDeleted(let id):
+                self.events.items[id] = nil
+                
+            case .bookmarkFolderUpdated(let folder):
+                self.events.folders[folder.id] = folder
+                
+            case .bookmarkUpdated(let item):
+                self.events.items[item.id] = item
+            }
         }
-        saveBookmarks()
-    }
-    
-    func bookmarkFromSite(_ site: SavedSiteItem) -> Bookmark {
-        let bookmark = Bookmark(id: site.id, title: site.title, isFavorite: site.isFavorite)
-        bookmark.url = site.url
-        return bookmark
+        
+        self.events.save()
     }
     
     func addBookmark(title: String, url: URL, isFavorite: Bool, nextItem: String?, parent: String?) -> SavedSiteItem {
-        let bookmark = Bookmark(id: UUID().uuidString, title: title, isFavorite: isFavorite)
-        bookmark.url = url.absoluteString
-    
-        // TODO insert using nextItem
-        if let targetFolder = findFolderWithId(parent, root) {
-            targetFolder.children?.append(bookmark)
-        } else {
-            root.append(bookmark)
-        }
+        let savedItem = SavedSiteItem(id: UUID().uuidString, title: title, url: url.absoluteString, isFavorite: isFavorite, nextFavorite: nil, nextItem: nextItem, parent: parent)
         
-        saveBookmarks()
+        events.items[savedItem.id] = savedItem
+        events.save()
         
-        return SavedSiteItem(id: bookmark.id,
-                         title: bookmark.title,
-                         url: bookmark.url!,
-                         isFavorite: isFavorite,
-                         nextFavorite: nil,
-                         nextItem: nextItem,
-                         parent: parent)
+        return savedItem
     }
-
+    
+    func printBookmarks(parent: String? = nil, indent: String = "") {
+        print("items", events.items)
+        print("folders", events.folders)
+    }
+    
     func resetBookmarks() {
-        root = []
-        saveBookmarks()
-    }
-
-    func saveBookmarks() {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        try? encoder.encode(root).write(to: Self.bookmarkFile)
-    }
-
-    func saveMeta() {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
-        try? encoder.encode(meta).write(to: Self.metaFile)
-    }
-
-    private func nextItemIdForBookmark(_ bookmark: Bookmark, inFolder folder: [Bookmark]) -> String? {
-        return nil
+        events.folders = [:]
+        events.items = [:]
     }
     
-    private func findFolderWithId(_ id: String?, _ children: [Bookmark]) -> Bookmark? {
-        guard let id = id else { return nil }
-        for bookmark in children {
-            if bookmark.id == id {
-                return bookmark
-            } else if let children = bookmark.children {
-                return findFolderWithId(id, children)
-            }
+    class Events: Codable {
+        
+        var items = [String: SavedSiteItem]()
+        var folders = [String: SavedSiteFolder]()
+        
+        static let file = "events.json"
+          
+        static func load() -> Events {
+            JSONDecoder.read(type: Self.self, fromFile: Self.file) ?? Events()
         }
-        return nil
-    }
-
-    private func findBookmarkWithId(_ id: String, _ children: [Bookmark]) -> Bookmark? {
-        for bookmark in children {
-            if bookmark.id == id {
-                return bookmark
-            } else if let children = bookmark.children {
-                return findBookmarkWithId(id, children)
-            }
+        
+        func save() {
+            JSONEncoder.write(self, toFile: Self.file)
         }
-        return nil
+        
     }
+}
 
-    static func makeRoot() -> Bookmark {
-        let bookmark = Bookmark(id: "", title: "", isFavorite: false)
-        bookmark.children = []
-        return bookmark
+struct SecureStore: SecureStoring {
+    
+    static let file = "account.json"
+    
+    func persistAccount(_ account: SyncAccount) throws {
+        JSONEncoder.write(account, toFile: Self.file)
+    }
+    
+    func account() throws -> SyncAccount? {
+        return JSONDecoder.read(type: SyncAccount.self, fromFile: Self.file)
+    }
+    
+    func removeAccount() throws {
+        try FileManager.default.removeItem(atPath: Self.file)
     }
 
 }
@@ -412,4 +298,21 @@ extension Collection {
     subscript (safe index: Index) -> Element? {
         return indices.contains(index) ? self[index] : nil
     }
+}
+
+extension JSONEncoder {
+    
+    static func write<T: Codable>(_ codable: T, toFile file: String) {
+        try! JSONEncoder().encode(codable).write(to: URL(fileURLWithPath: file))
+    }
+    
+}
+
+extension JSONDecoder {
+
+    static func read<T: Codable>(type: T.Type, fromFile file: String) -> T? {
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: file)) else { return nil }
+        return try! JSONDecoder().decode(type.self, from: data)
+    }
+
 }

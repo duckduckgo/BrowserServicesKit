@@ -22,12 +22,23 @@ public class DDGSync: DDGSyncing {
         self.dependencies = dependencies
     }
 
+    /// This is the constructor intended for use by app clients.
     public convenience init(persistence: LocalDataPersisting) {
-        self.init(persistence: persistence, dependencies: ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence))
+        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence)
+        self.init(persistence: persistence, dependencies: dependencies)
     }
 
-    public convenience init(persistence: LocalDataPersisting, baseUrl: URL) {
-        self.init(persistence: persistence, dependencies: ProductionDependencies(baseUrl: baseUrl, persistence: persistence))
+    public convenience init(persistence: LocalDataPersisting,
+                            fileStorageUrl: URL,
+                            baseUrl: URL,
+                            secureStore: SecureStoring) {
+        
+        let dependencies = ProductionDependencies(fileStorageUrl: fileStorageUrl,
+                                                  baseUrl: baseUrl,
+                                                  persistence: persistence,
+                                                  secureStore: secureStore)
+        
+        self.init(persistence: persistence, dependencies: dependencies)
     }
 
     public func createAccount(deviceName: String) async throws {

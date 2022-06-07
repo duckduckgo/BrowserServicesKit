@@ -5,7 +5,7 @@ import BrowserServicesKit
 
 struct AccountManager: AccountManaging {
 
-    let authUrl: URL
+    let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
     let crypter: Crypting
 
@@ -29,7 +29,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: authUrl, method: .POST)
+        var request = api.createRequest(url: endpoints.signup, method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()
@@ -65,7 +65,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: authUrl, method: .POST)
+        var request = api.createRequest(url: endpoints.login, method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()
