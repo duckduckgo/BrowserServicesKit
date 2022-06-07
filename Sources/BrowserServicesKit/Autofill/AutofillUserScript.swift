@@ -85,6 +85,7 @@ public class AutofillUserScript: NSObject, UserScript {
         return MessageName.allCases.map(\.rawValue)
     }
 
+    // swiftlint:disable cyclomatic_complexity
     internal func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
             os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
@@ -120,6 +121,7 @@ public class AutofillUserScript: NSObject, UserScript {
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     let encrypter: AutofillEncrypter
     let hostProvider: AutofillHostProvider
