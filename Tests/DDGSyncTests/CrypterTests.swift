@@ -44,8 +44,7 @@ class CrypterTests: XCTestCase {
                                                    userId: "userId",
                                                    primaryKey: primaryKey,
                                                    secretKey: secretKey,
-                                                   token: "token",
-                                                   baseDataUrl: URL(string: "https://sync-data.duckduckgo.com")!))
+                                                   token: "token"))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
         let crypter = Crypter(secureStore: mockStorage)
@@ -61,8 +60,7 @@ class CrypterTests: XCTestCase {
                                                    userId: "userId",
                                                    primaryKey: primaryKey,
                                                    secretKey: secretKey,
-                                                   token: "token",
-                                                   baseDataUrl: URL(string: "https://sync-data.duckduckgo.com")!))
+                                                   token: "token"))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
         let crypter = Crypter(secureStore: mockStorage)

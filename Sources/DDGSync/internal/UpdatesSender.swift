@@ -63,10 +63,15 @@ struct UpdatesSender: UpdatesSending {
  
         let updates = prepareUpdates()
         
+        let dataTypes = [
+            updates.bookmarks.updates.isEmpty ? nil : "bookmarks"
+        ].compactMap { $0 }.joined(separator: ",")
+        let syncUrl = dependencies.endpoints.syncPatch.appendingPathComponent(dataTypes)
+    
         let encoder = JSONEncoder()
         let jsonData = try encoder.encode(updates)
 
-        switch try await send(jsonData, withAuthorization: token) {
+        switch try await send(jsonData, withAuthorization: token, toUrl: syncUrl) {
         case .success(let updates):
             if !updates.isEmpty {
                 do {
@@ -116,10 +121,9 @@ struct UpdatesSender: UpdatesSending {
         try FileManager.default.removeItem(at: Self.offlineUpdatesFile)
     }
     
-    private func send(_ json: Data, withAuthorization authorization: String) async throws -> Result<Data, Error> {
-        guard let syncUrl = try dependencies.secureStore.account()?.baseDataUrl.appendingPathComponent(Endpoints.sync) else { throw SyncError.accountNotFound }
+    private func send(_ json: Data, withAuthorization authorization: String, toUrl url: URL) async throws -> Result<Data, Error> {
         
-        var request = dependencies.api.createRequest(url: syncUrl, method: .PATCH)
+        var request = dependencies.api.createRequest(url: url, method: .PATCH)
         request.addHeader("Authorization", value: "bearer \(authorization)")
         request.setBody(body: json, withContentType: "application/json")
         let result = try await request.execute()

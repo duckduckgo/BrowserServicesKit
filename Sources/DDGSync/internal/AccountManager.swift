@@ -29,7 +29,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: authUrl.appendingPathComponent(Endpoints.signup), method: .POST)
+        var request = api.createRequest(url: authUrl, method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()
@@ -45,16 +45,11 @@ struct AccountManager: AccountManaging {
             throw SyncError.unableToDecodeResponse("Failed to decode signup result")
         }
 
-        guard let baseDataUrl = URL(string: result.data_url_base) else {
-            throw SyncError.invalidDataInResponse("data_url_base missing from response")
-        }
-
         return SyncAccount(deviceId: deviceId,
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
-                           token: result.token,
-                           baseDataUrl: baseDataUrl)
+                           token: result.token)
     }
 
     func login(recoveryKey: Data, deviceName: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
@@ -70,7 +65,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: authUrl.appendingPathComponent(Endpoints.login), method: .POST)
+        var request = api.createRequest(url: authUrl, method: .POST)
         request.setBody(body: paramJson, withContentType: "application/json")
 
         let result = try await request.execute()
@@ -87,10 +82,6 @@ struct AccountManager: AccountManaging {
             throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
 
-        guard let baseDataUrl = URL(string: result.data_url_base) else {
-            throw SyncError.invalidDataInResponse("data_url_base missing from response")
-        }
-
         guard let protectedSecretKey = Data(base64Encoded: result.protected_encryption_key) else {
             throw SyncError.invalidDataInResponse("protected_key missing from response")
         }
@@ -99,7 +90,7 @@ struct AccountManager: AccountManaging {
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
-        return (account: SyncAccount(deviceId: deviceId, userId: recoveryInfo.userId, primaryKey: recoveryInfo.primaryKey, secretKey: secretKey, token: token, baseDataUrl: baseDataUrl),
+        return (account: SyncAccount(deviceId: deviceId, userId: recoveryInfo.userId, primaryKey: recoveryInfo.primaryKey, secretKey: secretKey, token: token),
                 devices: result.devices.map { RegisteredDevice(id: $0.device_id, name: $0.device_name) })
     }
 

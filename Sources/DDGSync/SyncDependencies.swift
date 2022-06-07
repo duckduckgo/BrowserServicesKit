@@ -4,6 +4,7 @@ import BrowserServicesKit
 
 public protocol SyncDependencies {
 
+    var endpoints: Endpoints { get }
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
@@ -30,7 +31,6 @@ public struct SyncAccount {
     public let primaryKey: Data
     public let secretKey: Data
     public let token: String?
-    public let baseDataUrl: URL
 
 }
 

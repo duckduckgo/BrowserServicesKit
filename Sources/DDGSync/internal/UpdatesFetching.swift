@@ -31,7 +31,7 @@ struct UpdatesFetcher: UpdatesFetching {
     }
 
     private func send(_ authorization: String) async throws -> Result<Data, Error> {
-        guard let syncUrl = try dependencies.secureStore.account()?.baseDataUrl.appendingPathComponent(Endpoints.sync) else { throw SyncError.accountNotFound }
+        let syncUrl = dependencies.endpoints.syncGet
 
         // A comma separated list of types
         let url = syncUrl.appendingPathComponent("bookmarks")
