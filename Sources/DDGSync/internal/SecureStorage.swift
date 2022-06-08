@@ -1,27 +1,57 @@
 
 import Foundation
 
-// TODO this stuff needs stored in the keychain
 struct SecureStorage: SecureStoring {
+
+    // DO NOT CHANGE except if you want to deliberately invalidate all users's sync accounts.
+    // The keys have a uid to deter casual hacker from easily seeing which keychain entry is related to what.
+    private static let encodedKey = "833CC26A-3804-4D37-A82A-C245BC670692".data(using: .utf8)
     
-    let accountFile = URL(fileURLWithPath: "account.json")
-
+    private static let defaultQuery: [AnyHashable: Any] = [
+        kSecClass: kSecClassGenericPassword,
+        kSecAttrService: "com.duckduckgo.sync",
+        kSecAttrGeneric: encodedKey as Any,
+        kSecAttrAccount: encodedKey as Any,
+    ]
+    
     func persistAccount(_ account: SyncAccount) throws {
-        print("UserId", account.userId)
-        print("Token", account.token ?? "<no token>")
-        print("SecretKey", account.secretKey.base64EncodedString())
-        print("PrimaryKey", account.primaryKey.base64EncodedString())
+        let data = try JSONEncoder().encode(account)
+        
+        var query = Self.defaultQuery
+        query[kSecUseDataProtectionKeychain] = true
+        query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlocked
+        query[kSecAttrSynchronizable] = false
+        query[kSecValueData] = data
 
-        try JSONEncoder().encode(account).write(to: accountFile, options: .atomic)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw SyncError.failedToWriteSecureStore(status: status)
+        }
     }
 
     func account() throws -> SyncAccount? {
-        guard let data = try? Data(contentsOf: accountFile) else { return nil }
-        return try JSONDecoder().decode(SyncAccount.self, from: data)
+        var query = Self.defaultQuery
+        query[kSecReturnData] = true
+
+        var item: CFTypeRef?
+
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        guard [errSecSuccess, errSecItemNotFound].contains(status) else {
+            throw SyncError.failedToReadSecureStore(status: status)
+        }
+        
+        if let data = item as? Data {
+            return try JSONDecoder().decode(SyncAccount.self, from: data)
+        }
+        
+        return nil
     }
 
     func removeAccount() throws {
-        try FileManager.default.removeItem(at: accountFile)
+        let status = SecItemDelete(Self.defaultQuery as CFDictionary)
+        guard [errSecSuccess, errSecItemNotFound].contains(status) else {
+            throw SyncError.failedToRemoveSecureStore(status: status)
+        }
     }
     
 }
