@@ -275,7 +275,8 @@ extension AutofillUserScript {
         
         let success: RequestVaultCredentialsResponseContents
         
-        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials?, action: RequestVaultCredentialsAction) -> Self {
+        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials?,
+                                                              action: RequestVaultCredentialsAction) -> Self {
             let credential: CredentialResponse?
             if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
                 credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password)
