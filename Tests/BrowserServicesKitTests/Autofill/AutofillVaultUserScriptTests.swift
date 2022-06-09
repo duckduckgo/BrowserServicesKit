@@ -127,8 +127,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
             XCTAssertNil($1)
 
             let data = ($0 as? String)?.data(using: .utf8)
-            let response = try? JSONDecoder().decode(AutofillUserScript.RequestVaultCredentialsResponse.self, from: data!)
-            XCTAssertEqual(response?.success.id, Int64(randomAccountId))
+            let response = try? JSONDecoder().decode(AutofillUserScript.RequestVaultCredentialsForAccountResponse.self, from: data!)
+            XCTAssertEqual(Int64(response!.success.id), Int64(randomAccountId))
 
             expect.fulfill()
         }
@@ -365,6 +365,10 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+    }
+    
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
     }
 
     func autofillUserScript(_: AutofillUserScript,
