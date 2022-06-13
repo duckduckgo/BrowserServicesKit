@@ -11,12 +11,6 @@ let package = Package(
         .macOS(.v10_15)
     ],
     products: [
-        // 3rd Party Submodules
-        .library(name: "Clibsodium", targets: ["Clibsodium"]),
-
-        // Intermediate dependencies
-        .library(name: "DDGSyncCrypto", targets: ["DDGSyncCrypto"]),
-
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
