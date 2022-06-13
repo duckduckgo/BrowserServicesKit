@@ -8,23 +8,27 @@ public struct AppVersion {
         self.bundle = bundle
     }
 
-    var name: String {
+    public var name: String {
         return bundle.object(forInfoDictionaryKey: Bundle.Keys.name) as? String ?? ""
     }
 
-    var identifier: String {
+    public var identifier: String {
         return bundle.object(forInfoDictionaryKey: Bundle.Keys.identifier) as? String ?? ""
     }
 
-    var majorVersionNumber: String {
+    public var majorVersionNumber: String {
         return String(versionNumber.split(separator: ".").first ?? "")
     }
 
-    var versionNumber: String {
+    public var versionNumber: String {
         return bundle.object(forInfoDictionaryKey: Bundle.Keys.versionNumber) as? String ?? ""
     }
+    
+    public var versionAndBuildNumber: String {
+        return "\(versionNumber).\(buildNumber)"
+    }
 
-    var buildNumber: String {
+    public var buildNumber: String {
         return bundle.object(forInfoDictionaryKey: Bundle.Keys.buildNumber) as? String ?? ""
     }
 

@@ -28,7 +28,7 @@ extension FileManager {
         let libraryURL = urls(for: .libraryDirectory, in: .userDomainMask).first!
         let dir = libraryURL.appendingPathComponent(sandboxPathComponent)
 #else
-        guard let dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+        guard let dir = urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
            fatalError("Could not find application support directory")
         }
 #endif
