@@ -11,18 +11,10 @@ let package = Package(
         .macOS(.v10_15)
     ],
     products: [
-        // 3rd Party Submodules
-        .library(name: "Clibsodium", targets: ["Clibsodium"]),
-
-        // Intermediate dependencies
-        .library(name: "DDGSyncCrypto", targets: ["DDGSyncCrypto"]),
 
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "DDGSync", targets: ["DDGSync"]),
 
-        // Executable
-        .executable(name: "ddgsynccli", targets: ["DDGSyncCLI"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.6.0")),
@@ -31,7 +23,7 @@ let package = Package(
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0"))
     ],
     targets: [
-        
+
         .target(
             name: "BrowserServicesKit",
             dependencies: [
@@ -72,30 +64,6 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
-        .binaryTarget(
-                name: "Clibsodium",
-                path: "Clibsodium.xcframework"),
-        .target(
-            name: "DDGSyncCrypto",
-            dependencies: [
-                "Clibsodium"
-            ]
-        ),
-        .target(
-            name: "DDGSync",
-            dependencies: [
-                "BrowserServicesKit",
-                "DDGSyncCrypto"
-            ]
-        ),
-
-        // Command line app targets
-        .executableTarget(
-            name: "DDGSyncCLI",
-            dependencies: [
-                "DDGSync"
-            ]
-        ),
 
         // Test Targets
         .testTarget(
@@ -107,15 +75,5 @@ let package = Package(
                 .process("UserScript/testUserScript.js"),
                 .copy("Resources")
             ]),
-        .testTarget(
-            name: "DDGSyncTests",
-            dependencies: [
-                "DDGSync"
-            ]),
-        .testTarget(
-            name: "DDGSyncCryptoTests",
-            dependencies: [
-                "DDGSyncCrypto"
-            ])
     ]
 )
