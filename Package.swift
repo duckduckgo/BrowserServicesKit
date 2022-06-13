@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
 
+        // Executable
         .executable(name: "ddgsynccli", targets: ["DDGSyncCLI"])
     ],
     dependencies: [
@@ -53,7 +54,8 @@ let package = Package(
                 "Resources/content-scope-scripts/lib/",
                 "Resources/content-scope-scripts/build/chrome/",
                 "Resources/content-scope-scripts/build/firefox/",
-                "Resources/content-scope-scripts/build/integration/"
+                "Resources/content-scope-scripts/build/integration/",
+                "Resources/content-scope-scripts/tsconfig.json"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
