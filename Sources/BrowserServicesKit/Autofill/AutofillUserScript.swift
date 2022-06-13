@@ -47,6 +47,10 @@ public class AutofillUserScript: NSObject, UserScript {
         case pmHandlerOpenManageCreditCards
         case pmHandlerOpenManageIdentities
         case pmHandlerOpenManagePasswords
+
+        case getAvailableInputTypes
+        case getAutofillData
+        case storeFormData
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -81,6 +85,7 @@ public class AutofillUserScript: NSObject, UserScript {
         return MessageName.allCases.map(\.rawValue)
     }
 
+    // swiftlint:disable cyclomatic_complexity
     internal func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
             os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
@@ -100,6 +105,10 @@ public class AutofillUserScript: NSObject, UserScript {
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
+            
+        case .getAvailableInputTypes: return getAvailableInputTypes
+        case .getAutofillData: return getAutofillData
+        case .storeFormData: return pmStoreData
 
         case .pmHandlerStoreData: return pmStoreData
         case .pmHandlerGetAccounts: return pmGetAccounts
@@ -112,6 +121,7 @@ public class AutofillUserScript: NSObject, UserScript {
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     let encrypter: AutofillEncrypter
     let hostProvider: AutofillHostProvider

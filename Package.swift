@@ -24,7 +24,7 @@ let package = Package(
         .executable(name: "ddgsynccli", targets: ["DDGSyncCLI"])
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.5.0")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.6.0")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.4")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0"))

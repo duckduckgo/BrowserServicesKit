@@ -19,6 +19,11 @@
 
 import WebKit
 
+public enum RequestVaultCredentialsAction: String, Codable {
+    case none
+    case fill
+}
+
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
     func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
@@ -31,6 +36,10 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
+    
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void)
+    
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
@@ -211,13 +220,30 @@ extension AutofillUserScript {
         let error: String?
 
     }
+
+    struct RequestAvailableInputTypesResponse: Codable {
+
+        struct AvailableInputTypesSuccess: Codable {
+            let email: Bool
+            let credentials: Bool
+            let creditCards: Bool
+            let identities: Bool
+        }
+
+        let success: AvailableInputTypesSuccess
+        let error: String?
+
+    }
+
+    struct RequestAutofillDataResponse: Codable {
+        let success: CredentialObject
+        let error: String?
+    }
     // swiftlint:enable nesting
 
     struct RequestAutoFillCreditCardResponse: Codable {
-        
         let success: CreditCardObject
         let error: String?
-
     }
 
     struct RequestAutoFillIdentityResponse: Codable {
@@ -232,23 +258,86 @@ extension AutofillUserScript {
         let success: [CredentialObject]
 
     }
+    
+    struct CredentialResponse: Codable {
+        let id: String
+        let username: String
+        let password: String
+    }
 
     // swiftlint:disable nesting
-    struct RequestVaultCredentialsResponse: Codable {
+    struct RequestVaultCredentialsForDomainResponse: Codable {
 
-        struct Credential: Codable {
-            let id: Int64
-            let username: String
-            let password: String
-            let lastUpdated: TimeInterval
+        struct RequestVaultCredentialsResponseContents: Codable {
+            let credentials: CredentialResponse?
+            let action: RequestVaultCredentialsAction
         }
-
-        let success: Credential
-
+        
+        let success: RequestVaultCredentialsResponseContents
+        
+        static func responseFromSecureVaultWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials?,
+                                                              action: RequestVaultCredentialsAction) -> Self {
+            let credential: CredentialResponse?
+            if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
+                credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password)
+            } else {
+                credential = nil
+            }
+            
+            return RequestVaultCredentialsForDomainResponse(success: RequestVaultCredentialsResponseContents(credentials: credential, action: action))
+        }
     }
+    
+    struct RequestVaultCredentialsForAccountResponse: Codable {
+        let success: CredentialResponse
+    }
+
     // swiftlint:enable nesting
 
     // MARK: - Message Handlers
+    
+    func getAvailableInputTypes(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        let domain = hostForMessage(message)
+        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+            let credentials: [CredentialObject] = accounts.compactMap {
+                guard let id = $0.id else { return nil }
+                return .init(id: id, username: $0.username)
+            }
+
+            let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
+            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
+
+            let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
+                    email: email,
+                    credentials: credentials.count > 0,
+                    creditCards: cards.count > 0,
+                    identities: identities.count > 0
+            )
+            let response = RequestAvailableInputTypesResponse(success: success, error: nil)
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
+            }
+        }
+    }
+    
+    func getAutofillData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.messageBody as? [String: Any],
+              let mainType = body["mainType"] as? String else {
+            return
+        }
+        if mainType == "credentials" {
+            let domain = hostForMessage(message)
+            
+            vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials, action in
+                let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action)
+                
+                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                    replyHandler(jsonString)
+                }
+            }
+        }
+    }
 
     func pmGetAutoFillInitData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
@@ -318,10 +407,9 @@ extension AutofillUserScript {
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8) else { return }
 
-            let response = RequestVaultCredentialsResponse(success: .init(id: id,
-                                                                     username: credential.account.username,
-                                                                     password: password,
-                                                                     lastUpdated: credential.account.lastUpdated.timeIntervalSince1970))
+            let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
+                                                                    username: credential.account.username,
+                                                                    password: password))
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
