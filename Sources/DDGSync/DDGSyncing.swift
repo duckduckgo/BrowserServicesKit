@@ -52,6 +52,11 @@ public protocol DDGSyncing {
     */
     func fetchEverything() async throws
 
+    /**
+     Disconnect this client from the sync service.  Removes all local info, but leaves in places bookmarks, etc.
+     */
+    func disconnect() throws
+    
 }
 
 public protocol UpdatesSending {

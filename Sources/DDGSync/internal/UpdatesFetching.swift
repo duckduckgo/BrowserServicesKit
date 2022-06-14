@@ -40,11 +40,14 @@ struct UpdatesFetcher: UpdatesFetching {
         request.addHeader("Authorization", value: "bearer \(authorization)")
 
         // The since parameter should be an array of each lasted updated timestamp, but don't pass anything if any of the types are missing.
-        if let bookmarksUpdatedSince = persistence.bookmarksLastModified {
+        if let bookmarksUpdatedSince = persistence.bookmarksLastModified,
+           !bookmarksUpdatedSince.isEmpty {
+            
             let since = [
                 bookmarksUpdatedSince
             ]
             request.addParameter("since", value: since.joined(separator: ","))
+            
         }
 
         let result = try await request.execute()

@@ -7,7 +7,14 @@ import DDGSyncCrypto
 public class DDGSync: DDGSyncing {
 
     enum Constants {
+        
+#if DEBUG
+        // public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
+        public static let baseUrl = URL(string: "https://b833-20-75-144-152.ngrok.io")!
+#else
         public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
+#endif
+        
     }
 
     public var isAuthenticated: Bool {
@@ -17,17 +24,13 @@ public class DDGSync: DDGSyncing {
     let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
 
-    init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
-        self.persistence = persistence
-        self.dependencies = dependencies
-    }
-
     /// This is the constructor intended for use by app clients.
     public convenience init(persistence: LocalDataPersisting) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence)
         self.init(persistence: persistence, dependencies: dependencies)
     }
 
+    /// TODO delete this - only intended for use by the CLI during dev
     public convenience init(persistence: LocalDataPersisting,
                             fileStorageUrl: URL,
                             baseUrl: URL,
@@ -41,6 +44,11 @@ public class DDGSync: DDGSyncing {
         self.init(persistence: persistence, dependencies: dependencies)
     }
 
+    init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
+        self.persistence = persistence
+        self.dependencies = dependencies
+    }
+    
     public func createAccount(deviceName: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
@@ -71,5 +79,9 @@ public class DDGSync: DDGSyncing {
     public func fetchEverything() async throws {
         persistence.updateBookmarksLastModified(nil)
         try await dependencies.createUpdatesFetcher(persistence).fetch()
+    }
+    
+    public func disconnect() throws {
+        try dependencies.secureStore.removeAccount()
     }
 }
