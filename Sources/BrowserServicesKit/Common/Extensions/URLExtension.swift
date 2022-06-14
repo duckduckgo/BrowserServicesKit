@@ -115,6 +115,7 @@ extension URL {
         }
         
         var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+        percentEncodedQueryItems.removeAll(where: { $0.name == percentEncodedName })
         percentEncodedQueryItems.append(URLQueryItem(name: percentEncodedName, value: percentEncodedValue))
         components.percentEncodedQueryItems = percentEncodedQueryItems
 
@@ -130,6 +131,22 @@ extension URL {
             queryItem.name == name
         })
         return queryItem?.value
+    }
+
+    public func removeParameter(name: String) -> URL {
+        return self.removeParameters(named: [name])
+    }
+
+    public func removeParameters(named parametersToRemove: Set<String>) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        guard let encodedQuery = components.percentEncodedQuery else { return self }
+        components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
+        guard var query = components.queryItems else { return self }
+
+        query.removeAll { parametersToRemove.contains($0.name) }
+
+        components.queryItems = query
+        return components.url ?? self
     }
 
 }
