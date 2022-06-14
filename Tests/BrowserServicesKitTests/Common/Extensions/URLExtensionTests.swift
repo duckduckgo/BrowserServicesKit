@@ -88,4 +88,92 @@ final class URLExtensionTests: XCTestCase {
             URL(string: "https://duck.com/?domains=test.com,example.com%2Ftest,localhost:8000%2Fapi")!
         )
     }
+
+    func testWhenParamExistsThengetParameterReturnsCorrectValue() throws {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let expected = "secondValue"
+        let actual = try url?.getParameter(name: "secondParam")
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenParamDoesNotExistThengetParameterIsNil() throws {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let result = try url?.getParameter(name: "someOtherParam")
+        XCTAssertNil(result)
+    }
+
+    func testWhenParamExistsThenRemovingReturnUrlWithoutParam() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let expected = URL(string: "http://test.com?secondParam=secondValue")
+        let actual = url?.removeParameter(name: "firstParam")
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenParamDoesNotExistThenRemovingReturnsSameUrl() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let actual = url?.removeParameter(name: "someOtherParam")
+        XCTAssertEqual(actual, url)
+    }
+
+    func testWhenRemovingAParamThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces_bugFix() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")
+        let expected = URL(string: "http://test.com?secondParam=45%20+%205")
+        let actual = url?.removeParameter(name: "firstParam")
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenRemovingParamsThenRemovingReturnsUrlWithoutParams() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue&thirdParam=thirdValue")
+        let expected = URL(string: "http://test.com?secondParam=secondValue")
+        let actual = url?.removeParameters(named: ["firstParam", "thirdParam"])
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenParamsDoNotExistThenRemovingReturnsSameUrl() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let actual = url?.removeParameters(named: ["someParam", "someOtherParam"])
+        XCTAssertEqual(actual, url)
+    }
+
+    func testWhenEmptyParamArrayIsUsedThenRemovingReturnsSameUrl() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let actual = url?.removeParameters(named: [])
+        XCTAssertEqual(actual, url)
+    }
+
+    func testWhenRemovingParamsThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces_bugFix() {
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")
+        let expected = URL(string: "http://test.com?secondParam=45%20+%205")
+        let actual = url?.removeParameters(named: ["firstParam"])
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenNoParamsThenAddingAppendsQuery() throws {
+        let url = URL(string: "http://test.com")
+        let expected = URL(string: "http://test.com?aParam=aValue")
+        let actual = try url?.addParameter(name: "aParam", value: "aValue")
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenParamDoesNotExistThenAddingParamAppendsItToExistingQuery() throws {
+        let url = URL(string: "http://test.com?firstParam=firstValue")
+        let expected = URL(string: "http://test.com?firstParam=firstValue&anotherParam=anotherValue")
+        let actual = try url?.addParameter(name: "anotherParam", value: "anotherValue")
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenParamHasInvalidCharactersThenAddingParamAppendsEncodedVersion() throws {
+        let url = URL(string: "http://test.com")
+        let expected = URL(string: "http://test.com?aParam=43%20%2B%205")
+        let actual = try url?.addParameter(name: "aParam", value: "43 + 5")
+        XCTAssertEqual(actual, expected)
+    }
+
+    func testWhenParamExistsThenAddingNewValueUpdatesParam() throws {
+        let url = URL(string: "http://test.com?firstParam=firstValue")
+        let expected = URL(string: "http://test.com?firstParam=newValue")
+        let actual = try url?.addParameter(name: "firstParam", value: "newValue")
+        XCTAssertEqual(actual, expected)
+    }
+
 }
