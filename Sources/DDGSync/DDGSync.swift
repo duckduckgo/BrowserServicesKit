@@ -10,7 +10,7 @@ public class DDGSync: DDGSyncing {
         
 #if DEBUG
         // public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        public static let baseUrl = URL(string: "https://b833-20-75-144-152.ngrok.io")!
+        public static let baseUrl = URL(string: "https://cb57-20-75-144-152.ngrok.io")!
 #else
         public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
 #endif

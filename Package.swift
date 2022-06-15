@@ -14,9 +14,6 @@ let package = Package(
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
-
-        // Executable
-        .executable(name: "ddgsynccli", targets: ["DDGSyncCLI"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.6.0")),
@@ -80,14 +77,6 @@ let package = Package(
             dependencies: [
                 "BrowserServicesKit",
                 "DDGSyncCrypto"
-            ]
-        ),
-
-        // Command line app targets
-        .executableTarget(
-            name: "DDGSyncCLI",
-            dependencies: [
-                "DDGSync"
             ]
         ),
 

@@ -99,8 +99,7 @@ struct AccountManager: AccountManaging {
 
             let user_id: String
             let token: String
-            let data_url_base: String
-
+ 
         }
 
         struct Parameters: Encodable {
