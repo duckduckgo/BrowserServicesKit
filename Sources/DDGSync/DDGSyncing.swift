@@ -11,6 +11,11 @@ public protocol DDGSyncing {
     var isAuthenticated: Bool { get }
 
     /**
+     The recovery code for this client.
+     */
+    var recoveryCode: Data? { get }
+
+    /**
      Creates an account.
 
      Account creation has the following flow:

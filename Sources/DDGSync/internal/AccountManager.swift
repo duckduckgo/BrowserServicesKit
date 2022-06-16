@@ -116,7 +116,6 @@ struct AccountManager: AccountManaging {
     struct Login {
 
         struct Result: Decodable {
-            let data_url_base: String
             let devices: [Device]
             let token: String
             let protected_encryption_key: String

@@ -10,7 +10,7 @@ public class DDGSync: DDGSyncing {
         
 #if DEBUG
         // public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        public static let baseUrl = URL(string: "https://cb57-20-75-144-152.ngrok.io")!
+        public static let baseUrl = URL(string: "https://2293-20-75-144-152.ngrok.io")!
 #else
         public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
 #endif
@@ -18,7 +18,13 @@ public class DDGSync: DDGSyncing {
     }
 
     public var isAuthenticated: Bool {
-        return (try? dependencies.secureStore.account()?.token) != nil
+        (try? dependencies.secureStore.account()?.token) != nil
+    }
+
+    public var recoveryCode: Data? {
+        guard let account = try? dependencies.secureStore.account(),
+            let userIdData = account.userId.data(using: .utf8) else { return nil }
+        return account.primaryKey + userIdData
     }
 
     let persistence: LocalDataPersisting
