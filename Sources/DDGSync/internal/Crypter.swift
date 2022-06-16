@@ -70,6 +70,7 @@ struct Crypter: Crypting {
 
     func extractLoginInfo(recoveryKey: Data) throws -> (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data) {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
+        guard recoveryKey.count > primaryKeySize else { throw SyncError.failedToCreateAccountKeys("Recovery key is not valid") }
         
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
         var userIdBytes = [UInt8](repeating: 0, count: recoveryKey.count - primaryKeySize)
