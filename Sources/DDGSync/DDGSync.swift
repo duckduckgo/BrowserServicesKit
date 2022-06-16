@@ -9,8 +9,7 @@ public class DDGSync: DDGSyncing {
     enum Constants {
         
 #if DEBUG
-        // public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        public static let baseUrl = URL(string: "https://2293-20-75-144-152.ngrok.io")!
+        public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
 #else
         public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
 #endif
