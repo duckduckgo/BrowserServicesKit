@@ -125,7 +125,11 @@ public class ContentBlockerRulesManager {
         self.logger = logger
 
         updateCompilationState(token: "")
-        startInitialCompilationProcess()
+        if let lastCompiledRules = lastCompiledRulesStore?.rules {
+            startInitialCompilationProcess(with: lastCompiledRules)
+        } else {
+            startCompilationProcess()
+        }
     }
     
     /**
@@ -183,9 +187,8 @@ public class ContentBlockerRulesManager {
         lock.unlock()
     }
     
-    private func startInitialCompilationProcess() {
+    private func startInitialCompilationProcess(with lastCompiledRules: [LastCompiledRules]) {
         
-        guard let lastCompiledRules = lastCompiledRulesStore?.rules else { return }
         let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                             lastCompiledRules: lastCompiledRules)
         
