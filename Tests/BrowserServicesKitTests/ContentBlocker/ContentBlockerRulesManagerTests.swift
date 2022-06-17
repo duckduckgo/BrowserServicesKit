@@ -1115,6 +1115,8 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
     var trackerData: TrackerDataManager.DataSet? {
         didSet {
+            let trackerData = trackerData
+            let embeddedTrackerData = embeddedTrackerData
             contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
@@ -1122,6 +1124,8 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     }
     var embeddedTrackerData: TrackerDataManager.DataSet {
         didSet {
+            let trackerData = trackerData
+            let embeddedTrackerData = embeddedTrackerData
             contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
