@@ -124,8 +124,8 @@ public class ContentBlockerRulesManager {
         self.errorReporting = errorReporting
         self.logger = logger
 
-        updateCompilationState(token: "")
-        if let lastCompiledRules = lastCompiledRulesStore?.rules {
+        _ = updateCompilationState(token: "")
+        if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
             startInitialCompilationProcess(with: lastCompiledRules)
         } else {
             startCompilationProcess()
@@ -162,13 +162,17 @@ public class ContentBlockerRulesManager {
     public func scheduleCompilation() -> CompletionToken {
         let token = UUID().uuidString
         workQueue.async {
-            self.updateCompilationState(token: token)
-            self.startCompilationProcess()
+            let shouldStartCompilation = self.updateCompilationState(token: token)
+            if shouldStartCompilation {
+                self.startCompilationProcess()
+            }
         }
         return token
     }
 
-    private func updateCompilationState(token: CompletionToken) {
+    
+    /// Returns true if the compilation should be executed immediately
+    private func updateCompilationState(token: CompletionToken) -> Bool {
         os_log("Requesting compilation...", log: logger, type: .default)
         lock.lock()
         guard case .idle = state else {
@@ -179,25 +183,26 @@ public class ContentBlockerRulesManager {
                 state = .recompilingAndScheduled(currentTokens: currentTokens, pendingTokens: pendingTokens + [token])
             }
             lock.unlock()
-            return
+            return false
         }
 
         state = .recompiling(currentTokens: [token])
         compilationStartTime = compilationStartTime ?? CACurrentMediaTime()
         lock.unlock()
+        return true
     }
     
     private func startInitialCompilationProcess(with lastCompiledRules: [LastCompiledRules]) {
-        
         let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                             lastCompiledRules: lastCompiledRules)
-        
-        Task {
-            let result = await initialCompilationTask.start()
-            let rules = generateRules(from: result)
-            
-            applyRules(rules)
-            scheduleCompilation()
+        self.workQueue.async {
+            Task {
+                let result = await initialCompilationTask.start()
+                let rules = self.generateRules(from: result)
+                
+                self.applyRules(rules)
+                self.scheduleCompilation()
+            }
         }
     }
     
