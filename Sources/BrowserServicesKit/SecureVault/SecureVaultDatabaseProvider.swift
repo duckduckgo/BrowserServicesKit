@@ -68,6 +68,10 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
+            try $0.execute(sql: "PRAGMA journal_mode = WAL;")
+
+
+            
         }
 
         do {
@@ -650,6 +654,16 @@ struct MigrationUtility {
 
 extension DefaultDatabaseProvider {
 
+#if os(iOS)
+    static let groupIdPrefix: String = {
+        let groupIdPrefixKey = "DuckDuckGoGroupIdentifierPrefix"
+        guard let groupIdPrefix = Bundle.main.object(forInfoDictionaryKey: groupIdPrefixKey) as? String else {
+            fatalError("Info.plist must contain a \"\(groupIdPrefixKey)\" entry with a string value")
+        }
+        return groupIdPrefix
+    }()
+#endif
+
     static internal func dbFile() -> URL {
 
         let fm = FileManager.default
@@ -660,9 +674,15 @@ extension DefaultDatabaseProvider {
         let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
         let dir = libraryURL.appendingPathComponent(sandboxPathComponent)
 #else
-        guard let dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            fatalError("Could not find application support directory")
+//        guard let dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+//            fatalError("Could not find application support directory")
+//        }
+
+        let groupName = "\(Self.groupIdPrefix).vault"
+        guard let dir = fm.containerURL(forSecurityApplicationGroupIdentifier: groupName) else {
+            fatalError("Could not find vault container")
         }
+
 #endif
         let subDir = dir.appendingPathComponent("Vault")
 
