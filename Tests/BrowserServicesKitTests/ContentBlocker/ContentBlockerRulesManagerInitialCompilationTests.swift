@@ -23,6 +23,15 @@ import BrowserServicesKit
 import WebKit
 import XCTest
 
+final class CountedFulfillmentTestExpectation: XCTestExpectation {
+    private(set) var currentFulfillmentCount: Int = 0
+
+    override func fulfill() {
+        currentFulfillmentCount += 1
+        super.fulfill()
+    }
+}
+
 final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
     
     private static let fakeEmbeddedDataSet = ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules, etag: "\"\(UUID().uuidString)\"")
@@ -41,10 +50,10 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
             exp.fulfill()
         }
         
-        _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
-                                       exceptionsSource: mockExceptionsSource,
-                                       lastCompiledRulesStore: mockLastCompiledRulesStore,
-                                       updateListener: rulesUpdateListener)
+        let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                              exceptionsSource: mockExceptionsSource,
+                                              lastCompiledRulesStore: mockLastCompiledRulesStore,
+                                              updateListener: rulesUpdateListener)
         
         wait(for: [exp], timeout: 15.0)
         
@@ -52,18 +61,115 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, mockRulesSource.trackerData?.etag)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+        XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, cbrm.currentRules.first?.identifier)
+    }
         
-        XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier,
-                       ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
-                                                     tdsEtag: mockRulesSource.trackerData?.etag ?? "\"\"",
-                                                     tempListEtag: nil,
-                                                     allowListEtag: nil,
-                                                     unprotectedSitesHash: nil))
+    func testInitialCompilation_WhenNoChangesToTDS_ShouldUpdateRulesTwice() {
+        
+        let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
+                                                                                                                                etag: ContentBlockerRulesManagerTests.makeEtag()),
+                                                                       embeddedTrackerData: Self.fakeEmbeddedDataSet)
+        let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
+        let mockLastCompiledRulesStore = MockLastCompiledRulesStore()
+        let identifier = ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
+                                                       tdsEtag: mockRulesSource.trackerData?.etag ?? "\"\"",
+                                                       tempListEtag: nil,
+                                                       allowListEtag: nil,
+                                                       unprotectedSitesHash: nil)
+        let cachedRules = MockLastCompiledRules(name: mockRulesSource.rukeListName,
+                                                trackerData: mockRulesSource.trackerData!.tds,
+                                                etag: mockRulesSource.trackerData!.etag,
+                                                identifier: identifier)
+
+        mockLastCompiledRulesStore.rules = [cachedRules]
+        
+        // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
+        _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                       exceptionsSource: mockExceptionsSource,
+                                       updateListener: rulesUpdateListener)
+
+        let exp = CountedFulfillmentTestExpectation(description: "Rules Compiled")
+        exp.expectedFulfillmentCount = 3
+        rulesUpdateListener.onRulesUpdated = { rules in
+            exp.fulfill()
+            if exp.currentFulfillmentCount == 1 { // finished compilation after first installation
+                _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                               exceptionsSource: mockExceptionsSource,
+                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
+                                               updateListener: self.rulesUpdateListener)
+            }
+            assertRules(rules)
+        }
+
+        wait(for: [exp], timeout: 15.0)
+        
+        func assertRules(_ rules: [ContentBlockerRulesManager.Rules]) {
+            guard let rules = rules.first else { XCTFail(); return }
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, rules.etag)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, rules.name)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, rules.trackerData)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, rules.identifier)
+        }
     }
     
-    // func last compiled rules == mockRulesSource -> 1 compilation (?)
-    // func last compiled rules and no source
-    // func last compiled rules == changed config in the meantime, we have to do 2 compilations
+    func testInitialCompilation_WhenThereAreChangesToTDS_ShouldBuildRulesUsingLastCompiledRulesAndScheduleRecompilationWithNewSource() {
+        
+        let oldEtag = ContentBlockerRulesManagerTests.makeEtag()
+        let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
+                                                                                                                                etag: oldEtag),
+                                                                       embeddedTrackerData: Self.fakeEmbeddedDataSet)
+        let updatedEtag = ContentBlockerRulesManagerTests.makeEtag()
+        let mockUpdatedRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
+                                                                                                                                       etag: updatedEtag),
+                                                                              embeddedTrackerData: Self.fakeEmbeddedDataSet)
+        let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
+        let mockLastCompiledRulesStore = MockLastCompiledRulesStore()
+        let oldIdentifier = ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
+                                                          tdsEtag: mockRulesSource.trackerData?.etag ?? "\"\"",
+                                                          tempListEtag: nil,
+                                                          allowListEtag: nil,
+                                                          unprotectedSitesHash: nil)
+        let newIdentifier = ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
+                                                          tdsEtag: mockUpdatedRulesSource.trackerData?.etag ?? "\"\"",
+                                                          tempListEtag: nil,
+                                                          allowListEtag: nil,
+                                                          unprotectedSitesHash: nil)
+        let cachedRules = MockLastCompiledRules(name: mockRulesSource.rukeListName,
+                                                trackerData: mockRulesSource.trackerData!.tds,
+                                                etag: mockRulesSource.trackerData!.etag,
+                                                identifier: oldIdentifier)
+        
+        mockLastCompiledRulesStore.rules = [cachedRules]
+        
+        // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
+        _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
+                                       exceptionsSource: mockExceptionsSource,
+                                       updateListener: rulesUpdateListener)
+
+        let exp = CountedFulfillmentTestExpectation(description: "Rules Compiled")
+        exp.expectedFulfillmentCount = 3
+        rulesUpdateListener.onRulesUpdated = { rules in
+            exp.fulfill()
+            if exp.currentFulfillmentCount == 1 { // finished compilation after first installation
+                _ = ContentBlockerRulesManager(rulesSource: mockUpdatedRulesSource,
+                                               exceptionsSource: mockExceptionsSource,
+                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
+                                               updateListener: self.rulesUpdateListener)
+            } else if exp.currentFulfillmentCount == 2 { // finished compilation after cold start (using last compiled rules)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
+            } else if exp.currentFulfillmentCount == 3 { // finished recompilation of rules due to changed tds
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
+            }
+        }
+
+        wait(for: [exp], timeout: 15.0)
+    }
     
     struct MockLastCompiledRules: LastCompiledRules {
         
