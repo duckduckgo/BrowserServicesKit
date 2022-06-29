@@ -68,6 +68,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
+            try $0.execute(sql: "PRAGMA journal_mode = WAL;")
         }
 
         do {
