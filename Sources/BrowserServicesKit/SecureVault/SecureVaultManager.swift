@@ -76,7 +76,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  [SecureVaultModels.CreditCard]) -> Void) {
 
         do {
-            guard let delegate = delegate, delegate?.secureVaultManagerIsEnabledStatus(self) else {
+            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self) else {
                 completionHandler([], [], [])
                 return
             }
