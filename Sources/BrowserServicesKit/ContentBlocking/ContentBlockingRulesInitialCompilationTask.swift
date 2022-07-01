@@ -39,7 +39,8 @@ extension ContentBlockerRulesManager {
             
             var result: [(WKContentRuleList, ContentBlockerRulesSourceModel)] = []
             for rules in filteredBySourceLastCompiledRules {
-                guard let ruleList = await WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: rules.identifier.stringValue) else { continue }
+                guard let ruleList = await WKContentRuleListStore.default()?
+                    .lookUpContentRuleList(forIdentifier: rules.identifier.stringValue) else { continue }
                 result.append((ruleList, ContentBlockerRulesSourceModel(name: rules.name, tdsIdentfier: rules.etag, tds: rules.trackerData)))
             }
             return result

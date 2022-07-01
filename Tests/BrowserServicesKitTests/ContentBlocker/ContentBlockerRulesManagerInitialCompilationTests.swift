@@ -32,6 +32,7 @@ final class CountedFulfillmentTestExpectation: XCTestExpectation {
     }
 }
 
+// swiftlint:disable line_length
 final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
     
     private static let fakeEmbeddedDataSet = ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules, etag: "\"\(UUID().uuidString)\"")
@@ -112,6 +113,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         }
     }
     
+    // swiftlint:disable:next function_body_length
     func testInitialCompilation_WhenThereAreChangesToTDS_ShouldBuildRulesUsingLastCompiledRulesAndScheduleRecompilationWithNewSource() {
         
         let oldEtag = ContentBlockerRulesManagerTests.makeEtag()
