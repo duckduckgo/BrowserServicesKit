@@ -70,7 +70,6 @@ public class DDGSync: DDGSyncing {
 
         let result = try await dependencies.account.login(recoveryKey: recoveryKey, deviceName: deviceName)
         try dependencies.secureStore.persistAccount(result.account)
-        try await persistence.persistDevices(result.devices)
     }
 
     public func sender() throws -> UpdatesSending {

@@ -7,6 +7,5 @@ public protocol LocalDataPersisting {
     func updateBookmarksLastModified(_ lastModified: String?)
     
     func persistEvents(_ events: [SyncEvent]) async throws
-    func persistDevices(_ devices: [RegisteredDevice]) async throws
 
 }
