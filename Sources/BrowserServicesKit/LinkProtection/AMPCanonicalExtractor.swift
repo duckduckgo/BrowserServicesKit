@@ -89,21 +89,12 @@ public class AMPCanonicalExtractor: NSObject {
     {
         "trigger": {
             "url-filter": ".*",
-            "resource-type": ["image"]
+            "resource-type": ["image", "style-sheet", "script"]
         },
         "action": {
             "type": "block"
         }
-    },
-    {
-        "trigger": {
-            "url-filter": ".*",
-            "resource-type": ["style-sheet"]
-        },
-        "action": {
-            "type": "block"
-        }
-    },
+    }
 ]
 """
         

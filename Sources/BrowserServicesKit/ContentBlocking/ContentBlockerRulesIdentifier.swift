@@ -19,7 +19,7 @@
 
 import Foundation
 
-public class ContentBlockerRulesIdentifier: Equatable {
+public class ContentBlockerRulesIdentifier: Equatable, Codable {
     
     private let name: String
     private let tdsEtag: String
