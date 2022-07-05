@@ -105,14 +105,7 @@ struct HTTPRequest: HTTPRequesting {
 
         // When we can use iOS 15 and macOS 12 only we can just use the async/await APIs for URL requests.
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HTTPResult, Error>) in
-            // In DEBUG mode we could be connecting to dev servers which use self-signed certs
-            #if DEBUG
-            let session = URLSession(configuration: .default, delegate: AllowSelfSignedCertsSessionDelegate.shared, delegateQueue: nil)
-            #else
-            let session = URLSession.shared
-            #endif
-
-            let task = session.dataTask(with: request) { data, response, error in
+            let task = URLSession.shared.dataTask(with: request) { data, response, error in
                 
                 if let error = error {
                     continuation.resume(throwing: error)
@@ -128,19 +121,3 @@ struct HTTPRequest: HTTPRequesting {
     }
 
 }
-
-#if DEBUG
-class AllowSelfSignedCertsSessionDelegate: NSObject, URLSessionTaskDelegate {
-    
-    static let shared = AllowSelfSignedCertsSessionDelegate()
-    
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        if let serverTrust = challenge.protectionSpace.serverTrust {
-            completionHandler(.useCredential, URLCredential(trust: serverTrust))
-        } else {
-            completionHandler(.performDefaultHandling, nil)
-        }
-    }
-    
-}
-#endif
