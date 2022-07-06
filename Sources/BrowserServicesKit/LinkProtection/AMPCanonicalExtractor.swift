@@ -100,8 +100,8 @@ public class AMPCanonicalExtractor: NSObject {
         
         WKContentRuleListStore.default().compileContentRuleList(forIdentifier: Constants.ruleListIdentifier,
                                                                 encodedContentRuleList: ruleSource) { [weak self] ruleList, error  in
-            guard error != nil else {
-                print(error?.localizedDescription ?? "AMPCanonicalExtractor - Error compiling image blocking rules")
+            if let error = error {
+                print("AMPCanonicalExtractor - Error compiling image blocking rules: \(error.localizedDescription)")
                 self?.errorReporting?.fire(.ampBlockingRulesCompilationFailed)
                 return
             }
