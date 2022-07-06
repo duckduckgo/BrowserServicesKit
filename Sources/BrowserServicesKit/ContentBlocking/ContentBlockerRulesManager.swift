@@ -108,26 +108,36 @@ public class ContentBlockerRulesManager {
     private var compilationStartTime: TimeInterval?
 
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
+    
+    private let lastCompiledRulesStore: LastCompiledRulesStore?
 
     public init(rulesSource: ContentBlockerRulesListsSource,
                 exceptionsSource: ContentBlockerRulesExceptionsSource,
+                lastCompiledRulesStore: LastCompiledRulesStore? = nil,
                 cache: ContentBlockerRulesCaching? = nil,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 logger: OSLog = .disabled) {
         self.rulesSource = rulesSource
         self.exceptionsSource = exceptionsSource
+        self.lastCompiledRulesStore = lastCompiledRulesStore
         self.cache = cache
         self.errorReporting = errorReporting
         self.logger = logger
 
-        requestCompilation(token: "")
+        _ = updateCompilationState(token: "")
+        if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
+            startInitialCompilationProcess(with: lastCompiledRules)
+        } else {
+            startCompilationProcess()
+        }
     }
+    
     /**
      Variables protected by this lock:
       - state
       - currentRules
      */
-    private let lock = NSLock()
+    private let lock = NSRecursiveLock()
 
     private var state = State.idle
 
@@ -152,12 +162,17 @@ public class ContentBlockerRulesManager {
     public func scheduleCompilation() -> CompletionToken {
         let token = UUID().uuidString
         workQueue.async {
-            self.requestCompilation(token: token)
+            let shouldStartCompilation = self.updateCompilationState(token: token)
+            if shouldStartCompilation {
+                self.startCompilationProcess()
+            }
         }
         return token
     }
 
-    private func requestCompilation(token: CompletionToken) {
+    
+    /// Returns true if the compilation should be executed immediately
+    private func updateCompilationState(token: CompletionToken) -> Bool {
         os_log("Requesting compilation...", log: logger, type: .default)
         lock.lock()
         guard case .idle = state else {
@@ -168,19 +183,46 @@ public class ContentBlockerRulesManager {
                 state = .recompilingAndScheduled(currentTokens: currentTokens, pendingTokens: pendingTokens + [token])
             }
             lock.unlock()
-            return
+            return false
         }
 
         state = .recompiling(currentTokens: [token])
-        self.compilationStartTime = self.compilationStartTime ?? CACurrentMediaTime()
+        compilationStartTime = compilationStartTime ?? CACurrentMediaTime()
         lock.unlock()
-
-        startCompilationProcess()
+        return true
     }
-
+    
+    private func startInitialCompilationProcess(with lastCompiledRules: [LastCompiledRules]) {
+        let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
+                                                            lastCompiledRules: lastCompiledRules)
+        self.workQueue.async {
+            Task {
+                let result = await initialCompilationTask.start()
+                let rules = self.generateRules(from: result)
+                
+                self.applyRules(rules)
+                self.scheduleCompilation()
+            }
+        }
+    }
+    
+    private func generateRules(from result: [(ruleList: WKContentRuleList, model: ContentBlockerRulesSourceModel)]) -> [Rules] {
+        result.map {
+            let surrogateTDS = Self.extractSurrogates(from: $0.model.tds)
+            let encodedData = try? JSONEncoder().encode(surrogateTDS)
+            let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
+            return Rules(name: $0.model.name,
+                         rulesList: $0.ruleList,
+                         trackerData: $0.model.tds,
+                         encodedTrackerData: encodedTrackerData,
+                         etag: $0.model.tdsIdentifier,
+                         identifier: $0.model.rulesIdentifier)
+        }
+    }
+    
     private func startCompilationProcess() {
         // Prepare compilation tasks based on the sources
-        currentTasks = rulesSource.contentBlockerRulesLists.map({ rulesList in
+        currentTasks = rulesSource.contentBlockerRulesLists.map { rulesList in
 
             let sourceManager: ContentBlockerRulesSourceManager
             if let manager = self.sourceManagers[rulesList.name] {
@@ -194,7 +236,7 @@ public class ContentBlockerRulesManager {
                 self.sourceManagers[rulesList.name] = sourceManager
             }
             return CompilationTask(workQueue: workQueue, rulesList: rulesList, sourceManager: sourceManager)
-        })
+        }
 
         executeNextTask()
     }
@@ -275,10 +317,19 @@ public class ContentBlockerRulesManager {
                          identifier: result.model.rulesIdentifier)
         }
 
-        _currentRules = newRules
+        lastCompiledRulesStore?.update(with: newRules)
+        applyRules(newRules, changes: changes)
+
+        lock.unlock()
+    }
+    
+    private func applyRules(_ rules: [Rules], changes: [String: ContentBlockerRulesIdentifier.Difference] = [:]) {
+        lock.lock()
+        
+        _currentRules = rules
 
         let completionTokens: [CompletionToken]
-        let compilationTime = self.compilationStartTime.map { start in CACurrentMediaTime() - start }
+        let compilationTime = compilationStartTime.map { start in CACurrentMediaTime() - start }
         switch state {
         case .recompilingAndScheduled(let currentTokens, let pendingTokens):
             // New work has been scheduled - prepare for execution.
@@ -288,22 +339,22 @@ public class ContentBlockerRulesManager {
 
             completionTokens = currentTokens
             state = .recompiling(currentTokens: pendingTokens)
-            self.compilationStartTime = CACurrentMediaTime()
+            compilationStartTime = CACurrentMediaTime()
 
         case .recompiling(let currentTokens):
             completionTokens = currentTokens
             state = .idle
-            self.compilationStartTime = nil
+            compilationStartTime = nil
 
         case .idle:
             assertionFailure("Unexpected state")
             completionTokens = []
         }
-
+        
         lock.unlock()
-
-        let currentIdentifiers: [String] = newRules.map { $0.identifier.stringValue }
-        self.updatesSubject.send( UpdateEvent(rules: newRules, changes: changes, completionTokens: completionTokens) )
+        
+        let currentIdentifiers: [String] = rules.map { $0.identifier.stringValue }
+        updatesSubject.send(UpdateEvent(rules: rules, changes: changes, completionTokens: completionTokens))
 
         DispatchQueue.main.async {
             if let compilationTime = compilationTime {
@@ -345,12 +396,14 @@ extension ContentBlockerRulesManager {
 
     public convenience init(rulesSource: ContentBlockerRulesListsSource,
                             exceptionsSource: ContentBlockerRulesExceptionsSource,
+                            lastCompiledRulesStore: LastCompiledRulesStore? = nil,
                             cache: ContentBlockerRulesCaching? = nil,
                             updateListener: ContentBlockerRulesUpdating,
                             errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                             logger: OSLog = .disabled) {
         self.init(rulesSource: rulesSource,
                   exceptionsSource: exceptionsSource,
+                  lastCompiledRulesStore: lastCompiledRulesStore,
                   cache: cache,
                   errorReporting: errorReporting,
                   logger: logger)
