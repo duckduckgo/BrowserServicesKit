@@ -123,7 +123,7 @@ extension ContentBlockerRulesManager {
 
             let ruleList = String(data: data, encoding: .utf8)!
             WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
-                                         encodedContentRuleList: ruleList) { ruleList, error in
+                                                                    encodedContentRuleList: ruleList) { ruleList, error in
 
                 if let ruleList = ruleList {
                     self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)

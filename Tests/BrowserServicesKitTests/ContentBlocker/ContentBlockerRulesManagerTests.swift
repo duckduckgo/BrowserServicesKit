@@ -174,13 +174,13 @@ class ContentBlockerRulesManagerTests: XCTestCase {
 
 final class RulesUpdateListener: ContentBlockerRulesUpdating {
 
-    var onRulesUpdated: ([String: ContentBlockerRulesIdentifier.Difference]) -> Void = { _ in }
+    var onRulesUpdated: ([ContentBlockerRulesManager.Rules]) -> Void = { _ in }
 
     func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules: [ContentBlockerRulesManager.Rules],
+                      didUpdateRules rules: [ContentBlockerRulesManager.Rules],
                       changes: [String: ContentBlockerRulesIdentifier.Difference],
                       completionTokens: [ContentBlockerRulesManager.CompletionToken]) {
-        onRulesUpdated(changes)
+        onRulesUpdated(rules)
     }
 }
 
