@@ -116,7 +116,8 @@ public struct LinkProtection {
         return didRewriteLink
     }
     // swiftlint:enable function_parameter_count
-    
+
+    @MainActor
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
                                            onStartExtracting: () -> Void,

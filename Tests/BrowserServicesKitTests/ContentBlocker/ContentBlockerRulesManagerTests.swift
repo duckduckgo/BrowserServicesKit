@@ -172,18 +172,6 @@ class ContentBlockerRulesManagerTests: XCTestCase {
     
 }
 
-final class RulesUpdateListener: ContentBlockerRulesUpdating {
-
-    var onRulesUpdated: ([ContentBlockerRulesManager.Rules]) -> Void = { _ in }
-
-    func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules rules: [ContentBlockerRulesManager.Rules],
-                      changes: [String: ContentBlockerRulesIdentifier.Difference],
-                      completionTokens: [ContentBlockerRulesManager.CompletionToken]) {
-        onRulesUpdated(rules)
-    }
-}
-
 // swiftlint:disable type_body_length
 class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 

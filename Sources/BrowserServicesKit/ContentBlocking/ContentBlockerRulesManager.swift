@@ -28,14 +28,6 @@ public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCacheInterval: TimeInterval { get }
 }
 
-public protocol ContentBlockerRulesUpdating {
-
-    func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules: [ContentBlockerRulesManager.Rules],
-                      changes: [String: ContentBlockerRulesIdentifier.Difference],
-                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
-}
-
 /**
  Manages creation of Content Blocker rules from `ContentBlockerRulesSource`.
  */
@@ -82,7 +74,7 @@ public class ContentBlockerRulesManager {
 
     public struct UpdateEvent {
         public let rules: [ContentBlockerRulesManager.Rules]
-        public let changes: [String: ContentBlockerRulesIdentifier.Difference]
+        public var changes: [String: ContentBlockerRulesIdentifier.Difference]
         public let completionTokens: [ContentBlockerRulesManager.CompletionToken]
 
         public init(rules: [ContentBlockerRulesManager.Rules],
@@ -388,40 +380,6 @@ public class ContentBlockerRulesManager {
                 WKContentRuleListStore.default()?.removeContentRuleList(forIdentifier: id) { _ in }
             }
         }
-    }
-
-}
-
-extension ContentBlockerRulesManager {
-
-    public convenience init(rulesSource: ContentBlockerRulesListsSource,
-                            exceptionsSource: ContentBlockerRulesExceptionsSource,
-                            lastCompiledRulesStore: LastCompiledRulesStore? = nil,
-                            cache: ContentBlockerRulesCaching? = nil,
-                            updateListener: ContentBlockerRulesUpdating,
-                            errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                            logger: OSLog = .disabled) {
-        self.init(rulesSource: rulesSource,
-                  exceptionsSource: exceptionsSource,
-                  lastCompiledRulesStore: lastCompiledRulesStore,
-                  cache: cache,
-                  errorReporting: errorReporting,
-                  logger: logger)
-
-        var cancellable: AnyCancellable?
-        cancellable = self.updatesPublisher.receive(on: DispatchQueue.main)
-            .sink { [weak self] update in
-                guard let self = self else {
-                    cancellable?.cancel()
-                    return
-                }
-                withExtendedLifetime(cancellable) {
-                    updateListener.rulesManager(self,
-                                                didUpdateRules: update.rules,
-                                                changes: update.changes,
-                                                completionTokens: update.completionTokens)
-                }
-            }
     }
 
 }
