@@ -204,7 +204,10 @@ class SecureVaultManagerTests: XCTestCase {
 
     func testWhenRequestingCredentialsWithNonEmptyUsername_ThenFillActionIsReturned() throws {
         class SecureVaultDelegate: MockSecureVaultManagerDelegate {
-            override func secureVaultManager(_ manager: SecureVaultManager, promptUserToAutofillCredentialsForDomain domain: String, withAccounts accounts: [SecureVaultModels.WebsiteAccount], completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
+            override func secureVaultManager(_ manager: SecureVaultManager,
+                                             promptUserToAutofillCredentialsForDomain domain: String,
+                                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
                 XCTAssertEqual(accounts.count, 1, "The empty username should have been filtered so that it's not shown as an option")
                 completionHandler(accounts[0])
             }
@@ -242,7 +245,10 @@ class SecureVaultManagerTests: XCTestCase {
 
     func testWhenRequestingCredentialsWithPasswordSubtype_ThenCredentialsAreNotFiltered() throws {
         class SecureVaultDelegate: MockSecureVaultManagerDelegate {
-            override func secureVaultManager(_ manager: SecureVaultManager, promptUserToAutofillCredentialsForDomain domain: String, withAccounts accounts: [SecureVaultModels.WebsiteAccount], completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
+            override func secureVaultManager(_ manager: SecureVaultManager,
+                                             promptUserToAutofillCredentialsForDomain domain: String,
+                                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
                 XCTAssertEqual(accounts.count, 2, "Both accounts should be shown since the subType was `password`")
                 completionHandler(accounts[1])
             }
