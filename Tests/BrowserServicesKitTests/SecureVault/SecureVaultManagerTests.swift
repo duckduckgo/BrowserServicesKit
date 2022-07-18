@@ -180,7 +180,110 @@ class SecureVaultManagerTests: XCTestCase {
         XCTAssertNil(secureVaultManagerDelegate.promptedAutofillData?.creditCard)
         XCTAssertNil(secureVaultManagerDelegate.promptedAutofillData?.identity)
     }
-    
+
+    func testWhenRequestingCredentialsWithEmptyUsername_ThenNonActionIsReturned() throws {
+        // account
+        let domain = "domain.com"
+        let username = "" // <- this is a valid scenario
+        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date());
+        self.mockDatabaseProvider._accounts = [account]
+
+        // credentials for the account
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        try self.testVault.storeWebsiteCredentials(credentials)
+
+        let subType = AutofillUserScript.GetAutofillDataSubType.username;
+        let expect = expectation(description: #function)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
+            XCTAssertEqual(action, .none)
+            XCTAssertNil(credentials)
+            expect.fulfill()
+        }
+        waitForExpectations(timeout: 0.1)
+    }
+
+    func testWhenRequestingCredentialsWithNonEmptyUsername_ThenFillActionIsReturned() throws {
+        class SecureVaultDelegate: MockSecureVaultManagerDelegate {
+            override func secureVaultManager(_ manager: SecureVaultManager,
+                                             promptUserToAutofillCredentialsForDomain domain: String,
+                                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
+                XCTAssertEqual(accounts.count, 1, "The empty username should have been filtered so that it's not shown as an option")
+                completionHandler(accounts[0])
+            }
+        }
+
+        self.secureVaultManagerDelegate = SecureVaultDelegate();
+        self.manager.delegate = self.secureVaultManagerDelegate
+
+        // account 1 (empty username)
+        let domain = "domain.com"
+        let username = ""
+        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date());
+
+        // account 2
+        let username2 = "dax2"
+        let account2 = SecureVaultModels.WebsiteAccount(id: 2, title: nil, username: username2, domain: domain, created: Date(), lastUpdated: Date());
+        self.mockDatabaseProvider._accounts = [account, account2]
+
+        // credential for the account
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        let credentials2 = SecureVaultModels.WebsiteCredentials(account: account2, password: "password".data(using: .utf8)!)
+        try self.testVault.storeWebsiteCredentials(credentials)
+        try self.testVault.storeWebsiteCredentials(credentials2)
+
+        let subType = AutofillUserScript.GetAutofillDataSubType.username;
+        let expect = expectation(description: #function)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
+            XCTAssertEqual(action, .fill)
+            XCTAssertEqual(credentials!.password, "password".data(using: .utf8)!)
+            XCTAssertEqual(credentials!.account.username, "dax2")
+            expect.fulfill()
+        }
+        waitForExpectations(timeout: 0.1)
+    }
+
+    func testWhenRequestingCredentialsWithPasswordSubtype_ThenCredentialsAreNotFiltered() throws {
+        class SecureVaultDelegate: MockSecureVaultManagerDelegate {
+            override func secureVaultManager(_ manager: SecureVaultManager,
+                                             promptUserToAutofillCredentialsForDomain domain: String,
+                                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
+                XCTAssertEqual(accounts.count, 2, "Both accounts should be shown since the subType was `password`")
+                completionHandler(accounts[1])
+            }
+        }
+
+        self.secureVaultManagerDelegate = SecureVaultDelegate();
+        self.manager.delegate = self.secureVaultManagerDelegate
+
+        // account 1 (empty username)
+        let domain = "domain.com"
+        let username = ""
+        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date());
+
+        // account 2
+        let username2 = "dax2"
+        let account2 = SecureVaultModels.WebsiteAccount(id: 2, title: nil, username: username2, domain: domain, created: Date(), lastUpdated: Date());
+        self.mockDatabaseProvider._accounts = [account, account2]
+
+        // credential for the account
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        let credentials2 = SecureVaultModels.WebsiteCredentials(account: account2, password: "password".data(using: .utf8)!)
+        try self.testVault.storeWebsiteCredentials(credentials)
+        try self.testVault.storeWebsiteCredentials(credentials2)
+
+        let subType = AutofillUserScript.GetAutofillDataSubType.password;
+        let expect = expectation(description: #function)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
+            XCTAssertEqual(action, .fill)
+            XCTAssertEqual(credentials!.password, "password".data(using: .utf8)!)
+            XCTAssertEqual(credentials!.account.username, "dax2")
+            expect.fulfill()
+        }
+        waitForExpectations(timeout: 0.1)
+    }
+
     // MARK: - Test Utilities
     
     private func identity(id: Int64? = nil, name: (String, String, String), addressStreet: String?) -> SecureVaultModels.Identity {
