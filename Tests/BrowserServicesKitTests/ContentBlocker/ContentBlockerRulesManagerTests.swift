@@ -172,18 +172,6 @@ class ContentBlockerRulesManagerTests: XCTestCase {
     
 }
 
-final class RulesUpdateListener: ContentBlockerRulesUpdating {
-
-    var onRulesUpdated: ([ContentBlockerRulesManager.Rules]) -> Void = { _ in }
-
-    func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules rules: [ContentBlockerRulesManager.Rules],
-                      changes: [String: ContentBlockerRulesIdentifier.Difference],
-                      completionTokens: [ContentBlockerRulesManager.CompletionToken]) {
-        onRulesUpdated(rules)
-    }
-}
-
 // swiftlint:disable type_body_length
 class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
@@ -1115,6 +1103,8 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
     var trackerData: TrackerDataManager.DataSet? {
         didSet {
+            let trackerData = trackerData
+            let embeddedTrackerData = embeddedTrackerData
             contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
@@ -1122,6 +1112,8 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     }
     var embeddedTrackerData: TrackerDataManager.DataSet {
         didSet {
+            let trackerData = trackerData
+            let embeddedTrackerData = embeddedTrackerData
             contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]

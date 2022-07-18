@@ -49,25 +49,26 @@ extension ContentBlockerRulesManager {
         }
 
         func start(completionHandler: @escaping Completion) {
+            self.workQueue.async {
+                guard let model = self.sourceManager.makeModel() else {
+                    self.compilationImpossible = true
+                    completionHandler(false)
+                    return
+                }
 
-            guard let model = sourceManager.makeModel() else {
-                compilationImpossible = true
-                completionHandler(false)
-                return
-            }
-
-            // Delegate querying to main thread - crashes were observed in background.
-            DispatchQueue.main.async {
-                WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
-                                                                        completionHandler: { ruleList, _ in
-                    if let ruleList = ruleList {
-                        self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
-                    } else {
-                        self.workQueue.async {
-                            self.compile(model: model, completionHandler: completionHandler)
+                // Delegate querying to main thread - crashes were observed in background.
+                DispatchQueue.main.async {
+                    let identifier = model.rulesIdentifier.stringValue
+                    WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
+                        if let ruleList = ruleList {
+                            self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
+                        } else {
+                            self.workQueue.async {
+                                self.compile(model: model, completionHandler: completionHandler)
+                            }
                         }
                     }
-                })
+                }
             }
         }
 
