@@ -338,6 +338,53 @@ class AutofillVaultUserScriptTests: XCTestCase {
         XCTAssertEqual(autofillData.credentials?.password, password)
     }
 
+    func testWhenGetAutofilldataIsCall_ThenMainAndSubtypesAreUsed() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["mainType"] = "credentials"
+        body["subType"] = "username"
+
+        let mockWebView = MockWebView()
+        let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
+
+        userScript.processMessage(userContentController, didReceive: message)
+        XCTAssertEqual(delegate.lastSubtype, AutofillUserScript.GetAutofillDataSubType.username)
+    }
+
+    func testWhenGetAutofilldataIsCalledWithUnknownMainType_ThenTheMessageIsIgnored() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["mainType"] = "creditCards" // <- unsupported main type
+        body["subType"] = "username"
+
+        let mockWebView = MockWebView()
+        let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
+
+        userScript.processMessage(userContentController, didReceive: message)
+        XCTAssertNil(delegate.lastSubtype)
+    }
+
+    func testWhenGetAutofilldataIsCalledWithUnknownSubType_ThenTheMessageIsIgnored() {
+
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["mainType"] = "credentials"
+        body["subType"] = "anything_else"
+
+        let mockWebView = MockWebView()
+        let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
+
+        userScript.processMessage(userContentController, didReceive: message)
+        XCTAssertNil(delegate.lastSubtype)
+    }
 }
 
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
@@ -345,6 +392,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     var lastDomain: String?
     var lastUsername: String?
     var lastPassword: String?
+    var lastSubtype: AutofillUserScript.GetAutofillDataSubType?
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         lastDomain = domain
@@ -386,6 +434,12 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
                             completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
     }
 
+    func autofillUserScript(_ script: AutofillUserScript,
+                            didRequestCredentialsForDomain: String,
+                            subType: AutofillUserScript.GetAutofillDataSubType,
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> ()) {
+        lastSubtype = subType
+    }
 }
 
 struct NoneEncryptingEncrypter: AutofillEncrypter {

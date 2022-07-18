@@ -126,10 +126,26 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
+                                   subType: AutofillUserScript.GetAutofillDataSubType,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
         do {
-            let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
-            let accounts = try vault.accountsFor(domain: domain)
+            let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+            let accounts = try vault
+                .accountsFor(domain: domain)
+                .filter {
+                    // don't show accounts without usernames if the user interacted with the 'username' field
+                    if subType == .username && $0.username.isEmpty {
+                        return false
+                    }
+                    return true
+                }
+
+            if accounts.count == 0 {
+                os_log(.debug, "Not showing the modal, no suitable accounts found")
+                completionHandler(nil, .none)
+                return;
+            }
+
             delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account  in
                 
                 guard let accountID = account?.id else {
