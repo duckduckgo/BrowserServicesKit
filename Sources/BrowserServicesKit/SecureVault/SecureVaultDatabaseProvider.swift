@@ -653,18 +653,7 @@ extension DefaultDatabaseProvider {
     static internal func dbFile() -> URL {
 
         let fm = FileManager.default
-
-#if os(macOS)
-        // Note that if we move the macos browser to the app store, we should really use the alternative method
-        let sandboxPathComponent = "Containers/\(Bundle.main.bundleIdentifier!)/Data/Library/Application Support/"
-        let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first!
-        let dir = libraryURL.appendingPathComponent(sandboxPathComponent)
-#else
-        guard let dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            fatalError("Could not find application support directory")
-        }
-#endif
-        let subDir = dir.appendingPathComponent("Vault")
+        let subDir = fm.applicationSupportDirectoryForComponent(named: "Vault")
 
         var isDir: ObjCBool = false
         if !fm.fileExists(atPath: subDir.path, isDirectory: &isDir) {

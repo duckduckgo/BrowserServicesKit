@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -7,11 +7,13 @@ import Foundation
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("13.0"),
-        .macOS("10.15")
+        .iOS(.v13),
+        .macOS(.v10_15)
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
+        // Exported libraries
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "DDGSync", targets: ["DDGSync"]),
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.7.1")),
@@ -43,7 +45,8 @@ let package = Package(
                 "Resources/content-scope-scripts/lib/",
                 "Resources/content-scope-scripts/build/chrome/",
                 "Resources/content-scope-scripts/build/firefox/",
-                "Resources/content-scope-scripts/build/integration/"
+                "Resources/content-scope-scripts/build/integration/",
+                "Resources/content-scope-scripts/tsconfig.json"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -60,6 +63,24 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
+        .binaryTarget(
+                name: "Clibsodium",
+                path: "Clibsodium.xcframework"),
+        .target(
+            name: "DDGSyncCrypto",
+            dependencies: [
+                "Clibsodium"
+            ]
+        ),
+        .target(
+            name: "DDGSync",
+            dependencies: [
+                "BrowserServicesKit",
+                "DDGSyncCrypto"
+            ]
+        ),
+
+        // Test Targets
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -68,6 +89,16 @@ let package = Package(
             resources: [
                 .process("UserScript/testUserScript.js"),
                 .copy("Resources")
+            ]),
+        .testTarget(
+            name: "DDGSyncTests",
+            dependencies: [
+                "DDGSync"
+            ]),
+        .testTarget(
+            name: "DDGSyncCryptoTests",
+            dependencies: [
+                "DDGSyncCrypto"
             ])
     ]
 )
