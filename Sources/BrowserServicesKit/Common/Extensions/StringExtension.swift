@@ -19,14 +19,42 @@
 import Foundation
 import Punycode
 
-extension String {
+public typealias RegEx = NSRegularExpression
 
-    public func trimWhitespace() -> String {
+public func regex(_ pattern: String, _ options: NSRegularExpression.Options = []) -> NSRegularExpression {
+    return (try? NSRegularExpression(pattern: pattern, options: options))!
+}
+
+extension RegEx {
+    // from https://stackoverflow.com/a/25717506/73479
+    static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
+    // from https://stackoverflow.com/a/30023010/73479
+    static let ipAddress = regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+                                 .caseInsensitive)
+}
+
+public extension String {
+
+    static let localhost = "localhost"
+
+    func length() -> Int {
+        self.utf16.count
+    }
+
+    var fullRange: NSRange {
+        return NSRange(location: 0, length: length())
+    }
+
+    func trimWhitespace() -> String {
         return trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func dropping(prefix: String) -> String {
         return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
+    }
+
+    func dropping(suffix: String) -> String {
+        return hasSuffix(suffix) ? String(dropLast(suffix.count)) : self
     }
 
     func droppingWwwPrefix() -> String {
@@ -54,6 +82,33 @@ extension String {
         normalizedString = normalizedString.localizedLowercase
         
         return normalizedString
+    }
+
+    var isValidHost: Bool {
+        return isValidHostname || isValidIpHost
+    }
+
+    var isValidHostname: Bool {
+        if self == Self.localhost {
+            return true
+        }
+        return matches(.hostName)
+    }
+
+    var isValidIpHost: Bool {
+        return matches(.ipAddress)
+    }
+
+    func matches(_ regex: NSRegularExpression) -> Bool {
+        let matches = regex.matches(in: self, options: .anchored, range: self.fullRange)
+        return matches.count == 1
+    }
+
+    func matches(pattern: String, options: NSRegularExpression.Options = [.caseInsensitive]) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
+            return false
+        }
+        return matches(regex)
     }
 
 }
