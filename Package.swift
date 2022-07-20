@@ -26,7 +26,7 @@ let package = Package(
             name: "BrowserServicesKit",
             dependencies: [
                 "Autofill",
-                "ContentScopeScripts",
+                .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "GRDB",
                 "TrackerRadarKit",
                 .product(name: "Punnycode", package: "Punycode"),
