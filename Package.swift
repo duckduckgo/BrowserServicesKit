@@ -17,7 +17,8 @@ let package = Package(
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.7.1")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.4")),
-        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0"))
+        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .branch("jkt/remote-values"))
     ],
     targets: [
         
@@ -30,25 +31,9 @@ let package = Package(
                 .product(name: "Punnycode", package: "Punycode"),
                 "BloomFilterWrapper"
             ],
-            exclude: [
-                "Resources/content-scope-scripts/README.md",
-                "Resources/content-scope-scripts/package-lock.json",
-                "Resources/content-scope-scripts/package.json",
-                "Resources/content-scope-scripts/LICENSE.md",
-                "Resources/content-scope-scripts/src/",
-                "Resources/content-scope-scripts/unit-test/",
-                "Resources/content-scope-scripts/integration-test/",
-                "Resources/content-scope-scripts/scripts/",
-                "Resources/content-scope-scripts/inject/",
-                "Resources/content-scope-scripts/lib/",
-                "Resources/content-scope-scripts/build/chrome/",
-                "Resources/content-scope-scripts/build/firefox/",
-                "Resources/content-scope-scripts/build/integration/"
-            ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
-                .process("ContentBlocking/UserScripts/surrogates.js"),
-                .process("Resources/content-scope-scripts/build/apple/contentScope.js")
+                .process("ContentBlocking/UserScripts/surrogates.js")
             ]),
         .target(
             name: "BloomFilterWrapper",

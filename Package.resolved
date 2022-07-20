@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "ContentScopeScripts",
+        "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
+        "state": {
+          "branch": "jkt/remote-values",
+          "revision": "89fec8c33afaad59715dd313baf250273c1c9b3a",
+          "version": null
+        }
+      },
+      {
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
