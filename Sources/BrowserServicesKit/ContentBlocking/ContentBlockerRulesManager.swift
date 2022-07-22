@@ -23,6 +23,8 @@ import os.log
 import TrackerRadarKit
 import Combine
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
 public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCache: [String: Date] { get set }
     var contentRulesCacheInterval: TimeInterval { get }
@@ -170,7 +172,6 @@ public class ContentBlockerRulesManager {
         return token
     }
 
-    
     /// Returns true if the compilation should be executed immediately
     private func updateCompilationState(token: CompletionToken) -> Bool {
         os_log("Requesting compilation...", log: logger, type: .default)
@@ -251,7 +252,7 @@ public class ContentBlockerRulesManager {
 
     private func executeNextTask() {
         if let nextTask = currentTasks.first(where: { !$0.completed }) {
-            nextTask.start { success in
+            nextTask.start { _ in
                 self.executeNextTask()
             }
         } else {
@@ -433,3 +434,6 @@ extension ContentBlockerRulesManager {
     }
 
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length
