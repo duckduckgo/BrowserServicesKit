@@ -23,6 +23,8 @@ import os.log
 import TrackerRadarKit
 import Combine
 
+// swiftlint:disable file_length
+// swiftlint:disable type_body_length
 public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCache: [String: Date] { get set }
     var contentRulesCacheInterval: TimeInterval { get }
@@ -170,7 +172,6 @@ public class ContentBlockerRulesManager {
         return token
     }
 
-    
     /// Returns true if the compilation should be executed immediately
     private func updateCompilationState(token: CompletionToken) -> Bool {
         os_log("Requesting compilation...", log: logger, type: .default)
@@ -196,27 +197,35 @@ public class ContentBlockerRulesManager {
         let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                             lastCompiledRules: lastCompiledRules)
         self.workQueue.async {
-            Task {
-                let result = await initialCompilationTask.start()
-                let rules = self.generateRules(from: result)
-                
-                self.applyRules(rules)
-                self.scheduleCompilation()
+            let mutex = DispatchSemaphore(value: 0)
+            var result = [InitialCompilationTask.CachedRulesList]()
+            withUnsafeMutablePointer(to: &result) { pointer in
+                Task {
+                    pointer.pointee = await initialCompilationTask.start()
+                    // Leave context of current thread (most likely Main Thread, casue of await above) as soon as possible.
+                    mutex.signal()
+                }
+                // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
+                mutex.wait()
             }
+
+            let rules = self.generateRules(from: result)
+            self.applyRules(rules)
+            self.scheduleCompilation()
         }
     }
     
-    private func generateRules(from result: [(ruleList: WKContentRuleList, model: ContentBlockerRulesSourceModel)]) -> [Rules] {
+    private func generateRules(from result: [InitialCompilationTask.CachedRulesList]) -> [Rules] {
         result.map {
-            let surrogateTDS = Self.extractSurrogates(from: $0.model.tds)
+            let surrogateTDS = Self.extractSurrogates(from: $0.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
-            return Rules(name: $0.model.name,
-                         rulesList: $0.ruleList,
-                         trackerData: $0.model.tds,
+            return Rules(name: $0.name,
+                         rulesList: $0.rulesList,
+                         trackerData: $0.tds,
                          encodedTrackerData: encodedTrackerData,
-                         etag: $0.model.tdsIdentifier,
-                         identifier: $0.model.rulesIdentifier)
+                         etag: $0.rulesIdentifier.tdsEtag,
+                         identifier: $0.rulesIdentifier)
         }
     }
     
@@ -243,7 +252,7 @@ public class ContentBlockerRulesManager {
 
     private func executeNextTask() {
         if let nextTask = currentTasks.first(where: { !$0.completed }) {
-            nextTask.start { success in
+            nextTask.start { _ in
                 self.executeNextTask()
             }
         } else {
@@ -425,3 +434,6 @@ extension ContentBlockerRulesManager {
     }
 
 }
+
+// swiftlint:enable type_body_length
+// swiftlint:enable file_length
