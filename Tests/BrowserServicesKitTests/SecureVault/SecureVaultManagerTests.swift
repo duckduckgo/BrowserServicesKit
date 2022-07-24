@@ -185,14 +185,14 @@ class SecureVaultManagerTests: XCTestCase {
         // account
         let domain = "domain.com"
         let username = "" // <- this is a valid scenario
-        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date());
+        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date())
         self.mockDatabaseProvider._accounts = [account]
 
         // credentials for the account
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         try self.testVault.storeWebsiteCredentials(credentials)
 
-        let subType = AutofillUserScript.GetAutofillDataSubType.username;
+        let subType = AutofillUserScript.GetAutofillDataSubType.username
         let expect = expectation(description: #function)
         manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
             XCTAssertEqual(action, .none)
@@ -207,23 +207,23 @@ class SecureVaultManagerTests: XCTestCase {
             override func secureVaultManager(_ manager: SecureVaultManager,
                                              promptUserToAutofillCredentialsForDomain domain: String,
                                              withAccounts accounts: [SecureVaultModels.WebsiteAccount],
-                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
                 XCTAssertEqual(accounts.count, 1, "The empty username should have been filtered so that it's not shown as an option")
                 completionHandler(accounts[0])
             }
         }
 
-        self.secureVaultManagerDelegate = SecureVaultDelegate();
+        self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
         // account 1 (empty username)
         let domain = "domain.com"
         let username = ""
-        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date());
+        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date())
 
         // account 2
         let username2 = "dax2"
-        let account2 = SecureVaultModels.WebsiteAccount(id: 2, title: nil, username: username2, domain: domain, created: Date(), lastUpdated: Date());
+        let account2 = SecureVaultModels.WebsiteAccount(id: 2, title: nil, username: username2, domain: domain, created: Date(), lastUpdated: Date())
         self.mockDatabaseProvider._accounts = [account, account2]
 
         // credential for the account
@@ -232,7 +232,7 @@ class SecureVaultManagerTests: XCTestCase {
         try self.testVault.storeWebsiteCredentials(credentials)
         try self.testVault.storeWebsiteCredentials(credentials2)
 
-        let subType = AutofillUserScript.GetAutofillDataSubType.username;
+        let subType = AutofillUserScript.GetAutofillDataSubType.username
         let expect = expectation(description: #function)
         manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
             XCTAssertEqual(action, .fill)
@@ -248,23 +248,23 @@ class SecureVaultManagerTests: XCTestCase {
             override func secureVaultManager(_ manager: SecureVaultManager,
                                              promptUserToAutofillCredentialsForDomain domain: String,
                                              withAccounts accounts: [SecureVaultModels.WebsiteAccount],
-                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> ()) {
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
                 XCTAssertEqual(accounts.count, 2, "Both accounts should be shown since the subType was `password`")
                 completionHandler(accounts[1])
             }
         }
 
-        self.secureVaultManagerDelegate = SecureVaultDelegate();
+        self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
         // account 1 (empty username)
         let domain = "domain.com"
         let username = ""
-        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date());
+        let account = SecureVaultModels.WebsiteAccount(id: 1, title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date())
 
         // account 2
         let username2 = "dax2"
-        let account2 = SecureVaultModels.WebsiteAccount(id: 2, title: nil, username: username2, domain: domain, created: Date(), lastUpdated: Date());
+        let account2 = SecureVaultModels.WebsiteAccount(id: 2, title: nil, username: username2, domain: domain, created: Date(), lastUpdated: Date())
         self.mockDatabaseProvider._accounts = [account, account2]
 
         // credential for the account
@@ -273,7 +273,7 @@ class SecureVaultManagerTests: XCTestCase {
         try self.testVault.storeWebsiteCredentials(credentials)
         try self.testVault.storeWebsiteCredentials(credentials2)
 
-        let subType = AutofillUserScript.GetAutofillDataSubType.password;
+        let subType = AutofillUserScript.GetAutofillDataSubType.password
         let expect = expectation(description: #function)
         manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
             XCTAssertEqual(action, .fill)

@@ -24,6 +24,7 @@ import WebKit
 @testable import BrowserServicesKit
 
 // swiftlint:disable type_body_length
+// swiftlint:disable file_length
 
 class AutofillVaultUserScriptTests: XCTestCase {
     
@@ -459,3 +460,4 @@ struct NoneEncryptingEncrypter: AutofillEncrypter {
 }
 
 // swiftlint:enable type_body_length
+// swiftlint:enable file_length
