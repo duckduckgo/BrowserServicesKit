@@ -445,7 +445,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     func autofillUserScript(_ script: AutofillUserScript,
                             didRequestCredentialsForDomain: String,
                             subType: AutofillUserScript.GetAutofillDataSubType,
-                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> ()) {
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
         lastSubtype = subType
     }
 }
