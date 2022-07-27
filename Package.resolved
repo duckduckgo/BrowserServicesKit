@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "ContentScopeScripts",
+        "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
+        "state": {
+          "branch": null,
+          "revision": "b06512e7e757ae8cdba5a538b0dae13adc61b50d",
+          "version": "2.3.0"
+        }
+      },
+      {
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
