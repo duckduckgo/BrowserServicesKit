@@ -5,9 +5,9 @@
         "package": "ContentScopeScripts",
         "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
         "state": {
-          "branch": "jkt/remote-values",
-          "revision": "89fec8c33afaad59715dd313baf250273c1c9b3a",
-          "version": null
+          "branch": null,
+          "revision": "b06512e7e757ae8cdba5a538b0dae13adc61b50d",
+          "version": "2.3.0"
         }
       },
       {
