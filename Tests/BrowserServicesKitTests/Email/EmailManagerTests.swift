@@ -647,7 +647,7 @@ class EmailManagerTests: XCTestCase {
 }
 
 class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
-    
+
     var mockAliases: [String] = []
     var waitlistTimestamp: Int = 1
     
@@ -777,11 +777,11 @@ class MockEmailManagerStorage: EmailManagerStorage {
         storeLastUseDateCallback?(lastUseDate)
     }
     
-    func deleteAlias() throws {
+    func deleteAlias() {
         deleteAliasCallback?()
     }
     
-    func deleteAuthenticationState() throws {
+    func deleteAuthenticationState() {
         deleteAuthenticationStateCallback?()
     }
 
