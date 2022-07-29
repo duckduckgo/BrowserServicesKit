@@ -171,7 +171,7 @@ private extension EmailKeychainManager {
             return
         }
 
-        try deleteAuthenticationState()
+        deleteAuthenticationState()
         
         try add(data: tokenData, forField: .token)
         try add(data: usernameData, forField: .username)
