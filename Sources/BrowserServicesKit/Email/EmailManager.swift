@@ -38,6 +38,15 @@ public enum EmailKeychainAccessError: Error, Equatable {
     case failedToDecodeKeychainDataAsString
     case failedToDecodeKeychainDataAsInt
     case keychainAccessFailure(OSStatus)
+    
+    public var errorDescription: String {
+        switch self {
+        case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
+        case .failedToDecodeKeychainDataAsString: return "failedToDecodeKeychainDataAsString"
+        case .failedToDecodeKeychainDataAsInt: return "failedToDecodeKeychainDataAsInt"
+        case .keychainAccessFailure(_): return "keychainAccessFailure"
+        }
+    }
 }
 
 public protocol EmailManagerStorage: AnyObject {
