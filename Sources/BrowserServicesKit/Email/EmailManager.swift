@@ -21,7 +21,19 @@ import Foundation
 
 // swiftlint:disable file_length
 
-public enum EmailKeychainAccessFailure: Error {
+public enum EmailKeychainAccessType: String {
+    case getUsername
+    case getToken
+    case getAlias
+    case getCohort
+    case getLastUseData
+    case storeTokenUsernameCohort
+    case storeAlias
+    case deleteAlias
+    case deleteAuthenticationState
+}
+
+public enum EmailKeychainAccessError: Error, Equatable {
     case failedToDecodeKeychainValueAsData
     case failedToDecodeKeychainDataAsString
     case failedToDecodeKeychainDataAsInt
@@ -29,11 +41,11 @@ public enum EmailKeychainAccessFailure: Error {
 }
 
 public protocol EmailManagerStorage: AnyObject {
-    func getUsername() -> Result<String, EmailKeychainAccessFailure>
-    func getToken() -> Result<String, EmailKeychainAccessFailure>
-    func getAlias() -> Result<String, EmailKeychainAccessFailure>
-    func getCohort() -> Result<String, EmailKeychainAccessFailure>
-    func getLastUseDate() -> Result<String, EmailKeychainAccessFailure>
+    func getUsername() throws -> String?
+    func getToken() throws -> String?
+    func getAlias() throws -> String?
+    func getCohort() throws -> String?
+    func getLastUseDate() throws -> String?
     func store(token: String, username: String, cohort: String?)
     func store(alias: String)
     func store(lastUseDate: String)
@@ -84,7 +96,7 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void)
 
-    func emailManagerKeychainAccessFailed(with error: EmailKeychainAccessFailure)
+    func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError)
     
 }
 // swiftlint:enable function_parameter_count
@@ -148,31 +160,43 @@ public class EmailManager {
     private var dateFormatter = ISO8601DateFormatter()
     
     private var username: String? {
-        switch storage.getUsername() {
-        case .success(let username):
-            return username
-        case .failure(let error):
-            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+        do {
+            return try storage.getUsername()
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getUsername, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+            
             return nil
         }
     }
 
     private var token: String? {
-        switch storage.getToken() {
-        case .success(let token):
-            return token
-        case .failure(let error):
-            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+        do {
+            return try storage.getToken()
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getToken, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+            
             return nil
         }
     }
 
     private var alias: String? {
-        switch storage.getAlias() {
-        case .success(let alias):
-            return alias
-        case .failure(let error):
-            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+        do {
+            return try storage.getAlias()
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getAlias, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+            
             return nil
         }
     }
@@ -182,20 +206,29 @@ public class EmailManager {
     }
 
     public var cohort: String? {
-        switch storage.getCohort() {
-        case .success(let cohort):
-            return cohort
-        case .failure(let error):
-            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+        do {
+            return try storage.getCohort()
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getCohort, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+            
             return nil
         }
     }
 
     public var lastUseDate: String {
-        switch storage.getLastUseDate() {
-        case .success(let lastUseDate):
-            return lastUseDate
-        case .failure:
+        do {
+            return try storage.getLastUseDate() ?? ""
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getLastUseData, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+            
             return ""
         }
     }

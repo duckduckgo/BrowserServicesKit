@@ -27,24 +27,24 @@ public class EmailKeychainManager {
 
 extension EmailKeychainManager: EmailManagerStorage {
 
-    public func getUsername() -> Result<String, EmailKeychainAccessFailure> {
-        EmailKeychainManager.getString(forField: .username)
+    public func getUsername() throws -> String? {
+        try EmailKeychainManager.getString(forField: .username)
     }
     
-    public func getToken() -> Result<String, EmailKeychainAccessFailure> {
-        EmailKeychainManager.getString(forField: .token)
+    public func getToken() throws -> String? {
+        try EmailKeychainManager.getString(forField: .token)
     }
     
-    public func getAlias() -> Result<String, EmailKeychainAccessFailure> {
-        EmailKeychainManager.getString(forField: .alias)
+    public func getAlias() throws -> String? {
+        try EmailKeychainManager.getString(forField: .alias)
     }
 
-    public func getCohort() -> Result<String, EmailKeychainAccessFailure> {
-        EmailKeychainManager.getString(forField: .cohort)
+    public func getCohort() throws -> String? {
+        try EmailKeychainManager.getString(forField: .cohort)
     }
 
-    public func getLastUseDate() -> Result<String, EmailKeychainAccessFailure> {
-        EmailKeychainManager.getString(forField: .lastUseDate)
+    public func getLastUseDate() throws -> String? {
+        try EmailKeychainManager.getString(forField: .lastUseDate)
     }
     
     public func store(token: String, username: String, cohort: String?) {
@@ -68,22 +68,19 @@ extension EmailKeychainManager: EmailManagerStorage {
     }
 
     public func getWaitlistToken() -> String? {
-        return try? EmailKeychainManager.getString(forField: .waitlistToken).get()
+        return try? EmailKeychainManager.getString(forField: .waitlistToken)
     }
 
     public func getWaitlistTimestamp() -> Int? {
-        let timestampResult = EmailKeychainManager.getString(forField: .waitlistTimestamp)
-        
-        switch timestampResult {
-        case .success(let timestampString):
-            return Int(timestampString)
-        case .failure:
+        if let timestampResult = try? EmailKeychainManager.getString(forField: .waitlistTimestamp) {
+            return Int(timestampResult)
+        } else {
             return nil
         }
     }
 
     public func getWaitlistInviteCode() -> String? {
-        return try? EmailKeychainManager.getString(forField: .inviteCode).get()
+        return try? EmailKeychainManager.getString(forField: .inviteCode)
     }
 
     public func deleteWaitlistState() {
@@ -132,22 +129,21 @@ private extension EmailKeychainManager {
         }
     }
     
-    static func getString(forField field: EmailKeychainField) -> Result<String, EmailKeychainAccessFailure> {
-        let dataResult = retrieveData(forField: field)
+    static func getString(forField field: EmailKeychainField) throws -> String? {
+        throw EmailKeychainAccessError.failedToDecodeKeychainValueAsData
+ 
+        guard let data = try retrieveData(forField: field) else {
+            return nil
+        }
         
-        switch dataResult {
-        case .success(let data):
-            if let decodedString = String(data: data, encoding: String.Encoding.utf8) {
-                return .success(decodedString)
-            } else {
-                return .failure(.failedToDecodeKeychainDataAsString)
-            }
-        case .failure(let failure):
-            return .failure(failure)
+        if let decodedString = String(data: data, encoding: String.Encoding.utf8) {
+            return decodedString
+        } else {
+            throw EmailKeychainAccessError.failedToDecodeKeychainDataAsString
         }
     }
     
-    static func retrieveData(forField field: EmailKeychainField) -> Result<Data, EmailKeychainAccessFailure> {
+    static func retrieveData(forField field: EmailKeychainField) throws -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitOne,
@@ -160,12 +156,14 @@ private extension EmailKeychainManager {
 
         if status == errSecSuccess {
             if let existingItem = item as? Data {
-                return .success(existingItem)
+                return existingItem
             } else {
-                return .failure(.failedToDecodeKeychainValueAsData)
+                throw EmailKeychainAccessError.failedToDecodeKeychainValueAsData
             }
+        } else if status == errSecItemNotFound {
+            return nil
         } else {
-            return .failure(.keychainAccessFailure(status))
+            throw EmailKeychainAccessError.keychainAccessFailure(status)
         }
     }
     
