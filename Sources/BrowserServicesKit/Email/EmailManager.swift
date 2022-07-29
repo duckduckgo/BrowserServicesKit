@@ -43,7 +43,7 @@ public enum EmailKeychainAccessError: Error, Equatable {
         case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
         case .failedToDecodeKeychainDataAsString: return "failedToDecodeKeychainDataAsString"
         case .failedToDecodeKeychainDataAsInt: return "failedToDecodeKeychainDataAsInt"
-        case .keychainAccessFailure(_): return "keychainAccessFailure"
+        case .keychainAccessFailure: return "keychainAccessFailure"
         }
     }
 }
