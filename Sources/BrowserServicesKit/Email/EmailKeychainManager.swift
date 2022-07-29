@@ -47,16 +47,16 @@ extension EmailKeychainManager: EmailManagerStorage {
         try EmailKeychainManager.getString(forField: .lastUseDate)
     }
     
-    public func store(token: String, username: String, cohort: String?) {
-        EmailKeychainManager.add(token: token, forUsername: username, cohort: cohort)
+    public func store(token: String, username: String, cohort: String?) throws {
+        try EmailKeychainManager.add(token: token, forUsername: username, cohort: cohort)
     }
     
-    public func store(alias: String) {
-        EmailKeychainManager.add(alias: alias)
+    public func store(alias: String) throws {
+        try EmailKeychainManager.add(alias: alias)
     }
 
-    public func store(lastUseDate: String) {
-        EmailKeychainManager.add(lastUseDate: lastUseDate)
+    public func store(lastUseDate: String) throws {
+        try EmailKeychainManager.add(lastUseDate: lastUseDate)
     }
     
     public func deleteAlias() {
@@ -130,8 +130,6 @@ private extension EmailKeychainManager {
     }
     
     static func getString(forField field: EmailKeychainField) throws -> String? {
-        throw EmailKeychainAccessError.failedToDecodeKeychainValueAsData
- 
         guard let data = try retrieveData(forField: field) else {
             return nil
         }
@@ -167,51 +165,52 @@ private extension EmailKeychainManager {
         }
     }
     
-    static func add(token: String, forUsername username: String, cohort: String?) {
+    static func add(token: String, forUsername username: String, cohort: String?) throws {
         guard let tokenData = token.data(using: .utf8),
               let usernameData = username.data(using: .utf8) else {
             return
         }
 
-        deleteAuthenticationState()
+        try deleteAuthenticationState()
         
-        add(data: tokenData, forField: .token)
-        add(data: usernameData, forField: .username)
+        try add(data: tokenData, forField: .token)
+        try add(data: usernameData, forField: .username)
 
         if let cohortData = cohort?.data(using: .utf8) {
-            add(data: cohortData, forField: .cohort)
+            try add(data: cohortData, forField: .cohort)
         }
     }
     
-    static func add(alias: String) {
-        add(string: alias, forField: .alias)
+    static func add(alias: String) throws {
+        try add(string: alias, forField: .alias)
     }
 
-    static func add(lastUseDate: String) {
-        add(string: lastUseDate, forField: .lastUseDate)
+    static func add(lastUseDate: String) throws {
+        try add(string: lastUseDate, forField: .lastUseDate)
     }
 
     static func add(waitlistToken: String) {
-        add(string: waitlistToken, forField: .waitlistToken)
+        try? add(string: waitlistToken, forField: .waitlistToken)
     }
 
     static func add(waitlistTimestamp: String) {
-        add(string: waitlistTimestamp, forField: .waitlistTimestamp)
+        try? add(string: waitlistTimestamp, forField: .waitlistTimestamp)
     }
 
     static func add(inviteCode: String) {
-        add(string: inviteCode, forField: .inviteCode)
+        try? add(string: inviteCode, forField: .inviteCode)
     }
 
-    static func add(string: String, forField field: EmailKeychainField) {
+    static func add(string: String, forField field: EmailKeychainField) throws {
         guard let stringData = string.data(using: .utf8) else {
             return
         }
+        
         deleteItem(forField: field)
-        add(data: stringData, forField: field)
+        try add(data: stringData, forField: field)
     }
     
-    static func add(data: Data, forField field: EmailKeychainField) {
+    static func add(data: Data, forField field: EmailKeychainField) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrSynchronizable as String: false,
@@ -219,7 +218,11 @@ private extension EmailKeychainManager {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecValueData as String: data]
         
-        SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        
+        if status != errSecSuccess {
+            throw EmailKeychainAccessError.keychainAccessFailure(status)
+        }
     }
     
     static func deleteAuthenticationState() {

@@ -765,23 +765,23 @@ class MockEmailManagerStorage: EmailManagerStorage {
         return mockLastUseDate
     }
 
-    func store(token: String, username: String, cohort: String?) {
+    func store(token: String, username: String, cohort: String?) throws {
         storeTokenCallback?(token, username, cohort)
     }
     
-    func store(alias: String) {
+    func store(alias: String) throws {
         storeAliasCallback?(alias)
     }
 
-    func store(lastUseDate: String) {
+    func store(lastUseDate: String) throws {
         storeLastUseDateCallback?(lastUseDate)
     }
     
-    func deleteAlias() {
+    func deleteAlias() throws {
         deleteAliasCallback?()
     }
     
-    func deleteAuthenticationState() {
+    func deleteAuthenticationState() throws {
         deleteAuthenticationStateCallback?()
     }
 

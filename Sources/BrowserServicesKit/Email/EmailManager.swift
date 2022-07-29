@@ -29,8 +29,7 @@ public enum EmailKeychainAccessType: String {
     case getLastUseData
     case storeTokenUsernameCohort
     case storeAlias
-    case deleteAlias
-    case deleteAuthenticationState
+    case storeLastUseDate
 }
 
 public enum EmailKeychainAccessError: Error, Equatable {
@@ -55,9 +54,9 @@ public protocol EmailManagerStorage: AnyObject {
     func getAlias() throws -> String?
     func getCohort() throws -> String?
     func getLastUseDate() throws -> String?
-    func store(token: String, username: String, cohort: String?)
-    func store(alias: String)
-    func store(lastUseDate: String)
+    func store(token: String, username: String, cohort: String?) throws
+    func store(alias: String) throws
+    func store(lastUseDate: String) throws
     func deleteAlias()
     func deleteAuthenticationState()
 
@@ -244,7 +243,16 @@ public class EmailManager {
 
     public func updateLastUseDate() {
         let dateString = dateFormatter.string(from: Date())
-        storage.store(lastUseDate: dateString)
+        
+        do {
+            try storage.store(lastUseDate: dateString)
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeLastUseDate, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+        }
     }
 
     public var inviteCode: String? {
@@ -397,7 +405,16 @@ extension EmailManager: AutofillEmailDelegate {
 
 private extension EmailManager {
     func storeToken(_ token: String, username: String, cohort: String?) {
-        storage.store(token: token, username: username, cohort: cohort)
+        do {
+            try storage.store(token: token, username: username, cohort: cohort)
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeTokenUsernameCohort, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+        }
+
         fetchAndStoreAlias()
     }
 }
@@ -450,7 +467,17 @@ private extension EmailManager {
                 completionHandler?(nil, .signedOut)
                 return
             }
-            self.storage.store(alias: alias)
+            
+            do {
+                try self.storage.store(alias: alias)
+            } catch {
+                if let error = error as? EmailKeychainAccessError {
+                    self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeAlias, error: error)
+                } else {
+                    assertionFailure("Expected EmailKeychainAccessFailure")
+                }
+            }
+
             completionHandler?(alias, nil)
         }
     }
