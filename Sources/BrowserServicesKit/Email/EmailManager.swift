@@ -21,12 +21,19 @@ import Foundation
 
 // swiftlint:disable file_length
 
+public enum EmailKeychainAccessFailure: Error {
+    case failedToDecodeKeychainValueAsData
+    case failedToDecodeKeychainDataAsString
+    case failedToDecodeKeychainDataAsInt
+    case keychainAccessFailure(OSStatus)
+}
+
 public protocol EmailManagerStorage: AnyObject {
-    func getUsername() -> String?
-    func getToken() -> String?
-    func getAlias() -> String?
-    func getCohort() -> String?
-    func getLastUseDate() -> String?
+    func getUsername() -> Result<String, EmailKeychainAccessFailure>
+    func getToken() -> Result<String, EmailKeychainAccessFailure>
+    func getAlias() -> Result<String, EmailKeychainAccessFailure>
+    func getCohort() -> Result<String, EmailKeychainAccessFailure>
+    func getLastUseDate() -> Result<String, EmailKeychainAccessFailure>
     func store(token: String, username: String, cohort: String?)
     func store(alias: String)
     func store(lastUseDate: String)
@@ -67,6 +74,7 @@ public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
 // swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
+
     func emailManager(_ emailManager: EmailManager,
                       requested url: URL,
                       method: String,
@@ -75,6 +83,9 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       httpBody: Data?,
                       timeoutInterval: TimeInterval,
                       completion: @escaping (Data?, Error?) -> Void)
+
+    func emailManagerKeychainAccessFailed(with error: EmailKeychainAccessFailure)
+    
 }
 // swiftlint:enable function_parameter_count
 
@@ -137,15 +148,33 @@ public class EmailManager {
     private var dateFormatter = ISO8601DateFormatter()
     
     private var username: String? {
-        storage.getUsername()
+        switch storage.getUsername() {
+        case .success(let username):
+            return username
+        case .failure(let error):
+            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+            return nil
+        }
     }
 
     private var token: String? {
-        storage.getToken()
+        switch storage.getToken() {
+        case .success(let token):
+            return token
+        case .failure(let error):
+            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+            return nil
+        }
     }
 
     private var alias: String? {
-        storage.getAlias()
+        switch storage.getAlias() {
+        case .success(let alias):
+            return alias
+        case .failure(let error):
+            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+            return nil
+        }
     }
 
     private var hasExistingInviteCode: Bool {
@@ -153,11 +182,22 @@ public class EmailManager {
     }
 
     public var cohort: String? {
-        storage.getCohort()
+        switch storage.getCohort() {
+        case .success(let cohort):
+            return cohort
+        case .failure(let error):
+            requestDelegate?.emailManagerKeychainAccessFailed(with: error)
+            return nil
+        }
     }
 
     public var lastUseDate: String {
-        storage.getLastUseDate() ?? ""
+        switch storage.getLastUseDate() {
+        case .success(let lastUseDate):
+            return lastUseDate
+        case .failure:
+            return ""
+        }
     }
 
     public func updateLastUseDate() {

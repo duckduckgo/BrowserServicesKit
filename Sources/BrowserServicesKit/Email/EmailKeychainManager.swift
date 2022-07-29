@@ -27,23 +27,23 @@ public class EmailKeychainManager {
 
 extension EmailKeychainManager: EmailManagerStorage {
 
-    public func getUsername() -> String? {
+    public func getUsername() -> Result<String, EmailKeychainAccessFailure> {
         EmailKeychainManager.getString(forField: .username)
     }
     
-    public func getToken() -> String? {
+    public func getToken() -> Result<String, EmailKeychainAccessFailure> {
         EmailKeychainManager.getString(forField: .token)
     }
     
-    public func getAlias() -> String? {
+    public func getAlias() -> Result<String, EmailKeychainAccessFailure> {
         EmailKeychainManager.getString(forField: .alias)
     }
 
-    public func getCohort() -> String? {
+    public func getCohort() -> Result<String, EmailKeychainAccessFailure> {
         EmailKeychainManager.getString(forField: .cohort)
     }
 
-    public func getLastUseDate() -> String? {
+    public func getLastUseDate() -> Result<String, EmailKeychainAccessFailure> {
         EmailKeychainManager.getString(forField: .lastUseDate)
     }
     
@@ -68,16 +68,22 @@ extension EmailKeychainManager: EmailManagerStorage {
     }
 
     public func getWaitlistToken() -> String? {
-        EmailKeychainManager.getString(forField: .waitlistToken)
+        return try? EmailKeychainManager.getString(forField: .waitlistToken).get()
     }
 
     public func getWaitlistTimestamp() -> Int? {
-        guard let timestampString = EmailKeychainManager.getString(forField: .waitlistTimestamp) else { return nil }
-        return Int(timestampString)
+        let timestampResult = EmailKeychainManager.getString(forField: .waitlistTimestamp)
+        
+        switch timestampResult {
+        case .success(let timestampString):
+            return Int(timestampString)
+        case .failure:
+            return nil
+        }
     }
 
     public func getWaitlistInviteCode() -> String? {
-        EmailKeychainManager.getString(forField: .inviteCode)
+        return try? EmailKeychainManager.getString(forField: .inviteCode).get()
     }
 
     public func deleteWaitlistState() {
@@ -106,7 +112,7 @@ extension EmailKeychainManager: EmailManagerStorage {
 }
 
 private extension EmailKeychainManager {
-    
+
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store
      multiple accounts/tokens at the same time
@@ -126,28 +132,41 @@ private extension EmailKeychainManager {
         }
     }
     
-    static func getString(forField field: EmailKeychainField) -> String? {
-        guard let data = retreiveData(forField: field),
-              let string = String(data: data, encoding: String.Encoding.utf8) else {
-            return nil
+    static func getString(forField field: EmailKeychainField) -> Result<String, EmailKeychainAccessFailure> {
+        let dataResult = retrieveData(forField: field)
+        
+        switch dataResult {
+        case .success(let data):
+            if let decodedString = String(data: data, encoding: String.Encoding.utf8) {
+                return .success(decodedString)
+            } else {
+                return .failure(.failedToDecodeKeychainDataAsString)
+            }
+        case .failure(let failure):
+            return .failure(failure)
         }
-        return string
     }
     
-    static func retreiveData(forField field: EmailKeychainField) -> Data? {
+    static func retrieveData(forField field: EmailKeychainField) -> Result<Data, EmailKeychainAccessFailure> {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecAttrService as String: field.keyValue,
-            kSecReturnData as String: true]
+            kSecReturnData as String: true
+        ]
         
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let existingItem = item as? Data else {
-            return nil
-        }
 
-        return existingItem
+        if status == errSecSuccess {
+            if let existingItem = item as? Data {
+                return .success(existingItem)
+            } else {
+                return .failure(.failedToDecodeKeychainValueAsData)
+            }
+        } else {
+            return .failure(.keychainAccessFailure(status))
+        }
     }
     
     static func add(token: String, forUsername username: String, cohort: String?) {
