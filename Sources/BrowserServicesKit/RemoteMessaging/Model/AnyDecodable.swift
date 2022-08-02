@@ -46,7 +46,7 @@ extension _AnyDecodable {
             #if canImport(Foundation)
                 self.init(NSNull())
             #else
-                self.init(Optional<Self>.none)
+                self.init(Self?.none)
             #endif
         } else if let bool = try? container.decode(Bool.self) {
             self.init(bool)
