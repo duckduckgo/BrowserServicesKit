@@ -41,7 +41,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
                             subType: AutofillUserScript.GetAutofillDataSubType,
-                            isAutoprompt: Bool,
+                            trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void)
     
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
@@ -330,7 +330,7 @@ extension AutofillUserScript {
     struct GetAutofillDataRequest: Codable {
         let mainType: GetAutofillDataMainType
         let subType: GetAutofillDataSubType
-        let isAutoprompt: Bool
+        let trigger: GetTriggerType
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
@@ -344,6 +344,12 @@ extension AutofillUserScript {
         case username
         case password
     }
+    
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
+    public enum GetTriggerType: String, Codable {
+        case userInitiated
+        case autoprompt
+    }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
     func getAutofillData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -352,7 +358,7 @@ extension AutofillUserScript {
         }
 
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, subType: request.subType, isAutoprompt: request.isAutoprompt) { credentials, action in
+        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, subType: request.subType, trigger: request.trigger) { credentials, action in
             let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action)
 
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {

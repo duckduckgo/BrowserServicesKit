@@ -41,7 +41,7 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
-                            withIsAutoprompt isAutoprompt: Bool,
+                            withTrigger trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool
@@ -128,7 +128,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
                                    subType: AutofillUserScript.GetAutofillDataSubType,
-                                   isAutoprompt: Bool,
+                                   trigger: AutofillUserScript.GetTriggerType,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
         do {
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
@@ -148,7 +148,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 return
             }
 
-            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts, withIsAutoprompt: isAutoprompt) { account  in
+            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts, withTrigger: trigger) { account  in
                 
                 guard let accountID = account?.id else {
                     completionHandler(nil, .none)
