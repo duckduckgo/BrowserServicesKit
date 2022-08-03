@@ -14,7 +14,7 @@ let package = Package(
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .revision("5e0cc08f3bf16fcbce7b5ecde09ea85734b1fdbc")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .revision("ff0c7a51312f07094406ea8aaf84b28c02d951fa")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.4")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
