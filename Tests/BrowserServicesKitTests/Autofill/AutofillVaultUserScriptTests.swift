@@ -353,6 +353,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         var body = encryptedMessagingParams
         body["mainType"] = "credentials"
         body["subType"] = "username"
+        body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
         let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
@@ -369,6 +370,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         var body = encryptedMessagingParams
         body["mainType"] = "creditCards" // <- unsupported main type
         body["subType"] = "username"
+        body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
         let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
@@ -385,6 +387,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         var body = encryptedMessagingParams
         body["mainType"] = "credentials"
         body["subType"] = "anything_else"
+        body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
         let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
@@ -422,7 +425,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
     }
     
-    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String, subType: AutofillUserScript.GetAutofillDataSubType, trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
     }
 
