@@ -23,7 +23,7 @@ import BrowserServicesKit
 final class MockAttributing: AdClickAttributing {
     
     init(onFormatMatching: @escaping (URL) -> Bool = { _ in return true },
-         onParameterNameQuery: @escaping (URL) -> String? = { _ in return nil} ) {
+         onParameterNameQuery: @escaping (URL) -> String? = { _ in return nil } ) {
         self.onFormatMatching = onFormatMatching
         self.onParameterNameQuery = onParameterNameQuery
     }

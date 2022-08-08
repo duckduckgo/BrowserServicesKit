@@ -159,7 +159,9 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         tasks.removeAll(where: { $0 == attributionTask })
         matchingTasks.append(attributionTask)
         
-        os_log(.debug, log: log, "Returning attribution rules for vendor  %{private}s to %{public}d caller(s)", attributionTask.vendor, matchingTasks.count)
+        os_log(.debug, log: log,
+               "Returning attribution rules for vendor  %{private}s to %{public}d caller(s)",
+               attributionTask.vendor, matchingTasks.count)
         
         let rules = ContentBlockerRulesManager.Rules(task: compilationTask)
         DispatchQueue.main.async {

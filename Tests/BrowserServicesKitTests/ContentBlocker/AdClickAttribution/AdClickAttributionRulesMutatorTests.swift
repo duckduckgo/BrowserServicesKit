@@ -42,7 +42,6 @@ final class MockAttributionConfig: AdClickAttributing {
 
 final class AdClickAttributionRulesMutatorTests: XCTestCase {
     
-    
     let exampleTDS = """
 {
     "trackers": {

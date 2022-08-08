@@ -21,7 +21,7 @@ import Foundation
 
 extension Array where Element: Hashable {
 
-    public func removingDuplicates<T: Hashable>(byKey key: (Element) -> T)  -> [Element] {
+    public func removingDuplicates<T: Hashable>(byKey key: (Element) -> T) -> [Element] {
          var result = [Element]()
          var seen = Set<T>()
          for value in self {

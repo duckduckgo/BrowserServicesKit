@@ -56,7 +56,11 @@ public class TrackerResolver {
         }
         
         if isPageAffiliatedWithTrackerEntity(pageUrlString: pageUrlString, trackerEntity: entity) {
-            return DetectedRequest(url: trackerUrlString, knownTracker: tracker, entity: entity, state: .allowed(reason: .ownedByFirstParty), pageUrl: pageUrlString)
+            return DetectedRequest(url: trackerUrlString,
+                                   knownTracker: tracker,
+                                   entity: entity,
+                                   state: .allowed(reason: .ownedByFirstParty),
+                                   pageUrl: pageUrlString)
         }
         
         let blockingState = calculateBlockingState(tracker: tracker,

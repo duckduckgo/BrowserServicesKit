@@ -31,6 +31,8 @@ public enum AdClickAttributionEvents {
     case adAttributionActive
 }
 
+// swiftlint:disable identifier_name
+
 public enum AdClickAttributionDebugEvents {
  
     case adAttributionGlobalAttributedRulesDoNotExist
@@ -42,3 +44,5 @@ public enum AdClickAttributionDebugEvents {
     case adAttributionDetectionHeuristicsDidNotMatchDomain
     
 }
+
+// swiftlint:enable identifier_name

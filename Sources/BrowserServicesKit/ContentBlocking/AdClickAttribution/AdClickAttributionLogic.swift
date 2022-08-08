@@ -245,7 +245,6 @@ public class AdClickAttributionLogic {
         }
     }
     
-    
 }
 
 extension AdClickAttributionLogic: AdClickAttributionDetectionDelegate {

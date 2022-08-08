@@ -59,16 +59,13 @@ public class AdClickAttributionFeature: AdClickAttributing {
         func linkFormat(for url: URL) -> LinkFormat? {
             guard let domain = url.host else { return nil }
             
-            for linkFormat in linkFormats[domain] ?? [] {
-                if linkFormat.url.host == domain,
-                   url.path == linkFormat.url.path {
-                    
-                    if let parameterMatching = linkFormat.adDomainParameterName,
-                       (try? url.getParameter(name: parameterMatching)) != nil {
-                        return linkFormat
-                    } else if linkFormat.matcher?.matches(url) ?? false {
-                        return linkFormat
-                    }
+            for linkFormat in linkFormats[domain] ?? [] where linkFormat.url.host == domain && url.path == linkFormat.url.path {
+
+                if let parameterMatching = linkFormat.adDomainParameterName,
+                   (try? url.getParameter(name: parameterMatching)) != nil {
+                    return linkFormat
+                } else if linkFormat.matcher?.matches(url) ?? false {
+                    return linkFormat
                 }
             }
             return nil
@@ -155,7 +152,6 @@ public class AdClickAttributionFeature: AdClickAttributing {
         navigationLinkFormats.linkFormat(for: url)?.adDomainParameterName
     }
 
-    
     public struct AllowlistEntry {
         public let entity: String
         public let host: String
