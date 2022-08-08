@@ -25,56 +25,110 @@ public class TrackerResolver {
     let tds: TrackerData
     let unprotectedSites: [String]
     let tempList: [String]
+    let adClickAttributionVendor: String?
     
-    public init(tds: TrackerData, unprotectedSites: [String], tempList: [String]) {
+    public init(tds: TrackerData, unprotectedSites: [String], tempList: [String], adClickAttributionVendor: String? = nil) {
         self.tds = tds
         self.unprotectedSites = unprotectedSites
         self.tempList = tempList
+        self.adClickAttributionVendor = adClickAttributionVendor
     }
     
     public func trackerFromUrl(_ trackerUrlString: String,
                                pageUrlString: String,
                                resourceType: String,
-                               potentiallyBlocked: Bool) -> DetectedTracker? {
-        
-        guard let tracker = tds.findTracker(forUrl: trackerUrlString),
-              let entity = tds.findEntity(byName: tracker.owner?.name ?? "") else {
+                               potentiallyBlocked: Bool) -> DetectedRequest? {
+        var trackerUrlString = trackerUrlString
+        let tracker: KnownTracker
+        if let regularTracker = tds.findTracker(forUrl: trackerUrlString) {
+            tracker = regularTracker
+        } else if let cnamedTracker = tds.findTrackerByCname(forUrl: trackerUrlString),
+                  let originalTrackerURL = URL(string: trackerUrlString),
+                  let cnamedTrackerURL = originalTrackerURL.replacing(host: cnamedTracker.domain) {
+            tracker = cnamedTracker
+            trackerUrlString = cnamedTrackerURL.absoluteString
+        } else {
             return nil
         }
+        
+        guard let entity = tds.findEntity(byName: tracker.owner?.name ?? "") else {
+            return nil
+        }
+        
+        if isPageAffiliatedWithTrackerEntity(pageUrlString: pageUrlString, trackerEntity: entity) {
+            return DetectedRequest(url: trackerUrlString, knownTracker: tracker, entity: entity, state: .allowed(reason: .ownedByFirstParty), pageUrl: pageUrlString)
+        }
+        
+        let blockingState = calculateBlockingState(tracker: tracker,
+                                                   trackerUrlString: trackerUrlString,
+                                                   resourceType: resourceType,
+                                                   potentiallyBlocked: potentiallyBlocked,
+                                                   pageUrlString: pageUrlString)
 
-        let blocked: Bool
+        return DetectedRequest(url: trackerUrlString, knownTracker: tracker, entity: entity, state: blockingState, pageUrl: pageUrlString)
+    }
+    
+    private func isPageAffiliatedWithTrackerEntity(pageUrlString: String, trackerEntity: Entity) -> Bool {
+        guard let pageHost = URL(string: pageUrlString)?.host,
+              let pageEntity = tds.findEntity(forHost: pageHost)
+        else { return false }
+           
+        return pageEntity.displayName == trackerEntity.displayName
+    }
+    
+    private func calculateBlockingState(tracker: KnownTracker,
+                                        trackerUrlString: String,
+                                        resourceType: String,
+                                        potentiallyBlocked: Bool,
+                                        pageUrlString: String) -> BlockingState {
 
-        // Check for unprotected domains
-        if let pageDomain = URL(string: pageUrlString),
-           let pageHost = pageDomain.host,
-           unprotectedSites.contains(pageHost) || tempList.contains(pageHost) {
-            blocked = false
+        let blockingState: BlockingState
+        
+        if isPageOnUnprotectedSitesOrTempList(pageUrlString) {
+            blockingState = .allowed(reason: .protectionDisabled) // maybe we should not differentiate
         } else {
             // Check for custom rules
-            let rule = tracker.hasRule(for: trackerUrlString, type: resourceType, pageUrlString: pageUrlString)
-            switch rule {
+            let rule = tracker.matchingRuleForTrackerURL(trackerUrlString)
+            let ruleAction = rule?.action(type: resourceType,
+                                          pageUrlString: pageUrlString) ?? .none
+
+            switch ruleAction {
             case .none:
                 if tracker.defaultAction == .block {
-                    blocked = potentiallyBlocked
+                    blockingState = potentiallyBlocked ? .blocked : .allowed(reason: .ruleException)
                 } else /* if tracker.defaultAction == .ignore */ {
-                    blocked = false
+                    blockingState = .allowed(reason: .ruleException)
                 }
             case .allowRequest:
-                blocked = false
+                if let vendor = adClickAttributionVendor,
+                   isVendorMatchingCurrentPage(vendor: vendor, pageUrlString: pageUrlString),
+                   isVendorOnExceptionsList(vendor: vendor, exceptions: rule?.exceptions) {
+                    blockingState = .allowed(reason: .adClickAttribution)
+                } else {
+                    blockingState = .allowed(reason: .ruleException)
+                }
             case .blockRequest:
-                blocked = potentiallyBlocked
+                blockingState = potentiallyBlocked ? .blocked : .allowed(reason: .ruleException)
             }
         }
         
-        // Make sure current page is not affilated with the tracker
-        if let pageUrl = URL(string: pageUrlString),
-           let pageHost = pageUrl.host,
-           let pageEntity = tds.findEntity(forHost: pageHost),
-           pageEntity.displayName == entity.displayName {
-            return DetectedTracker(url: trackerUrlString, knownTracker: tracker, entity: entity, blocked: false, pageUrl: pageUrlString)
-        }
-
-        return DetectedTracker(url: trackerUrlString, knownTracker: tracker, entity: entity, blocked: blocked, pageUrl: pageUrlString)
+        return blockingState
+    }
+    
+    private func isPageOnUnprotectedSitesOrTempList(_ pageUrlString: String) -> Bool {
+        guard let pageHost = URL(string: pageUrlString)?.host else { return false }
+        
+        return unprotectedSites.contains(pageHost) || tempList.contains(pageHost)
+    }
+    
+    private func isVendorMatchingCurrentPage(vendor: String, pageUrlString: String) -> Bool {
+        vendor == URL(string: pageUrlString)?.host?.droppingWwwPrefix()
+    }
+    
+    private func isVendorOnExceptionsList(vendor: String, exceptions: KnownTracker.Rule.Matching?) -> Bool {
+        guard let domains = exceptions?.domains else { return false }
+        
+        return domains.contains(vendor)
     }
 
     enum RuleAction {
@@ -107,37 +161,51 @@ public class TrackerResolver {
 
 fileprivate extension KnownTracker {
 
-    func hasRule(for trackerUrlString: String,
-                 type: String,
-                 pageUrlString: String) -> TrackerResolver.RuleAction {
+    func matchingRuleForTrackerURL(_ urlString: String) -> KnownTracker.Rule? {
 
-        let range = NSRange(location: 0, length: trackerUrlString.utf16.count)
-        let host = URL(string: pageUrlString)?.host
-
+        let range = NSRange(location: 0, length: urlString.utf16.count)
+        
         for rule in rules ?? [] {
             guard let pattern = rule.rule,
-                  let host = host,
-                  let regex = try? NSRegularExpression(pattern: pattern, options: []) else { continue }
+                  let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+                continue
+            }
 
-            if regex.firstMatch(in: trackerUrlString, options: [], range: range) != nil {
-
-                // If rule is set to 'ignore', we note it is tracker but allow the request.
-                if rule.action == .ignore {
-                    return .allowRequest
-                }
-
-                if let options = rule.options, !TrackerResolver.isMatching(options, host: host, resourceType: type) {
-                    return .allowRequest
-                }
-
-                if let exceptions = rule.exceptions, TrackerResolver.isMatching(exceptions, host: host, resourceType: type) {
-                    return .allowRequest
-                }
-
-                return .blockRequest
+            if regex.firstMatch(in: urlString, options: [], range: range) != nil {
+                return rule
             }
         }
 
-        return .none
+        return nil
+    }
+}
+
+fileprivate extension KnownTracker.Rule {
+    
+    func action(type: String,
+                pageUrlString: String) -> TrackerResolver.RuleAction {
+        
+        guard let host = URL(string: pageUrlString)?.host else { return .none }
+
+        // If there is a rule its default action is always block
+        var resultAction = action ?? .block
+        
+        // If there are matching exceptions toggle the action
+        if let exceptions = exceptions, TrackerResolver.isMatching(exceptions, host: host, resourceType: type) {
+            resultAction = resultAction.toggle()
+        }
+        
+        return resultAction.toTrackerResolverRuleAction()
+    }
+}
+
+private extension KnownTracker.ActionType {
+    
+    func toTrackerResolverRuleAction() -> TrackerResolver.RuleAction {
+        self == .block ? .blockRequest : .allowRequest
+    }
+    
+    func toggle() -> Self {
+        self == .ignore ? .block : .ignore
     }
 }

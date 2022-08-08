@@ -214,16 +214,13 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         let errorExp = expectation(description: "No error reported")
         errorExp.expectedFulfillmentCount = 2
         var brokenLists = Set<String>()
-        var errorEvents = Set<ContentBlockerDebugEvents>()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
-            if case .contentBlockingCompilationTime = event { return }
-            guard let scope = scope else {
-                XCTFail("Missing scope")
-                return
+        var errorComponents = Set<ContentBlockerDebugEvents.Component>()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, error, params, onComplete in
+            if case .contentBlockingCompilationFailed(let listName, let component) = event {
+                brokenLists.insert(listName)
+                errorComponents.insert(component)
+                errorExp.fulfill()
             }
-            brokenLists.insert(scope)
-            errorEvents.insert(event)
-            errorExp.fulfill()
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -235,7 +232,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         wait(for: [exp, errorExp], timeout: 15.0)
         
         XCTAssertEqual(brokenLists, Set(["first", "second"]))
-        XCTAssertEqual(errorEvents, Set([.contentBlockingTDSCompilationFailed]))
+        XCTAssertEqual(errorComponents, Set([.tds]))
         
         XCTAssertFalse(cbrm.currentRules.isEmpty)
         
@@ -335,16 +332,13 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         let errorExp = expectation(description: "No error reported")
         errorExp.expectedFulfillmentCount = 2
         var brokenLists = Set<String>()
-        var errorEvents = Set<ContentBlockerDebugEvents>()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, scope, error, params, onComplete in
-            if case .contentBlockingCompilationTime = event { return }
-            guard let scope = scope else {
-                XCTFail("Missing scope")
-                return
+        var errorComponents = Set<ContentBlockerDebugEvents.Component>()
+        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, error, params, onComplete in
+            if case .contentBlockingCompilationFailed(let listName, let component) = event {
+                brokenLists.insert(listName)
+                errorComponents.insert(component)
+                errorExp.fulfill()
             }
-            brokenLists.insert(scope)
-            errorEvents.insert(event)
-            errorExp.fulfill()
         }
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -356,7 +350,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         wait(for: [exp, errorExp], timeout: 15.0)
         
         XCTAssertEqual(brokenLists, Set(["first"]))
-        XCTAssertEqual(errorEvents, Set([.contentBlockingTDSCompilationFailed, .contentBlockingFallbackCompilationFailed]))
+        XCTAssertEqual(errorComponents, Set([.tds, .fallbackTds]))
         
         XCTAssertEqual(cbrm.currentRules.count, 1)
         XCTAssertEqual(cbrm.currentRules.first?.name, "second")
