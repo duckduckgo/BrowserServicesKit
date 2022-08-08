@@ -21,6 +21,8 @@ import XCTest
 import TrackerRadarKit
 @testable import BrowserServicesKit
 
+// swiftlint:disable type_body_length
+// swiftlint:disable function_body_length
 class TrackerResolverTests: XCTestCase {
 
     func testWhenOptionsAreEmptyThenNothingMatches() {
@@ -34,7 +36,7 @@ class TrackerResolverTests: XCTestCase {
                                                  resourceType: "image"))
     }
 
-    func testWhenDomainsAreRequiredThenTypesDoNotMatter() {
+    func testWhenJustDomainsAreRequiredThenTypesDoNotMatter() {
 
         let rule = KnownTracker.Rule.Matching(domains: ["one.com", "two.com"], types: nil)
 
@@ -53,7 +55,7 @@ class TrackerResolverTests: XCTestCase {
                                                   resourceType: "image"))
     }
 
-    func testWhenTypesAreRequiredThenDomainsDoNotMatter() {
+    func testWhenJustTypesAreRequiredThenDomainsDoNotMatter() {
 
         let rule = KnownTracker.Rule.Matching(domains: [], types: ["image", "script"])
 
@@ -75,7 +77,7 @@ class TrackerResolverTests: XCTestCase {
                                                  resourceType: "image"))
     }
 
-    func testWhenTypesAndDomainsAreRequiredThenItIsAnAndRequirement() {
+    func testWhenTypesAndDomainsAreRequiredThenBothMustMatch() {
 
         let rule = KnownTracker.Rule.Matching(domains: ["one.com", "two.com"], types: ["image", "script"])
 
@@ -116,23 +118,220 @@ class TrackerResolverTests: XCTestCase {
                                                              displayName: "Tracker Inc company"),
                                    prevalence: 0.1,
                                    subdomains: nil,
-                                   categories: nil,
+                                   categories: ["Advertising"],
                                    rules: nil)
         
+        let entity = Entity(displayName: "Trackr Inc company",
+                            domains: ["tracker.com"],
+                            prevalence: 0.1)
+        
         let tds = TrackerData(trackers: ["tracker.com" : tracker],
-                              entities: ["Tracker Inc": Entity(displayName: "Trackr Inc company",
-                                                               domains: ["tracker.com"],
-                                                               prevalence: 0.1)],
+                              entities: ["Tracker Inc": entity],
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
         let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
         
-        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png", pageUrlString: "example.com", resourceType: "image", potentiallyBlocked: true)
+        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
         XCTAssertNotNil(result)
-        XCTAssert(result?.blocked ?? false)
-        XCTAssertEqual(result?.knownTracker, tracker)
+        XCTAssert(result?.isBlocked ?? false)
+        XCTAssertEqual(result?.state, .blocked)
+        XCTAssertEqual(result?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(result?.entityName, entity.displayName)
+        XCTAssertEqual(result?.category, tracker.category)
+        XCTAssertEqual(result?.prevalence, tracker.prevalence)
+    }
+    
+    func testWhenTrackerWithBlockActionHasRulesThenTheseAreRespected() {
+        
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: [
+                                    KnownTracker.Rule(rule: "tracker\\.com/attr/.*",
+                                                      surrogate: nil,
+                                                      action: nil,
+                                                      options: nil,
+                                                      exceptions: KnownTracker.Rule.Matching(domains: ["attributed.com"],
+                                                                                             types: nil)),
+                                    KnownTracker.Rule(rule: "tracker\\.com/ignore/.*",
+                                                      surrogate: nil,
+                                                      action: .ignore,
+                                                      options: KnownTracker.Rule.Matching(domains: ["exception.com"],
+                                                                                          types: nil),
+                                                      exceptions: nil),
+                                    KnownTracker.Rule(rule: "tracker\\.com/nil/.*",
+                                                      surrogate: nil,
+                                                      action: nil,
+                                                      options: nil,
+                                                      exceptions: KnownTracker.Rule.Matching(domains: ["other.com"],
+                                                                                             types: nil))
+                                   ])
+        
+        let entity = Entity(displayName: "Trackr Inc company",
+                            domains: ["tracker.com"],
+                            prevalence: 0.1)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": entity],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds,
+                                       unprotectedSites: [],
+                                       tempList: [],
+                                       adClickAttributionVendor: "attributed.com")
+        
+        let blockedImgUrl = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                                    pageUrlString: "https://example.com",
+                                                    resourceType: "image",
+                                                    potentiallyBlocked: true)
+        
+        XCTAssertNotNil(blockedImgUrl)
+        XCTAssert(blockedImgUrl?.isBlocked ?? false)
+        XCTAssertEqual(blockedImgUrl?.state, .blocked)
+        XCTAssertEqual(blockedImgUrl?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(blockedImgUrl?.entityName, entity.displayName)
+        XCTAssertEqual(blockedImgUrl?.category, tracker.category)
+        XCTAssertEqual(blockedImgUrl?.prevalence, tracker.prevalence)
+        
+        
+        let ignoredTrackerRuleOption = resolver.trackerFromUrl("https://tracker.com/ignore/s.js",
+                                                               pageUrlString: "https://exception.com",
+                                                               resourceType: "image",
+                                                               potentiallyBlocked: true)
+    
+        XCTAssertNotNil(ignoredTrackerRuleOption)
+        XCTAssertFalse(ignoredTrackerRuleOption?.isBlocked ?? false)
+        XCTAssertEqual(ignoredTrackerRuleOption?.state, BlockingState.allowed(reason: .ruleException))
+        XCTAssertEqual(ignoredTrackerRuleOption?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(ignoredTrackerRuleOption?.entityName, entity.displayName)
+        XCTAssertEqual(ignoredTrackerRuleOption?.category, tracker.category)
+        XCTAssertEqual(ignoredTrackerRuleOption?.prevalence, tracker.prevalence)
+        
+        let blockTrackerRuleOption = resolver.trackerFromUrl("https://tracker.com/ignore/s.js",
+                                                             pageUrlString: "https://other.com",
+                                                             resourceType: "image",
+                                                             potentiallyBlocked: true)
+    
+        XCTAssertNotNil(blockTrackerRuleOption)
+        XCTAssertFalse(blockTrackerRuleOption?.isBlocked ?? false)
+        XCTAssertEqual(blockTrackerRuleOption?.state, BlockingState.allowed(reason: .ruleException))
+        XCTAssertEqual(blockTrackerRuleOption?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(blockTrackerRuleOption?.entityName, entity.displayName)
+        XCTAssertEqual(blockTrackerRuleOption?.category, tracker.category)
+        XCTAssertEqual(blockTrackerRuleOption?.prevalence, tracker.prevalence)
+        
+        let ignoredTrackerRuleException = resolver.trackerFromUrl("https://tracker.com/nil/s.js",
+                                                                     pageUrlString: "https://other.com",
+                                                                     resourceType: "image",
+                                                                     potentiallyBlocked: true)
+    
+        XCTAssertNotNil(ignoredTrackerRuleException)
+        XCTAssertFalse(ignoredTrackerRuleException?.isBlocked ?? false)
+        XCTAssertEqual(ignoredTrackerRuleException?.state, BlockingState.allowed(reason: .ruleException))
+        XCTAssertEqual(ignoredTrackerRuleException?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(ignoredTrackerRuleException?.entityName, entity.displayName)
+        XCTAssertEqual(ignoredTrackerRuleException?.category, tracker.category)
+        XCTAssertEqual(ignoredTrackerRuleException?.prevalence, tracker.prevalence)
+        
+        let blockTrackerRuleException = resolver.trackerFromUrl("https://tracker.com/nil/s.js",
+                                                                     pageUrlString: "https://example.com",
+                                                                     resourceType: "image",
+                                                                     potentiallyBlocked: true)
+    
+        XCTAssertNotNil(blockTrackerRuleException)
+        XCTAssert(blockTrackerRuleException?.isBlocked ?? false)
+        XCTAssertEqual(blockTrackerRuleException?.state, BlockingState.blocked)
+        XCTAssertEqual(blockTrackerRuleException?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(blockTrackerRuleException?.entityName, entity.displayName)
+        XCTAssertEqual(blockTrackerRuleException?.category, tracker.category)
+        XCTAssertEqual(blockTrackerRuleException?.prevalence, tracker.prevalence)
+        
+        let blockTrackerRuleAttributedException = resolver.trackerFromUrl("https://tracker.com/attr/s.js",
+                                                                     pageUrlString: "https://attributed.com",
+                                                                     resourceType: "image",
+                                                                     potentiallyBlocked: true)
+    
+        XCTAssertNotNil(blockTrackerRuleAttributedException)
+        XCTAssertFalse(blockTrackerRuleAttributedException?.isBlocked ?? true)
+        XCTAssertEqual(blockTrackerRuleAttributedException?.state, BlockingState.allowed(reason: .adClickAttribution))
+        XCTAssertEqual(blockTrackerRuleAttributedException?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(blockTrackerRuleAttributedException?.entityName, entity.displayName)
+        XCTAssertEqual(blockTrackerRuleAttributedException?.category, tracker.category)
+        XCTAssertEqual(blockTrackerRuleAttributedException?.prevalence, tracker.prevalence)
+    }
+    
+    func testWhenTrackerWithIgnoreActionHasRulesThenTheseAreRespected() {
+        
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .ignore,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: [KnownTracker.Rule(rule: "tracker\\.com/script/.*",
+                                                             surrogate: nil,
+                                                             action: nil, // default - block
+                                                             options: nil,
+                                                             exceptions: KnownTracker.Rule.Matching(domains: ["exception.com"],
+                                                                                                     types: nil))])
+        
+        let entity = Entity(displayName: "Trackr Inc company",
+                            domains: ["tracker.com"],
+                            prevalence: 0.1)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": entity],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
+        
+        let resultImgUrl = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                                   pageUrlString: "https://example.com",
+                                                   resourceType: "image",
+                                                   potentiallyBlocked: true)
+        
+        XCTAssertNotNil(resultImgUrl)
+        XCTAssertFalse(resultImgUrl?.isBlocked ?? false)
+        XCTAssertEqual(resultImgUrl?.state, BlockingState.allowed(reason: .ruleException))
+        XCTAssertEqual(resultImgUrl?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(resultImgUrl?.entityName, entity.displayName)
+        XCTAssertEqual(resultImgUrl?.category, tracker.category)
+        XCTAssertEqual(resultImgUrl?.prevalence, tracker.prevalence)
+        
+        let resultScriptURL = resolver.trackerFromUrl("https://tracker.com/script/s.js",
+                                                      pageUrlString: "https://example.com",
+                                                      resourceType: "image",
+                                                      potentiallyBlocked: true)
+    
+        XCTAssertNotNil(resultScriptURL)
+        XCTAssert(resultScriptURL?.isBlocked ?? false)
+        XCTAssertEqual(resultScriptURL?.state, BlockingState.blocked)
+        XCTAssertEqual(resultScriptURL?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(resultScriptURL?.entityName, entity.displayName)
+        XCTAssertEqual(resultScriptURL?.category, tracker.category)
+        XCTAssertEqual(resultScriptURL?.prevalence, tracker.prevalence)
+        
+        let resultScriptURLOnExceptionSite = resolver.trackerFromUrl("https://tracker.com/script/s.js",
+                                                                     pageUrlString: "https://exception.com",
+                                                                     resourceType: "image",
+                                                                     potentiallyBlocked: true)
+    
+        XCTAssertNotNil(resultScriptURLOnExceptionSite)
+        XCTAssertFalse(resultScriptURLOnExceptionSite?.isBlocked ?? false)
+        XCTAssertEqual(resultScriptURLOnExceptionSite?.state, BlockingState.allowed(reason: .ruleException))
+        XCTAssertEqual(resultScriptURLOnExceptionSite?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(resultScriptURLOnExceptionSite?.entityName, entity.displayName)
+        XCTAssertEqual(resultScriptURLOnExceptionSite?.category, tracker.category)
+        XCTAssertEqual(resultScriptURLOnExceptionSite?.prevalence, tracker.prevalence)
     }
     
     func testWhenTrackerIsOnAssociatedPageThenItIsNotBlocked() {
@@ -156,10 +355,14 @@ class TrackerResolverTests: XCTestCase {
         
         let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
         
-        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
+        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
     
         XCTAssertNotNil(result)
-        XCTAssertFalse(result!.blocked)
+        XCTAssertFalse(result!.isBlocked)
+        XCTAssertEqual(result?.state, BlockingState.allowed(reason: .ownedByFirstParty))
     }
     
     func testWhenTrackerIsACnameThenItIsReportedAsSuch() {
@@ -173,10 +376,12 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
+        let entity = Entity(displayName: "Tracker Inc company",
+                            domains: ["tracker.com"],
+                            prevalence: 0.1)
+        
         let tds = TrackerData(trackers: ["tracker.com" : tracker],
-                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
-                                                               domains: ["tracker.com"],
-                                                               prevalence: 0.1)],
+                              entities: ["Tracker Inc": entity],
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: ["cnamed.com": "tracker.com"])
         
@@ -185,8 +390,12 @@ class TrackerResolverTests: XCTestCase {
         let result = resolver.trackerFromUrl("https://cnamed.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
         XCTAssertNotNil(result)
-        XCTAssert(result?.blocked ?? false)
-        XCTAssertEqual(result?.knownTracker, tracker)
+        XCTAssert(result?.isBlocked ?? false)
+        XCTAssertEqual(result?.state, BlockingState.blocked)
+        XCTAssertEqual(result?.ownerName, tracker.owner?.name)
+        XCTAssertEqual(result?.entityName, entity.displayName)
+        XCTAssertEqual(result?.category, tracker.category)
+        XCTAssertEqual(result?.prevalence, tracker.prevalence)
     }
     
     func testWhenTrackerIsACnameForAnotherTrackerThenOriginalOneIsReturned() {
@@ -209,14 +418,18 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
+        let trackerEntity = Entity(displayName: "Tracker Inc company",
+                                   domains: ["tracker.com"],
+                                   prevalence: 0.1)
+        
+        let anotherEntity = Entity(displayName: "Another Inc company",
+                                   domains: ["another.com"],
+                                   prevalence: 0.1)
+        
         let tds = TrackerData(trackers: ["tracker.com" : tracker,
                                          "another.com" : another],
-                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
-                                                               domains: ["tracker.com"],
-                                                               prevalence: 0.1),
-                                         "Another Inc": Entity(displayName: "Another Inc company",
-                                                                          domains: ["another.com"],
-                                                                          prevalence: 0.1)],
+                              entities: ["Tracker Inc": trackerEntity,
+                                         "Another Inc": anotherEntity],
                               domains: ["tracker.com": "Tracker Inc",
                                         "another.com": "Another Inc."],
                               cnames: ["sub.another.com": "tracker.com"])
@@ -226,7 +439,183 @@ class TrackerResolverTests: XCTestCase {
         let result = resolver.trackerFromUrl("https://sub.another.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
         XCTAssertNotNil(result)
-        XCTAssert(result?.blocked ?? false)
-        XCTAssertEqual(result?.knownTracker, another)
+        XCTAssert(result?.isBlocked ?? false)
+        XCTAssertEqual(result?.state, BlockingState.blocked)
+        XCTAssertEqual(result?.ownerName, another.owner?.name)
+        XCTAssertEqual(result?.entityName, anotherEntity.displayName)
+        XCTAssertEqual(result?.category, another.category)
+        XCTAssertEqual(result?.prevalence, another.prevalence)
     }
+    
+    func testWhenTrackerIsOnUnprotectedSiteItIsNotBlocked() {
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: ["example.com"], tempList: [])
+        
+        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNotNil(result)
+        XCTAssertFalse(result!.isBlocked)
+        XCTAssertEqual(result?.state, BlockingState.allowed(reason: .protectionDisabled))
+    }
+    
+    func testWhenTrackerIsOnTempListItIsNotBlocked() {
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        
+        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNotNil(result)
+        XCTAssertFalse(result!.isBlocked)
+        XCTAssertEqual(result?.state, BlockingState.allowed(reason: .protectionDisabled))
+    }
+    
+    // This also covers the scenario when tracker is on domain with disabled contentBlocking feature (through temporaryUnprotectedDomains inside ContentBlockerRulesUserScript)
+    func testWhenTrackerIsOnDomainWithDisabledContentBlockingFeatureItIsNotBlocked() {
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        
+        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNotNil(result)
+        XCTAssertFalse(result!.isBlocked)
+        XCTAssertEqual(result?.state, BlockingState.allowed(reason: .protectionDisabled))
+    }
+    
+    func testWhenTrackerIsFirstPartyThenItIsNotNotBlocked() { //
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        
+        let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
+                                             pageUrlString: "https://tracker.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNotNil(result)
+        XCTAssertFalse(result!.isBlocked)
+        XCTAssertEqual(result?.state, BlockingState.allowed(reason: .ownedByFirstParty))
+    }
+    
+    func testWhenRequestIsThirdPartyNonTrackerThenItIsIgnored() { // Note: User script has additional logic regarding this case
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        
+        let result = resolver.trackerFromUrl("https://other.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNil(result)
+    }
+    
+    func testWhenRequestIsFirstPartyNonTrackerThenItIsIgnored() {
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        
+        let result = resolver.trackerFromUrl("https://example.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNil(result)
+    }
+    
 }

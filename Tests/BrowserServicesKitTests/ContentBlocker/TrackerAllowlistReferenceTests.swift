@@ -181,7 +181,7 @@ class TrackerAllowlistReferenceTests: XCTestCase {
                 XCTAssertEqual(self.userScriptDelegateMock.detectedTrackers.count, 1)
 
                 if let tracker = self.userScriptDelegateMock.detectedTrackers.first {
-                    XCTAssert(tracker.blocked)
+                    XCTAssert(tracker.isBlocked)
                 } else {
                     XCTFail("Expected to detect tracker for test \(test.description)")
                 }
@@ -198,7 +198,7 @@ class TrackerAllowlistReferenceTests: XCTestCase {
                     XCTAssertEqual(self.userScriptDelegateMock.detectedTrackers.count, 1)
 
                     if let tracker = self.userScriptDelegateMock.detectedTrackers.first {
-                        XCTAssertFalse(tracker.blocked)
+                        XCTAssertFalse(tracker.isBlocked)
                     } else {
                         XCTFail("Expected to detect tracker for test \(test.description)")
                     }

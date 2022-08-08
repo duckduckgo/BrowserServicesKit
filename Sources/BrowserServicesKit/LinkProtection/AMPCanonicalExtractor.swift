@@ -187,8 +187,11 @@ public class AMPCanonicalExtractor: NSObject {
         configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.add(self, name: Constants.sendCanonical)
         configuration.userContentController.addUserScript(buildUserScript())
-        if let rulesList = contentBlockingManager.currentTDSRules?.rulesList {
+        if let rulesList = contentBlockingManager.currentMainRules?.rulesList {
             configuration.userContentController.add(rulesList)
+        }
+        if let attributedRulesList = contentBlockingManager.currentAttributionRules?.rulesList {
+            configuration.userContentController.add(attributedRulesList)
         }
         if let imageBlockingRules = imageBlockingRules {
             configuration.userContentController.add(imageBlockingRules)
