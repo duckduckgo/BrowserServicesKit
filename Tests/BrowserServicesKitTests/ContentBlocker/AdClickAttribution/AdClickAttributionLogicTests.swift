@@ -266,14 +266,14 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
         let (logic, startOfAttribution) = await AdClickAttributionLogicHelper.prepareLogic(attributedVendorHost: "example.com")
         let feature = AdClickAttributionLogicHelper.feature
         
-        logic.onDidFinishNavigation(host: "example.com",
-                                    currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
         if case AdClickAttributionLogic.State.activeAttribution = logic.state { } else {
             XCTFail("Attribution should be present")
         }
         
-        logic.onDidFinishNavigation(host: "example.com",
-                                    currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration))
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration))
         if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
             XCTFail("Attribution should be forgotten")
         }
@@ -289,6 +289,14 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
         
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
+        if case AdClickAttributionLogic.State.activeAttribution(_, let session, _) = logic.state {
+            XCTAssertNil(session.leftAttributionContextAt)
+        } else {
+            XCTFail("Attribution should be present")
+        }
+        
         var leftAttributionContextAt: Date! = nil
         logic.onDidFinishNavigation(host: "other.com",
                                     currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
@@ -299,14 +307,14 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
         
-        logic.onDidFinishNavigation(host: "other.com",
-                                    currentTime: leftAttributionContextAt.addingTimeInterval(feature.navigationExpiration - 1))
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: leftAttributionContextAt.addingTimeInterval(feature.navigationExpiration - 1))
         if case AdClickAttributionLogic.State.activeAttribution = logic.state { } else {
             XCTFail("Attribution should be present")
         }
         
-        logic.onDidFinishNavigation(host: "something.com",
-                                    currentTime: leftAttributionContextAt.addingTimeInterval(feature.navigationExpiration))
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: leftAttributionContextAt.addingTimeInterval(feature.navigationExpiration))
         if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
             XCTFail("Attribution should be forgotten")
         }
@@ -330,11 +338,25 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
         
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: startOfAttribution.addingTimeInterval(feature.navigationExpiration - 1))
+        if case AdClickAttributionLogic.State.activeAttribution(_, let session, _) = logic.state {
+            XCTAssertNotNil(session.leftAttributionContextAt)
+        } else {
+            XCTFail("Attribution should be present")
+        }
+        
         logic.onDidFinishNavigation(host: "example.com",
                                     currentTime: startOfAttribution.addingTimeInterval(feature.navigationExpiration - 1))
         if case AdClickAttributionLogic.State.activeAttribution(_, let session, _) = logic.state {
             XCTAssertNil(session.leftAttributionContextAt)
         } else {
+            XCTFail("Attribution should be present")
+        }
+        
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
+        if case AdClickAttributionLogic.State.activeAttribution = logic.state { } else {
             XCTFail("Attribution should be present")
         }
         
@@ -344,8 +366,8 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
 
-        logic.onDidFinishNavigation(host: "example.com",
-                                    currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration))
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration))
         if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
             XCTFail("Attribution should be forgotten")
         }
@@ -389,6 +411,14 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
         
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: lastTimeOfLeavingAttributionSite!.addingTimeInterval(feature.navigationExpiration - 1))
+        if case AdClickAttributionLogic.State.activeAttribution(_, let session, _) = logic.state {
+            XCTAssertNotNil(session.leftAttributionContextAt)
+        } else {
+            XCTFail("Attribution should be present")
+        }
+        
         logic.onDidFinishNavigation(host: "something.com",
                                     currentTime: lastTimeOfLeavingAttributionSite!.addingTimeInterval(feature.navigationExpiration - 1))
         if case AdClickAttributionLogic.State.activeAttribution(_, let session, _) = logic.state {
@@ -397,8 +427,8 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
 
-        logic.onDidFinishNavigation(host: "something.com",
-                                    currentTime: lastTimeOfLeavingAttributionSite!.addingTimeInterval(feature.navigationExpiration))
+        logic.onProvisionalNavigation(completion: {},
+                                      currentTime: lastTimeOfLeavingAttributionSite!.addingTimeInterval(feature.navigationExpiration))
         if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
             XCTFail("Attribution should be forgotten")
         }

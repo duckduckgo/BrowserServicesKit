@@ -107,17 +107,27 @@ public class AdClickAttributionLogic {
         applyRules()
     }
     
-    public func onProvisionalNavigation(completion: @escaping () -> Void) {
-        guard case .preparingAttribution(let vendor, let session, var completionBlocks) = state else {
+    public func onProvisionalNavigation(completion: @escaping () -> Void, currentTime: Date = Date()) {
+        switch state {
+        case .noAttribution:
             completion()
-            return
+        case .preparingAttribution(let vendor, let session, var completionBlocks):
+            os_log(.debug, log: log, "Suspending provisional navigation...")
+            completionBlocks.append(completion)
+            state = .preparingAttribution(vendor: vendor,
+                                          session: session,
+                                          completionBlocks: completionBlocks)
+        case .activeAttribution(_, let session, _):
+            if currentTime.timeIntervalSince(session.attributionStartedAt) >= featureConfig.totalExpiration {
+                os_log(.debug, log: log, "Attribution has expired - total expiration")
+                disableAttribution()
+            } else if let leftAttributionContextAt = session.leftAttributionContextAt,
+                      currentTime.timeIntervalSince(leftAttributionContextAt) >= featureConfig.navigationExpiration {
+                os_log(.debug, log: log, "Attribution has expired - navigational expiration")
+                disableAttribution()
+            }
+            completion()
         }
-        
-        os_log(.debug, log: log, "Suspending provisional navigation...")
-        completionBlocks.append(completion)
-        state = .preparingAttribution(vendor: vendor,
-                                      session: session,
-                                      completionBlocks: completionBlocks)
     }
     
     public func onDidFinishNavigation(host: String?, currentTime: Date = Date()) {
