@@ -67,16 +67,16 @@ public enum RemoteMessageResponse {
     }
 
     enum JsonMessageType: String, CaseIterable {
-        case small = "small"
-        case medium = "medium"
+        case small
+        case medium
         case bigSingleAction = "big_single_action"
         case bigTwoAction = "big_two_action"
     }
 
     enum JsonActionType: String, CaseIterable {
-        case url = "url"
+        case url
         case appStore = "appstore"
-        case dismiss = "dismiss"
+        case dismiss
     }
 
     enum JsonPlaceholder: String, CaseIterable {
