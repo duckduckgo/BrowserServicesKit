@@ -19,9 +19,6 @@
 
 import Foundation
 
-/// 1. App version is moved to BSK and it's assumed Mac can use this struct without any changes.
-/// 2. Create AppVersion protocol in BSK and create struct that implements it in Core app called iOSAppVersion.swift. (APMobile)
-
 public struct AppVersion {
 
     public struct Keys {
