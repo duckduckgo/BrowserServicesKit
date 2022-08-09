@@ -34,7 +34,7 @@ public struct ReferrerTrimming {
     
     private var mainFrameUrl: URL?
     
-    init(privacyManager: PrivacyConfigurationManager,
+    public init(privacyManager: PrivacyConfigurationManager,
          contentBlockingManager: ContentBlockerRulesManager) {
         self.privacyManager = privacyManager
         self.contentBlockingManager = contentBlockingManager
@@ -58,7 +58,7 @@ public struct ReferrerTrimming {
         return newHost
     }
     
-    func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
+    public func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
         var request = navigationAction.request
         guard let originUrl = navigationAction.sourceFrame.webView?.url,
               privacyConfig.isFeature(.referrer, enabledForDomain: originUrl.host) else {
