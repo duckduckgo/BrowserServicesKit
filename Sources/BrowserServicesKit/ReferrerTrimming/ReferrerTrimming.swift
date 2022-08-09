@@ -79,7 +79,7 @@ public struct ReferrerTrimming {
             return nil
         }
         
-        guard let trackerData = contentBlockingManager.currentTDSRules?.trackerData else {
+        guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else {
             return nil
         }
         
