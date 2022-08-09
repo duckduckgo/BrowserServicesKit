@@ -137,6 +137,33 @@ extension URL {
         })
         return queryItem?.value
     }
+    
+    static func trimHostToETLD(host: String) -> String {
+        guard !host.isEmpty else {
+            return host
+        }
+        
+        var newHost = host
+        while newHost.contains(".") {
+            let comps = newHost.split(separator: ".").dropFirst()
+            newHost = comps.joined(separator: ".")
+        }
+        
+        return newHost
+    }
+    
+    public func isThirdParty(to otherUrl: URL) -> Bool {
+        guard let thisHost = host else {
+            return false
+        }
+        guard let otherHost = otherUrl.host else {
+            return false
+        }
+        let thisRoot = URL.trimHostToETLD(host: thisHost)
+        let otherRoot = URL.trimHostToETLD(host: otherHost)
+        
+        return thisRoot != otherRoot
+    }
 
 }
 

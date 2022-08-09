@@ -44,20 +44,6 @@ public struct ReferrerTrimming {
         mainFrameUrl = url
     }
     
-    func trimHostToETLD(host: String) -> String {
-        guard !host.isEmpty else {
-            return host
-        }
-        
-        var newHost = host
-        while newHost.contains(".") {
-            let comps = newHost.split(separator: ".").dropFirst()
-            newHost = comps.joined(separator: ".")
-        }
-        
-        return newHost
-    }
-    
     public func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
         var request = navigationAction.request
         guard let originUrl = navigationAction.sourceFrame.webView?.url,
@@ -87,10 +73,12 @@ public struct ReferrerTrimming {
         let destEntity = trackerData.findEntity(forHost: destUrl.host ?? "")
         if referEntity?.displayName != destEntity?.displayName {
             request.setValue("\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)", forHTTPHeaderField: Constants.headerName)
+        } else if (referEntity == nil && destEntity == nil) && originUrl.isThirdParty(to: destUrl) {
+            request.setValue("\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)", forHTTPHeaderField: Constants.headerName)
         }
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil {
-            request.setValue("\(referrerUrl.scheme ?? "http")://\(trimHostToETLD(host: referrerUrl.host!))", forHTTPHeaderField: Constants.headerName)
+            request.setValue("\(referrerUrl.scheme ?? "http")://\(URL.trimHostToETLD(host: referrerUrl.host!))", forHTTPHeaderField: Constants.headerName)
         }
         
         return request
