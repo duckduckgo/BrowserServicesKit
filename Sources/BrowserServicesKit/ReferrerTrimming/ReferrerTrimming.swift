@@ -30,12 +30,18 @@ public struct ReferrerTrimming {
     private let privacyManager: PrivacyConfigurationManager
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
-    private let trackerData: TrackerData
+    private let contentBlockingManager: ContentBlockerRulesManager
+    
+    private var mainFrameUrl: URL?
     
     init(privacyManager: PrivacyConfigurationManager,
-         trackerData: TrackerData) {
+         contentBlockingManager: ContentBlockerRulesManager) {
         self.privacyManager = privacyManager
-        self.trackerData = trackerData
+        self.contentBlockingManager = contentBlockingManager
+    }
+    
+    public mutating func setMainFrameUrl(_ url: URL?) {
+        mainFrameUrl = url
     }
     
     func trimHostToETLD(host: String) -> String {
@@ -62,9 +68,18 @@ public struct ReferrerTrimming {
               privacyConfig.isFeature(.referrer, enabledForDomain: destUrl.host) else {
             return nil
         }
+        if let mainFrameUrl = mainFrameUrl, destUrl != mainFrameUrl {
+            // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
+            // We do not rewrite redirects due to breakage concerns
+            return nil
+        }
         
         guard let referrerHeader = request.value(forHTTPHeaderField: Constants.headerName),
             let referrerUrl = URL(string: referrerHeader), referrerUrl.host != nil else {
+            return nil
+        }
+        
+        guard let trackerData = contentBlockingManager.currentTDSRules?.trackerData else {
             return nil
         }
         
