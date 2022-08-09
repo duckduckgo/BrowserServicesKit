@@ -146,6 +146,10 @@ extension URL {
         var newHost = host
         while newHost.contains(".") {
             let comps = newHost.split(separator: ".").dropFirst()
+            if comps.count == 1 {
+                break
+            }
+            
             newHost = comps.joined(separator: ".")
         }
         
