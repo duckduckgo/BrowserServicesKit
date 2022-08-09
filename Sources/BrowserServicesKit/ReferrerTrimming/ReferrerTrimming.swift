@@ -18,6 +18,7 @@
 
 import Foundation
 import WebKit
+import TrackerRadarKit
 
 public struct ReferrerTrimming {
     
@@ -29,8 +30,26 @@ public struct ReferrerTrimming {
     private let privacyManager: PrivacyConfigurationManager
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
-    init(privacyManager: PrivacyConfigurationManager) {
+    private let trackerData: TrackerData
+    
+    init(privacyManager: PrivacyConfigurationManager,
+         trackerData: TrackerData) {
         self.privacyManager = privacyManager
+        self.trackerData = trackerData
+    }
+    
+    func trimHostToETLD(host: String) -> String {
+        guard !host.isEmpty else {
+            return host
+        }
+        
+        var newHost = host
+        while newHost.contains(".") {
+            let comps = newHost.split(separator: ".").dropFirst()
+            newHost = comps.joined(separator: ".")
+        }
+        
+        return newHost
     }
     
     func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
@@ -49,12 +68,15 @@ public struct ReferrerTrimming {
             return nil
         }
         
-        // TODO: Entity Checks
-        
-        // TODO: Tracker Checks
-        
-        
-        request.setValue("\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)", forHTTPHeaderField: Constants.headerName)
+        let referEntity = trackerData.findEntity(forHost: originUrl.host ?? "")
+        let destEntity = trackerData.findEntity(forHost: destUrl.host ?? "")
+        if referEntity?.displayName != destEntity?.displayName {
+            request.setValue("\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)", forHTTPHeaderField: Constants.headerName)
+        }
+
+        if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil {
+            request.setValue("\(referrerUrl.scheme ?? "http")://\(trimHostToETLD(host: referrerUrl.host!))", forHTTPHeaderField: Constants.headerName)
+        }
         
         return request
     }
