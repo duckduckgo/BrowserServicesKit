@@ -357,6 +357,22 @@ class EmailManagerTests: XCTestCase {
 
         wait(for: [dateStoredExpectation], timeout: 1.0)
     }
+    
+    func testWhenGettingUsername_AndKeychainAccessFails_ThenRequestDelegateIsCalled() {
+        let username = "dax"
+        let storage = MockEmailManagerStorage()
+        storage.mockError = .keychainAccessFailure(errSecInternalError)
+        storage.mockUsername = username
+        let emailManager = EmailManager(storage: storage)
+        
+        let requestDelegate = MockEmailManagerRequestDelegate()
+        emailManager.requestDelegate = requestDelegate
+
+        XCTAssertNil(emailManager.userEmail)
+        XCTAssertEqual(requestDelegate.keychainAccessErrorAccessType, .getUsername)
+        XCTAssertEqual(requestDelegate.keychainAccessError, .keychainAccessFailure(errSecInternalError))
+    }
+    
 }
 
 class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
@@ -379,6 +395,14 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
         }
     }
     // swiftlint:enable function_parameter_count
+    
+    var keychainAccessErrorAccessType: EmailKeychainAccessType?
+    var keychainAccessError: EmailKeychainAccessError?
+    
+    func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError) {
+        keychainAccessErrorAccessType = accessType
+        keychainAccessError = error
+    }
 
     private func processMockAliasRequest(_ completion: @escaping (Data?, Error?) -> Void) {
         events.append(.aliasRequestMade)
@@ -397,11 +421,14 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
 
 class MockEmailManagerStorage: EmailManagerStorage {
 
+    var mockError: EmailKeychainAccessError?
+    
     var mockUsername: String?
     var mockToken: String?
     var mockAlias: String?
     var mockCohort: String?
     var mockLastUseDate: String?
+
     var storeTokenCallback: ((String, String, String?) -> Void)?
     var storeAliasCallback: ((String) -> Void)?
     var storeLastUseDateCallback: ((String) -> Void)?
@@ -409,35 +436,40 @@ class MockEmailManagerStorage: EmailManagerStorage {
     var deleteAuthenticationStateCallback: (() -> Void)?
     var deleteWaitlistStateCallback: (() -> Void)?
     
-    func getUsername() -> String? {
+    func getUsername() throws -> String? {
+        if let mockError = mockError { throw mockError }
         return mockUsername
     }
     
-    func getToken() -> String? {
+    func getToken() throws -> String? {
+        if let mockError = mockError { throw mockError }
         return mockToken
     }
     
-    func getAlias() -> String? {
+    func getAlias() throws -> String? {
+        if let mockError = mockError { throw mockError }
         return mockAlias
     }
 
-    func getCohort() -> String? {
+    func getCohort() throws -> String? {
+        if let mockError = mockError { throw mockError }
         return mockCohort
     }
 
-    func getLastUseDate() -> String? {
+    func getLastUseDate() throws -> String? {
+        if let mockError = mockError { throw mockError }
         return mockLastUseDate
     }
 
-    func store(token: String, username: String, cohort: String?) {
+    func store(token: String, username: String, cohort: String?) throws {
         storeTokenCallback?(token, username, cohort)
     }
     
-    func store(alias: String) {
+    func store(alias: String) throws {
         storeAliasCallback?(alias)
     }
 
-    func store(lastUseDate: String) {
+    func store(lastUseDate: String) throws {
         storeLastUseDateCallback?(lastUseDate)
     }
     

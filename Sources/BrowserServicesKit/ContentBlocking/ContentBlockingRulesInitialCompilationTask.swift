@@ -19,10 +19,18 @@
 
 import Foundation
 import WebKit
+import TrackerRadarKit
 
 extension ContentBlockerRulesManager {
     
     final class InitialCompilationTask {
+        
+        struct CachedRulesList {
+            let name: String
+            let rulesList: WKContentRuleList
+            let tds: TrackerData
+            let rulesIdentifier: ContentBlockerRulesIdentifier
+        }
         
         private let sourceRules: [ContentBlockerRulesList]
         private let lastCompiledRules: [LastCompiledRules]
@@ -33,15 +41,19 @@ extension ContentBlockerRulesManager {
         }
         
         @MainActor
-        func start() async -> [(WKContentRuleList, ContentBlockerRulesSourceModel)] {
+        func start() async -> [CachedRulesList] {
             let sourceRulesNames = sourceRules.map { $0.name }
             let filteredBySourceLastCompiledRules = lastCompiledRules.filter { sourceRulesNames.contains($0.name) }
             
-            var result: [(WKContentRuleList, ContentBlockerRulesSourceModel)] = []
+            var result: [CachedRulesList] = []
             for rules in filteredBySourceLastCompiledRules {
                 guard let ruleList = await WKContentRuleListStore.default()?
                     .lookUpContentRuleList(forIdentifier: rules.identifier.stringValue) else { continue }
-                result.append((ruleList, ContentBlockerRulesSourceModel(name: rules.name, tdsIdentfier: rules.etag, tds: rules.trackerData)))
+
+                result.append(CachedRulesList(name: rules.name,
+                                              rulesList: ruleList,
+                                              tds: rules.trackerData,
+                                              rulesIdentifier: rules.identifier))
             }
             return result
         }

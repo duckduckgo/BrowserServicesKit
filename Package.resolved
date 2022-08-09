@@ -2,12 +2,21 @@
   "object": {
     "pins": [
       {
+        "package": "ContentScopeScripts",
+        "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
+        "state": {
+          "branch": null,
+          "revision": "b06512e7e757ae8cdba5a538b0dae13adc61b50d",
+          "version": "2.3.0"
+        }
+      },
+      {
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
           "branch": null,
-          "revision": "403a731aa5eee65b7ca833bfad5890360e0dfcd7",
-          "version": "4.7.0"
+          "revision": "27a4cff621893ef9d1b96ec62c99b137a3a73450",
+          "version": "4.7.1"
         }
       },
       {
@@ -42,8 +51,8 @@
         "repositoryURL": "https://github.com/duckduckgo/TrackerRadarKit",
         "state": {
           "branch": null,
-          "revision": "f4f31cf466f78d9e85bd1c0fae85fd4f66e93347",
-          "version": "1.0.4"
+          "revision": "b313805c880a176b9fe4147708b5fcf76795610d",
+          "version": "1.1.1"
         }
       }
     ]

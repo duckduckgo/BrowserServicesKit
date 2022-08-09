@@ -1,5 +1,5 @@
 //
-//  DetectedTrackerTests.swift
+//  DetectedRequestTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
 
-final class DetectedTrackerTests: XCTestCase {
+final class DetectedRequestTests: XCTestCase {
 
     private struct Constants {
         static let aUrl = "www.example.com"
@@ -29,17 +29,25 @@ final class DetectedTrackerTests: XCTestCase {
         static let anotherParentDomain = "anotherdomain.com"
     }
 
-    func testWhenTrackersHaveSameEntityThenHashMatchesAndIsEqualsIsTrue() {
-
+    func testWhenTrackerRequestsHaveSameEntityThenHashMatchesAndIsEqualsIsTrue() {
         let entity1 = Entity(displayName: "Entity", domains: nil, prevalence: nil)
         let entity2 = Entity(displayName: "Entity", domains: [ Constants.aParentDomain ], prevalence: 1)
 
-        let tracker1 = DetectedTracker(url: Constants.aUrl, knownTracker: nil, entity: entity1, blocked: true, pageUrl: "")
-        let tracker2 = DetectedTracker(url: Constants.anotherUrl, knownTracker: nil, entity: entity2, blocked: false, pageUrl: "")
+        let tracker1 = DetectedRequest(url: Constants.aUrl, knownTracker: nil, entity: entity1, state: .blocked, pageUrl: "")
+        let tracker2 = DetectedRequest(url: Constants.anotherUrl, knownTracker: nil, entity: entity2, state: .blocked, pageUrl: "")
 
         XCTAssertEqual(tracker1.hashValue, tracker2.hashValue)
         XCTAssertEqual(tracker1, tracker2)
+    }
+    
+    func testWhenTrackerRequestsHaveSameEntityButDifferentBlockedStatusThenHashIsNotEqualAndIsEqualsIsFalse() {
+        let entity = Entity(displayName: "Entity", domains: nil, prevalence: nil)
 
+        let tracker1 = DetectedRequest(url: Constants.aUrl, knownTracker: nil, entity: entity, state: .blocked, pageUrl: "")
+        let tracker2 = DetectedRequest(url: Constants.anotherUrl, knownTracker: nil, entity: entity, state: .allowed(reason: .ruleException), pageUrl: "")
+
+        XCTAssertNotEqual(tracker1.hashValue, tracker2.hashValue)
+        XCTAssertNotEqual(tracker1, tracker2)
     }
 
 }
