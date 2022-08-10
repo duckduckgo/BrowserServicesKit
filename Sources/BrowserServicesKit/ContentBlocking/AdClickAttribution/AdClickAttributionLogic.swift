@@ -245,6 +245,7 @@ public class AdClickAttributionLogic {
             
             self?.errorReporting?.fire(.adAttributionLogicRequestingAttributionTimedOut)
         }
+        self.attributionTimeout?.cancel()
         self.attributionTimeout = timeoutWorkItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0,
                                       execute: timeoutWorkItem)
