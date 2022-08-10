@@ -66,11 +66,11 @@ public struct ReferrerTrimming {
         
         var newReferrer: String? = nil
         if !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme ?? URLProtocol.http.rawValue)://\(referrerUrl.host!)/"
+            newReferrer = "\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)/"
         }
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme ?? URLProtocol.http.rawValue)://\(URL.trimHostToETLD(host: referrerUrl.host!))/"
+            newReferrer = "\(referrerUrl.scheme ?? "http")://\(URL.trimHostToETLD(host: referrerUrl.host!))/"
         }
         
         return newReferrer
