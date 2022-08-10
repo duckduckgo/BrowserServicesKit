@@ -146,7 +146,7 @@ extension URL {
         var newHost = host
         while newHost.contains(".") {
             let comps = newHost.split(separator: ".").dropFirst()
-            if comps.count == 1 {
+            if comps.count == 1 || comps.joined(separator: ".") == "co.uk" {
                 break
             }
             
