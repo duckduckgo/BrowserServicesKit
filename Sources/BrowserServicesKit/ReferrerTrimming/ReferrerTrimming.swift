@@ -44,14 +44,44 @@ public struct ReferrerTrimming {
         mainFrameUrl = url
     }
     
-    public func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
-        var request = navigationAction.request
-        guard let originUrl = navigationAction.sourceFrame.webView?.url,
-              privacyConfig.isFeature(.referrer, enabledForDomain: originUrl.host) else {
+    func getTrimmedReferrer(originUrl: URL, destUrl: URL, referrerUrl: URL?, trackerData: TrackerData) -> String? {
+        func isSameEntity(a: Entity?, b: Entity?) -> Bool {
+            if a == nil && b == nil {
+                return !originUrl.isThirdParty(to: destUrl)
+            }
+            
+            return a?.displayName == b?.displayName
+        }
+        
+        guard privacyConfig.isFeature(.referrer, enabledForDomain: originUrl.host!),
+              privacyConfig.isFeature(.referrer, enabledForDomain: destUrl.host!) else {
             return nil
         }
-        guard let destUrl = request.url,
-              privacyConfig.isFeature(.referrer, enabledForDomain: destUrl.host) else {
+        guard let referrerUrl = referrerUrl else {
+            return nil
+        }
+        
+        let referEntity = trackerData.findEntity(forHost: originUrl.host ?? "")
+        let destEntity = trackerData.findEntity(forHost: destUrl.host ?? "")
+        
+        var newReferrer: String? = nil
+        if !isSameEntity(a: referEntity, b: destEntity) {
+            newReferrer = "\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)/"
+        }
+
+        if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
+            newReferrer = "\(referrerUrl.scheme ?? "http")://\(URL.trimHostToETLD(host: referrerUrl.host!))/"
+        }
+        
+        return newReferrer
+    }
+    
+    public func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
+        var request = navigationAction.request
+        guard let originUrl = navigationAction.sourceFrame.webView?.url else {
+            return nil
+        }
+        guard let destUrl = request.url else {
             return nil
         }
         if let mainFrameUrl = mainFrameUrl, destUrl != mainFrameUrl {
@@ -60,27 +90,19 @@ public struct ReferrerTrimming {
             return nil
         }
         
-        guard let referrerHeader = request.value(forHTTPHeaderField: Constants.headerName),
-            let referrerUrl = URL(string: referrerHeader), referrerUrl.host != nil else {
-            return nil
-        }
-        
         guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else {
             return nil
         }
         
-        let referEntity = trackerData.findEntity(forHost: originUrl.host ?? "")
-        let destEntity = trackerData.findEntity(forHost: destUrl.host ?? "")
-        if referEntity?.displayName != destEntity?.displayName {
-            request.setValue("\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)", forHTTPHeaderField: Constants.headerName)
-        } else if (referEntity == nil && destEntity == nil) && originUrl.isThirdParty(to: destUrl) {
-            request.setValue("\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)", forHTTPHeaderField: Constants.headerName)
-        }
-
-        if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil {
-            request.setValue("\(referrerUrl.scheme ?? "http")://\(URL.trimHostToETLD(host: referrerUrl.host!))", forHTTPHeaderField: Constants.headerName)
+        let referrerHeader = request.value(forHTTPHeaderField: Constants.headerName)
+        if let newReferrer = getTrimmedReferrer(originUrl: originUrl,
+                                                destUrl: destUrl,
+                                                referrerUrl: referrerHeader != nil ? URL(string: referrerHeader!) : nil,
+                                                trackerData: trackerData) {
+            request.setValue(newReferrer, forHTTPHeaderField: Constants.headerName)
+            return request
         }
         
-        return request
+        return nil
     }
 }
