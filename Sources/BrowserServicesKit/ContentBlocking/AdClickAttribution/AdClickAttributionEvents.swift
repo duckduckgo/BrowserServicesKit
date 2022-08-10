@@ -41,6 +41,8 @@ public enum AdClickAttributionDebugEvents {
     case adAttributionLogicUnexpectedStateOnInheritedAttribution
     case adAttributionLogicUnexpectedStateOnRulesCompiled
     case adAttributionLogicUnexpectedStateOnRulesCompilationFailed
+    case adAttributionLogicWrongVendorOnSuccessfulCompilation
+    case adAttributionLogicWrongVendorOnFailedCompilation
     case adAttributionDetectionInvalidDomainInParameter
     case adAttributionDetectionHeuristicsDidNotMatchDomain
     

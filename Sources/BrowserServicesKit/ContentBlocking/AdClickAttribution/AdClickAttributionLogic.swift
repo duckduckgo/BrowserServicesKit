@@ -183,6 +183,7 @@ public class AdClickAttributionLogic {
         }
         guard expectedVendor == vendor else {
             os_log(.debug, log: log, "Attributed Rules received for wrong vendor")
+            errorReporting?.fire(.adAttributionLogicWrongVendorOnSuccessfulCompilation)
             return
         }
         state = .activeAttribution(vendor: vendor, session: session, rules: rules)
@@ -200,6 +201,7 @@ public class AdClickAttributionLogic {
             return
         }
         guard expectedVendor == vendor else {
+            errorReporting?.fire(.adAttributionLogicWrongVendorOnFailedCompilation)
             return
         }
         state = .noAttribution
