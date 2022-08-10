@@ -101,14 +101,14 @@ struct OSMatchingAttribute: MatchingAttribute, Equatable {
     }
 }
 
-struct FlavorMatchingAttribute: MatchingAttribute, Equatable {
-    var value: [String] = []
+struct IsInternalUserMatchingAttribute: MatchingAttribute, Equatable {
+    var value: Bool?
     var fallback: Bool?
 
     init(jsonMatchingAttribute: AnyDecodable) {
         guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
 
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
             self.value = value
         }
         if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
@@ -116,12 +116,12 @@ struct FlavorMatchingAttribute: MatchingAttribute, Equatable {
         }
     }
 
-    init(value: [String], fallback: Bool?) {
+    init(value: Bool?, fallback: Bool?) {
         self.value = value
         self.fallback = fallback
     }
 
-    static func == (lhs: FlavorMatchingAttribute, rhs: FlavorMatchingAttribute) -> Bool {
+    static func == (lhs: IsInternalUserMatchingAttribute, rhs: IsInternalUserMatchingAttribute) -> Bool {
         return lhs.value == rhs.value && lhs.fallback == rhs.fallback
     }
 }

@@ -19,39 +19,29 @@
 
 import Foundation
 
-public enum AppFlavor: String {
-    case flavorInternal = "internal"
-    case flavorPublic = "public"
-}
-
 public struct AppAttributeMatcher: AttributeMatcher {
 
-    private let bundleId: String
-    private let appVersion: String
-    private let flavor: AppFlavor
+    private let bundleId:        String
+    private let appVersion:      String
+    private let isInternalUser:  Bool
     private let statisticsStore: StatisticsStore
-    private let variantManager: VariantManager
+    private let variantManager:  VariantManager
 
-    public init(statisticsStore: StatisticsStore, variantManager: VariantManager, flavor: AppFlavor = .flavorPublic) {
-        if let bundleId = Bundle.main.bundleIdentifier {
-            self.init(bundleId: bundleId,
-                      appVersion: AppVersion.shared.versionNumber,
-                      flavor: flavor,
-                      statisticsStore: statisticsStore,
-                      variantManager: variantManager)
-        } else {
-            self.init(bundleId: "",
-                      appVersion: AppVersion.shared.versionNumber,
-                      flavor: flavor,
-                      statisticsStore: statisticsStore,
-                      variantManager: variantManager)
+    public init(statisticsStore: StatisticsStore, variantManager: VariantManager, isInternalUser: Bool = true) {
+        if AppVersion.shared.identifier.isEmpty {
+            assertionFailure("BundleIdentifier should not be empty")
         }
+        self.init(bundleId: AppVersion.shared.identifier,
+                  appVersion: AppVersion.shared.versionNumber,
+                  isInternalUser: isInternalUser,
+                  statisticsStore: statisticsStore,
+                  variantManager: variantManager)
     }
 
-    public init(bundleId: String, appVersion: String, flavor: AppFlavor, statisticsStore: StatisticsStore, variantManager: VariantManager) {
+    public init(bundleId: String, appVersion: String, isInternalUser: Bool, statisticsStore: StatisticsStore, variantManager: VariantManager) {
         self.bundleId = bundleId
         self.appVersion = appVersion
-        self.flavor = flavor
+        self.isInternalUser = isInternalUser
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
     }
@@ -59,8 +49,12 @@ public struct AppAttributeMatcher: AttributeMatcher {
     // swiftlint:disable cyclomatic_complexity
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
-        case let matchingAttribute as FlavorMatchingAttribute:
-            return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: flavor.rawValue)
+        case let matchingAttribute as IsInternalUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+            
+            return BooleanMatchingAttribute(value).matches(value: isInternalUser)
         case let matchingAttribute as AppIdMatchingAttribute:
             guard let value = matchingAttribute.value, !value.isEmpty else {
                 return .fail

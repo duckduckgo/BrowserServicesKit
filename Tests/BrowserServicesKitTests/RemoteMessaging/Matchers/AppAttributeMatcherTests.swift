@@ -45,13 +45,13 @@ class AppAttributeMatcherTests: XCTestCase {
         matcher = nil
     }
 
-    func testWhenFlavorMatchesThenReturnMatch() throws {
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: FlavorMatchingAttribute(value: [AppFlavor.flavorPublic.rawValue], fallback: nil)),
+    func testWhenIsInternalUserMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsInternalUserMatchingAttribute(value: true, fallback: nil)),
                        .match)
     }
 
-    func testWhenFlavorDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: FlavorMatchingAttribute(value: ["non-matching"], fallback: nil)),
+    func testWhenIsInternalUserDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsInternalUserMatchingAttribute(value: false, fallback: nil)),
                        .fail)
     }
 

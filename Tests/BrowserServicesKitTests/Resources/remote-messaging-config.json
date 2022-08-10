@@ -131,10 +131,8 @@
         "expVariant": {
           "value": "zo"
         },
-        "flavor": {
-          "value": [
-            "internal"
-          ]
+        "isInternalUser": {
+          "value": false
         },
         "appId": {
           "value": "com.duckduckgo.mobile.ios"

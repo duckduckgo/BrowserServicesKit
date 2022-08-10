@@ -32,7 +32,7 @@ struct JsonRulesMapper {
     }
 
     static func flavorMapper(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
-        let matchingAttribute = FlavorMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        let matchingAttribute = IsInternalUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         return matchingAttribute
     }
 
