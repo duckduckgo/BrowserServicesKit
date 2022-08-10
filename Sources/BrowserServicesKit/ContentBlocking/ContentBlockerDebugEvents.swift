@@ -25,6 +25,18 @@ public enum ContentBlockerDebugEvents {
         static let etag = "etag"
         static let errorDescription = "error_desc"
     }
+    
+    public enum Component: String, CustomStringConvertible {
+    
+        public var description: String { rawValue }
+        
+        case tds
+        case allowlist
+        case tempUnprotected
+        case localUnprotected
+        case fallbackTds
+        
+    }
 
     case trackerDataParseFailed
     case trackerDataReloadFailed
@@ -32,12 +44,8 @@ public enum ContentBlockerDebugEvents {
     case privacyConfigurationReloadFailed
     case privacyConfigurationParseFailed
     case privacyConfigurationCouldNotBeLoaded
-
-    case contentBlockingTDSCompilationFailed
-    case contentBlockingTempListCompilationFailed
-    case contentBlockingAllowListCompilationFailed
-    case contentBlockingUnpSitesCompilationFailed
-    case contentBlockingFallbackCompilationFailed
+    
+    case contentBlockingCompilationFailed(listName: String, component: Component)
 
     case contentBlockingCompilationTime
 }
