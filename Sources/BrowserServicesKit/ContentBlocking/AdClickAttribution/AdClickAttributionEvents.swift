@@ -37,6 +37,7 @@ public enum AdClickAttributionDebugEvents {
  
     case adAttributionGlobalAttributedRulesDoNotExist
     case adAttributionCompilationFailedForAttributedRulesList
+    case adAttributionLogicRequestingAttributionTimedOut
     case adAttributionLogicUnexpectedStateOnInheritedAttribution
     case adAttributionLogicUnexpectedStateOnRulesCompiled
     case adAttributionLogicUnexpectedStateOnRulesCompilationFailed

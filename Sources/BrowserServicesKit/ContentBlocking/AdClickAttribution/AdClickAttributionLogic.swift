@@ -57,6 +57,8 @@ public class AdClickAttributionLogic {
     public private(set) var state = State.noAttribution
     private var registerFirstActivity = false
     
+    private var attributionTimeout: DispatchWorkItem?
+    
     public weak var delegate: AdClickAttributionLogicDelegate?
     
     public init(featureConfig: AdClickAttributing,
@@ -222,13 +224,33 @@ public class AdClickAttributionLogic {
         state = .preparingAttribution(vendor: vendorHost,
                                       session: SessionInfo(start: attributionStartedAt),
                                       completionBlocks: completionBlocks)
+        
+        scheduleTimeout(forVendor: vendorHost)
         rulesProvider.requestAttribution(forVendor: vendorHost) { [weak self] rules in
+            self?.cancelTimeout()
             if let rules = rules {
                 self?.onAttributedRulesCompiled(forVendor: vendorHost, rules)
             } else {
                 self?.onAttributedRulesCompilationFailed(forVendor: vendorHost)
             }
         }
+    }
+    
+    private func scheduleTimeout(forVendor vendor: String) {
+        let timeoutWorkItem = DispatchWorkItem { [weak self] in
+            self?.onAttributedRulesCompilationFailed(forVendor: vendor)
+            self?.attributionTimeout = nil
+            
+            self?.errorReporting?.fire(.adAttributionLogicRequestingAttributionTimedOut)
+        }
+        self.attributionTimeout = timeoutWorkItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0,
+                                      execute: timeoutWorkItem)
+    }
+    
+    private func cancelTimeout() {
+        attributionTimeout?.cancel()
+        attributionTimeout = nil
     }
     
     /// Respond to new requests for attribution
