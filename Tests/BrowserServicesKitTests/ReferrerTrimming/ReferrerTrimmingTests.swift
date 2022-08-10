@@ -30,6 +30,7 @@ struct ReferrerTests: Codable {
     let refererHeaderNavigation: ReferrerHeaderTestSuite
 }
 
+// swiftlint:disable force_try
 class ReferrerTrimmingTests: XCTestCase {
 
     private enum Resource {

@@ -64,7 +64,7 @@ public struct ReferrerTrimming {
         let referEntity = trackerData.findEntity(forHost: originUrl.host ?? "")
         let destEntity = trackerData.findEntity(forHost: destUrl.host ?? "")
         
-        var newReferrer: String? = nil
+        var newReferrer: String?
         if !isSameEntity(a: referEntity, b: destEntity) {
             newReferrer = "\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)/"
         }
