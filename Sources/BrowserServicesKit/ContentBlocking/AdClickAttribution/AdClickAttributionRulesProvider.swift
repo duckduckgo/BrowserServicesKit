@@ -88,6 +88,7 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         guard let globalAttributionRules = compiledRulesSource.currentAttributionRules else {
             errorReporting?.fire(.adAttributionGlobalAttributedRulesDoNotExist)
             os_log(.error, log: log, "Global attribution list does not exist")
+            completion(nil)
             return
         }
         
