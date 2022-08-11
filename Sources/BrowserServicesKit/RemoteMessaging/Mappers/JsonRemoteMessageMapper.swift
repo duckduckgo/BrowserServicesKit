@@ -20,23 +20,45 @@
 import Foundation
 import os.log
 
-private enum AttributesKey: CaseIterable {
-    static let locale             = "locale"
-    static let osApi              = "osApi"
-    static let flavor             = "flavor"
-    static let appId              = "appId"
-    static let appVersion         = "appVersion"
-    static let atb                = "atb"
-    static let appAtb             = "appAtb"
-    static let searchAtb          = "searchAtb"
-    static let expVariant         = "expVariant"
-    static let emailEnabled       = "emailEnabled"
-    static let widgetAdded        = "widgetAdded"
-    static let bookmarks          = "bookmarks"
-    static let favorites          = "favorites"
-    static let appTheme           = "appTheme"
-    static let daysSinceInstalled = "daysSinceInstalled"
+// swiftlint:disable cyclomatic_complexity
+private enum AttributesKey: String, CaseIterable {
+    case locale
+    case osApi
+    case isInternalUser
+    case appId
+    case appVersion
+    case atb
+    case appAtb
+    case searchAtb
+    case expVariant
+    case emailEnabled
+    case widgetAdded
+    case bookmarks
+    case favorites
+    case appTheme
+    case daysSinceInstalled
+
+    func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
+        switch self {
+        case .locale: return LocaleMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .osApi: return OSMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .isInternalUser: return IsInternalUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .appId: return AppIdMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .appVersion: return AppVersionMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .atb: return AtbMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .appAtb: return AppAtbMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .searchAtb: return SearchAtbMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .expVariant: return ExpVariantMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .emailEnabled: return EmailEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .widgetAdded: return WidgetAddedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .bookmarks: return BookmarksMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .favorites: return FavoritesMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .appTheme: return AppThemeMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .daysSinceInstalled: return DaysSinceInstalledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        }
+    }
 }
+// swiftlint:enable cyclomatic_complexity
 
 struct JsonRemoteMessageMapper {
 
@@ -148,53 +170,22 @@ struct JsonRemoteMessageMapper {
         }
     }
 
-    // swiftlint:disable cyclomatic_complexity
     static func maps(jsonRemoteRules: [RemoteMessageResponse.JsonMatchingRule]) -> [Int: [MatchingAttribute]] {
         var rules: [Int: [MatchingAttribute]] = [:]
         jsonRemoteRules.forEach { rule in
             var matchingAttributes: [MatchingAttribute] = []
             rule.attributes.forEach { attribute in
-                switch attribute.key {
-                case AttributesKey.locale:
-                    matchingAttributes.append(JsonRulesMapper.localeMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.osApi:
-                    matchingAttributes.append(JsonRulesMapper.osApiMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.flavor:
-                    matchingAttributes.append(JsonRulesMapper.flavorMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.appId:
-                    matchingAttributes.append(JsonRulesMapper.appIdMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.appVersion:
-                    matchingAttributes.append(JsonRulesMapper.appVersionMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.atb:
-                    matchingAttributes.append(JsonRulesMapper.atbMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.appAtb:
-                    matchingAttributes.append(JsonRulesMapper.appAtbMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.searchAtb:
-                    matchingAttributes.append(JsonRulesMapper.searchAtbMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.expVariant:
-                    matchingAttributes.append(JsonRulesMapper.expVariantMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.emailEnabled:
-                    matchingAttributes.append(JsonRulesMapper.emailEnabledMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.widgetAdded:
-                    matchingAttributes.append(JsonRulesMapper.widgetAddedMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.bookmarks:
-                    matchingAttributes.append(JsonRulesMapper.bookmarksMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.favorites:
-                    matchingAttributes.append(JsonRulesMapper.favoritesMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.appTheme:
-                    matchingAttributes.append(JsonRulesMapper.appThemeMapper(jsonMatchingAttribute: attribute.value))
-                case AttributesKey.daysSinceInstalled:
-                    matchingAttributes.append(JsonRulesMapper.daysSinceInstalledMapper(jsonMatchingAttribute: attribute.value))
-                default:
+                if let key = AttributesKey(rawValue: attribute.key) {
+                    matchingAttributes.append(key.matchingAttribute(jsonMatchingAttribute: attribute.value))
+                } else {
                     os_log("Unknown attribute key %s", log: .remoteMessaging, type: .debug, attribute.key)
-                    matchingAttributes.append(JsonRulesMapper.unknownMapper(jsonMatchingAttribute: attribute.value))
+                    matchingAttributes.append(UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value))
                 }
             }
             rules[rule.id] = matchingAttributes
         }
         return rules
     }
-    // swiftlint:enable cyclomatic_complexity
 
     static func getTranslation(from translations: [String: RemoteMessageResponse.JsonContentTranslation]?,
                                for locale: Locale) -> RemoteMessageResponse.JsonContentTranslation? {
