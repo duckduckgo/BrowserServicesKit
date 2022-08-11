@@ -79,9 +79,9 @@ public struct ReferrerTrimming {
         return newReferrer
     }
     
-    public func trimReferrer(forNavigation navigationAction: WKNavigationAction) -> URLRequest? {
+    public func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
         var request = navigationAction.request
-        guard let originUrl = navigationAction.sourceFrame.webView?.url else {
+        guard let originUrl = originUrl else {
             return nil
         }
         guard let destUrl = request.url else {
