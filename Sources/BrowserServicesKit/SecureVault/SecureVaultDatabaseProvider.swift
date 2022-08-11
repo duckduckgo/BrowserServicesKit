@@ -661,7 +661,7 @@ extension DefaultDatabaseProvider {
         let dir = libraryURL.appendingPathComponent(sandboxPathComponent)
 #else
         guard let dir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            fatalError("Could not find application support directory"
+            fatalError("Could not find application support directory")
         }
 #endif
         let subDir = dir.appendingPathComponent("Vault")
