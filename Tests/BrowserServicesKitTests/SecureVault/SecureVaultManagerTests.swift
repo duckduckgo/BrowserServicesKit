@@ -182,6 +182,8 @@ class SecureVaultManagerTests: XCTestCase {
     }
 
     func testWhenRequestingCredentialsWithEmptyUsername_ThenNonActionIsReturned() throws {
+        let triggerType = AutofillUserScript.GetTriggerType.userInitiated
+
         // account
         let domain = "domain.com"
         let username = "" // <- this is a valid scenario
@@ -194,7 +196,7 @@ class SecureVaultManagerTests: XCTestCase {
 
         let subType = AutofillUserScript.GetAutofillDataSubType.username
         let expect = expectation(description: #function)
-        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType, trigger: triggerType) { credentials, action in
             XCTAssertEqual(action, .none)
             XCTAssertNil(credentials)
             expect.fulfill()
@@ -207,6 +209,7 @@ class SecureVaultManagerTests: XCTestCase {
             override func secureVaultManager(_ manager: SecureVaultManager,
                                              promptUserToAutofillCredentialsForDomain domain: String,
                                              withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             withTrigger trigger: AutofillUserScript.GetTriggerType,
                                              completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
                 XCTAssertEqual(accounts.count, 1, "The empty username should have been filtered so that it's not shown as an option")
                 completionHandler(accounts[0])
@@ -215,6 +218,8 @@ class SecureVaultManagerTests: XCTestCase {
 
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
+        
+        let triggerType = AutofillUserScript.GetTriggerType.userInitiated
 
         // account 1 (empty username)
         let domain = "domain.com"
@@ -234,7 +239,7 @@ class SecureVaultManagerTests: XCTestCase {
 
         let subType = AutofillUserScript.GetAutofillDataSubType.username
         let expect = expectation(description: #function)
-        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType, trigger: triggerType) { credentials, action in
             XCTAssertEqual(action, .fill)
             XCTAssertEqual(credentials!.password, "password".data(using: .utf8)!)
             XCTAssertEqual(credentials!.account.username, "dax2")
@@ -248,6 +253,7 @@ class SecureVaultManagerTests: XCTestCase {
             override func secureVaultManager(_ manager: SecureVaultManager,
                                              promptUserToAutofillCredentialsForDomain domain: String,
                                              withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             withTrigger trigger: AutofillUserScript.GetTriggerType,
                                              completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
                 XCTAssertEqual(accounts.count, 2, "Both accounts should be shown since the subType was `password`")
                 completionHandler(accounts[1])
@@ -256,6 +262,8 @@ class SecureVaultManagerTests: XCTestCase {
 
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
+        
+        let triggerType = AutofillUserScript.GetTriggerType.userInitiated
 
         // account 1 (empty username)
         let domain = "domain.com"
@@ -275,7 +283,7 @@ class SecureVaultManagerTests: XCTestCase {
 
         let subType = AutofillUserScript.GetAutofillDataSubType.password
         let expect = expectation(description: #function)
-        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType) { credentials, action in
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType, trigger: triggerType) { credentials, action in
             XCTAssertEqual(action, .fill)
             XCTAssertEqual(credentials!.password, "password".data(using: .utf8)!)
             XCTAssertEqual(credentials!.account.username, "dax2")
@@ -336,6 +344,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                            withTrigger trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {}
     
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64) {}
