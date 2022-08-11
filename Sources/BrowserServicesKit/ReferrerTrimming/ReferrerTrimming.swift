@@ -81,10 +81,10 @@ public struct ReferrerTrimming {
     
     public func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
         var request = navigationAction.request
-        guard let originUrl = originUrl else {
+        guard let originUrl = originUrl, originUrl.host != nil else {
             return nil
         }
-        guard let destUrl = request.url else {
+        guard let destUrl = request.url, destUrl.host != nil else {
             return nil
         }
         if let mainFrameUrl = mainFrameUrl, destUrl != mainFrameUrl {
