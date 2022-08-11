@@ -62,16 +62,16 @@ open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource
         public static let trackerDataSetRulesListName = "TrackerDataSet"
     }
 
-    private let trackerDataManger: TrackerDataManager
+    private let trackerDataManager: TrackerDataManager
 
-    public init(trackerDataManger: TrackerDataManager) {
-        self.trackerDataManger = trackerDataManger
+    public init(trackerDataManager: TrackerDataManager) {
+        self.trackerDataManager = trackerDataManager
     }
     
     open var contentBlockerRulesLists: [ContentBlockerRulesList] {
         return [ContentBlockerRulesList(name: Constants.trackerDataSetRulesListName,
-                                        trackerData: trackerDataManger.fetchedData,
-                                        fallbackTrackerData: trackerDataManger.embeddedData)]
+                                        trackerData: trackerDataManager.fetchedData,
+                                        fallbackTrackerData: trackerDataManager.embeddedData)]
     }
 }
 

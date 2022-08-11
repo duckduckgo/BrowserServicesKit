@@ -19,13 +19,13 @@
 
 import Foundation
 
-public class ContentBlockerRulesIdentifier: Equatable {
+public class ContentBlockerRulesIdentifier: Equatable, Codable {
     
-    private let name: String
-    private let tdsEtag: String
-    private let tempListEtag: String
-    private let allowListEtag: String
-    private let unprotectedSitesHash: String
+    let name: String
+    let tdsEtag: String
+    let tempListEtag: String
+    let allowListEtag: String
+    let unprotectedSitesHash: String
     
     public var stringValue: String {
         return name + tdsEtag + tempListEtag + unprotectedSitesHash
