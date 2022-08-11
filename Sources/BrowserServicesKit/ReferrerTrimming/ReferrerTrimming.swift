@@ -34,10 +34,13 @@ public struct ReferrerTrimming {
     
     private var mainFrameUrl: URL?
     
+    private var tld: TLD
+    
     public init(privacyManager: PrivacyConfigurationManager,
          contentBlockingManager: ContentBlockerRulesManager) {
         self.privacyManager = privacyManager
         self.contentBlockingManager = contentBlockingManager
+        self.tld = TLD()
     }
     
     public mutating func setMainFrameUrl(_ url: URL?) {
@@ -47,7 +50,7 @@ public struct ReferrerTrimming {
     func getTrimmedReferrer(originUrl: URL, destUrl: URL, referrerUrl: URL?, trackerData: TrackerData) -> String? {
         func isSameEntity(a: Entity?, b: Entity?) -> Bool {
             if a == nil && b == nil {
-                return !originUrl.isThirdParty(to: destUrl)
+                return !originUrl.isThirdParty(to: destUrl, tld: tld)
             }
             
             return a?.displayName == b?.displayName
@@ -70,7 +73,7 @@ public struct ReferrerTrimming {
         }
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme ?? "http")://\(URL.trimHostToETLD(host: referrerUrl.host!))/"
+            newReferrer = "\(referrerUrl.scheme ?? "http")://\(tld.eTLDplus1(referrerUrl.host) ?? referrerUrl.host!)/"
         }
         
         return newReferrer

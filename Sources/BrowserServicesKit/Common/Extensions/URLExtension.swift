@@ -156,15 +156,15 @@ extension URL {
         return newHost
     }
     
-    public func isThirdParty(to otherUrl: URL) -> Bool {
+    public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
         guard let thisHost = host else {
             return false
         }
         guard let otherHost = otherUrl.host else {
             return false
         }
-        let thisRoot = URL.trimHostToETLD(host: thisHost)
-        let otherRoot = URL.trimHostToETLD(host: otherHost)
+        let thisRoot = tld.eTLDplus1(thisHost)
+        let otherRoot = tld.eTLDplus1(otherHost)
         
         return thisRoot != otherRoot
     }
