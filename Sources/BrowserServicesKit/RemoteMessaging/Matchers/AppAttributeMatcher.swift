@@ -21,11 +21,11 @@ import Foundation
 
 public struct AppAttributeMatcher: AttributeMatcher {
 
-    private let bundleId:        String
-    private let appVersion:      String
-    private let isInternalUser:  Bool
+    private let bundleId: String
+    private let appVersion: String
+    private let isInternalUser: Bool
     private let statisticsStore: StatisticsStore
-    private let variantManager:  VariantManager
+    private let variantManager: VariantManager
 
     public init(statisticsStore: StatisticsStore, variantManager: VariantManager, isInternalUser: Bool = true) {
         if AppVersion.shared.identifier.isEmpty {
