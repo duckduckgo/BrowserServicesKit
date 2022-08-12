@@ -1,5 +1,5 @@
 //
-//  RemoteConfig.swift
+//  RemoteConfigModel.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -19,7 +19,7 @@
 
 import Foundation
 
-public struct RemoteConfig {
-    let messages: [RemoteMessage]
+public struct RemoteConfigModel {
+    let messages: [RemoteMessageModel]
     let rules: [Int: [MatchingAttribute]]
 }

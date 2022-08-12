@@ -54,20 +54,20 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenEmptyConfigThenReturnNull() throws {
-        let emptyConfig = RemoteConfig(messages: [], rules: [:])
+        let emptyConfig = RemoteConfigModel(messages: [], rules: [:])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: emptyConfig))
     }
 
     func testWhenNoMatchingRulesThenReturnFirstMessage() throws {
-        let noRulesRemoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
+        let noRulesRemoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                           mediumMessage(matchingRules: [], exclusionRules: [])],
                                                rules: [:])
         XCTAssertEqual(matcher.evaluate(remoteConfig: noRulesRemoteConfig), mediumMessage(matchingRules: [], exclusionRules: []))
     }
 
     func testWhenNotExistingRuleThenReturnSkipMessage() throws {
-        let noRulesRemoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
+        let noRulesRemoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                           mediumMessage(matchingRules: [], exclusionRules: [])],
                                                rules: [:])
 
@@ -76,7 +76,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
 
     func testWhenNoMessagesThenReturnNull() throws {
         let os = ProcessInfo().operatingSystemVersion
-        let noRulesRemoteConfig = RemoteConfig(messages: [],
+        let noRulesRemoteConfig = RemoteConfigModel(messages: [],
                                                rules: [1: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion + 1), fallback: nil)]])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: noRulesRemoteConfig))
@@ -84,7 +84,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
 
     func testWhenDeviceDoesNotMatchMessageRulesThenReturnNull() throws {
         let os = ProcessInfo().operatingSystemVersion
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [])],
                                         rules: [1: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)]])
 
@@ -92,7 +92,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenNoMatchingRulesThenReturnFirstNonExcludedMessage() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [], exclusionRules: [2]),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [], exclusionRules: [2]),
                                                    mediumMessage(matchingRules: [], exclusionRules: [3])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
                                                 2: [LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)],
@@ -113,7 +113,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false),
                 dismissedMessageIds: [])
 
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
                                                 2: [LocaleMatchingAttribute(value: ["en-US"], fallback: nil)]])
 
@@ -121,7 +121,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenMatchingMessageShouldBeExcludedByOneOfMultipleRulesThenReturnNull() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: [4]),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [4]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2, 3]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2, 3, 4]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2, 4]),
@@ -136,7 +136,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenMultipleMatchingMessagesAndSomeExcludedThenReturnFirstNonExcludedMatch() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2]),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
@@ -146,7 +146,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenMessageMatchesAndExclusionRuleFailsThenReturnMessage() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
                                                 2: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
 
@@ -154,14 +154,14 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenDeviceMatchesMessageRulesThenReturnFirstMatch() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: [])],
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
     }
 
     func testWhenDeviceMatchesMessageRulesForOneOfMultipleMessagesThenReturnMatch() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [2], exclusionRules: []),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [2], exclusionRules: []),
                                                    mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
                                                 2: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
@@ -180,7 +180,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false),
                 dismissedMessageIds: ["1"])
 
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                    mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])],
                                         rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)]])
 
@@ -188,7 +188,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenDeviceMatchesAnyRuleThenReturnFirstMatch() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
                                         rules: [1: [LocaleMatchingAttribute(value: [Locale.current.identifier], fallback: nil)],
                                                 2: [OSMatchingAttribute(min: "0", max: "15", fallback: nil)]])
 
@@ -208,7 +208,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false),
                 dismissedMessageIds: [])
 
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: []),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: []),
                                                    mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
                                         rules: [1: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)],
                                                 2: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)]])
@@ -217,7 +217,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenUnknownRuleFailsThenReturnNull() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [])],
                                         rules: [1: [UnknownMatchingAttribute(fallback: false)]])
 
@@ -225,27 +225,27 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenUnknownRuleMatchesThenReturnFirstMatch() {
-        let remoteConfig = RemoteConfig(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
+        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                    mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])],
                                         rules: [1: [UnknownMatchingAttribute(fallback: true)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
     }
 
-    func mediumMessage(id: String = "1", matchingRules: [Int], exclusionRules: [Int]) -> RemoteMessage {
-        return RemoteMessage(id: id,
+    func mediumMessage(id: String = "1", matchingRules: [Int], exclusionRules: [Int]) -> RemoteMessageModel {
+        return RemoteMessageModel(id: id,
                              content: .medium(titleText: "title", descriptionText: "description", placeholder: .announce),
                              matchingRules: matchingRules,
                              exclusionRules: exclusionRules
         )
     }
 
-    func decodeAndMapJson(fileName: String) throws -> RemoteConfig {
+    func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
         let validJson = data.fromJsonFile(fileName)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         XCTAssertNotNil(remoteMessagingConfig)
 
-        let config = RemoteMessagingConfigJsonMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
         XCTAssertNotNil(config)
         return config
     }

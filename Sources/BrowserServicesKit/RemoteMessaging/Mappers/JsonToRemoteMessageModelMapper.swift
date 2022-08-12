@@ -1,5 +1,5 @@
 //
-//  JsonRemoteMessageMapper.swift
+//  JsonToRemoteMessageModelMapper.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -60,12 +60,12 @@ private enum AttributesKey: String, CaseIterable {
 }
 // swiftlint:enable cyclomatic_complexity
 
-struct JsonRemoteMessageMapper {
+struct JsonToRemoteMessageModelMapper {
 
-    static func maps(jsonRemoteMessages: [RemoteMessageResponse.JsonRemoteMessage]) -> [RemoteMessage] {
-        var remoteMessages: [RemoteMessage] = []
+    static func maps(jsonRemoteMessages: [RemoteMessageResponse.JsonRemoteMessage]) -> [RemoteMessageModel] {
+        var remoteMessages: [RemoteMessageModel] = []
         jsonRemoteMessages.forEach { message in
-            var remoteMessage = RemoteMessage(id: message.id,
+            var remoteMessage = RemoteMessageModel(id: message.id,
                                               content: mapToContent(content: message.content),
                                               matchingRules: message.matchingRules ?? [],
                                               exclusionRules: message.exclusionRules ?? [])
@@ -80,7 +80,7 @@ struct JsonRemoteMessageMapper {
     }
 
     // swiftlint:disable function_body_length
-    static func mapToContent(content: RemoteMessageResponse.JsonContent) -> RemoteMessageType? {
+    static func mapToContent(content: RemoteMessageResponse.JsonContent) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {
         case .small:
             guard !content.titleText.isEmpty, !content.descriptionText.isEmpty else {

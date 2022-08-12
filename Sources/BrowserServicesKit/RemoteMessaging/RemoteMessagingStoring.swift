@@ -22,8 +22,8 @@ public protocol RemoteMessagingStoring {
 
     func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult)
     func fetchRemoteMessagingConfig() -> RemoteMessagingConfig?
-    func fetchScheduledRemoteMessage() -> RemoteMessage?
-    func fetchRemoteMessage(withId id: String) -> RemoteMessage?
+    func fetchScheduledRemoteMessage() -> RemoteMessageModel?
+    func fetchRemoteMessage(withId id: String) -> RemoteMessageModel?
     func hasShownRemoteMessage(withId id: String) -> Bool
     func hasDismissedRemoteMessage(withId id: String) -> Bool
     func dismissRemoteMessage(withId id: String)

@@ -24,7 +24,7 @@ public struct RemoteMessagingConfigProcessor {
 
     public struct ProcessorResult {
         public let version: Int64
-        public let message: RemoteMessage?
+        public let message: RemoteMessageModel?
     }
 
     let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
@@ -43,7 +43,7 @@ public struct RemoteMessagingConfigProcessor {
         let isNewVersion = newVersion != currentVersion
 
         if isNewVersion || shouldProcessConfig(currentConfig) {
-            let config = RemoteMessagingConfigJsonMapper.mapJson(remoteMessagingConfig: jsonRemoteMessagingConfig)
+            let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: jsonRemoteMessagingConfig)
             let message = remoteMessagingConfigMatcher.evaluate(remoteConfig: config)
             os_log("Message to present next: %s", log: .remoteMessaging, type: .debug, message.debugDescription)
 

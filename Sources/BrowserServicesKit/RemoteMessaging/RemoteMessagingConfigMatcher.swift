@@ -41,7 +41,7 @@ public struct RemoteMessagingConfigMatcher {
         matchers = [appAttributeMatcher, deviceAttributeMatcher, userAttributeMatcher]
     }
 
-    func evaluate(remoteConfig: RemoteConfig) -> RemoteMessage? {
+    func evaluate(remoteConfig: RemoteConfigModel) -> RemoteMessageModel? {
         let rules = remoteConfig.rules
         let filteredMessages = remoteConfig.messages.filter { !dismissedMessageIds.contains($0.id) }
 

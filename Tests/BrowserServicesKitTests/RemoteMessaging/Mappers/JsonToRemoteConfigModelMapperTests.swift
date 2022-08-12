@@ -1,5 +1,5 @@
 //
-//  RemoteMessagingConfigJsonMapperTests.swift
+//  JsonToRemoteConfigModelMapperTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
@@ -20,7 +20,7 @@
 import XCTest
 @testable import BrowserServicesKit
 
-class RemoteMessagingConfigJsonMapperTests: XCTestCase {
+class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     private var data = JsonTestDataLoader()
 
@@ -28,7 +28,7 @@ class RemoteMessagingConfigJsonMapperTests: XCTestCase {
         let config = try decodeAndMapJson(fileName: "remote-messaging-config.json")
         XCTAssertEqual(config.messages.count, 5)
 
-        XCTAssertEqual(config.messages[0], RemoteMessage(
+        XCTAssertEqual(config.messages[0], RemoteMessageModel(
                 id: "8274589c-8aeb-4322-a737-3852911569e3",
                 content: .bigSingleAction(titleText: "title", descriptionText: "description", placeholder: .announce,
                                           primaryActionText: "Ok", primaryAction: .url(value: "https://duckduckgo.com")),
@@ -36,7 +36,7 @@ class RemoteMessagingConfigJsonMapperTests: XCTestCase {
                 exclusionRules: [])
         )
 
-        XCTAssertEqual(config.messages[1], RemoteMessage(
+        XCTAssertEqual(config.messages[1], RemoteMessageModel(
                 id: "8274589c-8aeb-4322-a737-3852911569e3",
                 content: .bigSingleAction(titleText: "Kedvenc hozzáadása", descriptionText: "Kedvenc eltávolítása", placeholder: .ddgAnnounce,
                                           primaryActionText: "Ok", primaryAction: .url(value: "https://duckduckgo.com")),
@@ -44,21 +44,21 @@ class RemoteMessagingConfigJsonMapperTests: XCTestCase {
                 exclusionRules: [])
         )
 
-        XCTAssertEqual(config.messages[2], RemoteMessage(
+        XCTAssertEqual(config.messages[2], RemoteMessageModel(
                 id: "26780792-49fe-4e25-ae27-aa6a2e6f013b",
                 content: .small(titleText: "Here goes a title", descriptionText: "description"),
                 matchingRules: [5, 6],
                 exclusionRules: [7, 8, 9])
         )
 
-        XCTAssertEqual(config.messages[3], RemoteMessage(
+        XCTAssertEqual(config.messages[3], RemoteMessageModel(
                 id: "c3549d64-b388-41d8-9649-33e6e2674e8e",
                 content: .medium(titleText: "Here goes a title", descriptionText: "description", placeholder: .criticalUpdate),
                 matchingRules: [],
                 exclusionRules: [])
         )
 
-        XCTAssertEqual(config.messages[4], RemoteMessage(
+        XCTAssertEqual(config.messages[4], RemoteMessageModel(
                 id: "c2d0a1f1-6157-434f-8145-38416037d339",
                 content: .bigTwoAction(titleText: "Here goes a title", descriptionText: "description", placeholder: .appUpdate,
                                        primaryActionText: "Ok", primaryAction: .appStore,
@@ -121,7 +121,7 @@ class RemoteMessagingConfigJsonMapperTests: XCTestCase {
         let validJson = data.fromJsonFile("remote-messaging-config-malformed.json")
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         XCTAssertNotNil(remoteMessagingConfig)
-        let config = RemoteMessagingConfigJsonMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
         XCTAssertTrue(config.rules.count == 2)
 
         let rule6 = config.rules.filter { $0.key == 6 }.first
@@ -131,12 +131,12 @@ class RemoteMessagingConfigJsonMapperTests: XCTestCase {
         XCTAssertEqual(rule6?.value.filter { $0 is UnknownMatchingAttribute }.count, 1)
     }
 
-    func decodeAndMapJson(fileName: String) throws -> RemoteConfig {
+    func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
         let validJson = data.fromJsonFile(fileName)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         XCTAssertNotNil(remoteMessagingConfig)
 
-        let config = RemoteMessagingConfigJsonMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
         XCTAssertNotNil(config)
         return config
     }

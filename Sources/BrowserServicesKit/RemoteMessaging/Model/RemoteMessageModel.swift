@@ -1,5 +1,5 @@
 //
-//  RemoteMessage.swift
+//  RemoteMessageModel.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -19,21 +19,21 @@
 
 import Foundation
 
-public struct RemoteMessage: Equatable, Codable {
+public struct RemoteMessageModel: Equatable, Codable {
 
     public let id: String
-    public var content: RemoteMessageType?
+    public var content: RemoteMessageModelType?
     public let matchingRules: [Int]
     public let exclusionRules: [Int]
 
-    public init(id: String, content: RemoteMessageType?, matchingRules: [Int], exclusionRules: [Int]) {
+    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int]) {
         self.id = id
         self.content = content
         self.matchingRules = matchingRules
         self.exclusionRules = exclusionRules
     }
 
-    public static func == (lhs: RemoteMessage, rhs: RemoteMessage) -> Bool {
+    public static func == (lhs: RemoteMessageModel, rhs: RemoteMessageModel) -> Bool {
         if lhs.id != rhs.id {
             return false
         }
@@ -81,7 +81,7 @@ public struct RemoteMessage: Equatable, Codable {
     }
 }
 
-public enum RemoteMessageType: Codable, Equatable {
+public enum RemoteMessageModelType: Codable, Equatable {
     case small(titleText: String, descriptionText: String)
     case medium(titleText: String, descriptionText: String, placeholder: RemotePlaceholder)
     case bigSingleAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder,
@@ -90,7 +90,7 @@ public enum RemoteMessageType: Codable, Equatable {
                       primaryActionText: String, primaryAction: RemoteAction, secondaryActionText: String,
                       secondaryAction: RemoteAction)
 
-    public static func == (lhs: RemoteMessageType, rhs: RemoteMessageType) -> Bool {
+    public static func == (lhs: RemoteMessageModelType, rhs: RemoteMessageModelType) -> Bool {
         switch (lhs, rhs) {
         case (.small(let lhsTitleText, let lhsDescriptionText), .small(let rhsTitleText, let rhsDescriptionText)):
             return lhsTitleText == rhsTitleText && lhsDescriptionText == rhsDescriptionText

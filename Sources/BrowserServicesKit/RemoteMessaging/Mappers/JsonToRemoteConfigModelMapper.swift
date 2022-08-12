@@ -1,5 +1,5 @@
 //
-//  RemoteMessagingConfigJsonMapper.swift
+//  JsonToRemoteConfigModelMapper.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -20,14 +20,14 @@
 import Foundation
 import os.log
 
-struct RemoteMessagingConfigJsonMapper {
+struct JsonToRemoteConfigModelMapper {
 
-    static func mapJson(remoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig) -> RemoteConfig {
-        let remoteMessages = JsonRemoteMessageMapper.maps(jsonRemoteMessages: remoteMessagingConfig.messages)
+    static func mapJson(remoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig) -> RemoteConfigModel {
+        let remoteMessages = JsonToRemoteMessageModelMapper.maps(jsonRemoteMessages: remoteMessagingConfig.messages)
         os_log("remoteMessages mapped = %s", log: .remoteMessaging, type: .debug, String(describing: remoteMessages))
-        let rules = JsonRemoteMessageMapper.maps(jsonRemoteRules: remoteMessagingConfig.rules)
+        let rules = JsonToRemoteMessageModelMapper.maps(jsonRemoteRules: remoteMessagingConfig.rules)
         os_log("rules mapped = %s", log: .remoteMessaging, type: .debug, String(describing: rules))
-        return RemoteConfig(messages: remoteMessages, rules: rules)
+        return RemoteConfigModel(messages: remoteMessages, rules: rules)
     }
 
 }
