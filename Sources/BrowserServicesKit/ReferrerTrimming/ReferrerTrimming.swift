@@ -88,7 +88,7 @@ public struct ReferrerTrimming {
         return newReferrer
     }
     
-    public func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
+    public mutating func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
         var request = navigationAction.request
         guard let originUrl = originUrl, originUrl.host != nil else {
             return nil
@@ -96,12 +96,15 @@ public struct ReferrerTrimming {
         guard let destUrl = request.url, destUrl.host != nil else {
             return nil
         }
-        if case let .trimming(trimmingUrl) = state, trimmingUrl != destUrl {
-            // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
-            // We do not rewrite redirects due to breakage concerns
-            return nil
-        } else if state == .idle {
-            state = .trimming(destUrl)
+        switch (state) {
+        case let .trimming(trimmingUrl):
+            if trimmingUrl != destUrl {
+                // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
+                // We do not rewrite redirects due to breakage concerns
+                return nil
+            }
+        case .idle:
+            setMainFrameUrl(destUrl)
         }
         
         guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else {
