@@ -100,6 +100,8 @@ public struct ReferrerTrimming {
             // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
             // We do not rewrite redirects due to breakage concerns
             return nil
+        } else if state == .idle {
+            state = .trimming(destUrl)
         }
         
         guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else {
