@@ -27,12 +27,17 @@ public struct ReferrerTrimming {
         static let policyName = "Referrer-Policy"
     }
     
+    public enum TrimmingState {
+        case trimming(URL)
+        case idle
+    }
+    
     private let privacyManager: PrivacyConfigurationManager
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
     private let contentBlockingManager: ContentBlockerRulesManager
     
-    private var mainFrameUrl: URL?
+    private var state: TrimmingState = .idle
     
     private var tld: TLD
     
@@ -44,7 +49,11 @@ public struct ReferrerTrimming {
     }
     
     public mutating func setMainFrameUrl(_ url: URL?) {
-        mainFrameUrl = url
+        if let url = url {
+            state = .trimming(url)
+        } else {
+            state = .idle
+        }
     }
     
     func getTrimmedReferrer(originUrl: URL, destUrl: URL, referrerUrl: URL?, trackerData: TrackerData) -> String? {
@@ -87,7 +96,7 @@ public struct ReferrerTrimming {
         guard let destUrl = request.url, destUrl.host != nil else {
             return nil
         }
-        if let mainFrameUrl = mainFrameUrl, destUrl != mainFrameUrl {
+        if case let .trimming(trimmingUrl) = state, trimmingUrl != destUrl {
             // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
             // We do not rewrite redirects due to breakage concerns
             return nil
