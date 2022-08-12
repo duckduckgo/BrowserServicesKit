@@ -73,7 +73,8 @@ class ReferrerTrimmingTests: XCTestCase {
     func testReferrerTrimming() throws {
         let tests = referrerTestSuite.refererHeaderNavigation.tests
         let referrerTrimming = ReferrerTrimming(privacyManager: privacyManager,
-                                                contentBlockingManager: contentBlockingManager)
+                                                contentBlockingManager: contentBlockingManager,
+                                                tld: TLD())
                 
         for test in tests {
             let skip = test.exceptPlatforms?.contains("ios-browser")

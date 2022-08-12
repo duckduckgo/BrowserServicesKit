@@ -42,10 +42,11 @@ public struct ReferrerTrimming {
     private var tld: TLD
     
     public init(privacyManager: PrivacyConfigurationManager,
-         contentBlockingManager: ContentBlockerRulesManager) {
+                contentBlockingManager: ContentBlockerRulesManager,
+                tld: TLD) {
         self.privacyManager = privacyManager
         self.contentBlockingManager = contentBlockingManager
-        self.tld = TLD()
+        self.tld = tld
     }
     
     public mutating func setMainFrameUrl(_ url: URL?) {
