@@ -138,24 +138,6 @@ extension URL {
         return queryItem?.value
     }
     
-    static func trimHostToETLD(host: String) -> String {
-        guard !host.isEmpty else {
-            return host
-        }
-        
-        var newHost = host
-        while newHost.contains(".") {
-            let comps = newHost.split(separator: ".").dropFirst()
-            if comps.count == 1 || comps.joined(separator: ".") == "co.uk" {
-                break
-            }
-            
-            newHost = comps.joined(separator: ".")
-        }
-        
-        return newHost
-    }
-    
     public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
         guard let thisHost = host else {
             return false

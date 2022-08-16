@@ -97,7 +97,7 @@ public struct ReferrerTrimming {
         guard let destUrl = request.url, destUrl.host != nil else {
             return nil
         }
-        switch (state) {
+        switch state {
         case let .trimming(trimmingUrl):
             if trimmingUrl != destUrl {
                 // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
