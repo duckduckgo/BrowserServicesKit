@@ -67,43 +67,8 @@ extension EmailKeychainManager: EmailManagerStorage {
         EmailKeychainManager.deleteAuthenticationState()
     }
 
-    public func getWaitlistToken() -> String? {
-        return try? EmailKeychainManager.getString(forField: .waitlistToken)
-    }
-
-    public func getWaitlistTimestamp() -> Int? {
-        if let timestampResult = try? EmailKeychainManager.getString(forField: .waitlistTimestamp) {
-            return Int(timestampResult)
-        } else {
-            return nil
-        }
-    }
-
-    public func getWaitlistInviteCode() -> String? {
-        return try? EmailKeychainManager.getString(forField: .inviteCode)
-    }
-
     public func deleteWaitlistState() {
         EmailKeychainManager.deleteWaitlistState()
-    }
-
-    public func store(waitlistToken: String) {
-        // Avoid saving a new token if one already exists.
-        guard getWaitlistToken() == nil else { return }
-
-        EmailKeychainManager.add(waitlistToken: waitlistToken)
-    }
-
-    public func store(waitlistTimestamp: Int) {
-        // Avoid saving a new timestamp if one already exists.
-        guard getWaitlistTimestamp() == nil else { return }
-
-        let timestampString = String(waitlistTimestamp)
-        EmailKeychainManager.add(waitlistTimestamp: timestampString)
-    }
-
-    public func store(inviteCode: String) {
-        EmailKeychainManager.add(inviteCode: inviteCode)
     }
 
 }
@@ -187,18 +152,6 @@ private extension EmailKeychainManager {
 
     static func add(lastUseDate: String) throws {
         try add(string: lastUseDate, forField: .lastUseDate)
-    }
-
-    static func add(waitlistToken: String) {
-        try? add(string: waitlistToken, forField: .waitlistToken)
-    }
-
-    static func add(waitlistTimestamp: String) {
-        try? add(string: waitlistTimestamp, forField: .waitlistTimestamp)
-    }
-
-    static func add(inviteCode: String) {
-        try? add(string: inviteCode, forField: .inviteCode)
     }
 
     static func add(string: String, forField field: EmailKeychainField) throws {
