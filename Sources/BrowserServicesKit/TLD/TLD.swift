@@ -43,25 +43,40 @@ public class TLD {
         self.tlds = Set(tlds)
     }
 
+    /// Return valid domain, stripping subdomains of given entity if possible.
+    ///
+    /// 'test.example.co.uk' -> 'example.co.uk'
+    /// 'example.co.uk' -> 'example.co.uk'
+    /// 'co.uk' -> 'co.uk'
     public func domain(_ host: String?) -> String? {
         guard let host = host else { return nil }
 
         let parts = [String](host.components(separatedBy: ".").reversed())
-        
-        guard let lastComponent = parts.first, tlds.contains(lastComponent) else {
-            return nil
-        }
-        var stack = lastComponent
+                
+        var stack = ""
 
-        for index in 1 ..< parts.count {
-            let part = parts[index]
+        var knownTLDFound = false
+        for part in parts {
             stack = !stack.isEmpty ? part + "." + stack : part
-            guard tlds.contains(stack) else { break }
+            
+            if tlds.contains(stack) {
+                knownTLDFound = true
+            } else if knownTLDFound {
+                break
+            }
         }
+        
+        // If host does not contain tld treat it as invalid
+        guard knownTLDFound else { return nil }
 
         return stack
     }
 
+    /// Return eTLD+1 (entity top level domain + 1) strictly.
+    ///
+    /// 'test.example.co.uk' -> 'example.co.uk'
+    /// 'example.co.uk' -> 'example.co.uk'
+    /// 'co.uk' -> nil
     public func eTLDplus1(_ host: String?) -> String? {
         guard let domain = domain(host), !tlds.contains(domain) else { return nil }
         return domain
