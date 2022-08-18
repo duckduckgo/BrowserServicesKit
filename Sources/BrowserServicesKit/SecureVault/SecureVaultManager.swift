@@ -35,12 +35,15 @@ public struct AutofillData {
 }
 
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
+    
+    func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
     
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                            withTrigger trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool
@@ -74,6 +77,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  [SecureVaultModels.CreditCard]) -> Void) {
 
         do {
+            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self) else {
+                completionHandler([], [], [])
+                return
+            }
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             let accounts = try vault.accountsFor(domain: domain)
             let identities = try vault.identities()
@@ -127,6 +134,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
                                    subType: AutofillUserScript.GetAutofillDataSubType,
+                                   trigger: AutofillUserScript.GetTriggerType,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
         do {
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
@@ -146,7 +154,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 return
             }
 
-            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account  in
+            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts, withTrigger: trigger) { account  in
                 
                 guard let accountID = account?.id else {
                     completionHandler(nil, .none)
