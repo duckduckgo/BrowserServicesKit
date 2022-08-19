@@ -67,9 +67,11 @@ public class TLD {
         }
         
         // If host does not contain tld treat it as invalid
-        guard knownTLDFound else { return nil }
-
-        return stack
+        if knownTLDFound {
+            return stack
+        } else {
+            return nil
+        }
     }
 
     /// Return eTLD+1 (entity top level domain + 1) strictly.
