@@ -20,7 +20,7 @@ import Foundation
 import WebKit
 import TrackerRadarKit
 
-public struct ReferrerTrimming {
+public class ReferrerTrimming {
     
     struct Constants {
         static let headerName = "Referer"
@@ -28,8 +28,8 @@ public struct ReferrerTrimming {
     }
     
     public enum TrimmingState {
-        case trimming(URL)
         case idle
+        case navigating(destination: URL)
     }
     
     private let privacyManager: PrivacyConfigurationManager
@@ -49,12 +49,20 @@ public struct ReferrerTrimming {
         self.tld = tld
     }
     
-    public mutating func setMainFrameUrl(_ url: URL?) {
-        if let url = url {
-            state = .trimming(url)
-        } else {
-            state = .idle
+    public func onBeginNavigation(to destination: URL?) {
+        guard let destination = destination else {
+            return
         }
+        
+        state = .navigating(destination: destination)
+    }
+    
+    public func onFinishNavigation() {
+        state = .idle
+    }
+    
+    public func onFailedNavigation() {
+        state = .idle
     }
     
     func getTrimmedReferrer(originUrl: URL, destUrl: URL, referrerUrl: URL?, trackerData: TrackerData) -> String? {
@@ -74,48 +82,58 @@ public struct ReferrerTrimming {
             return nil
         }
         
-        let referEntity = trackerData.findEntity(forHost: originUrl.host ?? "")
-        let destEntity = trackerData.findEntity(forHost: destUrl.host ?? "")
+        guard originUrl.host != nil, originUrl.scheme != nil else {
+            return nil
+        }
+        guard destUrl.host != nil, destUrl.scheme != nil else {
+            return nil
+        }
+        
+        let referEntity = trackerData.findEntity(forHost: originUrl.host!)
+        let destEntity = trackerData.findEntity(forHost: destUrl.host!)
         
         var newReferrer: String?
         if !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme ?? "http")://\(referrerUrl.host!)/"
+            newReferrer = "\(referrerUrl.scheme!)://\(referrerUrl.host!)/"
         }
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme ?? "http")://\(tld.eTLDplus1(referrerUrl.host) ?? referrerUrl.host!)/"
+            newReferrer = "\(referrerUrl.scheme!)://\(tld.eTLDplus1(referrerUrl.host) ?? referrerUrl.host!)/"
         }
         
         return newReferrer
     }
     
-    public mutating func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
+    public func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
         var request = navigationAction.request
-        guard let originUrl = originUrl, originUrl.host != nil else {
+        guard let originUrl = originUrl else {
             return nil
         }
-        guard let destUrl = request.url, destUrl.host != nil else {
+        guard let destUrl = request.url else {
             return nil
         }
         switch state {
-        case let .trimming(trimmingUrl):
+        case let .navigating(trimmingUrl):
             if trimmingUrl != destUrl {
                 // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
                 // We do not rewrite redirects due to breakage concerns
                 return nil
             }
         case .idle:
-            setMainFrameUrl(destUrl)
+            onBeginNavigation(to: destUrl)
         }
         
         guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else {
             return nil
         }
         
-        let referrerHeader = request.value(forHTTPHeaderField: Constants.headerName)
+        guard let referrerHeader = request.value(forHTTPHeaderField: Constants.headerName) else {
+            return nil
+        }
+        
         if let newReferrer = getTrimmedReferrer(originUrl: originUrl,
                                                 destUrl: destUrl,
-                                                referrerUrl: referrerHeader != nil ? URL(string: referrerHeader!) : nil,
+                                                referrerUrl: URL(string: referrerHeader) ?? nil,
                                                 trackerData: trackerData) {
             request.setValue(newReferrer, forHTTPHeaderField: Constants.headerName)
             return request
