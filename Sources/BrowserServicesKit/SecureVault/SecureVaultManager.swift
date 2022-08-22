@@ -35,6 +35,8 @@ public struct AutofillData {
 }
 
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
+    
+    func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
     
@@ -75,6 +77,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  [SecureVaultModels.CreditCard]) -> Void) {
 
         do {
+            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self) else {
+                completionHandler([], [], [])
+                return
+            }
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             let accounts = try vault.accountsFor(domain: domain)
             let identities = try vault.identities()

@@ -337,6 +337,10 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     private(set) var promptedAutofillData: AutofillData?
     
+    func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool {
+        return true
+    }
+    
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData) {
         self.promptedAutofillData = data
     }
