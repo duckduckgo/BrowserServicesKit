@@ -89,9 +89,6 @@ public extension String {
     }
 
     var isValidHostname: Bool {
-        if self == Self.localhost {
-            return true
-        }
         return matches(.hostName)
     }
 
