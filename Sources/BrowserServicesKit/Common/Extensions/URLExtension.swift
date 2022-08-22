@@ -195,6 +195,12 @@ extension URL {
         self.init(string: url)
     }
     
+    public func replacing(host: String?) -> URL? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        components.host = host
+        return components.url
+    }
+    
     // MARK: - HTTP/HTTPS
     
     public enum URLProtocol: String {

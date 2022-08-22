@@ -56,6 +56,13 @@ extension TrackerData {
             }
         }
         
+        return nil
+    }
+    
+    public func findTrackerByCname(forUrl url: String) -> KnownTracker? {
+        guard let host = URL(string: url)?.host else { return nil }
+        
+        let variations = variations(of: host)
         for host in variations {
             if let cname = cnames?[host] {
                 var tracker = findTracker(byCname: cname)

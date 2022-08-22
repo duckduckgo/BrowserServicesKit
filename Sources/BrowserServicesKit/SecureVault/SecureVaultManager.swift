@@ -35,12 +35,15 @@ public struct AutofillData {
 }
 
 public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
+    
+    func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
 
     func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
     
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                            withTrigger trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool
@@ -74,6 +77,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  [SecureVaultModels.CreditCard]) -> Void) {
 
         do {
+            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self) else {
+                completionHandler([], [], [])
+                return
+            }
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             let accounts = try vault.accountsFor(domain: domain)
             let identities = try vault.identities()
@@ -126,11 +133,28 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
+                                   subType: AutofillUserScript.GetAutofillDataSubType,
+                                   trigger: AutofillUserScript.GetTriggerType,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
         do {
-            let vault = try SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
-            let accounts = try vault.accountsFor(domain: domain)
-            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts) { account  in
+            let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+            let accounts = try vault
+                .accountsFor(domain: domain)
+                .filter {
+                    // don't show accounts without usernames if the user interacted with the 'username' field
+                    if subType == .username && $0.username.isEmpty {
+                        return false
+                    }
+                    return true
+                }
+
+            if accounts.count == 0 {
+                os_log(.debug, "Not showing the modal, no suitable accounts found")
+                completionHandler(nil, .none)
+                return
+            }
+
+            delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts, withTrigger: trigger) { account  in
                 
                 guard let accountID = account?.id else {
                     completionHandler(nil, .none)

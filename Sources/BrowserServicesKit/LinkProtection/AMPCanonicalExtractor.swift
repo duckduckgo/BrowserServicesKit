@@ -89,28 +89,19 @@ public class AMPCanonicalExtractor: NSObject {
     {
         "trigger": {
             "url-filter": ".*",
-            "resource-type": ["image"]
+            "resource-type": ["image", "style-sheet", "script"]
         },
         "action": {
             "type": "block"
         }
-    },
-    {
-        "trigger": {
-            "url-filter": ".*",
-            "resource-type": ["style-sheet"]
-        },
-        "action": {
-            "type": "block"
-        }
-    },
+    }
 ]
 """
         
         WKContentRuleListStore.default().compileContentRuleList(forIdentifier: Constants.ruleListIdentifier,
                                                                 encodedContentRuleList: ruleSource) { [weak self] ruleList, error  in
-            guard error != nil else {
-                print(error?.localizedDescription ?? "AMPCanonicalExtractor - Error compiling image blocking rules")
+            if let error = error {
+                print("AMPCanonicalExtractor - Error compiling image blocking rules: \(error.localizedDescription)")
                 self?.errorReporting?.fire(.ampBlockingRulesCompilationFailed)
                 return
             }
@@ -196,8 +187,11 @@ public class AMPCanonicalExtractor: NSObject {
         configuration.websiteDataStore = .nonPersistent()
         configuration.userContentController.add(self, name: Constants.sendCanonical)
         configuration.userContentController.addUserScript(buildUserScript())
-        if let rulesList = contentBlockingManager.currentTDSRules?.rulesList {
+        if let rulesList = contentBlockingManager.currentMainRules?.rulesList {
             configuration.userContentController.add(rulesList)
+        }
+        if let attributedRulesList = contentBlockingManager.currentAttributionRules?.rulesList {
+            configuration.userContentController.add(attributedRulesList)
         }
         if let imageBlockingRules = imageBlockingRules {
             configuration.userContentController.add(imageBlockingRules)

@@ -39,8 +39,10 @@ final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
 final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate  {
 
     var shouldProcessTrackers = true
-    var onTrackerDetected: ((DetectedTracker) -> Void)?
-    var detectedTrackers = Set<DetectedTracker>()
+    var onTrackerDetected: ((DetectedRequest) -> Void)?
+    var detectedTrackers = Set<DetectedRequest>()
+    var onThirdPartyRequestDetected: ((DetectedRequest) -> Void)?
+    var detectedThirdPartyRequests = Set<DetectedRequest>()
 
     func reset() {
         detectedTrackers.removeAll()
@@ -55,9 +57,15 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
     }
 
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
-                                       detectedTracker tracker: DetectedTracker) {
+                                       detectedTracker tracker: DetectedRequest) {
         detectedTrackers.insert(tracker)
         onTrackerDetected?(tracker)
+    }
+    
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedThirdPartyRequest request: DetectedRequest) {
+        detectedThirdPartyRequests.insert(request)
+        onThirdPartyRequestDetected?(request)
     }
 }
 
@@ -65,8 +73,8 @@ final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDele
 
     var shouldProcessTrackers = true
 
-    var onSurrogateDetected: ((DetectedTracker, String) -> Void)?
-    var detectedSurrogates = Set<DetectedTracker>()
+    var onSurrogateDetected: ((DetectedRequest, String) -> Void)?
+    var detectedSurrogates = Set<DetectedRequest>()
 
     func reset() {
         detectedSurrogates.removeAll()
@@ -77,7 +85,7 @@ final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDele
     }
 
     func surrogatesUserScript(_ script: SurrogatesUserScript,
-                              detectedTracker tracker: DetectedTracker,
+                              detectedTracker tracker: DetectedRequest,
                               withSurrogate host: String) {
         detectedSurrogates.insert(tracker)
         onSurrogateDetected?(tracker, host)
