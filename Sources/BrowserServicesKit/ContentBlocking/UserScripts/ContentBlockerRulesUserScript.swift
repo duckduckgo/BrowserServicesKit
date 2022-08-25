@@ -101,7 +101,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
 
     var temporaryUnprotectedDomains: [String] {
         let privacyConfiguration = configuration.privacyConfiguration
-        var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimmingWhitespaces().isEmpty }
+        var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         temporaryUnprotectedDomains.append(contentsOf: privacyConfiguration.exceptionsList(forFeature: .contentBlocking))
         return temporaryUnprotectedDomains
     }

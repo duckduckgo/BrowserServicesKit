@@ -99,7 +99,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                schemeHandler: TestSchemeHandler,
                                                completion: @escaping (WKWebView) -> Void) {
 
-        var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimmingWhitespaces().isEmpty }
+        var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         tempUnprotected.append(contentsOf: privacyConfig.exceptionsList(forFeature: .contentBlocking))
 
         let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: privacyConfig.trackerAllowlist)
