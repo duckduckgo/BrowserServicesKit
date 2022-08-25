@@ -109,6 +109,7 @@ public class AdClickAttributionLogic {
         applyRules()
     }
     
+    @MainActor
     public func onProvisionalNavigation(completion: @escaping () -> Void, currentTime: Date = Date()) {
         switch state {
         case .noAttribution:
@@ -129,6 +130,15 @@ public class AdClickAttributionLogic {
                 disableAttribution()
             }
             completion()
+        }
+    }
+    
+    @MainActor
+    public func onProvisionalNavigation() async {
+        await withCheckedContinuation { continuation in
+            onProvisionalNavigation {
+                continuation.resume()
+            }
         }
     }
     

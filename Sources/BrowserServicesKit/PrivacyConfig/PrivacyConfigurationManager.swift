@@ -134,6 +134,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         
         defer { self.updatesSubject.send() }
         
+        return .embedded
+        
         let result: ReloadResult
         
         if let etag = etag, let data = data {

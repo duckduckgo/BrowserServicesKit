@@ -48,6 +48,11 @@ class AdClickAttributionFeatureTests: XCTestCase {
                             "parameterName": "dsl",
                             "parameterValue": "1",
                             "desc": "Shopping Ads"
+                          },
+                          {
+                            "url": "different.party.com/y.js",
+                            "adDomainParameterName": "test_param",
+                            "desc": "Shopping Ads"
                           }
                         ],
                         "allowlist": [
@@ -99,5 +104,12 @@ class AdClickAttributionFeatureTests: XCTestCase {
         XCTAssertFalse(feature.isMatchingAttributionFormat(URL(string: "https://other.first-party.com/m.js?dsl=2")!))
         XCTAssertFalse(feature.isMatchingAttributionFormat(URL(string: "https://other.first-party.com/m.js?ad_domain=a.com")!))
         XCTAssertFalse(feature.isMatchingAttributionFormat(URL(string: "https://other.first-party.com/m.js?test_param=test.com")!))
+        
+        // Dropping parameters tests
+        XCTAssertTrue(feature.isMatchingAttributionFormat(URL(string: "https://different.party.com/y.js?test_param=&foo=&bar=")!))
+        XCTAssertTrue(feature.isMatchingAttributionFormat(URL(string: "https://different.party.com/y.js?test_param=example.com&foo=&bar=")!))
+        XCTAssertTrue(feature.isMatchingAttributionFormat(URL(string: "https://different.party.com/y.js?test_param=&foo=&bar=&u3=xyz")!))
+        XCTAssertFalse(feature.isMatchingAttributionFormat(URL(string: "https://different.party.com/y.js?foo=&bar=&u3=xyz")!))
+        XCTAssertFalse(feature.isMatchingAttributionFormat(URL(string: "https://different.party.com/y.js?foo=&bar=")!))
     }
 }
