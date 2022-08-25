@@ -94,17 +94,17 @@ extension URL {
         case creatingFailed
     }
 
-    public func addParameters(_ parameters: [String: String]) throws -> URL {
+    public func appendingParameters<C: Collection>(_ parameters: C) throws -> URL where C.Element == (key: String, value: String) {
         var url = self
 
         for parameter in parameters {
-            url = try url.addParameter(name: parameter.key, value: parameter.value)
+            url = try url.appendingParameter(name: parameter.key, value: parameter.value)
         }
 
         return url
     }
 
-    public func addParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
+    public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
         
         let allowedCharacters: CharacterSet = {
@@ -136,6 +136,18 @@ extension URL {
             queryItem.name == name
         })
         return queryItem?.value
+    }
+
+    public func removingParameters(named parametersToRemove: Set<String>) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        guard let encodedQuery = components.percentEncodedQuery else { return self }
+        components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
+        guard var query = components.queryItems else { return self }
+
+        query.removeAll { parametersToRemove.contains($0.name) }
+
+        components.queryItems = query
+        return components.url ?? self
     }
 
 }
