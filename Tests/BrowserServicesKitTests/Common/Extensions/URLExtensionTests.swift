@@ -169,9 +169,9 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(actual, expected)
     }
 
-    func testWhenParamExistsThenAddingNewValueUpdatesParam() throws {
+    func testWhenParamExistsThenAddingNewValueAppendsParam() throws {
         let url = URL(string: "http://test.com?firstParam=firstValue")
-        let expected = URL(string: "http://test.com?firstParam=newValue")
+        let expected = URL(string: "http://test.com?firstParam=firstValue&firstParam=newValue")
         let actual = try url?.appendingParameter(name: "firstParam", value: "newValue")
         XCTAssertEqual(actual, expected)
     }
