@@ -81,6 +81,11 @@ final class TLDTests: XCTestCase {
         XCTAssertEqual("co.uk", tld.domain("co.uk"))
     }
     
+    func testWhenHostIsMultiPartTLDThenDomainIsFound() {
+        XCTAssertEqual(nil, tld.domain("za"))
+        XCTAssertEqual("co.za", tld.domain("co.za"))
+    }
+    
     func testWhenHostIsIncorrectThenDomainIsNil() {
         XCTAssertNil(tld.domain("abcdefgh"))
     }
