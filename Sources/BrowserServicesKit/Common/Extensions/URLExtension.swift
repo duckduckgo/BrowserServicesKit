@@ -94,17 +94,17 @@ extension URL {
         case creatingFailed
     }
 
-    public func addParameters(_ parameters: [String: String]) throws -> URL {
+    public func appendingParameters(_ parameters: some Collection<(key: String, value: String)>) throws -> URL {
         var url = self
 
         for parameter in parameters {
-            url = try url.addParameter(name: parameter.key, value: parameter.value)
+            url = try url.appendingParameter(name: parameter.key, value: parameter.value)
         }
 
         return url
     }
 
-    public func addParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
+    public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
         
         let allowedCharacters: CharacterSet = {
@@ -121,7 +121,6 @@ extension URL {
         }
         
         var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
-        percentEncodedQueryItems.removeAll(where: { $0.name == percentEncodedName })
         percentEncodedQueryItems.append(URLQueryItem(name: percentEncodedName, value: percentEncodedValue))
         components.percentEncodedQueryItems = percentEncodedQueryItems
 
@@ -139,11 +138,7 @@ extension URL {
         return queryItem?.value
     }
 
-    public func removeParameter(name: String) -> URL {
-        return self.removeParameters(named: [name])
-    }
-
-    public func removeParameters(named parametersToRemove: Set<String>) -> URL {
+    public func removingParameters(named parametersToRemove: Set<String>) -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         guard let encodedQuery = components.percentEncodedQuery else { return self }
         components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
