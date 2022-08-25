@@ -45,7 +45,7 @@ public extension String {
         return NSRange(location: 0, length: length())
     }
 
-    func trimWhitespace() -> String {
+    func trimmingWhitespaces() -> String {
         return trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
