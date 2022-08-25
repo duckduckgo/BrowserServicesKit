@@ -74,31 +74,33 @@ public class ReferrerTrimming {
             return a?.displayName == b?.displayName
         }
         
-        guard privacyConfig.isFeature(.referrer, enabledForDomain: originUrl.host!),
-              privacyConfig.isFeature(.referrer, enabledForDomain: destUrl.host!) else {
+        guard let originHost = originUrl.host else {
             return nil
         }
-        guard let referrerUrl = referrerUrl else {
-            return nil
-        }
-        
-        guard originUrl.host != nil, originUrl.scheme != nil else {
-            return nil
-        }
-        guard destUrl.host != nil, destUrl.scheme != nil else {
+        guard let destHost = destUrl.host else {
             return nil
         }
         
-        let referEntity = trackerData.findEntity(forHost: originUrl.host!)
-        let destEntity = trackerData.findEntity(forHost: destUrl.host!)
+        guard privacyConfig.isFeature(.referrer, enabledForDomain: originHost),
+              privacyConfig.isFeature(.referrer, enabledForDomain: destHost) else {
+            return nil
+        }
+        guard let referrerUrl = referrerUrl,
+              let referrerScheme = referrerUrl.scheme,
+              let referrerHost = referrerUrl.host else {
+            return nil
+        }
+        
+        let referEntity = trackerData.findEntity(forHost: originHost)
+        let destEntity = trackerData.findEntity(forHost: destHost)
         
         var newReferrer: String?
         if !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme!)://\(referrerUrl.host!)/"
+            newReferrer = "\(referrerScheme)://\(referrerHost)/"
         }
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerUrl.scheme!)://\(tld.eTLDplus1(referrerUrl.host) ?? referrerUrl.host!)/"
+            newReferrer = "\(referrerScheme)://\(tld.eTLDplus1(referrerHost) ?? referrerHost)/"
         }
         
         return newReferrer
