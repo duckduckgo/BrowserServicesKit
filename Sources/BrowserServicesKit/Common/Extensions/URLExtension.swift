@@ -94,7 +94,7 @@ extension URL {
         case creatingFailed
     }
 
-    public func appendingParameters(_ parameters: some Collection<(key: String, value: String)>) throws -> URL {
+    public func appendingParameters<C: Collection>(_ parameters: C) throws -> URL where C.Element == (key: String, value: String) {
         var url = self
 
         for parameter in parameters {
