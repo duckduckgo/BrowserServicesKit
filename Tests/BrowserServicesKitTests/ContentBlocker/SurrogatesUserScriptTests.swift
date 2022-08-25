@@ -136,7 +136,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                privacyConfig: PrivacyConfiguration,
                                                completion: @escaping (WKWebView) -> Void) {
 
-        var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimWhitespace().isEmpty }
+        var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimmingWhitespaces().isEmpty }
         tempUnprotected.append(contentsOf: privacyConfig.exceptionsList(forFeature: .contentBlocking))
 
         let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: privacyConfig.trackerAllowlist)
