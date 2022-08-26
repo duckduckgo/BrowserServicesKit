@@ -89,7 +89,7 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
 
     public var tempList: [String] {
         let config = privacyConfigManager.privacyConfig
-        var tempUnprotected = config.tempUnprotectedDomains.filter { !$0.trimWhitespace().isEmpty }
+        var tempUnprotected = config.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         tempUnprotected.append(contentsOf: config.exceptionsList(forFeature: .contentBlocking))
         return tempUnprotected
     }
