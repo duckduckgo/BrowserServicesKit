@@ -119,7 +119,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
         guard let urlString = dict[TrackerDetectedKey.url] as? String else { return }
         guard let pageUrlStr = dict[TrackerDetectedKey.pageUrl] as? String else { return }
 
-        let tracker = trackerFromUrl(urlString.trimWhitespace(), pageUrlString: pageUrlStr, blocked)
+        let tracker = trackerFromUrl(urlString.trimmingWhitespace(), pageUrlString: pageUrlStr, blocked)
 
         if let isSurrogate = dict[TrackerDetectedKey.isSurrogate] as? Bool, isSurrogate, let host = URL(string: urlString)?.host {
             delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
