@@ -36,6 +36,7 @@ public protocol SurrogatesUserScriptConfig: UserScriptSourceProviding {
     var surrogates: String { get }
     var trackerData: TrackerData? { get }
     var encodedSurrogateTrackerData: String? { get }
+    var tld: TLD { get }
 
 }
 
@@ -45,6 +46,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     public let surrogates: String
     public let trackerData: TrackerData?
     public let encodedSurrogateTrackerData: String?
+    public let tld: TLD
 
     public let source: String
     
@@ -53,6 +55,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
                 trackerData: TrackerData?,
                 encodedSurrogateTrackerData: String?,
                 trackerDataManager: TrackerDataManager,
+                tld: TLD,
                 isDebugBuild: Bool) {
 
         if trackerData == nil {
@@ -70,6 +73,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
 
         self.privacyConfig = privacyConfig
         self.surrogates = surrogates
+        self.tld = tld
 
         source = SurrogatesUserScript.generateSource(privacyConfiguration: self.privacyConfig,
                                                      surrogates: self.surrogates,

@@ -36,6 +36,7 @@ public protocol ContentBlockerUserScriptConfig: UserScriptSourceProviding {
     var privacyConfiguration: PrivacyConfiguration { get }
     var trackerData: TrackerData? { get }
     var ctlTrackerData: TrackerData? { get }
+    var tld: TLD { get }
 }
 
 public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConfig {
@@ -43,12 +44,14 @@ public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConf
     public let privacyConfiguration: PrivacyConfiguration
     public let trackerData: TrackerData?
     public let ctlTrackerData: TrackerData?
+    public let tld: TLD
 
     public private(set) var source: String
 
     public init(privacyConfiguration: PrivacyConfiguration,
                 trackerData: TrackerData?, // This should be non-optional
                 ctlTrackerData: TrackerData?,
+                tld: TLD,
                 trackerDataManager: TrackerDataManager? = nil) {
         
         if trackerData == nil {
@@ -60,6 +63,7 @@ public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConf
 
         self.privacyConfiguration = privacyConfiguration
         self.ctlTrackerData = ctlTrackerData
+        self.tld = tld
 
         source = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)
     }
@@ -76,7 +80,6 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     }
 
     private let configuration: ContentBlockerUserScriptConfig
-    private lazy var tld = TLD()
 
     public init(configuration: ContentBlockerUserScriptConfig) {
         self.configuration = configuration
@@ -188,7 +191,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     private func topDomain(for stringURL: String) -> String? {
         guard let escapedStringURL = stringURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
         guard let host = URL(string: escapedStringURL)?.host else { return nil }
-        return tld.domain(host)
+        return configuration.tld.domain(host)
     }
 
     public static func generateSource(privacyConfiguration: PrivacyConfiguration) -> String {
