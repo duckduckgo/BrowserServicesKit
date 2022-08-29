@@ -109,7 +109,6 @@ public class AdClickAttributionLogic {
         applyRules()
     }
     
-    @MainActor
     public func onProvisionalNavigation(completion: @escaping () -> Void, currentTime: Date = Date()) {
         switch state {
         case .noAttribution:
