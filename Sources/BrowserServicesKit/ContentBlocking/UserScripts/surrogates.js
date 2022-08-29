@@ -21,17 +21,18 @@
     const duckduckgoDebugMessaging = (function () {
         let log = () => {}
         let signpostEvent = () => {}
-
+        
+        const wk = webkit || window.webkit
         if ($IS_DEBUG$) {
             signpostEvent = function signpostEvent (data) {
                 try {
-                    webkit.messageHandlers.signpostMessage.postMessage(data)
+                    wk.messageHandlers.signpostMessage.postMessage(data)
                 } catch (error) {}
             }
 
             log = function log () {
                 try {
-                    webkit.messageHandlers.log.postMessage(JSON.stringify(arguments))
+                    wk.messageHandlers.log.postMessage(JSON.stringify(arguments))
                 } catch (error) {}
             }
         }
@@ -44,7 +45,7 @@
 
     function surrogateInjected (data) {
         try {
-            webkit.messageHandlers.trackerDetectedMessage.postMessage(data)
+            (webkit || window.webkit).messageHandlers.trackerDetectedMessage.postMessage(data)
         } catch (error) {
             // webkit might not be defined
         }

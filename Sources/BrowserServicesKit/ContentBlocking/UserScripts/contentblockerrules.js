@@ -170,14 +170,14 @@
         })
     }
 
-    if (webkit.messageHandlers.processRule) {
+    if ((webkit || window.webkit).messageHandlers.processRule) {
         install()
     }
 
     function install () {
         function sendMessage (url, resourceType) {
             if (url) {
-                webkit.messageHandlers.processRule.postMessage({
+                (webkit || window.webkit).messageHandlers.processRule.postMessage({
                     url: url,
                     resourceType: resourceType === undefined ? null : resourceType,
                     blocked: !unprotectedDomain && !isTrackerAllowlisted(topLevelUrl, url),
