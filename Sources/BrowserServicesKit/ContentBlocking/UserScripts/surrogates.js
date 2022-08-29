@@ -22,17 +22,16 @@
         let log = () => {}
         let signpostEvent = () => {}
         
-        const wk = webkit || window.webkit
         if ($IS_DEBUG$) {
             signpostEvent = function signpostEvent (data) {
                 try {
-                    wk.messageHandlers.signpostMessage.postMessage(data)
+                    (webkit || window.webkit).messageHandlers.signpostMessage.postMessage(data)
                 } catch (error) {}
             }
 
             log = function log () {
                 try {
-                    wk.messageHandlers.log.postMessage(JSON.stringify(arguments))
+                    (webkit || window.webkit).messageHandlers.log.postMessage(JSON.stringify(arguments))
                 } catch (error) {}
             }
         }

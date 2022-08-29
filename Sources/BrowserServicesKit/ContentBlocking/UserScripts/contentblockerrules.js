@@ -177,12 +177,14 @@
     function install () {
         function sendMessage (url, resourceType) {
             if (url) {
-                (webkit || window.webkit).messageHandlers.processRule.postMessage({
-                    url: url,
-                    resourceType: resourceType === undefined ? null : resourceType,
-                    blocked: !unprotectedDomain && !isTrackerAllowlisted(topLevelUrl, url),
-                    pageUrl: topLevelUrl.href
-                })
+                try {
+                    (webkit || window.webkit).messageHandlers.processRule.postMessage({
+                        url: url,
+                        resourceType: resourceType === undefined ? null : resourceType,
+                        blocked: !unprotectedDomain && !isTrackerAllowlisted(topLevelUrl, url),
+                        pageUrl: topLevelUrl.href
+                    })
+                } catch (e) {}
             }
         }
 
