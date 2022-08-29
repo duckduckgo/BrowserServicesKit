@@ -37,14 +37,15 @@ public enum AllowReason: String, Codable {
 public struct DetectedRequest: Encodable {
     
     public let url: String
+    public let eTLDplus1: String?
     public let state: BlockingState
     public let ownerName: String?
     public let entityName: String?
     public let category: String?
     public let prevalence: Double?
     public let pageUrl: String
-    
-    public init(url: String, knownTracker: KnownTracker?, entity: Entity?, state: BlockingState, pageUrl: String) {
+
+    public init(url: String, eTLDplus1 incomingETLDplus1: String?, knownTracker: KnownTracker?, entity: Entity?, state: BlockingState, pageUrl: String) {
         self.url = url
         self.state = state
         self.ownerName = knownTracker?.owner?.name
@@ -52,6 +53,7 @@ public struct DetectedRequest: Encodable {
         self.category = knownTracker?.category
         self.prevalence = entity?.prevalence
         self.pageUrl = pageUrl
+        self.eTLDplus1 = incomingETLDplus1
     }
 
     public var domain: String? {

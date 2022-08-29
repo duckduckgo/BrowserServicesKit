@@ -89,6 +89,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
     }
 
     private let configuration: SurrogatesUserScriptConfig
+    private lazy var tld = TLD()
 
     public init(configuration: SurrogatesUserScriptConfig) {
         self.configuration = configuration
@@ -129,8 +130,9 @@ open class SurrogatesUserScript: NSObject, UserScript {
         let currentTrackerData = configuration.trackerData
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
         let entity = currentTrackerData?.findEntity(byName: knownTracker?.owner?.name ?? "")
+        let eTLDplus1 = self.tld.eTLDplus1(knownTracker?.domain);
 
-        return DetectedRequest(url: urlString, knownTracker: knownTracker, entity: entity, state: .blocked, pageUrl: pageUrlString)
+        return DetectedRequest(url: urlString, eTLDplus1: eTLDplus1, knownTracker: knownTracker, entity: entity, state: .blocked, pageUrl: pageUrlString)
     }
 
     private static func createSurrogateFunctions(_ surrogates: String) -> String {

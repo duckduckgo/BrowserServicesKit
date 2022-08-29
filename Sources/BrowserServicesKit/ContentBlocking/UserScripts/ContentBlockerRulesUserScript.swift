@@ -135,10 +135,10 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         
         for trackerData in additionalTDSSets {
             let resolver = TrackerResolver(tds: trackerData,
+                                           tld: tld,
                                            unprotectedSites: privacyConfiguration.userUnprotectedDomains,
                                            tempList: temporaryUnprotectedDomains,
                                            adClickAttributionVendor: currentAdClickAttributionVendor)
-            
             if let tracker = resolver.trackerFromUrl(trackerUrlString,
                                                      pageUrlString: pageUrlStr,
                                                      resourceType: resourceType,
@@ -154,6 +154,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         }
 
         let resolver = TrackerResolver(tds: currentTrackerData,
+                                       tld: tld,
                                        unprotectedSites: privacyConfiguration.userUnprotectedDomains,
                                        tempList: temporaryUnprotectedDomains)
         
@@ -172,7 +173,13 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
                   !isFirstParty(requestURL: trackerUrlString, websiteURL: pageUrlStr) else { return }
             
             let entity = currentTrackerData.findEntity(forHost: requestDomain) ?? Entity(displayName: requestDomain, domains: nil, prevalence: nil)
-            let thirdPartyRequest = DetectedRequest(url: trackerUrlString, knownTracker: nil, entity: entity, state: .allowed(reason: .otherThirdPartyRequest), pageUrl: pageUrlStr)
+            let eTLDplus1 = tld.eTLDplus1(requestDomain);
+            let thirdPartyRequest = DetectedRequest(url: trackerUrlString,
+                                                        eTLDplus1: eTLDplus1,
+                                                        knownTracker: nil,
+                                                        entity: entity,
+                                                        state: .allowed(reason: .otherThirdPartyRequest),
+                                                        pageUrl: pageUrlStr)
             delegate.contentBlockerRulesUserScript(self, detectedThirdPartyRequest: thirdPartyRequest)
         }
     }

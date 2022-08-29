@@ -26,6 +26,8 @@ import os.log
 class DomainMatchingReportTests: XCTestCase {
     private var data = JsonTestDataLoader()
 
+    public let tld = TLD()
+
     func testRegularDomainMatchingRules() throws {
         let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json")
         let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
@@ -35,7 +37,7 @@ class DomainMatchingReportTests: XCTestCase {
         let refTests = try JSONDecoder().decode(RefTests.self, from: testJSON)
         let tests = refTests.domainTests.tests
         
-        let resolver = TrackerResolver(tds: trackerData, unprotectedSites: [], tempList: [])
+        let resolver = TrackerResolver(tds: trackerData, tld: tld, unprotectedSites: [], tempList: [])
 
         for test in tests {
             
