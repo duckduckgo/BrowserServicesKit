@@ -33,8 +33,8 @@ final class DetectedRequestTests: XCTestCase {
         let entity1 = Entity(displayName: "Entity", domains: nil, prevalence: nil)
         let entity2 = Entity(displayName: "Entity", domains: [ Constants.aParentDomain ], prevalence: 1)
 
-        let tracker1 = DetectedRequest(url: Constants.aUrl, knownTracker: nil, entity: entity1, state: .blocked, pageUrl: "")
-        let tracker2 = DetectedRequest(url: Constants.anotherUrl, knownTracker: nil, entity: entity2, state: .blocked, pageUrl: "")
+        let tracker1 = DetectedRequest(url: Constants.aUrl, eTLDplus1: nil, knownTracker: nil, entity: entity1, state: .blocked, pageUrl: "")
+        let tracker2 = DetectedRequest(url: Constants.anotherUrl, eTLDplus1: nil, knownTracker: nil, entity: entity2, state: .blocked, pageUrl: "")
 
         XCTAssertEqual(tracker1.hashValue, tracker2.hashValue)
         XCTAssertEqual(tracker1, tracker2)
@@ -43,8 +43,8 @@ final class DetectedRequestTests: XCTestCase {
     func testWhenTrackerRequestsHaveSameEntityButDifferentBlockedStatusThenHashIsNotEqualAndIsEqualsIsFalse() {
         let entity = Entity(displayName: "Entity", domains: nil, prevalence: nil)
 
-        let tracker1 = DetectedRequest(url: Constants.aUrl, knownTracker: nil, entity: entity, state: .blocked, pageUrl: "")
-        let tracker2 = DetectedRequest(url: Constants.anotherUrl, knownTracker: nil, entity: entity, state: .allowed(reason: .ruleException), pageUrl: "")
+        let tracker1 = DetectedRequest(url: Constants.aUrl, eTLDplus1: nil, knownTracker: nil, entity: entity, state: .blocked, pageUrl: "")
+        let tracker2 = DetectedRequest(url: Constants.anotherUrl, eTLDplus1: nil, knownTracker: nil, entity: entity, state: .allowed(reason: .ruleException), pageUrl: "")
 
         XCTAssertNotEqual(tracker1.hashValue, tracker2.hashValue)
         XCTAssertNotEqual(tracker1, tracker2)
