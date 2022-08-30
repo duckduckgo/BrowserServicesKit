@@ -21,7 +21,7 @@
     const duckduckgoDebugMessaging = (function () {
         let log = () => {}
         let signpostEvent = () => {}
-        
+
         if ($IS_DEBUG$) {
             signpostEvent = function signpostEvent (data) {
                 try {
