@@ -25,13 +25,13 @@
         if ($IS_DEBUG$) {
             signpostEvent = function signpostEvent (data) {
                 try {
-                    (webkit || window.webkit).messageHandlers.signpostMessage.postMessage(data)
+                    webkit.messageHandlers.signpostMessage.postMessage(data)
                 } catch (error) {}
             }
 
             log = function log () {
                 try {
-                    (webkit || window.webkit).messageHandlers.log.postMessage(JSON.stringify(arguments))
+                    webkit.messageHandlers.log.postMessage(JSON.stringify(arguments))
                 } catch (error) {}
             }
         }
@@ -44,7 +44,7 @@
 
     function surrogateInjected (data) {
         try {
-            (webkit || window.webkit).messageHandlers.trackerDetectedMessage.postMessage(data)
+            webkit.messageHandlers.trackerDetectedMessage.postMessage(data)
         } catch (error) {
             // webkit might not be defined
         }
