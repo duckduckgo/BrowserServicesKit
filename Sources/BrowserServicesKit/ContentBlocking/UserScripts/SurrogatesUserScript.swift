@@ -134,7 +134,13 @@ open class SurrogatesUserScript: NSObject, UserScript {
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
         let entity = currentTrackerData?.findEntity(byName: knownTracker?.owner?.name ?? "")
 
-        return DetectedRequest(url: urlString, knownTracker: knownTracker, entity: entity, state: .blocked, pageUrl: pageUrlString)
+        let eTLDp1 = configuration.tld.eTLDplus1(forStringURL: urlString)
+        return DetectedRequest(url: urlString,
+                               eTLDplus1: eTLDp1,
+                               knownTracker: knownTracker,
+                               entity: entity,
+                               state: .blocked,
+                               pageUrl: pageUrlString)
     }
 
     private static func createSurrogateFunctions(_ surrogates: String) -> String {
