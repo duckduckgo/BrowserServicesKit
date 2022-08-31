@@ -125,7 +125,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private func isDomain(_ domain: String?, wildcardMatching domainsList: [String]) -> Bool {
         guard let domain = domain else { return false }
 
-        let trimmedDomains = domainsList.filter { !$0.trimWhitespace().isEmpty }
+        let trimmedDomains = domainsList.filter { !$0.trimmingWhitespace().isEmpty }
 
         // Break domain apart to handle www.*
         var tempDomain = domain
