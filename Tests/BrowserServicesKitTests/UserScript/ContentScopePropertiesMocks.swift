@@ -15,5 +15,6 @@ extension ContentScopeFeatureToggles {
                                                          creditCardsAutofill: true,
                                                          credentialsSaving: true,
                                                          passwordGeneration: true,
-                                                         inlineIconCredentials: true)
+                                                         inlineIconCredentials: true,
+                                                         credentialsProvider: "duckduckgo")
 }

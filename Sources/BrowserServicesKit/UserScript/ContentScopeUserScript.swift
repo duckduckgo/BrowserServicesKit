@@ -58,6 +58,8 @@ public struct ContentScopeFeatureToggles: Encodable {
     public let passwordGeneration: Bool
     
     public let inlineIconCredentials: Bool
+    // TODO: use an enum as mentioned in Asana
+    public let credentialsProvider: String
     
     // Explicitly defined memberwise init only so it can be public
     public init(emailProtection: Bool,
@@ -66,7 +68,8 @@ public struct ContentScopeFeatureToggles: Encodable {
                 creditCardsAutofill: Bool,
                 credentialsSaving: Bool,
                 passwordGeneration: Bool,
-                inlineIconCredentials: Bool) {
+                inlineIconCredentials: Bool,
+                credentialsProvider: String) {
         
         self.emailProtection = emailProtection
         self.credentialsAutofill = credentialsAutofill
@@ -75,6 +78,7 @@ public struct ContentScopeFeatureToggles: Encodable {
         self.credentialsSaving = credentialsSaving
         self.passwordGeneration = passwordGeneration
         self.inlineIconCredentials = inlineIconCredentials
+        self.credentialsProvider = credentialsProvider
     }
     
     enum CodingKeys: String, CodingKey {
@@ -89,6 +93,7 @@ public struct ContentScopeFeatureToggles: Encodable {
         case passwordGeneration = "password_generation"
         
         case inlineIconCredentials = "inlineIcon_credentials"
+        case credentialsProvider = "credentials_provider"
     }
 }
 
