@@ -103,5 +103,6 @@ public enum PrivacyFeature: String {
     case ampLinks
     case trackingParameters
     case customUserAgent
+    case referrer
     case adClickAttribution
 }

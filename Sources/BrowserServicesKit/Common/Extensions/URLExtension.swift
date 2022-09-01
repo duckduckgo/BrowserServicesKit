@@ -278,6 +278,19 @@ extension URL {
         })
         return queryItem?.value
     }
+    
+    public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
+        guard let thisHost = host else {
+            return false
+        }
+        guard let otherHost = otherUrl.host else {
+            return false
+        }
+        let thisRoot = tld.eTLDplus1(thisHost)
+        let otherRoot = tld.eTLDplus1(otherHost)
+        
+        return thisRoot != otherRoot
+    }
 
     public func removingParameters(named parametersToRemove: Set<String>) -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
