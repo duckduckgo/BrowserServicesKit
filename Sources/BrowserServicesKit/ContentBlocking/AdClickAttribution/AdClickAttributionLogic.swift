@@ -88,9 +88,11 @@ public class AdClickAttributionLogic {
         case .preparingAttribution(let vendor, let info, _):
             requestAttribution(forVendor: vendor,
                                attributionStartedAt: info.attributionStartedAt)
-        case .activeAttribution:
-            self.state = state
-            applyRules()
+        case .activeAttribution(_, let sessionInfo, _):
+            if sessionInfo.leftAttributionContextAt == nil {
+                self.state = state
+                applyRules()
+            }
         }
     }
     
