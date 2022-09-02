@@ -30,6 +30,10 @@ extension OSLog {
         Logging.passwordManagerEnabled ? Logging.passwordManagerLog : .disabled
     }
 
+    public static var remoteMessaging: OSLog {
+        Logging.remoteMessagingEnabled ? Logging.remoteMessagingLog : .disabled
+    }
+
 }
 
 struct Logging {
@@ -39,5 +43,8 @@ struct Logging {
     
     fileprivate static let passwordManagerEnabled = false
     fileprivate static let passwordManagerLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Password Manager")
+
+    fileprivate static let remoteMessagingEnabled = false
+    fileprivate static let remoteMessagingLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Remote Messaging")
 
 }
