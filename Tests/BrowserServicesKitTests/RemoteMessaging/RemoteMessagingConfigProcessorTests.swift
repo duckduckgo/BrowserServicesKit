@@ -25,7 +25,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
     private var data = JsonTestDataLoader()
 
     func testWhenNewVersionThenShouldHaveBeenProcessedAndResultReturned() throws {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config.json")
+        let jsonRemoteMessagingConfig = try decodeJson(fileName: "Resources/remote-messaging-config.json")
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
@@ -51,7 +51,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
     }
 
     func testWhenSameVersionThenNotProcessedAndResultNil() throws {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config-malformed.json")
+        let jsonRemoteMessagingConfig = try decodeJson(fileName: "Resources/remote-messaging-config-malformed.json")
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
