@@ -111,6 +111,27 @@ public class AdClickAttributionLogic {
         applyRules()
     }
     
+    public func onBackForwardNavigation(mainFrameURL: URL?) {
+        guard case .activeAttribution(let vendor, let session, let rules) = state,
+        let host = mainFrameURL?.host,
+        let currentETLDp1 = tld.eTLDplus1(host) else {
+            return
+        }
+        
+        if vendor == currentETLDp1 {
+            if session.leftAttributionContextAt != nil {
+                state = .activeAttribution(vendor: vendor,
+                                           session: SessionInfo(start: session.attributionStartedAt),
+                                           rules: rules)
+            }
+        } else if session.leftAttributionContextAt == nil {
+            state = .activeAttribution(vendor: vendor,
+                                       session: SessionInfo(start: session.attributionStartedAt,
+                                                           leftContextAt: Date()),
+                                       rules: rules)
+        }
+    }
+    
     public func onProvisionalNavigation(completion: @escaping () -> Void, currentTime: Date = Date()) {
         switch state {
         case .noAttribution:
