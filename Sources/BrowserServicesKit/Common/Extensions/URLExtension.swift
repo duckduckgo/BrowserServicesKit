@@ -146,21 +146,25 @@ extension URL {
             scheme = URL.NavigationalScheme.https.separated()
         } else if !s.contains(".") {
             return nil
+        } else if s.hasPrefix("#") {
+            return nil
         } else {
             scheme = URL.NavigationalScheme.http.separated()
             s = scheme + s
         }
 
-        let urlAndQuery = s.split(separator: "?", maxSplits: 1)
+        let urlAndHash = s.split(separator: "#", maxSplits: 1)
+        guard !urlAndHash.isEmpty else { return nil }
+        let urlAndQuery = urlAndHash[0].split(separator: "?", maxSplits: 1)
         guard !urlAndQuery.isEmpty, !urlAndQuery[0].contains(" ") else {
             return nil
         }
 
         var query = ""
+        let allowedCharacters = CharacterSet(charactersIn: "%+").union(.urlQueryParameterAllowed)
         if urlAndQuery.count > 1 {
             // escape invalid characters with %20 in query values
             // keep already encoded characters and + sign in place
-            let allowedCharacters = CharacterSet(charactersIn: "%+").union(.urlQueryParameterAllowed)
             do {
                 struct Throwable: Error {}
                 query = try "?" + urlAndQuery[1].split(separator: "&").map { component in
@@ -175,6 +179,11 @@ extension URL {
             } catch {
                 return nil
             }
+        }
+        if urlAndHash.count > 1 {
+            query += "#" + urlAndHash[1].percentEncoded(withAllowedCharacters: allowedCharacters)
+        } else if s.hasSuffix("#") {
+            query += "#"
         }
 
         let componentsWithoutQuery = urlAndQuery[0].split(separator: "/").dropFirst().map(String.init)
