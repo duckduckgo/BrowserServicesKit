@@ -159,17 +159,17 @@ extension URL {
         var query = ""
         if urlAndQuery.count > 1 {
             // escape invalid characters with %20 in query values
+            // keep already encoded characters and + sign in place
+            let allowedCharacters = CharacterSet(charactersIn: "%+").union(.urlQueryParameterAllowed)
             do {
                 struct Throwable: Error {}
                 query = try "?" + urlAndQuery[1].split(separator: "&").map { component in
                     try component.split(separator: "=", maxSplits: 1).enumerated().map { idx, component -> String in
-                        // don't allow spaces in query names
-                        guard !(idx == 0 && component.contains(" ")),
-                              let encoded = component.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed)
-                        else {
-                            throw Throwable()
-                        }
-                        return encoded
+                        // don't allow spaces in parameter names
+                        let isParameterName = (idx == 0)
+                        guard !(isParameterName && component.contains(" ")) else { throw Throwable() }
+
+                        return component.percentEncoded(withAllowedCharacters: allowedCharacters)
                     }.joined(separator: "=")
                 }.joined(separator: "&")
             } catch {
@@ -186,7 +186,7 @@ extension URL {
 
         let encodedPath = componentsWithoutQuery
             .dropFirst()
-            .map { $0.addingPercentEncoding(withAllowedCharacters: NSCharacterSet.urlPathAllowed) ?? $0 }
+            .map { $0.percentEncoded(withAllowedCharacters: .urlPathAllowed) }
             .joined(separator: "/")
 
         let hostPathSeparator = !encodedPath.isEmpty || urlAndQuery[0].hasSuffix("/") ? "/" : ""
@@ -229,51 +229,41 @@ extension URL {
 
     // MARK: - Parameters
 
-    public enum ParameterError: Error {
-        case parsingFailed
-        case encodingFailed
-        case creatingFailed
+    public func appendingParameters<C: Collection>(_ parameters: C, allowedReservedCharacters: CharacterSet? = nil) -> URL
+    where C.Element == (key: String, value: String) {
+
+        return parameters.reduce(self) { partialResult, parameter in
+            partialResult.appendingParameter(
+                name: parameter.key,
+                value: parameter.value,
+                allowedReservedCharacters: allowedReservedCharacters
+            )
+        }
     }
 
-    public func appendingParameters<C: Collection>(_ parameters: C) throws -> URL where C.Element == (key: String, value: String) {
-        var url = self
-
-        for parameter in parameters {
-            url = try url.appendingParameter(name: parameter.key, value: parameter.value)
-        }
-
-        return url
+    public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) -> URL {
+        let queryItem = URLQueryItem(percentEncodingName: name,
+                                     value: value,
+                                     withAllowedCharacters: allowedReservedCharacters)
+        return self.appending(percentEncodedQueryItem: queryItem)
     }
 
-    public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
-        
-        let allowedCharacters: CharacterSet = {
-            if let allowedReservedCharacters = allowedReservedCharacters {
-                return .urlQueryParameterAllowed.union(allowedReservedCharacters)
-            }
-            return .urlQueryParameterAllowed
-        }()
-        
-        guard let percentEncodedName = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters),
-              let percentEncodedValue = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)
-        else {
-            throw ParameterError.encodingFailed
-        }
-        
+    public func appending(percentEncodedQueryItem: URLQueryItem) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
+
         var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
-        percentEncodedQueryItems.append(URLQueryItem(name: percentEncodedName, value: percentEncodedValue))
+        percentEncodedQueryItems.append(percentEncodedQueryItem)
         components.percentEncodedQueryItems = percentEncodedQueryItems
 
-        guard let newUrl = components.url else { throw ParameterError.creatingFailed }
-        return newUrl
+        return components.url ?? self
     }
 
-    public func getParameter(name: String) throws -> String? {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
-        guard let encodedQuery = components.percentEncodedQuery else { throw ParameterError.encodingFailed }
+    public func getParameter(named name: String) -> String? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false),
+              let encodedQuery = components.percentEncodedQuery
+        else { return nil }
         components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
-        let queryItem = components.queryItems?.first(where: { (queryItem) -> Bool in
+        let queryItem = components.queryItems?.first(where: { queryItem -> Bool in
             queryItem.name == name
         })
         return queryItem?.value
@@ -294,13 +284,11 @@ extension URL {
 
     public func removingParameters(named parametersToRemove: Set<String>) -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
-        guard let encodedQuery = components.percentEncodedQuery else { return self }
-        components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
-        guard var query = components.queryItems else { return self }
 
-        query.removeAll { parametersToRemove.contains($0.name) }
+        var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+        percentEncodedQueryItems.removeAll { parametersToRemove.contains($0.name) }
+        components.percentEncodedQueryItems = percentEncodedQueryItems
 
-        components.queryItems = query
         return components.url ?? self
     }
 
@@ -315,7 +303,25 @@ fileprivate extension CharacterSet {
      * included in `CharacterSet.urlQueryAllowed` but still need to be percent-escaped.
      */
     static let urlQueryReserved = CharacterSet(charactersIn: ":/?#[]@!$&'()*+,;=")
-    
+
     static let urlQueryParameterAllowed = CharacterSet.urlQueryAllowed.subtracting(Self.urlQueryReserved)
+
+}
+
+extension URLQueryItem {
+
+    init(percentEncodingName name: String, value: String, withAllowedCharacters allowedReservedCharacters: CharacterSet? = nil) {
+        let allowedCharacters: CharacterSet = {
+            if let allowedReservedCharacters = allowedReservedCharacters {
+                return .urlQueryParameterAllowed.union(allowedReservedCharacters)
+            }
+            return .urlQueryParameterAllowed
+        }()
+
+        let percentEncodedName = name.percentEncoded(withAllowedCharacters: allowedCharacters)
+        let percentEncodedValue = value.percentEncoded(withAllowedCharacters: allowedCharacters)
+
+        self.init(name: percentEncodedName, value: percentEncodedValue)
+    }
 
 }

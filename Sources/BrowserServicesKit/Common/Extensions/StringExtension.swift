@@ -60,17 +60,6 @@ public extension String {
     func droppingWwwPrefix() -> String {
         self.dropping(prefix: "www.")
     }
-
-    // Replaces plus symbols in a string with the space character encoding
-    // Space UTF-8 encoding is 0x20
-    func encodingPlusesAsSpaces() -> String {
-        return replacingOccurrences(of: "+", with: "%20")
-    }
-    
-    func removingCharacters(in set: CharacterSet) -> String {
-      let filtered = unicodeScalars.filter { !set.contains($0) }
-      return String(String.UnicodeScalarView(filtered))
-    }
     
     func autofillNormalized() -> String {
         let autofillCharacterSet = CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters).union(.symbols)
@@ -110,12 +99,33 @@ public extension String {
 
 }
 
-// MARK: - Punycode
-extension String {
-    public var punycodeEncodedHostname: String {
+public extension StringProtocol {
+
+    // Replaces plus symbols in a string with the space character encoding
+    // Space UTF-8 encoding is 0x20
+    func encodingPlusesAsSpaces() -> String {
+        return replacingOccurrences(of: "+", with: "%20")
+    }
+
+    func percentEncoded(withAllowedCharacters allowedCharacters: CharacterSet) -> String {
+        if let percentEncoded = self.addingPercentEncoding(withAllowedCharacters: allowedCharacters) {
+            return percentEncoded
+        }
+        assertionFailure("Unexpected failure")
+        return components(separatedBy: allowedCharacters.inverted).joined()
+    }
+
+    func removingCharacters(in set: CharacterSet) -> String {
+        let filtered = unicodeScalars.filter { !set.contains($0) }
+        return String(String.UnicodeScalarView(filtered))
+    }
+
+    // MARK: Punycode
+    var punycodeEncodedHostname: String {
         return self.split(separator: ".")
             .map { String($0) }
             .map { $0.idnaEncoded ?? $0 }
             .joined(separator: ".")
     }
+
 }
