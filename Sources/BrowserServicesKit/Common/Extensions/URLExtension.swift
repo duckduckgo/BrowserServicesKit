@@ -161,7 +161,6 @@ extension URL {
         }
 
         var query = ""
-        let allowedCharacters = CharacterSet(charactersIn: "%+").union(.urlQueryParameterAllowed)
         if urlAndQuery.count > 1 {
             // escape invalid characters with %20 in query values
             // keep already encoded characters and + sign in place
@@ -173,15 +172,17 @@ extension URL {
                         let isParameterName = (idx == 0)
                         guard !(isParameterName && component.contains(" ")) else { throw Throwable() }
 
-                        return component.percentEncoded(withAllowedCharacters: allowedCharacters)
+                        return component.percentEncoded(withAllowedCharacters: .urlQueryStringAllowed)
                     }.joined(separator: "=")
                 }.joined(separator: "&")
             } catch {
                 return nil
             }
+        } else if urlAndHash[0].hasSuffix("?") {
+            query = "?"
         }
         if urlAndHash.count > 1 {
-            query += "#" + urlAndHash[1].percentEncoded(withAllowedCharacters: allowedCharacters)
+            query += "#" + urlAndHash[1].percentEncoded(withAllowedCharacters: .urlQueryStringAllowed)
         } else if s.hasSuffix("#") {
             query += "#"
         }
@@ -314,6 +315,7 @@ fileprivate extension CharacterSet {
     static let urlQueryReserved = CharacterSet(charactersIn: ":/?#[]@!$&'()*+,;=")
 
     static let urlQueryParameterAllowed = CharacterSet.urlQueryAllowed.subtracting(Self.urlQueryReserved)
+    static let urlQueryStringAllowed = CharacterSet(charactersIn: "%+?").union(.urlQueryParameterAllowed)
 
 }
 

@@ -168,8 +168,34 @@ final class URLExtensionTests: XCTestCase {
     }
 
     func testWhenURLParametersModifiedWithInvalidCharactersThenParametersArePercentEscaped() {
-        XCTAssertEqual(URL(trimmedAddressBarString: "https://www.duckduckgo.com/html?q=a%20search with+space+and%25plus&ia=calculator")!.absoluteString,
-                       "https://www.duckduckgo.com/html?q=a%20search%20with+space+and%25plus&ia=calculator")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://www.duckduckgo.com/html?q=a%20search with+space?+and%25plus&ia=calculator")!.absoluteString,
+                       "https://www.duckduckgo.com/html?q=a%20search%20with+space?+and%25plus&ia=calculator")
+    }
+
+    func testWhenURLWithEmptyQueryIsFixedUpThenQuestionCharIsKept() {
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/?")!.absoluteString,
+                       "https://duckduckgo.com/?")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com?")!.absoluteString,
+                       "https://duckduckgo.com?")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https:/duckduckgo.com/?")!.absoluteString,
+                       "https://duckduckgo.com/?")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https:/duckduckgo.com?")!.absoluteString,
+                       "https://duckduckgo.com?")
+    }
+
+    func testWhenURLWithHashIsFixedUpThenHashIsCorrectlyEscaped() {
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?q=a b#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/html?q=a%20b#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/html#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?q#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/html?q#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?#hash with? #")!.absoluteString,
+                       "https://duckduckgo.com/html?#hash%20with?%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?q=a b#")!.absoluteString,
+                       "https://duckduckgo.com/html?q=a%20b#")
     }
 
     func testWhenPunycodeUrlIsCalledWithEncodedUrlsThenUrlIsReturned() {
