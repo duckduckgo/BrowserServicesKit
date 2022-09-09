@@ -153,6 +153,27 @@ extension URL {
             s = scheme + s
         }
 
+        guard let (urlPart, query) = Self.fixupAndSplitURLString(s) else { return nil }
+
+        let componentsWithoutQuery = urlPart.split(separator: "/").dropFirst().map(String.init)
+        guard !componentsWithoutQuery.isEmpty else {
+            return nil
+        }
+
+        let host = componentsWithoutQuery[0].punycodeEncodedHostname
+
+        let encodedPath = componentsWithoutQuery
+            .dropFirst()
+            .map { $0.percentEncoded(withAllowedCharacters: .urlPathAllowed) }
+            .joined(separator: "/")
+
+        let hostPathSeparator = !encodedPath.isEmpty || urlPart.hasSuffix("/") ? "/" : ""
+        let url = scheme + host + hostPathSeparator + encodedPath + query
+
+        self.init(string: url)
+    }
+
+    private static func fixupAndSplitURLString(_ s: String) -> (urlPart: String.SubSequence, query: String)? {
         let urlAndHash = s.split(separator: "#", maxSplits: 1)
         guard !urlAndHash.isEmpty else { return nil }
         let urlAndQuery = urlAndHash[0].split(separator: "?", maxSplits: 1)
@@ -187,22 +208,7 @@ extension URL {
             query += "#"
         }
 
-        let componentsWithoutQuery = urlAndQuery[0].split(separator: "/").dropFirst().map(String.init)
-        guard !componentsWithoutQuery.isEmpty else {
-            return nil
-        }
-
-        let host = componentsWithoutQuery[0].punycodeEncodedHostname
-
-        let encodedPath = componentsWithoutQuery
-            .dropFirst()
-            .map { $0.percentEncoded(withAllowedCharacters: .urlPathAllowed) }
-            .joined(separator: "/")
-
-        let hostPathSeparator = !encodedPath.isEmpty || urlAndQuery[0].hasSuffix("/") ? "/" : ""
-        let url = scheme + host + hostPathSeparator + encodedPath + query
-
-        self.init(string: url)
+        return (urlAndQuery[0], query)
     }
     
     public func replacing(host: String?) -> URL? {
