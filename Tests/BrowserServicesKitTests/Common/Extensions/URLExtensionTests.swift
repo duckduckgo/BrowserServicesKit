@@ -19,6 +19,7 @@
 import XCTest
 @testable import BrowserServicesKit
 
+// swiftlint:disable line_length
 final class URLExtensionTests: XCTestCase {
 
     func test_external_urls_are_valid() {
