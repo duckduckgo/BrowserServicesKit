@@ -62,7 +62,7 @@ public class AdClickAttributionFeature: AdClickAttributing {
             for linkFormat in linkFormats[domain] ?? [] where linkFormat.url.host == domain && url.path == linkFormat.url.path {
 
                 if let parameterMatching = linkFormat.adDomainParameterName,
-                   (try? url.getParameter(name: parameterMatching)) != nil {
+                   url.getParameter(named: parameterMatching) != nil {
                     return linkFormat
                 } else if linkFormat.matcher?.matches(url) ?? false {
                     return linkFormat
@@ -71,7 +71,7 @@ public class AdClickAttributionFeature: AdClickAttributing {
             return nil
         }
     }
-    
+
     enum Constants {
         static let linkFormatsSettingsKey = "linkFormats"
         static let allowlistSettingsKey = "allowlist"
@@ -203,7 +203,7 @@ public class AdClickAttributionFeature: AdClickAttributing {
         }
         
         override func matches(_ url: URL) -> Bool {
-            return (try? url.getParameter(name: paramName)) != nil
+            return url.getParameter(named: paramName) != nil
         }
     }
     
@@ -217,7 +217,7 @@ public class AdClickAttributionFeature: AdClickAttributing {
         }
         
         override func matches(_ url: URL) -> Bool {
-            guard let value = (try? url.getParameter(name: paramName)) else {
+            guard let value = url.getParameter(named: paramName) else {
                 return false
             }
             return value == paramValue
