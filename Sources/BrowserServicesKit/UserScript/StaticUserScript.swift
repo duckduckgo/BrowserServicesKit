@@ -53,7 +53,7 @@ public extension StaticUserScript {
     }
 
     static func makeWKUserScript() -> WKUserScript {
-        return self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
+        return self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, requiresRunInPageContentWorld: requiresRunInPageContentWorld)
     }
 
 }
