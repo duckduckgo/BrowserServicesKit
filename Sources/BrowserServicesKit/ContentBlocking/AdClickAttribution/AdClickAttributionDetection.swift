@@ -67,7 +67,7 @@ public class AdClickAttributionDetection {
         var vendorDomain: String?
         if attributionFeature.isDomainDetectionEnabled,
            let adDomainParameterName = attributionFeature.attributionDomainParameterName(for: url),
-           let domainFromParameter = try? url.getParameter(name: adDomainParameterName),
+           let domainFromParameter = url.getParameter(named: adDomainParameterName),
            !domainFromParameter.isEmpty {
             
             if let eTLDp1 = tld.eTLDplus1(domainFromParameter)?.lowercased() {

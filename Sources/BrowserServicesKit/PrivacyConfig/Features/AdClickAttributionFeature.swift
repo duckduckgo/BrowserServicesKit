@@ -60,14 +60,14 @@ public class AdClickAttributionFeature: AdClickAttributing {
             for linkFormat in linkFormats[domain] ?? [] where linkFormat.url.host == domain && url.path == linkFormat.url.path {
 
                 if let parameterMatching = linkFormat.adDomainParameterName,
-                   (try? url.getParameter(name: parameterMatching)) != nil {
+                   url.getParameter(named: parameterMatching) != nil {
                     return linkFormat
                 }
             }
             return nil
         }
     }
-    
+
     enum Constants {
         static let linkFormatsSettingsKey = "linkFormats"
         static let allowlistSettingsKey = "allowlist"

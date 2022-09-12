@@ -19,6 +19,7 @@
 import XCTest
 @testable import BrowserServicesKit
 
+// swiftlint:disable line_length
 final class URLExtensionTests: XCTestCase {
 
     func test_external_urls_are_valid() {
@@ -65,42 +66,42 @@ final class URLExtensionTests: XCTestCase {
     }
 
     func testWhenAddParameterIsCalled_ThenItDoesNotChangeExistingURL() {
-        let url = URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica")!
+        let url = URL(string: "https://duckduckgo.com/?q=Battle%20star+Galactica%25a")!
 
         XCTAssertEqual(
-            try url.appendingParameter(name: "ia", value: "web"),
-            URL(string: "https://duckduckgo.com/?q=Battlestar+Galactica&ia=web")!
+            url.appendingParameter(name: "ia", value: "web"),
+            URL(string: "https://duckduckgo.com/?q=Battle%20star+Galactica%25a&ia=web")!
         )
     }
 
     func testWhenAddParameterIsCalled_ThenItEncodesRFC3986QueryReservedCharactersInTheParameter() {
         let url = URL(string: "https://duck.com/")!
 
-        XCTAssertEqual(try url.appendingParameter(name: ":", value: ":"), URL(string: "https://duck.com/?%3A=%3A")!)
-        XCTAssertEqual(try url.appendingParameter(name: "/", value: "/"), URL(string: "https://duck.com/?%2F=%2F")!)
-        XCTAssertEqual(try url.appendingParameter(name: "?", value: "?"), URL(string: "https://duck.com/?%3F=%3F")!)
-        XCTAssertEqual(try url.appendingParameter(name: "#", value: "#"), URL(string: "https://duck.com/?%23=%23")!)
-        XCTAssertEqual(try url.appendingParameter(name: "[", value: "["), URL(string: "https://duck.com/?%5B=%5B")!)
-        XCTAssertEqual(try url.appendingParameter(name: "]", value: "]"), URL(string: "https://duck.com/?%5D=%5D")!)
-        XCTAssertEqual(try url.appendingParameter(name: "@", value: "@"), URL(string: "https://duck.com/?%40=%40")!)
-        XCTAssertEqual(try url.appendingParameter(name: "!", value: "!"), URL(string: "https://duck.com/?%21=%21")!)
-        XCTAssertEqual(try url.appendingParameter(name: "$", value: "$"), URL(string: "https://duck.com/?%24=%24")!)
-        XCTAssertEqual(try url.appendingParameter(name: "&", value: "&"), URL(string: "https://duck.com/?%26=%26")!)
-        XCTAssertEqual(try url.appendingParameter(name: "'", value: "'"), URL(string: "https://duck.com/?%27=%27")!)
-        XCTAssertEqual(try url.appendingParameter(name: "(", value: "("), URL(string: "https://duck.com/?%28=%28")!)
-        XCTAssertEqual(try url.appendingParameter(name: ")", value: ")"), URL(string: "https://duck.com/?%29=%29")!)
-        XCTAssertEqual(try url.appendingParameter(name: "*", value: "*"), URL(string: "https://duck.com/?%2A=%2A")!)
-        XCTAssertEqual(try url.appendingParameter(name: "+", value: "+"), URL(string: "https://duck.com/?%2B=%2B")!)
-        XCTAssertEqual(try url.appendingParameter(name: ",", value: ","), URL(string: "https://duck.com/?%2C=%2C")!)
-        XCTAssertEqual(try url.appendingParameter(name: ";", value: ";"), URL(string: "https://duck.com/?%3B=%3B")!)
-        XCTAssertEqual(try url.appendingParameter(name: "=", value: "="), URL(string: "https://duck.com/?%3D=%3D")!)
+        XCTAssertEqual(url.appendingParameter(name: ":", value: ":"), URL(string: "https://duck.com/?%3A=%3A")!)
+        XCTAssertEqual(url.appendingParameter(name: "/", value: "/"), URL(string: "https://duck.com/?%2F=%2F")!)
+        XCTAssertEqual(url.appendingParameter(name: "?", value: "?"), URL(string: "https://duck.com/?%3F=%3F")!)
+        XCTAssertEqual(url.appendingParameter(name: "#", value: "#"), URL(string: "https://duck.com/?%23=%23")!)
+        XCTAssertEqual(url.appendingParameter(name: "[", value: "["), URL(string: "https://duck.com/?%5B=%5B")!)
+        XCTAssertEqual(url.appendingParameter(name: "]", value: "]"), URL(string: "https://duck.com/?%5D=%5D")!)
+        XCTAssertEqual(url.appendingParameter(name: "@", value: "@"), URL(string: "https://duck.com/?%40=%40")!)
+        XCTAssertEqual(url.appendingParameter(name: "!", value: "!"), URL(string: "https://duck.com/?%21=%21")!)
+        XCTAssertEqual(url.appendingParameter(name: "$", value: "$"), URL(string: "https://duck.com/?%24=%24")!)
+        XCTAssertEqual(url.appendingParameter(name: "&", value: "&"), URL(string: "https://duck.com/?%26=%26")!)
+        XCTAssertEqual(url.appendingParameter(name: "'", value: "'"), URL(string: "https://duck.com/?%27=%27")!)
+        XCTAssertEqual(url.appendingParameter(name: "(", value: "("), URL(string: "https://duck.com/?%28=%28")!)
+        XCTAssertEqual(url.appendingParameter(name: ")", value: ")"), URL(string: "https://duck.com/?%29=%29")!)
+        XCTAssertEqual(url.appendingParameter(name: "*", value: "*"), URL(string: "https://duck.com/?%2A=%2A")!)
+        XCTAssertEqual(url.appendingParameter(name: "+", value: "+"), URL(string: "https://duck.com/?%2B=%2B")!)
+        XCTAssertEqual(url.appendingParameter(name: ",", value: ","), URL(string: "https://duck.com/?%2C=%2C")!)
+        XCTAssertEqual(url.appendingParameter(name: ";", value: ";"), URL(string: "https://duck.com/?%3B=%3B")!)
+        XCTAssertEqual(url.appendingParameter(name: "=", value: "="), URL(string: "https://duck.com/?%3D=%3D")!)
     }
 
     func testWhenAddParameterIsCalled_ThenItAllowsUnescapedReservedCharactersAsSpecified() {
         let url = URL(string: "https://duck.com/")!
 
         XCTAssertEqual(
-            try url.appendingParameter(
+            url.appendingParameter(
                 name: "domains",
                 value: "test.com,example.com/test,localhost:8000/api",
                 allowedReservedCharacters: .init(charactersIn: ",:")
@@ -167,6 +168,37 @@ final class URLExtensionTests: XCTestCase {
         }
     }
 
+    func testWhenURLParametersModifiedWithInvalidCharactersThenParametersArePercentEscaped() {
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://www.duckduckgo.com/html?q=a%20search with+space?+and%25plus&ia=calculator")!.absoluteString,
+                       "https://www.duckduckgo.com/html?q=a%20search%20with+space?+and%25plus&ia=calculator")
+    }
+
+    func testWhenURLWithEmptyQueryIsFixedUpThenQuestionCharIsKept() {
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/?")!.absoluteString,
+                       "https://duckduckgo.com/?")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com?")!.absoluteString,
+                       "https://duckduckgo.com?")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https:/duckduckgo.com/?")!.absoluteString,
+                       "https://duckduckgo.com/?")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https:/duckduckgo.com?")!.absoluteString,
+                       "https://duckduckgo.com?")
+    }
+
+    func testWhenURLWithHashIsFixedUpThenHashIsCorrectlyEscaped() {
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?q=a b#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/html?q=a%20b#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/html#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?q#hash with #")!.absoluteString,
+                       "https://duckduckgo.com/html?q#hash%20with%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?#hash with? #")!.absoluteString,
+                       "https://duckduckgo.com/html?#hash%20with?%20%23")
+        XCTAssertEqual(URL(trimmedAddressBarString: "https://duckduckgo.com/html?q=a b#")!.absoluteString,
+                       "https://duckduckgo.com/html?q=a%20b#")
+    }
+
     func testWhenPunycodeUrlIsCalledWithEncodedUrlsThenUrlIsReturned() {
         XCTAssertEqual("http://xn--ls8h.la", "💩.la".decodedURL?.absoluteString)
         XCTAssertEqual("http://xn--ls8h.la/", "💩.la/".decodedURL?.absoluteString)
@@ -183,13 +215,13 @@ final class URLExtensionTests: XCTestCase {
     func testWhenParamExistsThengetParameterReturnsCorrectValue() throws {
         let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
         let expected = "secondValue"
-        let actual = try url?.getParameter(name: "secondParam")
+        let actual = url?.getParameter(named: "secondParam")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamDoesNotExistThengetParameterIsNil() throws {
         let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
-        let result = try url?.getParameter(name: "someOtherParam")
+        let result = url?.getParameter(named: "someOtherParam")
         XCTAssertNil(result)
     }
 
@@ -206,9 +238,9 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(actual, url)
     }
 
-    func testWhenRemovingAParamThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces_bugFix() {
+    func testWhenRemovingAParamThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces() {
         let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")
-        let expected = URL(string: "http://test.com?secondParam=45%20+%205")
+        let expected = URL(string: "http://test.com?secondParam=45+%2B+5")
         let actual = url?.removeParameter(name: "firstParam")
         XCTAssertEqual(actual, expected)
     }
@@ -232,38 +264,38 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(actual, url)
     }
 
-    func testWhenRemovingParamsThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces_bugFix() {
+    func testWhenRemovingParamsThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces() {
         let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")
-        let expected = URL(string: "http://test.com?secondParam=45%20+%205")
+        let expected = URL(string: "http://test.com?secondParam=45+%2B+5")
         let actual = url?.removingParameters(named: ["firstParam"])
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenNoParamsThenAddingAppendsQuery() throws {
-        let url = URL(string: "http://test.com")
-        let expected = URL(string: "http://test.com?aParam=aValue")
-        let actual = try url?.appendingParameter(name: "aParam", value: "aValue")
+        let url = URL(string: "http://test.com")!
+        let expected = URL(string: "http://test.com?aParam=aValue")!
+        let actual = url.appendingParameter(name: "aParam", value: "aValue")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamDoesNotExistThenAddingParamAppendsItToExistingQuery() throws {
-        let url = URL(string: "http://test.com?firstParam=firstValue")
-        let expected = URL(string: "http://test.com?firstParam=firstValue&anotherParam=anotherValue")
-        let actual = try url?.appendingParameter(name: "anotherParam", value: "anotherValue")
+        let url = URL(string: "http://test.com?firstParam=firstValue")!
+        let expected = URL(string: "http://test.com?firstParam=firstValue&anotherParam=anotherValue")!
+        let actual = url.appendingParameter(name: "anotherParam", value: "anotherValue")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamHasInvalidCharactersThenAddingParamAppendsEncodedVersion() throws {
-        let url = URL(string: "http://test.com")
-        let expected = URL(string: "http://test.com?aParam=43%20%2B%205")
-        let actual = try url?.appendingParameter(name: "aParam", value: "43 + 5")
+        let url = URL(string: "http://test.com")!
+        let expected = URL(string: "http://test.com?aParam=43%20%2B%205")!
+        let actual = url.appendingParameter(name: "aParam", value: "43 + 5")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamExistsThenAddingNewValueAppendsParam() throws {
-        let url = URL(string: "http://test.com?firstParam=firstValue")
-        let expected = URL(string: "http://test.com?firstParam=firstValue&firstParam=newValue")
-        let actual = try url?.appendingParameter(name: "firstParam", value: "newValue")
+        let url = URL(string: "http://test.com?firstParam=firstValue")!
+        let expected = URL(string: "http://test.com?firstParam=firstValue&firstParam=newValue")!
+        let actual = url.appendingParameter(name: "firstParam", value: "newValue")
         XCTAssertEqual(actual, expected)
     }
 
