@@ -53,7 +53,8 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
     func testSplitWithSingleTrackerNameShouldMakeOriginalTrackerListEmptyAndAttributionTrackerListEqualToOriginalListBeforeStripping() {
         // given
         let allowlistedTrackerNames = ["example.com"]
-        let trackerData = TrackerData(trackers: ["example.com": makeKnownTracker(withName: "example.com")],
+        let trackerData = TrackerData(trackers: ["example.com": makeKnownTracker(withName: "example.com",
+                                                                                 ownerName: "Example")],
                                       entities: ["Example": makeEntity(withName: "Example", domains: ["example.com"])],
                                       domains: ["example.com": "Example"],
                                       cnames: nil)
@@ -131,10 +132,10 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
         
     }
 
-    private func makeKnownTracker(withName name: String, ownerName: String? = nil) -> KnownTracker {
+    private func makeKnownTracker(withName name: String, ownerName: String) -> KnownTracker {
         KnownTracker(domain: name,
                      defaultAction: .block,
-                     owner: ownerName != nil ? .init(name: ownerName!, displayName: ownerName!) : nil,
+                     owner: .init(name: ownerName, displayName: ownerName),
                      prevalence: 5.0,
                      subdomains: nil,
                      categories: nil,
