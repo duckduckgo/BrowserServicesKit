@@ -18,6 +18,9 @@
 //
 
 import WebKit
+import os
+
+// swiftlint:disable file_length
 
 public enum RequestVaultCredentialsAction: String, Codable {
     case none
@@ -36,8 +39,9 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void)
-    
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
+                            subType: AutofillUserScript.GetAutofillDataSubType,
+                            trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void)
     
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
@@ -265,6 +269,7 @@ extension AutofillUserScript {
         let password: String
     }
 
+    // GetAutofillDataResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.result.json
     // swiftlint:disable nesting
     struct RequestVaultCredentialsForDomainResponse: Codable {
 
@@ -320,21 +325,44 @@ extension AutofillUserScript {
             }
         }
     }
+
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
+    struct GetAutofillDataRequest: Codable {
+        let mainType: GetAutofillDataMainType
+        let subType: GetAutofillDataSubType
+        let trigger: GetTriggerType
+    }
+
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
+    public enum GetAutofillDataMainType: String, Codable {
+        // only 'credentials' is currently supported
+        case credentials
+    }
+
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
+    public enum GetAutofillDataSubType: String, Codable {
+        case username
+        case password
+    }
     
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
+    public enum GetTriggerType: String, Codable {
+        case userInitiated
+        case autoprompt
+    }
+
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
     func getAutofillData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        guard let body = message.messageBody as? [String: Any],
-              let mainType = body["mainType"] as? String else {
+        guard let request: GetAutofillDataRequest = DecodableHelper.decode(from: message.messageBody) else {
             return
         }
-        if mainType == "credentials" {
-            let domain = hostForMessage(message)
-            
-            vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain) { credentials, action in
-                let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action)
-                
-                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                    replyHandler(jsonString)
-                }
+
+        let domain = hostForMessage(message)
+        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, subType: request.subType, trigger: request.trigger) { credentials, action in
+            let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action)
+
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
             }
         }
     }
@@ -470,3 +498,5 @@ extension AutofillUserScript {
     }
 
 }
+
+// swiftlint:enable file_length

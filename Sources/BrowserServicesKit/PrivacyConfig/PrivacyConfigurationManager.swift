@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Combine
 
 public protocol EmbeddedDataProvider {
 
@@ -25,7 +26,13 @@ public protocol EmbeddedDataProvider {
     var embeddedData: Data { get }
 }
 
-public class PrivacyConfigurationManager {
+public protocol PrivacyConfigurationManaging {
+    
+    var updatesPublisher: AnyPublisher<Void, Never> { get }
+    var privacyConfig: PrivacyConfiguration { get }
+}
+
+public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     
     public enum ReloadResult: Equatable {
         case embedded
@@ -42,6 +49,11 @@ public class PrivacyConfigurationManager {
     private let lock = NSLock()
     private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
+    
+    private let updatesSubject = PassthroughSubject<Void, Never>()
+    public var updatesPublisher: AnyPublisher<Void, Never> {
+        updatesSubject.eraseToAnyPublisher()
+    }
     
     private var _fetchedConfigData: ConfigurationData?
     private(set) public var fetchedConfigData: ConfigurationData? {
@@ -119,6 +131,8 @@ public class PrivacyConfigurationManager {
 
     @discardableResult
     public func reload(etag: String?, data: Data?) -> ReloadResult {
+        
+        defer { self.updatesSubject.send() }
         
         let result: ReloadResult
         

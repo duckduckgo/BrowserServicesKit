@@ -27,16 +27,16 @@ extension ContentBlockerRulesManager {
     /**
      Encapsulates compilation steps for a single Task
      */
-    class CompilationTask {
-        typealias Completion = (_ success: Bool) -> Void
+    internal class CompilationTask {
+        typealias Completion = (_ task: CompilationTask, _ success: Bool) -> Void
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
         let logger: OSLog
 
-        var completed: Bool { result != nil || compilationImpossible }
-        var compilationImpossible = false
-        var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
+        var isCompleted: Bool { result != nil || compilationImpossible }
+        private(set) var compilationImpossible = false
+        private(set) var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
 
         init(workQueue: DispatchQueue,
              rulesList: ContentBlockerRulesList,
@@ -48,11 +48,18 @@ extension ContentBlockerRulesManager {
             self.logger = logger
         }
 
-        func start(completionHandler: @escaping Completion) {
+        func start(ignoreCache: Bool = false, completionHandler: @escaping Completion) {
             self.workQueue.async {
                 guard let model = self.sourceManager.makeModel() else {
                     self.compilationImpossible = true
-                    completionHandler(false)
+                    completionHandler(self, false)
+                    return
+                }
+
+                guard !ignoreCache else {
+                    self.workQueue.async {
+                        self.compile(model: model, completionHandler: completionHandler)
+                    }
                     return
                 }
 
@@ -61,7 +68,7 @@ extension ContentBlockerRulesManager {
                     let identifier = model.rulesIdentifier.stringValue
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
-                            self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
+                            self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
                         } else {
                             self.workQueue.async {
                                 self.compile(model: model, completionHandler: completionHandler)
@@ -72,12 +79,12 @@ extension ContentBlockerRulesManager {
             }
         }
 
-        private func compilationSucceded(with compiledRulesList: WKContentRuleList,
-                                         model: ContentBlockerRulesSourceModel,
-                                         completionHandler: @escaping Completion) {
+        private func compilationSucceeded(with compiledRulesList: WKContentRuleList,
+                                          model: ContentBlockerRulesSourceModel,
+                                          completionHandler: @escaping Completion) {
             workQueue.async {
                 self.result = (compiledRulesList, model)
-                completionHandler(true)
+                completionHandler(self, true)
             }
         }
 
@@ -98,7 +105,7 @@ extension ContentBlockerRulesManager {
                     self.compile(model: newModel, completionHandler: completionHandler)
                 } else {
                     self.compilationImpossible = true
-                    completionHandler(false)
+                    completionHandler(self, false)
                 }
             }
         }
@@ -120,17 +127,19 @@ extension ContentBlockerRulesManager {
                 compilationFailed(for: model, with: error, completionHandler: completionHandler)
                 return
             }
-
+            
             let ruleList = String(data: data, encoding: .utf8)!
-            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
-                                                                    encodedContentRuleList: ruleList) { ruleList, error in
-
-                if let ruleList = ruleList {
-                    self.compilationSucceded(with: ruleList, model: model, completionHandler: completionHandler)
-                } else if let error = error {
-                    self.compilationFailed(for: model, with: error, completionHandler: completionHandler)
-                } else {
-                    assertionFailure("Rule list has not been returned properly by the engine")
+            DispatchQueue.main.async {
+                WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
+                                                                        encodedContentRuleList: ruleList) { ruleList, error in
+                    
+                    if let ruleList = ruleList {
+                        self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                    } else if let error = error {
+                        self.compilationFailed(for: model, with: error, completionHandler: completionHandler)
+                    } else {
+                        assertionFailure("Rule list has not been returned properly by the engine")
+                    }
                 }
             }
         }

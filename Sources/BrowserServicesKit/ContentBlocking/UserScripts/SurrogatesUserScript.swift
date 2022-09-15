@@ -25,7 +25,7 @@ public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     
     func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool
     func surrogatesUserScript(_ script: SurrogatesUserScript,
-                              detectedTracker tracker: DetectedTracker,
+                              detectedTracker tracker: DetectedRequest,
                               withSurrogate host: String)
 
 }
@@ -119,17 +119,18 @@ open class SurrogatesUserScript: NSObject, UserScript {
         guard let urlString = dict[TrackerDetectedKey.url] as? String else { return }
         guard let pageUrlStr = dict[TrackerDetectedKey.pageUrl] as? String else { return }
 
-        let tracker = trackerFromUrl(urlString.trimWhitespace(), pageUrlString: pageUrlStr, blocked)
+        let tracker = trackerFromUrl(urlString.trimmingWhitespace(), pageUrlString: pageUrlStr, blocked)
 
         if let isSurrogate = dict[TrackerDetectedKey.isSurrogate] as? Bool, isSurrogate, let host = URL(string: urlString)?.host {
             delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
         }
     }
-    private func trackerFromUrl(_ urlString: String, pageUrlString: String, _ blocked: Bool) -> DetectedTracker {
+    private func trackerFromUrl(_ urlString: String, pageUrlString: String, _ blocked: Bool) -> DetectedRequest {
         let currentTrackerData = configuration.trackerData
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
         let entity = currentTrackerData?.findEntity(byName: knownTracker?.owner?.name ?? "")
-        return DetectedTracker(url: urlString, knownTracker: knownTracker, entity: entity, blocked: blocked, pageUrl: pageUrlString)
+
+        return DetectedRequest(url: urlString, knownTracker: knownTracker, entity: entity, state: .blocked, pageUrl: pageUrlString)
     }
 
     private static func createSurrogateFunctions(_ surrogates: String) -> String {

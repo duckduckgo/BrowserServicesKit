@@ -85,7 +85,9 @@ final public class UserContentController: WKUserContentController {
     private func installContentRuleLists(_ contentRuleLists: [String: WKContentRuleList]) {
         guard self.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking) else { return }
 
-        contentRuleLists.values.forEach(self.add)
+        for list in contentRuleLists.values {
+            super.add(list)
+        }
     }
 
     public struct ContentRulesNotFoundError: Error {}
@@ -93,7 +95,7 @@ final public class UserContentController: WKUserContentController {
         guard let ruleList = self.contentBlockingAssets?.contentRuleLists[identifier] else {
             throw ContentRulesNotFoundError()
         }
-        self.add(ruleList)
+        super.add(ruleList)
     }
 
     public func disableContentRuleList(withIdentifier identifier: String) {
@@ -101,7 +103,30 @@ final public class UserContentController: WKUserContentController {
             assertionFailure("Rule list not installed")
             return
         }
-        self.remove(ruleList)
+        super.remove(ruleList)
+    }
+
+    private(set) var currentAttributedRulesList: WKContentRuleList?
+    public func replaceAttributedList(with list: WKContentRuleList?) {
+        if let current = currentAttributedRulesList {
+            super.remove(current)
+        }
+
+        if let list = list {
+            super.add(list)
+        }
+
+        currentAttributedRulesList = list
+    }
+
+    public override func add(_ contentRuleList: WKContentRuleList) {
+        assertionFailure("List should be managed through custom UserContentController API")
+        super.add(contentRuleList)
+    }
+
+    public override func remove(_ contentRuleList: WKContentRuleList) {
+        assertionFailure("List should be managed through custom UserContentController API")
+        super.remove(contentRuleList)
     }
 
     private func installUserScripts(_ userScripts: UserScriptsProvider) {
