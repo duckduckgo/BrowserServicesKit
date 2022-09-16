@@ -68,7 +68,9 @@ final public class UserContentController: WKUserContentController {
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
 
-        cancellable = assetsPublisher.receive(on: DispatchQueue.main).map { $0 }.assign(to: \.contentBlockingAssets, on: self) // TODO: onWeaklyHeld
+        cancellable = assetsPublisher.receive(on: DispatchQueue.main)
+            .map { $0 }
+            .assign(to: \.contentBlockingAssets, onWeaklyHeld: self)
 
 #if DEBUG
         // make sure delegate for UserScripts is set shortly after init
