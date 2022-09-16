@@ -1250,8 +1250,3 @@ extension ContentBlockerRulesManager {
     }
 
 }
-
-
-// swiftlint:enable identifier_name
-// swiftlint:enable function_body_length
-// swiftlint:enable file_length

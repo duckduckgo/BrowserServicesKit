@@ -22,6 +22,9 @@ import TrackerRadarKit
 import BrowserServicesKit
 import WebKit
 
+// swiftlint:disable type_body_length
+// swiftlint:disable line_length
+// swiftlint:disable unused_closure_parameter
 class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTests {
     
     let firstRules = """

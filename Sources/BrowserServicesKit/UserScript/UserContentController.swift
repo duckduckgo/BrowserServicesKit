@@ -35,7 +35,7 @@ final public class UserContentController: WKUserContentController {
         public let userScripts: UserScriptsProvider
         public let updateEvent: ContentBlockerRulesManager.UpdateEvent
 
-        public init(contentRuleLists: [String : WKContentRuleList],
+        public init(contentRuleLists: [String: WKContentRuleList],
                     userScripts: UserScriptsProvider,
                     updateEvent: ContentBlockerRulesManager.UpdateEvent) {
             self.contentRuleLists = contentRuleLists
@@ -43,6 +43,7 @@ final public class UserContentController: WKUserContentController {
             self.updateEvent = updateEvent
         }
     }
+
     @Published public private(set) var contentBlockingAssets: ContentBlockingAssets? {
         willSet {
             self.removeAllContentRuleLists()
