@@ -53,14 +53,14 @@ public class AMPCanonicalExtractor: NSObject {
     private var imageBlockingRules: WKContentRuleList?
     
     private let linkCleaner: LinkCleaner
-    private let privacyManager: PrivacyConfigurationManager
+    private let privacyManager: PrivacyConfigurationManaging
     private let contentBlockingManager: ContentBlockerRulesManager
     private let errorReporting: EventMapping<AMPProtectionDebugEvents>?
     
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
     public init(linkCleaner: LinkCleaner,
-                privacyManager: PrivacyConfigurationManager,
+                privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: ContentBlockerRulesManager,
                 errorReporting: EventMapping<AMPProtectionDebugEvents>? = nil) {
         self.linkCleaner = linkCleaner

@@ -24,10 +24,10 @@ public class LinkCleaner {
     public var lastAMPURLString: String?
     public var urlParametersRemoved: Bool = false
     
-    private let privacyManager: PrivacyConfigurationManager
+    private let privacyManager: PrivacyConfigurationManaging
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
 
-    public init(privacyManager: PrivacyConfigurationManager) {
+    public init(privacyManager: PrivacyConfigurationManaging) {
         self.privacyManager = privacyManager
     }
     

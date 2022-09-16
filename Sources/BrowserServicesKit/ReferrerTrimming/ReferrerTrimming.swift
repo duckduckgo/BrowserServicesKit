@@ -32,7 +32,7 @@ public class ReferrerTrimming {
         case navigating(destination: URL)
     }
     
-    private let privacyManager: PrivacyConfigurationManager
+    private let privacyManager: PrivacyConfigurationManaging
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
     private let contentBlockingManager: ContentBlockerRulesManager
@@ -41,7 +41,7 @@ public class ReferrerTrimming {
     
     private var tld: TLD
     
-    public init(privacyManager: PrivacyConfigurationManager,
+    public init(privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: ContentBlockerRulesManager,
                 tld: TLD) {
         self.privacyManager = privacyManager

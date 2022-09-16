@@ -87,9 +87,9 @@ open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource
 
 public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExceptionsSource {
 
-    let privacyConfigManager: PrivacyConfigurationManager
+    let privacyConfigManager: PrivacyConfigurationManaging
 
-    public init(privacyConfigManager: PrivacyConfigurationManager) {
+    public init(privacyConfigManager: PrivacyConfigurationManaging) {
         self.privacyConfigManager = privacyConfigManager
     }
 

@@ -19,7 +19,7 @@
 import Foundation
 import WebKit
 
-public protocol UserScriptsProvider {
+public protocol UserScriptsProvider: AnyObject {
 
     var userScripts: [UserScript] { get }
     var scripts: [WKUserScript] { get }

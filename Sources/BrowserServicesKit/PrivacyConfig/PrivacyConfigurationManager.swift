@@ -27,9 +27,13 @@ public protocol EmbeddedDataProvider {
 }
 
 public protocol PrivacyConfigurationManaging {
-    
+    var embeddedConfigData: PrivacyConfigurationManager.ConfigurationData { get }
+    var fetchedConfigData: PrivacyConfigurationManager.ConfigurationData? { get }
+    var currentConfig: Data { get }
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
+
+    func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
 
 public class PrivacyConfigurationManager: PrivacyConfigurationManaging {

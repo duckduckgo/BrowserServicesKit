@@ -27,7 +27,7 @@ public protocol UserContentControllerDelegate: AnyObject {
 }
 
 final public class UserContentController: WKUserContentController {
-    let privacyConfigurationManager: PrivacyConfigurationManager
+    let privacyConfigurationManager: PrivacyConfigurationManaging
     public weak var delegate: UserContentControllerDelegate?
 
     public struct ContentBlockingAssets {
@@ -62,7 +62,7 @@ final public class UserContentController: WKUserContentController {
 
     private var cancellable: AnyCancellable?
 
-    public init<Pub: Publisher>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManager)
+    public init<Pub: Publisher>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
     where Pub.Failure == Never, Pub.Output == ContentBlockingAssets {
 
         self.privacyConfigurationManager = privacyConfigurationManager
