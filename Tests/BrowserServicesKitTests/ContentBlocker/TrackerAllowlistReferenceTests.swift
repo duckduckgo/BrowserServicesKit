@@ -147,7 +147,10 @@ class TrackerAllowlistReferenceTests: XCTestCase {
 
         os_log("TEST: %s", test.description)
 
-        let siteURL = URL(string: normalizeScheme(urlString: test.site))!
+        var siteURL = URL(string: normalizeScheme(urlString: test.site))!
+        if siteURL.absoluteString.hasSuffix(".com") {
+            siteURL = siteURL.appendingPathComponent("index.html")
+        }
         let requestURL = URL(string: normalizeScheme(urlString: test.request))!
 
         let resource = MockWebsite.EmbeddedResource(type: .script,
@@ -166,7 +169,8 @@ class TrackerAllowlistReferenceTests: XCTestCase {
         let request = URLRequest(url: siteURL)
 
         WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
-                                                          WKWebsiteDataTypeMemoryCache],
+                                                          WKWebsiteDataTypeMemoryCache,
+                                                          WKWebsiteDataTypeOfflineWebApplicationCache],
                                                 modifiedSince: Date(timeIntervalSince1970: 0),
                                                 completionHandler: {
             self.webView.load(request)
