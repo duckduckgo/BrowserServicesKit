@@ -1,3 +1,20 @@
+//
+//  CrypterTests.swift
+//
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 
 import Clibsodium
 import XCTest
@@ -7,7 +24,7 @@ import DDGSyncCrypto
 class CrypterTests: XCTestCase {
 
     func testWhenGivenRecoveryKeyThenCanExtractSecretKey() throws {
-        let mockStorage = MockStorage()
+        let mockStorage = SecureStorageStub()
         let crypter = Crypter(secureStore: mockStorage)
 
         let userId = "Simple User Name"
@@ -23,7 +40,7 @@ class CrypterTests: XCTestCase {
     }
     
     func testWhenGivenRecoveryKeyThenCanExtractUserIdAndPrimaryKey() throws {
-        let mockStorage = MockStorage()
+        let mockStorage = SecureStorageStub()
         let crypter = Crypter(secureStore: mockStorage)
         
         let userId = "Simple User Name"
@@ -37,7 +54,7 @@ class CrypterTests: XCTestCase {
     }
     
     func testWhenDecryptingNoneBase64ThenErrorIsThrown() throws {
-        let mockStorage = MockStorage()
+        let mockStorage = SecureStorageStub()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         try mockStorage.persistAccount(SyncAccount(deviceId: "deviceId",
@@ -53,7 +70,7 @@ class CrypterTests: XCTestCase {
     }
 
     func testWhenEncryptingValueThenItIsBase64AndCanBeDecrypted() throws {
-        let mockStorage = MockStorage()
+        let mockStorage = SecureStorageStub()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         try mockStorage.persistAccount(SyncAccount(deviceId: "deviceId",

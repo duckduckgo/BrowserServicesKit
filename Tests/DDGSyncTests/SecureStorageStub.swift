@@ -1,7 +1,7 @@
 //
-//  LocalDataPersisting.swift
+//  SecureStorageStub.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,12 +17,22 @@
 //
 
 import Foundation
+import DDGSync
 
-public protocol LocalDataPersisting {
-
-    var bookmarksLastModified: String? { get }
-    func updateBookmarksLastModified(_ lastModified: String?)
+class SecureStorageStub: SecureStoring {
     
-    func persistEvents(_ events: [SyncEvent]) async throws
+    var theAccount: SyncAccount?
+    
+    func persistAccount(_ account: SyncAccount) throws {
+        theAccount = account
+    }
 
+    func account() throws -> SyncAccount? {
+        return theAccount
+    }
+
+    func removeAccount() throws {
+        theAccount = nil
+    }
+    
 }

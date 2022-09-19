@@ -1,3 +1,20 @@
+//
+//  ResponseHandler.swift
+//
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 
 import Foundation
 
@@ -19,7 +36,7 @@ struct ResponseHandler: ResponseHandling {
                 guard let event = try bookmarkUpdateToEvent(bookmarkUpdate) else { return }
                 syncEvents.append(event)
             } catch {
-                // Nothing much we can do here and we don't want to break everything because of some dodgy data, but we don't lose this info either in case something more critical is going wrong. 
+                // Nothing much we can do here and we don't want to break everything because of some dodgy data, but we don't lose this info either in case something more critical is going wrong.
                 // TODO log this error
             }
         }
@@ -40,7 +57,7 @@ struct ResponseHandler: ResponseHandling {
         
         if bookmarkUpdate.deleted != nil {
             
-            return .bookmarkDeleted(id:id)
+            return .bookmarkDeleted(id: id)
             
         } else if bookmarkUpdate.folder != nil {
             
@@ -68,12 +85,15 @@ struct ResponseHandler: ResponseHandling {
         var bookmarks: BookmarkDeltas?
         
     }
-    
+
+    // Not using CodingKeys to keep it simple
+    // swiftlint:disable identifier_name
     struct BookmarkDeltas: Decodable {
         
         var last_modified: String?
         var entries: [BookmarkUpdate]
         
     }
-        
+    // swiftlint:enable identifier_name
+
 }
