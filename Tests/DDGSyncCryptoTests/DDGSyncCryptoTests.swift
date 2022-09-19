@@ -112,10 +112,8 @@ class DDGSyncCryptoTests: XCTestCase {
 
     func assertValidKey(_ key: [UInt8]) {
         var nullCount = 0
-        for value in key {
-            if value == 0 {
-                nullCount += 1
-            }
+        for value in key where value == 0 {
+            nullCount += 1
         }
         XCTAssertNotEqual(nullCount, key.count)
     }

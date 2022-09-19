@@ -24,8 +24,8 @@ import DDGSyncCrypto
 class CrypterTests: XCTestCase {
 
     func testWhenGivenRecoveryKeyThenCanExtractSecretKey() throws {
-        let mockStorage = SecureStorageStub()
-        let crypter = Crypter(secureStore: mockStorage)
+        let storage = SecureStorageStub()
+        let crypter = Crypter(secureStore: storage)
 
         let userId = "Simple User Name"
         
@@ -40,8 +40,8 @@ class CrypterTests: XCTestCase {
     }
     
     func testWhenGivenRecoveryKeyThenCanExtractUserIdAndPrimaryKey() throws {
-        let mockStorage = SecureStorageStub()
-        let crypter = Crypter(secureStore: mockStorage)
+        let storage = SecureStorageStub()
+        let crypter = Crypter(secureStore: storage)
         
         let userId = "Simple User Name"
         let primaryKey = Data([UInt8](repeating: 1, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)))
@@ -54,33 +54,33 @@ class CrypterTests: XCTestCase {
     }
     
     func testWhenDecryptingNoneBase64ThenErrorIsThrown() throws {
-        let mockStorage = SecureStorageStub()
+        let storage = SecureStorageStub()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
-        try mockStorage.persistAccount(SyncAccount(deviceId: "deviceId",
+        try storage.persistAccount(SyncAccount(deviceId: "deviceId",
                                                    userId: "userId",
                                                    primaryKey: primaryKey,
                                                    secretKey: secretKey,
                                                    token: "token"))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
-        let crypter = Crypter(secureStore: mockStorage)
+        let crypter = Crypter(secureStore: storage)
 
         XCTAssertThrowsError(try crypter.base64DecodeAndDecrypt(message))
     }
 
     func testWhenEncryptingValueThenItIsBase64AndCanBeDecrypted() throws {
-        let mockStorage = SecureStorageStub()
+        let storage = SecureStorageStub()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
-        try mockStorage.persistAccount(SyncAccount(deviceId: "deviceId",
+        try storage.persistAccount(SyncAccount(deviceId: "deviceId",
                                                    userId: "userId",
                                                    primaryKey: primaryKey,
                                                    secretKey: secretKey,
                                                    token: "token"))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
-        let crypter = Crypter(secureStore: mockStorage)
+        let crypter = Crypter(secureStore: storage)
         let encrypted = try crypter.encryptAndBase64Encode(message)
         XCTAssertNotEqual(encrypted, message)
         assertValidBase64(encrypted)
