@@ -25,7 +25,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     private var data = JsonTestDataLoader()
 
     func testWhenValidJsonParsedThenMessagesMappedIntoRemoteConfig() throws {
-        let config = try decodeAndMapJson(fileName: "remote-messaging-config.json")
+        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
         XCTAssertEqual(config.messages.count, 5)
 
         XCTAssertEqual(config.messages[0], RemoteMessageModel(
@@ -69,7 +69,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
-        let config = try decodeAndMapJson(fileName: "remote-messaging-config.json")
+        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
         XCTAssertTrue(config.rules.count == 3)
 
         let rule5 = config.rules.filter { $0.key == 5 }.first
@@ -95,13 +95,13 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
-        let config = try decodeAndMapJson(fileName: "remote-messaging-config-unsupported-items.json")
+        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config-unsupported-items.json")
         let countValidContent = config.messages.filter { $0.content != nil }.count
         XCTAssertEqual(countValidContent, 1)
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenRulesMappedIntoConfig() throws {
-        let config = try decodeAndMapJson(fileName: "remote-messaging-config-unsupported-items.json")
+        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config-unsupported-items.json")
         XCTAssertTrue(config.rules.count == 2)
 
         let rule6 = config.rules.filter { $0.key == 6 }.first
@@ -118,7 +118,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func testWhenJsonAttributeMissingThenUnknownIntoConfig() throws {
-        let validJson = data.fromJsonFile("remote-messaging-config-malformed.json")
+        let validJson = data.fromJsonFile("Resources/remote-messaging-config-malformed.json")
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         XCTAssertNotNil(remoteMessagingConfig)
         let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)

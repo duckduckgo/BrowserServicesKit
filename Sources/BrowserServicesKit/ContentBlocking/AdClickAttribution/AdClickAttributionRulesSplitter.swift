@@ -76,10 +76,21 @@ public struct AdClickAttributionRulesSplitter {
     
     private func makeTrackerDataForAttribution(from trackerData: TrackerData) -> TrackerData {
         let allowlistedTrackers = trackerData.trackers.filter { allowlistedTrackerNames.contains($0.key) }
-        let domainNames = allowlistedTrackers.values.compactMap { $0.domain }
-        let domains = trackerData.domains.filter { domainNames.contains($0.key) }
-        let entityNames = Array(domains.values)
-        let entities = trackerData.entities.filter { entityNames.contains($0.key) }
+        let allowlistedTrackersOwners = allowlistedTrackers.values.compactMap { $0.owner?.name }
+        
+        var entities = [String: Entity]()
+        for ownerName in allowlistedTrackersOwners {
+            if let entity = trackerData.entities[ownerName] {
+                entities[ownerName] = entity
+            }
+        }
+        
+        var domains = [String: String]()
+        for entity in entities {
+            for domain in entity.value.domains ?? [] {
+                domains[domain] = entity.key
+            }
+        }
         return TrackerData(trackers: allowlistedTrackers, entities: entities, domains: domains, cnames: nil)
     }
     

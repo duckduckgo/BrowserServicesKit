@@ -112,6 +112,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
     let schemeHandler = TestSchemeHandler()
     let userScriptDelegateMock = MockSurrogatesUserScriptDelegate()
     let navigationDelegateMock = MockNavigationDelegate()
+    let tld = TLD()
 
     var webView: WKWebView?
 
@@ -161,6 +162,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                               surrogates: Self.exampleSurrogates,
                                                               trackerData: trackerData,
                                                               encodedSurrogateTrackerData: encodedTrackerData,
+                                                              tld: self.tld,
                                                               isDebugBuild: true)
 
             let userScript = SurrogatesUserScript(configuration: config)

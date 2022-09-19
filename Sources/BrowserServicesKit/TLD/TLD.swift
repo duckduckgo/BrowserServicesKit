@@ -84,4 +84,10 @@ public class TLD {
         return domain
     }
     
+    public func eTLDplus1(forStringURL stringURL: String) -> String? {
+        guard let escapedStringURL = stringURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
+        guard let host = URL(string: escapedStringURL)?.host else { return nil }
+        return eTLDplus1(host)
+    }
+    
 }

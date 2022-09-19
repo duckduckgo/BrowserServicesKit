@@ -24,6 +24,8 @@ import TrackerRadarKit
 // swiftlint:disable type_body_length
 // swiftlint:disable function_body_length
 class TrackerResolverTests: XCTestCase {
+    
+    let tld = TLD()
 
     func testWhenOptionsAreEmptyThenNothingMatches() {
 
@@ -130,7 +132,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
@@ -185,6 +187,7 @@ class TrackerResolverTests: XCTestCase {
         let resolver = TrackerResolver(tds: tds,
                                        unprotectedSites: [],
                                        tempList: [],
+                                       tld: tld,
                                        adClickAttributionVendor: "attributed.com")
         
         let blockedImgUrl = resolver.trackerFromUrl("https://tracker.com/img/1.png",
@@ -292,7 +295,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
         
         let resultImgUrl = resolver.trackerFromUrl("https://tracker.com/img/1.png",
                                                    pageUrlString: "https://example.com",
@@ -353,7 +356,7 @@ class TrackerResolverTests: XCTestCase {
                                         "example.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
                                              pageUrlString: "https://example.com",
@@ -385,7 +388,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: ["cnamed.com": "tracker.com"])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
         
         let result = resolver.trackerFromUrl("https://cnamed.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
@@ -434,7 +437,7 @@ class TrackerResolverTests: XCTestCase {
                                         "another.com": "Another Inc."],
                               cnames: ["sub.another.com": "tracker.com"])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
         
         let result = resolver.trackerFromUrl("https://sub.another.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true)
     
@@ -464,7 +467,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: ["example.com"], tempList: [])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: ["example.com"], tempList: [], tld: tld)
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
                                              pageUrlString: "https://example.com",
@@ -493,7 +496,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"], tld: tld)
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
                                              pageUrlString: "https://example.com",
@@ -523,7 +526,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"], tld: tld)
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
                                              pageUrlString: "https://example.com",
@@ -552,7 +555,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"], tld: tld)
         
         let result = resolver.trackerFromUrl("https://tracker.com/img/1.png",
                                              pageUrlString: "https://tracker.com",
@@ -581,7 +584,7 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"], tld: tld)
         
         let result = resolver.trackerFromUrl("https://other.com/img/1.png",
                                              pageUrlString: "https://example.com",
@@ -608,9 +611,41 @@ class TrackerResolverTests: XCTestCase {
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
         
-        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: ["example.com"])
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
         
         let result = resolver.trackerFromUrl("https://example.com/img/1.png",
+                                             pageUrlString: "https://example.com",
+                                             resourceType: "image",
+                                             potentiallyBlocked: true)
+    
+        XCTAssertNil(result)
+    }
+    
+    func testWhenRequestIsSameEntityNonTrackerThenItIsIgnored() {
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: KnownTracker.Owner(name: "Tracker Inc",
+                                                             displayName: "Tracker Inc company"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: nil,
+                                   rules: nil)
+        
+        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+                              entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
+                                                               domains: ["tracker.com"],
+                                                               prevalence: 0.1),
+                                         "Other Inc": Entity(displayName: "Other Inc company",
+                                                                          domains: ["other.com", "example.com"],
+                                                                          prevalence: 0.1)],
+                              domains: ["tracker.com": "Tracker Inc",
+                                        "other.com": "Other Inc",
+                                        "example.com": "Other Inc"],
+                              cnames: [:])
+        
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
+        
+        let result = resolver.trackerFromUrl("https://other.com/img/1.png",
                                              pageUrlString: "https://example.com",
                                              resourceType: "image",
                                              potentiallyBlocked: true)
