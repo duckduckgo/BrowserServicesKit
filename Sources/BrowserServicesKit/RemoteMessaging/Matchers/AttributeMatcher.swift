@@ -1,5 +1,5 @@
 //
-//  LinkCleaner.swift
+//  AttributeMatcher.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -19,19 +19,6 @@
 
 import Foundation
 
-// The code has been copied from the client and should be put inside a Utility lib
-extension String {
-    
-    private var fullRange: NSRange {
-        return NSRange(location: 0, length: count)
-    }
-
-    func matches(pattern: String, options: NSRegularExpression.Options = [.caseInsensitive]) -> Bool {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
-            return false
-        }
-        let matches = regex.matches(in: self, options: .anchored, range: fullRange)
-        return matches.count == 1
-    }
-    
+protocol AttributeMatcher {
+    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult?
 }

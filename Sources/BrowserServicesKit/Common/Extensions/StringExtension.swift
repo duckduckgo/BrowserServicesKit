@@ -19,9 +19,33 @@
 import Foundation
 import Punycode
 
-extension String {
+public typealias RegEx = NSRegularExpression
 
-    public func trimWhitespace() -> String {
+public func regex(_ pattern: String, _ options: NSRegularExpression.Options = []) -> NSRegularExpression {
+    return (try? NSRegularExpression(pattern: pattern, options: options))!
+}
+
+extension RegEx {
+    // from https://stackoverflow.com/a/25717506/73479
+    static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
+    // from https://stackoverflow.com/a/30023010/73479
+    static let ipAddress = regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+                                 .caseInsensitive)
+}
+
+public extension String {
+
+    static let localhost = "localhost"
+
+    func length() -> Int {
+        self.utf16.count
+    }
+
+    var fullRange: NSRange {
+        return NSRange(location: 0, length: length())
+    }
+
+    func trimmingWhitespace() -> String {
         return trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
@@ -29,19 +53,12 @@ extension String {
         return hasPrefix(prefix) ? String(dropFirst(prefix.count)) : self
     }
 
-    func droppingWwwPrefix() -> String {
-        self.dropping(prefix: "www.")
+    func dropping(suffix: String) -> String {
+        return hasSuffix(suffix) ? String(dropLast(suffix.count)) : self
     }
 
-    // Replaces plus symbols in a string with the space character encoding
-    // Space UTF-8 encoding is 0x20
-    func encodingPlusesAsSpaces() -> String {
-        return replacingOccurrences(of: "+", with: "%20")
-    }
-    
-    func removingCharacters(in set: CharacterSet) -> String {
-      let filtered = unicodeScalars.filter { !set.contains($0) }
-      return String(String.UnicodeScalarView(filtered))
+    func droppingWwwPrefix() -> String {
+        self.dropping(prefix: "www.")
     }
     
     func autofillNormalized() -> String {
@@ -56,14 +73,59 @@ extension String {
         return normalizedString
     }
 
+    var isValidHost: Bool {
+        return isValidHostname || isValidIpHost
+    }
+
+    var isValidHostname: Bool {
+        return matches(.hostName)
+    }
+
+    var isValidIpHost: Bool {
+        return matches(.ipAddress)
+    }
+
+    func matches(_ regex: NSRegularExpression) -> Bool {
+        let matches = regex.matches(in: self, options: .anchored, range: self.fullRange)
+        return matches.count == 1
+    }
+
+    func matches(pattern: String, options: NSRegularExpression.Options = [.caseInsensitive]) -> Bool {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: options) else {
+            return false
+        }
+        return matches(regex)
+    }
+
 }
 
-// MARK: - Punycode
-extension String {
-    public var punycodeEncodedHostname: String {
+public extension StringProtocol {
+
+    // Replaces plus symbols in a string with the space character encoding
+    // Space UTF-8 encoding is 0x20
+    func encodingPlusesAsSpaces() -> String {
+        return replacingOccurrences(of: "+", with: "%20")
+    }
+
+    func percentEncoded(withAllowedCharacters allowedCharacters: CharacterSet) -> String {
+        if let percentEncoded = self.addingPercentEncoding(withAllowedCharacters: allowedCharacters) {
+            return percentEncoded
+        }
+        assertionFailure("Unexpected failure")
+        return components(separatedBy: allowedCharacters.inverted).joined()
+    }
+
+    func removingCharacters(in set: CharacterSet) -> String {
+        let filtered = unicodeScalars.filter { !set.contains($0) }
+        return String(String.UnicodeScalarView(filtered))
+    }
+
+    // MARK: Punycode
+    var punycodeEncodedHostname: String {
         return self.split(separator: ".")
             .map { String($0) }
             .map { $0.idnaEncoded ?? $0 }
             .joined(separator: ".")
     }
+
 }

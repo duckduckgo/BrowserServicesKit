@@ -16,10 +16,11 @@ let package = Package(
         .library(name: "DDGSync", targets: ["DDGSync"]),
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("4.7.0")),
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.1.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.0.4")),
-        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0"))
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.0.1")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.0")),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
+        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("2.4.1"))
     ],
     targets: [
         
@@ -27,6 +28,7 @@ let package = Package(
             name: "BrowserServicesKit",
             dependencies: [
                 "Autofill",
+                .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "GRDB",
                 "TrackerRadarKit",
                 .product(name: "Punnycode", package: "Punycode"),
@@ -51,7 +53,7 @@ let package = Package(
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
-                .process("Resources/content-scope-scripts/build/apple/contentScope.js")
+                .process("TLD/tlds.json")
             ]),
         .target(
             name: "BloomFilterWrapper",

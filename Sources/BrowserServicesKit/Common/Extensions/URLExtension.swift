@@ -53,6 +53,169 @@ extension URL {
         user == nil &&
         password == nil
     }
+
+    public struct NavigationalScheme: RawRepresentable, Hashable {
+        public let rawValue: String
+
+        public static let separator = "://"
+
+        public static let http = NavigationalScheme(rawValue: "http")
+        public static let https = NavigationalScheme(rawValue: "https")
+        public static let ftp = NavigationalScheme(rawValue: "ftp")
+        public static let file = NavigationalScheme(rawValue: "file")
+        public static let data = NavigationalScheme(rawValue: "data")
+        public static let blob = NavigationalScheme(rawValue: "blob")
+        public static let about = NavigationalScheme(rawValue: "about")
+
+        public init(rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        public func separated() -> String {
+            self.rawValue + Self.separator
+        }
+
+        public static var navigationalSchemes: [NavigationalScheme] {
+            return [.http, .https, .ftp, .file, .data, .blob, .about]
+        }
+
+        public static var hypertextSchemes: [NavigationalScheme] {
+            return [.http, .https]
+        }
+    }
+
+    public var isValid: Bool {
+        guard let scheme = scheme.map(NavigationalScheme.init) else { return false }
+
+        if NavigationalScheme.hypertextSchemes.contains(scheme) {
+           return host?.isValidHost == true && user == nil
+        }
+
+        // This effectively allows file:// and External App Scheme URLs to be entered by user
+        // Without this check single word entries get treated like domains
+        return true
+    }
+
+    /// URL and URLComponents can't cope with emojis and international characters so this routine does some manual processing while trying to
+    /// retain the input as much as possible.
+    public init?(trimmedAddressBarString: String) {
+        var s = trimmedAddressBarString
+
+        // Creates URL even if user enters one slash "/" instead of two slashes "//" after the hypertext scheme component
+        if let scheme = NavigationalScheme.hypertextSchemes.first(where: { s.hasPrefix($0.rawValue + ":/") }),
+           !s.hasPrefix(scheme.separated()) {
+            s = scheme.separated() + s.dropFirst(scheme.separated().count - 1)
+        }
+
+        if let url = URL(string: s) {
+            // if URL has domain:port or user:password@domain mistakengly interpreted as a scheme
+            if let urlWithScheme = URL(string: NavigationalScheme.http.separated() + s),
+               urlWithScheme.port != nil || urlWithScheme.user != nil {
+                // could be a local domain but user needs to use the protocol to specify that
+                // make exception for "localhost"
+                guard urlWithScheme.host?.contains(".") == true || urlWithScheme.host == .localhost else { return nil }
+                self = urlWithScheme
+                return
+
+            } else if url.scheme != nil {
+                self = url
+                return
+
+            } else if let hostname = s.split(separator: "/").first {
+                guard hostname.contains(".") || String(hostname) == .localhost else {
+                    // could be a local domain but user needs to use the protocol to specify that
+                    return nil
+                }
+            } else {
+                return nil
+            }
+
+            s = NavigationalScheme.http.separated() + s
+        }
+
+        self.init(punycodeEncodedString: s)
+    }
+
+    private init?(punycodeEncodedString: String) {
+        var s = punycodeEncodedString
+        let scheme: String
+
+        if s.hasPrefix(URL.NavigationalScheme.http.separated()) {
+            scheme = URL.NavigationalScheme.http.separated()
+        } else if s.hasPrefix(URL.NavigationalScheme.https.separated()) {
+            scheme = URL.NavigationalScheme.https.separated()
+        } else if !s.contains(".") {
+            return nil
+        } else if s.hasPrefix("#") {
+            return nil
+        } else {
+            scheme = URL.NavigationalScheme.http.separated()
+            s = scheme + s
+        }
+
+        guard let (urlPart, query) = Self.fixupAndSplitURLString(s) else { return nil }
+
+        let componentsWithoutQuery = urlPart.split(separator: "/").dropFirst().map(String.init)
+        guard !componentsWithoutQuery.isEmpty else {
+            return nil
+        }
+
+        let host = componentsWithoutQuery[0].punycodeEncodedHostname
+
+        let encodedPath = componentsWithoutQuery
+            .dropFirst()
+            .map { $0.percentEncoded(withAllowedCharacters: .urlPathAllowed) }
+            .joined(separator: "/")
+
+        let hostPathSeparator = !encodedPath.isEmpty || urlPart.hasSuffix("/") ? "/" : ""
+        let url = scheme + host + hostPathSeparator + encodedPath + query
+
+        self.init(string: url)
+    }
+
+    private static func fixupAndSplitURLString(_ s: String) -> (urlPart: String.SubSequence, query: String)? {
+        let urlAndHash = s.split(separator: "#", maxSplits: 1)
+        guard !urlAndHash.isEmpty else { return nil }
+        let urlAndQuery = urlAndHash[0].split(separator: "?", maxSplits: 1)
+        guard !urlAndQuery.isEmpty, !urlAndQuery[0].contains(" ") else {
+            return nil
+        }
+
+        var query = ""
+        if urlAndQuery.count > 1 {
+            // escape invalid characters with %20 in query values
+            // keep already encoded characters and + sign in place
+            do {
+                struct Throwable: Error {}
+                query = try "?" + urlAndQuery[1].split(separator: "&").map { component in
+                    try component.split(separator: "=", maxSplits: 1).enumerated().map { idx, component -> String in
+                        // don't allow spaces in parameter names
+                        let isParameterName = (idx == 0)
+                        guard !(isParameterName && component.contains(" ")) else { throw Throwable() }
+
+                        return component.percentEncoded(withAllowedCharacters: .urlQueryStringAllowed)
+                    }.joined(separator: "=")
+                }.joined(separator: "&")
+            } catch {
+                return nil
+            }
+        } else if urlAndHash[0].hasSuffix("?") {
+            query = "?"
+        }
+        if urlAndHash.count > 1 {
+            query += "#" + urlAndHash[1].percentEncoded(withAllowedCharacters: .urlQueryStringAllowed)
+        } else if s.hasSuffix("#") {
+            query += "#"
+        }
+
+        return (urlAndQuery[0], query)
+    }
+    
+    public func replacing(host: String?) -> URL? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        components.host = host
+        return components.url
+    }
     
     // MARK: - HTTP/HTTPS
     
@@ -82,54 +245,67 @@ extension URL {
 
     // MARK: - Parameters
 
-    public enum ParameterError: Error {
-        case parsingFailed
-        case encodingFailed
-        case creatingFailed
+    public func appendingParameters<C: Collection>(_ parameters: C, allowedReservedCharacters: CharacterSet? = nil) -> URL
+    where C.Element == (key: String, value: String) {
+
+        return parameters.reduce(self) { partialResult, parameter in
+            partialResult.appendingParameter(
+                name: parameter.key,
+                value: parameter.value,
+                allowedReservedCharacters: allowedReservedCharacters
+            )
+        }
     }
 
-    public func addParameters(_ parameters: [String: String]) throws -> URL {
-        var url = self
-
-        for parameter in parameters {
-            url = try url.addParameter(name: parameter.key, value: parameter.value)
-        }
-
-        return url
+    public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) -> URL {
+        let queryItem = URLQueryItem(percentEncodingName: name,
+                                     value: value,
+                                     withAllowedCharacters: allowedReservedCharacters)
+        return self.appending(percentEncodedQueryItem: queryItem)
     }
 
-    public func addParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) throws -> URL {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
-        
-        let allowedCharacters: CharacterSet = {
-            if let allowedReservedCharacters = allowedReservedCharacters {
-                return .urlQueryParameterAllowed.union(allowedReservedCharacters)
-            }
-            return .urlQueryParameterAllowed
-        }()
-        
-        guard let percentEncodedName = name.addingPercentEncoding(withAllowedCharacters: allowedCharacters),
-              let percentEncodedValue = value.addingPercentEncoding(withAllowedCharacters: allowedCharacters)
-        else {
-            throw ParameterError.encodingFailed
-        }
-        
+    public func appending(percentEncodedQueryItem: URLQueryItem) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
+
         var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
-        percentEncodedQueryItems.append(URLQueryItem(name: percentEncodedName, value: percentEncodedValue))
+        percentEncodedQueryItems.append(percentEncodedQueryItem)
         components.percentEncodedQueryItems = percentEncodedQueryItems
 
-        guard let newUrl = components.url else { throw ParameterError.creatingFailed }
-        return newUrl
+        return components.url ?? self
     }
 
-    public func getParameter(name: String) throws -> String? {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { throw ParameterError.parsingFailed }
-        guard let encodedQuery = components.percentEncodedQuery else { throw ParameterError.encodingFailed }
+    public func getParameter(named name: String) -> String? {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false),
+              let encodedQuery = components.percentEncodedQuery
+        else { return nil }
         components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
-        let queryItem = components.queryItems?.first(where: { (queryItem) -> Bool in
+        let queryItem = components.queryItems?.first(where: { queryItem -> Bool in
             queryItem.name == name
         })
         return queryItem?.value
+    }
+    
+    public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
+        guard let thisHost = host else {
+            return false
+        }
+        guard let otherHost = otherUrl.host else {
+            return false
+        }
+        let thisRoot = tld.eTLDplus1(thisHost)
+        let otherRoot = tld.eTLDplus1(otherHost)
+        
+        return thisRoot != otherRoot
+    }
+
+    public func removingParameters(named parametersToRemove: Set<String>) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+
+        var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+        percentEncodedQueryItems.removeAll { parametersToRemove.contains($0.name) }
+        components.percentEncodedQueryItems = percentEncodedQueryItems
+
+        return components.url ?? self
     }
 
 }
@@ -143,7 +319,26 @@ fileprivate extension CharacterSet {
      * included in `CharacterSet.urlQueryAllowed` but still need to be percent-escaped.
      */
     static let urlQueryReserved = CharacterSet(charactersIn: ":/?#[]@!$&'()*+,;=")
-    
+
     static let urlQueryParameterAllowed = CharacterSet.urlQueryAllowed.subtracting(Self.urlQueryReserved)
+    static let urlQueryStringAllowed = CharacterSet(charactersIn: "%+?").union(.urlQueryParameterAllowed)
+
+}
+
+extension URLQueryItem {
+
+    init(percentEncodingName name: String, value: String, withAllowedCharacters allowedReservedCharacters: CharacterSet? = nil) {
+        let allowedCharacters: CharacterSet = {
+            if let allowedReservedCharacters = allowedReservedCharacters {
+                return .urlQueryParameterAllowed.union(allowedReservedCharacters)
+            }
+            return .urlQueryParameterAllowed
+        }()
+
+        let percentEncodedName = name.percentEncoded(withAllowedCharacters: allowedCharacters)
+        let percentEncodedValue = value.percentEncoded(withAllowedCharacters: allowedCharacters)
+
+        self.init(name: percentEncodedName, value: percentEncodedValue)
+    }
 
 }

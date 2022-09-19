@@ -25,7 +25,9 @@ public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
     func contentBlockerRulesUserScriptShouldProcessTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
     func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
-                                       detectedTracker tracker: DetectedTracker)
+                                       detectedTracker tracker: DetectedRequest)
+    func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
+                                       detectedThirdPartyRequest request: DetectedRequest)
 
 }
 
@@ -74,6 +76,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     }
 
     private let configuration: ContentBlockerUserScriptConfig
+    private lazy var tld = TLD()
 
     public init(configuration: ContentBlockerUserScriptConfig) {
         self.configuration = configuration
@@ -91,11 +94,14 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     
     public var messageNames: [String] = [ "processRule" ]
     
+    public var supplementaryTrackerData = [TrackerData]()
+    public var currentAdClickAttributionVendor: String?
+    
     public weak var delegate: ContentBlockerRulesUserScriptDelegate?
 
     var temporaryUnprotectedDomains: [String] {
         let privacyConfiguration = configuration.privacyConfiguration
-        var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimWhitespace().isEmpty }
+        var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         temporaryUnprotectedDomains.append(contentsOf: privacyConfiguration.exceptionsList(forFeature: .contentBlocking))
         return temporaryUnprotectedDomains
     }
@@ -119,18 +125,30 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
 
         let privacyConfiguration = configuration.privacyConfiguration
         
+        var additionalTDSSets = supplementaryTrackerData
+        
         if ctlEnabled, let ctlTrackerData = configuration.ctlTrackerData {
-            let resolver = TrackerResolver(tds: ctlTrackerData,
+            additionalTDSSets.append(ctlTrackerData)
+        }
+        
+        var detectedTracker: DetectedRequest?
+        
+        for trackerData in additionalTDSSets {
+            let resolver = TrackerResolver(tds: trackerData,
                                            unprotectedSites: privacyConfiguration.userUnprotectedDomains,
-                                           tempList: temporaryUnprotectedDomains)
+                                           tempList: temporaryUnprotectedDomains,
+                                           adClickAttributionVendor: currentAdClickAttributionVendor)
             
             if let tracker = resolver.trackerFromUrl(trackerUrlString,
                                                      pageUrlString: pageUrlStr,
                                                      resourceType: resourceType,
                                                      potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
-                if tracker.blocked {
+                if tracker.isBlocked {
+                    guard !isFirstParty(requestURL: tracker.url, websiteURL: pageUrlStr) else { return }
                     delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
                     return
+                } else {
+                    detectedTracker = tracker
                 }
             }
         }
@@ -143,8 +161,34 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
                                                  pageUrlString: pageUrlStr,
                                                  resourceType: resourceType,
                                                  potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
-            delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
+            detectedTracker = tracker
         }
+        
+        if let tracker = detectedTracker {
+            guard !isFirstParty(requestURL: tracker.url, websiteURL: pageUrlStr) else { return }
+            delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
+        } else {
+            guard let requestDomain = topDomain(for: trackerUrlString),
+                  !isFirstParty(requestURL: trackerUrlString, websiteURL: pageUrlStr) else { return }
+            
+            let entity = currentTrackerData.findEntity(forHost: requestDomain) ?? Entity(displayName: requestDomain, domains: nil, prevalence: nil)
+            let thirdPartyRequest = DetectedRequest(url: trackerUrlString, knownTracker: nil, entity: entity, state: .allowed(reason: .otherThirdPartyRequest), pageUrl: pageUrlStr)
+            delegate.contentBlockerRulesUserScript(self, detectedThirdPartyRequest: thirdPartyRequest)
+        }
+    }
+    
+    private func isFirstParty(requestURL: String, websiteURL: String) -> Bool {
+        guard let requestDomain = topDomain(for: requestURL),
+              let websiteDomain = topDomain(for: websiteURL)
+        else { return false }
+        
+        return requestDomain == websiteDomain
+    }
+    
+    private func topDomain(for stringURL: String) -> String? {
+        guard let escapedStringURL = stringURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
+        guard let host = URL(string: escapedStringURL)?.host else { return nil }
+        return tld.domain(host)
     }
 
     public static func generateSource(privacyConfiguration: PrivacyConfiguration) -> String {

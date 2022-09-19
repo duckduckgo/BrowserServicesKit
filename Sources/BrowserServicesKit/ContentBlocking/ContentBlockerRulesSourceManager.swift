@@ -19,6 +19,7 @@
 
 import Foundation
 import TrackerRadarKit
+import os
 
 /**
  Encapsulates revision of the Content Blocker Rules source - id/etag of each of the resources used for compilation.
@@ -94,13 +95,16 @@ public class ContentBlockerRulesSourceManager {
     public private(set) var fallbackTDSFailure = false
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
+    private let log: OSLog
 
     init(rulesList: ContentBlockerRulesList,
          exceptionsSource: ContentBlockerRulesExceptionsSource,
-         errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+         errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+         log: OSLog = .disabled) {
         self.rulesList = rulesList
         self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
+        self.log = log
     }
 
     /**
@@ -109,6 +113,7 @@ public class ContentBlockerRulesSourceManager {
      This method takes into account changes to `dataSource` that could fix previously corrupted data set - in such case `brokenSources` state is updated.
      */
     func makeModel() -> ContentBlockerRulesSourceModel? {
+        os_log(.debug, log: log, "Preparing model for compilation for %{public}s", rulesList.name)
         guard !fallbackTDSFailure else {
             return nil
         }
@@ -169,6 +174,7 @@ public class ContentBlockerRulesSourceManager {
      Process information about last failed compilation in order to update `brokenSources` state.
      */
     func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers, with error: Error) {
+        os_log(.debug, log: log, "Compilation failed for %{public}s", rulesList.name)
         guard let brokenSources = brokenSources else {
             let brokenSources = RulesSourceBreakageInfo()
             self.brokenSources = brokenSources
@@ -186,38 +192,43 @@ public class ContentBlockerRulesSourceManager {
                                    with error: Error,
                                    brokenSources: RulesSourceBreakageInfo) {
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
+            os_log(.debug, log: log, "Falling back to embedded TDS")
             // We failed compilation for non-embedded TDS, marking it as broken.
             brokenSources.tdsIdentifier = input.tdsIdentifier
-            errorReporting?.fire(.contentBlockingTDSCompilationFailed,
-                                 scope: input.name,
+            errorReporting?.fire(.contentBlockingCompilationFailed(listName: input.name,
+                                                                   component: .tds),
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tdsIdentifier])
         } else if input.tempListIdentifier != nil {
+            os_log(.debug, log: log, "Ignoring Temp List")
             brokenSources.tempListIdentifier = input.tempListIdentifier
-            errorReporting?.fire(.contentBlockingTempListCompilationFailed,
-                                 scope: input.name,
+            errorReporting?.fire(.contentBlockingCompilationFailed(listName: input.name,
+                                                                   component: .tempUnprotected),
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.tempListIdentifier ?? "empty"])
         } else if input.allowListIdentifier != nil {
+            os_log(.debug, log: log, "Ignoring Allow List")
             brokenSources.allowListIdentifier = input.allowListIdentifier
-            errorReporting?.fire(.contentBlockingAllowListCompilationFailed,
-                                 scope: input.name,
+            errorReporting?.fire(.contentBlockingCompilationFailed(listName: input.name,
+                                                                   component: .allowlist),
                                  error: error,
                                  parameters: [ContentBlockerDebugEvents.Parameters.etag: input.allowListIdentifier ?? "empty"])
         } else if input.unprotectedSitesIdentifier != nil {
+            os_log(.debug, log: log, "Ignoring Unprotected List")
             brokenSources.unprotectedSitesIdentifier = input.unprotectedSitesIdentifier
-            errorReporting?.fire(.contentBlockingUnpSitesCompilationFailed,
-                                 scope: input.name,
+            errorReporting?.fire(.contentBlockingCompilationFailed(listName: input.name,
+                                                                   component: .localUnprotected),
                                  error: error)
         } else {
+            os_log(.debug, log: log, "Critical error - could not compile embedded list")
             // We failed for embedded data, this is unlikely.
             // Include description - why built-in version of the TDS has failed to compile?
             let error = error as NSError
             let errorDesc = (error.userInfo[NSHelpAnchorErrorKey] as? String) ?? "missing"
             let params = [ContentBlockerDebugEvents.Parameters.errorDescription: errorDesc.isEmpty ? "empty" : errorDesc]
 
-            errorReporting?.fire(.contentBlockingFallbackCompilationFailed,
-                                 scope: input.name,
+            errorReporting?.fire(.contentBlockingCompilationFailed(listName: input.name,
+                                                                   component: .fallbackTds),
                                  error: error,
                                  parameters: params,
                                  onComplete: { _ in
