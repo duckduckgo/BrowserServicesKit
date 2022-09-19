@@ -62,6 +62,24 @@ public protocol UpdatesFetching {
 
 }
 
+public struct ExtractedLoginInfo {
+
+    public let userId: String
+    public let primaryKey: Data
+    public let passwordHash: Data
+    public let stretchedPrimaryKey: Data
+
+}
+
+public struct AccountCreationKeys {
+    
+    public let primaryKey: Data
+    public let secretKey: Data
+    public let protectedSecretKey: Data
+    public let passwordHash: Data
+
+}
+
 public protocol Crypting {
 
     func encryptAndBase64Encode(_ value: String) throws -> String
@@ -69,10 +87,9 @@ public protocol Crypting {
     func base64DecodeAndDecrypt(_ value: String) throws -> String
 
     func createAccountCreationKeys(userId: String, password: String) throws ->
-        (primaryKey: Data, secretKey: Data, protectedSecretKey: Data, passwordHash: Data)
+        AccountCreationKeys
 
-    func extractLoginInfo(recoveryKey: Data) throws ->
-        (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data)
+    func extractLoginInfo(recoveryKey: Data) throws -> ExtractedLoginInfo
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data
 

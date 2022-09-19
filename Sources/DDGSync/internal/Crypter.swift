@@ -48,7 +48,7 @@ struct Crypter: Crypting {
         return decryptedValue
     }
 
-    func createAccountCreationKeys(userId: String, password: String) throws -> (primaryKey: Data, secretKey: Data, protectedSecretKey: Data, passwordHash: Data) {
+    func createAccountCreationKeys(userId: String, password: String) throws -> AccountCreationKeys {
 
         var primaryKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
         var secretKey = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
@@ -60,7 +60,7 @@ struct Crypter: Crypting {
             throw SyncError.failedToCreateAccountKeys("ddgSyncGenerateAccountKeys() failed: \(result)")
         }
 
-        return (
+        return AccountCreationKeys(
             primaryKey: Data(primaryKey),
             secretKey: Data(secretKey),
             protectedSecretKey: Data(protectedSecretKey),
@@ -68,7 +68,7 @@ struct Crypter: Crypting {
         )
     }
 
-    func extractLoginInfo(recoveryKey: Data) throws -> (userId: String, primaryKey: Data, passwordHash: Data, stretchedPrimaryKey: Data) {
+    func extractLoginInfo(recoveryKey: Data) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
         guard recoveryKey.count > primaryKeySize else { throw SyncError.failedToCreateAccountKeys("Recovery key is not valid") }
         
@@ -89,7 +89,7 @@ struct Crypter: Crypting {
             throw SyncError.failedToCreateAccountKeys("ddgSyncPrepareForLogin failed: \(result)")
         }
         
-        return (
+        return ExtractedLoginInfo(
             userId: userId,
             primaryKey: Data(primaryKeyBytes),
             passwordHash: Data(passwordHashBytes),
