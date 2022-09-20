@@ -34,22 +34,6 @@ let package = Package(
                 .product(name: "Punnycode", package: "Punycode"),
                 "BloomFilterWrapper"
             ],
-            exclude: [
-                "Resources/content-scope-scripts/README.md",
-                "Resources/content-scope-scripts/package-lock.json",
-                "Resources/content-scope-scripts/package.json",
-                "Resources/content-scope-scripts/LICENSE.md",
-                "Resources/content-scope-scripts/src/",
-                "Resources/content-scope-scripts/unit-test/",
-                "Resources/content-scope-scripts/integration-test/",
-                "Resources/content-scope-scripts/scripts/",
-                "Resources/content-scope-scripts/inject/",
-                "Resources/content-scope-scripts/lib/",
-                "Resources/content-scope-scripts/build/chrome/",
-                "Resources/content-scope-scripts/build/firefox/",
-                "Resources/content-scope-scripts/build/integration/",
-                "Resources/content-scope-scripts/tsconfig.json"
-            ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
