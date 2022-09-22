@@ -103,6 +103,10 @@ public class ReferrerTrimming {
             newReferrer = "\(referrerScheme)://\(tld.eTLDplus1(referrerHost) ?? referrerHost)/"
         }
         
+        if newReferrer == referrerUrl.absoluteString {
+            return nil
+        }
+        
         return newReferrer
     }
     
