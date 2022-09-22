@@ -109,15 +109,18 @@ final class TestSchemeContentBlockerUserScriptConfig: ContentBlockerUserScriptCo
     public let privacyConfiguration: PrivacyConfiguration
     public let trackerData: TrackerData?
     public let ctlTrackerData: TrackerData?
+    public let tld: TLD
 
     public private(set) var source: String
 
     public init(privacyConfiguration: PrivacyConfiguration,
                 trackerData: TrackerData?,
-                ctlTrackerData: TrackerData?) {
+                ctlTrackerData: TrackerData?,
+                tld: TLD) {
         self.privacyConfiguration = privacyConfiguration
         self.trackerData = trackerData
         self.ctlTrackerData = ctlTrackerData
+        self.tld = tld
 
         // UserScripts contain TrackerAllowlist rules in form of regular expressions - we need to ensure test scheme is matched instead of http/https
         let orginalSource = ContentBlockerRulesUserScript.generateSource(privacyConfiguration: privacyConfiguration)
@@ -131,19 +134,22 @@ public class TestSchemeSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     public let surrogates: String
     public let trackerData: TrackerData?
     public let encodedSurrogateTrackerData: String?
+    public let tld: TLD
 
     public let source: String
 
     public init(privacyConfig: PrivacyConfiguration,
-         surrogates: String,
-         trackerData: TrackerData?,
-         encodedSurrogateTrackerData: String?,
-         isDebugBuild: Bool) {
+                surrogates: String,
+                trackerData: TrackerData?,
+                encodedSurrogateTrackerData: String?,
+                tld: TLD,
+                isDebugBuild: Bool) {
 
         self.privacyConfig = privacyConfig
         self.surrogates = surrogates
         self.trackerData = trackerData
         self.encodedSurrogateTrackerData = encodedSurrogateTrackerData
+        self.tld = tld
 
         // UserScripts contain TrackerAllowlist rules in form of regular expressions - we need to ensure test scheme is matched instead of http/https
         let orginalSource = SurrogatesUserScript.generateSource(privacyConfiguration: privacyConfig,

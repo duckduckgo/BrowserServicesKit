@@ -28,6 +28,7 @@ class ContentBlockerReferenceTests: XCTestCase {
     let schemeHandler = TestSchemeHandler()
     let userScriptDelegateMock = MockRulesUserScriptDelegate()
     let navigationDelegateMock = MockNavigationDelegate()
+    let tld = TLD()
 
     var webView: WKWebView!
     var tds: TrackerData!
@@ -66,7 +67,8 @@ class ContentBlockerReferenceTests: XCTestCase {
 
             let config = DefaultContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
                                                                trackerData: trackerData,
-                                                               ctlTrackerData: nil)
+                                                               ctlTrackerData: nil,
+                                                               tld: self.tld)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate

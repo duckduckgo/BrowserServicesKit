@@ -76,7 +76,8 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
     let schemeHandler = TestSchemeHandler()
     let userScriptDelegateMock = MockRulesUserScriptDelegate()
     let navigationDelegateMock = MockNavigationDelegate()
-
+    let tld = TLD()
+    
     var webView: WKWebView?
 
     let nonTrackerURL = URL(string: "test://nontracker.com/1.png")!
@@ -122,7 +123,8 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
             let config = TestSchemeContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
                                                                   trackerData: trackerData,
-                                                                  ctlTrackerData: nil)
+                                                                  ctlTrackerData: nil,
+                                                                  tld: self.tld)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate
