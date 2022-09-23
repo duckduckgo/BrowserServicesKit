@@ -37,6 +37,7 @@ public enum AllowReason: String, Codable {
 public struct DetectedRequest: Encodable {
     
     public let url: String
+    public let eTLDplus1: String?
     public let state: BlockingState
     public let ownerName: String?
     public let entityName: String?
@@ -44,8 +45,9 @@ public struct DetectedRequest: Encodable {
     public let prevalence: Double?
     public let pageUrl: String
     
-    public init(url: String, knownTracker: KnownTracker?, entity: Entity?, state: BlockingState, pageUrl: String) {
+    public init(url: String, eTLDplus1: String?, knownTracker: KnownTracker?, entity: Entity?, state: BlockingState, pageUrl: String) {
         self.url = url
+        self.eTLDplus1 = eTLDplus1
         self.state = state
         self.ownerName = knownTracker?.owner?.name
         self.entityName = entity?.displayName
@@ -60,7 +62,7 @@ public struct DetectedRequest: Encodable {
     }
     
     public var networkNameForDisplay: String {
-        entityName ?? domain ?? url
+        entityName ?? eTLDplus1 ?? url
     }
     
     public var isBlocked: Bool {
