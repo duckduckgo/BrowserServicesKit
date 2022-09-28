@@ -42,6 +42,7 @@ class TrackerAllowlistReferenceTests: XCTestCase {
     let schemeHandler = TestSchemeHandler()
     let userScriptDelegateMock = MockRulesUserScriptDelegate()
     let navigationDelegateMock = MockNavigationDelegate()
+    let tld = TLD()
 
     var webView: WKWebView!
     var tds: TrackerData!
@@ -84,7 +85,8 @@ class TrackerAllowlistReferenceTests: XCTestCase {
 
             let config = TestSchemeContentBlockerUserScriptConfig(privacyConfiguration: privacyConfig,
                                                                   trackerData: trackerData,
-                                                                  ctlTrackerData: nil)
+                                                                  ctlTrackerData: nil,
+                                                                  tld: self.tld)
 
             let userScript = ContentBlockerRulesUserScript(configuration: config)
             userScript.delegate = userScriptDelegate

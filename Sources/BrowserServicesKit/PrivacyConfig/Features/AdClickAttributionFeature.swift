@@ -48,9 +48,7 @@ public class AdClickAttributionFeature: AdClickAttributing {
                       let host = url.host else { continue }
                 
                 let linkFormat = LinkFormat(url: url,
-                                            adDomainParameterName: entry["adDomainParameterName"],
-                                            paramName: entry["parameterName"],
-                                            paramValue: entry["parameterValue"])
+                                            adDomainParameterName: entry["adDomainParameterName"])
                 linkFormatsMap[host, default: []].append(linkFormat)
             }
             self.linkFormats = linkFormatsMap
@@ -63,8 +61,6 @@ public class AdClickAttributionFeature: AdClickAttributing {
 
                 if let parameterMatching = linkFormat.adDomainParameterName,
                    url.getParameter(named: parameterMatching) != nil {
-                    return linkFormat
-                } else if linkFormat.matcher?.matches(url) ?? false {
                     return linkFormat
                 }
             }
@@ -165,62 +161,12 @@ public class AdClickAttributionFeature: AdClickAttributing {
     private struct LinkFormat {
         let url: URL
         let adDomainParameterName: String?
-        let matcher: ParamMatching?
         
         init(url: URL,
-             adDomainParameterName: String?,
-             paramName: String?,
-             paramValue: String?) {
+             adDomainParameterName: String?) {
             
             self.url = url
             self.adDomainParameterName = adDomainParameterName
-            
-            if let parameterName = paramName {
-                if let parameterValue = paramValue {
-                    matcher = ParamNameAndValueMatching(name: parameterName, value: parameterValue)
-                } else {
-                    matcher = ParamNameMatching(name: parameterName)
-                }
-            } else {
-                matcher = nil
-            }
-        }
-    }
-    
-    private class ParamMatching {
-        func matches(_ url: URL) -> Bool {
-            assertionFailure("This is abstract method")
-            return false
-        }
-    }
-    
-    private class ParamNameMatching: ParamMatching {
-        
-        private let paramName: String
-        
-        init(name: String) {
-            paramName = name
-        }
-        
-        override func matches(_ url: URL) -> Bool {
-            return url.getParameter(named: paramName) != nil
-        }
-    }
-    
-    private class ParamNameAndValueMatching: ParamMatching {
-        private let paramName: String
-        private let paramValue: String
-        
-        init(name: String, value: String) {
-            paramName = name
-            paramValue = value
-        }
-        
-        override func matches(_ url: URL) -> Bool {
-            guard let value = url.getParameter(named: paramName) else {
-                return false
-            }
-            return value == paramValue
         }
     }
 }
