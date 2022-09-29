@@ -30,20 +30,26 @@ public enum EmailKeychainAccessType: String {
     case storeTokenUsernameCohort
     case storeAlias
     case storeLastUseDate
+    case deleteAuthenticationState
+    case deleteAlias
 }
 
 public enum EmailKeychainAccessError: Error, Equatable {
     case failedToDecodeKeychainValueAsData
     case failedToDecodeKeychainDataAsString
     case failedToDecodeKeychainDataAsInt
-    case keychainAccessFailure(OSStatus)
+    case keychainSaveFailure(OSStatus)
+    case keychainDeleteFailure(OSStatus)
+    case keychainLookupFailure(OSStatus)
     
     public var errorDescription: String {
         switch self {
         case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
         case .failedToDecodeKeychainDataAsString: return "failedToDecodeKeychainDataAsString"
         case .failedToDecodeKeychainDataAsInt: return "failedToDecodeKeychainDataAsInt"
-        case .keychainAccessFailure: return "keychainAccessFailure"
+        case .keychainSaveFailure: return "keychainSaveFailure"
+        case .keychainDeleteFailure: return "keychainDeleteFailure"
+        case .keychainLookupFailure: return "keychainLookupFailure"
         }
     }
 }
@@ -57,9 +63,9 @@ public protocol EmailManagerStorage: AnyObject {
     func store(token: String, username: String, cohort: String?) throws
     func store(alias: String) throws
     func store(lastUseDate: String) throws
-    func deleteAlias()
-    func deleteAuthenticationState()
-    func deleteWaitlistState()
+    func deleteAlias() throws
+    func deleteAuthenticationState() throws
+    func deleteWaitlistState() throws
 }
 
 public enum EmailManagerPermittedAddressType {
@@ -238,7 +244,16 @@ public class EmailManager {
     }
     
     public func signOut() {
-        storage.deleteAuthenticationState()
+        do {
+            try storage.deleteAuthenticationState()
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAuthenticationState, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+        }
+
         NotificationCenter.default.post(name: .emailDidSignOut, object: self)
     }
 
@@ -379,7 +394,16 @@ private extension EmailManager {
     }
     
     func consumeAliasAndReplace() {
-        storage.deleteAlias()
+        do {
+            try storage.deleteAlias()
+        } catch {
+            if let error = error as? EmailKeychainAccessError {
+                self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAlias, error: error)
+            } else {
+                assertionFailure("Expected EmailKeychainAccessFailure")
+            }
+        }
+
         fetchAndStoreAlias()
     }
     
