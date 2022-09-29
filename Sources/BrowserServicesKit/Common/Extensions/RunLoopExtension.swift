@@ -36,7 +36,7 @@ public extension RunLoop {
         public init() {
         }
 
-        convenience init(dispatchGroup: DispatchGroup) {
+        public convenience init(dispatchGroup: DispatchGroup) {
             self.init()
             dispatchGroup.notify(queue: .main) {
                 self.resolve()
