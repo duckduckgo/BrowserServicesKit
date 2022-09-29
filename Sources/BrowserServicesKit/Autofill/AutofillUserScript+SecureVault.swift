@@ -229,7 +229,7 @@ extension AutofillUserScript {
 
     struct RequestAvailableInputTypesResponse: Codable {
 
-        // GetAvailableInputTypesResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAvailableInputTypes.result.json
+        // GetAvailableInputTypesResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/availableInputTypes.json
         // TODO: change the type
         struct AvailableInputTypesSuccess: Codable {
             let email: Bool
