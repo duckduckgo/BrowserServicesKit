@@ -36,7 +36,7 @@ public class CoreDataDatabase {
         return FileManager.default.fileExists(atPath: containerURL.path)
     }
     
-    private var errorEvents: EventMapping<Error>?
+    private var errorHandler: EventMapping<Error>?
     
     public var model: NSManagedObjectModel {
         return container.managedObjectModel
@@ -51,7 +51,7 @@ public class CoreDataDatabase {
     public init(name: String,
                 url: URL,
                 model: NSManagedObjectModel,
-                errorEvents: EventMapping<Error>? = nil,
+                errorHandler: EventMapping<Error>? = nil,
                 log: OSLog = .disabled) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
@@ -62,7 +62,7 @@ public class CoreDataDatabase {
         
         self.container.persistentStoreDescriptions = [description]
         
-        self.errorEvents = errorEvents
+        self.errorHandler = errorHandler
         self.log = log
     }
     
@@ -73,9 +73,7 @@ public class CoreDataDatabase {
         
         container.loadPersistentStores { _, error in
             if let error = error {
-                self.errorEvents?.fire(.dbInitializationError, error: error, onComplete: { _ in
-                    fatalError("Could not load DB: \(error.localizedDescription)")
-                })
+                self.errorHandler?.fire(.dbInitializationError, error: error)
             }
             
             let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
