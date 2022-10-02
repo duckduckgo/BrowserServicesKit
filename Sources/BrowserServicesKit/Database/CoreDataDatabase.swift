@@ -22,21 +22,19 @@ import OSLog
 
 public class CoreDataDatabase {
     
-    public enum Error {
-        case dbInitializationError
+    public enum Error: Swift.Error {
+        case containerLocationCouldNotBePrepared(underlyingError: Swift.Error)
     }
 
+    private let containerLocation: URL
     private let container: NSPersistentContainer
     private let storeLoadedCondition = RunLoop.ResumeCondition()
-    private let log: OSLog
 
     public var isDatabaseFileInitialized: Bool {
         guard let containerURL = container.persistentStoreDescriptions.first?.url else { return false }
 
         return FileManager.default.fileExists(atPath: containerURL.path)
     }
-    
-    private var errorHandler: EventMapping<Error>?
     
     public var model: NSManagedObjectModel {
         return container.managedObjectModel
@@ -49,38 +47,38 @@ public class CoreDataDatabase {
     }
     
     public init(name: String,
-                url: URL,
-                model: NSManagedObjectModel,
-                errorHandler: EventMapping<Error>? = nil,
-                log: OSLog = .disabled) {
+                containerLocation: URL,
+                model: NSManagedObjectModel) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
+        self.containerLocation = containerLocation
         
-        // TODO: create subdirectories if needed
-        let description = NSPersistentStoreDescription(url: url.appendingPathComponent("\(name).sqlite"))
+        let description = NSPersistentStoreDescription(url: containerLocation.appendingPathComponent("\(name).sqlite"))
         description.type = NSSQLiteStoreType
         
         self.container.persistentStoreDescriptions = [description]
-        
-        self.errorHandler = errorHandler
-        self.log = log
     }
     
-    public func loadStore(andMigrate handler: @escaping (NSManagedObjectContext) -> Void = { _ in }) {
+    public func loadStore(completion: @escaping (NSManagedObjectContext?, Swift.Error?) -> Void = { _, _ in }) {
         
-        let path = container.persistentStoreDescriptions.first?.url?.absoluteString ?? "nil"
-        os_log("Loading SQL store '%s' located in %s", log: log, type: .debug, container.name, path)
-        
+        do {
+            try FileManager.default.createDirectory(at: containerLocation, withIntermediateDirectories: true)
+        } catch {
+            completion(nil, Error.containerLocationCouldNotBePrepared(underlyingError: error))
+            return
+        }
+            
         container.loadPersistentStores { _, error in
             if let error = error {
-                self.errorHandler?.fire(.dbInitializationError, error: error)
+                completion(nil, error)
+                return
             }
             
             let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
             context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
             context.name = "Migration"
             context.perform {
-                handler(context)
+                completion(context, nil)
                 self.storeLoadedCondition.resolve()
             }
         }
