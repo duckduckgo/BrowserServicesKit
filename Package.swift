@@ -11,7 +11,8 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "PrivacyDashboardCode", targets: ["PrivacyDashboardCode"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.0.1")),
@@ -55,6 +56,14 @@ let package = Package(
             resources: [
                 .process("UserScript/testUserScript.js"),
                 .copy("Resources")
-            ])
+            ]),
+        .target(
+            name: "PrivacyDashboardCode",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            path: "Sources/PrivacyDashboard"
+            )
+        
     ]
 )
