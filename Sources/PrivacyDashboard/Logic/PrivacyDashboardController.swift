@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 import Combine
+import PrivacyDashboard
 
 public final class PrivacyDashboardController: NSObject {
     
@@ -84,8 +85,8 @@ public final class PrivacyDashboardController: NSObject {
     }
     
     private func loadPrivacyDashboardHTML() {
-//        guard let url = Bundle.privacyDashboardURL else { return }
-//        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+        guard let url = Bundle.privacyDashboardURL else { return }
+        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
 }
 
