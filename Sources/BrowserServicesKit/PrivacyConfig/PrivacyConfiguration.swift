@@ -92,7 +92,6 @@ public extension PrivacyConfiguration {
 
 public enum PrivacyFeature: String {
     case contentBlocking
-    case elementHiding
     case fingerprintingTemporaryStorage
     case fingerprintingBattery
     case fingerprintingScreenSize
