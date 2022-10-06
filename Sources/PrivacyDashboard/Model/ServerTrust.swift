@@ -1,8 +1,7 @@
 //
-//  AppVersionProvider.swift
-//  DuckDuckGo
+//  ServerTrust.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,14 +17,14 @@
 //
 
 import Foundation
-import Common
 
-open class AppVersionProvider {
-    open func appVersion() -> String? {
-        return Bundle.main.releaseVersionNumber
-    }
-    
-    public init() {
-        
+public struct ServerTrust {
+
+    let host: String
+    let secTrust: SecTrust
+
+    public init(host: String, secTrust: SecTrust) {
+        self.host = host
+        self.secTrust = secTrust
     }
 }

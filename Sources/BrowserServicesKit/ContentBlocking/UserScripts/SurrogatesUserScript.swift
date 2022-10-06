@@ -20,6 +20,9 @@
 import WebKit
 import os
 import TrackerRadarKit
+import UserScript
+import ContentBlocking
+import Common
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     

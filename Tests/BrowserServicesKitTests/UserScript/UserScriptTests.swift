@@ -20,6 +20,7 @@
 import XCTest
 import WebKit
 @testable import BrowserServicesKit
+import UserScript
 
 class UserScriptTests: XCTestCase {
 

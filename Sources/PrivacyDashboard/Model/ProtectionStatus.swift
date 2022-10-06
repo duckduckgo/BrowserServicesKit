@@ -1,8 +1,8 @@
 //
-//  AppVersionProvider.swift
+//  ProtectionStatus.swift
 //  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,14 +18,18 @@
 //
 
 import Foundation
-import Common
 
-open class AppVersionProvider {
-    open func appVersion() -> String? {
-        return Bundle.main.releaseVersionNumber
-    }
+public struct ProtectionStatus: Encodable {
+
+    let unprotectedTemporary: Bool
+    let enabledFeatures: [String]
+    let allowlisted: Bool
+    let denylisted: Bool
     
-    public init() {
-        
+    public init(unprotectedTemporary: Bool, enabledFeatures: [String], allowlisted: Bool, denylisted: Bool) {
+        self.unprotectedTemporary = unprotectedTemporary
+        self.enabledFeatures = enabledFeatures
+        self.allowlisted = allowlisted
+        self.denylisted = denylisted
     }
 }

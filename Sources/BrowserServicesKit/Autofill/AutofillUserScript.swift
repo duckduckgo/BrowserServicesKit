@@ -19,6 +19,7 @@
 
 import WebKit
 import os.log
+import UserScript
 
 public class AutofillUserScript: NSObject, UserScript {
 

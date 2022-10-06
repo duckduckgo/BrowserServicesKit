@@ -19,6 +19,7 @@
 
 import XCTest
 import BrowserServicesKit
+import ContentBlocking
 
 final class AdClickAttributionPixelTests: XCTestCase {
     
