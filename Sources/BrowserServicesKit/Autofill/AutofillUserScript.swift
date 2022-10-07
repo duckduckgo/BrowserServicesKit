@@ -20,6 +20,7 @@
 import WebKit
 import os.log
 import UserScript
+import Common
 
 public class AutofillUserScript: NSObject, UserScript {
 

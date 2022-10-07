@@ -1,8 +1,8 @@
 //
-//  BundleExtension.swift
+//  CalendarExtension.swift
 //  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,13 +19,9 @@
 
 import Foundation
 
-extension Bundle {
-    
-    struct Keys {
-        static let versionNumber = "CFBundleShortVersionString"
-    }
-    
-    var releaseVersionNumber: String? {
-        return infoDictionary?[Keys.versionNumber] as? String
-    }
+extension Calendar {
+	public func numberOfDaysBetween(_ from: Date, and to: Date) -> Int? {
+		let numberOfDays = dateComponents([.day], from: from, to: to)
+		return numberOfDays.day
+	}
 }
