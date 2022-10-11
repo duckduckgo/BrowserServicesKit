@@ -38,11 +38,12 @@ Using a simulator where a physical device is unavailable is acceptable.
 
 **OS Testing**:
 
-* [ ] iOS 13
 * [ ] iOS 14
 * [ ] iOS 15
+* [ ] iOS 16
 * [ ] macOS 10.15
 * [ ] macOS 11
+* [ ] macOS 12
 
 ---
 ###### Internal references:

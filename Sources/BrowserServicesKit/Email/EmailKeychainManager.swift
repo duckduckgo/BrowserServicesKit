@@ -21,7 +21,9 @@ import Foundation
 
 public class EmailKeychainManager {
 
-    public init() {}
+    public init() {
+        Self.migrateItemsToDataProtectionKeychainIfNecessary()
+    }
 
 }
 
@@ -59,16 +61,16 @@ extension EmailKeychainManager: EmailManagerStorage {
         try EmailKeychainManager.add(lastUseDate: lastUseDate)
     }
     
-    public func deleteAlias() {
-        EmailKeychainManager.deleteItem(forField: .alias)
+    public func deleteAlias() throws {
+        try EmailKeychainManager.deleteItem(forField: .alias)
     }
     
-    public func deleteAuthenticationState() {
-        EmailKeychainManager.deleteAuthenticationState()
+    public func deleteAuthenticationState() throws {
+        try EmailKeychainManager.deleteAuthenticationState()
     }
 
-    public func deleteWaitlistState() {
-        EmailKeychainManager.deleteWaitlistState()
+    public func deleteWaitlistState() throws {
+        try EmailKeychainManager.deleteWaitlistState()
     }
 
 }
@@ -79,7 +81,7 @@ private extension EmailKeychainManager {
      Uses just kSecAttrService as the primary key, since we don't want to store
      multiple accounts/tokens at the same time
     */
-    enum EmailKeychainField: String {
+    enum EmailKeychainField: String, CaseIterable {
         case username = ".email.username"
         case token = ".email.token"
         case alias = ".email.alias"
@@ -106,12 +108,13 @@ private extension EmailKeychainManager {
         }
     }
     
-    static func retrieveData(forField field: EmailKeychainField) throws -> Data? {
+    static func retrieveData(forField field: EmailKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecAttrService as String: field.keyValue,
-            kSecReturnData as String: true
+            kSecReturnData as String: true,
+            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain
         ]
         
         var item: CFTypeRef?
@@ -126,7 +129,7 @@ private extension EmailKeychainManager {
         } else if status == errSecItemNotFound {
             return nil
         } else {
-            throw EmailKeychainAccessError.keychainAccessFailure(status)
+            throw EmailKeychainAccessError.keychainLookupFailure(status)
         }
     }
     
@@ -136,7 +139,7 @@ private extension EmailKeychainManager {
             return
         }
 
-        deleteAuthenticationState()
+        try deleteAuthenticationState()
         
         try add(data: tokenData, forField: .token)
         try add(data: usernameData, forField: .username)
@@ -159,38 +162,45 @@ private extension EmailKeychainManager {
             return
         }
         
-        deleteItem(forField: field)
+        try deleteItem(forField: field)
         try add(data: stringData, forField: field)
     }
     
-    static func add(data: Data, forField field: EmailKeychainField) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrSynchronizable as String: false,
-            kSecAttrService as String: field.keyValue,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-            kSecValueData as String: data]
+    static func add(data: Data, forField field: EmailKeychainField, useDataProtectionKeychain: Bool = true) throws {
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrSynchronizable: false,
+            kSecAttrService: field.keyValue,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
+            kSecValueData: data,
+            kSecUseDataProtectionKeychain: useDataProtectionKeychain] as [String: Any]
         
         let status = SecItemAdd(query as CFDictionary, nil)
         
         if status != errSecSuccess {
-            throw EmailKeychainAccessError.keychainAccessFailure(status)
+            throw EmailKeychainAccessError.keychainSaveFailure(status)
         }
     }
     
-    static func deleteAuthenticationState() {
-        deleteItem(forField: .username)
-        deleteItem(forField: .token)
-        deleteItem(forField: .alias)
-        deleteItem(forField: .cohort)
-        deleteItem(forField: .lastUseDate)
+    static func deleteAuthenticationState() throws {
+        try deleteItem(forField: .username)
+        try deleteItem(forField: .token)
+        try deleteItem(forField: .alias)
+        try deleteItem(forField: .cohort)
+        try deleteItem(forField: .lastUseDate)
     }
     
-    static func deleteItem(forField field: EmailKeychainField) {
+    static func deleteItem(forField field: EmailKeychainField, useDataProtectionKeychain: Bool = true) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: field.keyValue]
-        SecItemDelete(query as CFDictionary)
+            kSecAttrService as String: field.keyValue,
+            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain]
+        
+        let status = SecItemDelete(query as CFDictionary)
+        
+        if status != errSecSuccess && status != errSecItemNotFound {
+            throw EmailKeychainAccessError.keychainDeleteFailure(status)
+        }
     }
 
 }
@@ -199,14 +209,35 @@ private extension EmailKeychainManager {
 
 public extension EmailKeychainManager {
 
-    static func deleteInviteCode() {
-        deleteItem(forField: .inviteCode)
+    static func deleteInviteCode() throws {
+        try deleteItem(forField: .inviteCode)
     }
 
-    static func deleteWaitlistState() {
-        deleteItem(forField: .waitlistToken)
-        deleteItem(forField: .waitlistTimestamp)
-        deleteItem(forField: .inviteCode)
+    static func deleteWaitlistState() throws {
+        try deleteItem(forField: .waitlistToken)
+        try deleteItem(forField: .waitlistTimestamp)
+        try deleteItem(forField: .inviteCode)
     }
 
+}
+
+// MARK: - Keychain Migration Extensions
+
+extension EmailKeychainManager {
+    
+    /// Takes data from the login keychain and moves it to the data protection keychain.
+    /// Reference: https://developer.apple.com/documentation/security/ksecusedataprotectionkeychain
+    static func migrateItemsToDataProtectionKeychainIfNecessary() {
+        #if os(macOS)
+        
+        for field in EmailKeychainField.allCases {
+            if let data = try? retrieveData(forField: field, useDataProtectionKeychain: false) {
+                try? add(data: data, forField: field, useDataProtectionKeychain: true)
+                try? deleteItem(forField: field, useDataProtectionKeychain: false)
+            }
+        }
+
+        #endif
+    }
+    
 }
