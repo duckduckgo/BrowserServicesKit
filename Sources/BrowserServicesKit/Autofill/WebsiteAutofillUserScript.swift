@@ -41,7 +41,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         return WebsiteAutofillMessageName.allCases.map(\.rawValue) + super.messageNames
     }
 
-    private enum WebsiteAutofillMessageName: String, CaseIterable {
+    public enum WebsiteAutofillMessageName: String, CaseIterable {
         case closeAutofillParent
         case getSelectedCredentials
         case showAutofillParent
