@@ -11,7 +11,8 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "BookmarkModels", targets: ["BookmarkModels"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.2.0")),
@@ -36,6 +37,11 @@ let package = Package(
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
                 .process("TLD/tlds.json")
+            ]),
+        .target(
+            name: "BookmarkModels",
+            dependencies: [
+                
             ]),
         .target(
             name: "BloomFilterWrapper",

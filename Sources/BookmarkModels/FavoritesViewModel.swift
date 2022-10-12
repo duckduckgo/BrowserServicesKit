@@ -1,0 +1,5 @@
+//
+//  FavoritesViewModel.swift
+//
+
+import Foundation
