@@ -22,7 +22,7 @@ extension URL {
 
     // URL without the scheme and the '/' suffix of the path
     // For finding duplicate URLs
-    var naked: URL? {
+    public var naked: URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.scheme = nil
         components.host = components.host?.droppingWwwPrefix()
@@ -32,7 +32,7 @@ extension URL {
         return components.url
     }
 
-    var nakedString: String? {
+    public var nakedString: String? {
         naked?.absoluteString.dropping(prefix: "//")
     }
 

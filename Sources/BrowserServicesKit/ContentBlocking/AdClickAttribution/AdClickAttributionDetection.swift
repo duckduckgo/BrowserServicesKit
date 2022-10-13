@@ -19,6 +19,7 @@
 
 import Foundation
 import OSLog
+import Common
 
 public protocol AdClickAttributionDetectionDelegate: AnyObject {
     

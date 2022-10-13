@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 import TrackerRadarKit
+import Common
 
 public class ReferrerTrimming {
     
