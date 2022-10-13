@@ -30,13 +30,11 @@ let package = Package(
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "GRDB",
                 "TrackerRadarKit",
-                .product(name: "Punnycode", package: "Punycode"),
                 "BloomFilterWrapper"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
-                .process("ContentBlocking/UserScripts/surrogates.js"),
-                .process("TLD/tlds.json")
+                .process("ContentBlocking/UserScripts/surrogates.js")
             ]),
         .target(
             name: "BloomFilterWrapper",
@@ -52,6 +50,9 @@ let package = Package(
             name: "Common",
             dependencies: [
                 .product(name: "Punnycode", package: "Punycode")
+            ],
+            resources: [
+                .process("TLD/tlds.json")
             ]),
         
         // MARK: - Test targets
