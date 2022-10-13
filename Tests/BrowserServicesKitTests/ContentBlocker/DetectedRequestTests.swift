@@ -19,6 +19,7 @@
 import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
+@testable import ContentBlocking
 
 final class DetectedRequestTests: XCTestCase {
 

@@ -19,6 +19,8 @@
 
 import XCTest
 import TrackerRadarKit
+import Common
+import ContentBlocking
 @testable import BrowserServicesKit
 
 // swiftlint:disable type_body_length

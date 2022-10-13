@@ -53,18 +53,6 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
-        .testTarget(
-            name: "BrowserServicesKitTests",
-            dependencies: [
-                "BrowserServicesKit",
-                "Common",
-                "UserScript",
-                "PrivacyDashboardCode"
-            ],
-            resources: [
-                .process("UserScript/testUserScript.js"),
-                .copy("Resources")
-            ]),
         .target(
             name: "Common",
             dependencies: [
@@ -93,7 +81,32 @@ let package = Package(
                 .product(name: "PrivacyDashboard", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard"
-            )
+            ),
         
+        // MARK: - Test targets
+        
+        .testTarget(
+            name: "BrowserServicesKitTests",
+            dependencies: [
+                "BrowserServicesKit",
+            ],
+            resources: [
+                .copy("Resources")
+            ]),
+        
+        .testTarget(
+            name: "CommonTests",
+            dependencies: [
+                "Common"
+            ]
+        ),
+        .testTarget(
+            name: "UserScriptTests",
+            dependencies: [
+                "UserScript"
+            ],
+            resources: [
+                .process("testUserScript.js")
+            ]),
     ]
 )

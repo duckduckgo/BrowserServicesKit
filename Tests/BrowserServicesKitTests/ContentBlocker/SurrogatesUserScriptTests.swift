@@ -21,6 +21,7 @@ import XCTest
 import WebKit
 import BrowserServicesKit
 import TrackerRadarKit
+import Common
 
 // swiftlint:disable file_length
 // swiftlint:disable type_body_length

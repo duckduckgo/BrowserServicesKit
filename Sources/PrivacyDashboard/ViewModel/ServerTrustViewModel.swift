@@ -43,7 +43,7 @@ public struct ServerTrustViewModel: Encodable {
 
             var secTrust: SecTrust?
             if errSecSuccess == SecTrustCreateWithCertificates(secCertificate, SecPolicyCreateBasicX509(), &secTrust), let certTrust = secTrust {
-                if #available(iOS 14.0, *) {
+                if #available(iOS 14.0, macOS 11.0, *) {
                     publicKey = SecKeyViewModel(secKey: SecTrustCopyKey(certTrust))
                 } else {
                     // Fallback on earlier versions

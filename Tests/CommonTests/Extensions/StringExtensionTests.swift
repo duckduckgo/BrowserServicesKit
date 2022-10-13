@@ -18,7 +18,6 @@
 
 import Foundation
 import XCTest
-@testable import BrowserServicesKit
 
 final class StringExtensionTests: XCTestCase {
 
