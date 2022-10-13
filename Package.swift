@@ -11,7 +11,8 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
-        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"])
+        .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "Common", targets: ["Common"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.2.0")),
@@ -47,6 +48,14 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
+        .target(
+            name: "Common",
+            dependencies: [
+                .product(name: "Punnycode", package: "Punycode")
+            ]),
+        
+        // MARK: - Test targets
+        
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -55,6 +64,12 @@ let package = Package(
             resources: [
                 .process("UserScript/testUserScript.js"),
                 .copy("Resources")
-            ])
+            ]),
+        .testTarget(
+            name: "CommonTests",
+            dependencies: [
+                "Common"
+            ]
+        )
     ]
 )
