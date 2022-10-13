@@ -30,7 +30,8 @@ let package = Package(
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "GRDB",
                 "TrackerRadarKit",
-                "BloomFilterWrapper"
+                "BloomFilterWrapper",
+                "Common"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
