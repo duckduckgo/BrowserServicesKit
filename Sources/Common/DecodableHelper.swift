@@ -1,6 +1,5 @@
 //
-//  BundleExtension.swift
-//  DuckDuckGo
+//  DecodableHelper.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,14 +17,16 @@
 //
 
 import Foundation
+import os
 
-extension Bundle {
-    
-    struct Keys {
-        static let versionNumber = "CFBundleShortVersionString"
-    }
-    
-    var releaseVersionNumber: String? {
-        return infoDictionary?[Keys.versionNumber] as? String
+public struct DecodableHelper {
+    public static func decode<Input: Any, Target: Decodable>(from input: Input) -> Target? {
+        do {
+            let json = try JSONSerialization.data(withJSONObject: input)
+            return try JSONDecoder().decode(Target.self, from: json)
+        } catch {
+            os_log(.error, "Error decoding message body: %{public}@", error.localizedDescription)
+            return nil
+        }
     }
 }

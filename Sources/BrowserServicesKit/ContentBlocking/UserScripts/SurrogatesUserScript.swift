@@ -20,6 +20,7 @@
 import WebKit
 import os
 import TrackerRadarKit
+import Common
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     

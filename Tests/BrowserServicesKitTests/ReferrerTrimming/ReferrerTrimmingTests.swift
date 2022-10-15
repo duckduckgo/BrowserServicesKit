@@ -21,6 +21,7 @@ import os.log
 import WebKit
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
+import Common
 
 struct ReferrerTests: Codable {
     struct ReferrerHeaderTest: Codable {

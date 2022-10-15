@@ -87,6 +87,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
         migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
         migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
@@ -621,6 +622,12 @@ extension DefaultDatabaseProvider {
         try database.drop(table: oldTableName)
 
     }
+    
+    static func migrateV7(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.notes.name, .text)
+        }
+    }
 
 }
 
@@ -708,7 +715,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, username, domain, created, lastUpdated
+        case id, title, username, domain, notes, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -716,6 +723,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         title = row[Columns.title]
         username = row[Columns.username]
         domain = row[Columns.domain]
+        notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
     }
@@ -725,6 +733,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
+        container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
     }
