@@ -22,6 +22,7 @@ import os.log
 import WebKit
 import BrowserServicesKit
 import TrackerRadarKit
+import Common
 
 class ContentBlockerReferenceTests: XCTestCase {
 

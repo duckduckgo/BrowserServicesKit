@@ -25,7 +25,7 @@ extension Bundle {
         static let versionNumber = "CFBundleShortVersionString"
     }
     
-    var releaseVersionNumber: String? {
+    public var releaseVersionNumber: String? {
         return infoDictionary?[Keys.versionNumber] as? String
     }
 }

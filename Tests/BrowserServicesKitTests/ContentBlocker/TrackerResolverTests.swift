@@ -20,6 +20,7 @@
 import XCTest
 import TrackerRadarKit
 @testable import BrowserServicesKit
+import Common
 
 // swiftlint:disable type_body_length
 // swiftlint:disable function_body_length

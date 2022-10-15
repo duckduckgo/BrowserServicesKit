@@ -19,6 +19,7 @@
 
 import XCTest
 import BrowserServicesKit
+import Common
 
 final class AdClickAttributionPixelTests: XCTestCase {
     

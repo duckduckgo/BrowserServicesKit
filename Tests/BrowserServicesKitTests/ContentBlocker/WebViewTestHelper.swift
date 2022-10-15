@@ -22,6 +22,7 @@ import WebKit
 import XCTest
 import BrowserServicesKit
 import TrackerRadarKit
+import Common
 
 final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
 

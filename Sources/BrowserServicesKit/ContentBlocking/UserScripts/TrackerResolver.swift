@@ -19,6 +19,7 @@
 
 import Foundation
 import TrackerRadarKit
+import Common
 
 public class TrackerResolver {
     
