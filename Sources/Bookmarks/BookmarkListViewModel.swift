@@ -4,6 +4,7 @@
 
 import Foundation
 import Combine
+import CoreData
 
 public class BookmarkListViewModel: ObservableObject {
 
@@ -23,6 +24,117 @@ public class BookmarkListViewModel: ObservableObject {
         }
     }
 
+}
+
+extension BookmarkEntity: Bookmark {
+    public var parent: Bookmark? {
+        get {
+            parentEntity
+        }
+        set {
+            if let entity = newValue as? BookmarkEntity {
+                parentEntity = entity
+            }
+        }
+    }
+}
+
+public class CoreDataBookmarksStorage: WritableBookmarkStoring {
+    
+    let context: NSManagedObjectContext
+    
+    public var updates: AnyPublisher<Void, Never>
+    private let subject = PassthroughSubject<Void, Never>()
+    
+    init(context: NSManagedObjectContext) {
+        self.context = context
+        
+        updates = subject
+            .share() // share allows multiple subscribers
+            .eraseToAnyPublisher() // we don't want to expose the concrete class to subscribers
+    }
+    
+    //
+    
+    func sorted(_ array: [BookmarkEntity], keyPath: KeyPath<BookmarkEntity, BookmarkEntity?>) -> [BookmarkEntity] {
+        guard let first = array.first(where: { $0.previous == nil }) else {
+            // TODO: pixel
+            return array
+        }
+        
+        var sorted = [first]
+        sorted.reserveCapacity(array.count)
+        
+        var current = first[keyPath: keyPath]
+        while let next = current {
+            sorted.append(next)
+            current = next[keyPath: keyPath]
+        }
+        
+        return sorted
+    }
+
+    public func fetchBookmarksInFolder(_ bookmark: Bookmark?) -> [Bookmark] {
+        
+        let fetchRequest = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        fetchRequest.returnsObjectsAsFaults = false
+        if let bookmark = bookmark, let parent = bookmark as? BookmarkEntity {
+            fetchRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.parentEntity), parent)
+        } else {
+            fetchRequest.predicate = NSPredicate(format: "%K == nil", #keyPath(BookmarkEntity.parentEntity))
+        }
+        
+        do {
+            let result = try context.fetch(fetchRequest)
+            
+            return sorted(result, keyPath: \.next)
+        } catch {
+            fatalError("Could not fetch Bookmarks")
+        }
+    }
+
+    public func fetchFavorites() -> [Bookmark] {
+
+        let fetchRequest = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        fetchRequest.returnsObjectsAsFaults = false
+        fetchRequest.predicate = NSPredicate(format: "%K == true", #keyPath(BookmarkEntity.isFavorite))
+        
+        do {
+            let result = try context.fetch(fetchRequest)
+            return sorted(result, keyPath: \.nextFavorite)
+        } catch {
+            fatalError("Could not fetch Favorites")
+        }
+    }
+    
+    //
+    
+    public func deleteBookmark(_ bookmark: Bookmark) {
+        // To refactor, as mutation should be transactional and unpolluted. Either:
+        //   - separate worker for mutation
+        //   - DB provider in init ?
+        guard let entity = bookmark as? BookmarkEntity else {
+            fatalError("Bookmark is not an Entity")
+        }
+        
+        context.delete(entity)
+        do {
+            try context.save()
+        } catch {
+            // ToDo: Pixel
+            fatalError("Cannot into DB :( \(error)")
+        }
+    }
+
+    /// after can be nil to be at the start of the list
+    public func moveBookmark(_ bookmark: Bookmark, after newPreceding: Bookmark?) {
+        // Todo: change api to Array based? Reason: typical mutation on Linked Lists is based on a head/tail pointers which we don't have here.
+        
+    }
+    
+    public func save() async {
+        // Do we need this?
+    }
 }
 
 /// Poor implementation just to hook up the UI.

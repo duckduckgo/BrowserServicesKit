@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="20086" systemVersion="21G115" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="BookmarkEntity" representedClassName="BookmarkEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="isFavorite" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isFolder" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
+        <attribute name="uuid" attributeType="String"/>
+        <relationship name="children" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="parentEntity" inverseEntity="BookmarkEntity"/>
+        <relationship name="next" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="previous" inverseEntity="BookmarkEntity"/>
+        <relationship name="nextFavorite" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="previousFavorite" inverseEntity="BookmarkEntity"/>
+        <relationship name="parentEntity" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="children" inverseEntity="BookmarkEntity"/>
+        <relationship name="previous" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="next" inverseEntity="BookmarkEntity"/>
+        <relationship name="previousFavorite" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="nextFavorite" inverseEntity="BookmarkEntity"/>
+    </entity>
+    <elements>
+        <element name="BookmarkEntity" positionX="-8.4656982421875" positionY="-75.2490234375" width="128" height="194"/>
+    </elements>
+</model>

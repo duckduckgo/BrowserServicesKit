@@ -13,7 +13,7 @@ let package = Package(
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
-        .library(name: "BookmarkModels", targets: ["BookmarkModels"])
+        .library(name: "Bookmarks", targets: ["Bookmarks"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.2.0")),
@@ -39,10 +39,14 @@ let package = Package(
                 .process("ContentBlocking/UserScripts/surrogates.js")
             ]),
         .target(
-            name: "BookmarkModels",
+            name: "Bookmarks",
             dependencies: [
                 
-            ]),
+            ],
+            resources: [
+                .process("BookmarksModel.xcdatamodeld")
+            ]
+        ),
         .target(
             name: "BloomFilterWrapper",
             dependencies: [
@@ -72,11 +76,19 @@ let package = Package(
             resources: [
                 .process("UserScript/testUserScript.js"),
                 .copy("Resources")
-            ]),
+            ]
+        ),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]
+        ),
+        .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks",
+                "BrowserServicesKit"
             ]
         )
     ]
