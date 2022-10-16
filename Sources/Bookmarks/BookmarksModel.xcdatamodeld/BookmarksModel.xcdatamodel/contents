@@ -6,10 +6,10 @@
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String"/>
         <attribute name="uuid" attributeType="String"/>
-        <relationship name="children" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="parentEntity" inverseEntity="BookmarkEntity"/>
+        <relationship name="children" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="parent" inverseEntity="BookmarkEntity"/>
         <relationship name="next" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="previous" inverseEntity="BookmarkEntity"/>
         <relationship name="nextFavorite" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="previousFavorite" inverseEntity="BookmarkEntity"/>
-        <relationship name="parentEntity" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="children" inverseEntity="BookmarkEntity"/>
+        <relationship name="parent" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="children" inverseEntity="BookmarkEntity"/>
         <relationship name="previous" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="next" inverseEntity="BookmarkEntity"/>
         <relationship name="previousFavorite" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="nextFavorite" inverseEntity="BookmarkEntity"/>
     </entity>

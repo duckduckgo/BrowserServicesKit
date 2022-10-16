@@ -19,19 +19,9 @@ public protocol BookmarkStoring {
 
     var updates: AnyPublisher<Void, Never> { get }
 
-    func fetchBookmarksInFolder(_: Bookmark?) -> [Bookmark]
+    func fetchBookmarksInFolder(_: BookmarkEntity?) -> [BookmarkEntity]
 
-    func fetchFavorites() -> [Bookmark]
-
-}
-
-public protocol Bookmark {
-
-    var parent: Bookmark? { get set }
-    var title: String? { get set  }
-    var url: String? { get set  }
-    var isFavorite: Bool { get set  }
-    var isFolder: Bool { get set }
+    func fetchFavorites() -> [BookmarkEntity]
 
 }
 
@@ -40,10 +30,10 @@ public protocol WritableBookmarkStoring: BookmarkStoring, Writable {
 
     // ... add write type functions
 
-    func deleteBookmark(_ bookmark: Bookmark)
+    func deleteBookmark(_ bookmark: BookmarkEntity)
 
     /// after can be nil to be at the start of the list
-    func moveBookmark(_ bookmark: Bookmark, after: Bookmark?)
+    func moveBookmark(_ bookmark: BookmarkEntity, after: BookmarkEntity?)
 
 }
 
