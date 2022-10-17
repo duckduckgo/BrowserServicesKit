@@ -23,7 +23,7 @@ import Persistence
 @testable import Bookmarks
 import BrowserServicesKit
 
-class BookmarkListViewModelTests: XCTestCase {
+class FavoriteListViewModelTests: XCTestCase {
     
     var db: CoreDataDatabase!
     
@@ -38,24 +38,18 @@ class BookmarkListViewModelTests: XCTestCase {
     override func tearDownWithError() throws {
         try db.tearDown(deleteStores: true)
     }
-
-    func testFetchingBookmarks() {
+    
+    func testFetchingFavorites() {
         let mainContext = db.makeContext(concurrencyType: .mainQueueConcurrencyType, name: "TestContext")
         
         BasicBookmarksStructure.populateDB(context: mainContext)
         
-        let storage = CoreDataBookmarksLogic(context: db.makeContext(concurrencyType: .mainQueueConcurrencyType,
+        let storage = CoreDataFavoritesLogic(context: db.makeContext(concurrencyType: .mainQueueConcurrencyType,
                                                                      name: "StorageContext"))
         
-        let result = storage.fetchBookmarksInFolder(nil)
+        let result = storage.fetchFavorites()
         
         let names = result.map { $0.title }
-        XCTAssertEqual(names, BasicBookmarksStructure.topLevelTitles)
-        
-        let result2 = storage.fetchBookmarksInFolder(result[1])
-        
-        let names2 = result2.map { $0.title }
-        XCTAssertEqual(names2, BasicBookmarksStructure.nestedTitles)
+        XCTAssertEqual(names, BasicBookmarksStructure.favoriteTitles)
     }
-    
 }

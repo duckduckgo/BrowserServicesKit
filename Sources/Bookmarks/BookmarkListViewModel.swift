@@ -1,6 +1,20 @@
 //
 //  BookmarkListViewModel.swift
 //  
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
 
 import Foundation
 import Combine
@@ -9,14 +23,14 @@ import Persistence
 
 public class BookmarkListViewModel: ObservableObject {
 
-    let storage: WritableBookmarkStoring
+    let storage: BookmarkListInteracting
     var cancellable: AnyCancellable?
 
     public let currentFolder: BookmarkEntity?
 
     @Published public var bookmarks = [BookmarkEntity]()
 
-     public init(storage: WritableBookmarkStoring, currentFolder: BookmarkEntity?) {
+     public init(storage: BookmarkListInteracting, currentFolder: BookmarkEntity?) {
         self.storage = storage
         self.currentFolder = currentFolder
         self.bookmarks = storage.fetchBookmarksInFolder(currentFolder)
@@ -27,19 +41,15 @@ public class BookmarkListViewModel: ObservableObject {
 
 }
 
-public class CoreDataBookmarksStorage: WritableBookmarkStoring {
+public class CoreDataBookmarksLogic: BookmarkListInteracting {
     
-    let contextFactory: ManagedObjectContextFactory
     let context: NSManagedObjectContext
     
     public var updates: AnyPublisher<Void, Never>
     private let subject = PassthroughSubject<Void, Never>()
     
-    init(contextFactory: ManagedObjectContextFactory,
-         context: NSManagedObjectContext? = nil) {
-        self.contextFactory = contextFactory
-        self.context = context ?? contextFactory.makeContext(concurrencyType: .mainQueueConcurrencyType,
-                                                             name: "Bookmarks Storage Context")
+    init(context: NSManagedObjectContext) {
+        self.context = context
         
         updates = subject
             .share() // share allows multiple subscribers
@@ -47,24 +57,6 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
     }
     
     // MARK: - Read
-    
-    func sorted(_ array: [BookmarkEntity], keyPath: KeyPath<BookmarkEntity, BookmarkEntity?>) -> [BookmarkEntity] {
-        guard let first = array.first(where: { $0.previous == nil }) else {
-            // TODO: pixel
-            return array
-        }
-        
-        var sorted = [first]
-        sorted.reserveCapacity(array.count)
-        
-        var current = first[keyPath: keyPath]
-        while let next = current {
-            sorted.append(next)
-            current = next[keyPath: keyPath]
-        }
-        
-        return sorted
-    }
 
     public func fetchBookmarksInFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
         
@@ -95,52 +87,42 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
             bookmarks = queryFolder(folder)
         }
         
-        return sorted(bookmarks, keyPath: \.next)
+        return bookmarks.sortedBookmarkEntities(using: .bookmarkAccessors)
     }
 
-    public func fetchFavorites() -> [BookmarkEntity] {
-
-        let fetchRequest = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
-        fetchRequest.returnsObjectsAsFaults = false
-        fetchRequest.predicate = NSPredicate(format: "%K == true", #keyPath(BookmarkEntity.isFavorite))
+    public func deleteBookmark(_ bookmark: BookmarkEntity) throws {
         
-        do {
-            let result = try context.fetch(fetchRequest)
-            return sorted(result, keyPath: \.nextFavorite)
-        } catch {
-            fatalError("Could not fetch Favorites")
+        if let preceding = bookmark.previous {
+            preceding.next = bookmark.next
+        } else if let following = bookmark.next {
+            following.previous = bookmark.previous
         }
-    }
-    
-    // MARK: - Write
-    
-    public func deleteBookmark(_ bookmark: BookmarkEntity) {
         
-        let writable = contextFactory.makeContext(concurrencyType: .mainQueueConcurrencyType,
-                                                  name: "Bookmarks Storing")
+        context.delete(bookmark)
+        
         do {
-            try writable.existingObject(with: bookmark.objectID)
-            try writable.save()
+            try context.save()
         } catch {
+            context.rollback()
             // ToDo: Pixel
-            fatalError("Cannot into DB :( \(error)")
+            throw error
         }
     }
 
     public func moveBookmarkInArray(_ array: [BookmarkEntity],
                                     fromIndex: Int,
-                                    toIndex: Int) -> [BookmarkEntity] {
+                                    toIndex: Int) throws -> [BookmarkEntity] {
         do {
-            return try array.movingBookmark(fromIndex: fromIndex,
-                                            toIndex: toIndex,
-                                            orderAccessors: BookmarkEntity.bookmarkOrdering)
+            let result = try array.movingBookmarkEntity(fromIndex: fromIndex,
+                                                        toIndex: toIndex,
+                                                        using: .bookmarkAccessors)
+            
+            try context.save()
+            return result
         } catch {
-            // ToDo
-            return []
+            context.rollback()
+            // ToDo: error with toast?
+            return array
         }
-    }
-    
-    public func save() async {
-        // Do we need this?
     }
 }
