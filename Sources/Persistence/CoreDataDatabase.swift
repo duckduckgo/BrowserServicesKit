@@ -90,6 +90,23 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         }
     }
     
+    public func tearDown(deleteStores: Bool) throws {
+        typealias StoreInfo = (url: URL?, type: String)
+        var storesToDelete = [StoreInfo]()
+        for store in container.persistentStoreCoordinator.persistentStores {
+            storesToDelete.append((url: store.url, type: store.type))
+            try container.persistentStoreCoordinator.remove(store)
+        }
+        
+        if deleteStores {
+            for (url, type) in storesToDelete {
+                if let url = url {
+                    try container.persistentStoreCoordinator.destroyPersistentStore(at: url, ofType: type)
+                }
+            }
+        }
+    }
+    
     public func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String? = nil) -> NSManagedObjectContext {
         RunLoop.current.run(until: storeLoadedCondition)
 

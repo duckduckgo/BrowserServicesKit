@@ -123,14 +123,33 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
         }
     }
 
-    // Array
-    // From -> To
-    //
-
-    /// after can be nil to be at the start of the list
-    public func moveBookmark(_ bookmark: BookmarkEntity, after newPreceding: BookmarkEntity?) {
-        // Todo: change api to Array based? Reason: typical mutation on Linked Lists is based on a head/tail pointers which we don't have here.
+    public func moveBookmarkInArray(_ array: [BookmarkEntity],
+                                    fromIndex: Int,
+                                    toIndex: Int) -> [BookmarkEntity] {
+        guard fromIndex < array.count, toIndex < array.count else {
+            // ToDo: Pixel
+            return array
+        }
         
+        var result = array
+        let bookmark = result.remove(at: fromIndex)
+        result.insert(bookmark, at: toIndex)
+        
+        // Remove from list
+        if let preceding = bookmark.previous {
+            preceding.next = bookmark.next
+        } else if let following = bookmark.next {
+            following.previous = bookmark.previous
+        }
+        
+        // Insert in new place
+        let newPreceding: BookmarkEntity? = toIndex > 0 ? result[toIndex - 1] : nil
+        let newFollowing: BookmarkEntity? = toIndex + 1 < result.count ? result[toIndex + 1] : nil
+        
+        bookmark.previous = newPreceding
+        bookmark.next = newFollowing
+        
+        return result
     }
     
     public func save() async {

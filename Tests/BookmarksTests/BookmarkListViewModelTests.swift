@@ -27,91 +27,22 @@ class BookmarkListViewModelTests: XCTestCase {
     
     var db: CoreDataDatabase!
     
-    static var tempDBDir: URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-    }
-
     override func setUpWithError() throws {
         
         let model = CoreDataDatabase.loadModel(from: Bundle.module, named: "BookmarksModel")!
         
-        db = CoreDataDatabase(name: "Test", containerLocation: Self.tempDBDir, model: model)
+        db = CoreDataDatabase(name: "Test", containerLocation: tempDBDir(), model: model)
         db.loadStore()
     }
 
     override func tearDownWithError() throws {
-        
-    }
-    
-    
-    let topLevelTitles = ["1", "Folder", "2", "3"]
-    let nestedTitles = ["Nested", "F1", "F2"]
-    let favoriteTitles = ["1", "2", "F1", "3"]
-    
-    func populateDB(context: NSManagedObjectContext) {
-        
-        // Structure:
-        // Bookmark 1
-        // Folder Folder ->
-        //   - Folder Nested
-        //   - Bookmark F1
-        //   - Bookmark F2
-        // Bookmark 2
-        // Bookmark 3
-        //
-        // Favorites: 1 -> 2 -> F1 -> 3
-        
-        var last: BookmarkEntity?
-        let topLevel: [BookmarkEntity] = topLevelTitles.map { name in
-            let b = BookmarkEntity(context: context)
-            b.uuid = UUID().uuidString
-            b.title = name
-            b.previous = last
-            b.isFolder = false
-            b.isFavorite = false
-            last = b
-            return b
-        }
-        
-        let parent = topLevel[1]
-        parent.isFolder = true
-        
-        last = nil
-        
-        let nestedLevel: [BookmarkEntity] = nestedTitles.map { name in
-            let b = BookmarkEntity(context: context)
-            b.uuid = UUID().uuidString
-            b.title = name
-            b.parent = parent
-            b.previous = last
-            b.isFolder = false
-            b.isFavorite = false
-            last = b
-            return b
-        }
-        
-        nestedLevel[0].isFolder = true
-        
-        topLevel[0].isFavorite = true
-        topLevel[2].isFavorite = true
-        nestedLevel[1].isFavorite = true
-        topLevel[3].isFavorite = true
-        
-        topLevel[0].nextFavorite = topLevel[2]
-        topLevel[2].nextFavorite = nestedLevel[1]
-        nestedLevel[1].nextFavorite = topLevel[3]
-        
-        do {
-            try context.save()
-        } catch {
-            XCTFail("Couldn't populate db: \(error.localizedDescription)")
-        }
+        try db.tearDown(deleteStores: true)
     }
 
     func testFetchingBookmarks() {
         let mainContext = db.makeContext(concurrencyType: .mainQueueConcurrencyType, name: "TestContext")
         
-        populateDB(context: mainContext)
+        BasicBookmarksStructure.populateDB(context: mainContext)
         
         let storage = CoreDataBookmarksStorage(context: db.makeContext(concurrencyType: .mainQueueConcurrencyType,
                                                                        name: "StorageContext"))
@@ -119,18 +50,18 @@ class BookmarkListViewModelTests: XCTestCase {
         let result = storage.fetchBookmarksInFolder(nil)
         
         let names = result.map { $0.title }
-        XCTAssertEqual(names, topLevelTitles)
+        XCTAssertEqual(names, BasicBookmarksStructure.topLevelTitles)
         
         let result2 = storage.fetchBookmarksInFolder(result[1])
         
         let names2 = result2.map { $0.title }
-        XCTAssertEqual(names2, nestedTitles)
+        XCTAssertEqual(names2, BasicBookmarksStructure.nestedTitles)
     }
     
     func testFetchingFavorites() {
         let mainContext = db.makeContext(concurrencyType: .mainQueueConcurrencyType, name: "TestContext")
         
-        populateDB(context: mainContext)
+        BasicBookmarksStructure.populateDB(context: mainContext)
         
         let storage = CoreDataBookmarksStorage(context: db.makeContext(concurrencyType: .mainQueueConcurrencyType,
                                                                        name: "StorageContext"))
@@ -138,6 +69,6 @@ class BookmarkListViewModelTests: XCTestCase {
         let result = storage.fetchFavorites()
         
         let names = result.map { $0.title }
-        XCTAssertEqual(names, favoriteTitles)
+        XCTAssertEqual(names, BasicBookmarksStructure.favoriteTitles)
     }
 }

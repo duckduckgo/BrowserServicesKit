@@ -33,7 +33,9 @@ public protocol WritableBookmarkStoring: BookmarkStoring, Writable {
     func deleteBookmark(_ bookmark: BookmarkEntity)
 
     /// after can be nil to be at the start of the list
-    func moveBookmark(_ bookmark: BookmarkEntity, after: BookmarkEntity?)
+    func moveBookmarkInArray(_ array: [BookmarkEntity],
+                             fromIndex: Int,
+                             toIndex: Int) -> [BookmarkEntity]
 
 }
 
