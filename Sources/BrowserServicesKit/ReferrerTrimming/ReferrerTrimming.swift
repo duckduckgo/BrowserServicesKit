@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 import TrackerRadarKit
+import Common
 
 public class ReferrerTrimming {
     
@@ -101,6 +102,10 @@ public class ReferrerTrimming {
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
             newReferrer = "\(referrerScheme)://\(tld.eTLDplus1(referrerHost) ?? referrerHost)/"
+        }
+        
+        if newReferrer == referrerUrl.absoluteString {
+            return nil
         }
         
         return newReferrer

@@ -20,6 +20,7 @@
 import Foundation
 import XCTest
 @testable import BrowserServicesKit
+import Common
 
 final class MockAttributionRulesProvider: AdClickAttributionRulesProviding {
     

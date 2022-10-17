@@ -17,7 +17,7 @@
 //
 
 import XCTest
-@testable import BrowserServicesKit
+@testable import Common
 
 // swiftlint:disable line_length
 final class URLExtensionTests: XCTestCase {

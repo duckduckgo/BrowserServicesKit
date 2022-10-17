@@ -22,6 +22,7 @@ import BrowserServicesKit
 @testable import TrackerRadarKit
 import Foundation
 import os.log
+import Common
 
 class DomainMatchingReportTests: XCTestCase {
     private var data = JsonTestDataLoader()

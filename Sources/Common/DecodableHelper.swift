@@ -1,8 +1,7 @@
 //
-//  CalendarExtension.swift
-//  DuckDuckGo
+//  DecodableHelper.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,10 +17,16 @@
 //
 
 import Foundation
+import os
 
-extension Calendar {
-	func numberOfDaysBetween(_ from: Date, and to: Date) -> Int? {
-		let numberOfDays = dateComponents([.day], from: from, to: to)
-		return numberOfDays.day
-	}
+public struct DecodableHelper {
+    public static func decode<Input: Any, Target: Decodable>(from input: Input) -> Target? {
+        do {
+            let json = try JSONSerialization.data(withJSONObject: input)
+            return try JSONDecoder().decode(Target.self, from: json)
+        } catch {
+            os_log(.error, "Error decoding message body: %{public}@", error.localizedDescription)
+            return nil
+        }
+    }
 }

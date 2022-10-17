@@ -11,6 +11,9 @@
                 }
             ]
         },
+        "duckPlayer": {
+            "state": "enabled"
+        },
         "trackingCookies3p": {
             "state": "enabled",
             "exceptions": [

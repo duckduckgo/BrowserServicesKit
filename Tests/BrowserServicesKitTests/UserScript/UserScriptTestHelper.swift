@@ -1,8 +1,8 @@
 //
-//  BundleExtension.swift
+//  UserScriptTestHelper.swift
 //  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,14 +18,20 @@
 //
 
 import Foundation
+import CryptoKit
 
-extension Bundle {
+struct UserScriptTestHelper {
     
-    struct Keys {
-        static let versionNumber = "CFBundleShortVersionString"
-    }
-    
-    var releaseVersionNumber: String? {
-        return infoDictionary?[Keys.versionNumber] as? String
+    static func getScriptOutput (_ src: String) -> String {
+        let hash = SHA256.hash(data: Data(src.utf8)).hashValue
+
+        return """
+        (() => {
+            if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
+            \(src)
+            window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
+            window.navigator._duckduckgoloader_.push('\(hash)')
+        })()
+        """
     }
 }

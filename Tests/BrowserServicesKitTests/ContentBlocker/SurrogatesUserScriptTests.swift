@@ -21,6 +21,7 @@ import XCTest
 import WebKit
 import BrowserServicesKit
 import TrackerRadarKit
+import Common
 
 // swiftlint:disable file_length
 // swiftlint:disable type_body_length
@@ -247,7 +248,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
     func testWhenSiteIsLocallyUnprotectedThenSurrogatesAreNotInjected() {
 
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = URL(string: "test://example.com/index.html")!
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: ["example.com"],
                                                                   tempUnprotected: [],
@@ -315,7 +316,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
     func testWhenSiteIsTempUnprotectedThenSurrogatesAreNotInjected() {
 
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = URL(string: "test://example.com/index.html")!
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
                                                                   tempUnprotected: ["example.com"],
@@ -347,7 +348,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
     func testWhenSiteIsSubdomainOfTempUnprotectedThenSurrogatesAreNotInjected() {
 
-        let websiteURL = URL(string: "test://sub.example.com")!
+        let websiteURL = URL(string: "test://sub.example.com/index.html")!
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
                                                                   tempUnprotected: ["example.com"],
@@ -379,7 +380,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
     func testWhenSiteIsInExceptionListThenSurrogatesAreNotInjected() {
 
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = URL(string: "test://example.com/index.html")!
 
         let allowlist = ["tracker.com": [PrivacyConfigurationData.TrackerAllowlist.Entry(rule: "tracker.com/", domains: ["example.com"])]]
 
@@ -447,7 +448,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
     func testWhenTrackerIsInAllowListThenSurrogatesAreNotInjected() {
 
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = URL(string: "test://example.com/index.html")!
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
                                                                   tempUnprotected: [],
@@ -479,7 +480,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
     func testWhenSiteIsSubdomainOfExceptionListThenSurrogatesAreNotInjected() {
 
-        let websiteURL = URL(string: "test://sub.example.com")!
+        let websiteURL = URL(string: "test://sub.example.com/index.html")!
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
                                                                   tempUnprotected: [],
