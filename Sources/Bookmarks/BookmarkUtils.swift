@@ -20,13 +20,17 @@ extension BookmarkEntity {
     }
 }
 
+public enum ArrayExtension: Error {
+    case indexOutOfBounds
+}
+
 extension Array where Element: BookmarkEntity {
-    
+
     public func movingBookmark(fromIndex: Int,
                                toIndex: Int,
-                               orderAccessors: BookmarkEntity.ListOrderAccessors) -> [BookmarkEntity] {
+                               orderAccessors: BookmarkEntity.ListOrderAccessors) throws -> [BookmarkEntity] {
         guard fromIndex < count, toIndex < count else {
-            return self
+            throw ArrayExtension.indexOutOfBounds
         }
         
         var result = self

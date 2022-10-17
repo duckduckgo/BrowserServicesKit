@@ -29,13 +29,17 @@ public class BookmarkListViewModel: ObservableObject {
 
 public class CoreDataBookmarksStorage: WritableBookmarkStoring {
     
+    let contextFactory: ManagedObjectContextFactory
     let context: NSManagedObjectContext
     
     public var updates: AnyPublisher<Void, Never>
     private let subject = PassthroughSubject<Void, Never>()
     
-    init(context: NSManagedObjectContext) {
-        self.context = context
+    init(contextFactory: ManagedObjectContextFactory,
+         context: NSManagedObjectContext? = nil) {
+        self.contextFactory = contextFactory
+        self.context = context ?? contextFactory.makeContext(concurrencyType: .mainQueueConcurrencyType,
+                                                             name: "Bookmarks Storage Context")
         
         updates = subject
             .share() // share allows multiple subscribers
@@ -111,12 +115,12 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
     // MARK: - Write
     
     public func deleteBookmark(_ bookmark: BookmarkEntity) {
-        // To refactor, as mutation should be transactional and unpolluted. Either:
-        //   - separate worker for mutation
-        //   - DB provider in init ?
-        context.delete(bookmark)
+        
+        let writable = contextFactory.makeContext(concurrencyType: .mainQueueConcurrencyType,
+                                                  name: "Bookmarks Storing")
         do {
-            try context.save()
+            try writable.existingObject(with: bookmark.objectID)
+            try writable.save()
         } catch {
             // ToDo: Pixel
             fatalError("Cannot into DB :( \(error)")
@@ -126,30 +130,14 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
     public func moveBookmarkInArray(_ array: [BookmarkEntity],
                                     fromIndex: Int,
                                     toIndex: Int) -> [BookmarkEntity] {
-        guard fromIndex < array.count, toIndex < array.count else {
-            // ToDo: Pixel
-            return array
+        do {
+            return try array.movingBookmark(fromIndex: fromIndex,
+                                            toIndex: toIndex,
+                                            orderAccessors: BookmarkEntity.bookmarkOrdering)
+        } catch {
+            // ToDo
+            return []
         }
-        
-        var result = array
-        let bookmark = result.remove(at: fromIndex)
-        result.insert(bookmark, at: toIndex)
-        
-        // Remove from list
-        if let preceding = bookmark.previous {
-            preceding.next = bookmark.next
-        } else if let following = bookmark.next {
-            following.previous = bookmark.previous
-        }
-        
-        // Insert in new place
-        let newPreceding: BookmarkEntity? = toIndex > 0 ? result[toIndex - 1] : nil
-        let newFollowing: BookmarkEntity? = toIndex + 1 < result.count ? result[toIndex + 1] : nil
-        
-        bookmark.previous = newPreceding
-        bookmark.next = newFollowing
-        
-        return result
     }
     
     public func save() async {
