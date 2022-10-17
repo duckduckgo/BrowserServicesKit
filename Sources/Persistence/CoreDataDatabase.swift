@@ -18,9 +18,15 @@
 
 import Foundation
 import CoreData
+import Common
 import OSLog
 
-public class CoreDataDatabase {
+public protocol ManagedObjectContextFactory {
+    
+    func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String?) -> NSManagedObjectContext
+}
+
+public class CoreDataDatabase: ManagedObjectContextFactory {
     
     public enum Error: Swift.Error {
         case containerLocationCouldNotBePrepared(underlyingError: Swift.Error)

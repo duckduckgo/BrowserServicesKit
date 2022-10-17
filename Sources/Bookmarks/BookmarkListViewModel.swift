@@ -5,6 +5,7 @@
 import Foundation
 import Combine
 import CoreData
+import Persistence
 
 public class BookmarkListViewModel: ObservableObject {
 
@@ -41,7 +42,7 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
             .eraseToAnyPublisher() // we don't want to expose the concrete class to subscribers
     }
     
-    //
+    // MARK: - Read
     
     func sorted(_ array: [BookmarkEntity], keyPath: KeyPath<BookmarkEntity, BookmarkEntity?>) -> [BookmarkEntity] {
         guard let first = array.first(where: { $0.previous == nil }) else {
@@ -84,7 +85,7 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
             if children.count > 20 {
                 bookmarks = queryFolder(folder)
             } else {
-                bookmarks = Array(_immutableCocoaArray: children)
+                bookmarks = children.allObjects as! [BookmarkEntity]
             }
         } else {
             bookmarks = queryFolder(folder)
@@ -107,7 +108,7 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
         }
     }
     
-    //
+    // MARK: - Write
     
     public func deleteBookmark(_ bookmark: BookmarkEntity) {
         // To refactor, as mutation should be transactional and unpolluted. Either:
@@ -121,6 +122,10 @@ public class CoreDataBookmarksStorage: WritableBookmarkStoring {
             fatalError("Cannot into DB :( \(error)")
         }
     }
+
+    // Array
+    // From -> To
+    //
 
     /// after can be nil to be at the start of the list
     public func moveBookmark(_ bookmark: BookmarkEntity, after newPreceding: BookmarkEntity?) {

@@ -19,6 +19,7 @@
 import XCTest
 import CoreData
 import Common
+import Persistence
 @testable import Bookmarks
 import BrowserServicesKit
 
@@ -119,6 +120,11 @@ class BookmarkListViewModelTests: XCTestCase {
         
         let names = result.map { $0.title }
         XCTAssertEqual(names, topLevelTitles)
+        
+        let result2 = storage.fetchBookmarksInFolder(result[1])
+        
+        let names2 = result2.map { $0.title }
+        XCTAssertEqual(names2, nestedTitles)
     }
     
     func testFetchingFavorites() {

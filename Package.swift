@@ -29,6 +29,7 @@ let package = Package(
             dependencies: [
                 "Autofill",
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
+                "Persistence",
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
@@ -39,9 +40,15 @@ let package = Package(
                 .process("ContentBlocking/UserScripts/surrogates.js")
             ]),
         .target(
+            name: "Persistence",
+            dependencies: [
+                "Common"
+            ]
+        ),
+        .target(
             name: "Bookmarks",
             dependencies: [
-                
+                "Persistence"
             ],
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
