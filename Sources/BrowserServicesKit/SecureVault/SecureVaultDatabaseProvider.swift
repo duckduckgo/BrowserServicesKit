@@ -70,7 +70,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         config.prepareDatabase {
             try $0.usePassphrase(key)
             try $0.execute(sql: "PRAGMA cipher_plaintext_header_size = 32;")
-            try $0.execute(sql: "PRAGMA journal_mode = WAL;")
+            //try $0.execute(sql: "PRAGMA journal_mode = WAL;")
         }
 
         do {
