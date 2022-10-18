@@ -69,8 +69,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         config.observesSuspensionNotifications = true
         config.prepareDatabase {
             try $0.usePassphrase(key)
-            try $0.execute(sql: "PRAGMA cipher_plaintext_header_size = 32;")
-            //try $0.execute(sql: "PRAGMA journal_mode = WAL;")
+            try $0.execute(sql: "PRAGMA journal_mode = WAL; PRAGMA cipher_plaintext_header_size = 32; PRAGMA cipher_salt = x'01010101010101010101010101010101';")
         }
 
         do {
