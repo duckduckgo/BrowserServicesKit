@@ -66,7 +66,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
         var config = Configuration()
-        //config.observesSuspensionNotifications = true
+        config.observesSuspensionNotifications = true
         config.prepareDatabase {
             try $0.usePassphrase(key)
             try $0.execute(sql: "PRAGMA journal_mode = WAL;") //PRAGMA cipher_plaintext_header_size = 32")
