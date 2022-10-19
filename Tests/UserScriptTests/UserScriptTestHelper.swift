@@ -1,5 +1,5 @@
 //
-//  CalendarExtension.swift
+//  UserScriptTestHelper.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -18,11 +18,20 @@
 //
 
 import Foundation
+import CryptoKit
 
-extension Calendar {
-	public func numberOfDaysBetween(_ from: Date, and to: Date) -> Int? {
-		let numberOfDays = dateComponents([.day], from: from, to: to)
-		return numberOfDays.day
-	}
+struct UserScriptTestHelper {
     
+    static func getScriptOutput (_ src: String) -> String {
+        let hash = SHA256.hash(data: Data(src.utf8)).hashValue
+
+        return """
+        (() => {
+            if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
+            \(src)
+            window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
+            window.navigator._duckduckgoloader_.push('\(hash)')
+        })()
+        """
+    }
 }

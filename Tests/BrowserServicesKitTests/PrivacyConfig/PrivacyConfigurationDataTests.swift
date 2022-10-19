@@ -34,6 +34,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual(configData.unprotectedTemporary.count, 1)
         XCTAssertEqual(configData.unprotectedTemporary.first?.domain, "example.com")
 
+        let duckPlayerFeature = configData.features["duckPlayer"]
+        XCTAssertNotNil(duckPlayerFeature)
+        XCTAssertEqual(duckPlayerFeature?.state, "enabled")
+
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
         XCTAssertEqual(gpcFeature?.state, "enabled")
@@ -69,6 +73,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
 
         XCTAssertEqual(configData.unprotectedTemporary.count, 1)
         XCTAssertEqual(configData.unprotectedTemporary.first?.domain, "example.com")
+
+        let duckPlayerFeature = configData.features["duckPlayer"]
+        XCTAssertNotNil(duckPlayerFeature)
+        XCTAssertEqual(duckPlayerFeature?.state, "enabled")
 
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)

@@ -18,6 +18,7 @@
 
 import Foundation
 import XCTest
+@testable import Common
 
 final class StringExtensionTests: XCTestCase {
 

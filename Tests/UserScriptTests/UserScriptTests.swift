@@ -48,7 +48,7 @@ class UserScriptTests: XCTestCase {
         let src = "var val = 'Test';\n"
         let us = TestUserScript(val: "Test", injectionTime: .atDocumentStart, forMainFrameOnly: true, messageNames: [])
         let script = us.makeWKUserScript()
-        XCTAssertEqual(script.source, src)
+        XCTAssertEqual(script.source, UserScriptTestHelper.getScriptOutput(src))
         XCTAssertEqual(script.injectionTime, .atDocumentStart)
         XCTAssertEqual(script.isForMainFrameOnly, true)
     }
@@ -57,7 +57,7 @@ class UserScriptTests: XCTestCase {
         let src = "var val = 'test2';\n"
         let us = TestUserScript(val: "test2", injectionTime: .atDocumentEnd, forMainFrameOnly: false, messageNames: [])
         let script = us.makeWKUserScript()
-        XCTAssertEqual(script.source, src)
+        XCTAssertEqual(script.source, UserScriptTestHelper.getScriptOutput(src))
         XCTAssertEqual(script.injectionTime, .atDocumentEnd)
         XCTAssertEqual(script.isForMainFrameOnly, false)
     }

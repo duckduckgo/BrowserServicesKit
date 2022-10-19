@@ -69,6 +69,7 @@ public class AutofillUserScript: NSObject, UserScript {
     public lazy var source: String = {
         var js = scriptSourceProvider.source
         js = js.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
+        js = js.replacingOccurrences(of: "// INJECT webkitMessageHandlerNames HERE", with: "webkitMessageHandlerNames = \(messageNamesJson);")
         js = js.replacingOccurrences(of: "// INJECT isTopFrame HERE", with: "isTopFrame = \(isTopAutofillContext ? "true" : "false");")
         return js
     }()
@@ -86,6 +87,18 @@ public class AutofillUserScript: NSObject, UserScript {
     public var messageNames: [String] {
         return MessageName.allCases.map(\.rawValue)
     }
+
+    // communicate known message handler names to user scripts.
+    public lazy var messageNamesJson: String = {
+        // note: this doesn't include the messages from the overlay - only messages that can potentially be execute on macOS 10.x need
+        // to be communicated to the JavaScript layer.
+        let combinedMessages = MessageName.allCases.map(\.rawValue) + WebsiteAutofillUserScript.WebsiteAutofillMessageName.allCases.map(\.rawValue)
+        guard let json = try? JSONEncoder().encode(combinedMessages), let jsonString = String(data: json, encoding: .utf8) else {
+            assertionFailure("AutofillUserScript: could not encode message names into JSON")
+            return ""
+        }
+        return jsonString
+    }()
 
     // swiftlint:disable cyclomatic_complexity
     internal func messageHandlerFor(_ messageName: String) -> MessageHandler? {

@@ -19,6 +19,7 @@
 
 import Foundation
 import WebKit
+import CryptoKit
 
 public protocol UserScript: WKScriptMessageHandler {
 
@@ -74,11 +75,23 @@ extension UserScript {
     static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime,
                                  forMainFrameOnly: Bool,
                                  requiresRunInPageContentWorld: Bool = false) -> WKUserScript {
+        let hash = SHA256.hash(data: Data(source.utf8)).hashValue
+
+        // This prevents the script being executed twice which appears to be a WKWebKit issue for about:blank frames when the location changes
+        let sourceOut = """
+        (() => {
+            if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
+            \(source)
+            window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
+            window.navigator._duckduckgoloader_.push('\(hash)')
+        })()
+        """
+
         if #available(macOS 11.0, iOS 14.0, *) {
             let contentWorld = getContentWorld(requiresRunInPageContentWorld)
-            return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
+            return WKUserScript(source: sourceOut, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
         } else {
-            return WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
+            return WKUserScript(source: sourceOut, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
         }
     }
 
