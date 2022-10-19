@@ -27,13 +27,39 @@ public class FavoritesListViewModel: ObservableObject {
     let storage: FavoritesListInteracting
     var cancellable: AnyCancellable?
 
-    @Published public var favorties = [BookmarkEntity]()
+    @Published public var favorites = [BookmarkEntity]()
 
-     public init(storage: FavoritesListInteracting) {
+    public var count: Int {
+        favorites.count
+    }
+
+    public init(storage: FavoritesListInteracting) {
         self.storage = storage
-        self.favorties = storage.fetchFavorites()
+        self.favorites = storage.fetchFavorites()
         self.cancellable = self.storage.updates.sink { [weak self] in
-            self?.favorties = self!.storage.fetchFavorites()
+            self?.favorites = self!.storage.fetchFavorites()
+        }
+    }
+
+    public func favorite(atIndex index: Int) -> BookmarkEntity? {
+        guard favorites.indices.contains(index) else { return nil }
+        return favorites[index]
+    }
+
+    public func delete(_ favorite: BookmarkEntity) {
+        do {
+            try storage.deleteFavorite(favorite)
+        } catch {
+            // TODO??
+        }
+    }
+
+    public func move(_ favorite: BookmarkEntity, toIndex: Int) {
+        guard let fromIndex = favorites.firstIndex(of: favorite) else { return }
+        do {
+            favorites = try storage.moveFavoriteInArray(favorites, fromIndex: fromIndex, toIndex: toIndex)
+        } catch {
+            // TODO??
         }
     }
 
@@ -46,7 +72,7 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
     public var updates: AnyPublisher<Void, Never>
     private let subject = PassthroughSubject<Void, Never>()
     
-    init(context: NSManagedObjectContext) {
+    public init(context: NSManagedObjectContext) {
         self.context = context
         
         updates = subject

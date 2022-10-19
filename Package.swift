@@ -13,6 +13,7 @@ let package = Package(
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"])
     ],
     dependencies: [
