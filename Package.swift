@@ -12,7 +12,7 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "PrivacyDashboardCode", targets: ["PrivacyDashboardCode"]),
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"])
@@ -72,13 +72,13 @@ let package = Package(
             name: "UserScript"
         ),
         .target(
-            name: "PrivacyDashboardCode",
+            name: "PrivacyDashboard",
             dependencies: [
                 "Common",
                 "TrackerRadarKit",
                 "UserScript",
                 "ContentBlocking",
-                .product(name: "PrivacyDashboard", package: "privacy-dashboard")
+                .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard"
             ),
