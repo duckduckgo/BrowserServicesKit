@@ -71,6 +71,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             try $0.usePassphrase(key)
             try $0.execute(sql: "PRAGMA cipher_plaintext_header_size = 32; PRAGMA cipher_salt = \"x'01010101010101010101010101010101'\";")
             try $0.execute(sql: "PRAGMA user_version = 1;")
+            try $0.execute(sql: "PRAGMA journal_mode = WAL;")
         }
 
         do {
