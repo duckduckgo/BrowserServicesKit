@@ -19,7 +19,7 @@
 import Foundation
 import WebKit
 import Combine
-import PrivacyDashboard
+import PrivacyDashboardResources
 
 public final class PrivacyDashboardController: NSObject {
     
