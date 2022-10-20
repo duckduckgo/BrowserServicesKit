@@ -38,7 +38,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
         case privacyDashboardSetProtection
-        case privacyDashboardFirePixel
         case privacyDashboardSetSize
         case privacyDashboardClose
         case privacyDashboardShowReportBrokenSite
@@ -62,8 +61,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         switch messageType {
         case .privacyDashboardSetProtection:
             handleSetProtection(message: message)
-        case .privacyDashboardFirePixel:
-            handleFirePixel(message: message)
         case .privacyDashboardSetSize:
             handleSetSize(message: message)
         case .privacyDashboardClose:
@@ -84,17 +81,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
 
         delegate?.userScript(self, didChangeProtectionStateTo: isProtected)
-    }
-
-    private func handleFirePixel(message: WKScriptMessage) {
-        guard let pixel = message.body as? String else {
-            assertionFailure("privacyDashboardFirePixel: expected Pixel String")
-            return
-        }
-// TODO: Fix ContentBlocking and Pixel
-//        let etag = ContentBlocking.contentBlockingManager.currentMainRules?.etag.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? ""
-//               
-//        Pixel.fire(pixel: .privacyDashboardPixelFromJS(rawPixel: pixel), withAdditionalParameters: ["tds": etag])
     }
     
     private func handleSetSize(message: WKScriptMessage) {
