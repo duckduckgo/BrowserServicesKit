@@ -30,6 +30,7 @@ public final class PrivacyDashboardController: NSObject {
     public var onHeightChange: ((Int) -> Void)?
     public var onCloseTapped: (() -> Void)?
     public var onShowReportBrokenSiteTapped: (() -> Void)?
+    public var onSubmitBrokenSiteReportWithCategory: ((String, String) -> Void)?
     public var onOpenUrlInNewTab: ((URL) -> Void)?
     
     public private(set) weak var privacyInfo: PrivacyInfo?
@@ -176,7 +177,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 }
 
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
-
+    
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo isProtected: Bool) {
         onProtectionSwitchChange?(isProtected)
     }
@@ -191,6 +192,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
         onShowReportBrokenSiteTapped?()
+    }
+    
+    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
+        onSubmitBrokenSiteReportWithCategory?(category, description)
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {

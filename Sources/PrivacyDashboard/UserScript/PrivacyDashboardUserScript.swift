@@ -26,6 +26,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
 }
 
@@ -41,6 +42,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSetSize
         case privacyDashboardClose
         case privacyDashboardShowReportBrokenSite
+        case privacyDashboardSubmitBrokenSiteReport
         case privacyDashboardOpenUrlInNewTab
     }
 
@@ -67,6 +69,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleClose()
         case .privacyDashboardShowReportBrokenSite:
             handleShowReportBrokenSite()
+        case .privacyDashboardSubmitBrokenSiteReport:
+            handleSubmitBrokenSiteReport(message: message)
         case .privacyDashboardOpenUrlInNewTab:
             handleOpenUrlInNewTab(message: message)
         }
@@ -99,6 +103,17 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     
     private func handleShowReportBrokenSite() {
         delegate?.userScriptDidRequestShowReportBrokenSite(self)
+    }
+    
+    private func handleSubmitBrokenSiteReport(message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let category = dict["category"] as? String,
+              let description = dict["description"] as? String else {
+            assertionFailure("privacyDashboardSetHeight: expected { category: String, description: String }")
+            return
+        }
+
+        delegate?.userScript(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
     
     private func handleOpenUrlInNewTab(message: WKScriptMessage) {
