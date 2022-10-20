@@ -27,6 +27,7 @@ public final class PrivacyDashboardController: NSObject {
     public var preferredLocale: String?
     
     public var onProtectionSwitchChange: ((Bool) -> Void)?
+    public var onHeightChange: ((Int) -> Void)?
     public var onCloseTapped: (() -> Void)?
     public var onShowReportBrokenSiteTapped: (() -> Void)?
     public var onOpenUrlInNewTab: ((URL) -> Void)?
@@ -178,6 +179,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo isProtected: Bool) {
         onProtectionSwitchChange?(isProtected)
+    }
+    
+    func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
+        onHeightChange?(height)
     }
     
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript) {

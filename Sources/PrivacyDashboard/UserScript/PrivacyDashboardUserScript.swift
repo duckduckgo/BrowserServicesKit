@@ -23,6 +23,7 @@ import UserScript
 
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo protectionState: Bool)
+    func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
@@ -38,6 +39,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     enum MessageNames: String, CaseIterable {
         case privacyDashboardSetProtection
         case privacyDashboardFirePixel
+        case privacyDashboardSetSize
         case privacyDashboardClose
         case privacyDashboardShowReportBrokenSite
         case privacyDashboardOpenUrlInNewTab
@@ -62,6 +64,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSetProtection(message: message)
         case .privacyDashboardFirePixel:
             handleFirePixel(message: message)
+        case .privacyDashboardSetSize:
+            handleSetSize(message: message)
         case .privacyDashboardClose:
             handleClose()
         case .privacyDashboardShowReportBrokenSite:
@@ -91,6 +95,16 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 //        let etag = ContentBlocking.contentBlockingManager.currentMainRules?.etag.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? ""
 //               
 //        Pixel.fire(pixel: .privacyDashboardPixelFromJS(rawPixel: pixel), withAdditionalParameters: ["tds": etag])
+    }
+    
+    private func handleSetSize(message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let height = dict["height"] as? Int else {
+            assertionFailure("privacyDashboardSetHeight: expected height to be an Int")
+            return
+        }
+
+        delegate?.userScript(self, setHeight: height)
     }
 
     private func handleClose() {
