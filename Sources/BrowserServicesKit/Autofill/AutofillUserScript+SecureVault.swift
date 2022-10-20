@@ -404,8 +404,10 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
             let credentials: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
-                // TODO: When bitwarden is locked pass "provider_locked" as the id, and empty string as username
+                // TODO: use dynamic value for credentialsProvider
                 return .init(id: String(id), username: $0.username, credentialsProvider: "bitwarden")
+                // TODO: When bitwarden is locked pass "provider_locked" as the id, and empty string as username
+                // return .init(id: "provider_locked", username: "", credentialsProvider: "bitwarden")
             }
 
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
@@ -513,6 +515,64 @@ extension AutofillUserScript {
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
+        }
+    }
+    
+    func askToUnlockProvider(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        // TODO: use dynamic values
+        replyHandler(
+        """
+        {
+            "success": {
+                "status": "unlocked",
+                "credentials": [
+                    {"id": "3", "password": "", "username": "testName", "credentialsProvider": "bitwarden"},
+                    {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
+                ],
+                "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
+            }
+        }
+        """
+        );
+        if #available(macOS 11, *) {
+            // TODO: send the content of the success object above to all tabs with something like
+            // evaluateJavaScript(window.askToUnlockProvider({status: "unlocked", credentials: […], …}))
+            // This will refresh the status of the autofill script to show/hide keys and add/remove listeners
+            // On Catalina we use the checkCredentialsProviderStatus method instead
+        }
+    }
+    
+    // On Catalina we poll this method every x seconds from all tabs
+    func checkCredentialsProviderStatus(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard #available(macOS 11, *) else {
+            // TODO: use dynamic values. These are two examples with responses for unlocked/locked
+//            return replyHandler(
+//            """
+//            {
+//                "success": {
+//                    "status": "unlocked",
+//                    "credentials": [
+//                        {"id": "3", "password": "", "username": "newTestName", "credentialsProvider": "bitwarden"},
+//                        {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
+//                    ],
+//                    "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
+//                }
+//            }
+//            """
+//            );
+            return replyHandler(
+            """
+            {
+                "success": {
+                    "status": "locked",
+                    "credentials": [
+                        {"id": "provider_locked", "password": "", "username": "", "credentialsProvider": "bitwarden"}
+                    ],
+                    "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "locked"}
+                }
+            }
+            """
+            );
         }
     }
 

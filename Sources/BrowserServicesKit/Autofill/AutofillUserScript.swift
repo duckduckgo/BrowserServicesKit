@@ -51,6 +51,9 @@ public class AutofillUserScript: NSObject, UserScript {
         case getAvailableInputTypes
         case getAutofillData
         case storeFormData
+        
+        case askToUnlockProvider
+        case checkCredentialsProviderStatus
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -132,6 +135,9 @@ public class AutofillUserScript: NSObject, UserScript {
         case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
         case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
+            
+        case .askToUnlockProvider: return askToUnlockProvider
+        case .checkCredentialsProviderStatus: return checkCredentialsProviderStatus
         }
     }
     // swiftlint:enable cyclomatic_complexity
