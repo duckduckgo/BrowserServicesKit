@@ -27,7 +27,7 @@ public final class PrivacyInfo {
     
     @Published public var trackerInfo: TrackerInfo
     @Published private(set) var protectionStatus: ProtectionStatus
-    @Published private(set) var serverTrust: ServerTrust?
+    @Published public var serverTrust: ServerTrust?
     @Published public var connectionUpgradedTo: URL?
     
     public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, serverTrust: ServerTrust?) {
