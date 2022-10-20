@@ -20,8 +20,8 @@ import Foundation
 
 public struct ServerTrust {
 
-    let host: String
-    let secTrust: SecTrust
+    public let host: String
+    public let secTrust: SecTrust
 
     public init(host: String, secTrust: SecTrust) {
         self.host = host
