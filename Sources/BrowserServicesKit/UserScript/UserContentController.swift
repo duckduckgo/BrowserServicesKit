@@ -27,18 +27,20 @@ public protocol UserContentControllerDelegate: AnyObject {
 }
 
 final public class UserContentController: WKUserContentController {
-    let privacyConfigurationManager: PrivacyConfigurationManaging
+    public let privacyConfigurationManager: PrivacyConfigurationManaging
     public weak var delegate: UserContentControllerDelegate?
 
     public struct ContentBlockingAssets {
-        public let contentRuleLists: [String: WKContentRuleList]
+        public let globalRuleLists: [String: WKContentRuleList]
         public let userScripts: UserScriptsProvider
         public let updateEvent: ContentBlockerRulesManager.UpdateEvent
 
-        public init(contentRuleLists: [String: WKContentRuleList],
+        public init(globalRuleLists: [ContentBlockerRulesManager.Rules],
                     userScripts: UserScriptsProvider,
                     updateEvent: ContentBlockerRulesManager.UpdateEvent) {
-            self.contentRuleLists = contentRuleLists
+            self.globalRuleLists = globalRuleLists.reduce(into: [:]) { result, rules in
+                result[rules.name] = rules.rulesList
+            }
             self.userScripts = userScripts
             self.updateEvent = updateEvent
         }
@@ -51,15 +53,17 @@ final public class UserContentController: WKUserContentController {
         }
         didSet {
             guard let contentBlockingAssets = contentBlockingAssets else { return }
-            self.installContentRuleLists(contentBlockingAssets.contentRuleLists)
+            self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
             self.installUserScripts(contentBlockingAssets.userScripts)
 
             delegate?.userContentController(self,
-                                            didInstallContentRuleLists: contentBlockingAssets.contentRuleLists,
+                                            didInstallContentRuleLists: contentBlockingAssets.globalRuleLists,
                                             userScripts: contentBlockingAssets.userScripts,
                                             updateEvent: contentBlockingAssets.updateEvent)
         }
     }
+
+    private var localRuleLists = [String: WKContentRuleList]()
 
     private var cancellable: AnyCancellable?
 
@@ -85,51 +89,46 @@ final public class UserContentController: WKUserContentController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func installContentRuleLists(_ contentRuleLists: [String: WKContentRuleList]) {
-        guard self.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking) else { return }
-
-        for list in contentRuleLists.values {
-            super.add(list)
+    private func installGlobalContentRuleLists(_ contentRuleLists: [String: WKContentRuleList]) {
+        guard self.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking) else {
+            removeAllContentRuleLists()
+            return
         }
+
+        contentRuleLists.values.forEach(self.add)
     }
 
     public struct ContentRulesNotFoundError: Error {}
-    public func enableContentRuleList(withIdentifier identifier: String) throws {
-        guard let ruleList = self.contentBlockingAssets?.contentRuleLists[identifier] else {
+    public func enableGlobalContentRuleList(withIdentifier identifier: String) throws {
+        guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotFoundError()
         }
-        super.add(ruleList)
+        self.add(ruleList)
     }
 
-    public func disableContentRuleList(withIdentifier identifier: String) {
-        guard let ruleList = self.contentBlockingAssets?.contentRuleLists[identifier] else {
-            assertionFailure("Rule list not installed")
+    public struct ContentRulesNotEnabledError: Error {}
+    public func disableGlobalContentRuleList(withIdentifier identifier: String) throws {
+        guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
+            throw ContentRulesNotEnabledError()
+        }
+        self.remove(ruleList)
+    }
+
+    public func installLocalContentRuleList(_ ruleList: WKContentRuleList, identifier: String) {
+        localRuleLists[identifier] = ruleList
+        self.add(ruleList)
+    }
+
+    public func removeLocalContentRuleList(withIdentifier identifier: String) {
+        guard let ruleList = localRuleLists.removeValue(forKey: identifier) else {
             return
         }
-        super.remove(ruleList)
+        self.remove(ruleList)
     }
 
-    private(set) var currentAttributedRulesList: WKContentRuleList?
-    public func replaceAttributedList(with list: WKContentRuleList?) {
-        if let current = currentAttributedRulesList {
-            super.remove(current)
-        }
-
-        if let list = list {
-            super.add(list)
-        }
-
-        currentAttributedRulesList = list
-    }
-
-    public override func add(_ contentRuleList: WKContentRuleList) {
-        assertionFailure("List should be managed through custom UserContentController API")
-        super.add(contentRuleList)
-    }
-
-    public override func remove(_ contentRuleList: WKContentRuleList) {
-        assertionFailure("List should be managed through custom UserContentController API")
-        super.remove(contentRuleList)
+    public override func removeAllContentRuleLists() {
+        localRuleLists = [:]
+        super.removeAllContentRuleLists()
     }
 
     private func installUserScripts(_ userScripts: UserScriptsProvider) {
