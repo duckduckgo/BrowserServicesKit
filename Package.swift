@@ -15,7 +15,7 @@ let package = Package(
         .library(name: "Common", targets: ["Common"])
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .revision("7f30dbe8fe0f248e8fc0c4830ecb7f0c829e1502")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .revision("c043911786c2657d039e306adfd3849b163ed6af")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
