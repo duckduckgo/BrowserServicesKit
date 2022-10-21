@@ -29,6 +29,7 @@ public final class PrivacyInfo {
     @Published private(set) var protectionStatus: ProtectionStatus
     @Published public var serverTrust: ServerTrust?
     @Published public var connectionUpgradedTo: URL?
+    @Published public var cookieConsentManaged: CookieConsentInfo?
     
     public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, serverTrust: ServerTrust?) {
         self.url = url

@@ -107,6 +107,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         subscribeToTrackerInfo()
         subscribeToConnectionUpgradedTo()
         subscribeToServerTrust()
+        subscribeToConsentManaged()
     }
     
     private func subscribeToTheme() {
@@ -151,6 +152,16 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .sink(receiveValue: { [weak self] serverTrustViewModel in
                 guard let self = self, let serverTrustViewModel = serverTrustViewModel, let webView = self.webView else { return }
                 self.privacyDashboardScript.setServerTrust(serverTrustViewModel, webView: webView)
+            })
+            .store(in: &cancellables)
+    }
+    
+    private func subscribeToConsentManaged() {
+        privacyInfo?.$cookieConsentManaged
+            .receive(on: DispatchQueue.main)
+            .sink(receiveValue: { [weak self] consentManaged in
+                guard let self = self, let webView = self.webView else { return }
+                self.privacyDashboardScript.setConsentManaged(consentManaged, webView: webView)
             })
             .store(in: &cancellables)
     }

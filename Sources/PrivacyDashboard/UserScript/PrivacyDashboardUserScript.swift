@@ -203,6 +203,14 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
         evaluate(js: "window.onChangeLocale(\(localeSettingJson))", in: webView)
     }
+    
+    func setConsentManaged(_ consentManaged: CookieConsentInfo?, webView: WKWebView) {
+        guard let consentDataJson = try? JSONEncoder().encode(consentManaged).utf8String() else {
+            assertionFailure("Can't encode consentInfo into JSON")
+            return
+        }
+        evaluate(js: "window.onChangeConsentManaged(\(consentDataJson))", in: webView)
+    }
 
     private func evaluate(js: String, in webView: WKWebView) {
         webView.evaluateJavaScript(js)
