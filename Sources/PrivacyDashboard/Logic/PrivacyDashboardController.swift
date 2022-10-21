@@ -34,6 +34,7 @@ public final class PrivacyDashboardController: NSObject {
     public var onOpenUrlInNewTab: ((URL) -> Void)?
     
     public private(set) weak var privacyInfo: PrivacyInfo?
+    private var allowedPermissions: [AllowedPermission]?
     private weak var webView: WKWebView?
     
     private let privacyDashboardScript = PrivacyDashboardUserScript()
@@ -63,8 +64,15 @@ public final class PrivacyDashboardController: NSObject {
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
         cancellables.removeAll()
         self.privacyInfo = privacyInfo
+        
         subscribeToDataModelChanges()
         sendProtectionStatus()
+    }
+    
+    public func updateAllowedPermissions(_ allowedPermissions: [AllowedPermission]) {
+        self.allowedPermissions = allowedPermissions
+        
+        sendAllowedPermissions()
     }
     
     public func didStartRulesCompilation() {
@@ -100,6 +108,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         sendProtectionStatus()
         sendParentEntity()
         sendCurrentLocale()
+        sendAllowedPermissions()
     }
     
     private func subscribeToDataModelChanges() {
@@ -184,6 +193,14 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         
         let locale = preferredLocale ?? "en"
         privacyDashboardScript.setLocale(locale, webView: webView)
+    }
+    
+    private func sendAllowedPermissions() {
+        guard let webView = self.webView,
+              let allowedPermissions = self.allowedPermissions
+        else { return }
+        
+        privacyDashboardScript.setPermissions(allowedPermissions: allowedPermissions, webView: webView)
     }
 }
 

@@ -211,6 +211,15 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
         evaluate(js: "window.onChangeConsentManaged(\(consentDataJson))", in: webView)
     }
+    
+    func setPermissions(allowedPermissions: [AllowedPermission], webView: WKWebView) {
+        guard let allowedPermissionsJson = try? JSONEncoder().encode(allowedPermissions).utf8String() else {
+            assertionFailure("PrivacyDashboardUserScript: could not serialize permissions object")
+            return
+        }
+        
+        self.evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
+    }
 
     private func evaluate(js: String, in webView: WKWebView) {
         webView.evaluateJavaScript(js)
