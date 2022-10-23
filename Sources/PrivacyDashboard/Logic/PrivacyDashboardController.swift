@@ -146,6 +146,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
     private func subscribeToTrackerInfo() {
         privacyInfo?.$trackerInfo
             .receive(on: DispatchQueue.main)
+            .throttle(for: 0.25, scheduler: RunLoop.main, latest: true)
             .sink(receiveValue: { [weak self] trackerInfo in
                 guard let self = self, let url = self.privacyInfo?.url, let webView = self.webView else { return }
                 self.privacyDashboardScript.setTrackerInfo(url, trackerInfo: trackerInfo, webView: webView)
