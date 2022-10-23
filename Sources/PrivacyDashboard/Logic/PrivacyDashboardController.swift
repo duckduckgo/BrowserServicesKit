@@ -44,20 +44,12 @@ public final class PrivacyDashboardController: NSObject {
         self.privacyInfo = privacyInfo
     }
     
-    public func cleanUp() {
-        cancellables.removeAll()
-        
-        privacyDashboardScript.messageNames.forEach { messageName in
-            webView?.configuration.userContentController.removeScriptMessageHandler(forName: messageName)
-        }
-    }
-    
     public func setup(for webView: WKWebView) {
         self.webView = webView
         
         webView.navigationDelegate = self
         
-        loadPrivacyDashboardUserScript()
+        setupPrivacyDashboardUserScript()
         loadPrivacyDashboardHTML()
     }
     
@@ -75,6 +67,22 @@ public final class PrivacyDashboardController: NSObject {
         sendAllowedPermissions()
     }
     
+    public func willAppear() {
+        privacyDashboardScript.delegate = self
+    }
+    
+    public func willDisappear() {
+        privacyDashboardScript.delegate = nil
+    }
+    
+    public func cleanUp() {
+        cancellables.removeAll()
+        
+        privacyDashboardScript.messageNames.forEach { messageName in
+            webView?.configuration.userContentController.removeScriptMessageHandler(forName: messageName)
+        }
+    }
+    
     public func didStartRulesCompilation() {
         guard let webView = self.webView else { return }
         privacyDashboardScript.setIsPendingUpdates(true, webView: webView)
@@ -85,13 +93,15 @@ public final class PrivacyDashboardController: NSObject {
         privacyDashboardScript.setIsPendingUpdates(false, webView: webView)
     }
     
-    private func loadPrivacyDashboardUserScript() {
+    private func setupPrivacyDashboardUserScript() {
+        guard let webView = self.webView else { return }
+        
         privacyDashboardScript.delegate = self
         
-        webView?.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScript())
-
+        webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScript())
+    
         privacyDashboardScript.messageNames.forEach { messageName in
-            webView?.configuration.userContentController.add(privacyDashboardScript, name: messageName)
+            webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
         }
     }
     
@@ -105,6 +115,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         subscribeToDataModelChanges()
+        
         sendProtectionStatus()
         sendParentEntity()
         sendCurrentLocale()
@@ -112,6 +123,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
     }
     
     private func subscribeToDataModelChanges() {
+        cancellables.removeAll()
+        
         subscribeToTheme()
         subscribeToTrackerInfo()
         subscribeToConnectionUpgradedTo()
