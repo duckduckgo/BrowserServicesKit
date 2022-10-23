@@ -25,6 +25,7 @@ public final class PrivacyDashboardController: NSObject {
     
     @Published public var theme: PrivacyDashboardTheme?
     public var preferredLocale: String?
+    @Published public var allowedPermissions: [AllowedPermission] = []
     
     public var onProtectionSwitchChange: ((Bool) -> Void)?
     public var onHeightChange: ((Int) -> Void)?
@@ -34,7 +35,6 @@ public final class PrivacyDashboardController: NSObject {
     public var onOpenUrlInNewTab: ((URL) -> Void)?
     
     public private(set) weak var privacyInfo: PrivacyInfo?
-    private var allowedPermissions: [AllowedPermission]?
     private weak var webView: WKWebView?
     
     private let privacyDashboardScript = PrivacyDashboardUserScript()
@@ -59,12 +59,6 @@ public final class PrivacyDashboardController: NSObject {
         
         subscribeToDataModelChanges()
         sendProtectionStatus()
-    }
-    
-    public func updateAllowedPermissions(_ allowedPermissions: [AllowedPermission]) {
-        self.allowedPermissions = allowedPermissions
-        
-        sendAllowedPermissions()
     }
     
     public func willAppear() {
@@ -119,7 +113,6 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         sendProtectionStatus()
         sendParentEntity()
         sendCurrentLocale()
-        sendAllowedPermissions()
     }
     
     private func subscribeToDataModelChanges() {
@@ -130,6 +123,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         subscribeToConnectionUpgradedTo()
         subscribeToServerTrust()
         subscribeToConsentManaged()
+        subscribeToAllowedPermissions()
     }
     
     private func subscribeToTheme() {
@@ -189,6 +183,16 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .store(in: &cancellables)
     }
     
+    private func subscribeToAllowedPermissions() {
+        $allowedPermissions
+            .receive(on: DispatchQueue.main)
+            .sink(receiveValue: { [weak self] allowedPermissions in
+                guard let self = self, let webView = self.webView else { return }
+                self.privacyDashboardScript.setPermissions(allowedPermissions: allowedPermissions, webView: webView)
+            })
+            .store(in: &cancellables)
+    }
+    
     private func sendProtectionStatus() {
         guard let webView = self.webView,
               let protectionStatus = privacyInfo?.protectionStatus
@@ -207,14 +211,6 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         
         let locale = preferredLocale ?? "en"
         privacyDashboardScript.setLocale(locale, webView: webView)
-    }
-    
-    private func sendAllowedPermissions() {
-        guard let webView = self.webView,
-              let allowedPermissions = self.allowedPermissions
-        else { return }
-        
-        privacyDashboardScript.setPermissions(allowedPermissions: allowedPermissions, webView: webView)
     }
 }
 
