@@ -28,6 +28,8 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState)
+    func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool)
 }
 
 public enum PrivacyDashboardTheme: String, Encodable {
@@ -44,6 +46,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardShowReportBrokenSite
         case privacyDashboardSubmitBrokenSiteReport
         case privacyDashboardOpenUrlInNewTab
+        case privacyDashboardSetPermission
+        case privacyDashboardSetPermissionPaused
     }
 
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -73,6 +77,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSubmitBrokenSiteReport(message: message)
         case .privacyDashboardOpenUrlInNewTab:
             handleOpenUrlInNewTab(message: message)
+        case .privacyDashboardSetPermission:
+            handleSetPermission(message: message)
+        case .privacyDashboardSetPermissionPaused:
+            handleSetPermissionPaused(message: message)
         }
     }
     
@@ -126,6 +134,30 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
 
         delegate?.userScript(self, didRequestOpenUrlInNewTab: url)
+    }
+    
+    private func handleSetPermission(message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let permission = dict["permission"] as? String,
+              let state = (dict["value"] as? String).flatMap(PermissionAuthorizationState.init(rawValue:))
+        else {
+            assertionFailure("privacyDashboardSetPermission: expected { permission: PermissionType, value: PermissionAuthorizationState }")
+            return
+        }
+
+        delegate?.userScript(self, didSetPermission: permission, to: state)
+    }
+
+    private func handleSetPermissionPaused(message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let permission = dict["permission"] as? String,
+              let paused = dict["paused"] as? Bool
+        else {
+            assertionFailure("handleSetPermissionPaused: expected { permission: PermissionType, paused: Bool }")
+            return
+        }
+
+        delegate?.userScript(self, setPermission: permission, paused: paused)
     }
 
     // MARK: - Calls to script's JS API

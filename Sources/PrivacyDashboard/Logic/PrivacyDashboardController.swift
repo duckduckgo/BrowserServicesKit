@@ -33,6 +33,8 @@ public final class PrivacyDashboardController: NSObject {
     public var onShowReportBrokenSiteTapped: (() -> Void)?
     public var onSubmitBrokenSiteReportWithCategory: ((String, String) -> Void)?
     public var onOpenUrlInNewTab: ((URL) -> Void)?
+    public var onPermissionAuthorizationStateChange: ((String, PermissionAuthorizationState) -> Void)?
+    public var onPermissionPause: ((String, Bool) -> Void)?
     
     public private(set) weak var privacyInfo: PrivacyInfo?
     private weak var webView: WKWebView?
@@ -238,5 +240,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
         onOpenUrlInNewTab?(url)
+    }
+    
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState) {
+        onPermissionAuthorizationStateChange?(permission, state)
+    }
+    
+    func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool) {
+        onPermissionPause?(permission, paused)
     }
 }
