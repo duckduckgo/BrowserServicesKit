@@ -26,6 +26,15 @@ public protocol UserContentControllerDelegate: AnyObject {
                                updateEvent: ContentBlockerRulesManager.UpdateEvent)
 }
 
+public protocol UserContentControllerNewContent {
+    associatedtype SourceProvider
+    associatedtype UserScripts: UserScriptsProvider
+
+    var rulesUpdate: ContentBlockerRulesManager.UpdateEvent { get }
+    var sourceProvider: SourceProvider { get }
+    var makeUserScripts: (SourceProvider) -> UserScripts { get }
+}
+
 final public class UserContentController: WKUserContentController {
     public let privacyConfigurationManager: PrivacyConfigurationManaging
     public weak var delegate: UserContentControllerDelegate?
@@ -35,14 +44,12 @@ final public class UserContentController: WKUserContentController {
         public let userScripts: UserScriptsProvider
         public let updateEvent: ContentBlockerRulesManager.UpdateEvent
 
-        public init(globalRuleLists: [ContentBlockerRulesManager.Rules],
-                    userScripts: UserScriptsProvider,
-                    updateEvent: ContentBlockerRulesManager.UpdateEvent) {
-            self.globalRuleLists = globalRuleLists.reduce(into: [:]) { result, rules in
+        public init<Content: UserContentControllerNewContent>(content: Content) {
+            self.globalRuleLists = content.rulesUpdate.rules.reduce(into: [:]) { result, rules in
                 result[rules.name] = rules.rulesList
             }
-            self.userScripts = userScripts
-            self.updateEvent = updateEvent
+            self.userScripts = content.makeUserScripts(content.sourceProvider)
+            self.updateEvent = content.rulesUpdate
         }
     }
 
@@ -67,14 +74,14 @@ final public class UserContentController: WKUserContentController {
 
     private var cancellable: AnyCancellable?
 
-    public init<Pub: Publisher>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
-    where Pub.Failure == Never, Pub.Output == ContentBlockingAssets {
+    public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
+    where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
 
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
 
         cancellable = assetsPublisher.receive(on: DispatchQueue.main)
-            .map { $0 }
+            .map(ContentBlockingAssets.init)
             .assign(to: \.contentBlockingAssets, onWeaklyHeld: self)
 
 #if DEBUG
