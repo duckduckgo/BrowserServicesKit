@@ -22,6 +22,8 @@ import Combine
 
 public protocol EmbeddedDataProvider {
 
+    // For debugging; If disabled only enable local config
+    var remoteConfigEnabled: Bool { get }
     var embeddedDataEtag: String { get }
     var embeddedData: Data { get }
 }
@@ -111,7 +113,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     }
     
     public var privacyConfig: PrivacyConfiguration {
-        if let fetchedData = fetchedConfigData {
+        if let fetchedData = fetchedConfigData, embeddedDataProvider.remoteConfigEnabled {
             return AppPrivacyConfiguration(data: fetchedData.data,
                                            identifier: fetchedData.etag,
                                            localProtection: localProtection)
@@ -123,7 +125,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     }
     
     public var currentConfig: Data {
-        if let fetchedData = fetchedConfigData {
+        if let fetchedData = fetchedConfigData, embeddedDataProvider.remoteConfigEnabled {
             return fetchedData.rawData
         }
         return embeddedConfigData.rawData

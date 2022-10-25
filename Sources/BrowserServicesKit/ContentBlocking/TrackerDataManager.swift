@@ -20,13 +20,6 @@
 import Foundation
 import TrackerRadarKit
 
-public protocol TrackerDataProvider {
-
-    var downloadedTrackerDataEtag: String? { get }
-    var downloadedTrackerData: Data? { get }
-
-}
-
 public class TrackerDataManager {
     
     public enum ReloadResult: Equatable {
