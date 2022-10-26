@@ -16,5 +16,5 @@ extension ContentScopeFeatureToggles {
                                                          credentialsSaving: true,
                                                          passwordGeneration: true,
                                                          inlineIconCredentials: true,
-                                                         credentialsProvider: "duckduckgo")
+                                                         thirdPartyCredentialsProvider: false)
 }
