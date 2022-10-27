@@ -104,7 +104,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
 
                 completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
-                                                       domain: "example.com",
+                                                       domain: "",
                                                        created: Date(),
                                                        lastUpdated: Date()),
                                         password: "password".data(using: .utf8)!))
@@ -134,6 +134,46 @@ class AutofillVaultUserScriptTests: XCTestCase {
             XCTAssertEqual(Int64(response!.success.id), Int64(randomAccountId))
 
             expect.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+    }
+
+    @available(macOS 11, iOS 14, *)
+    func testWhenCredentialForAccountRequestedAndDomainsDontMatch_ThenCredentialsNotReturned() {
+        class GetCredentialsDelegate: MockSecureVaultDelegate {
+
+            override func autofillUserScript(_: AutofillUserScript,
+                                             didRequestCredentialsForAccount accountId: Int64,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+
+                completionHandler(.init(account: .init(id: accountId,
+                                                       username: "1@example.com",
+                                                       domain: "domain1.com",
+                                                       created: Date(),
+                                                       lastUpdated: Date()),
+                                        password: "password".data(using: .utf8)!))
+
+            }
+
+        }
+
+        let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
+
+        let delegate = GetCredentialsDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["id"] = "\(randomAccountId)"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials", body: body, webView: mockWebView)
+
+        let expect = expectation(description: #function)
+        expect.isInverted = true
+        userScript.userContentController(userContentController, didReceive: message) { _,_ in
+            expect.fulfill()
+            XCTFail()
         }
 
         waitForExpectations(timeout: 1.0)
