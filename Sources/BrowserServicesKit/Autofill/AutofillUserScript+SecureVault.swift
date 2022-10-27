@@ -430,11 +430,13 @@ extension AutofillUserScript {
               let accountId = Int64(id) else {
             return
         }
+        let requestingDomain = hostForMessage(message)
 
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) {
             guard let credential = $0,
                   let id = credential.account.id,
-                  let password = String(data: credential.password, encoding: .utf8) else { return }
+                  let password = String(data: credential.password, encoding: .utf8),
+                  credential.account.domain == requestingDomain else { return }
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
                                                                     username: credential.account.username,
