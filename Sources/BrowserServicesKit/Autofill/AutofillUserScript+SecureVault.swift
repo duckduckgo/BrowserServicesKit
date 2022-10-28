@@ -142,8 +142,9 @@ extension AutofillUserScript {
     }
 
     struct CredentialObject: Codable {
-        let id: Int64
+        let id: String
         let username: String
+        let credentialsProvider: String? // TODO: use enum "bitwarden" | "duckduckgo"
     }
     
     // MARK: - Requests
@@ -228,6 +229,8 @@ extension AutofillUserScript {
 
     struct RequestAvailableInputTypesResponse: Codable {
 
+        // GetAvailableInputTypesResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/availableInputTypes.json
+        // TODO: change the type
         struct AvailableInputTypesSuccess: Codable {
             let email: Bool
             let credentials: Bool
@@ -265,9 +268,10 @@ extension AutofillUserScript {
     }
     
     struct CredentialResponse: Codable {
-        let id: String
+        let id: String // <- TODO: when bitwarden is locked use id = "provider_locked"
         let username: String
         let password: String
+        let credentialsProvider: String? // TODO: <- use enum "bitwarden" | "duckduckgo"
     }
 
     // GetAutofillDataResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.result.json
@@ -285,7 +289,8 @@ extension AutofillUserScript {
                                                               action: RequestVaultCredentialsAction) -> Self {
             let credential: CredentialResponse?
             if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
-                credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password)
+                // TODO: use dynamic value for credentialsProvider
+                credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password, credentialsProvider: "bitwarden")
             } else {
                 credential = nil
             }
@@ -303,17 +308,26 @@ extension AutofillUserScript {
     // MARK: - Message Handlers
     
     func getAvailableInputTypes(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    
+        guard let request: GetAvailableInputTypesRequest = DecodableHelper.decode(from: message.messageBody) else {
+            return
+        }
+        
+        let mainType = request.mainType
         let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
+            // TODO: here we should check if we have at least one username and one password in any of the credential items
             let credentials: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
-                return .init(id: id, username: $0.username)
+                return .init(id: String(id), username: $0.username, credentialsProvider: "bitwarden")
             }
 
+            // TODO: same for these items. We must return an object as described in the schema (see line 231 above) where every input type is true if we have at least 1 value across all items
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
             let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
 
+            // TODO: this must conform to the new type to be defined in line 231 above
             let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
                     email: email,
                     credentials: credentials.count > 0,
@@ -322,9 +336,25 @@ extension AutofillUserScript {
             )
             let response = RequestAvailableInputTypesResponse(success: success, error: nil)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                replyHandler(jsonString)
+                // TODO: use dynamic values. Instead of "credentials" it should be the mainType passed as a parameter above
+                // IMPORTANT: when bitwarden is locked the credentials should always be both true!
+                replyHandler("""
+                {
+                    "success": {
+                        "credentials": {
+                            "username": true,
+                            "password": true
+                        }
+                    }
+                }
+                """)
             }
         }
+    }
+    
+    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAvailableInputTypes.params.json
+    struct GetAvailableInputTypesRequest: Codable {
+        let mainType: GetAutofillDataMainType
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
@@ -336,8 +366,9 @@ extension AutofillUserScript {
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
     public enum GetAutofillDataMainType: String, Codable {
-        // only 'credentials' is currently supported
         case credentials
+        case identities
+        case creditCards
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
@@ -373,7 +404,10 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards in
             let credentials: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
-                return .init(id: id, username: $0.username)
+                // TODO: use dynamic value for credentialsProvider
+                return .init(id: String(id), username: $0.username, credentialsProvider: "bitwarden")
+                // TODO: When bitwarden is locked pass "provider_locked" as the id, and empty string as username
+                // return .init(id: "provider_locked", username: "", credentialsProvider: "bitwarden")
             }
 
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
@@ -412,7 +446,8 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostForMessage(message)) { credentials in
             let credentials: [CredentialObject] = credentials.compactMap {
                 guard let id = $0.id else { return nil }
-                return .init(id: id, username: $0.username)
+                // TODO: use dynamic value for credentialsProvider
+                return .init(id: String(id), username: $0.username, credentialsProvider: "bitwarden")
             }
 
             let response = RequestVaultAccountsResponse(success: credentials)
@@ -438,7 +473,9 @@ extension AutofillUserScript {
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
                                                                     username: credential.account.username,
-                                                                    password: password))
+                                                                    password: password,
+                                                                    // TODO: use dynamic value
+                                                                    credentialsProvider: "bitwarden"))
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
@@ -478,6 +515,64 @@ extension AutofillUserScript {
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
+        }
+    }
+    
+    func askToUnlockProvider(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        // TODO: use dynamic values
+        replyHandler(
+        """
+        {
+            "success": {
+                "status": "unlocked",
+                "credentials": [
+                    {"id": "3", "password": "", "username": "testName", "credentialsProvider": "bitwarden"},
+                    {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
+                ],
+                "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
+            }
+        }
+        """
+        );
+        if #available(macOS 11, *) {
+            // TODO: send the content of the success object above to all tabs with something like
+            // evaluateJavaScript(window.askToUnlockProvider({status: "unlocked", credentials: […], …}))
+            // This will refresh the status of the autofill script to show/hide keys and add/remove listeners
+            // On Catalina we use the checkCredentialsProviderStatus method instead
+        }
+    }
+    
+    // On Catalina we poll this method every x seconds from all tabs
+    func checkCredentialsProviderStatus(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        guard #available(macOS 11, *) else {
+            // TODO: use dynamic values. These are two examples with responses for unlocked/locked
+//            return replyHandler(
+//            """
+//            {
+//                "success": {
+//                    "status": "unlocked",
+//                    "credentials": [
+//                        {"id": "3", "password": "", "username": "newTestName", "credentialsProvider": "bitwarden"},
+//                        {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
+//                    ],
+//                    "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
+//                }
+//            }
+//            """
+//            );
+            return replyHandler(
+            """
+            {
+                "success": {
+                    "status": "locked",
+                    "credentials": [
+                        {"id": "provider_locked", "password": "", "username": "", "credentialsProvider": "bitwarden"}
+                    ],
+                    "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "locked"}
+                }
+            }
+            """
+            );
         }
     }
 
