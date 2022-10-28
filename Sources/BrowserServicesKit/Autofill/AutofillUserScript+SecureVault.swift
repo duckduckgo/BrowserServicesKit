@@ -341,6 +341,7 @@ extension AutofillUserScript {
                     identities: identities.count > 0
             )
             let response = RequestAvailableInputTypesResponse(success: success, error: nil)
+            let value = credentialsProvider.locked || accounts.count > 0
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 // TODO: use dynamic values. Instead of "credentials" it should be the mainType passed as a parameter above
                 // IMPORTANT: when bitwarden is locked the credentials should always be both true!
@@ -348,8 +349,8 @@ extension AutofillUserScript {
                 {
                     "success": {
                         "credentials": {
-                            "username": true,
-                            "password": true
+                            "username": \(value),
+                            "password": \(value)
                         }
                     }
                 }
@@ -408,12 +409,13 @@ extension AutofillUserScript {
     func pmGetAutoFillInitData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvier in
-            let credentials: [CredentialObject] = accounts.compactMap {
-                guard let id = $0.id else { return nil }
-                if credentialsProvier.locked {
-                    return .init(id: "provider_locked", username: "", credentialsProvider: credentialsProvier.name)
-                } else {
-                    return .init(id: String(id), username: $0.username, credentialsProvider: credentialsProvier.name)
+            let credentials: [CredentialObject]
+            if credentialsProvier.locked {
+                credentials = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvier.name)]
+            } else {
+                credentials = accounts.compactMap {
+                    guard let id = $0.id else { return nil }
+                    return CredentialObject(id: String(id), username: $0.username, credentialsProvider: credentialsProvier.name)
                 }
             }
 
