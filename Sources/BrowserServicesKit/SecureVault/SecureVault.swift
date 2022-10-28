@@ -33,7 +33,7 @@ public protocol SecureVault {
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
 
-    func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
+    func websiteCredentialsFor(accountId: String) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func deleteWebsiteCredentialsFor(accountId: Int64) throws
@@ -184,7 +184,7 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Credentials
 
-    public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
+    public func websiteCredentialsFor(accountId: String) throws -> SecureVaultModels.WebsiteCredentials? {
         lock.lock()
         defer {
             lock.unlock()
@@ -192,7 +192,7 @@ class DefaultSecureVault: SecureVault {
 
         do {
             var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
-            if let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
+            if let accountId = Int64(accountId), let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
                 decryptedCredentials = .init(account: credentials.account,
                                              password: try self.l2Decrypt(data: credentials.password))
             }

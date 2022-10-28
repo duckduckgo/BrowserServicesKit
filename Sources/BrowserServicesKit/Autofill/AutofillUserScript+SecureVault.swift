@@ -46,7 +46,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
                             trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider, RequestVaultCredentialsAction) -> Void)
     
-    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: Int64,
+    func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: String,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCreditCardWithId creditCardId: Int64,
                             completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void)
@@ -467,17 +467,16 @@ extension AutofillUserScript {
     func pmGetAutofillCredentials(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         guard let body = message.messageBody as? [String: Any],
-              let id = body["id"] as? String,
-              let accountId = Int64(id) else {
+              let id = body["id"] as? String else {
             return
         }
 
-        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) { credentials, credentialsProvider in
+        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: id) { credentials, credentialsProvider in
             guard let credential = credentials,
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8) else { return }
 
-            let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
+            let response = RequestVaultCredentialsForAccountResponse(success: .init(id: id,
                                                                     username: credential.account.username,
                                                                     password: password,
                                                                                     credentialsProvider: credentialsProvider.name))

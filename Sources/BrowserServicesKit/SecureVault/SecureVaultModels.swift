@@ -42,7 +42,7 @@ public struct SecureVaultModels {
     /// The username associated with a domain.
     public struct WebsiteAccount {
 
-        public var id: Int64?
+        public var id: String?
         public var title: String?
         public var username: String
         public var domain: String
@@ -60,7 +60,7 @@ public struct SecureVaultModels {
             self.lastUpdated = self.created
         }
 
-        public init(id: Int64, title: String? = nil, username: String, domain: String, notes: String? = nil, created: Date, lastUpdated: Date) {
+        public init(id: String, title: String? = nil, username: String, domain: String, notes: String? = nil, created: Date, lastUpdated: Date) {
             self.id = id
             self.title = title
             self.username = username

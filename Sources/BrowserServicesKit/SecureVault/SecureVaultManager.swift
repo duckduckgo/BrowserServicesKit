@@ -48,7 +48,7 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool
 
-    func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: Int64)
+    func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: String)
     
     // swiftlint:disable:next identifier_name
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
@@ -62,7 +62,7 @@ public protocol PasswordManager: AnyObject {
     var isLocked: Bool { get }
 
     func accountsFor(domain: String, completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> Void)
-    func websiteCredentialsFor(accountId: Int64, completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void)
+    func websiteCredentialsFor(accountId: String, completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void)
     func websiteCredentialsFor(domain: String, completion: @escaping ([SecureVaultModels.WebsiteCredentials], Error?) -> Void)
 
     func askToUnlock(completionHandler: @escaping () -> Void)
@@ -221,7 +221,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
 
     public func autofillUserScript(_: AutofillUserScript,
-                                   didRequestCredentialsForAccount accountId: Int64,
+                                   didRequestCredentialsForAccount accountId: String,
                                    completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
 
         do {
@@ -258,7 +258,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 }
             })
             
-            delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: creditCardId)
+            delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: String(creditCardId))
         } catch {
             os_log(.error, "Error requesting credit card: %{public}@", error.localizedDescription)
             completionHandler(nil)
@@ -272,7 +272,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             completionHandler(try vault.identityFor(id: identityId))
 
-            delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: identityId)
+            delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: String(identityId))
         } catch {
             os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)
             completionHandler(nil)
@@ -487,7 +487,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
-    func getCredentials(for accountId: Int64,
+    func getCredentials(for accountId: String,
                         from vault: SecureVault,
                         or passwordManager: PasswordManager?,
                         completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void) {
