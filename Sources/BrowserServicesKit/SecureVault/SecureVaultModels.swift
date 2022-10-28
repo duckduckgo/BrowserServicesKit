@@ -60,7 +60,7 @@ public struct SecureVaultModels {
             self.lastUpdated = self.created
         }
 
-        init(id: Int64, title: String? = nil, username: String, domain: String, notes: String? = nil, created: Date, lastUpdated: Date) {
+        public init(id: Int64, title: String? = nil, username: String, domain: String, notes: String? = nil, created: Date, lastUpdated: Date) {
             self.id = id
             self.title = title
             self.username = username
@@ -388,6 +388,13 @@ public struct SecureVaultModels {
             let nameString = (firstName ?? "") + (middleName ?? "") + (lastName ?? "")
             return nameString.autofillNormalized()
         }
+
+    }
+
+    public struct CredentialsProvider {
+
+        public var name: String
+        public var locked: Bool
 
     }
 
