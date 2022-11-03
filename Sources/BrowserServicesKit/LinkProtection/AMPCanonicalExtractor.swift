@@ -167,7 +167,8 @@ public class AMPCanonicalExtractor: NSObject {
         }
         
         completionHandler.setCompletionHandler(completion: completion)
-        
+
+        assert(Thread.isMainThread)
         webView = WKWebView(frame: .zero, configuration: makeConfiguration())
         webView?.navigationDelegate = self
         webView?.load(URLRequest(url: url))
