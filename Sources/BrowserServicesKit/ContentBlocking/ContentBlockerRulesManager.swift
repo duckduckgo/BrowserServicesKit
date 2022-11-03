@@ -104,7 +104,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
     public struct UpdateEvent {
         public let rules: [ContentBlockerRulesManager.Rules]
-        public var changes: [String: ContentBlockerRulesIdentifier.Difference]
+        public let changes: [String: ContentBlockerRulesIdentifier.Difference]
         public let completionTokens: [ContentBlockerRulesManager.CompletionToken]
 
         public init(rules: [ContentBlockerRulesManager.Rules],
