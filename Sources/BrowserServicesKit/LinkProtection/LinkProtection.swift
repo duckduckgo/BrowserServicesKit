@@ -64,7 +64,8 @@ public struct LinkProtection {
             completion(urlToLoad)
         }
     }
-    
+
+    @MainActor
     public func getCleanURL(from url: URL, onStartExtracting: () -> Void, onFinishExtracting: @escaping () -> Void) async -> URL {
         await withCheckedContinuation { continuation in
             getCleanURL(from: url, onStartExtracting: onStartExtracting, onFinishExtracting: onFinishExtracting) { url in
@@ -116,7 +117,8 @@ public struct LinkProtection {
         return didRewriteLink
     }
     // swiftlint:enable function_parameter_count
-    
+
+    @MainActor
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
                                            onStartExtracting: () -> Void,
