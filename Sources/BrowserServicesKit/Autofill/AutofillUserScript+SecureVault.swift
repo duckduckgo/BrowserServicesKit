@@ -439,7 +439,10 @@ extension AutofillUserScript {
             guard let credential = $0,
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8),
-                  credential.account.domain == requestingDomain else { return }
+                  credential.account.domain == requestingDomain else {
+                replyHandler("{}")
+                return
+            }
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
                                                                     username: credential.account.username,

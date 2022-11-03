@@ -170,10 +170,11 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials", body: body, webView: mockWebView)
 
         let expect = expectation(description: #function)
-        expect.isInverted = true
-        userScript.userContentController(userContentController, didReceive: message) { _,_ in
+        userScript.userContentController(userContentController, didReceive: message) {
+            XCTAssertEqual($0 as? String, "{}")
+            XCTAssertNil($1)
+
             expect.fulfill()
-            XCTFail()
         }
 
         waitForExpectations(timeout: 1.0)
