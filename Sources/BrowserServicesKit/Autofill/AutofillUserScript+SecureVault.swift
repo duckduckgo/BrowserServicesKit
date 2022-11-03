@@ -237,10 +237,15 @@ extension AutofillUserScript {
         // GetAvailableInputTypesResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/availableInputTypes.json
         // TODO: change the type
         struct AvailableInputTypesSuccess: Codable {
-            let email: Bool
-            let credentials: Bool
-            let creditCards: Bool
-            let identities: Bool
+            let credentials: AvailableInputTypesCredentials
+//            let email: Bool
+//            let creditCards: Bool
+//            let identities: Bool
+
+            struct AvailableInputTypesCredentials: Codable {
+                let username: Bool
+                let password: Bool
+            }
         }
 
         let success: AvailableInputTypesSuccess
@@ -323,38 +328,26 @@ extension AutofillUserScript {
         let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider  in
-            // TODO: here we should check if we have at least one username and one password in any of the credential items
-            let credentials: [CredentialObject] = accounts.compactMap {
+            let credentialObjects: [CredentialObject] = accounts.compactMap {
                 guard let id = $0.id else { return nil }
                 return .init(id: String(id), username: $0.username, credentialsProvider: credentialsProvider.name)
             }
-
-            // TODO: same for these items. We must return an object as described in the schema (see line 231 above) where every input type is true if we have at least 1 value across all items
+            let username = credentialsProvider.locked || credentialObjects.count > 0
+            let password = credentialsProvider.locked || credentialObjects.count > 0
+            //TODO: What to do with identities and credit cards?
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
             let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
-
-            // TODO: this must conform to the new type to be defined in line 231 above
+            let credentials = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
             let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
-                    email: email,
-                    credentials: credentials.count > 0,
-                    creditCards: cards.count > 0,
-                    identities: identities.count > 0
+//                    email: email,
+                    credentials: credentials
+//                    creditCards: cards.count > 0,
+//                    identities: identities.count > 0
             )
             let response = RequestAvailableInputTypesResponse(success: success, error: nil)
-            let value = credentialsProvider.locked || accounts.count > 0
+
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-                // TODO: use dynamic values. Instead of "credentials" it should be the mainType passed as a parameter above
-                // IMPORTANT: when bitwarden is locked the credentials should always be both true!
-                replyHandler("""
-                {
-                    "success": {
-                        "credentials": {
-                            "username": \(value),
-                            "password": \(value)
-                        }
-                    }
-                }
-                """)
+                replyHandler(jsonString)
             }
         }
     }
