@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
         "state": {
           "branch": null,
-          "revision": "db764ac851a9a2c6dd68bfb7cc1048ef064e546d",
-          "version": "3.1.0"
+          "revision": "a3c693cbc84a7221c56c11af5d2ed27613dc62c0",
+          "version": "3.2.0"
         }
       },
       {
@@ -15,7 +15,7 @@
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
           "branch": null,
-          "revision": "d45ed0e11cc73467b980221d36b975abe82d78c4",
+          "revision": "f065934069d4008846e1af436633ec64826a2e90",
           "version": null
         }
       },
