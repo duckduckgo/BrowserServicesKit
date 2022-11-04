@@ -17,75 +17,36 @@
 //
 
 import Foundation
+import CoreData
 
-extension BookmarkEntity {
-    public struct LinkedListAccessors {
-        public let next: WritableKeyPath<BookmarkEntity, BookmarkEntity?>
-        public let previous: WritableKeyPath<BookmarkEntity, BookmarkEntity?>
-        
-        private init(next: WritableKeyPath<BookmarkEntity, BookmarkEntity?>,
-                     previous: WritableKeyPath<BookmarkEntity, BookmarkEntity?>) {
-            self.next = next
-            self.previous = previous
-        }
-        
-        public static let bookmarkAccessors = LinkedListAccessors(next: \.next, previous: \.previous)
-        public static let favoritesAccessors = LinkedListAccessors(next: \.nextFavorite, previous: \.previousFavorite)
-    }
-
-}
-
-public enum ArrayExtension: Error {
-    case indexOutOfBounds
-}
-
-extension Array where Element: BookmarkEntity {
+struct BookmarkUtils {
     
-    public func sortedBookmarkEntities(using accessors: BookmarkEntity.LinkedListAccessors) -> [BookmarkEntity] {
-        guard let first = self.first(where: { $0[keyPath: accessors.previous] == nil }) else {
-            // TODO: pixel
-            return self
-        }
-        
-        var sorted: [BookmarkEntity] = [first]
-        sorted.reserveCapacity(count)
-        
-        var current = first[keyPath: accessors.next]
-        while let next = current {
-            sorted.append(next)
-            current = next[keyPath: accessors.next]
-        }
-        
-        return sorted
+    public enum Constants {
+        public static let rootFolderID = "root_folder"
+        public static let favoritesFolderID = "favorites_folder"
     }
-
-    public func movingBookmarkEntity(fromIndex: Int,
-                                     toIndex: Int,
-                                     using accessors: BookmarkEntity.LinkedListAccessors) throws -> [BookmarkEntity] {
-        guard fromIndex < count, toIndex < count else {
-            throw ArrayExtension.indexOutOfBounds
+        
+    public static func fetchRootFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
+        let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), Constants.rootFolderID)
+        request.returnsObjectsAsFaults = false
+        
+        do {
+            return try context.fetch(request).first
+        } catch {
+            fatalError("Could not fetch Bookmarks")
         }
-        
-        var result = self
-        let element = result.remove(at: fromIndex)
-        result.insert(element, at: toIndex)
-        
-        var bookmark = element as BookmarkEntity
-        // Remove from list
-        if var preceding = bookmark[keyPath: accessors.previous] {
-            preceding[keyPath: accessors.next] = bookmark[keyPath: accessors.next]
-        } else if var following = bookmark[keyPath: accessors.next] {
-            following[keyPath: accessors.previous] = bookmark[keyPath: accessors.previous]
-        }
-        
-        // Insert in new place
-        let newPreceding: BookmarkEntity? = toIndex > 0 ? result[toIndex - 1] : nil
-        let newFollowing: BookmarkEntity? = toIndex + 1 < result.count ? result[toIndex + 1] : nil
-        
-        bookmark[keyPath: accessors.previous] = newPreceding
-        bookmark[keyPath: accessors.next] = newFollowing
-        
-        return result
     }
     
+    public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
+        let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), Constants.favoritesFolderID)
+        request.returnsObjectsAsFaults = false
+        
+        do {
+            return try context.fetch(request).first
+        } catch {
+            fatalError("Could not fetch Bookmarks")
+        }
+    }
 }

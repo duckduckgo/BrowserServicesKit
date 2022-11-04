@@ -57,46 +57,26 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
     }
     
     // MARK: - Read
+    
+    private func fetchBookmarksInRootFolder() -> [BookmarkEntity] {
+        guard let root = BookmarkUtils.fetchRootFolder(context) else {
+            // Todo: error
+            return []
+        }
+        
+        // Todo: handle orphaned objects - here and in methods below
+        return root.children?.array as? [BookmarkEntity] ?? []
+    }
 
     public func fetchBookmarksInFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
-        
-        func queryFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
-            let fetchRequest = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
-            fetchRequest.returnsObjectsAsFaults = false
-            if let folder = folder {
-                fetchRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.parent), folder)
-            } else {
-                fetchRequest.predicate = NSPredicate(format: "%K == nil", #keyPath(BookmarkEntity.parent))
-            }
-            
-            do {
-                return try context.fetch(fetchRequest)
-            } catch {
-                fatalError("Could not fetch Bookmarks")
-            }
-        }
-        
-        let bookmarks: [BookmarkEntity]
-        if let folder = folder, let children = folder.children {
-            if children.count > 20 {
-                bookmarks = queryFolder(folder)
-            } else {
-                bookmarks = children.allObjects as! [BookmarkEntity]
-            }
+        if folder == nil {
+            return fetchBookmarksInRootFolder()
         } else {
-            bookmarks = queryFolder(folder)
+            return folder?.children?.array as? [BookmarkEntity] ?? []
         }
-        
-        return bookmarks.sortedBookmarkEntities(using: .bookmarkAccessors)
     }
 
     public func deleteBookmark(_ bookmark: BookmarkEntity) throws {
-        
-        if let preceding = bookmark.previous {
-            preceding.next = bookmark.next
-        } else if let following = bookmark.next {
-            following.previous = bookmark.previous
-        }
         
         context.delete(bookmark)
         
@@ -109,20 +89,27 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
         }
     }
 
-    public func moveBookmarkInArray(_ array: [BookmarkEntity],
-                                    fromIndex: Int,
-                                    toIndex: Int) throws -> [BookmarkEntity] {
+    public func moveBookmark(_ bookmark: BookmarkEntity,
+                             fromIndex: Int,
+                             toIndex: Int) throws -> [BookmarkEntity] {
+        
+        guard let parentFolder = bookmark.parent else {
+            // ToDo: Pixel
+            return []
+        }
+        
         do {
-            let result = try array.movingBookmarkEntity(fromIndex: fromIndex,
-                                                        toIndex: toIndex,
-                                                        using: .bookmarkAccessors)
+            
+            let mutableChildrenSet = parentFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.children))
+            
+            mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
             
             try context.save()
-            return result
         } catch {
             context.rollback()
             // ToDo: error with toast?
-            return array
         }
+        
+        return parentFolder.children?.array as? [BookmarkEntity] ?? []
     }
 }

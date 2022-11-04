@@ -57,7 +57,7 @@ public class FavoritesListViewModel: ObservableObject {
     public func move(_ favorite: BookmarkEntity, toIndex: Int) {
         guard let fromIndex = favorites.firstIndex(of: favorite) else { return }
         do {
-            favorites = try storage.moveFavoriteInArray(favorites, fromIndex: fromIndex, toIndex: toIndex)
+            favorites = try storage.moveFavorite(favorite, fromIndex: fromIndex, toIndex: toIndex)
         } catch {
             // TODO??
         }
@@ -82,25 +82,16 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
 
     public func fetchFavorites() -> [BookmarkEntity] {
 
-        let fetchRequest = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
-        fetchRequest.returnsObjectsAsFaults = false
-        fetchRequest.predicate = NSPredicate(format: "%K == true", #keyPath(BookmarkEntity.isFavorite))
-        
-        do {
-            let result = try context.fetch(fetchRequest)
-            return result.sortedBookmarkEntities(using: .favoritesAccessors)
-        } catch {
-            fatalError("Could not fetch Favorites")
+        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+            // Todo: error
+            return []
         }
+        
+        // Todo: add orphaned favorites
+        return favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
     
     public func deleteFavorite(_ favorite: BookmarkEntity) throws {
-        
-        if let preceding = favorite.previousFavorite {
-            preceding.nextFavorite = favorite.nextFavorite
-        } else if let following = favorite.nextFavorite {
-            following.previousFavorite = favorite.previousFavorite
-        }
         
         context.delete(favorite)
         
@@ -113,21 +104,26 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
         }
     }
 
-    public func moveFavoriteInArray(_ array: [BookmarkEntity],
-                                    fromIndex: Int,
-                                    toIndex: Int) throws -> [BookmarkEntity] {
+    public func moveFavorite(_ favorite: BookmarkEntity,
+                             fromIndex: Int,
+                             toIndex: Int) throws -> [BookmarkEntity] {
+        guard let favoriteFolder = favorite.favoriteFolder else {
+            // ToDo: Pixel
+            return []
+        }
+        
         do {
-            let result = try array.movingBookmarkEntity(fromIndex: fromIndex,
-                                                        toIndex: toIndex,
-                                                        using: .bookmarkAccessors)
+            let mutableChildrenSet = favoriteFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.favorites))
+            
+            mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
             
             try context.save()
-            return result
         } catch {
             context.rollback()
             // ToDo: error with toast?
-            return array
         }
+        
+        return favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
 }
 

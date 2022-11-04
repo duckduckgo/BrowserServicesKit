@@ -32,9 +32,9 @@ public protocol BookmarkListInteracting: BookmarkStoring {
 
     func deleteBookmark(_ bookmark: BookmarkEntity) throws
 
-    func moveBookmarkInArray(_ array: [BookmarkEntity],
-                             fromIndex: Int,
-                             toIndex: Int) throws -> [BookmarkEntity]
+    func moveBookmark(_ bookmark: BookmarkEntity,
+                      fromIndex: Int,
+                      toIndex: Int) throws -> [BookmarkEntity]
 
 }
 
@@ -42,11 +42,11 @@ public protocol FavoritesListInteracting: BookmarkStoring {
 
     func fetchFavorites() -> [BookmarkEntity]
 
-    func deleteFavorite(_ bookmark: BookmarkEntity) throws
+    func deleteFavorite(_ favorite: BookmarkEntity) throws
 
-    func moveFavoriteInArray(_ array: [BookmarkEntity],
-                             fromIndex: Int,
-                             toIndex: Int) throws -> [BookmarkEntity]
+    func moveFavorite(_ favorite: BookmarkEntity,
+                      fromIndex: Int,
+                      toIndex: Int) throws -> [BookmarkEntity]
 
 }
 
