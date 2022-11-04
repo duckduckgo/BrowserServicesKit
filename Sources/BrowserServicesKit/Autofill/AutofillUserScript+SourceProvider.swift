@@ -32,7 +32,7 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
         return sourceStr
     }
     
-    public init(privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) {
         var replacements: [String: String] = [:]
         #if os(macOS)
             replacements["// INJECT isApp HERE"] = "isApp = true;"
