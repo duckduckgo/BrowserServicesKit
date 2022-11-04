@@ -31,17 +31,17 @@ struct BasicBookmarksStructure {
     static let nestedTitles = ["Nested", "F1", "F2"]
     static let favoriteTitles = ["1", "2", "F1", "3"]
     
-    static func createBookmarksList(usingNames names: [String], in context: NSManagedObjectContext) -> [BookmarkEntity] {
+    static func createBookmarksList(usingNames names: [String],
+                                    parent: BookmarkEntity,
+                                    in context: NSManagedObjectContext) -> [BookmarkEntity] {
         
-        var last: BookmarkEntity?
         let bookmarks: [BookmarkEntity] = names.map { name in
             let b = BookmarkEntity(context: context)
             b.uuid = UUID().uuidString
             b.title = name
-            b.previous = last
             b.isFolder = false
             b.isFavorite = false
-            last = b
+            b.parent = parent
             return b
         }
         return bookmarks
@@ -60,15 +60,24 @@ struct BasicBookmarksStructure {
         //
         // Favorites: 1 -> 2 -> F1 -> 3
         
-        let topLevel = createBookmarksList(usingNames: topLevelTitles, in: context)
+        do {
+            try BookmarkUtils.prepareFoldersStructure(in: context)
+        } catch {
+            XCTFail("Couldn't populate base folders: \(error.localizedDescription)")
+        }
+        
+        guard let rootFolder = BookmarkUtils.fetchRootFolder(context),
+              let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+            XCTFail("Couldn't find required folders")
+            return
+        }
+        
+        let topLevel = createBookmarksList(usingNames: topLevelTitles, parent: rootFolder, in: context)
         
         let parent = topLevel[1]
         parent.isFolder = true
         
-        let nestedLevel = createBookmarksList(usingNames: nestedTitles, in: context)
-        for bookmark in nestedLevel {
-            bookmark.parent = parent
-        }
+        let nestedLevel = createBookmarksList(usingNames: nestedTitles, parent: parent, in: context)
         
         nestedLevel[0].isFolder = true
         
@@ -77,9 +86,7 @@ struct BasicBookmarksStructure {
         nestedLevel[1].isFavorite = true
         topLevel[3].isFavorite = true
         
-        topLevel[0].nextFavorite = topLevel[2]
-        topLevel[2].nextFavorite = nestedLevel[1]
-        nestedLevel[1].nextFavorite = topLevel[3]
+        favoritesFolder.favorites = NSOrderedSet(array: [topLevel[0], topLevel[2], nestedLevel[1], topLevel[3]])
         
         do {
             try context.save()

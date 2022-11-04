@@ -36,57 +36,25 @@ class BookmarkUtilsTests: XCTestCase {
         try db.tearDown(deleteStores: true)
     }
     
-    func validateBookmarkOrder(array: [BookmarkEntity]) {
-        var last: BookmarkEntity? = nil
-        for bookmark in array {
-            XCTAssert(bookmark.previous == last)
-            last = bookmark
-            XCTAssertNotNil(last)
-        }
-        
-        XCTAssertNil(last?.next)
-    }
-    
-    func testMovingBookmarks() throws {
+    func testWhenStructureIsEmptyThenItIsPrepared() throws {
         
         let context = db.makeContext(concurrencyType: .mainQueueConcurrencyType, name: "Test")
         
-        let orderedNames = ["1", "2", "3", "4"]
+        let countRequest = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        countRequest.predicate = NSPredicate(value: true)
         
-        var bookmarks = BasicBookmarksStructure.createBookmarksList(usingNames: orderedNames, in: context)
+        var count = try context.count(for: countRequest)
+        XCTAssertEqual(count, 0)
         
-        var ordered = try bookmarks.movingBookmarkEntity(fromIndex: 2,
-                                                         toIndex: 1,
-                                                         using: .bookmarkAccessors)
+        try BookmarkUtils.prepareFoldersStructure(in: context)
         
-        XCTAssertEqual(ordered.map { $0.title }, ["1", "3", "2", "4"])
-        validateBookmarkOrder(array: ordered)
+        count = try context.count(for: countRequest)
+        XCTAssertEqual(count, 2)
         
-        context.reset()
-        bookmarks = BasicBookmarksStructure.createBookmarksList(usingNames: orderedNames, in: context)
-        ordered = try bookmarks.movingBookmarkEntity(fromIndex: 3,
-                                                     toIndex: 2,
-                                                     using: .bookmarkAccessors)
+        try BookmarkUtils.prepareFoldersStructure(in: context)
         
-        XCTAssertEqual(ordered.map { $0.title }, ["1", "2", "4", "3"])
-        validateBookmarkOrder(array: ordered)
-        
-        context.reset()
-        bookmarks = BasicBookmarksStructure.createBookmarksList(usingNames: orderedNames, in: context)
-        ordered = try bookmarks.movingBookmarkEntity(fromIndex: 0,
-                                                     toIndex: 3,
-                                                     using: .bookmarkAccessors)
-        
-        XCTAssertEqual(ordered.map { $0.title }, ["2", "3", "4", "1"])
-        validateBookmarkOrder(array: ordered)
-        
-        context.reset()
-        bookmarks = BasicBookmarksStructure.createBookmarksList(usingNames: orderedNames, in: context)
-        ordered = try bookmarks.movingBookmarkEntity(fromIndex: 3,
-                                                     toIndex: 0,
-                                                     using: .bookmarkAccessors)
-        
-        XCTAssertEqual(ordered.map { $0.title }, ["4", "1", "2", "3"])
-        validateBookmarkOrder(array: ordered)
+        count = try context.count(for: countRequest)
+        XCTAssertEqual(count, 2)
     }
+ 
 }

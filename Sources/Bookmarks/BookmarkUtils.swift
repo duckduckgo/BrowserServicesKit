@@ -19,7 +19,7 @@
 import Foundation
 import CoreData
 
-struct BookmarkUtils {
+public struct BookmarkUtils {
     
     public enum Constants {
         public static let rootFolderID = "root_folder"
@@ -30,6 +30,7 @@ struct BookmarkUtils {
         let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), Constants.rootFolderID)
         request.returnsObjectsAsFaults = false
+        request.fetchLimit = 1
         
         do {
             return try context.fetch(request).first
@@ -42,11 +43,32 @@ struct BookmarkUtils {
         let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), Constants.favoritesFolderID)
         request.returnsObjectsAsFaults = false
+        request.fetchLimit = 1
         
         do {
             return try context.fetch(request).first
         } catch {
             fatalError("Could not fetch Bookmarks")
+        }
+    }
+    
+    public static func prepareFoldersStructure(in context: NSManagedObjectContext) throws {
+        
+        func insertFolder(named name: String, into context: NSManagedObjectContext) throws {
+            let folder = BookmarkEntity(context: context)
+            folder.uuid = name
+            folder.isFolder = true
+            folder.isFavorite = false
+            
+            try context.save()
+        }
+        
+        if fetchRootFolder(context) == nil {
+            try insertFolder(named: Constants.rootFolderID, into: context)
+        }
+        
+        if fetchFavoritesFolder(context) == nil {
+            try insertFolder(named: Constants.favoritesFolderID, into: context)
         }
     }
 }
