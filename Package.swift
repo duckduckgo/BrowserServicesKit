@@ -7,7 +7,7 @@ import Foundation
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("13.0"),
+        .iOS("14.0"),
         .macOS("10.15")
     ],
     products: [
@@ -22,7 +22,6 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0"))
     ],
     targets: [
-        
         .target(
             name: "BrowserServicesKit",
             dependencies: [
@@ -36,6 +35,9 @@ let package = Package(
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         .target(
             name: "BloomFilterWrapper",
@@ -54,6 +56,9 @@ let package = Package(
             ],
             resources: [
                 .process("TLD/tlds.json")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         
         // MARK: - Test targets

@@ -25,7 +25,7 @@ public struct LinkProtection {
     
     private var mainFrameUrl: URL?
     
-    public init(privacyManager: PrivacyConfigurationManager,
+    public init(privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: ContentBlockerRulesManager,
                 errorReporting: EventMapping<AMPProtectionDebugEvents>) {
         linkCleaner = LinkCleaner(privacyManager: privacyManager)
