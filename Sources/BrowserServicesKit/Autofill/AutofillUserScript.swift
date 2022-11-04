@@ -187,7 +187,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
         guard let messageHandler = messageHandlerFor(message.name) else {
-            // Unsupported message fail silently
+            assertionFailure("Unsupported message")
             return
         }
 

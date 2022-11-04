@@ -232,25 +232,32 @@ extension AutofillUserScript {
 
     }
 
-    struct RequestAvailableInputTypesResponse: Codable {
+    enum CredentialProviderStatus: String, Codable {
+        case locked
+        case unlocked
+    }
 
-        // GetAvailableInputTypesResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/availableInputTypes.json
-        // TODO: change the type
-        struct AvailableInputTypesSuccess: Codable {
-            let credentials: AvailableInputTypesCredentials
+    struct AvailableInputTypesSuccess: Codable {
+
+        struct AvailableInputTypesCredentials: Codable {
+            let username: Bool
+            let password: Bool
+        }
+
+        let credentials: AvailableInputTypesCredentials
+        let credentialsProviderStatus: CredentialProviderStatus
 //            let email: Bool
 //            let creditCards: Bool
 //            let identities: Bool
 
-            struct AvailableInputTypesCredentials: Codable {
-                let username: Bool
-                let password: Bool
-            }
-        }
+    }
 
+    struct RequestAvailableInputTypesResponse: Codable {
+
+        // GetAvailableInputTypesResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/availableInputTypes.json
+        // TODO: change the type
         let success: AvailableInputTypesSuccess
         let error: String?
-
     }
 
     struct RequestAutofillDataResponse: Codable {
@@ -282,6 +289,18 @@ extension AutofillUserScript {
         let username: String
         let password: String
         let credentialsProvider: String? // TODO: <- use enum "bitwarden" | "duckduckgo"
+    }
+
+    struct AskToUnlockProviderResponse: Codable {
+
+        struct AskToUnlockProviderResponseContents: Codable {
+            let status: CredentialProviderStatus
+            let credentials: [CredentialResponse]
+            let availableInputTypes: AvailableInputTypesSuccess
+        }
+
+        let success: AskToUnlockProviderResponseContents
+
     }
 
     // GetAutofillDataResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.result.json
@@ -317,9 +336,8 @@ extension AutofillUserScript {
 
     // MARK: - Message Handlers
 
-    // (Only for credentials)
+    // TODO: (Only for credentials)?
     func getAvailableInputTypes(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
-    
         guard let request: GetAvailableInputTypesRequest = DecodableHelper.decode(from: message.messageBody) else {
             return
         }
@@ -328,24 +346,10 @@ extension AutofillUserScript {
         let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider  in
-            let credentialObjects: [CredentialObject] = accounts.compactMap {
-                guard let id = $0.id else { return nil }
-                return .init(id: String(id), username: $0.username, credentialsProvider: credentialsProvider.name)
-            }
-            let username = credentialsProvider.locked || credentialObjects.count > 0
-            let password = credentialsProvider.locked || credentialObjects.count > 0
-            //TODO: What to do with identities and credit cards?
-            let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
-            let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
-            let credentials = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
-            let success = RequestAvailableInputTypesResponse.AvailableInputTypesSuccess(
-//                    email: email,
-                    credentials: credentials
-//                    creditCards: cards.count > 0,
-//                    identities: identities.count > 0
-            )
-            let response = RequestAvailableInputTypesResponse(success: success, error: nil)
-
+            let response = RequestAvailableInputTypesResponse(accounts: accounts,
+                                                              identities: identities,
+                                                              cards: cards,
+                                                              credentialsProvider: credentialsProvider)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
@@ -472,8 +476,8 @@ extension AutofillUserScript {
                   let password = String(data: credential.password, encoding: .utf8) else { return }
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: id,
-                                                                    username: credential.account.username,
-                                                                    password: password,
+                                                                                    username: credential.account.username,
+                                                                                    password: password,
                                                                                     credentialsProvider: credentialsProvider.name))
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
@@ -522,58 +526,28 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScriptDidAskToUnlockCredentialsProvider(self,
                                                                            andProvideCredentialsForDomain: domain,
                                                                            completionHandler: { credentials, credentialsProvider in
-            guard !credentialsProvider.locked else {
-                replyHandler(
-                    """
-                    {
-                        "success": {
-                            "status": "locked",
-                            "credentials": [
-                                {"id": "3", "password": "", "username": "testName", "credentialsProvider": "bitwarden"},
-                                {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
-                            ],
-                            "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
-                        }
-                    }
-                    """
-                    );
-                return
+            let availableInputTypesResponse = RequestAvailableInputTypesResponse(credentials: credentials, credentialsProvider: credentialsProvider)
+            let status = credentialsProvider.locked ? CredentialProviderStatus.locked : .unlocked
+            let credentialsArray:[CredentialResponse] = credentials.compactMap { credential in
+                if let id = credential.account.id {
+                    return CredentialResponse(id: String(id),
+                                              username: credential.account.username,
+                                              password: String(data: credential.password, encoding:.utf8) ?? "",
+                                              credentialsProvider: credentialsProvider.name)
+                } else {
+                    return nil
+                }
             }
 
-            replyHandler(
-                """
-                {
-                    "success": {
-                        "status": "unlocked",
-                        "credentials": [
-                            {"id": "3", "password": "", "username": "testName", "credentialsProvider": "bitwarden"},
-                            {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
-                        ],
-                        "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
-                    }
-                }
-                """
-                );
-        })
+            let availableInputTypes = availableInputTypesResponse.success
+            let success = AskToUnlockProviderResponse.AskToUnlockProviderResponseContents(status: status, credentials: credentialsArray, availableInputTypes: availableInputTypes)
+            let response = AskToUnlockProviderResponse(success: success)
 
-        /*
-        // TODO: use dynamic values
-        //TODO open bitwarden
-        // TODO wait until status changes and then respon
-        replyHandler(
-        """
-        {
-            "success": {
-                "status": "unlocked",
-                "credentials": [
-                    {"id": "3", "password": "", "username": "testName", "credentialsProvider": "bitwarden"},
-                    {"id": "1", "password": "", "username": "new_name@topo.com", "credentialsProvider": "bitwarden"}
-                ],
-                "availableInputTypes": {"credentials": {"password": true, "username": true}, "credentialsProviderStatus": "unlocked"}
+            if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                replyHandler(jsonString)
             }
         }
-        """
-        );
+        /*
         if #available(macOS 11, *) {
             // TODO: send the content of the success object above to all tabs with something like
 //             evaluateJavaScript(window.askToUnlockProvider({status: "unlocked", credentials: […], …}))
@@ -632,6 +606,46 @@ extension AutofillUserScript {
     func pmOpenManagePasswords(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
+    }
+
+}
+
+extension AutofillUserScript.RequestAvailableInputTypesResponse {
+
+    init(accounts: [SecureVaultModels.WebsiteAccount],
+         identities: [SecureVaultModels.Identity],
+         cards: [SecureVaultModels.CreditCard],
+         credentialsProvider: SecureVaultModels.CredentialsProvider) {
+        let credentialObjects: [AutofillUserScript.CredentialObject] = accounts.compactMap {
+            guard let id = $0.id else { return nil }
+            return .init(id: String(id), username: $0.username, credentialsProvider: credentialsProvider.name)
+        }
+        let username = credentialsProvider.locked || credentialObjects.count > 0
+        let password = credentialsProvider.locked || credentialObjects.count > 0
+        //TODO: What to do with identities and credit cards?
+        let identities: [AutofillUserScript.IdentityObject] = identities.compactMap(AutofillUserScript.IdentityObject.from(identity:))
+        let cards: [AutofillUserScript.CreditCardObject] = cards.compactMap(AutofillUserScript.CreditCardObject.autofillInitializationValueFrom(card:))
+        let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
+        let success = AutofillUserScript.AvailableInputTypesSuccess(
+//                    email: email,
+                credentials: credentials,
+                credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked
+//                    creditCards: cards.count > 0,
+//                    identities: identities.count > 0
+        )
+        self.init(success: success, error: nil)
+    }
+
+    init(credentials: [SecureVaultModels.WebsiteCredentials],
+         credentialsProvider: SecureVaultModels.CredentialsProvider) {
+        let username = credentialsProvider.locked || credentials.count > 0
+        let password = credentialsProvider.locked || credentials.count > 0
+        let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
+        let success = AutofillUserScript.AvailableInputTypesSuccess(
+                credentials: credentials,
+                credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked
+        )
+        self.init(success: success, error: nil)
     }
 
 }
