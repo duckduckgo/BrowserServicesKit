@@ -50,6 +50,17 @@ public protocol FavoritesListInteracting: BookmarkStoring {
 
 }
 
+public protocol MenuBookmarksInteracting {
+
+    func createOrToggleFavorite(title: String, url: URL)
+    
+    func createBookmark(title: String, url: URL)
+    func removeBookmark(for url: URL)
+    
+    func bookmark(for url: URL) -> BookmarkEntity?
+
+}
+
 public protocol EditBookmarkInteracting: BookmarkStoring {
 
     func fetchFolders() -> [BookmarkEntity]

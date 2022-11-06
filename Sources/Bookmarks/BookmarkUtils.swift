@@ -59,8 +59,6 @@ public struct BookmarkUtils {
             folder.uuid = name
             folder.isFolder = true
             folder.isFavorite = false
-            
-            try context.save()
         }
         
         if fetchRootFolder(context) == nil {
@@ -69,6 +67,19 @@ public struct BookmarkUtils {
         
         if fetchFavoritesFolder(context) == nil {
             try insertFolder(named: Constants.favoritesFolderID, into: context)
+        }
+    }
+    
+    public static func fetchBookmark(for url: URL, context: NSManagedObjectContext) -> BookmarkEntity? {
+        let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.url), url.absoluteString)
+        request.returnsObjectsAsFaults = false
+        request.fetchLimit = 1
+        
+        do {
+            return try context.fetch(request).first
+        } catch {
+            fatalError("Could not fetch Bookmark")
         }
     }
 }
