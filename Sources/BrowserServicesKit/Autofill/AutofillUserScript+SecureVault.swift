@@ -546,7 +546,7 @@ extension AutofillUserScript {
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
-        }
+        })
         /*
         if #available(macOS 11, *) {
             // TODO: send the content of the success object above to all tabs with something like
