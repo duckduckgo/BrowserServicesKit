@@ -30,7 +30,7 @@ public protocol BookmarkListInteracting: BookmarkStoring {
 
     func fetchBookmarksInFolder(_: BookmarkEntity?) -> [BookmarkEntity]
 
-    func deleteBookmark(_ bookmark: BookmarkEntity) throws
+    func deleteBookmark(_ bookmark: BookmarkEntity) throws -> [BookmarkEntity]
 
     func moveBookmark(_ bookmark: BookmarkEntity,
                       fromIndex: Int,

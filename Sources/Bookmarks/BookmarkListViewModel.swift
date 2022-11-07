@@ -56,8 +56,7 @@ public class BookmarkListViewModel: ObservableObject {
 
     public func deleteBookmark(_ bookmark: BookmarkEntity) {
         do {
-            #warning("this should probably update the bookmarks property?")
-            try storage.deleteBookmark(bookmark)
+            bookmarks = try storage.deleteBookmark(bookmark)
         } catch {
             // TODO pixel?
         }
@@ -100,8 +99,12 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
         }
     }
 
-    public func deleteBookmark(_ bookmark: BookmarkEntity) throws {
-        
+    public func deleteBookmark(_ bookmark: BookmarkEntity) throws -> [BookmarkEntity] {
+        guard let parentFolder = bookmark.parent else {
+            // ToDo: Pixel
+            return []
+        }
+
         context.delete(bookmark)
         
         do {
@@ -111,6 +114,8 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
             // ToDo: Pixel
             throw error
         }
+
+        return parentFolder.children?.array as? [BookmarkEntity] ?? []
     }
 
     public func moveBookmark(_ bookmark: BookmarkEntity,
