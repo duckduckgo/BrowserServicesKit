@@ -20,7 +20,13 @@ import Foundation
 import CoreData
 
 extension BookmarkEntity {
-    
+
+    #warning("naming?")
+    public var urlObject: URL? {
+        guard let url = url else { return nil }
+        return URL(string: url)
+    }
+
     public static func makeFolder(title: String,
                                   parent: BookmarkEntity,
                                   context: NSManagedObjectContext) -> BookmarkEntity {

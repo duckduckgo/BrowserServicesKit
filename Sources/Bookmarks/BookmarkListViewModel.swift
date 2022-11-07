@@ -39,6 +39,11 @@ public class BookmarkListViewModel: ObservableObject {
         }
     }
 
+    public func bookmarkAt(_ index: Int) -> BookmarkEntity? {
+        guard bookmarks.indices.contains(index) else { return nil }
+        return bookmarks[index]
+    }
+
 }
 
 public class CoreDataBookmarksLogic: BookmarkListInteracting {
@@ -48,7 +53,7 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
     public var updates: AnyPublisher<Void, Never>
     private let subject = PassthroughSubject<Void, Never>()
     
-    init(context: NSManagedObjectContext) {
+    public init(context: NSManagedObjectContext) {
         self.context = context
         
         updates = subject
