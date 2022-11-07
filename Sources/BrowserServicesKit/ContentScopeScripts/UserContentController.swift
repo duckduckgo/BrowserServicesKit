@@ -18,6 +18,7 @@
 
 import WebKit
 import Combine
+import UserScript
 
 public protocol UserContentControllerDelegate: AnyObject {
     func userContentController(_ userContentController: UserContentController,
