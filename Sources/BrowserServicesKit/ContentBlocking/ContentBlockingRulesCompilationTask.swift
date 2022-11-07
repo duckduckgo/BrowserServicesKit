@@ -49,32 +49,33 @@ extension ContentBlockerRulesManager {
         }
 
         func start(ignoreCache: Bool = false, completionHandler: @escaping Completion) {
-
-            guard let model = sourceManager.makeModel() else {
-                compilationImpossible = true
-                completionHandler(self, false)
-                return
-            }
-
-            guard !ignoreCache else {
-                workQueue.async {
-                    self.compile(model: model, completionHandler: completionHandler)
+            self.workQueue.async {
+                guard let model = self.sourceManager.makeModel() else {
+                    self.compilationImpossible = true
+                    completionHandler(self, false)
+                    return
                 }
-                return
-            }
-            
-            // Delegate querying to main thread - crashes were observed in background.
-            DispatchQueue.main.async {
-                WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
-                                                                        completionHandler: { ruleList, _ in
-                    if let ruleList = ruleList {
-                        self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
-                    } else {
-                        self.workQueue.async {
-                            self.compile(model: model, completionHandler: completionHandler)
+
+                guard !ignoreCache else {
+                    self.workQueue.async {
+                        self.compile(model: model, completionHandler: completionHandler)
+                    }
+                    return
+                }
+
+                // Delegate querying to main thread - crashes were observed in background.
+                DispatchQueue.main.async {
+                    let identifier = model.rulesIdentifier.stringValue
+                    WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
+                        if let ruleList = ruleList {
+                            self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                        } else {
+                            self.workQueue.async {
+                                self.compile(model: model, completionHandler: completionHandler)
+                            }
                         }
                     }
-                })
+                }
             }
         }
 

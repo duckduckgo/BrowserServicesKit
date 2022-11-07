@@ -27,12 +27,12 @@ public final class HTTPSUpgrade {
     
     private let dataReloadLock = NSLock()
     private let store: HTTPSUpgradeStore
-    private let privacyManager: PrivacyConfigurationManager
+    private let privacyManager: PrivacyConfigurationManaging
    
     private var bloomFilter: BloomFilterWrapper?
     
     public init(store: HTTPSUpgradeStore,
-                privacyManager: PrivacyConfigurationManager) {
+                privacyManager: PrivacyConfigurationManaging) {
         self.store = store
         self.privacyManager = privacyManager
     }
