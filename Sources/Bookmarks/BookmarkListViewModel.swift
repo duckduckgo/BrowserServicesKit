@@ -44,6 +44,25 @@ public class BookmarkListViewModel: ObservableObject {
         return bookmarks[index]
     }
 
+    public func moveBookmark(_ bookmark: BookmarkEntity,
+                             fromIndex: Int,
+                             toIndex: Int) {
+        do {
+            bookmarks = try storage.moveBookmark(bookmark, fromIndex: fromIndex, toIndex: toIndex)
+        } catch {
+            // TODO pixel?
+        }
+    }
+
+    public func deleteBookmark(_ bookmark: BookmarkEntity) {
+        do {
+            #warning("this should probably update the bookmarks property?")
+            try storage.deleteBookmark(bookmark)
+        } catch {
+            // TODO pixel?
+        }
+    }
+
 }
 
 public class CoreDataBookmarksLogic: BookmarkListInteracting {
