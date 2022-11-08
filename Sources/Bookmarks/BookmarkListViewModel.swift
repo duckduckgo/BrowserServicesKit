@@ -103,6 +103,8 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
         if folder == nil {
             return fetchBookmarksInRootFolder()
         } else {
+            #warning("not optimal")
+            folder?.managedObjectContext?.refreshAllObjects()
             return folder?.children?.array as? [BookmarkEntity] ?? []
         }
     }
