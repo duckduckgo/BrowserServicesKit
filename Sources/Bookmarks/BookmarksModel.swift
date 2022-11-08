@@ -28,6 +28,8 @@ public protocol BookmarkStoring {
 
 public protocol BookmarkListInteracting: BookmarkStoring {
 
+    func fetchRootBookmarksFolder() -> BookmarkEntity
+
     func fetchBookmarksInFolder(_: BookmarkEntity?) -> [BookmarkEntity]
 
     func deleteBookmark(_ bookmark: BookmarkEntity) throws -> [BookmarkEntity]

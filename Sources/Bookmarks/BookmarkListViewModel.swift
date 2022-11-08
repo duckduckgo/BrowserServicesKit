@@ -88,7 +88,11 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
     }
     
     // MARK: - Read
-    
+
+    public func fetchRootBookmarksFolder() -> BookmarkEntity {
+        return BookmarkUtils.fetchRootFolder(context)!
+    }
+
     private func fetchBookmarksInRootFolder() -> [BookmarkEntity] {
         guard let root = BookmarkUtils.fetchRootFolder(context) else {
             // Todo: error
