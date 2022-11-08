@@ -75,14 +75,6 @@ public final class PrivacyDashboardController: NSObject {
         sendProtectionStatus()
     }
     
-    public func willAppear() {
-        privacyDashboardScript.delegate = self
-    }
-    
-    public func willDisappear() {
-        privacyDashboardScript.delegate = nil
-    }
-    
     public func cleanUp() {
         cancellables.removeAll()
         
