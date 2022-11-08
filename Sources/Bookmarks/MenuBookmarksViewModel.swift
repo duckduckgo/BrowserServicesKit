@@ -19,14 +19,14 @@
 import Foundation
 import CoreData
 
-class MenuBookmarksViewModel: MenuBookmarksInteracting {
+public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     let context: NSManagedObjectContext
     
     lazy var rootFolder: BookmarkEntity! = BookmarkUtils.fetchRootFolder(context)
     lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(context)
     
-    init(viewContext: NSManagedObjectContext) {
+    public init(viewContext: NSManagedObjectContext) {
         self.context = viewContext
     }
     
@@ -39,7 +39,7 @@ class MenuBookmarksViewModel: MenuBookmarksInteracting {
         }
     }
     
-    func createOrToggleFavorite(title: String, url: URL) {
+    public func createOrToggleFavorite(title: String, url: URL) {
         if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
             if bookmark.isFavorite {
                 bookmark.isFavorite = false
@@ -60,7 +60,7 @@ class MenuBookmarksViewModel: MenuBookmarksInteracting {
         save()
     }
     
-    func createBookmark(title: String, url: URL) {
+    public func createBookmark(title: String, url: URL) {
         let favorite = BookmarkEntity.makeBookmark(title: title,
                                                    url: url.absoluteString,
                                                    parent: rootFolder,
@@ -68,14 +68,14 @@ class MenuBookmarksViewModel: MenuBookmarksInteracting {
         save()
     }
     
-    func removeBookmark(for url: URL) {
+    public func removeBookmark(for url: URL) {
         if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
             context.delete(bookmark)
             save()
         }
     }
     
-    func bookmark(for url: URL) -> BookmarkEntity? {
+    public func bookmark(for url: URL) -> BookmarkEntity? {
         BookmarkUtils.fetchBookmark(for: url, context: context)
     }
     
