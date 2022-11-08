@@ -48,7 +48,7 @@ public class FavoritesListViewModel: ObservableObject {
 
     public func delete(_ favorite: BookmarkEntity) {
         do {
-            try storage.deleteFavorite(favorite)
+            favorites = try storage.deleteFavorite(favorite)
         } catch {
             // TODO??
         }
@@ -91,8 +91,12 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
         return favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
     
-    public func deleteFavorite(_ favorite: BookmarkEntity) throws {
-        
+    public func deleteFavorite(_ favorite: BookmarkEntity) throws -> [BookmarkEntity] {
+        guard let favoriteFolder = favorite.favoriteFolder else {
+            // ToDo: Pixel
+            return []
+        }
+
         context.delete(favorite)
         
         do {
@@ -102,6 +106,8 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
             // ToDo: Pixel
             throw error
         }
+        
+        return favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
 
     public func moveFavorite(_ favorite: BookmarkEntity,

@@ -30,12 +30,12 @@ public class BookmarkListViewModel: ObservableObject {
 
     @Published public var bookmarks = [BookmarkEntity]()
 
-     public init(storage: BookmarkListInteracting, currentFolder: BookmarkEntity?) {
+    public init(storage: BookmarkListInteracting, currentFolder: BookmarkEntity?) {
         self.storage = storage
         self.currentFolder = currentFolder
         self.bookmarks = storage.fetchBookmarksInFolder(currentFolder)
         self.cancellable = self.storage.updates.sink { [weak self] in
-            self?.bookmarks = self!.storage.fetchBookmarksInFolder(currentFolder)
+            self?.refresh()
         }
     }
 
@@ -60,6 +60,14 @@ public class BookmarkListViewModel: ObservableObject {
         } catch {
             // TODO pixel?
         }
+    }
+
+    public func viewModelForFolder(_ parent: BookmarkEntity) -> BookmarkListViewModel {
+        return BookmarkListViewModel(storage: storage, currentFolder: parent)
+    }
+
+    public func refresh() {
+        bookmarks = storage.fetchBookmarksInFolder(currentFolder)
     }
 
 }

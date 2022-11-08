@@ -42,7 +42,7 @@ public protocol FavoritesListInteracting: BookmarkStoring {
 
     func fetchFavorites() -> [BookmarkEntity]
 
-    func deleteFavorite(_ favorite: BookmarkEntity) throws
+    func deleteFavorite(_ favorite: BookmarkEntity) throws -> [BookmarkEntity]
 
     func moveFavorite(_ favorite: BookmarkEntity,
                       fromIndex: Int,
