@@ -34,12 +34,18 @@ public class BookmarkEditorViewModel: ObservableObject {
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
 
+    public var canAddNewFolder: Bool {
+        !bookmark.isFolder
+    }
+
     public init(storage: BookmarkListInteracting, bookmark: BookmarkEntity) {
         self.storage = storage
         self.bookmark = bookmark
+
         self.cancellable = self.storage.updates.sink { [weak self] in
             self?.refresh()
         }
+
         refresh()
     }
 
@@ -53,8 +59,6 @@ public class BookmarkEditorViewModel: ObservableObject {
                 {
                     locations.append(Location(bookmark: entity, depth: depth))
                     descendInto(storage.fetchBookmarksInFolder(entity), depth: depth + 1)
-                } else {
-                    print("***", #function, depth, "skipping", entity.uuid ?? "<nil uuid>", entity.title ?? "<nil title>")
                 }
             }
         }
