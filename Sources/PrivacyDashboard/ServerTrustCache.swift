@@ -29,8 +29,12 @@ public class ServerTrustCache {
         return cache[domain]
     }
 
-    public func put(serverTrust: SecTrust, forDomain domain: String) {
+    public func insert(serverTrust: SecTrust, forDomain domain: String) {
         cache[domain] = serverTrust
+    }
+    
+    public func remove(forDomain domain: String) {
+        cache.removeValue(forKey: domain)
     }
 
     public func clear() {
