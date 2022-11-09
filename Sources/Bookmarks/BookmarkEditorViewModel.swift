@@ -34,13 +34,22 @@ public class BookmarkEditorViewModel: ObservableObject {
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
 
+    public var canSave: Bool {
+        let titleOK = bookmark.title?.trimmingWhitespace().count ?? 0 > 0
+        let urlOK = bookmark.isFolder ? true : bookmark.urlObject != nil
+        return titleOK && urlOK
+    }
+
     public var canAddNewFolder: Bool {
         !bookmark.isFolder
     }
 
-    public init(storage: BookmarkListInteracting, bookmark: BookmarkEntity) {
+    public var isNew: Bool
+
+    public init(storage: BookmarkListInteracting, bookmark: BookmarkEntity, isNew: Bool) {
         self.storage = storage
         self.bookmark = bookmark
+        self.isNew = isNew
 
         self.cancellable = self.storage.updates.sink { [weak self] in
             self?.refresh()
