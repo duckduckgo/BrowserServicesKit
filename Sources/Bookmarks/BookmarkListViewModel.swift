@@ -69,6 +69,10 @@ public class BookmarkListViewModel: ObservableObject {
     public func refresh() {
         bookmarks = storage.fetchBookmarksInFolder(currentFolder)
     }
+    
+    public func getTotalBookmarksCount() -> Int {
+        storage.totalBookmarksCount
+    }
 
 }
 
@@ -88,6 +92,13 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
     }
     
     // MARK: - Read
+    
+    public var totalBookmarksCount: Int {
+        let countRequest = BookmarkEntity.fetchRequest()
+        countRequest.predicate = NSPredicate(value: true)
+        
+        return (try? context.count(for: countRequest)) ?? 0
+    }
 
     public func fetchRootBookmarksFolder() -> BookmarkEntity {
         return BookmarkUtils.fetchRootFolder(context)!
@@ -100,16 +111,16 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
         }
         
         // Todo: handle orphaned objects - here and in methods below
-        return root.children?.array as? [BookmarkEntity] ?? []
+        return root.childrenArray
     }
 
     public func fetchBookmarksInFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
-        if folder == nil {
-            return fetchBookmarksInRootFolder()
+        if let folder = folder {
+#warning("not optimal")
+            folder.managedObjectContext?.refreshAllObjects()
+            return folder.childrenArray
         } else {
-            #warning("not optimal")
-            folder?.managedObjectContext?.refreshAllObjects()
-            return folder?.children?.array as? [BookmarkEntity] ?? []
+            return fetchBookmarksInRootFolder()
         }
     }
 
@@ -129,7 +140,7 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
             throw error
         }
 
-        return parentFolder.children?.array as? [BookmarkEntity] ?? []
+        return parentFolder.childrenArray
     }
 
     public func moveBookmark(_ bookmark: BookmarkEntity,
@@ -153,6 +164,6 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
             // ToDo: error with toast?
         }
         
-        return parentFolder.children?.array as? [BookmarkEntity] ?? []
+        return parentFolder.childrenArray
     }
 }

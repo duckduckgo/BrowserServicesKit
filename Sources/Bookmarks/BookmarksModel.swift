@@ -27,6 +27,8 @@ public protocol BookmarkStoring {
 }
 
 public protocol BookmarkListInteracting: BookmarkStoring {
+    
+    var totalBookmarksCount: Int { get }
 
     func fetchRootBookmarksFolder() -> BookmarkEntity
 

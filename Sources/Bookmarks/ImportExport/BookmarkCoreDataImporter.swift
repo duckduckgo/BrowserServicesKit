@@ -24,7 +24,7 @@ public class BookmarkCoreDataImporter {
     
     let context: NSManagedObjectContext
     
-    init(database: CoreDataDatabase) {
+    public init(database: CoreDataDatabase) {
         self.context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
     }
     
@@ -41,7 +41,8 @@ public class BookmarkCoreDataImporter {
                     
                     try recursivelyCreateEntities(from: bookmarks,
                                                   parent: topLevelBookmarksFolder,
-                                                  favorites: topLevelFavoritesFolder)
+                                                  favoritesRoot: topLevelFavoritesFolder)
+                    try context.save()
                 } catch {
                     continuation.resume(throwing: error)
                 }
@@ -52,7 +53,7 @@ public class BookmarkCoreDataImporter {
 
     private func recursivelyCreateEntities(from bookmarks: [BookmarkOrFolder],
                                            parent: BookmarkEntity,
-                                           favorites: BookmarkEntity) throws {
+                                           favoritesRoot: BookmarkEntity) throws {
         for bookmarkOrFolder in bookmarks {
             if bookmarkOrFolder.isInvalidBookmark {
                 continue
@@ -66,31 +67,32 @@ public class BookmarkCoreDataImporter {
                 if let children = bookmarkOrFolder.children {
                     try recursivelyCreateEntities(from: children,
                                                   parent: folder,
-                                                  favorites: favorites)
+                                                  favoritesRoot: favoritesRoot)
                 }
             case .favorite:
-                break
-//                if let url = bookmarkOrFolder.url {
-//                    if let bookmark = containsBookmark(with: url) {
-//                        // TodDo - mark as fav
-//                    } else {
-//                        let newFavorite = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
-//                                                                      url: url.absoluteString,
-//                                                                      parent: parent,
-//                                                                      context: context)
-//                        // TodDo - mark as fav
-//                    }
-//                }
+                if let url = bookmarkOrFolder.url {
+                    if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
+                        bookmark.addToFavorites(favoritesRoot: favoritesRoot)
+                    } else {
+                        let newFavorite = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
+                                                                      url: url.absoluteString,
+                                                                      parent: parent,
+                                                                      context: context)
+                        newFavorite.addToFavorites(favoritesRoot: favoritesRoot)
+                    }
+                }
             case .bookmark:
-                break
-//                if let url = bookmarkOrFolder.url {
-//                    if parent == topLevelBookmarksFolder,
-//                       containsBookmark(url: url, searchType: .topLevelBookmarksOnly, parentId: parent.objectID) {
-//                        continue
-//                    } else {
-//                        _ = try saveNewBookmark(withTitle: bookmarkOrFolder.name, url: url, parentID: parent.objectID)
-//                    }
-//                }
+                if let url = bookmarkOrFolder.url {
+                    if parent.isRoot,
+                       parent.childrenArray.first(where: { $0.urlObject == url }) != nil {
+                        continue
+                    } else {
+                        _ = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
+                                                        url: url.absoluteString,
+                                                        parent: parent,
+                                                        context: context)
+                    }
+                }
             }
         }
     }

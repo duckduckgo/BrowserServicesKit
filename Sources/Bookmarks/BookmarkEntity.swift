@@ -56,6 +56,14 @@ public class BookmarkEntity: NSManagedObject {
         return URL(string: url)
     }
     
+    public var isRoot: Bool {
+        uuid == Constants.rootFolderID
+    }
+    
+    public var childrenArray: [BookmarkEntity] {
+        children?.array as? [BookmarkEntity] ?? []
+    }
+
     public static func makeFolder(title: String,
                                   parent: BookmarkEntity,
                                   context: NSManagedObjectContext) -> BookmarkEntity {
