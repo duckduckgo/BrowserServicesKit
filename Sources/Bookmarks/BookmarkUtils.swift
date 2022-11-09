@@ -20,15 +20,10 @@ import Foundation
 import CoreData
 
 public struct BookmarkUtils {
-    
-    public enum Constants {
-        public static let rootFolderID = "root_folder"
-        public static let favoritesFolderID = "favorites_folder"
-    }
         
     public static func fetchRootFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
-        let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), Constants.rootFolderID)
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.rootFolderID)
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         
@@ -40,8 +35,8 @@ public struct BookmarkUtils {
     }
     
     public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
-        let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), Constants.favoritesFolderID)
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.favoritesFolderID)
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         
@@ -54,24 +49,23 @@ public struct BookmarkUtils {
     
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) throws {
         
-        func insertFolder(named name: String, into context: NSManagedObjectContext) throws {
+        func insertRootFolder(uuid: String, into context: NSManagedObjectContext) throws {
             let folder = BookmarkEntity(context: context)
-            folder.uuid = name
+            folder.uuid = uuid
             folder.isFolder = true
-            folder.isFavorite = false
         }
         
         if fetchRootFolder(context) == nil {
-            try insertFolder(named: Constants.rootFolderID, into: context)
+            try insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
         }
         
         if fetchFavoritesFolder(context) == nil {
-            try insertFolder(named: Constants.favoritesFolderID, into: context)
+            try insertRootFolder(uuid: BookmarkEntity.Constants.favoritesFolderID, into: context)
         }
     }
     
     public static func fetchBookmark(for url: URL, context: NSManagedObjectContext) -> BookmarkEntity? {
-        let request = NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
+        let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.url), url.absoluteString)
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1

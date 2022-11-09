@@ -42,29 +42,26 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     public func createOrToggleFavorite(title: String, url: URL) {
         if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
             if bookmark.isFavorite {
-                bookmark.isFavorite = false
-                bookmark.favoriteFolder = nil
+                bookmark.removeFromFavorites()
             } else {
-                bookmark.isFavorite = true
-                bookmark.favoriteFolder = favoritesFolder
+                bookmark.addToFavorites(favoritesRoot: favoritesFolder)
             }
         } else {
             let favorite = BookmarkEntity.makeBookmark(title: title,
                                                        url: url.absoluteString,
                                                        parent: rootFolder,
                                                        context: context)
-            favorite.isFavorite = true
-            favorite.favoriteFolder = favoritesFolder
+            favorite.addToFavorites(favoritesRoot: favoritesFolder)
         }
         
         save()
     }
     
     public func createBookmark(title: String, url: URL) {
-        let favorite = BookmarkEntity.makeBookmark(title: title,
-                                                   url: url.absoluteString,
-                                                   parent: rootFolder,
-                                                   context: context)
+        _ = BookmarkEntity.makeBookmark(title: title,
+                                        url: url.absoluteString,
+                                        parent: rootFolder,
+                                        context: context)
         save()
     }
     

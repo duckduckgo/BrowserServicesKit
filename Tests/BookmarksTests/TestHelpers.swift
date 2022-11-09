@@ -40,7 +40,6 @@ struct BasicBookmarksStructure {
             b.uuid = UUID().uuidString
             b.title = name
             b.isFolder = false
-            b.isFavorite = false
             b.parent = parent
             return b
         }
@@ -81,12 +80,10 @@ struct BasicBookmarksStructure {
         
         nestedLevel[0].isFolder = true
         
-        topLevel[0].isFavorite = true
-        topLevel[2].isFavorite = true
-        nestedLevel[1].isFavorite = true
-        topLevel[3].isFavorite = true
-        
-        favoritesFolder.favorites = NSOrderedSet(array: [topLevel[0], topLevel[2], nestedLevel[1], topLevel[3]])
+        topLevel[0].addToFavorites(favoritesRoot: favoritesFolder)
+        topLevel[2].addToFavorites(favoritesRoot: favoritesFolder)
+        nestedLevel[1].addToFavorites(favoritesRoot: favoritesFolder)
+        topLevel[3].addToFavorites(favoritesRoot: favoritesFolder)
         
         do {
             try context.save()

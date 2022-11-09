@@ -85,7 +85,7 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func isSelected(_ folder: BookmarkEntity?) -> Bool {
-        return bookmark.parent?.uuid == (folder?.uuid ?? BookmarkUtils.Constants.rootFolderID)
+        return bookmark.parent?.uuid == (folder?.uuid ?? BookmarkEntity.Constants.rootFolderID)
     }
 
 }
