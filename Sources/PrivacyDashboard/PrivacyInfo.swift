@@ -27,11 +27,11 @@ public final class PrivacyInfo {
     
     @Published public var trackerInfo: TrackerInfo
     @Published private(set) var protectionStatus: ProtectionStatus
-    @Published public var serverTrust: ServerTrust?
+    @Published public var serverTrust: SecTrust?
     @Published public var connectionUpgradedTo: URL?
     @Published public var cookieConsentManaged: CookieConsentInfo?
     
-    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, serverTrust: ServerTrust?) {
+    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, serverTrust: SecTrust?) {
         self.url = url
         self.parentEntity = parentEntity
         self.protectionStatus = protectionStatus

@@ -119,12 +119,12 @@ public struct ServerTrustViewModel: Encodable {
 
     let secCertificateViewModels: [SecCertificateViewModel]
 
-    public init?(serverTrust: ServerTrust?) {
+    public init?(serverTrust: SecTrust?) {
         guard let serverTrust = serverTrust else {
             return nil
         }
 
-        let secTrust = serverTrust.secTrust
+        let secTrust = serverTrust
         let count = SecTrustGetCertificateCount(secTrust)
         guard count != 0 else { return nil }
 
