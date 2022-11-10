@@ -18,6 +18,7 @@
 
 import Foundation
 import Combine
+import CoreData
 
 public class BookmarkEditorViewModel: ObservableObject {
 
@@ -28,11 +29,14 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     }
 
+    let context: NSManagedObjectContext
     let storage: BookmarkListInteracting
     var cancellable: AnyCancellable?
 
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
+
+    lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(context)
 
     public var canSave: Bool {
         let titleOK = bookmark.title?.trimmingWhitespace().count ?? 0 > 0
@@ -46,7 +50,8 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public var isNew: Bool
 
-    public init(storage: BookmarkListInteracting, bookmark: BookmarkEntity, isNew: Bool) {
+    public init(context: NSManagedObjectContext, storage: BookmarkListInteracting, bookmark: BookmarkEntity, isNew: Bool) {
+        self.context = context
         self.storage = storage
         self.bookmark = bookmark
         self.isNew = isNew
@@ -86,6 +91,16 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public func isSelected(_ folder: BookmarkEntity?) -> Bool {
         return bookmark.parent?.uuid == (folder?.uuid ?? BookmarkEntity.Constants.rootFolderID)
+    }
+
+    public func removeFromFavorites() {
+        assert(bookmark.isFavorite)
+        bookmark.removeFromFavorites()
+    }
+
+    public func addToFavorites() {
+        assert(!bookmark.isFavorite)
+        bookmark.addToFavorites(favoritesRoot: favoritesFolder)
     }
 
 }
