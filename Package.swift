@@ -7,7 +7,7 @@ import Foundation
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("13.0"),
+        .iOS("14.0"),
         .macOS("10.15")
     ],
     products: [
@@ -21,10 +21,9 @@ let package = Package(
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.1.0"))
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0"))
     ],
     targets: [
-        
         .target(
             name: "BrowserServicesKit",
             dependencies: [
@@ -39,6 +38,9 @@ let package = Package(
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         .target(
             name: "Persistence",
@@ -72,6 +74,9 @@ let package = Package(
             ],
             resources: [
                 .process("TLD/tlds.json")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         
         // MARK: - Test targets
