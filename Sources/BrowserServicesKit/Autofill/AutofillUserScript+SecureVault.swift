@@ -394,8 +394,14 @@ extension AutofillUserScript {
         }
 
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, subType: request.subType, trigger: request.trigger) { credentials, credentialsProvider, action in
-            let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, credentialsProvider: credentialsProvider, action: action)
+
+        vaultDelegate?.autofillUserScript(self,
+                                          didRequestCredentialsForDomain: domain,
+                                          subType: request.subType,
+                                          trigger: request.trigger) { credentials, credentialsProvider, action in
+            let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials,
+                                                                                                              credentialsProvider: credentialsProvider,
+                                                                                                              action: action)
 
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
@@ -469,11 +475,16 @@ extension AutofillUserScript {
               let id = body["id"] as? String else {
             return
         }
+        let requestingDomain = hostForMessage(message)
 
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: id) { credentials, credentialsProvider in
             guard let credential = credentials,
                   let id = credential.account.id,
-                  let password = String(data: credential.password, encoding: .utf8) else { return }
+                  let password = String(data: credential.password, encoding: .utf8),
+                  credential.account.domain == requestingDomain else {
+                replyHandler("{}")
+                return
+            }
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: id,
                                                                                     username: credential.account.username,
