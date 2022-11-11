@@ -48,6 +48,9 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
+            ],
+            cxxSettings: [
+                .unsafeFlags(["-std=c++11"])
             ]),
         .target(
             name: "Common",
