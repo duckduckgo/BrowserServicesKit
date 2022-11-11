@@ -81,5 +81,6 @@ let package = Package(
                 "Common"
             ]
         )
-    ]
+    ],
+    cxxLanguageStandard: .cxx11
 )
