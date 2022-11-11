@@ -19,6 +19,7 @@
 import Foundation
 import MetricKit
 
+@available(iOS 13, macOS 12, *)
 public struct CrashCollection {
 
     // Need a strong reference
