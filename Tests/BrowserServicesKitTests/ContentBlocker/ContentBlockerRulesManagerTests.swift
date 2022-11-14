@@ -21,6 +21,7 @@ import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
 import WebKit
+import Combine
 
 // swiftlint:disable file_length
 // swiftlint:disable function_body_length
@@ -226,8 +227,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
-                                              errorReporting: errorHandler,
-                                              logger: .disabled)
+                                              errorReporting: errorHandler)
 
         wait(for: [exp, errorExp, compilationTimeExp], timeout: 15.0)
         
@@ -276,8 +276,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
-                                              errorReporting: errorHandler,
-                                              logger: .disabled)
+                                              errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
         
@@ -309,8 +308,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -343,8 +341,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -380,8 +377,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -421,8 +417,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -461,8 +456,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
 
@@ -503,8 +497,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
 
@@ -571,8 +564,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
-                                              errorReporting: errorHandler,
-                                              logger: .disabled)
+                                              errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
         
@@ -652,8 +644,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
-                                              errorReporting: errorHandler,
-                                              logger: .disabled)
+                                              errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
         
@@ -708,8 +699,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
         
         wait(for: [initialLoading], timeout: 15.0)
 
@@ -768,8 +758,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
         
         wait(for: [initialLoading], timeout: 15.0)
 
@@ -829,8 +818,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [initialLoading], timeout: 15.0)
 
@@ -891,8 +879,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
         
         wait(for: [initialLoading], timeout: 15.0)
 
@@ -952,8 +939,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [initialLoading], timeout: 15.0)
 
@@ -1053,8 +1039,7 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
         cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                           exceptionsSource: mockExceptionsSource,
                                           updateListener: rulesUpdateListener,
-                                          errorReporting: nil,
-                                          logger: .disabled)
+                                          errorReporting: nil)
         withExtendedLifetime(cbrm) {
             waitForExpectations(timeout: 1)
         }
@@ -1107,8 +1092,7 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
                                           exceptionsSource: mockExceptionsSource,
                                           cache: self,
                                           updateListener: rulesUpdateListener,
-                                          errorReporting: nil,
-                                          logger: .disabled)
+                                          errorReporting: nil)
         withExtendedLifetime(cbrm) {
             waitForExpectations(timeout: 1)
         }
@@ -1123,6 +1107,8 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
     var trackerData: TrackerDataManager.DataSet? {
         didSet {
+            let trackerData = trackerData
+            let embeddedTrackerData = embeddedTrackerData
             contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
@@ -1130,6 +1116,8 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     }
     var embeddedTrackerData: TrackerDataManager.DataSet {
         didSet {
+            let trackerData = trackerData
+            let embeddedTrackerData = embeddedTrackerData
             contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
@@ -1223,6 +1211,42 @@ extension WKContentRuleListStore {
 
 }
 
-// swiftlint:enable identifier_name
-// swiftlint:enable function_body_length
-// swiftlint:enable file_length
+public protocol ContentBlockerRulesUpdating {
+
+    func rulesManager(_ manager: ContentBlockerRulesManager,
+                      didUpdateRules: [ContentBlockerRulesManager.Rules],
+                      changes: [String: ContentBlockerRulesIdentifier.Difference],
+                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
+}
+
+extension ContentBlockerRulesManager {
+
+    public convenience init(rulesSource: ContentBlockerRulesListsSource,
+                            exceptionsSource: ContentBlockerRulesExceptionsSource,
+                            lastCompiledRulesStore: LastCompiledRulesStore? = nil,
+                            cache: ContentBlockerRulesCaching? = nil,
+                            updateListener: ContentBlockerRulesUpdating,
+                            errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+        self.init(rulesSource: rulesSource,
+                  exceptionsSource: exceptionsSource,
+                  lastCompiledRulesStore: lastCompiledRulesStore,
+                  cache: cache,
+                  errorReporting: errorReporting)
+
+        var cancellable: AnyCancellable?
+        cancellable = self.updatesPublisher.receive(on: DispatchQueue.main)
+            .sink { [weak self] update in
+                guard let self = self else {
+                    cancellable?.cancel()
+                    return
+                }
+                withExtendedLifetime(cancellable) {
+                    updateListener.rulesManager(self,
+                                                didUpdateRules: update.rules,
+                                                changes: update.changes,
+                                                completionTokens: update.completionTokens)
+                }
+            }
+    }
+
+}

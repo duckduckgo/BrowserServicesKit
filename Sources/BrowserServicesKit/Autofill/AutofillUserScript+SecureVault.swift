@@ -359,7 +359,10 @@ extension AutofillUserScript {
         }
 
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, subType: request.subType, trigger: request.trigger) { credentials, action in
+        vaultDelegate?.autofillUserScript(self,
+                                          didRequestCredentialsForDomain: domain,
+                                          subType: request.subType,
+                                          trigger: request.trigger) { credentials, action in
             let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials, action: action)
 
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
@@ -430,11 +433,16 @@ extension AutofillUserScript {
               let accountId = Int64(id) else {
             return
         }
+        let requestingDomain = hostForMessage(message)
 
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: Int64(accountId)) {
             guard let credential = $0,
                   let id = credential.account.id,
-                  let password = String(data: credential.password, encoding: .utf8) else { return }
+                  let password = String(data: credential.password, encoding: .utf8),
+                  credential.account.domain == requestingDomain else {
+                replyHandler("{}")
+                return
+            }
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: String(id),
                                                                     username: credential.account.username,
