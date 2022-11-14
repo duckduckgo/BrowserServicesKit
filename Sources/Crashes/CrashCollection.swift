@@ -25,7 +25,7 @@ public struct CrashCollection {
     // Need a strong reference
     static let collector = CrashCollector()
 
-    public static func run(completion: @escaping ([String: String]) -> Void) {
+    public static func collectCrashesAsync(completion: @escaping ([String: String]) -> Void) {
         collector.completion = completion
         MXMetricManager.shared.add(collector)
     }
