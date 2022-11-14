@@ -30,6 +30,7 @@ public protocol PrivacyConfigurationManaging {
     
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
+    var currentConfig: Data { get }
 }
 
 public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
