@@ -53,7 +53,7 @@ public class OverlayAutofillUserScript: AutofillUserScript {
         return OverlayUserScriptMessageName.allCases.map(\.rawValue) + super.messageNames
     }
 
-    internal override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+    public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let overlayUserScriptMessage = OverlayUserScriptMessageName(rawValue: messageName) else {
             return super.messageHandlerFor(messageName)
         }

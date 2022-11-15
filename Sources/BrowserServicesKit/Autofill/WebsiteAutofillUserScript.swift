@@ -48,7 +48,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         case showAutofillParent
     }
 
-    internal override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+    public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let websiteAutofillMessageName = WebsiteAutofillMessageName(rawValue: messageName) else {
             return super.messageHandlerFor(messageName)
         }
