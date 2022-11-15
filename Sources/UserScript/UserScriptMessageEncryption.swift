@@ -29,12 +29,12 @@ public protocol UserScriptMessageEncryption {
     var generatedSecret: String { get }
 
     func messageHandlerFor(_ messageName: String) -> MessageHandler?
-    func processMessage(_ userContentController: WKUserContentController, didReceive message: UserScriptMessage)
+    func processEncryptedMessage(_ message: UserScriptMessage, from userContentController: WKUserContentController)
 }
 
 extension UserScriptMessageEncryption {
 
-    public func processMessage(_ userContentController: WKUserContentController, didReceive message: UserScriptMessage) {
+    public func processEncryptedMessage(_ message: UserScriptMessage, from userContentController: WKUserContentController) {
 
         guard let messageHandler = messageHandlerFor(message.messageName) else {
             // Unsupported message fail silently

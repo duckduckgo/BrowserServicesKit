@@ -194,7 +194,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let message = MockUserScriptMessage(name: "pmHandlerStoreData", body: body,
                                           host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
         XCTAssertEqual(delegate.lastUsername, "username@example.com")
@@ -315,7 +315,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let message = MockUserScriptMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
@@ -329,7 +329,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let message = MockUserScriptMessage(name: "pmHandlerOpenManageCreditCards", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
@@ -343,7 +343,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let message = MockUserScriptMessage(name: "pmHandlerOpenManageIdentities", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
@@ -400,8 +400,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let mockWebView = MockWebView()
         let message = MockUserScriptMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
-        
+        userScript.processEncryptedMessage(message, from: userContentController)
+
         let predicate = NSPredicate(block: { _, _ -> Bool in
             return !delegate.receivedCallbacks.isEmpty
         })
@@ -426,7 +426,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let mockWebView = MockWebView()
         let message = MockUserScriptMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
         XCTAssertNil(delegate.lastSubtype)
     }
 
@@ -443,7 +443,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let mockWebView = MockWebView()
         let message = MockUserScriptMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
 
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
         XCTAssertNil(delegate.lastSubtype)
     }
 }

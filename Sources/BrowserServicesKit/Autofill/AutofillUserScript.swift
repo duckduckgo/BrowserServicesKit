@@ -195,7 +195,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
 extension AutofillUserScript: WKScriptMessageHandler {
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        processMessage(userContentController, didReceive: message)
+        processEncryptedMessage(message, from: userContentController)
     }
 
 }

@@ -63,7 +63,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
         let mockWebView = MockWebView()
         let message = MockUserScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
 
         let expectedReply = "reply".data(using: .utf8)?.withUnsafeBytes {
             $0.map { String($0) }
