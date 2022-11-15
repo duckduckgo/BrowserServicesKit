@@ -20,7 +20,7 @@
 import Foundation
 import XCTest
 import CryptoKit
-@testable import BrowserServicesKit
+@testable import UserScript
 
 class UserScriptEncrypterTests: XCTestCase {
 

@@ -19,6 +19,7 @@
 
 import XCTest
 import WebKit
+import UserScript
 @testable import BrowserServicesKit
 
 class AutofillEmailUserScriptTests: XCTestCase {

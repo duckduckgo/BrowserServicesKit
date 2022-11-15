@@ -74,13 +74,20 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .process("UserScript/testUserScript.js"),
                 .copy("Resources")
             ]),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "UserScriptTests",
+            dependencies: [
+                "UserScript"
+            ],
+            resources: [
+                .process("testUserScript.js")
             ]
         )
     ],
