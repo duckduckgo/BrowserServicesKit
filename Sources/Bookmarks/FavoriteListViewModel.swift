@@ -46,9 +46,9 @@ public class FavoritesListViewModel: ObservableObject {
         return favorites[index]
     }
 
-    public func delete(_ favorite: BookmarkEntity) {
+    public func remove(_ favorite: BookmarkEntity) {
         do {
-            favorites = try storage.deleteFavorite(favorite)
+            favorites = try storage.removeFavorite(favorite)
         } catch {
             // TODO??
         }
@@ -91,14 +91,14 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
         return favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
     
-    public func deleteFavorite(_ favorite: BookmarkEntity) throws -> [BookmarkEntity] {
+    public func removeFavorite(_ favorite: BookmarkEntity) throws -> [BookmarkEntity] {
         guard let favoriteFolder = favorite.favoriteFolder else {
             // ToDo: Pixel
             return []
         }
 
-        context.delete(favorite)
-        
+        favorite.removeFromFavorites()
+
         do {
             try context.save()
         } catch {
