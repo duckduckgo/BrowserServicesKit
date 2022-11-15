@@ -1,5 +1,5 @@
 //
-//  AutofillUserScript+HostProvider.swift
+//  UserScriptHostProvider.swift
 //  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
@@ -19,17 +19,17 @@
 
 import WebKit
 
-public protocol AutofillHostProvider {
+public protocol UserScriptHostProvider {
 
-    func hostForMessage(_ message: AutofillMessage) -> String
+    func hostForMessage(_ message: UserScriptMessage) -> String
 
 }
 
-public struct SecurityOriginHostProvider: AutofillHostProvider {
+public struct SecurityOriginHostProvider: UserScriptHostProvider {
 
     public init() {}
 
-    public func hostForMessage(_ message: AutofillMessage) -> String {
+    public func hostForMessage(_ message: UserScriptMessage) -> String {
         return message.messageHost
     }
 

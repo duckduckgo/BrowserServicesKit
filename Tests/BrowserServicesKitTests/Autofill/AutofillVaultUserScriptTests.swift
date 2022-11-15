@@ -190,7 +190,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         body["credentials"] = ["username": "username@example.com", "password": "password"]
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "pmHandlerStoreData", body: body,
+        let message = MockUserScriptMessage(name: "pmHandlerStoreData", body: body,
                                           host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
@@ -311,7 +311,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams,
+        let message = MockUserScriptMessage(name: "pmHandlerOpenManagePasswords", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
@@ -325,7 +325,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "pmHandlerOpenManageCreditCards", body: encryptedMessagingParams,
+        let message = MockUserScriptMessage(name: "pmHandlerOpenManageCreditCards", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
@@ -339,7 +339,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         userScript.vaultDelegate = delegate
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "pmHandlerOpenManageIdentities", body: encryptedMessagingParams,
+        let message = MockUserScriptMessage(name: "pmHandlerOpenManageIdentities", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
@@ -397,7 +397,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
+        let message = MockUserScriptMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
         
@@ -423,7 +423,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
+        let message = MockUserScriptMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
         XCTAssertNil(delegate.lastSubtype)
@@ -440,7 +440,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
+        let message = MockUserScriptMessage(name: "getAutofillData", body: body, host: "example.com", webView: mockWebView)
 
         userScript.processMessage(userContentController, didReceive: message)
         XCTAssertNil(delegate.lastSubtype)
@@ -516,7 +516,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     }
 }
 
-struct NoneEncryptingEncrypter: AutofillEncrypter {
+struct NoneEncryptingEncrypter: UserScriptEncrypter {
 
     func encryptReply(_ reply: String, key: [UInt8], iv: [UInt8]) throws -> (ciphertext: Data, tag: Data) {
         return (reply.data(using: .utf8)!, Data())

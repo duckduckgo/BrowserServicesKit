@@ -1,5 +1,5 @@
 //
-//  AutofillEncrypterTests.swift
+//  UserScriptEncrypterTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
@@ -22,13 +22,13 @@ import XCTest
 import CryptoKit
 @testable import BrowserServicesKit
 
-class AutofillEncrypterTests: XCTestCase {
+class UserScriptEncrypterTests: XCTestCase {
 
     func testWhenMessageIsEncrypted_ThenCanBeDecryptedUsingAuthenticationData() throws {
         let key: [UInt8] = SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
         let iv: [UInt8] = SymmetricKey(size: .bits256).withUnsafeBytes { Array($0) }
 
-        let encrypter = AESGCMAutofillEncrypter()
+        let encrypter = AESGCMUserScriptEncrypter()
         let encrypted = try encrypter.encryptReply("test", key: key, iv: iv)
 
         XCTAssertEqual(encrypted.ciphertext.count, "test".data(using: .utf8)?.count)

@@ -1,5 +1,5 @@
 //
-//  AutofillUserScript+AutofillMessage.swift
+//  UserScriptMessage.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -19,7 +19,7 @@
 
 import WebKit
 
-public protocol AutofillMessage {
+public protocol UserScriptMessage {
     var messageName: String { get }
     var messageBody: Any { get }
     var messageHost: String { get }
@@ -27,7 +27,7 @@ public protocol AutofillMessage {
     var messageWebView: WKWebView? { get }
 }
 
-extension WKScriptMessage: AutofillMessage {
+extension WKScriptMessage: UserScriptMessage {
     public var messageName: String {
         return name
     }

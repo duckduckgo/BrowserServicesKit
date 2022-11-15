@@ -59,7 +59,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
     }
 
-    func showAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func showAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let left = dict["inputLeft"] as? CGFloat,
               let top = dict["inputTop"] as? CGFloat,
@@ -90,7 +90,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         replyHandler(nil)
     }
 
-    func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func closeAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         close()
         replyHandler(nil)
     }
@@ -103,7 +103,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     }
 
     /// Called from the child autofill to return referenced credentials
-    func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: "none")
         if lastOpenHost == nil || message.messageHost != lastOpenHost {
             response = GetSelectedCredentialsResponse(type: "stop")

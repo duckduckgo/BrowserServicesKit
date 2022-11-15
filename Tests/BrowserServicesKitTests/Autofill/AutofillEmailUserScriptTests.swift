@@ -60,7 +60,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
         userScript.emailDelegate = mock
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams,
+        let message = MockUserScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
         userScript.processMessage(userContentController, didReceive: message)
 
@@ -228,7 +228,7 @@ class MockWKScriptMessage: WKScriptMessage {
     }
 }
 
-class MockAutofillMessage: AutofillMessage {
+class MockUserScriptMessage: UserScriptMessage {
     
     let mockedName: String
     let mockedBody: Any
@@ -321,7 +321,7 @@ class MockWebView: WKWebView {
 
 }
 
-struct MockEncrypter: AutofillEncrypter {
+struct MockEncrypter: UserScriptEncrypter {
 
     var authenticationData: Data = Data()
 

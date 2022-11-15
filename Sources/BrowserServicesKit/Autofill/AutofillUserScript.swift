@@ -24,7 +24,7 @@ import UserScript
 public class AutofillUserScript: NSObject, UserScript {
 
     typealias MessageReplyHandler = (String?) -> Void
-    typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
+    typealias MessageHandler = (UserScriptMessage, @escaping MessageReplyHandler) -> Void
 
     internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
@@ -137,21 +137,21 @@ public class AutofillUserScript: NSObject, UserScript {
     }
     // swiftlint:enable cyclomatic_complexity
 
-    let encrypter: AutofillEncrypter
-    let hostProvider: AutofillHostProvider
+    let encrypter: UserScriptEncrypter
+    let hostProvider: UserScriptHostProvider
     let generatedSecret: String = UUID().uuidString
-    func hostForMessage(_ message: AutofillMessage) -> String {
+    func hostForMessage(_ message: UserScriptMessage) -> String {
         return hostProvider.hostForMessage(message)
     }
 
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
         self.init(scriptSourceProvider: scriptSourceProvider,
-                  encrypter: AESGCMAutofillEncrypter(),
+                  encrypter: AESGCMUserScriptEncrypter(),
                   hostProvider: SecurityOriginHostProvider())
     }
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
-         encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
+         encrypter: UserScriptEncrypter = AESGCMUserScriptEncrypter(),
          hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
@@ -197,7 +197,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
 // Fallback for older iOS / macOS version
 extension AutofillUserScript {
 
-    func processMessage(_ userContentController: WKUserContentController, didReceive message: AutofillMessage) {
+    func processMessage(_ userContentController: WKUserContentController, didReceive message: UserScriptMessage) {
         guard let messageHandler = messageHandlerFor(message.messageName) else {
             // Unsupported message fail silently
             return
