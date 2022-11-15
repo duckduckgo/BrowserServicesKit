@@ -20,6 +20,7 @@ import Foundation
 import WebKit
 import Combine
 import ContentScopeScripts
+import UserScript
 
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool

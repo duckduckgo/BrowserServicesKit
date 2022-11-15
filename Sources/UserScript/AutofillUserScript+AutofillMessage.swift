@@ -19,7 +19,7 @@
 
 import WebKit
 
-protocol AutofillMessage {
+public protocol AutofillMessage {
     var messageName: String { get }
     var messageBody: Any { get }
     var messageHost: String { get }
@@ -28,23 +28,23 @@ protocol AutofillMessage {
 }
 
 extension WKScriptMessage: AutofillMessage {
-    var messageName: String {
+    public var messageName: String {
         return name
     }
     
-    var messageBody: Any {
+    public var messageBody: Any {
         return body
     }
     
-    var messageHost: String {
+    public var messageHost: String {
         return frameInfo.securityOrigin.host
     }
 
-    var isMainFrame: Bool {
+    public var isMainFrame: Bool {
         return frameInfo.isMainFrame
     }
     
-    var messageWebView: WKWebView? {
+    public var messageWebView: WKWebView? {
         return webView
     }
 }

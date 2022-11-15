@@ -12,6 +12,7 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"])
     ],
     dependencies: [
@@ -30,6 +31,7 @@ let package = Package(
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
+                "UserScript",
                 "Common"
             ],
             resources: [
@@ -49,6 +51,9 @@ let package = Package(
             resources: [
                 .process("CMakeLists.txt")
             ]),
+        .target(
+            name: "UserScript"
+        ),
         .target(
             name: "Common",
             dependencies: [

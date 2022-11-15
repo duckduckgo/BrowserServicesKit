@@ -19,6 +19,7 @@
 
 import CoreGraphics
 import Foundation
+import UserScript
 
 /// Is used by the top Autofill to reference into the child autofill
 public protocol OverlayAutofillUserScriptDelegate: AnyObject {

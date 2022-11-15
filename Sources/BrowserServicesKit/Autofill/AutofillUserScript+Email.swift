@@ -18,6 +18,7 @@
 //
 
 import WebKit
+import UserScript
 
 public protocol AutofillEmailDelegate: AnyObject {
 

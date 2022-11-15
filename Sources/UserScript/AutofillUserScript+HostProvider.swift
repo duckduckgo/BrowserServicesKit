@@ -19,13 +19,15 @@
 
 import WebKit
 
-protocol AutofillHostProvider {
+public protocol AutofillHostProvider {
 
     func hostForMessage(_ message: AutofillMessage) -> String
 
 }
 
-struct SecurityOriginHostProvider: AutofillHostProvider {
+public struct SecurityOriginHostProvider: AutofillHostProvider {
+
+    public init() {}
 
     public func hostForMessage(_ message: AutofillMessage) -> String {
         return message.messageHost

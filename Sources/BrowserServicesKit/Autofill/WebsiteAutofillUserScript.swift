@@ -19,6 +19,7 @@
 
 import CoreGraphics
 import Foundation
+import UserScript
 
 /// Handles calls from the website Autofill context to the overlay.
 public protocol ContentOverlayUserScriptDelegate: AnyObject {

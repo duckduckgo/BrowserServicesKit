@@ -20,6 +20,7 @@
 import WebKit
 import os
 import Common
+import UserScript
 
 // swiftlint:disable file_length
 
