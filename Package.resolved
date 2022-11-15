@@ -32,8 +32,8 @@
         "package": "PrivacyDashboardResources",
         "repositoryURL": "https://github.com/duckduckgo/privacy-dashboard",
         "state": {
-          "branch": "shane/esm",
-          "revision": "c82b66d02bcb756134524f99c38bdaa4f02418b7",
+          "branch": "main",
+          "revision": "6b0a5c03618f8f8d1ffe9dcb17452546d1860940",
           "version": null
         }
       },
