@@ -31,4 +31,4 @@ We use [SwiftLint](https://github.com/realm/SwiftLint) for enforcing Swift style
 
 ## License
 
-DuckDuckGo is distributed under the Apache 2.0 [license](https://github.com/duckduckgo/ios/blob/master/LICENSE).
+DuckDuckGo is distributed under the Apache 2.0 [license](https://github.com/duckduckgo/BrowserServicesKit/blob/master/LICENSE).
