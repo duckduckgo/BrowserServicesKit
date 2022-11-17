@@ -31,26 +31,20 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     
     @Published public var bookmarks = [BookmarkEntity]()
     
-    #warning("To consider what to pass here - nil?")
-    public init(dbProvider: CoreDataDatabase, currentFolder: BookmarkEntity?) {
+    public init(dbProvider: CoreDataDatabase, parentID: NSManagedObjectID?) {
+
+        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
+
+        if let parentID = parentID {
+            self.currentFolder = context.object(with: parentID) as? BookmarkEntity
+        } else {
+            self.currentFolder = BookmarkUtils.fetchRootFolder(context)
+        }
+
         guard (currentFolder?.isFolder ?? true) else {
             fatalError("Folder expected")
         }
-        
-        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
-        
-        if let folder = currentFolder {
-            if let folderInContext = (try? context.existingObject(with: folder.objectID)) as? BookmarkEntity {
-                self.currentFolder = folderInContext
-            } else {
-#warning("To fix when sync is done")
-                self.currentFolder = nil
-                assertionFailure("Could not fetch object")
-            }
-        } else {
-            self.currentFolder = nil
-        }
-        
+
         self.bookmarks = fetchBookmarksInFolder(currentFolder)
         
         registerForChanges()
