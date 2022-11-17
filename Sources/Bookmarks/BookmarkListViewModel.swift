@@ -52,6 +52,21 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
         
         self.bookmarks = fetchBookmarksInFolder(currentFolder)
+        
+        registerForChanges()
+    }
+    
+    private func registerForChanges() {
+        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                               object: nil,
+                                               queue: .main) { [weak self] notification in
+            guard let otherContext = notification.object as? NSManagedObjectContext,
+                  otherContext != self?.context,
+            otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
+            
+            self?.context.mergeChanges(fromContextDidSave: notification)
+            self?.refresh()
+        }
     }
 
     public func bookmarkAt(_ index: Int) -> BookmarkEntity? {
