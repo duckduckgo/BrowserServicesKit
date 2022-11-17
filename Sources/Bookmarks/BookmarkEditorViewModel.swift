@@ -19,6 +19,7 @@
 import Foundation
 import Combine
 import CoreData
+import Persistence
 
 public class BookmarkEditorViewModel: ObservableObject {
 
@@ -30,8 +31,6 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     let context: NSManagedObjectContext
-    let storage: BookmarkListInteracting
-    var cancellable: AnyCancellable?
 
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
@@ -48,23 +47,45 @@ public class BookmarkEditorViewModel: ObservableObject {
         !bookmark.isFolder
     }
 
-    public var isNew: Bool
+    public var isNew: Bool {
+        bookmark.isInserted
+    }
 
-    public init(context: NSManagedObjectContext, storage: BookmarkListInteracting, bookmark: BookmarkEntity, isNew: Bool) {
-        self.context = context
-        self.storage = storage
-        self.bookmark = bookmark
-        self.isNew = isNew
+    public init(dbProvider: CoreDataDatabase,
+                editingEntityID: NSManagedObjectID?,
+                parentFolderID: NSManagedObjectID?) {
+        
+        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
-        self.cancellable = self.storage.updates.sink { [weak self] in
-            self?.refresh()
+        let editingEntity: BookmarkEntity
+        if let editingEntityID = editingEntityID {
+            guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
+                fatalError("Failed to load entity when expected")
+            }
+            editingEntity = entity
+        } else {
+
+            let parent: BookmarkEntity?
+            if let parentFolderID = parentFolderID {
+                parent = context.object(with: parentFolderID) as? BookmarkEntity
+            } else {
+                parent = BookmarkUtils.fetchRootFolder(context)
+            }
+            assert(parent != nil)
+
+            // We don't support creating bookmarks from scratch at this time, so it must be a folder
+            editingEntity = BookmarkEntity.makeFolder(title: "",
+                                                      parent: parent!,
+                                                      context: context)
         }
+        self.bookmark = editingEntity
 
         refresh()
     }
 
     public func refresh() {
-        var locations = [Location(bookmark: storage.fetchRootBookmarksFolder(), depth: 0)]
+        let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+        var locations = [Location(bookmark: rootFolder, depth: 0)]
 
         func descendInto(_ folders: [BookmarkEntity], depth: Int) {
             folders.forEach { entity in
@@ -72,12 +93,12 @@ public class BookmarkEditorViewModel: ObservableObject {
                     entity.uuid != bookmark.uuid
                 {
                     locations.append(Location(bookmark: entity, depth: depth))
-                    descendInto(storage.fetchBookmarksInFolder(entity), depth: depth + 1)
+                    descendInto(entity.childrenArray, depth: depth + 1)
                 }
             }
         }
 
-        descendInto(storage.fetchBookmarksInFolder(nil), depth: 1)
+        descendInto(rootFolder.childrenArray, depth: 1)
 
         self.locations = locations
     }
@@ -103,4 +124,11 @@ public class BookmarkEditorViewModel: ObservableObject {
         bookmark.addToFavorites(favoritesRoot: favoritesFolder)
     }
 
+    public func save() {
+        do {
+            try context.save()
+        } catch {
+            assertionFailure("\(error)")
+        }
+    }
 }

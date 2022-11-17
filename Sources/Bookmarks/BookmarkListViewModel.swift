@@ -21,22 +21,37 @@ import Combine
 import CoreData
 import Persistence
 
-public class BookmarkListViewModel: ObservableObject {
+public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
-    let storage: BookmarkListInteracting
     var cancellable: AnyCancellable?
 
     public let currentFolder: BookmarkEntity?
-
+    
+    let context: NSManagedObjectContext
+    
     @Published public var bookmarks = [BookmarkEntity]()
-
-    public init(storage: BookmarkListInteracting, currentFolder: BookmarkEntity?) {
-        self.storage = storage
-        self.currentFolder = currentFolder
-        self.bookmarks = storage.fetchBookmarksInFolder(currentFolder)
-        self.cancellable = self.storage.updates.sink { [weak self] in
-            self?.refresh()
+    
+    #warning("To consider what to pass here - nil?")
+    public init(dbProvider: CoreDataDatabase, currentFolder: BookmarkEntity?) {
+        guard (currentFolder?.isFolder ?? true) else {
+            fatalError("Folder expected")
         }
+        
+        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        
+        if let folder = currentFolder {
+            if let folderInContext = (try? context.existingObject(with: folder.objectID)) as? BookmarkEntity {
+                self.currentFolder = folderInContext
+            } else {
+#warning("To fix when sync is done")
+                self.currentFolder = nil
+                assertionFailure("Could not fetch object")
+            }
+        } else {
+            self.currentFolder = nil
+        }
+        
+        self.bookmarks = fetchBookmarksInFolder(currentFolder)
     }
 
     public func bookmarkAt(_ index: Int) -> BookmarkEntity? {
@@ -47,48 +62,52 @@ public class BookmarkListViewModel: ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        do {
-            bookmarks = try storage.moveBookmark(bookmark, fromIndex: fromIndex, toIndex: toIndex)
-        } catch {
-            // TODO pixel?
+        guard let parentFolder = bookmark.parent else {
+            // ToDo: Pixel
+            bookmarks = []
+            return
         }
+        
+        do {
+            
+            let mutableChildrenSet = parentFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.children))
+            
+            mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
+            
+            try context.save()
+        } catch {
+            context.rollback()
+            #warning("Handle this")
+        }
+        
+        bookmarks = parentFolder.childrenArray
     }
 
     public func deleteBookmark(_ bookmark: BookmarkEntity) {
-        do {
-            bookmarks = try storage.deleteBookmark(bookmark)
-        } catch {
-            // TODO pixel?
+        guard let parentFolder = bookmark.parent else {
+            // ToDo: Pixel
+            bookmarks = []
+            return
         }
-    }
 
-    public func viewModelForFolder(_ parent: BookmarkEntity) -> BookmarkListViewModel {
-        return BookmarkListViewModel(storage: storage, currentFolder: parent)
+        context.delete(bookmark)
+        
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            #warning("Handle this")
+        }
+
+        bookmarks = parentFolder.childrenArray
     }
 
     public func refresh() {
-        bookmarks = storage.fetchBookmarksInFolder(currentFolder)
+        bookmarks = fetchBookmarksInFolder(currentFolder)
     }
     
     public func getTotalBookmarksCount() -> Int {
-        storage.totalBookmarksCount
-    }
-
-}
-
-public class CoreDataBookmarksLogic: BookmarkListInteracting {
-    
-    let context: NSManagedObjectContext
-    
-    public var updates: AnyPublisher<Void, Never>
-    private let subject = PassthroughSubject<Void, Never>()
-    
-    public init(context: NSManagedObjectContext) {
-        self.context = context
-        
-        updates = subject
-            .share() // share allows multiple subscribers
-            .eraseToAnyPublisher() // we don't want to expose the concrete class to subscribers
+        totalBookmarksCount
     }
     
     // MARK: - Read
@@ -124,46 +143,4 @@ public class CoreDataBookmarksLogic: BookmarkListInteracting {
         }
     }
 
-    public func deleteBookmark(_ bookmark: BookmarkEntity) throws -> [BookmarkEntity] {
-        guard let parentFolder = bookmark.parent else {
-            // ToDo: Pixel
-            return []
-        }
-
-        context.delete(bookmark)
-        
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            // ToDo: Pixel
-            throw error
-        }
-
-        return parentFolder.childrenArray
-    }
-
-    public func moveBookmark(_ bookmark: BookmarkEntity,
-                             fromIndex: Int,
-                             toIndex: Int) throws -> [BookmarkEntity] {
-        
-        guard let parentFolder = bookmark.parent else {
-            // ToDo: Pixel
-            return []
-        }
-        
-        do {
-            
-            let mutableChildrenSet = parentFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.children))
-            
-            mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
-            
-            try context.save()
-        } catch {
-            context.rollback()
-            // ToDo: error with toast?
-        }
-        
-        return parentFolder.childrenArray
-    }
 }

@@ -26,19 +26,19 @@ public protocol BookmarkStoring {
 
 }
 
-public protocol BookmarkListInteracting: BookmarkStoring {
+public protocol BookmarkListInteracting {
     
     var totalBookmarksCount: Int { get }
 
-    func fetchRootBookmarksFolder() -> BookmarkEntity
+//    func fetchRootBookmarksFolder() -> BookmarkEntity
 
-    func fetchBookmarksInFolder(_: BookmarkEntity?) -> [BookmarkEntity]
+//    func fetchBookmarksInFolder(_: BookmarkEntity?) -> [BookmarkEntity]
 
-    func deleteBookmark(_ bookmark: BookmarkEntity) throws -> [BookmarkEntity]
+    func deleteBookmark(_ bookmark: BookmarkEntity)
 
     func moveBookmark(_ bookmark: BookmarkEntity,
                       fromIndex: Int,
-                      toIndex: Int) throws -> [BookmarkEntity]
+                      toIndex: Int)
 
 }
 
