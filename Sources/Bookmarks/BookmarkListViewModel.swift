@@ -121,6 +121,10 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func getTotalBookmarksCount() -> Int {
         totalBookmarksCount
     }
+
+    public var hasFavorites: Bool {
+        bookmarks.contains(where: { $0.isFavorite })
+    }
     
     // MARK: - Read
     
