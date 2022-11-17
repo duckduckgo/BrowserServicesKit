@@ -22,17 +22,13 @@ import Combine
 
 public protocol BookmarkStoring {
 
-    var updates: AnyPublisher<Void, Never> { get }
+    var externalUpdates: AnyPublisher<Void, Never> { get }
 
 }
 
-public protocol BookmarkListInteracting {
+public protocol BookmarkListInteracting: BookmarkStoring {
     
     var totalBookmarksCount: Int { get }
-
-//    func fetchRootBookmarksFolder() -> BookmarkEntity
-
-//    func fetchBookmarksInFolder(_: BookmarkEntity?) -> [BookmarkEntity]
 
     func deleteBookmark(_ bookmark: BookmarkEntity)
 
@@ -44,13 +40,11 @@ public protocol BookmarkListInteracting {
 
 public protocol FavoritesListInteracting: BookmarkStoring {
 
-    func fetchFavorites() -> [BookmarkEntity]
-
-    func removeFavorite(_ favorite: BookmarkEntity) throws -> [BookmarkEntity]
+    func removeFavorite(_ favorite: BookmarkEntity)
 
     func moveFavorite(_ favorite: BookmarkEntity,
                       fromIndex: Int,
-                      toIndex: Int) throws -> [BookmarkEntity]
+                      toIndex: Int)
 
 }
 

@@ -22,23 +22,49 @@ import Combine
 import CoreData
 import Persistence
 
-public class FavoritesListViewModel: ObservableObject {
+public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject {
+    
+    let context: NSManagedObjectContext
 
-    let storage: FavoritesListInteracting
-    var cancellable: AnyCancellable?
-
-    @Published public var favorites = [BookmarkEntity]()
+    public var favorites = [BookmarkEntity]()
+    
+    private let subject = PassthroughSubject<Void, Never>()
+    public var externalUpdates: AnyPublisher<Void, Never>
 
     public var count: Int {
         favorites.count
     }
 
-    public init(storage: FavoritesListInteracting) {
-        self.storage = storage
-        self.favorites = storage.fetchFavorites()
-        self.cancellable = self.storage.updates.sink { [weak self] in
-            self?.favorites = self!.storage.fetchFavorites()
+    public init(dbProvider: CoreDataDatabase) {
+        self.externalUpdates = self.subject.eraseToAnyPublisher()
+        
+        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        refresh()
+        registerForChanges()
+    }
+    
+    private func registerForChanges() {
+        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                               object: nil,
+                                               queue: .main) { [weak self] notification in
+            guard let otherContext = notification.object as? NSManagedObjectContext,
+                  otherContext != self?.context,
+            otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
+            
+            self?.context.mergeChanges(fromContextDidSave: notification)
+            self?.refresh()
+            self?.subject.send()
         }
+    }
+    
+    private func refresh() {
+        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+            // Todo: error
+            favorites = []
+            return
+        }
+        
+        favorites = favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
 
     public func favorite(atIndex index: Int) -> BookmarkEntity? {
@@ -46,55 +72,11 @@ public class FavoritesListViewModel: ObservableObject {
         return favorites[index]
     }
 
-    public func remove(_ favorite: BookmarkEntity) {
-        do {
-            favorites = try storage.removeFavorite(favorite)
-        } catch {
-            // TODO??
-        }
-    }
-
-    public func move(_ favorite: BookmarkEntity, toIndex: Int) {
-        guard let fromIndex = favorites.firstIndex(of: favorite) else { return }
-        do {
-            favorites = try storage.moveFavorite(favorite, fromIndex: fromIndex, toIndex: toIndex)
-        } catch {
-            // TODO??
-        }
-    }
-
-}
-
-public class CoreDataFavoritesLogic: FavoritesListInteracting {
-    
-    let context: NSManagedObjectContext
-    
-    public var updates: AnyPublisher<Void, Never>
-    private let subject = PassthroughSubject<Void, Never>()
-    
-    public init(context: NSManagedObjectContext) {
-        self.context = context
-        
-        updates = subject
-            .share() // share allows multiple subscribers
-            .eraseToAnyPublisher() // we don't want to expose the concrete class to subscribers
-    }
-
-    public func fetchFavorites() -> [BookmarkEntity] {
-
-        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
-            // Todo: error
-            return []
-        }
-        
-        // Todo: add orphaned favorites
-        return favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
-    }
-    
-    public func removeFavorite(_ favorite: BookmarkEntity) throws -> [BookmarkEntity] {
+    public func removeFavorite(_ favorite: BookmarkEntity) {
         guard let favoriteFolder = favorite.favoriteFolder else {
             // ToDo: Pixel
-            return []
+            favorites = []
+            return
         }
 
         favorite.removeFromFavorites()
@@ -104,18 +86,19 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
         } catch {
             context.rollback()
             // ToDo: Pixel
-            throw error
+            #warning("error")
         }
         
-        return favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
-
+    
     public func moveFavorite(_ favorite: BookmarkEntity,
                              fromIndex: Int,
-                             toIndex: Int) throws -> [BookmarkEntity] {
+                             toIndex: Int) {
         guard let favoriteFolder = favorite.favoriteFolder else {
             // ToDo: Pixel
-            return []
+            favorites = []
+            return
         }
         
         do {
@@ -129,7 +112,7 @@ public class CoreDataFavoritesLogic: FavoritesListInteracting {
             // ToDo: error with toast?
         }
         
-        return favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
-}
 
+}

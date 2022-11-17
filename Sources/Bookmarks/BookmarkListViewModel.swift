@@ -23,8 +23,6 @@ import Persistence
 
 public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
-    var cancellable: AnyCancellable?
-
     public let currentFolder: BookmarkEntity?
     
     let context: NSManagedObjectContext
