@@ -46,6 +46,10 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         return container.managedObjectModel
     }
     
+    public var coordinator: NSPersistentStoreCoordinator {
+        return container.persistentStoreCoordinator
+    }
+    
     public static func loadModel(from bundle: Bundle, named name: String) -> NSManagedObjectModel? {
         guard let url = bundle.url(forResource: name, withExtension: "momd") else { return nil }
         
