@@ -19,7 +19,7 @@
 
 import XCTest
 import WebKit
-@testable import BrowserServicesKit
+@testable import UserScript
 
 class StaticUserScriptTests: XCTestCase {
     class TestStaticUserScript: NSObject, StaticUserScript {
