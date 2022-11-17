@@ -29,10 +29,18 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     
     let context: NSManagedObjectContext
     
-    @Published public var bookmarks = [BookmarkEntity]()
+    public var bookmarks = [BookmarkEntity]() {
+        didSet {
+            subject.send()
+        }
+    }
+    
+    private let subject = PassthroughSubject<Void, Never>()
+    public var updates: AnyPublisher<Void, Never>
     
     public init(dbProvider: CoreDataDatabase, parentID: NSManagedObjectID?) {
-
+        self.updates = self.subject.eraseToAnyPublisher()
+        
         self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         if let parentID = parentID {
