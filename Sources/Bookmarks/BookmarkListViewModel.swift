@@ -29,17 +29,13 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     
     let context: NSManagedObjectContext
     
-    public var bookmarks = [BookmarkEntity]() {
-        didSet {
-            subject.send()
-        }
-    }
+    public var bookmarks = [BookmarkEntity]()
     
     private let subject = PassthroughSubject<Void, Never>()
-    public var updates: AnyPublisher<Void, Never>
+    public var externalUpdates: AnyPublisher<Void, Never>
     
     public init(dbProvider: CoreDataDatabase, parentID: NSManagedObjectID?) {
-        self.updates = self.subject.eraseToAnyPublisher()
+        self.externalUpdates = self.subject.eraseToAnyPublisher()
         
         self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
@@ -68,6 +64,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             
             self?.context.mergeChanges(fromContextDidSave: notification)
             self?.refresh()
+            self?.subject.send()
         }
     }
 
