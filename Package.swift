@@ -12,6 +12,7 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"])
     ],
     dependencies: [
@@ -30,6 +31,7 @@ let package = Package(
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
+                "UserScript",
                 "Common"
             ],
             resources: [
@@ -50,6 +52,9 @@ let package = Package(
                 .process("CMakeLists.txt")
             ]),
         .target(
+            name: "UserScript"
+        ),
+        .target(
             name: "Common",
             dependencies: [
                 .product(name: "Punnycode", package: "Punycode")
@@ -69,13 +74,20 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .process("UserScript/testUserScript.js"),
                 .copy("Resources")
             ]),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "UserScriptTests",
+            dependencies: [
+                "UserScript"
+            ],
+            resources: [
+                .process("testUserScript.js")
             ]
         )
     ],
