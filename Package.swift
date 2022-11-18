@@ -50,8 +50,9 @@ let package = Package(
             ]),
         .target(
             name: "Crashes",
-            dependencies: [ ],
-            linkerSettings: [.unsafeFlags(["-Xlinker", "-no_application_extension"])]),
+            dependencies: [ ]
+            // linkerSettings: [.unsafeFlags(["-Xlinker", "-no_application_extension"])]
+        ),
         .target(
             name: "BloomFilter",
             resources: [

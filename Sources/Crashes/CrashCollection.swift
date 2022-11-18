@@ -19,6 +19,7 @@
 import Foundation
 import MetricKit
 
+@available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
 public struct CrashCollection {
 
