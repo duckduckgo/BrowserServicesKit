@@ -12,9 +12,8 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "Common", targets: ["Common"]),
-        .library(name: "Crashes", targets: ["Crashes"]),
-        .library(name: "UserScript", targets: ["UserScript"])
+        .library(name: "UserScript", targets: ["UserScript"]),
+        .library(name: "Common", targets: ["Common"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.2.0")),
@@ -32,9 +31,8 @@ let package = Package(
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
-                "Common",
-                "Crashes",
-                "UserScript"
+                "UserScript",
+                "Common"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -48,10 +46,6 @@ let package = Package(
             dependencies: [
                 "BloomFilter"
             ]),
-        .target(
-            name: "Crashes",
-            dependencies: [ ],
-            linkerSettings: [.unsafeFlags(["-Xlinker", "-no_application_extension"])]),
         .target(
             name: "BloomFilter",
             resources: [
