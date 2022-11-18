@@ -37,6 +37,9 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(context)
 
+    private let subject = PassthroughSubject<Void, Never>()
+    public var externalUpdates: AnyPublisher<Void, Never>
+
     public var canSave: Bool {
         let titleOK = bookmark.title?.trimmingWhitespace().count ?? 0 > 0
         let urlOK = bookmark.isFolder ? true : bookmark.urlObject != nil
@@ -55,6 +58,7 @@ public class BookmarkEditorViewModel: ObservableObject {
                 editingEntityID: NSManagedObjectID?,
                 parentFolderID: NSManagedObjectID?) {
         
+        externalUpdates = subject.eraseToAnyPublisher()
         self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         let editingEntity: BookmarkEntity
@@ -81,6 +85,21 @@ public class BookmarkEditorViewModel: ObservableObject {
         self.bookmark = editingEntity
 
         refresh()
+        registerForChanges()
+    }
+
+    private func registerForChanges() {
+        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                               object: nil,
+                                               queue: .main) { [weak self] notification in
+            guard let otherContext = notification.object as? NSManagedObjectContext,
+                  otherContext != self?.context,
+            otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
+
+            self?.context.mergeChanges(fromContextDidSave: notification)
+            self?.refresh()
+            self?.subject.send()
+        }
     }
 
     public func refresh() {
@@ -122,6 +141,14 @@ public class BookmarkEditorViewModel: ObservableObject {
     public func addToFavorites() {
         assert(!bookmark.isFavorite)
         bookmark.addToFavorites(favoritesRoot: favoritesFolder)
+    }
+
+    public func setParentWithID(_ parentID: NSManagedObjectID) {
+        guard let parent = context.object(with: parentID) as? BookmarkEntity else {
+            assertionFailure("Failed to load object")
+            return
+        }
+        bookmark.parent = parent
     }
 
     public func save() {
