@@ -13,7 +13,8 @@ let package = Package(
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
-        .library(name: "Crashes", targets: ["Crashes"])
+        .library(name: "Crashes", targets: ["Crashes"]),
+        .library(name: "UserScript", targets: ["UserScript"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.2.0")),
@@ -32,7 +33,8 @@ let package = Package(
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
-                "Crashes"
+                "Crashes",
+                "UserScript"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -56,6 +58,9 @@ let package = Package(
                 .process("CMakeLists.txt")
             ]),
         .target(
+            name: "UserScript"
+        ),
+        .target(
             name: "Common",
             dependencies: [
                 .product(name: "Punnycode", package: "Punycode")
@@ -75,13 +80,20 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .process("UserScript/testUserScript.js"),
                 .copy("Resources")
             ]),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "UserScriptTests",
+            dependencies: [
+                "UserScript"
+            ],
+            resources: [
+                .process("testUserScript.js")
             ]
         )
     ],
