@@ -33,7 +33,6 @@ let package = Package(
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
-                "Crashes",
                 "UserScript"
             ],
             resources: [
