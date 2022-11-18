@@ -50,4 +50,29 @@ public struct CrashCollection {
 
     }
 
+    static let firstCrashKey = "CrashCollection.first"
+
+    static var firstCrash: Bool {
+        get {
+            UserDefaults().object(forKey: Self.firstCrashKey) as? Bool ?? true
+        }
+
+        set {
+            UserDefaults().set(newValue, forKey: Self.firstCrashKey)
+        }
+    }
+
+    public static func start(firePixel: @escaping ([String: String]) -> Void) {
+        let first = Self.firstCrash
+        CrashCollection.collectCrashesAsync { params in
+            var params = params
+            if first {
+                params["first"] = "1"
+            }
+            firePixel(params)
+        }
+        // Turn the flag off for next time
+        Self.firstCrash = false
+    }
+
 }
