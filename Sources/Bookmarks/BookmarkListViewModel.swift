@@ -32,10 +32,10 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
     
-    public init(dbProvider: CoreDataDatabase, parentID: NSManagedObjectID?) {
+    public init(bookmarksDatabaseStack: CoreDataDatabase, parentID: NSManagedObjectID?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         
-        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.context = bookmarksDatabaseStack.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         if let parentID = parentID {
             self.currentFolder = context.object(with: parentID) as? BookmarkEntity

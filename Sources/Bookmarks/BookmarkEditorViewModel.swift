@@ -54,12 +54,12 @@ public class BookmarkEditorViewModel: ObservableObject {
         bookmark.isInserted
     }
 
-    public init(dbProvider: CoreDataDatabase,
+    public init(bookmarksDatabaseStack: CoreDataDatabase,
                 editingEntityID: NSManagedObjectID?,
                 parentFolderID: NSManagedObjectID?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
-        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.context = bookmarksDatabaseStack.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         let editingEntity: BookmarkEntity
         if let editingEntityID = editingEntityID {
