@@ -31,10 +31,6 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
 
-    public var count: Int {
-        favorites.count
-    }
-
     public init(dbProvider: CoreDataDatabase) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         
@@ -67,8 +63,9 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         favorites = favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
 
-    public func favorite(atIndex index: Int) -> BookmarkEntity? {
+    public func favorite(at index: Int) -> BookmarkEntity? {
         guard favorites.indices.contains(index) else { return nil }
+        
         return favorites[index]
     }
 

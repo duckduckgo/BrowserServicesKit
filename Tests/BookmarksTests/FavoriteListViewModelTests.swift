@@ -1,5 +1,5 @@
 //
-//  BookmarkListViewModelTests.swift
+//  FavoriteListViewModelTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -44,10 +44,9 @@ class FavoriteListViewModelTests: XCTestCase {
         
         BasicBookmarksStructure.populateDB(context: mainContext)
         
-        let storage = CoreDataFavoritesLogic(context: db.makeContext(concurrencyType: .mainQueueConcurrencyType,
-                                                                     name: "StorageContext"))
+        let viewModel = FavoritesListViewModel(dbProvider: db)
         
-        let result = storage.fetchFavorites()
+        let result = viewModel.favorites
         
         let names = result.map { $0.title }
         XCTAssertEqual(names, BasicBookmarksStructure.favoriteTitles)

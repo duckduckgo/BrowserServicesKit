@@ -66,7 +66,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
     }
 
-    public func bookmarkAt(_ index: Int) -> BookmarkEntity? {
+    public func bookmark(at index: Int) -> BookmarkEntity? {
         guard bookmarks.indices.contains(index) else { return nil }
         return bookmarks[index]
     }
@@ -116,10 +116,6 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public func refresh() {
         bookmarks = fetchBookmarksInFolder(currentFolder)
-    }
-    
-    public func getTotalBookmarksCount() -> Int {
-        totalBookmarksCount
     }
 
     public var hasFavorites: Bool {

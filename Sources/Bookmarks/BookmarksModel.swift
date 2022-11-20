@@ -28,17 +28,29 @@ public protocol BookmarkStoring {
 
 public protocol BookmarkListInteracting: BookmarkStoring {
     
+    var currentFolder: BookmarkEntity? { get }
+    var bookmarks: [BookmarkEntity] { get }
     var totalBookmarksCount: Int { get }
+    
+    func bookmark(at index: Int) -> BookmarkEntity?
 
     func deleteBookmark(_ bookmark: BookmarkEntity)
 
     func moveBookmark(_ bookmark: BookmarkEntity,
                       fromIndex: Int,
                       toIndex: Int)
+    
+    #warning("do we need these?")
+    func refresh()
+    var hasFavorites: Bool { get }
 
 }
 
 public protocol FavoritesListInteracting: BookmarkStoring {
+    
+    var favorites: [BookmarkEntity] { get }
+    
+    func favorite(at index: Int) -> BookmarkEntity?
 
     func removeFavorite(_ favorite: BookmarkEntity)
 

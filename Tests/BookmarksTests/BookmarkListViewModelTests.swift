@@ -44,15 +44,17 @@ class BookmarkListViewModelTests: XCTestCase {
         
         BasicBookmarksStructure.populateDB(context: mainContext)
         
-        let storage = CoreDataBookmarksLogic(context: db.makeContext(concurrencyType: .mainQueueConcurrencyType,
-                                                                     name: "StorageContext"))
-        
-        let result = storage.fetchBookmarksInFolder(nil)
+        let viewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+                                              parentID: nil)
+        let result = viewModel.bookmarks
         
         let names = result.map { $0.title }
         XCTAssertEqual(names, BasicBookmarksStructure.topLevelTitles)
         
-        let result2 = storage.fetchBookmarksInFolder(result[1])
+        let nestedViewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+                                                    parentID: result[1].objectID)
+        
+        let result2 = nestedViewModel.bookmarks
         
         let names2 = result2.map { $0.title }
         XCTAssertEqual(names2, BasicBookmarksStructure.nestedTitles)
