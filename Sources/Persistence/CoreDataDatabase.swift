@@ -58,13 +58,15 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
     
     public init(name: String,
                 containerLocation: URL,
-                model: NSManagedObjectModel) {
+                model: NSManagedObjectModel,
+                readOnly: Bool = false) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
         self.containerLocation = containerLocation
         
         let description = NSPersistentStoreDescription(url: containerLocation.appendingPathComponent("\(name).sqlite"))
         description.type = NSSQLiteStoreType
+        description.isReadOnly = readOnly
         
         self.container.persistentStoreDescriptions = [description]
     }
