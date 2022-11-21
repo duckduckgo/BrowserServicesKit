@@ -114,12 +114,8 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         bookmarks = parentFolder.childrenArray
     }
 
-    public func refresh() {
+    private func refresh() {
         bookmarks = fetchBookmarksInFolder(currentFolder)
-    }
-
-    public var hasFavorites: Bool {
-        bookmarks.contains(where: { $0.isFavorite })
     }
     
     // MARK: - Read
@@ -147,8 +143,6 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public func fetchBookmarksInFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
         if let folder = folder {
-#warning("not optimal")
-            folder.managedObjectContext?.refreshAllObjects()
             return folder.childrenArray
         } else {
             return fetchBookmarksInRootFolder()

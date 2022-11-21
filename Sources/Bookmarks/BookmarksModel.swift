@@ -39,11 +39,6 @@ public protocol BookmarkListInteracting: BookmarkStoring {
     func moveBookmark(_ bookmark: BookmarkEntity,
                       fromIndex: Int,
                       toIndex: Int)
-    
-    #warning("do we need these?")
-    func refresh()
-    var hasFavorites: Bool { get }
-
 }
 
 public protocol FavoritesListInteracting: BookmarkStoring {

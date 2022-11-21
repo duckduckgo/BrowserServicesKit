@@ -50,7 +50,6 @@ public class BookmarkEntity: NSManagedObject {
         isFavorite = false
     }
     
-#warning("naming?")
     public var urlObject: URL? {
         guard let url = url else { return nil }
         return URL(string: url)
