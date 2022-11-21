@@ -393,7 +393,12 @@ public struct SecureVaultModels {
 
     public struct CredentialsProvider {
 
-        public var name: String
+        public enum Name: String {
+            case duckduckgo
+            case bitwarden
+        }
+
+        public var name: Name
         public var locked: Bool
 
     }
