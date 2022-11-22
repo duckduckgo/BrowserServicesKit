@@ -19,6 +19,7 @@
 
 import CoreGraphics
 import Foundation
+import UserScript
 
 /// Is used by the top Autofill to reference into the child autofill
 public protocol OverlayAutofillUserScriptDelegate: AnyObject {
@@ -42,33 +43,33 @@ public class OverlayAutofillUserScript: AutofillUserScript {
     /// Used as a message channel from parent WebView to the relevant in page AutofillUserScript.
     public weak var websiteAutofillInstance: OverlayAutofillUserScriptDelegate?
 
-    internal enum OverlayAutofillMessageName: String, CaseIterable {
+    internal enum OverlayUserScriptMessageName: String, CaseIterable {
         case setSize
         case selectedDetail
         case closeAutofillParent
     }
 
     public override var messageNames: [String] {
-        return OverlayAutofillMessageName.allCases.map(\.rawValue) + super.messageNames
+        return OverlayUserScriptMessageName.allCases.map(\.rawValue) + super.messageNames
     }
 
-    internal override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
-        guard let overlayAutofillMessage = OverlayAutofillMessageName(rawValue: messageName) else {
+    public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+        guard let overlayUserScriptMessage = OverlayUserScriptMessageName(rawValue: messageName) else {
             return super.messageHandlerFor(messageName)
         }
 
-        switch overlayAutofillMessage {
+        switch overlayUserScriptMessage {
         case .setSize: return setSize
         case .selectedDetail: return selectedDetail
         case .closeAutofillParent: return closeAutofillParent
         }
     }
 
-    override func hostForMessage(_ message: AutofillMessage) -> String {
+    override func hostForMessage(_ message: UserScriptMessage) -> String {
         return websiteAutofillInstance?.overlayAutofillUserScriptLastOpenHost ?? ""
     }
 
-    func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func closeAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let websiteAutofillInstance = websiteAutofillInstance else { return }
         self.contentOverlay?.overlayAutofillUserScript(self, requestResizeToSize: CGSize(width: 0, height: 0))
         websiteAutofillInstance.overlayAutofillUserScriptClose(self)
@@ -77,12 +78,12 @@ public class OverlayAutofillUserScript: AutofillUserScript {
 
     /// Used to create a top autofill context script for injecting into a ContentOverlay
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: OverlayAutofillUserScriptPresentationDelegate) {
-        self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMAutofillEncrypter(), hostProvider: SecurityOriginHostProvider())
+        self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMUserScriptEncrypter(), hostProvider: SecurityOriginHostProvider())
         self.isTopAutofillContext = true
         self.contentOverlay = overlay
     }
 
-    func setSize(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func setSize(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let width = dict["width"] as? CGFloat,
               let height = dict["height"] as? CGFloat else {
@@ -93,7 +94,7 @@ public class OverlayAutofillUserScript: AutofillUserScript {
     }
 
     /// Called from top autofill messages and stores the details the user clicked on into the child autofill
-    func selectedDetail(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func selectedDetail(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let chosenCredential = dict["data"] as? [String: String],
               let configType = dict["configType"] as? String,

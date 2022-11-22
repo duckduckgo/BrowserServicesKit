@@ -21,6 +21,7 @@ import WebKit
 import os
 import TrackerRadarKit
 import Common
+import UserScript
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     

@@ -20,6 +20,7 @@ import Foundation
 import WebKit
 import Combine
 import ContentScopeScripts
+import UserScript
 
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
@@ -109,11 +110,11 @@ public struct ContentScopePlatform: Encodable {
 public final class ContentScopeUserScript: NSObject, UserScript {
     public let messageNames: [String] = []
 
-    public init(_ privacyConfigManager: PrivacyConfigurationManager, properties: ContentScopeProperties) {
+    public init(_ privacyConfigManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) {
         source = ContentScopeUserScript.generateSource(privacyConfigManager, properties: properties)
     }
 
-    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManager, properties: ContentScopeProperties) -> String {
+    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) -> String {
 
         guard let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8),
               let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),

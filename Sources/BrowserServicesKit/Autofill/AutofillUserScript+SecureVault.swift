@@ -20,6 +20,7 @@
 import WebKit
 import os
 import Common
+import UserScript
 
 // swiftlint:disable file_length
 
@@ -335,7 +336,8 @@ extension AutofillUserScript {
 
     // MARK: - Message Handlers
 
-    func getAvailableInputTypes(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider  in
@@ -379,7 +381,7 @@ extension AutofillUserScript {
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
-    func getAutofillData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func getAutofillData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let request: GetAutofillDataRequest = DecodableHelper.decode(from: message.messageBody) else {
             return
         }
@@ -400,7 +402,7 @@ extension AutofillUserScript {
         }
     }
 
-    func pmGetAutoFillInitData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetAutoFillInitData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider in
             let credentials: [CredentialObject]
@@ -429,7 +431,7 @@ extension AutofillUserScript {
 
     }
      
-    func pmStoreData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmStoreData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)
         }
@@ -444,7 +446,7 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestStoreDataForDomain: domain, data: incomingData)
     }
 
-    func pmGetAccounts(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetAccounts(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostForMessage(message)) { credentials, credentialsProvider  in
             let credentials: [CredentialObject] = credentials.compactMap {
@@ -460,7 +462,7 @@ extension AutofillUserScript {
 
     }
 
-    func pmGetAutofillCredentials(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetAutofillCredentials(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
 
         guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String else {
@@ -487,7 +489,7 @@ extension AutofillUserScript {
         }
     }
 
-    func pmGetCreditCard(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetCreditCard(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String,
               let cardId = Int64(id) else {
@@ -505,7 +507,7 @@ extension AutofillUserScript {
         }
     }
 
-    func pmGetIdentity(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmGetIdentity(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String,
               let accountId = Int64(id) else {
@@ -558,17 +560,17 @@ extension AutofillUserScript {
 
     // MARK: Open Management Views
 
-    func pmOpenManageCreditCards(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmOpenManageCreditCards(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
-    func pmOpenManageIdentities(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmOpenManageIdentities(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
-    func pmOpenManagePasswords(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func pmOpenManagePasswords(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }

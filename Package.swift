@@ -12,11 +12,12 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
+        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .revision("f065934069d4008846e1af436633ec64826a2e90")),
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.0")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.1")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0"))
@@ -30,6 +31,7 @@ let package = Package(
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
+                "UserScript",
                 "Common"
             ],
             resources: [
@@ -50,6 +52,9 @@ let package = Package(
                 .process("CMakeLists.txt")
             ]),
         .target(
+            name: "UserScript"
+        ),
+        .target(
             name: "Common",
             dependencies: [
                 .product(name: "Punnycode", package: "Punycode")
@@ -69,14 +74,22 @@ let package = Package(
                 "BrowserServicesKit"
             ],
             resources: [
-                .process("UserScript/testUserScript.js"),
                 .copy("Resources")
             ]),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "UserScriptTests",
+            dependencies: [
+                "UserScript"
+            ],
+            resources: [
+                .process("testUserScript.js")
             ]
         )
-    ]
+    ],
+    cxxLanguageStandard: .cxx11
 )
