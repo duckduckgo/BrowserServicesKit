@@ -58,39 +58,16 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
         replacements["// INJECT contentScope HERE"] = "contentScope = " + privacyConfigJson + ";"
         replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"
         replacements["// INJECT userPreferences HERE"] = "userPreferences = " + jsonPropertiesString + ";"
-        // TODO: use dynamic values
         let availableInputTypes = """
             {
                 credentials: undefined,
-                identities: {
-                    firstName: true,
-                    middleName: true,
-                    lastName: true,
-                    birthdayDay: true,
-                    birthdayMonth: true,
-                    birthdayYear: true,
-                    addressStreet: true,
-                    addressStreet2: true,
-                    addressCity: true,
-                    addressProvince: true,
-                    addressPostalCode: true,
-                    addressCountryCode: true,
-                    phone: true,
-                    emailAddress: true         // <- this is true if we have an address in identities OR if email protection is enabled
-                },
-                creditCards: {
-                    cardName: true,
-                    cardSecurityCode: true,
-                    expirationMonth: true,
-                    expirationYear: true,
-                    cardNumber: true
-                },
-                email: true                    // <- this is specific for email protection
+                identities: undefined,
+                creditCards: undefined,
+                email: undefined
             }
         """
         replacements["// INJECT availableInputTypes HERE"] = "availableInputTypes = " + availableInputTypes + ";"
 
-        // TODO: revert to "assets/autofill" once the integration is complete
-        sourceStr = AutofillUserScript.loadJS("assets/autofill-debug", from: Autofill.bundle, withReplacements: replacements)
+        sourceStr = AutofillUserScript.loadJS("assets/autofill", from: Autofill.bundle, withReplacements: replacements)
     }
 }

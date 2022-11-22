@@ -276,11 +276,8 @@ extension AutofillUserScript {
         }
 
         let credentials: AvailableInputTypesCredentials
-        // TODO: necessary?
         let identities: AvailableInputTypesIdentities
-        // TODO: necessary?
         let creditCards: AvailableInputTypesCreditCards
-        // TODO: necessary?
         let email: Bool
         let credentialsProviderStatus: CredentialProviderStatus
 
@@ -562,6 +559,7 @@ extension AutofillUserScript {
     
     func askToUnlockProvider(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
+        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScriptDidAskToUnlockCredentialsProvider(self,
                                                                            andProvideCredentialsForDomain: domain,
                                                                            completionHandler: { credentials, identities, cards, credentialsProvider in
@@ -584,6 +582,7 @@ extension AutofillUserScript {
         }
 
         let domain = hostForMessage(message)
+        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, completionHandler: { credentials, credentialsProvider in
             let response = AskToUnlockProviderResponse(credentials: credentials,
                                                        identities: [],
@@ -665,33 +664,66 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
 extension AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities {
 
     init(identities: [SecureVaultModels.Identity]) {
-        // TODO: !
-        self.init(firstName: false,
-                  middleName: false,
-                  lastName: false,
-                  birthdayDay: false,
-                  birthdayMonth: false,
-                  birthdayYear: false,
-                  addressStreet: false,
-                  addressStreet2: false,
-                  addressCity: false,
-                  addressProvince: false,
-                  addressPostalCode: false,
-                  addressCountryCode: false,
-                  phone: false,
-                  emailAddress: false)
+
+        var (firstName, middleName, lastName, birthdayDay, birthdayMonth, birthdayYear,
+            addressStreet, addressStreet2, addressCity, addressProvince, addressPostalCode,
+            addressCountryCode, phone, emailAddress) =
+        (false, false, false, false, false, false, false, false, false, false, false, false, false, false)
+
+        for identity in identities {
+            firstName = firstName || !(identity.firstName ?? "").isEmpty
+            middleName = middleName || !(identity.middleName ?? "").isEmpty
+            lastName = lastName || !(identity.lastName ?? "").isEmpty
+            birthdayDay = birthdayDay || identity.birthdayDay != nil
+            birthdayMonth = birthdayMonth || identity.birthdayMonth != nil
+            birthdayYear = birthdayYear || identity.birthdayYear != nil
+            addressStreet = addressStreet || !(identity.addressStreet ?? "").isEmpty
+            addressStreet2 = addressStreet2 || !(identity.addressStreet2 ?? "").isEmpty
+            addressCity = addressCity || !(identity.addressCity ?? "").isEmpty
+            addressProvince = addressProvince || !(identity.addressProvince ?? "").isEmpty
+            addressPostalCode = addressPostalCode || !(identity.addressPostalCode ?? "").isEmpty
+            addressCountryCode = addressCountryCode || !(identity.addressCountryCode ?? "").isEmpty
+            phone = phone || !(identity.homePhone ?? "").isEmpty || !(identity.mobilePhone ?? "").isEmpty
+            emailAddress = emailAddress || !(identity.emailAddress ?? "").isEmpty
+        }
+
+        self.init(firstName: firstName,
+                  middleName: middleName,
+                  lastName: lastName,
+                  birthdayDay: birthdayDay,
+                  birthdayMonth: birthdayMonth,
+                  birthdayYear: birthdayYear,
+                  addressStreet: addressStreet,
+                  addressStreet2: addressStreet2,
+                  addressCity: addressCity,
+                  addressProvince: addressProvince,
+                  addressPostalCode: addressPostalCode,
+                  addressCountryCode: addressCountryCode,
+                  phone: phone,
+                  emailAddress: emailAddress)
     }
+
 }
 
 extension AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards {
 
     init(creditCards: [SecureVaultModels.CreditCard]) {
-        // TODO: !
-        self.init(cardName: false,
-                  cardSecurityCode: false,
-                  expirationMonth: false,
-                  expirationYear: false,
-                  cardNumber: false)
+        var (cardName, cardSecurityCode, expirationMonth, expirationYear, cardNumber) =
+        (false, false, false, false, false)
+
+        for card in creditCards {
+            cardName = cardName || !(card.cardholderName ?? "").isEmpty
+            cardSecurityCode = cardSecurityCode || !(card.cardSecurityCode ?? "").isEmpty
+            expirationMonth = expirationMonth || card.expirationMonth != nil
+            expirationYear = expirationYear || card.expirationYear != nil
+            cardNumber = true
+        }
+
+        self.init(cardName: cardName,
+                  cardSecurityCode: cardSecurityCode,
+                  expirationMonth: expirationMonth,
+                  expirationYear: expirationYear,
+                  cardNumber: cardNumber)
     }
 }
 
