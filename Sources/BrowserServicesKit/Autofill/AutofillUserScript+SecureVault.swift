@@ -57,6 +57,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScriptDidAskToUnlockCredentialsProvider(_: AutofillUserScript,
                                                              andProvideCredentialsForDomain domain: String,
                                                              completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
+                                                                                           [SecureVaultModels.Identity],
+                                                                                           [SecureVaultModels.CreditCard],
                                                                                            SecureVaultModels.CredentialsProvider) -> Void)
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials], SecureVaultModels.CredentialsProvider) -> Void)
@@ -248,7 +250,38 @@ extension AutofillUserScript {
             let password: Bool
         }
 
+        struct AvailableInputTypesIdentities: Codable {
+            let firstName: Bool
+            let middleName: Bool
+            let lastName: Bool
+            let birthdayDay: Bool
+            let birthdayMonth: Bool
+            let birthdayYear: Bool
+            let addressStreet: Bool
+            let addressStreet2: Bool
+            let addressCity: Bool
+            let addressProvince: Bool
+            let addressPostalCode: Bool
+            let addressCountryCode: Bool
+            let phone: Bool
+            let emailAddress: Bool
+        }
+
+        struct AvailableInputTypesCreditCards: Codable {
+            let cardName: Bool
+            let cardSecurityCode: Bool
+            let expirationMonth: Bool
+            let expirationYear: Bool
+            let cardNumber: Bool
+        }
+
         let credentials: AvailableInputTypesCredentials
+        // TODO: necessary?
+        let identities: AvailableInputTypesIdentities
+        // TODO: necessary?
+        let creditCards: AvailableInputTypesCreditCards
+        // TODO: necessary?
+        let email: Bool
         let credentialsProviderStatus: CredentialProviderStatus
 
     }
@@ -341,6 +374,9 @@ extension AutofillUserScript {
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider  in
             let response = RequestAvailableInputTypesResponse(accounts: accounts,
+                                                              identities: identities,
+                                                              cards: cards,
+                                                              email: email,
                                                               credentialsProvider: credentialsProvider)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
@@ -528,8 +564,11 @@ extension AutofillUserScript {
         let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScriptDidAskToUnlockCredentialsProvider(self,
                                                                            andProvideCredentialsForDomain: domain,
-                                                                           completionHandler: { credentials, credentialsProvider in
+                                                                           completionHandler: { credentials, identities, cards, credentialsProvider in
             let response = AskToUnlockProviderResponse(credentials: credentials,
+                                                       identities: identities,
+                                                       cards: cards,
+                                                       email: email,
                                                        credentialsProvider: credentialsProvider)
 
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
@@ -547,6 +586,9 @@ extension AutofillUserScript {
         let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, completionHandler: { credentials, credentialsProvider in
             let response = AskToUnlockProviderResponse(credentials: credentials,
+                                                       identities: [],
+                                                       cards: [],
+                                                       email: email,
                                                        credentialsProvider: credentialsProvider)
 
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
@@ -577,6 +619,9 @@ extension AutofillUserScript {
 extension AutofillUserScript.RequestAvailableInputTypesResponse {
 
     init(accounts: [SecureVaultModels.WebsiteAccount],
+         identities: [SecureVaultModels.Identity],
+         cards: [SecureVaultModels.CreditCard],
+         email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
         let credentialObjects: [AutofillUserScript.CredentialObject] = accounts.compactMap {
             guard let id = $0.id else { return nil }
@@ -584,21 +629,32 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
         }
         let username = credentialsProvider.locked || credentialObjects.count > 0
         let password = credentialsProvider.locked || credentialObjects.count > 0
+        let identities = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities(identities: identities)
+        let cards = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards(creditCards: cards)
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
         let success = AutofillUserScript.AvailableInputTypesSuccess(
             credentials: credentials,
+            identities: identities,
+            creditCards: cards,
+            email: email,
             credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked
         )
         self.init(success: success, error: nil)
     }
 
     init(credentials: [SecureVaultModels.WebsiteCredentials],
+         identities: [SecureVaultModels.Identity],
+         cards: [SecureVaultModels.CreditCard],
+         email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
         let username = credentialsProvider.locked || credentials.count > 0
         let password = credentialsProvider.locked || credentials.count > 0
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
         let success = AutofillUserScript.AvailableInputTypesSuccess(
             credentials: credentials,
+            identities: AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities(identities: identities),
+            creditCards: AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards(creditCards: cards),
+            email: email,
             credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked
         )
         self.init(success: success, error: nil)
@@ -606,12 +662,51 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
 
 }
 
+extension AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities {
+
+    init(identities: [SecureVaultModels.Identity]) {
+        // TODO: !
+        self.init(firstName: false,
+                  middleName: false,
+                  lastName: false,
+                  birthdayDay: false,
+                  birthdayMonth: false,
+                  birthdayYear: false,
+                  addressStreet: false,
+                  addressStreet2: false,
+                  addressCity: false,
+                  addressProvince: false,
+                  addressPostalCode: false,
+                  addressCountryCode: false,
+                  phone: false,
+                  emailAddress: false)
+    }
+}
+
+extension AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards {
+
+    init(creditCards: [SecureVaultModels.CreditCard]) {
+        // TODO: !
+        self.init(cardName: false,
+                  cardSecurityCode: false,
+                  expirationMonth: false,
+                  expirationYear: false,
+                  cardNumber: false)
+    }
+}
+
 extension AutofillUserScript.AskToUnlockProviderResponse {
 
     init(credentials: [SecureVaultModels.WebsiteCredentials],
+         identities: [SecureVaultModels.Identity],
+         cards: [SecureVaultModels.CreditCard],
+         email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
 
         let availableInputTypesResponse = AutofillUserScript.RequestAvailableInputTypesResponse(credentials: credentials,
+                                                                             identities: identities,
+                                                                             cards: cards,
+                                                                             email: email,
                                                                              credentialsProvider: credentialsProvider)
         let status = credentialsProvider.locked ? AutofillUserScript.CredentialProviderStatus.locked : .unlocked
         let credentialsArray:[AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in

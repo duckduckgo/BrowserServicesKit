@@ -291,6 +291,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     public func autofillUserScriptDidAskToUnlockCredentialsProvider(_: AutofillUserScript,
                                                                     andProvideCredentialsForDomain domain: String,
                                                                     completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
+                                                                                                  [SecureVaultModels.Identity],
+                                                                                                  [SecureVaultModels.CreditCard],
                                                                                                   SecureVaultModels.CredentialsProvider) -> Void) {
         if let passwordManager = passwordManager, passwordManager.isEnabled {
             passwordManager.askToUnlock { [weak self] in
@@ -298,14 +300,22 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     guard let self = self else { return }
                     if let error = error {
                         os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
-                        completionHandler([], self.credentialsProvider)
+                        completionHandler([], [], [], self.credentialsProvider)
                     } else {
-                        completionHandler(credentials, self.credentialsProvider)
+                        do {
+                            let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
+                            let identities = try vault.identities()
+                            let cards = try vault.creditCards()
+                            completionHandler(credentials, identities, cards, self.credentialsProvider)
+                        } catch {
+                            os_log(.error, "Error requesting identities or cards: %{public}@", error.localizedDescription)
+                            completionHandler([], [], [], self.credentialsProvider)
+                        }
                     }
                 }
             }
         } else {
-            completionHandler([], credentialsProvider)
+            completionHandler([], [], [], credentialsProvider)
         }
     }
 
