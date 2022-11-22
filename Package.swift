@@ -23,7 +23,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0")),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .branch("main"))
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.0.1"))
     ],
     targets: [
         .target(
