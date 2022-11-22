@@ -339,7 +339,6 @@ extension AutofillUserScript {
     func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider  in
             let response = RequestAvailableInputTypesResponse(accounts: accounts,
                                                               credentialsProvider: credentialsProvider)
@@ -525,9 +524,8 @@ extension AutofillUserScript {
         }
     }
     
-    func askToUnlockProvider(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func askToUnlockProvider(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
-        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScriptDidAskToUnlockCredentialsProvider(self,
                                                                            andProvideCredentialsForDomain: domain,
                                                                            completionHandler: { credentials, credentialsProvider in
@@ -541,12 +539,11 @@ extension AutofillUserScript {
     }
     
     // On Catalina we poll this method every x seconds from all tabs
-    func checkCredentialsProviderStatus(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func checkCredentialsProviderStatus(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         if #available(macOS 11, *) {
             return
         }
 
-        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let domain = hostForMessage(message)
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForDomain: domain, completionHandler: { credentials, credentialsProvider in
             let response = AskToUnlockProviderResponse(credentials: credentials,
