@@ -63,6 +63,7 @@ public protocol PasswordManager: AnyObject {
 
     func accountsFor(domain: String, completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> Void)
     func cachedAccountsFor(domain: String) -> [SecureVaultModels.WebsiteAccount]
+    func cachedWebsiteCredentialsFor(domain: String, username: String) -> SecureVaultModels.WebsiteCredentials?
     func websiteCredentialsFor(accountId: String, completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void)
     func websiteCredentialsFor(domain: String, completion: @escaping ([SecureVaultModels.WebsiteCredentials], Error?) -> Void)
 
@@ -428,10 +429,18 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
         
         let proposedIdentity = try existingIdentity(with: autofillData, vault: vault)
-        let proposedCredentials = try existingCredentials(with: autofillData,
+        let proposedCredentials: SecureVaultModels.WebsiteCredentials?
+        if let passwordManager = passwordManager, passwordManager.isEnabled {
+            proposedCredentials = existingCredentialsInPasswordManager(with: autofillData,
+                                                                       domain: domain,
+                                                                       automaticallySavedCredentials: automaticallySavedCredentials,
+                                                                       vault: vault)
+        } else {
+            proposedCredentials = try existingCredentials(with: autofillData,
                                                           domain: domain,
                                                           automaticallySavedCredentials: automaticallySavedCredentials,
                                                           vault: vault)
+        }
 
         let proposedCard = try existingPaymentMethod(with: autofillData, vault: vault)
         
@@ -457,12 +466,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                      automaticallySavedCredentials: Bool,
                                      vault: SecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
         if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
-            let accounts: [SecureVaultModels.WebsiteAccount]
-            if let passwordManager = passwordManager, passwordManager.isEnabled {
-                accounts = passwordManager.cachedAccountsFor(domain: domain)
-            } else {
-                accounts = try vault.accountsFor(domain: domain)
-            }
+            let accounts = try vault.accountsFor(domain: domain)
             if let account = accounts.first(where: { $0.username == credentials.username ?? "" }) {
                 if let existingAccountID = account.id,
                    let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID),
@@ -504,7 +508,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     // MARK: - Third-party password manager
 
-    var credentialsProvider: SecureVaultModels.CredentialsProvider {
+    private var credentialsProvider: SecureVaultModels.CredentialsProvider {
         if let passwordManager = passwordManager,
            passwordManager.isEnabled,
            let name = SecureVaultModels.CredentialsProvider.Name(rawValue: passwordManager.name) {
@@ -515,7 +519,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
-    func getAccounts(for domain: String,
+    private func getAccounts(for domain: String,
                      from vault: SecureVault,
                      or passwordManager: PasswordManager?,
                      completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> Void) {
@@ -532,7 +536,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
-    func getCredentials(for accountId: String,
+    private func getCredentials(for accountId: String,
                         from vault: SecureVault,
                         or passwordManager: PasswordManager?,
                         completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void) {
@@ -547,6 +551,42 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 completion(nil, error)
             }
         }
+    }
+
+
+    private func existingCredentialsInPasswordManager(with autofillData: AutofillUserScript.DetectedAutofillData,
+                                                      domain: String,
+                                                      automaticallySavedCredentials: Bool,
+                                                      vault: SecureVault) -> SecureVaultModels.WebsiteCredentials? {
+        guard let passwordManager = passwordManager, passwordManager.isEnabled else {
+            return nil
+        }
+
+        if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
+            if let existingCredentials = passwordManager.cachedWebsiteCredentialsFor(domain: domain, username: credentials.username ?? "") {
+                if existingCredentials.password == passwordData {
+                    if automaticallySavedCredentials {
+                        os_log("Found duplicate credentials which were just saved, notifying user", log: .passwordManager)
+                        return SecureVaultModels.WebsiteCredentials(account: existingCredentials.account, password: passwordData)
+                    } else {
+                        os_log("Found duplicate credentials which were previously saved, avoid notifying user", log: .passwordManager)
+                        return nil
+                    }
+                } else {
+                    os_log("Found existing credentials to update", log: .passwordManager)
+                    return SecureVaultModels.WebsiteCredentials(account: existingCredentials.account, password: passwordData)
+                }
+
+            } else {
+                os_log("Received new credentials to save", log: .passwordManager)
+                let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
+                return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+            }
+        } else {
+            os_log("No new credentials found, avoid prompting user", log: .passwordManager)
+        }
+
+        return nil
     }
 
 }
