@@ -34,6 +34,10 @@ public protocol BookmarkListInteracting: BookmarkStoring {
     
     func bookmark(at index: Int) -> BookmarkEntity?
 
+    func bookmark(with id: NSManagedObjectID) -> BookmarkEntity?
+
+    func toggleFavorite(_ bookmark: BookmarkEntity)
+
     func deleteBookmark(_ bookmark: BookmarkEntity)
 
     func moveBookmark(_ bookmark: BookmarkEntity,

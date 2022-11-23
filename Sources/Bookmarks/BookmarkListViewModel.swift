@@ -71,6 +71,15 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         return bookmarks[index]
     }
 
+    public func toggleFavorite(_ bookmark: BookmarkEntity) {
+        if bookmark.isFavorite {
+            bookmark.removeFromFavorites()
+        } else if let folder = BookmarkUtils.fetchFavoritesFolder(context) {
+            bookmark.addToFavorites(favoritesRoot: folder)
+        }
+        save()
+    }
+
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
@@ -84,19 +93,12 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             bookmarks = []
             return
         }
-        
-        do {
-            
-            let mutableChildrenSet = parentFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.children))
-            
-            mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
-            
-            try context.save()
-        } catch {
-            context.rollback()
-            #warning("Handle this")
-        }
-        
+
+        let mutableChildrenSet = parentFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.children))
+        mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
+
+        save()
+
         bookmarks = parentFolder.childrenArray
     }
 
@@ -108,19 +110,23 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
 
         context.delete(bookmark)
-        
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            #warning("Handle this")
-        }
+
+        save()
 
         bookmarks = parentFolder.childrenArray
     }
 
     private func refresh() {
         bookmarks = fetchBookmarksInFolder(currentFolder)
+    }
+
+    private func save() {
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            #warning("Handle this")
+        }
     }
     
     // MARK: - Read
@@ -152,6 +158,10 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         } else {
             return fetchBookmarksInRootFolder()
         }
+    }
+
+    public func bookmark(with id: NSManagedObjectID) -> BookmarkEntity? {
+        return (try? context.existingObject(with: id)) as? BookmarkEntity
     }
 
 }
