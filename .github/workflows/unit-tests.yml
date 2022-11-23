@@ -44,17 +44,31 @@ jobs:
     - name: Select Xcode
       run: sudo xcode-select -s /Applications/Xcode_14.1.app/Contents/Developer
 
-    - name: Run tests
+    - name: Run tests macOS
       # BSK does not support running tests in parallel, but the flag is required
       # to make XUnit output work. Making it parallel with 1 worker then.
       # https://stackoverflow.com/a/70040836
       run: |
         swift test --parallel --num-workers=1 \
-          --xunit-output tests.xml
+          --xunit-output tests-macos.xml
 
-    - name: Publish Unit Tests Report
+    - name: Run tests iOS
+      run: |
+        set -o pipefail && xcodebuild test \
+          -scheme "DuckDuckGo" \
+          -destination "platform=iOS Simulator,name=iPhone 8" \
+          | xcpretty -r junit -o tests-ios.xml
+
+    - name: Publish macOS Unit Tests Report
       uses: mikepenz/action-junit-report@v3
       if: always()
       with:
-        check_name: Test Report
-        report_paths: tests.xml
+        check_name: Test Report macOS
+        report_paths: tests-macos.xml
+
+    - name: Publish iOS Unit Tests Report
+      uses: mikepenz/action-junit-report@v3
+      if: always()
+      with:
+        check_name: Test Report iOS
+        report_paths: tests-iOS.xml
