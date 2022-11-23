@@ -74,7 +74,12 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        guard let parentFolder = bookmark.parent else {
+        guard let parentFolder = bookmark.parent,
+              let children = parentFolder.children,
+              fromIndex < children.count,
+              toIndex < children.count,
+              let actualBookmark = children[fromIndex] as? BookmarkEntity,
+              actualBookmark == bookmark else {
             // ToDo: Pixel
             bookmarks = []
             return
