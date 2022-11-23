@@ -146,7 +146,52 @@ class AutofillVaultUserScriptTests: XCTestCase {
     }
 
     @available(macOS 11, iOS 14, *)
-    func testWhenCredentialForAccountRequestedAndRequestedDomainMatchesAfterRemovingWWWPrefix_ThenCredentialsReturned() {
+    func testWhenCredentialForAccountRequestedAndRequestedDomainMatchesAfterRemovingWWWFromStoredDomainPrefix_ThenCredentialsReturned() {
+        class GetCredentialsDelegate: MockSecureVaultDelegate {
+
+            override func autofillUserScript(_: AutofillUserScript,
+                                             didRequestCredentialsForAccount accountId: Int64,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+
+                completionHandler(.init(account: .init(id: accountId,
+                                                       username: "1@example.com",
+                                                       domain: "www.domain1.com",
+                                                       created: Date(),
+                                                       lastUpdated: Date()),
+                                        password: "password".data(using: .utf8)!))
+
+            }
+
+        }
+
+        let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
+
+        hostProvider = MockHostProvider(host: "domain1.com")
+
+        let delegate = GetCredentialsDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["id"] = "\(randomAccountId)"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials",
+                                          body: body,
+                                          webView: mockWebView)
+
+        let expect = expectation(description: #function)
+        userScript.userContentController(userContentController, didReceive: message) {
+            XCTAssertNotEqual($0 as? String, "{}")
+            XCTAssertNil($1)
+
+            expect.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+    }
+
+    @available(macOS 11, iOS 14, *)
+    func testWhenCredentialForAccountRequestedAndRequestedDomainMatchesAfterRemovingWWWPrefixFromProvidedDomain_ThenCredentialsReturned() {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
             override func autofillUserScript(_: AutofillUserScript,
