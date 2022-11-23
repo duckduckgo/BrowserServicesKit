@@ -23,6 +23,7 @@ import TrackerRadarKit
 import UserScript
 import ContentBlocking
 import Common
+import UserScript
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     
