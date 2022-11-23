@@ -25,8 +25,8 @@ import CoreData
 public class BookmarkEntity: NSManagedObject {
     
     public enum Constants {
-        public static let rootFolderID = "root_folder"
-        public static let favoritesFolderID = "favorites_folder"
+        public static let rootFolderID = "bookmarks_root"
+        public static let favoritesFolderID = "favorites_root"
     }
     
     @nonobjc public class func fetchRequest() -> NSFetchRequest<BookmarkEntity> {
