@@ -28,8 +28,21 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     public init(viewContext: NSManagedObjectContext) {
         self.context = viewContext
+        registerForChanges()
     }
-    
+
+    private func registerForChanges() {
+        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                               object: nil,
+                                               queue: .main) { [weak self] notification in
+            guard let otherContext = notification.object as? NSManagedObjectContext,
+                  otherContext != self?.context,
+            otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
+
+            self?.context.mergeChanges(fromContextDidSave: notification)
+        }
+    }
+
     private func save() {
         do {
             try context.save()
