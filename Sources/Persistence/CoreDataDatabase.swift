@@ -89,7 +89,7 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
             let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
             context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
             context.name = "Migration"
-            context.perform {
+            context.performAndWait {
                 completion(context, nil)
                 self.storeLoadedCondition.resolve()
             }
