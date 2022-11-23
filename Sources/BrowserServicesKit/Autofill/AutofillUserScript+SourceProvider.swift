@@ -58,15 +58,6 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
         replacements["// INJECT contentScope HERE"] = "contentScope = " + privacyConfigJson + ";"
         replacements["// INJECT userUnprotectedDomains HERE"] = "userUnprotectedDomains = " + userUnprotectedDomainsString + ";"
         replacements["// INJECT userPreferences HERE"] = "userPreferences = " + jsonPropertiesString + ";"
-        let availableInputTypes = """
-            {
-                credentials: undefined,
-                identities: undefined,
-                creditCards: undefined,
-                email: undefined
-            }
-        """
-        replacements["// INJECT availableInputTypes HERE"] = "availableInputTypes = " + availableInputTypes + ";"
 
         sourceStr = AutofillUserScript.loadJS("assets/autofill", from: Autofill.bundle, withReplacements: replacements)
     }

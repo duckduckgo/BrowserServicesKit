@@ -380,11 +380,6 @@ extension AutofillUserScript {
             }
         }
     }
-    
-    // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAvailableInputTypes.params.json
-    struct GetAvailableInputTypesRequest: Codable {
-        let mainType: GetAutofillDataMainType
-    }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
     struct GetAutofillDataRequest: Codable {
