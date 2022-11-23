@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
           "branch": null,
-          "revision": "516209f9a0252c9795b51ca3c815cfbbf34ad0a0",
-          "version": "5.2.0"
+          "revision": "7ddea0cc34cc4d2695c1d490fcbb1cb2fde641d6",
+          "version": "5.3.1"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/duckduckgo/GRDB.swift.git",
         "state": {
           "branch": null,
-          "revision": "f465dd5c0bf590cdb9bee4e96c53b1719ee30730",
-          "version": "1.2.0"
+          "revision": "830ddd161710ed7a80dcbeb4d4b62cf0ae4d8baf",
+          "version": "1.2.1"
         }
       },
       {

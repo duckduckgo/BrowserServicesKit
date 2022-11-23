@@ -12,14 +12,15 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
-        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"]),
-        .library(name: "ContentBlocking", targets: ["ContentBlocking"])
+        .library(name: "UserScript", targets: ["UserScript"]),
+        .library(name: "Crashes", targets: ["Crashes"]),
+        .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.2.0")),
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.0")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.3.1")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.1")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0")),
@@ -34,8 +35,8 @@ let package = Package(
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
-                "UserScript",
                 "Common",
+                "UserScript",
                 "ContentBlocking"
             ],
             resources: [
@@ -54,7 +55,10 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
-            ]),
+            ]),    
+        .target(
+            name: "Crashes"
+        ),
         .target(
             name: "Common",
             dependencies: [
@@ -101,8 +105,7 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common"
-            ]
-        ),
+            ]),
         .testTarget(
             name: "UserScriptTests",
             dependencies: [
@@ -110,6 +113,8 @@ let package = Package(
             ],
             resources: [
                 .process("testUserScript.js")
-            ]),
-    ]
+            ]
+        )
+    ],
+    cxxLanguageStandard: .cxx11
 )
