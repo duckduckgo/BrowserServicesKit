@@ -69,32 +69,50 @@ public class BookmarkEntity: NSManagedObject {
 
     public static func makeFolder(title: String,
                                   parent: BookmarkEntity,
+                                  insertAtBeginning: Bool = false,
                                   context: NSManagedObjectContext) -> BookmarkEntity {
         assert(parent.isFolder)
         let object = BookmarkEntity(context: context)
         object.title = title
-        object.parent = parent
         object.isFolder = true
+        
+        if insertAtBeginning {
+            parent.insertIntoChildren(object, at: 0)
+        } else {
+            parent.addToChildren(object)
+        }
         return object
     }
     
     public static func makeBookmark(title: String,
                                     url: String,
                                     parent: BookmarkEntity,
+                                    insertAtBeginning: Bool = false,
                                     context: NSManagedObjectContext) -> BookmarkEntity {
         let object = BookmarkEntity(context: context)
         object.title = title
         object.url = url
-        object.parent = parent
         object.isFolder = false
+        
+        if insertAtBeginning {
+            parent.insertIntoChildren(object, at: 0)
+        } else {
+            parent.addToChildren(object)
+        }
         return object
     }
     
-    public func addToFavorites(favoritesRoot root: BookmarkEntity) {
+    public func addToFavorites(insertAtBeginning: Bool = false,
+                               favoritesRoot root: BookmarkEntity) {
         assert(root.uuid == BookmarkEntity.Constants.favoritesFolderID)
         
         isFavorite = true
-        root.addToFavorites(self)
+        
+        if insertAtBeginning {
+            root.insertIntoFavorites(self, at: 0)
+        } else {
+            root.addToFavorites(self)
+        }
     }
     
     public func removeFromFavorites() {
@@ -140,6 +158,9 @@ extension BookmarkEntity {
 
 // MARK: Generated accessors for favorites
 extension BookmarkEntity {
+    
+    @objc(insertObject:inFavoritesAtIndex:)
+    @NSManaged public func insertIntoFavorites(_ value: BookmarkEntity, at idx: Int)
 
     @objc(addFavoritesObject:)
     @NSManaged private func addToFavorites(_ value: BookmarkEntity)
