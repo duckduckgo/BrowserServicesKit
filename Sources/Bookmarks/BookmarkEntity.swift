@@ -32,6 +32,10 @@ public class BookmarkEntity: NSManagedObject {
     @nonobjc public class func fetchRequest() -> NSFetchRequest<BookmarkEntity> {
         return NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
     }
+    
+    public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
+        return NSEntityDescription.entity(forEntityName: "BookmarkEntity", in: context)!
+    }
 
     @NSManaged public fileprivate(set) var isFavorite: Bool
     @NSManaged public var isFolder: Bool

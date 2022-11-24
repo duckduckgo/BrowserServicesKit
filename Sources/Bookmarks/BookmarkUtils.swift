@@ -50,7 +50,8 @@ public struct BookmarkUtils {
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) throws {
         
         func insertRootFolder(uuid: String, into context: NSManagedObjectContext) throws {
-            let folder = BookmarkEntity(context: context)
+            let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
+                                        insertInto: context)
             folder.uuid = uuid
             folder.title = uuid
             folder.isFolder = true
