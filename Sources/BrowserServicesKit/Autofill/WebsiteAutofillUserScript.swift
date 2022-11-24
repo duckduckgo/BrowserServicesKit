@@ -19,6 +19,7 @@
 
 import CoreGraphics
 import Foundation
+import UserScript
 
 /// Handles calls from the website Autofill context to the overlay.
 public protocol ContentOverlayUserScriptDelegate: AnyObject {
@@ -41,13 +42,13 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         return WebsiteAutofillMessageName.allCases.map(\.rawValue) + super.messageNames
     }
 
-    private enum WebsiteAutofillMessageName: String, CaseIterable {
+    public enum WebsiteAutofillMessageName: String, CaseIterable {
         case closeAutofillParent
         case getSelectedCredentials
         case showAutofillParent
     }
 
-    internal override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+    public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let websiteAutofillMessageName = WebsiteAutofillMessageName(rawValue: messageName) else {
             return super.messageHandlerFor(messageName)
         }
@@ -58,7 +59,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
     }
 
-    func showAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func showAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let left = dict["inputLeft"] as? CGFloat,
               let top = dict["inputTop"] as? CGFloat,
@@ -89,7 +90,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         replyHandler(nil)
     }
 
-    func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func closeAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         close()
         replyHandler(nil)
     }
@@ -102,7 +103,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     }
 
     /// Called from the child autofill to return referenced credentials
-    func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: "none")
         if lastOpenHost == nil || message.messageHost != lastOpenHost {
             response = GetSelectedCredentialsResponse(type: "stop")

@@ -20,6 +20,7 @@
 import Foundation
 import XCTest
 @testable import BrowserServicesKit
+import Common
 
 final class MockAttributionRulesProvider: AdClickAttributionRulesProviding {
     
@@ -437,6 +438,9 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
 }
 
 final class AdClickAttributionLogicStateInheritingTests: XCTestCase {
+    
+    static let tld = TLD()
+    let feature = MockAttributing()
 
     func testWhenAttributionIsInheritedThenOriginalStartTimeIsUsedForTotalTimeout() async {
         let (logic, startOfAttribution) = await AdClickAttributionLogicHelper.prepareLogic(attributedVendorHost: "example.com")
@@ -457,6 +461,29 @@ final class AdClickAttributionLogicStateInheritingTests: XCTestCase {
         
         logic.onDidFinishNavigation(host: "example.com",
                                      currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
+        
+        if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
+            XCTFail("Attribution should be forgotten")
+        }
+    }
+    
+    func testWhenInactiveAttributionIsInheritedThenItIsIgnored() async {
+        let mockRulesProvider = await MockAttributionRulesProvider()
+        let rules = await ContentBlockingRulesHelper().makeFakeRules(name: "attributed")!
+        
+        let logic = AdClickAttributionLogic(featureConfig: feature,
+                                            rulesProvider: mockRulesProvider,
+                                            tld: Self.tld)
+        
+        if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
+            XCTFail("Attribution should be present")
+        }
+        
+        let inactiveSession = AdClickAttributionLogic.SessionInfo(start: Date(),
+                                                                   leftContextAt: Date())
+        logic.applyInheritedAttribution(state: .activeAttribution(vendor: "example.com",
+                                                                  session: inactiveSession,
+                                                                  rules: rules))
         
         if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
             XCTFail("Attribution should be forgotten")

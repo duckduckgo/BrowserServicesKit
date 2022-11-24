@@ -19,6 +19,7 @@
 
 import XCTest
 import BrowserServicesKit
+import Common
 
 final class AdClickAttributionPixelTests: XCTestCase {
     
@@ -216,6 +217,7 @@ final class AdClickAttributionPixelTests: XCTestCase {
         logic.onDidFinishNavigation(host: "test.com")
         
         logic.onRequestDetected(request: DetectedRequest(url: "example.com",
+                                                         eTLDplus1: "example.com",
                                                          knownTracker: nil,
                                                          entity: nil,
                                                          state: .allowed(reason: .adClickAttribution),
@@ -244,12 +246,14 @@ final class AdClickAttributionPixelTests: XCTestCase {
         logic.onDidFinishNavigation(host: "https://vendor.com")
         
         logic.onRequestDetected(request: DetectedRequest(url: "example.com",
+                                                         eTLDplus1: "example.com",
                                                          knownTracker: nil,
                                                          entity: nil,
                                                          state: .allowed(reason: .adClickAttribution),
                                                          pageUrl: "test.com"))
         
         logic.onRequestDetected(request: DetectedRequest(url: "example.com",
+                                                         eTLDplus1: "example.com",
                                                          knownTracker: nil,
                                                          entity: nil,
                                                          state: .allowed(reason: .adClickAttribution),

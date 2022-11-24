@@ -19,11 +19,9 @@
 
 import WebKit
 import os.log
+import UserScript
 
-public class AutofillUserScript: NSObject, UserScript {
-
-    typealias MessageReplyHandler = (String?) -> Void
-    typealias MessageHandler = (AutofillMessage, @escaping MessageReplyHandler) -> Void
+public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncryption {
 
     internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
@@ -67,6 +65,7 @@ public class AutofillUserScript: NSObject, UserScript {
     public lazy var source: String = {
         var js = scriptSourceProvider.source
         js = js.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
+        js = js.replacingOccurrences(of: "// INJECT webkitMessageHandlerNames HERE", with: "webkitMessageHandlerNames = \(messageNamesJson);")
         js = js.replacingOccurrences(of: "// INJECT isTopFrame HERE", with: "isTopFrame = \(isTopAutofillContext ? "true" : "false");")
         return js
     }()
@@ -85,8 +84,20 @@ public class AutofillUserScript: NSObject, UserScript {
         return MessageName.allCases.map(\.rawValue)
     }
 
-    // swiftlint:disable cyclomatic_complexity
-    internal func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+    // communicate known message handler names to user scripts.
+    public lazy var messageNamesJson: String = {
+        // note: this doesn't include the messages from the overlay - only messages that can potentially be execute on macOS 10.x need
+        // to be communicated to the JavaScript layer.
+        let combinedMessages = MessageName.allCases.map(\.rawValue) + WebsiteAutofillUserScript.WebsiteAutofillMessageName.allCases.map(\.rawValue)
+        guard let json = try? JSONEncoder().encode(combinedMessages), let jsonString = String(data: json, encoding: .utf8) else {
+            assertionFailure("AutofillUserScript: could not encode message names into JSON")
+            return ""
+        }
+        return jsonString
+    }()
+
+    // swiftlint:disable:next cyclomatic_complexity
+    public func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
             os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
             return nil
@@ -121,24 +132,24 @@ public class AutofillUserScript: NSObject, UserScript {
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 
-    let encrypter: AutofillEncrypter
-    let hostProvider: AutofillHostProvider
-    let generatedSecret: String = UUID().uuidString
-    func hostForMessage(_ message: AutofillMessage) -> String {
+    public let encrypter: UserScriptEncrypter
+    public let generatedSecret: String = UUID().uuidString
+
+    let hostProvider: UserScriptHostProvider
+    func hostForMessage(_ message: UserScriptMessage) -> String {
         return hostProvider.hostForMessage(message)
     }
 
     public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
         self.init(scriptSourceProvider: scriptSourceProvider,
-                  encrypter: AESGCMAutofillEncrypter(),
+                  encrypter: AESGCMUserScriptEncrypter(),
                   hostProvider: SecurityOriginHostProvider())
     }
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
-         encrypter: AutofillEncrypter = AESGCMAutofillEncrypter(),
-         hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
+         encrypter: UserScriptEncrypter = AESGCMUserScriptEncrypter(),
+         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()) {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
@@ -181,54 +192,10 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
 }
 
 // Fallback for older iOS / macOS version
-extension AutofillUserScript {
-
-    func processMessage(_ userContentController: WKUserContentController, didReceive message: AutofillMessage) {
-        guard let messageHandler = messageHandlerFor(message.messageName) else {
-            // Unsupported message fail silently
-            return
-        }
-
-        guard let body = message.messageBody as? [String: Any],
-              let messageHandling = body["messageHandling"] as? [String: Any],
-              let secret = messageHandling["secret"] as? String,
-              // If this does not match the page is playing shenanigans.
-              secret == generatedSecret
-        else { return }
-
-        messageHandler(message) { reply in
-            guard let reply = reply,
-                  let messageHandling = body["messageHandling"] as? [String: Any],
-                  let key = messageHandling["key"] as? [UInt8],
-                  let iv = messageHandling["iv"] as? [UInt8],
-                  let methodName = messageHandling["methodName"] as? String,
-                  let encryption = try? self.encrypter.encryptReply(reply, key: key, iv: iv) else { return }
-
-            let ciphertext = encryption.ciphertext.withUnsafeBytes { bytes in
-                return bytes.map { String($0) }
-            }.joined(separator: ",")
-
-            let tag = encryption.tag.withUnsafeBytes { bytes in
-                return bytes.map { String($0) }
-            }.joined(separator: ",")
-
-            let script = """
-            (() => {
-                window.\(methodName) && window.\(methodName)({
-                    ciphertext: [\(ciphertext)],
-                    tag: [\(tag)]
-                });
-            })();
-            """
-
-            assert(message.messageWebView != nil)
-            dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
-            message.messageWebView?.evaluateJavaScript(script)
-        }
-    }
+extension AutofillUserScript: WKScriptMessageHandler {
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        processMessage(userContentController, didReceive: message)
+        processEncryptedMessage(message, from: userContentController)
     }
 
 }

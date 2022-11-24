@@ -19,6 +19,7 @@
 
 import Foundation
 import os
+import Common
 
 public protocol AdClickAttributionLogicDelegate: AnyObject {
     
@@ -88,9 +89,11 @@ public class AdClickAttributionLogic {
         case .preparingAttribution(let vendor, let info, _):
             requestAttribution(forVendor: vendor,
                                attributionStartedAt: info.attributionStartedAt)
-        case .activeAttribution:
-            self.state = state
-            applyRules()
+        case .activeAttribution(_, let sessionInfo, _):
+            if sessionInfo.leftAttributionContextAt == nil {
+                self.state = state
+                applyRules()
+            }
         }
     }
     
@@ -107,6 +110,27 @@ public class AdClickAttributionLogic {
     
     public func reapplyCurrentRules() {
         applyRules()
+    }
+    
+    public func onBackForwardNavigation(mainFrameURL: URL?) {
+        guard case .activeAttribution(let vendor, let session, let rules) = state,
+        let host = mainFrameURL?.host,
+        let currentETLDp1 = tld.eTLDplus1(host) else {
+            return
+        }
+        
+        if vendor == currentETLDp1 {
+            if session.leftAttributionContextAt != nil {
+                state = .activeAttribution(vendor: vendor,
+                                           session: SessionInfo(start: session.attributionStartedAt),
+                                           rules: rules)
+            }
+        } else if session.leftAttributionContextAt == nil {
+            state = .activeAttribution(vendor: vendor,
+                                       session: SessionInfo(start: session.attributionStartedAt,
+                                                           leftContextAt: Date()),
+                                       rules: rules)
+        }
     }
     
     public func onProvisionalNavigation(completion: @escaping () -> Void, currentTime: Date = Date()) {
@@ -129,6 +153,15 @@ public class AdClickAttributionLogic {
                 disableAttribution()
             }
             completion()
+        }
+    }
+    
+    @MainActor
+    public func onProvisionalNavigation() async {
+        await withCheckedContinuation { continuation in
+            onProvisionalNavigation {
+                continuation.resume()
+            }
         }
     }
     

@@ -43,14 +43,6 @@ public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCacheInterval: TimeInterval { get }
 }
 
-public protocol ContentBlockerRulesUpdating {
-
-    func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules: [ContentBlockerRulesManager.Rules],
-                      changes: [String: ContentBlockerRulesIdentifier.Difference],
-                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
-}
-
 /**
  Manages creation of Content Blocker rules from `ContentBlockerRulesSource`.
  */
@@ -426,40 +418,3 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
 }
-
-extension ContentBlockerRulesManager {
-
-    public convenience init(rulesSource: ContentBlockerRulesListsSource,
-                            exceptionsSource: ContentBlockerRulesExceptionsSource,
-                            lastCompiledRulesStore: LastCompiledRulesStore? = nil,
-                            cache: ContentBlockerRulesCaching? = nil,
-                            updateListener: ContentBlockerRulesUpdating,
-                            errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                            logger: OSLog = .disabled) {
-        self.init(rulesSource: rulesSource,
-                  exceptionsSource: exceptionsSource,
-                  lastCompiledRulesStore: lastCompiledRulesStore,
-                  cache: cache,
-                  errorReporting: errorReporting,
-                  logger: logger)
-
-        var cancellable: AnyCancellable?
-        cancellable = self.updatesPublisher.receive(on: DispatchQueue.main)
-            .sink { [weak self] update in
-                guard let self = self else {
-                    cancellable?.cancel()
-                    return
-                }
-                withExtendedLifetime(cancellable) {
-                    updateListener.rulesManager(self,
-                                                didUpdateRules: update.rules,
-                                                changes: update.changes,
-                                                completionTokens: update.completionTokens)
-                }
-            }
-    }
-
-}
-
-// swiftlint:enable type_body_length
-// swiftlint:enable file_length

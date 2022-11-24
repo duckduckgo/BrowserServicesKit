@@ -20,6 +20,8 @@
 import WebKit
 import os
 import TrackerRadarKit
+import Common
+import UserScript
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     
@@ -36,6 +38,7 @@ public protocol SurrogatesUserScriptConfig: UserScriptSourceProviding {
     var surrogates: String { get }
     var trackerData: TrackerData? { get }
     var encodedSurrogateTrackerData: String? { get }
+    var tld: TLD { get }
 
 }
 
@@ -45,6 +48,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     public let surrogates: String
     public let trackerData: TrackerData?
     public let encodedSurrogateTrackerData: String?
+    public let tld: TLD
 
     public let source: String
     
@@ -53,6 +57,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
                 trackerData: TrackerData?,
                 encodedSurrogateTrackerData: String?,
                 trackerDataManager: TrackerDataManager,
+                tld: TLD,
                 isDebugBuild: Bool) {
 
         if trackerData == nil {
@@ -70,6 +75,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
 
         self.privacyConfig = privacyConfig
         self.surrogates = surrogates
+        self.tld = tld
 
         source = SurrogatesUserScript.generateSource(privacyConfiguration: self.privacyConfig,
                                                      surrogates: self.surrogates,
@@ -130,7 +136,13 @@ open class SurrogatesUserScript: NSObject, UserScript {
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
         let entity = currentTrackerData?.findEntity(byName: knownTracker?.owner?.name ?? "")
 
-        return DetectedRequest(url: urlString, knownTracker: knownTracker, entity: entity, state: .blocked, pageUrl: pageUrlString)
+        let eTLDp1 = configuration.tld.eTLDplus1(forStringURL: urlString)
+        return DetectedRequest(url: urlString,
+                               eTLDplus1: eTLDp1,
+                               knownTracker: knownTracker,
+                               entity: entity,
+                               state: .blocked,
+                               pageUrl: pageUrlString)
     }
 
     private static func createSurrogateFunctions(_ surrogates: String) -> String {

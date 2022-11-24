@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 import TrackerRadarKit
+import Common
 
 public class ReferrerTrimming {
     
@@ -32,7 +33,7 @@ public class ReferrerTrimming {
         case navigating(destination: URL)
     }
     
-    private let privacyManager: PrivacyConfigurationManager
+    private let privacyManager: PrivacyConfigurationManaging
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
     private let contentBlockingManager: ContentBlockerRulesManager
@@ -41,7 +42,7 @@ public class ReferrerTrimming {
     
     private var tld: TLD
     
-    public init(privacyManager: PrivacyConfigurationManager,
+    public init(privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: ContentBlockerRulesManager,
                 tld: TLD) {
         self.privacyManager = privacyManager
@@ -101,6 +102,10 @@ public class ReferrerTrimming {
 
         if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
             newReferrer = "\(referrerScheme)://\(tld.eTLDplus1(referrerHost) ?? referrerHost)/"
+        }
+        
+        if newReferrer == referrerUrl.absoluteString {
+            return nil
         }
         
         return newReferrer

@@ -19,7 +19,7 @@
 
 import XCTest
 import WebKit
-@testable import BrowserServicesKit
+@testable import UserScript
 
 class StaticUserScriptTests: XCTestCase {
     class TestStaticUserScript: NSObject, StaticUserScript {
@@ -40,7 +40,7 @@ class StaticUserScriptTests: XCTestCase {
         let src = "var val = 'Test';\n"
         let us = TestStaticUserScript()
         let script = us.makeWKUserScript()
-        XCTAssertEqual(script.source, src)
+        XCTAssertEqual(script.source, UserScriptTestHelper.getScriptOutput(src))
         XCTAssertEqual(script.injectionTime, .atDocumentEnd)
         XCTAssertEqual(script.isForMainFrameOnly, false)
     }

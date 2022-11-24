@@ -361,7 +361,7 @@ class EmailManagerTests: XCTestCase {
     func testWhenGettingUsername_AndKeychainAccessFails_ThenRequestDelegateIsCalled() {
         let username = "dax"
         let storage = MockEmailManagerStorage()
-        storage.mockError = .keychainAccessFailure(errSecInternalError)
+        storage.mockError = .keychainLookupFailure(errSecInternalError)
         storage.mockUsername = username
         let emailManager = EmailManager(storage: storage)
         
@@ -370,7 +370,7 @@ class EmailManagerTests: XCTestCase {
 
         XCTAssertNil(emailManager.userEmail)
         XCTAssertEqual(requestDelegate.keychainAccessErrorAccessType, .getUsername)
-        XCTAssertEqual(requestDelegate.keychainAccessError, .keychainAccessFailure(errSecInternalError))
+        XCTAssertEqual(requestDelegate.keychainAccessError, .keychainLookupFailure(errSecInternalError))
     }
     
 }

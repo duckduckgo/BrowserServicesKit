@@ -19,18 +19,25 @@
 
 import Foundation
 import TrackerRadarKit
+import Common
 
 public class TrackerResolver {
     
     let tds: TrackerData
     let unprotectedSites: [String]
     let tempList: [String]
+    let tld: TLD
     let adClickAttributionVendor: String?
     
-    public init(tds: TrackerData, unprotectedSites: [String], tempList: [String], adClickAttributionVendor: String? = nil) {
+    public init(tds: TrackerData,
+                unprotectedSites: [String],
+                tempList: [String],
+                tld: TLD,
+                adClickAttributionVendor: String? = nil) {
         self.tds = tds
         self.unprotectedSites = unprotectedSites
         self.tempList = tempList
+        self.tld = tld
         self.adClickAttributionVendor = adClickAttributionVendor
     }
     
@@ -57,6 +64,7 @@ public class TrackerResolver {
         
         if isPageAffiliatedWithTrackerEntity(pageUrlString: pageUrlString, trackerEntity: entity) {
             return DetectedRequest(url: trackerUrlString,
+                                   eTLDplus1: tld.eTLDplus1(forStringURL: trackerUrlString),
                                    knownTracker: tracker,
                                    entity: entity,
                                    state: .allowed(reason: .ownedByFirstParty),
@@ -69,7 +77,12 @@ public class TrackerResolver {
                                                    potentiallyBlocked: potentiallyBlocked,
                                                    pageUrlString: pageUrlString)
 
-        return DetectedRequest(url: trackerUrlString, knownTracker: tracker, entity: entity, state: blockingState, pageUrl: pageUrlString)
+        return DetectedRequest(url: trackerUrlString,
+                               eTLDplus1: tld.eTLDplus1(forStringURL: trackerUrlString),
+                               knownTracker: tracker,
+                               entity: entity,
+                               state: blockingState,
+                               pageUrl: pageUrlString)
     }
     
     private func isPageAffiliatedWithTrackerEntity(pageUrlString: String, trackerEntity: Entity) -> Bool {

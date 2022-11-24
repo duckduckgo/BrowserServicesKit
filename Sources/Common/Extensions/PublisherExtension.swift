@@ -1,6 +1,5 @@
 //
-//  BundleExtension.swift
-//  DuckDuckGo
+//  PublisherExtension.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,24 +17,14 @@
 //
 
 import Foundation
+import Combine
 
-extension Bundle {
+public extension Publisher where Failure == Never {
 
-    enum Keys {
-        static let name = kCFBundleNameKey as String
-        static let identifier = kCFBundleIdentifierKey as String
-        static let buildNumber = kCFBundleVersionKey as String
-        static let versionNumber = "CFBundleShortVersionString"
-        static let displayName = "CFBundleDisplayName"
-    }
-
-    var releaseVersionNumber: String? {
-        return infoDictionary?[Keys.versionNumber] as? String
-    }
-
-    var displayName: String? {
-        object(forInfoDictionaryKey: Keys.displayName) as? String ??
-            object(forInfoDictionaryKey: Keys.name) as? String
+    func assign<T: AnyObject>(to keyPath: ReferenceWritableKeyPath<T, Output>, onWeaklyHeld object: T) -> AnyCancellable {
+        sink { [weak object] value in
+            object?[keyPath: keyPath] = value
+        }
     }
 
 }

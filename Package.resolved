@@ -6,8 +6,8 @@
         "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
         "state": {
           "branch": null,
-          "revision": "430ad3879cc49fbdb3f62bd73e13f2dea58ed1df",
-          "version": "2.4.1"
+          "revision": "a3c693cbc84a7221c56c11af5d2ed27613dc62c0",
+          "version": "3.2.0"
         }
       },
       {
@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
           "branch": null,
-          "revision": "d29c5abc7f473b69f3d81d8a15e137ed3aab029d",
-          "version": "5.0.1"
+          "revision": "7ddea0cc34cc4d2695c1d490fcbb1cb2fde641d6",
+          "version": "5.3.1"
         }
       },
       {
@@ -24,8 +24,8 @@
         "repositoryURL": "https://github.com/duckduckgo/GRDB.swift.git",
         "state": {
           "branch": null,
-          "revision": "f465dd5c0bf590cdb9bee4e96c53b1719ee30730",
-          "version": "1.2.0"
+          "revision": "830ddd161710ed7a80dcbeb4d4b62cf0ae4d8baf",
+          "version": "1.2.1"
         }
       },
       {

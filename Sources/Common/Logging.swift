@@ -22,11 +22,11 @@ import os
 
 extension OSLog {
 
-    static var userScripts: OSLog {
+    public static var userScripts: OSLog {
         Logging.userScriptsEnabled ? Logging.userScriptsLog : .disabled
     }
     
-    static var passwordManager: OSLog {
+    public static var passwordManager: OSLog {
         Logging.passwordManagerEnabled ? Logging.passwordManagerLog : .disabled
     }
 
