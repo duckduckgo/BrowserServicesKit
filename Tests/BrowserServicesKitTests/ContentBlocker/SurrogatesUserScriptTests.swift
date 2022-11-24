@@ -198,6 +198,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
             self.webView = webView
 
             self.schemeHandler.requestHandlers[websiteURL] = { _ in
+                print("REPRESETN \(self.website.htmlRepresentation)")
                 return self.website.htmlRepresentation.data(using: .utf8)!
             }
 
@@ -229,13 +230,22 @@ class SurrogatesUserScriptsTests: XCTestCase {
             XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
             XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.first?.url, self.surrogateScriptURL.absoluteString)
 
-            self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
-                XCTAssertNil(err)
-                if let result = result as? String {
-                    XCTAssertEqual(result, "success")
+            self.webView?.evaluateJavaScript("document.documentElement.outerHTML", completionHandler: { result, error in
+                if let datHtml = result as? String {
+                    print("MY HTML \(datHtml)")
+                    XCTAssertEqual("success", "success")
                     surrogateValidated.fulfill()
+
                 }
-            })
+                })
+                
+//            self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
+//                XCTAssertNil(err)
+//                if let result = result as? String {
+//                    XCTAssertEqual(result, "success")
+//                    surrogateValidated.fulfill()
+//                }
+//            })
 
             let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)

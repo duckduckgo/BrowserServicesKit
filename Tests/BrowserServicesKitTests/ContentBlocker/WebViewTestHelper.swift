@@ -26,6 +26,21 @@ import Common
 
 final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
 
+
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse) async -> WKNavigationResponsePolicy {
+    
+        
+        print("URL \(navigationResponse.response.url) MIME \(navigationResponse.response.mimeType)")
+        print("RESPONSE \(navigationResponse)")
+        return .allow
+    }
+    
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    
+        print("ACTION \(navigationAction.request)")
+        decisionHandler(.allow)
+    }
+    
     var onDidFinishNavigation: (() -> Void)?
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
