@@ -150,15 +150,16 @@ class AutofillVaultUserScriptTests: XCTestCase {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
             override func autofillUserScript(_: AutofillUserScript,
-                                             didRequestCredentialsForAccount accountId: Int64,
-                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+                                             didRequestCredentialsForAccount accountId: String,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
 
                 completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
                                                        domain: "www.domain1.com",
                                                        created: Date(),
                                                        lastUpdated: Date()),
-                                        password: "password".data(using: .utf8)!))
+                                        password: "password".data(using: .utf8)!),
+                                  SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false))
 
             }
 
@@ -195,15 +196,15 @@ class AutofillVaultUserScriptTests: XCTestCase {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
             override func autofillUserScript(_: AutofillUserScript,
-                                             didRequestCredentialsForAccount accountId: Int64,
-                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
-
+                                             didRequestCredentialsForAccount accountId: String,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
                 completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
                                                        domain: "domain1.com",
                                                        created: Date(),
                                                        lastUpdated: Date()),
-                                        password: "password".data(using: .utf8)!))
+                                        password: "password".data(using: .utf8)!),
+                                  SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false))
 
             }
 
