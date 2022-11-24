@@ -72,6 +72,12 @@ extern DDGSyncCryptoResult ddgSyncEncrypt(
     unsigned char *secretKey
 );
 
+/**
+ * @param rawBytes OUT - the decrypted data.  Should be of size specified by encryptedBytesLength - crypto_secretbox_MACBYTES (16 bytes) plus crypto_secretbox_NONCEBYTES (16)
+ * @param encryptedBytes INT - the bytes to decrypt
+ * @param rawBytesLength IN - the length of the data to be decrypted
+ * @param secretKey IN - the secret key (assumed to be of length DDGSYNCCRYPTO_SECRET_KEY_SIZE)
+ */
 extern DDGSyncCryptoResult ddgSyncDecrypt(
     unsigned char *rawBytes,
     unsigned char *encryptedBytes,
