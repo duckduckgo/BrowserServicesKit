@@ -26,15 +26,14 @@ import BrowserServicesKit
 import Common
 
 final class SurrogatesReferenceTests: XCTestCase {
-    let schemeHandler = TestSchemeHandler()
-    var mockWebsite: MockWebsite!
-    let userScriptDelegateMock = MockSurrogatesUserScriptDelegate()
-    let navigationDelegateMock = MockNavigationDelegate()
-    let tld = TLD()
-    var redirectTests = [RefTests.Test]()
-
-    var webView: WKWebView!
-
+    private let schemeHandler = TestSchemeHandler()
+    private var mockWebsite: MockWebsite!
+    private let userScriptDelegateMock = MockSurrogatesUserScriptDelegate()
+    private let navigationDelegateMock = MockNavigationDelegate()
+    private let tld = TLD()
+    private var redirectTests = [RefTests.Test]()
+    private var webView: WKWebView!
+    
     private enum Resource {
         static let trackerRadar = "Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json"
         static let tests = "Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json"
@@ -56,7 +55,7 @@ final class SurrogatesReferenceTests: XCTestCase {
         let trackerData = try JSONDecoder().decode(TrackerData.self, from: trackerRadarJSONData)
         let encodedData = try? JSONEncoder().encode(trackerData)
         let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
-
+        
         let rules = ContentBlockerRulesBuilder(trackerData: trackerData).buildRules(withExceptions: [],
                                                                                     andTemporaryUnprotectedDomains: [])
         
@@ -65,7 +64,7 @@ final class SurrogatesReferenceTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
-
+        
         let platformTests = surrogateTests.filter {
             let skip = $0.exceptPlatforms?.contains("ios-browser")
             return skip == false || skip == nil
@@ -100,7 +99,7 @@ final class SurrogatesReferenceTests: XCTestCase {
         
         let testsExecuted = expectation(description: "tests executed")
         testsExecuted.expectedFulfillmentCount = redirectTests.count
-
+        
         createWebViewForUserScripTests(trackerData: trackerData,
                                        encodedTrackerData: encodedTrackerData,
                                        surrogates: surrogateString,
@@ -121,22 +120,22 @@ final class SurrogatesReferenceTests: XCTestCase {
         }
         
         os_log("TEST: %s", test.name)
-
+        
         let requestURL = URL(string: test.requestURL.testSchemeNormalized)!
         let siteURL = URL(string: test.siteURL.testSchemeNormalized)!
         
         let resource = MockWebsite.EmbeddedResource(type: .script,
                                                     url: requestURL)
-
+        
         mockWebsite = MockWebsite(resources: [resource])
-
+        
         schemeHandler.reset()
         schemeHandler.requestHandlers[siteURL] = { _ in
             return self.mockWebsite.htmlRepresentation.data(using: .utf8)!
         }
-
+        
         let request = URLRequest(url: siteURL)
-
+        
         WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
                                                           WKWebsiteDataTypeMemoryCache,
                                                           WKWebsiteDataTypeOfflineWebApplicationCache],
@@ -146,14 +145,14 @@ final class SurrogatesReferenceTests: XCTestCase {
         })
         
         navigationDelegateMock.onDidFinishNavigation = {
-
+            
             XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
             
             if let request = self.userScriptDelegateMock.detectedSurrogates.first {
                 XCTAssertTrue(request.isBlocked, "Surrogate should block request \(requestURL)")
                 XCTAssertEqual(request.url, requestURL.absoluteString)
             }
-                    
+            
             self.userScriptDelegateMock.reset()
             
             self.webView?.evaluateJavaScript(expectExpression, completionHandler: { result, err in
@@ -179,9 +178,9 @@ final class SurrogatesReferenceTests: XCTestCase {
         
         var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         tempUnprotected.append(contentsOf: privacyConfig.exceptionsList(forFeature: .contentBlocking))
-
+        
         let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: privacyConfig.trackerAllowlist)
-
+        
         WebKitTestHelper.prepareContentBlockingRules(trackerData: trackerData,
                                                      exceptions: privacyConfig.userUnprotectedDomains,
                                                      tempUnprotected: tempUnprotected,
@@ -190,33 +189,33 @@ final class SurrogatesReferenceTests: XCTestCase {
                 XCTFail("Rules were not compiled properly")
                 return
             }
-
+            
             let configuration = WKWebViewConfiguration()
             configuration.setURLSchemeHandler(self.schemeHandler, forURLScheme: self.schemeHandler.scheme)
-
+            
             let webView = WKWebView(frame: .init(origin: .zero, size: .init(width: 500, height: 1000)),
-                                 configuration: configuration)
+                                    configuration: configuration)
             webView.navigationDelegate = self.navigationDelegateMock
-
+            
             let config = TestSchemeSurrogatesUserScriptConfig(privacyConfig: privacyConfig,
                                                               surrogates: surrogates,
                                                               trackerData: trackerData,
                                                               encodedSurrogateTrackerData: encodedTrackerData,
                                                               tld: self.tld,
                                                               isDebugBuild: true)
-
+            
             let userScript = SurrogatesUserScript(configuration: config)
             userScript.delegate = self.userScriptDelegateMock
-
+            
             for messageName in userScript.messageNames {
                 configuration.userContentController.add(userScript, name: messageName)
             }
-
+            
             configuration.userContentController.addUserScript(WKUserScript(source: userScript.source,
                                                                            injectionTime: .atDocumentStart,
                                                                            forMainFrameOnly: false))
             configuration.userContentController.add(rules)
-
+            
             completion(webView)
         }
     }
