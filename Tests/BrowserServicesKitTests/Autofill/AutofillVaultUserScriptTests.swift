@@ -64,13 +64,14 @@ class AutofillVaultUserScriptTests: XCTestCase {
     @available(macOS 11, iOS 14, *)
     func testWhenAccountsForDomainRequested_ThenDelegateCalled() {
         class GetAccountsDelegate: MockSecureVaultDelegate {
+
             override func autofillUserScript(_: AutofillUserScript,
                                              didRequestAccountsForDomain domain: String,
-                                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void) {
+                                             completionHandler: @escaping ([SecureVaultModels.WebsiteAccount], SecureVaultModels.CredentialsProvider) -> Void) {
                 completionHandler([
-                    SecureVaultModels.WebsiteAccount(id: 1, username: "1@example.com", domain: "domain", created: Date(), lastUpdated: Date()),
-                    SecureVaultModels.WebsiteAccount(id: 2, username: "2@example.com", domain: "domain", created: Date(), lastUpdated: Date())
-                ])
+                    SecureVaultModels.WebsiteAccount(id: "1", username: "1@example.com", domain: "domain", created: Date(), lastUpdated: Date()),
+                    SecureVaultModels.WebsiteAccount(id: "2", username: "2@example.com", domain: "domain", created: Date(), lastUpdated: Date())
+                ], SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false))
             }
         }
 
@@ -100,16 +101,15 @@ class AutofillVaultUserScriptTests: XCTestCase {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
             override func autofillUserScript(_: AutofillUserScript,
-                                             didRequestCredentialsForAccount accountId: Int64,
-                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
-
+                                             didRequestCredentialsForAccount accountId: String,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
                 completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
                                                        domain: "",
                                                        created: Date(),
                                                        lastUpdated: Date()),
-                                        password: "password".data(using: .utf8)!))
-
+                                        password: "password".data(using: .utf8)!),
+                                  SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false))
             }
 
         }
@@ -145,15 +145,16 @@ class AutofillVaultUserScriptTests: XCTestCase {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
             override func autofillUserScript(_: AutofillUserScript,
-                                             didRequestCredentialsForAccount accountId: Int64,
-                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+                                             didRequestCredentialsForAccount accountId: String,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
 
                 completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
                                                        domain: "domain1.com",
                                                        created: Date(),
                                                        lastUpdated: Date()),
-                                        password: "password".data(using: .utf8)!))
+                                        password: "password".data(using: .utf8)!),
+                                  SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false))
 
             }
 
@@ -476,23 +477,26 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         receivedCallbacks.append(.didRequestStoreDataForDomain)
     }
 
-    func autofillUserScript(_: AutofillUserScript,
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestAccountsForDomain domain: String,
-                            completionHandler: @escaping ([SecureVaultModels.WebsiteAccount]) -> Void) {
+                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteAccount], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
         lastDomain = domain
         receivedCallbacks.append(.didRequestAccountsForDomain)
     }
 
-    func autofillUserScript(_: AutofillUserScript,
-                            didRequestCredentialsForAccount accountId: Int64,
-                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
+                            didRequestCredentialsForAccount accountId: String,
+                            completionHandler: @escaping (BrowserServicesKit.SecureVaultModels.WebsiteCredentials?, BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
     }
 
-    func autofillUserScript(_: AutofillUserScript,
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
+                            didRequestCredentialsForDomain domain: String,
+                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
+    }
+
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestAutoFillInitDataForDomain domain: String,
-                            completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
-                                                          [SecureVaultModels.Identity],
-                                                          [SecureVaultModels.CreditCard]) -> Void) {
+                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteAccount], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
     }
 
     func autofillUserScript(_: AutofillUserScript,
@@ -505,15 +509,20 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
                             completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
     }
 
-    func autofillUserScript(_ script: AutofillUserScript,
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestCredentialsForDomain: String,
-                            subType: AutofillUserScript.GetAutofillDataSubType,
-                            trigger: AutofillUserScript.GetTriggerType,
-                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, RequestVaultCredentialsAction) -> Void) {
+                            subType: BrowserServicesKit.AutofillUserScript.GetAutofillDataSubType,
+                            trigger: BrowserServicesKit.AutofillUserScript.GetTriggerType,
+                            completionHandler: @escaping (BrowserServicesKit.SecureVaultModels.WebsiteCredentials?, BrowserServicesKit.SecureVaultModels.CredentialsProvider, BrowserServicesKit.RequestVaultCredentialsAction) -> Void) {
         lastSubtype = subType
         receivedCallbacks.append(.didRequestCredentialsForDomain)
+        let provider = SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false)
         
-        completionHandler(nil, .none)
+        completionHandler(nil, provider, .none)
+    }
+
+    func autofillUserScriptDidAskToUnlockCredentialsProvider(_: BrowserServicesKit.AutofillUserScript, andProvideCredentialsForDomain domain: String, completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
+
     }
 }
 

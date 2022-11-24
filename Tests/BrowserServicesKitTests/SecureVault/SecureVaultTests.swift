@@ -78,7 +78,7 @@ class SecureVaultTests: XCTestCase {
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)!
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)!
         
-        let account = SecureVaultModels.WebsiteAccount(id: 1,
+        let account = SecureVaultModels.WebsiteAccount(id: "1",
                                                        title: "Title",
                                                        username: "test@duck.com",
                                                        domain: "example.com",
@@ -160,7 +160,7 @@ class SecureVaultTests: XCTestCase {
 
     func testWhenCredentialsAreRetrievedUsingGeneratedPassword_ThenTheyAreDecrypted() throws {
         let password = "password".data(using: .utf8)!
-        let account = SecureVaultModels.WebsiteAccount(id: 1, username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
+        let account = SecureVaultModels.WebsiteAccount(id: "1", username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password)
         self.mockDatabaseProvider._accounts = [account]
         
@@ -171,7 +171,7 @@ class SecureVaultTests: XCTestCase {
         
         try testVault.storeWebsiteCredentials(credentials)
     
-        let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
+        let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: "1")
         XCTAssertNotNil(fetchedCredentials)
         XCTAssertNotNil(fetchedCredentials?.password)
 
@@ -182,7 +182,7 @@ class SecureVaultTests: XCTestCase {
     func testWhenCredentialsAreRetrievedUsingUserPassword_ThenTheyAreDecrypted() throws {
         let userPassword = "userPassword".data(using: .utf8)!
         let password = "password".data(using: .utf8)!
-        let account = SecureVaultModels.WebsiteAccount(id: 1, username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
+        let account = SecureVaultModels.WebsiteAccount(id: "1", username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password)
         self.mockDatabaseProvider._accounts = [account]
         
@@ -193,7 +193,7 @@ class SecureVaultTests: XCTestCase {
         _ = try testVault.authWith(password: userPassword)
         try testVault.storeWebsiteCredentials(credentials)
 
-        let fetchedCredentials = try testVault.authWith(password: userPassword).websiteCredentialsFor(accountId: 1)
+        let fetchedCredentials = try testVault.authWith(password: userPassword).websiteCredentialsFor(accountId: "1")
 
         XCTAssertNotNil(fetchedCredentials)
         XCTAssertNotNil(fetchedCredentials?.password)
@@ -212,7 +212,7 @@ class SecureVaultTests: XCTestCase {
         sleep(2) // allow vault to expire password
 
         do {
-            _ = try testVault.websiteCredentialsFor(accountId: 1)
+            _ = try testVault.websiteCredentialsFor(accountId: "1")
         } catch {
             if case SecureVaultError.authRequired = error {
                 // no-op
