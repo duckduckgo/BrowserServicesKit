@@ -517,7 +517,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
 
         var body = encryptedMessagingParams
         body["mainType"] = "creditCards" // <- unsupported main type
-        body["subType"] = "username"
+        body["subType"] = "anything_else"
         body["trigger"] = "userInitiated"
 
         let mockWebView = MockWebView()
