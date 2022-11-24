@@ -71,6 +71,10 @@ final class SurrogatesReferenceTests: XCTestCase {
             return skip == false || skip == nil
         }
         
+        /*
+         We need to split redirect tests from the rest
+         redirect surrogates have to be injected in webview and then validated against an expression
+         */
         redirectTests = platformTests.filter {
             $0.expectAction == "redirect"
         }
@@ -112,11 +116,12 @@ final class SurrogatesReferenceTests: XCTestCase {
     private func runTestForRedirect(onTestExecuted: XCTestExpectation) {
         
         guard let test = redirectTests.popLast(),
-              let expectedRedirect = test.expectRedirect else {
+              let expectExpression = test.expectExpression else {
             return
         }
         
-        
+        os_log("TEST: %s", test.name)
+
         let requestURL = URL(string: test.requestURL.testSchemeNormalized)!
         let siteURL = URL(string: test.siteURL.testSchemeNormalized)!
         
@@ -124,16 +129,12 @@ final class SurrogatesReferenceTests: XCTestCase {
                                                     url: requestURL)
 
         mockWebsite = MockWebsite(resources: [resource])
-        print("---------")
-        print("RequestURL: \(requestURL)\nSiteURL: \(siteURL)\nExpectedRedirect: \(expectedRedirect)")
-        print("HTML REPRESENTATION [\(mockWebsite.htmlRepresentation)] -- ")
 
         schemeHandler.reset()
         schemeHandler.requestHandlers[siteURL] = { _ in
             return self.mockWebsite.htmlRepresentation.data(using: .utf8)!
         }
 
-        //os_log("Loading %s ...", siteURL.absoluteString)
         let request = URLRequest(url: siteURL)
 
         WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
@@ -144,41 +145,22 @@ final class SurrogatesReferenceTests: XCTestCase {
             self.webView.load(request)
         })
         
-        /*
-         surrogates.test/tracker application/javascript
-         (() => {
-             'use strict';
-             var surrogatesScriptTest = function() {
-                 function ping() {
-                     return "success"
-                 }
-                 return {
-                     ping: ping
-                 }
-             }()
-             window.surrT = surrogatesScriptTest
-         })();
-
-         */
-
         navigationDelegateMock.onDidFinishNavigation = {
 
             XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
             
-            #warning("this works, which means it's being ran")
             if let request = self.userScriptDelegateMock.detectedSurrogates.first {
-                print("REQUES \(request) ISBLOC \(request.isBlocked)")
+                XCTAssertTrue(request.isBlocked, "Surrogate should block request \(requestURL)")
+                XCTAssertEqual(request.url, requestURL.absoluteString)
             }
                     
             self.userScriptDelegateMock.reset()
             
-            #warning("HTML never displays the (function() {var tracker=true})();")
-            
-            self.webView?.evaluateJavaScript("document.documentElement.outerHTML", completionHandler: { result, err in
+            self.webView?.evaluateJavaScript(expectExpression, completionHandler: { result, err in
                 XCTAssertNil(err)
                 
-                if let result = result as? String {
-                    print("HTML \(result)")
+                if let result = result as? Bool {
+                    XCTAssertTrue(result, "Expression \(expectExpression) should return true")
                     onTestExecuted.fulfill()
                     
                     DispatchQueue.main.async {
@@ -186,32 +168,6 @@ final class SurrogatesReferenceTests: XCTestCase {
                     }
                 }
             })
-            
-            //This Works
-//            self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
-//                XCTAssertNil(err)
-//
-//                if let result = result as? String {
-//                    XCTAssertEqual(result, "success")
-//                    onTestExecuted.fulfill()
-//
-//                    DispatchQueue.main.async {
-//                        self.runTestForRedirect(onTestExecuted: onTestExecuted)
-//                    }
-//                }
-//            })
-            
-//            self.webView.evaluateJavaScript("tracker === true", completionHandler: { result, error in
-//                if let datHtml = result as? String {
-//                    print("MY HTML \(datHtml)")
-//                    print("EXPECTED \(expectedRedirect)")
-//                    onTestExecuted.fulfill()
-//
-//                    DispatchQueue.main.async {
-//                        self.runTestForRedirect(onTestExecuted: onTestExecuted)
-//                    }
-//                }
-//            })
         }
     }
     

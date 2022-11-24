@@ -30,7 +30,7 @@ struct RefTests: Decodable {
         let siteURL: String
         let requestURL: String
         let requestType: String
-        let expectAction, expectRedirect: String?
+        let expectAction, expectRedirect, expectExpression: String?
         let exceptPlatforms: [String]?
         
     }
