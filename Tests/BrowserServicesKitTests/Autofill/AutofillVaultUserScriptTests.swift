@@ -28,8 +28,10 @@ import UserScript
 // swiftlint:disable file_length
 
 class AutofillVaultUserScriptTests: XCTestCase {
-    
-    let userScript: AutofillUserScript = {
+
+    lazy var hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()
+
+    lazy var userScript: AutofillUserScript = {
         let embeddedConfig =
         """
         {
@@ -46,8 +48,9 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
                                                            properties: properties)
-        return AutofillUserScript(scriptSourceProvider: sourceProvider)
+        return AutofillUserScript(scriptSourceProvider: sourceProvider, hostProvider: hostProvider)
     }()
+
     let userContentController = WKUserContentController()
 
     var encryptedMessagingParams: [String: Any] {
@@ -97,7 +100,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
    }
 
     @available(macOS 11, iOS 14, *)
-    func testWhenCredentialForAccountRequested_ThenDelegateCalled() {
+    func testWhenCredentialForAccountRequestedFromMatchingDomain_ThenDelegateCalled() {
         class GetCredentialsDelegate: MockSecureVaultDelegate {
 
             override func autofillUserScript(_: AutofillUserScript,
@@ -105,7 +108,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
                                              completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
                 completionHandler(.init(account: .init(id: accountId,
                                                        username: "1@example.com",
-                                                       domain: "",
+                                                       domain: "domain1.com",
                                                        created: Date(),
                                                        lastUpdated: Date()),
                                         password: "password".data(using: .utf8)!),
@@ -115,6 +118,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
         }
 
         let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
+
+        hostProvider = MockHostProvider(host: "domain1.com")
 
         let delegate = GetCredentialsDelegate()
         userScript.vaultDelegate = delegate
@@ -133,6 +138,96 @@ class AutofillVaultUserScriptTests: XCTestCase {
             let data = ($0 as? String)?.data(using: .utf8)
             let response = try? JSONDecoder().decode(AutofillUserScript.RequestVaultCredentialsForAccountResponse.self, from: data!)
             XCTAssertEqual(Int64(response!.success.id), Int64(randomAccountId))
+
+            expect.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+    }
+
+    @available(macOS 11, iOS 14, *)
+    func testWhenCredentialForAccountRequestedAndRequestedDomainMatchesAfterRemovingWWWFromStoredDomainPrefix_ThenCredentialsReturned() {
+        class GetCredentialsDelegate: MockSecureVaultDelegate {
+
+            override func autofillUserScript(_: AutofillUserScript,
+                                             didRequestCredentialsForAccount accountId: Int64,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+
+                completionHandler(.init(account: .init(id: accountId,
+                                                       username: "1@example.com",
+                                                       domain: "www.domain1.com",
+                                                       created: Date(),
+                                                       lastUpdated: Date()),
+                                        password: "password".data(using: .utf8)!))
+
+            }
+
+        }
+
+        let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
+
+        hostProvider = MockHostProvider(host: "domain1.com")
+
+        let delegate = GetCredentialsDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["id"] = "\(randomAccountId)"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials",
+                                          body: body,
+                                          webView: mockWebView)
+
+        let expect = expectation(description: #function)
+        userScript.userContentController(userContentController, didReceive: message) {
+            XCTAssertNotEqual($0 as? String, "{}")
+            XCTAssertNil($1)
+
+            expect.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+    }
+
+    @available(macOS 11, iOS 14, *)
+    func testWhenCredentialForAccountRequestedAndRequestedDomainMatchesAfterRemovingWWWPrefixFromProvidedDomain_ThenCredentialsReturned() {
+        class GetCredentialsDelegate: MockSecureVaultDelegate {
+
+            override func autofillUserScript(_: AutofillUserScript,
+                                             didRequestCredentialsForAccount accountId: Int64,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?) -> Void) {
+
+                completionHandler(.init(account: .init(id: accountId,
+                                                       username: "1@example.com",
+                                                       domain: "domain1.com",
+                                                       created: Date(),
+                                                       lastUpdated: Date()),
+                                        password: "password".data(using: .utf8)!))
+
+            }
+
+        }
+
+        let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
+
+        hostProvider = MockHostProvider(host: "www.domain1.com")
+        
+        let delegate = GetCredentialsDelegate()
+        userScript.vaultDelegate = delegate
+
+        var body = encryptedMessagingParams
+        body["id"] = "\(randomAccountId)"
+
+        let mockWebView = MockWebView()
+        let message = MockWKScriptMessage(name: "pmHandlerGetAutofillCredentials",
+                                          body: body,
+                                          webView: mockWebView)
+
+        let expect = expectation(description: #function)
+        userScript.userContentController(userContentController, didReceive: message) {
+            XCTAssertNotEqual($0 as? String, "{}")
+            XCTAssertNil($1)
 
             expect.fulfill()
         }
@@ -532,6 +627,15 @@ struct NoneEncryptingEncrypter: UserScriptEncrypter {
         return (reply.data(using: .utf8)!, Data())
     }
 
+}
+
+struct MockHostProvider: UserScriptHostProvider {
+
+    let host: String
+
+    func hostForMessage(_ message: UserScriptMessage) -> String {
+        return host
+    }
 }
 
 // swiftlint:enable type_body_length

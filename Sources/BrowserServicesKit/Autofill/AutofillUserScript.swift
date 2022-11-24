@@ -155,7 +155,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: UserScriptEncrypter = AESGCMUserScriptEncrypter(),
-         hostProvider: SecurityOriginHostProvider = SecurityOriginHostProvider()) {
+         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()) {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter

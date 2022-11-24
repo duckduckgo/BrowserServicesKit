@@ -13,7 +13,8 @@ let package = Package(
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "UserScript", targets: ["UserScript"]),
-        .library(name: "Common", targets: ["Common"])
+        .library(name: "Common", targets: ["Common"]),
+        .library(name: "Crashes", targets: ["Crashes"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .revision("b2c8ce84c19ae61ef2f32305687149a2471b056c")),
@@ -53,6 +54,9 @@ let package = Package(
             ]),
         .target(
             name: "UserScript"
+        ),
+        .target(
+            name: "Crashes"
         ),
         .target(
             name: "Common",

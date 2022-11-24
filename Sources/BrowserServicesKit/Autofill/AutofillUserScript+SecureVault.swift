@@ -500,7 +500,8 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: id) { credentials, credentialsProvider in
             guard let credential = credentials,
                   let id = credential.account.id,
-                  let password = String(data: credential.password, encoding: .utf8) else {
+                  let password = String(data: credential.password, encoding: .utf8),
+                  credential.account.domain.droppingWwwPrefix() == requestingDomain.droppingWwwPrefix() else {
                 replyHandler("{}")
                 return
             }
