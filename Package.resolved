@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "BloomFilter",
+        "repositoryURL": "https://github.com/duckduckgo/bloom_cpp.git",
+        "state": {
+          "branch": null,
+          "revision": "14b66a24a6c185d949e78b86b3ea51ad5c7cb51f",
+          "version": null
+        }
+      },
+      {
         "package": "ContentScopeScripts",
         "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
         "state": {
