@@ -17,6 +17,7 @@
 //
 
 import WebKit
+import Common
 
 public struct LinkProtection {
     

@@ -19,6 +19,7 @@
 
 import Foundation
 import WebKit
+import Common
 
 public class AMPCanonicalExtractor: NSObject {
 
