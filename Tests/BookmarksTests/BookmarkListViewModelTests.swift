@@ -48,7 +48,7 @@ class BookmarkListViewModelTests: XCTestCase {
 
     func testWhenFolderIsSetThenBookmarksFetchedFromThatLocation() {
         
-        let viewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                               parentID: nil)
         XCTAssertEqual(viewModel.currentFolder, BookmarkUtils.fetchRootFolder(viewModel.context))
         let result = viewModel.bookmarks
@@ -58,7 +58,7 @@ class BookmarkListViewModelTests: XCTestCase {
         let names = result.map { $0.title }
         XCTAssertEqual(names, BasicBookmarksStructure.topLevelTitles)
         
-        let nestedViewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let nestedViewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                                     parentID: result[1].objectID)
         XCTAssertEqual(nestedViewModel.currentFolder?.objectID, result[1].objectID)
         
@@ -70,7 +70,7 @@ class BookmarkListViewModelTests: XCTestCase {
         
     func testWhenDeletingABookmarkItIsRemoved() {
         
-        let viewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                               parentID: nil)
         let result = viewModel.bookmarks
         let idSet = Set(result.map { $0.objectID })
@@ -80,7 +80,7 @@ class BookmarkListViewModelTests: XCTestCase {
         
         viewModel.deleteBookmark(bookmark)
         
-        let newViewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let newViewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                                parentID: nil)
         let newResult = newViewModel.bookmarks
         let newIdSet = Set(newResult.map { $0.objectID })
@@ -93,7 +93,7 @@ class BookmarkListViewModelTests: XCTestCase {
     
     func testWhenDeletingABookmarkFolderItIsRemovedWithContents() {
         
-        let viewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                               parentID: nil)
         let result = viewModel.bookmarks
         let idSet = Set(result.map { $0.objectID })
@@ -106,7 +106,7 @@ class BookmarkListViewModelTests: XCTestCase {
         
         viewModel.deleteBookmark(folder)
         
-        let newViewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let newViewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                                parentID: nil)
         let newResult = newViewModel.bookmarks
         let newIdSet = Set(newResult.map { $0.objectID })
@@ -120,7 +120,7 @@ class BookmarkListViewModelTests: XCTestCase {
     
     func testWhenMovingBookmarkItGoesToNewPosition() {
         
-        let viewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                               parentID: nil)
         let result = viewModel.bookmarks
         
@@ -131,7 +131,7 @@ class BookmarkListViewModelTests: XCTestCase {
                                fromIndex: 0,
                                toIndex: 1)
         
-        let newViewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let newViewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                                parentID: nil)
         let newResult = newViewModel.bookmarks
         let newFirst = newResult[0]
@@ -144,7 +144,7 @@ class BookmarkListViewModelTests: XCTestCase {
     
     func testWhenUsingWrongIndexesNothingHappens() {
         
-        let viewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
                                               parentID: nil)
         let result = viewModel.bookmarks
         
@@ -166,8 +166,8 @@ class BookmarkListViewModelTests: XCTestCase {
                                fromIndex: 0,
                                toIndex: 10)
         
-        let newViewModel = BookmarkListViewModel(bookmarksDatabaseStack: db,
-                                               parentID: nil)
+        let newViewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                                 parentID: nil)
         let newResult = newViewModel.bookmarks
         let newFirst = newResult[0]
         let newSecond = newResult[1]

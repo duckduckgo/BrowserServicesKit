@@ -18,6 +18,7 @@
 
 import Foundation
 import Combine
+import Common
 import CoreData
 import Persistence
 
@@ -32,10 +33,14 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
     
-    public init(bookmarksDatabaseStack: CoreDataDatabase, parentID: NSManagedObjectID?) {
+    private let errorEvents: EventMapping<BookmarksModelError>?
+    
+    public init(bookmarksDatabase: CoreDataDatabase,
+                parentID: NSManagedObjectID?,
+                errorEvents: EventMapping<BookmarksModelError>? = nil) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
-        
-        self.context = bookmarksDatabaseStack.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.errorEvents = errorEvents
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         if let parentID = parentID {
             self.currentFolder = context.object(with: parentID) as? BookmarkEntity
@@ -43,8 +48,8 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             self.currentFolder = BookmarkUtils.fetchRootFolder(context)
         }
 
-        guard (currentFolder?.isFolder ?? true) else {
-            fatalError("Folder expected")
+        if !(currentFolder?.isFolder ?? true) {
+            errorEvents?.fire(.bookmarkFolderExpected)
         }
 
         self.bookmarks = fetchBookmarksInFolder(currentFolder)
@@ -83,14 +88,21 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        guard let parentFolder = bookmark.parent,
-              let children = parentFolder.children,
+        guard let parentFolder = bookmark.parent else {
+            errorEvents?.fire(.missingParent(.bookmark))
+            return
+        }
+        
+        guard let children = parentFolder.children,
               fromIndex < children.count,
-              toIndex < children.count,
-              let actualBookmark = children[fromIndex] as? BookmarkEntity,
+              toIndex < children.count else {
+            errorEvents?.fire(.indexOutOfRange(.bookmarks))
+            return
+        }
+        
+        guard let actualBookmark = children[fromIndex] as? BookmarkEntity,
               actualBookmark == bookmark else {
-            // ToDo: Pixel
-            bookmarks = []
+            errorEvents?.fire(.bookmarksListIndexNotMatchingBookmark)
             return
         }
 
@@ -104,8 +116,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public func deleteBookmark(_ bookmark: BookmarkEntity) {
         guard let parentFolder = bookmark.parent else {
-            // ToDo: Pixel
-            bookmarks = []
+            errorEvents?.fire(.missingParent(.bookmark))
             return
         }
 
@@ -125,7 +136,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             try context.save()
         } catch {
             context.rollback()
-            #warning("Handle this")
+            errorEvents?.fire(.saveFailed(.bookmarks))
         }
     }
     
@@ -144,11 +155,10 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     private func fetchBookmarksInRootFolder() -> [BookmarkEntity] {
         guard let root = BookmarkUtils.fetchRootFolder(context) else {
-            // Todo: error
+            errorEvents?.fire(.fetchingRootItemFailed(.bookmarks))
             return []
         }
         
-        // Todo: handle orphaned objects - here and in methods below
         return root.childrenArray
     }
 

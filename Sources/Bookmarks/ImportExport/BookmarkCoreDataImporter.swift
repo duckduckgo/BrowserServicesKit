@@ -36,7 +36,7 @@ public class BookmarkCoreDataImporter {
                 do {
                     guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context),
                     let topLevelFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
-                        throw BookmarksCoreDataStorageError.fetchingExistingItemFailed
+                        throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
                     
                     try recursivelyCreateEntities(from: bookmarks,

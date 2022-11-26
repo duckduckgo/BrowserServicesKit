@@ -18,6 +18,33 @@
 
 import Foundation
 
-public enum BookmarksCoreDataStorageError: Error {
+public enum BookmarksCoreDataError: Error {
     case fetchingExistingItemFailed
+}
+
+public enum BookmarksModelError: Error {
+    
+    public enum ObjectType {
+        case favorite
+        case bookmark
+    }
+    
+    public enum ModelType {
+        case favorites
+        case bookmarks
+        case menu
+        case edit
+    }
+    
+    case fetchingRootItemFailed(ModelType)
+    case saveFailed(ModelType)
+    case indexOutOfRange(ModelType)
+    
+    case missingParent(ObjectType)
+    
+    case bookmarkFolderExpected
+    case bookmarksListIndexNotMatchingBookmark
+    case favoritesListIndexNotMatchingBookmark
+    
+    case editorNewParentMissing
 }

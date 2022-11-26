@@ -20,14 +20,14 @@ import Foundation
 import Combine
 import CoreData
 import Persistence
+import Common
 
 public class BookmarkEditorViewModel: ObservableObject {
 
     public struct Location {
 
-        public let bookmark: BookmarkEntity?
+        public let bookmark: BookmarkEntity
         public let depth: Int
-
     }
 
     let context: NSManagedObjectContext
@@ -39,6 +39,8 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
+    
+    private let errorEvents: EventMapping<BookmarksModelError>?
 
     public var canSave: Bool {
         let titleOK = bookmark.title?.trimmingWhitespace().count ?? 0 > 0
@@ -54,16 +56,19 @@ public class BookmarkEditorViewModel: ObservableObject {
         bookmark.isInserted
     }
 
-    public init(bookmarksDatabaseStack: CoreDataDatabase,
+    public init(bookmarksDatabase: CoreDataDatabase,
                 editingEntityID: NSManagedObjectID?,
-                parentFolderID: NSManagedObjectID?) {
+                parentFolderID: NSManagedObjectID?,
+                errorEvents: EventMapping<BookmarksModelError>? = nil) {
         
         externalUpdates = subject.eraseToAnyPublisher()
-        self.context = bookmarksDatabaseStack.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.errorEvents = errorEvents
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         let editingEntity: BookmarkEntity
         if let editingEntityID = editingEntityID {
             guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
+                // For sync, this is valid scenario in case of a timing issue
                 fatalError("Failed to load entity when expected")
             }
             editingEntity = entity
@@ -103,7 +108,11 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func refresh() {
-        let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+        guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
+            errorEvents?.fire(.fetchingRootItemFailed(.edit))
+            locations = []
+            return
+        }
         var locations = [Location(bookmark: rootFolder, depth: 0)]
 
         func descendInto(_ folders: [BookmarkEntity], depth: Int) {
@@ -123,8 +132,11 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func selectLocationAtIndex(_ index: Int) {
-        guard locations.indices.contains(index) else { return }
-        guard let newParent = locations[index].bookmark else { return }
+        guard locations.indices.contains(index) else {
+            errorEvents?.fire(.indexOutOfRange(.edit))
+            return
+        }
+        let newParent = locations[index].bookmark
         bookmark.parent = newParent
         refresh()
     }
@@ -144,8 +156,8 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func setParentWithID(_ parentID: NSManagedObjectID) {
-        guard let parent = context.object(with: parentID) as? BookmarkEntity else {
-            assertionFailure("Failed to load object")
+        guard let parent = (try? context.existingObject(with: parentID)) as? BookmarkEntity else {
+            errorEvents?.fire(.editorNewParentMissing)
             return
         }
         bookmark.parent = parent
@@ -155,7 +167,7 @@ public class BookmarkEditorViewModel: ObservableObject {
         do {
             try context.save()
         } catch {
-            assertionFailure("\(error)")
+            errorEvents?.fire(.saveFailed(.edit))
         }
     }
 }

@@ -44,7 +44,7 @@ class FavoriteListViewModelTests: XCTestCase {
         
         BasicBookmarksStructure.populateDB(context: mainContext)
         
-        let viewModel = FavoritesListViewModel(dbProvider: db)
+        let viewModel = FavoritesListViewModel(bookmarksDatabase: db)
         
         let result = viewModel.favorites
         

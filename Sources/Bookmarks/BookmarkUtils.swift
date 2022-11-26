@@ -27,11 +27,7 @@ public struct BookmarkUtils {
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         
-        do {
-            return try context.fetch(request).first
-        } catch {
-            fatalError("Could not fetch Bookmarks")
-        }
+        return try? context.fetch(request).first
     }
     
     public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
@@ -40,11 +36,7 @@ public struct BookmarkUtils {
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         
-        do {
-            return try context.fetch(request).first
-        } catch {
-            fatalError("Could not fetch Bookmarks")
-        }
+        return try? context.fetch(request).first
     }
     
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) throws {
@@ -72,10 +64,6 @@ public struct BookmarkUtils {
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         
-        do {
-            return try context.fetch(request).first
-        } catch {
-            fatalError("Could not fetch Bookmark")
-        }
+        return try? context.fetch(request).first
     }
 }

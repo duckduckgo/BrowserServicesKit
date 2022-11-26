@@ -18,16 +18,43 @@
 
 import Foundation
 import CoreData
+import Common
+import Persistence
 
 public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     let context: NSManagedObjectContext
     
-    lazy var rootFolder: BookmarkEntity! = BookmarkUtils.fetchRootFolder(context)
-    lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(context)
+    private var _rootFolder: BookmarkEntity?
+    private var rootFolder: BookmarkEntity? {
+        if _rootFolder == nil {
+            _rootFolder = BookmarkUtils.fetchRootFolder(context)
+            
+            if _rootFolder == nil {
+                errorEvents?.fire(.fetchingRootItemFailed(.menu))
+            }
+        }
+        return _rootFolder
+    }
     
-    public init(viewContext: NSManagedObjectContext) {
-        self.context = viewContext
+    private var _favoritesFolder: BookmarkEntity?
+    private var favoritesFolder: BookmarkEntity?{
+        if _favoritesFolder == nil {
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)
+            
+            if _favoritesFolder == nil {
+                errorEvents?.fire(.fetchingRootItemFailed(.menu))
+            }
+        }
+        return _favoritesFolder
+    }
+    
+    private let errorEvents: EventMapping<BookmarksModelError>?
+    
+    public init(bookmarksDatabase: CoreDataDatabase,
+                errorEvents: EventMapping<BookmarksModelError>? = nil) {
+        self.errorEvents = errorEvents
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         registerForChanges()
     }
 
@@ -47,12 +74,17 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         do {
             try context.save()
         } catch {
-            // ToDo: Error
             context.rollback()
+            errorEvents?.fire(.saveFailed(.menu))
         }
     }
     
     public func createOrToggleFavorite(title: String, url: URL) {
+        guard let favoritesFolder = favoritesFolder,
+              let rootFolder = rootFolder else {
+            return
+        }
+        
         if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
             if bookmark.isFavorite {
                 bookmark.removeFromFavorites()
@@ -71,6 +103,9 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     }
     
     public func createBookmark(title: String, url: URL) {
+        guard let rootFolder = rootFolder else {
+            return
+        }
         _ = BookmarkEntity.makeBookmark(title: title,
                                         url: url.absoluteString,
                                         parent: rootFolder,

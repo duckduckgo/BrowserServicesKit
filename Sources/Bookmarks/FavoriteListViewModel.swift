@@ -21,6 +21,7 @@ import Foundation
 import Combine
 import CoreData
 import Persistence
+import Common
 
 public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject {
     
@@ -30,11 +31,15 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
+    
+    private let errorEvents: EventMapping<BookmarksModelError>?
 
-    public init(dbProvider: CoreDataDatabase) {
+    public init(bookmarksDatabase: CoreDataDatabase,
+                errorEvents: EventMapping<BookmarksModelError>? = nil) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
+        self.errorEvents = errorEvents
         
-        self.context = dbProvider.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         refresh()
         registerForChanges()
     }
@@ -55,7 +60,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     
     private func refresh() {
         guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
-            // Todo: error
+            errorEvents?.fire(.fetchingRootItemFailed(.favorites))
             favorites = []
             return
         }
@@ -64,27 +69,23 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     }
 
     public func favorite(at index: Int) -> BookmarkEntity? {
-        guard favorites.indices.contains(index) else { return nil }
+        guard favorites.indices.contains(index) else {
+            errorEvents?.fire(.indexOutOfRange(.favorites))
+            return nil
+        }
         
         return favorites[index]
     }
 
     public func removeFavorite(_ favorite: BookmarkEntity) {
         guard let favoriteFolder = favorite.favoriteFolder else {
-            // ToDo: Pixel
-            favorites = []
+            errorEvents?.fire(.missingParent(.favorite))
             return
         }
 
         favorite.removeFromFavorites()
 
-        do {
-            try context.save()
-        } catch {
-            context.rollback()
-            // ToDo: Pixel
-            #warning("error")
-        }
+        save()
         
         favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
@@ -93,23 +94,39 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
                              fromIndex: Int,
                              toIndex: Int) {
         guard let favoriteFolder = favorite.favoriteFolder else {
-            // ToDo: Pixel
-            favorites = []
+            errorEvents?.fire(.missingParent(.favorite))
             return
         }
         
+        guard let children = favoriteFolder.favorites,
+              fromIndex < children.count,
+              toIndex < children.count else {
+            errorEvents?.fire(.indexOutOfRange(.favorites))
+            return
+        }
+        
+        guard let actualFavorite = children[fromIndex] as? BookmarkEntity,
+              actualFavorite == favorite else {
+            errorEvents?.fire(.favoritesListIndexNotMatchingBookmark)
+            return
+        }
+        
+        let mutableChildrenSet = favoriteFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.favorites))
+        
+        mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
+        
+        save()
+        
+        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+    }
+    
+    private func save() {
         do {
-            let mutableChildrenSet = favoriteFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.favorites))
-            
-            mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
-            
             try context.save()
         } catch {
             context.rollback()
-            // ToDo: error with toast?
+            errorEvents?.fire(.saveFailed(.favorites))
         }
-        
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
     }
 
 }
