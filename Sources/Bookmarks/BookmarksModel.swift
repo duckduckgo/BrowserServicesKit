@@ -67,15 +67,4 @@ public protocol MenuBookmarksInteracting {
     func removeBookmark(for url: URL)
     
     func bookmark(for url: URL) -> BookmarkEntity?
-
 }
-
-public protocol EditBookmarkInteracting: BookmarkStoring {
-
-    func fetchFolders() -> [BookmarkEntity]
-
-    func save() throws
-
-}
-
-

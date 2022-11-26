@@ -22,14 +22,14 @@ public enum BookmarksCoreDataError: Error {
     case fetchingExistingItemFailed
 }
 
-public enum BookmarksModelError: Error {
+public enum BookmarksModelError: Error, Equatable {
     
-    public enum ObjectType {
+    public enum ObjectType: Equatable {
         case favorite
         case bookmark
     }
     
-    public enum ModelType {
+    public enum ModelType: Equatable {
         case favorites
         case bookmarks
         case menu
@@ -43,6 +43,7 @@ public enum BookmarksModelError: Error {
     case missingParent(ObjectType)
     
     case bookmarkFolderExpected
+    case bookmarksListMissingFolder
     case bookmarksListIndexNotMatchingBookmark
     case favoritesListIndexNotMatchingBookmark
     

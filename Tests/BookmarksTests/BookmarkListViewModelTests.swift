@@ -142,10 +142,24 @@ class BookmarkListViewModelTests: XCTestCase {
         XCTAssertEqual(result.count, newResult.count)
     }
     
+    // MARK: Errors
+    
     func testWhenUsingWrongIndexesNothingHappens() {
         
+        var expectedEvents: [BookmarksModelError] = [.bookmarksListIndexNotMatchingBookmark,
+                                                     .indexOutOfRange(.bookmarks),
+                                                     .indexOutOfRange(.bookmarks)].reversed()
+        
+        let expectation = expectation(description: "Errors reported")
+        expectation.expectedFulfillmentCount = 3
         let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
-                                              parentID: nil)
+                                              parentID: nil,
+                                              errorEvents: .init(mapping: { event, error, params, onComplete in
+            let expectedEvent = expectedEvents.popLast()
+            XCTAssertEqual(event, expectedEvent)
+            expectation.fulfill()
+        }))
+                                              
         let result = viewModel.bookmarks
         
         let first = result[0]
@@ -175,5 +189,57 @@ class BookmarkListViewModelTests: XCTestCase {
         XCTAssertEqual(first.objectID, newFirst.objectID)
         XCTAssertEqual(second.objectID, newSecond.objectID)
         XCTAssertEqual(result.count, newResult.count)
+        
+        waitForExpectations(timeout: 1)
+    }
+    
+    func testWhenFolderIsNotAFolderThenErrorIsReported() {
+        
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                              parentID: nil)
+
+        let result = viewModel.bookmarks
+        let bookmark = result[0]
+        XCTAssertFalse(bookmark.isFolder)
+        
+        let errorReported = expectation(description: "Error reported")
+        let brokenViewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                                    parentID: bookmark.objectID,
+                                                    errorEvents: .init(mapping: { event, _, _, _ in
+            errorReported.fulfill()
+            XCTAssertEqual(event, .bookmarkFolderExpected)
+        }))
+        
+        XCTAssertEqual(brokenViewModel.bookmarks.map { $0.objectID } , viewModel.bookmarks.map { $0.objectID })
+        
+        waitForExpectations(timeout: 1)
+    }
+    
+    func testWhenFolderIsMissingThenErrorIsReported() {
+        
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                              parentID: nil)
+
+        let result = viewModel.bookmarks
+        let bookmark = result[0]
+        XCTAssertFalse(bookmark.isFolder)
+        
+        // Create local object:
+        let context = db.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        let tmpFolder = BookmarkEntity.makeFolder(title: "tmp",
+                                                  parent: BookmarkUtils.fetchRootFolder(context)!,
+                                                  context: context)
+        
+        let errorReported = expectation(description: "Error reported")
+        let brokenViewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                                    parentID: tmpFolder.objectID,
+                                                    errorEvents: .init(mapping: { event, _, _, _ in
+            errorReported.fulfill()
+            XCTAssertEqual(event, .bookmarksListMissingFolder)
+        }))
+        
+        XCTAssertEqual(brokenViewModel.bookmarks.map { $0.objectID } , viewModel.bookmarks.map { $0.objectID })
+        
+        waitForExpectations(timeout: 1)
     }
 }

@@ -43,13 +43,20 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
         if let parentID = parentID {
-            self.currentFolder = context.object(with: parentID) as? BookmarkEntity
+            if let bookmark = (try? context.existingObject(with: parentID)) as? BookmarkEntity {
+                if bookmark.isFolder {
+                    self.currentFolder = bookmark
+                } else {
+                    errorEvents?.fire(.bookmarkFolderExpected)
+                    self.currentFolder = BookmarkUtils.fetchRootFolder(context)
+                }
+            } else {
+                // This is possible with Sync and specific timing.
+                errorEvents?.fire(.bookmarksListMissingFolder)
+                self.currentFolder = BookmarkUtils.fetchRootFolder(context)
+            }
         } else {
             self.currentFolder = BookmarkUtils.fetchRootFolder(context)
-        }
-
-        if !(currentFolder?.isFolder ?? true) {
-            errorEvents?.fire(.bookmarkFolderExpected)
         }
 
         self.bookmarks = fetchBookmarksInFolder(currentFolder)

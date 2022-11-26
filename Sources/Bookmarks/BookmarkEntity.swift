@@ -47,6 +47,11 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
     
+    public convenience init(context moc: NSManagedObjectContext) {
+        self.init(entity: BookmarkEntity.entity(in: moc),
+                  insertInto: moc)
+    }
+    
     public override func awakeFromInsert() {
         super.awakeFromInsert()
         
