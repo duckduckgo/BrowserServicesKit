@@ -242,4 +242,20 @@ class BookmarkListViewModelTests: XCTestCase {
         
         waitForExpectations(timeout: 1)
     }
+    
+    func testWhenRootIsMissingThenErrorIsReported() throws {
+        let context = db.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        context.deleteAll(entityDescriptions: [BookmarkEntity.entity(in: context)])
+        try context.save()
+        
+        let expectation = expectation(description: "Error reported")
+        _ = BookmarkListViewModel(bookmarksDatabase: db,
+                                  parentID: nil,
+                                  errorEvents: .init(mapping: { event, _, _, _ in
+            XCTAssertEqual(event, .fetchingRootItemFailed(.bookmarks))
+            expectation.fulfill()
+        }))
+        
+        waitForExpectations(timeout: 1)
+    }
 }
