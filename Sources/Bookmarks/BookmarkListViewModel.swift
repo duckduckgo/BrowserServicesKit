@@ -37,7 +37,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     
     public init(bookmarksDatabase: CoreDataDatabase,
                 parentID: NSManagedObjectID?,
-                errorEvents: EventMapping<BookmarksModelError>? = nil) {
+                errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)

@@ -58,7 +58,7 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public init(editingEntityID: NSManagedObjectID,
                 bookmarksDatabase: CoreDataDatabase,
-                errorEvents: EventMapping<BookmarksModelError>? = nil) {
+                errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
@@ -76,7 +76,7 @@ public class BookmarkEditorViewModel: ObservableObject {
     
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
-                errorEvents: EventMapping<BookmarksModelError>? = nil) {
+                errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents

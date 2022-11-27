@@ -21,6 +21,16 @@ import XCTest
 @testable import Bookmarks
 import Persistence
 
+fileprivate extension MenuBookmarksViewModel {
+    
+    convenience init(bookmarksDatabase: CoreDataDatabase) {
+        self.init(bookmarksDatabase: bookmarksDatabase,
+                  errorEvents: .init(mapping: { event, _, _, _ in
+            XCTFail("Unexpected error: \(event)")
+        }))
+    }
+}
+
 class MenuBookmarksViewModelTests: XCTestCase {
     
     let url = URL(string: "https://test.com")!

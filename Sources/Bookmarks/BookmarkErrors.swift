@@ -24,12 +24,12 @@ public enum BookmarksCoreDataError: Error {
 
 public enum BookmarksModelError: Error, Equatable {
     
-    public enum ObjectType: Equatable {
+    public enum ObjectType: String {
         case favorite
         case bookmark
     }
     
-    public enum ModelType: Equatable {
+    public enum ModelType: String {
         case favorites
         case bookmarks
         case menu

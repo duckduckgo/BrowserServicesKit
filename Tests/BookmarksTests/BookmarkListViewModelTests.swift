@@ -23,6 +23,18 @@ import Persistence
 @testable import Bookmarks
 import BrowserServicesKit
 
+fileprivate extension BookmarkListViewModel {
+    
+    convenience init(bookmarksDatabase: CoreDataDatabase,
+                     parentID: NSManagedObjectID?) {
+        self.init(bookmarksDatabase: bookmarksDatabase,
+                  parentID: parentID,
+                  errorEvents: .init(mapping: { event, _, _, _ in
+            XCTFail("Unexpected error: \(event)")
+        }))
+    }
+}
+
 class BookmarkListViewModelTests: XCTestCase {
     
     var db: CoreDataDatabase!

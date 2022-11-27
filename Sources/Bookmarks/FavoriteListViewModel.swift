@@ -35,7 +35,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     private let errorEvents: EventMapping<BookmarksModelError>?
 
     public init(bookmarksDatabase: CoreDataDatabase,
-                errorEvents: EventMapping<BookmarksModelError>? = nil) {
+                errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         
