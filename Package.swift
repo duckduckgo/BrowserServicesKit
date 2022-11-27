@@ -54,7 +54,8 @@ let package = Package(
         .target(
             name: "Bookmarks",
             dependencies: [
-                "Persistence"
+                "Persistence",
+                "Common"
             ],
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
@@ -116,8 +117,13 @@ let package = Package(
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
-                "Bookmarks",
-                "BrowserServicesKit"
+                "Bookmarks"
+            ]
+        ),
+        .testTarget(
+            name: "PersistenceTests",
+            dependencies: [
+                "Persistence"
             ]
         )
     ],
