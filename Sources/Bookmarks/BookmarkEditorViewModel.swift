@@ -56,38 +56,44 @@ public class BookmarkEditorViewModel: ObservableObject {
         bookmark.isInserted
     }
 
-    public init(bookmarksDatabase: CoreDataDatabase,
-                editingEntityID: NSManagedObjectID?,
-                parentFolderID: NSManagedObjectID?,
+    public init(editingEntityID: NSManagedObjectID,
+                bookmarksDatabase: CoreDataDatabase,
                 errorEvents: EventMapping<BookmarksModelError>? = nil) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
-        let editingEntity: BookmarkEntity
-        if let editingEntityID = editingEntityID {
-            guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
-                // For sync, this is valid scenario in case of a timing issue
-                fatalError("Failed to load entity when expected")
-            }
-            editingEntity = entity
-        } else {
-
-            let parent: BookmarkEntity?
-            if let parentFolderID = parentFolderID {
-                parent = context.object(with: parentFolderID) as? BookmarkEntity
-            } else {
-                parent = BookmarkUtils.fetchRootFolder(context)
-            }
-            assert(parent != nil)
-
-            // We don't support creating bookmarks from scratch at this time, so it must be a folder
-            editingEntity = BookmarkEntity.makeFolder(title: "",
-                                                      parent: parent!,
-                                                      context: context)
+        guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
+            // For sync, this is valid scenario in case of a timing issue
+            fatalError("Failed to load entity when expected")
         }
-        self.bookmark = editingEntity
+        self.bookmark = entity
+
+        refresh()
+        registerForChanges()
+    }
+    
+    public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
+                bookmarksDatabase: CoreDataDatabase,
+                errorEvents: EventMapping<BookmarksModelError>? = nil) {
+        
+        externalUpdates = subject.eraseToAnyPublisher()
+        self.errorEvents = errorEvents
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
+
+        let parent: BookmarkEntity?
+        if let parentFolderID = parentFolderID {
+            parent = context.object(with: parentFolderID) as? BookmarkEntity
+        } else {
+            parent = BookmarkUtils.fetchRootFolder(context)
+        }
+        assert(parent != nil)
+        
+        // We don't support creating bookmarks from scratch at this time, so it must be a folder
+        self.bookmark = BookmarkEntity.makeFolder(title: "",
+                                                  parent: parent!,
+                                                  context: context)
 
         refresh()
         registerForChanges()
