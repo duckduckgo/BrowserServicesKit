@@ -21,7 +21,6 @@ import CoreData
 import Common
 import Persistence
 @testable import Bookmarks
-import BrowserServicesKit
 
 fileprivate extension FavoritesListViewModel {
     
@@ -101,18 +100,19 @@ class FavoriteListViewModelTests: XCTestCase {
         let listeningViewModel = FavoritesListViewModel(bookmarksDatabase: db)
         
         let expectation = expectation(description: "Changes propagated")
-        let cancellable = listeningViewModel.externalUpdates.sink { _ in
+
+        withExtendedLifetime(listeningViewModel.externalUpdates.sink { _ in
             expectation.fulfill()
+        }) {
+            let startState = viewModel.favorites
+            viewModel.removeFavorite(startState[0])
+            
+            waitForExpectations(timeout: 1)
+            
+            let otherResults = listeningViewModel.favorites
+            XCTAssertEqual(otherResults.count + 1, startState.count)
+            XCTAssertEqual(otherResults.count, viewModel.favorites.count)
         }
-        
-        let startState = viewModel.favorites
-        viewModel.removeFavorite(startState[0])
-        
-        waitForExpectations(timeout: 1)
-        
-        let otherResults = listeningViewModel.favorites
-        XCTAssertEqual(otherResults.count + 1, startState.count)
-        XCTAssertEqual(otherResults.count, viewModel.favorites.count)
     }
     
     // MARK: Errors

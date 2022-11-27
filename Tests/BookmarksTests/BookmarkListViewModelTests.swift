@@ -21,7 +21,6 @@ import CoreData
 import Common
 import Persistence
 @testable import Bookmarks
-import BrowserServicesKit
 
 fileprivate extension BookmarkListViewModel {
     
@@ -162,18 +161,19 @@ class BookmarkListViewModelTests: XCTestCase {
                                                        parentID: nil)
         
         let expectation = expectation(description: "Changes propagated")
-        let cancellable = listeningViewModel.externalUpdates.sink { _ in
+        
+        withExtendedLifetime(listeningViewModel.externalUpdates.sink { _ in
             expectation.fulfill()
+        }) {
+            let startState = viewModel.bookmarks
+            viewModel.deleteBookmark(startState[0])
+            
+            waitForExpectations(timeout: 1)
+            
+            let otherResults = listeningViewModel.bookmarks
+            XCTAssertEqual(otherResults.count + 1, startState.count)
+            XCTAssertEqual(otherResults.count, viewModel.bookmarks.count)
         }
-        
-        let startState = viewModel.bookmarks
-        viewModel.deleteBookmark(startState[0])
-        
-        waitForExpectations(timeout: 1)
-        
-        let otherResults = listeningViewModel.bookmarks
-        XCTAssertEqual(otherResults.count + 1, startState.count)
-        XCTAssertEqual(otherResults.count, viewModel.bookmarks.count)
     }
     
     // MARK: Errors
