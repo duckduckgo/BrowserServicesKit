@@ -142,6 +142,28 @@ class BookmarkListViewModelTests: XCTestCase {
         XCTAssertEqual(result.count, newResult.count)
     }
     
+    func testWhenContextSavesThenChangesArePropagated() {
+        
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                                   parentID: nil)
+        let listeningViewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                                       parentID: nil)
+        
+        let expectation = expectation(description: "Changes propagated")
+        let cancellable = listeningViewModel.externalUpdates.sink { _ in
+            expectation.fulfill()
+        }
+        
+        let startState = viewModel.bookmarks
+        viewModel.deleteBookmark(startState[0])
+        
+        waitForExpectations(timeout: 1)
+        
+        let otherResults = listeningViewModel.bookmarks
+        XCTAssertEqual(otherResults.count + 1, startState.count)
+        XCTAssertEqual(otherResults.count, viewModel.bookmarks.count)
+    }
+    
     // MARK: Errors
     
     func testWhenUsingWrongIndexesNothingHappens() {

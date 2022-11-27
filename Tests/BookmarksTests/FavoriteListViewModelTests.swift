@@ -1,7 +1,7 @@
 //
 //  FavoriteListViewModelTests.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -83,6 +83,26 @@ class FavoriteListViewModelTests: XCTestCase {
         XCTAssertEqual(result[2].objectID, newResult[1].objectID)
         XCTAssertEqual(result[3].objectID, newResult[2].objectID)
         XCTAssertEqual(result.count, newResult.count)
+    }
+    
+    func testWhenContextSavesThenChangesArePropagated() {
+        
+        let viewModel = FavoritesListViewModel(bookmarksDatabase: db)
+        let listeningViewModel = FavoritesListViewModel(bookmarksDatabase: db)
+        
+        let expectation = expectation(description: "Changes propagated")
+        let cancellable = listeningViewModel.externalUpdates.sink { _ in
+            expectation.fulfill()
+        }
+        
+        let startState = viewModel.favorites
+        viewModel.removeFavorite(startState[0])
+        
+        waitForExpectations(timeout: 1)
+        
+        let otherResults = listeningViewModel.favorites
+        XCTAssertEqual(otherResults.count + 1, startState.count)
+        XCTAssertEqual(otherResults.count, viewModel.favorites.count)
     }
     
     // MARK: Errors

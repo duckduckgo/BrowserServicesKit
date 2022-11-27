@@ -31,6 +31,10 @@ struct BasicBookmarksStructure {
     static let nestedTitles = ["Nested", "F1", "F2"]
     static let favoriteTitles = ["1", "2", "F1", "3"]
     
+    static func urlString(forName name: String) -> String {
+        "https://\(name).com"
+    }
+    
     static func createBookmarksList(usingNames names: [String],
                                     parent: BookmarkEntity,
                                     in context: NSManagedObjectContext) -> [BookmarkEntity] {
@@ -39,6 +43,7 @@ struct BasicBookmarksStructure {
             let b = BookmarkEntity(context: context)
             b.uuid = UUID().uuidString
             b.title = name
+            b.url = urlString(forName: name)
             b.isFolder = false
             b.parent = parent
             return b
@@ -74,10 +79,12 @@ struct BasicBookmarksStructure {
         let topLevel = createBookmarksList(usingNames: topLevelTitles, parent: rootFolder, in: context)
         
         let parent = topLevel[1]
+        parent.url = nil
         parent.isFolder = true
         
         let nestedLevel = createBookmarksList(usingNames: nestedTitles, parent: parent, in: context)
         
+        nestedLevel[0].url = nil
         nestedLevel[0].isFolder = true
         
         topLevel[0].addToFavorites(favoritesRoot: favoritesFolder)
