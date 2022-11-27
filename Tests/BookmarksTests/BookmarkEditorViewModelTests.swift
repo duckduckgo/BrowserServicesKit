@@ -20,6 +20,7 @@ import Foundation
 import XCTest
 @testable import Bookmarks
 import Persistence
+import Common
 
 class BookmarkEditorViewModelTests: XCTestCase {
     
@@ -40,15 +41,24 @@ class BookmarkEditorViewModelTests: XCTestCase {
         try db.tearDown(deleteStores: true)
     }
     
+    func errorValidatingHandler() -> EventMapping<BookmarksModelError> {
+        return EventMapping<BookmarksModelError>.init { event, _, _, _ in
+            XCTFail("Found error: \(event)")
+        }
+    }
+    
     func testWhenCreatingFolderWithoutParentThenModelCanSave() {
         let model = BookmarkEditorViewModel(creatingFolderWithParentID: nil,
-                                            bookmarksDatabase: db)
+                                            bookmarksDatabase: db,
+                                            errorEvents: errorValidatingHandler())
         
         XCTAssertFalse(model.canAddNewFolder)
+        XCTAssert(model.isNew)
         
         XCTAssertFalse(model.canSave)
         model.bookmark.title = "New"
         XCTAssert(model.canSave)
+        model.save()
     }
     
     func testWhenCreatingFolderWithParentThenModelCanSave() {
@@ -56,13 +66,16 @@ class BookmarkEditorViewModelTests: XCTestCase {
         let root = BookmarkUtils.fetchRootFolder(context)
         XCTAssertNotNil(root)
         let model = BookmarkEditorViewModel(creatingFolderWithParentID: root?.objectID,
-                                            bookmarksDatabase: db)
+                                            bookmarksDatabase: db,
+                                            errorEvents: errorValidatingHandler())
         
         XCTAssertFalse(model.canAddNewFolder)
+        XCTAssert(model.isNew)
         
         XCTAssertFalse(model.canSave)
         model.bookmark.title = "New"
         XCTAssert(model.canSave)
+        model.save()
     }
     
     func testWhenEditingBookmarkThenModelCanSave() {
@@ -76,10 +89,13 @@ class BookmarkEditorViewModelTests: XCTestCase {
         XCTAssertFalse(firstBookmark.isFolder)
         
         let model = BookmarkEditorViewModel(editingEntityID: firstBookmark.objectID,
-                                            bookmarksDatabase: db)
+                                            bookmarksDatabase: db,
+                                            errorEvents: errorValidatingHandler())
         
+        XCTAssertFalse(model.isNew)
         XCTAssert(model.canAddNewFolder)
         XCTAssert(model.canSave)
+        model.save()
     }
     
     func testWhenEditingFolderThenModelCanSave() {
@@ -93,16 +109,20 @@ class BookmarkEditorViewModelTests: XCTestCase {
         XCTAssert(firstBookmark.isFolder)
         
         let model = BookmarkEditorViewModel(editingEntityID: firstBookmark.objectID,
-                                            bookmarksDatabase: db)
+                                            bookmarksDatabase: db,
+                                            errorEvents: errorValidatingHandler())
         
+        XCTAssertFalse(model.isNew)
         XCTAssertFalse(model.canAddNewFolder)
         XCTAssert(model.canSave)
+        model.save()
     }
     
     func testWhenEditingBookmarkThenFolderCanBeChanged() {
         let context = db.makeContext(concurrencyType: .mainQueueConcurrencyType)
-        let root = BookmarkUtils.fetchRootFolder(context)
-        guard let firstBookmark = root?.childrenArray[0] else {
+        
+        guard let root = BookmarkUtils.fetchRootFolder(context),
+              let firstBookmark = root.childrenArray.first else {
             XCTFail("Missing bookmark")
             return
         }
@@ -110,7 +130,8 @@ class BookmarkEditorViewModelTests: XCTestCase {
         XCTAssertFalse(firstBookmark.isFolder)
         
         let model = BookmarkEditorViewModel(editingEntityID: firstBookmark.objectID,
-                                            bookmarksDatabase: db)
+                                            bookmarksDatabase: db,
+                                            errorEvents: errorValidatingHandler())
         
         let folders = model.locations
         
@@ -121,5 +142,60 @@ class BookmarkEditorViewModelTests: XCTestCase {
         let allFolders = (try? context.fetch(fetchFolders)) ?? []
         
         XCTAssertEqual(folders.count, allFolders.count)
+        
+        let editedBookmark = model.bookmark
+        
+        XCTAssert(editedBookmark.parent != folders[1].bookmark)
+        XCTAssert(model.isSelected(root))
+        model.selectLocationAtIndex(1)
+        XCTAssert(model.isSelected(folders[1].bookmark))
+        XCTAssert(model.canSave)
+        XCTAssert(editedBookmark.parent == folders[1].bookmark)
+        
+        model.setParentWithID(root.objectID)
+        XCTAssert(model.isSelected(root))
+        XCTAssert(model.canSave)
+        XCTAssert(editedBookmark.parent == folders[0].bookmark)
+        model.save()
+    }
+    
+    func testWhenSettingFavoriteThenObjectIsUpdated() {
+        let context = db.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        
+        guard let root = BookmarkUtils.fetchRootFolder(context),
+              let firstBookmark = root.childrenArray.first else {
+            XCTFail("Missing bookmark")
+            return
+        }
+        
+        XCTAssertFalse(firstBookmark.isFolder)
+        
+        let model = BookmarkEditorViewModel(editingEntityID: firstBookmark.objectID,
+                                            bookmarksDatabase: db,
+                                            errorEvents: errorValidatingHandler())
+        
+        XCTAssert(model.bookmark.isFavorite)
+        model.removeFromFavorites()
+        XCTAssertFalse(model.bookmark.isFavorite)
+        XCTAssert(model.canSave)
+        model.save()
+    }
+    
+    // MARK: Errors
+    
+    func testWhenSavingInBrokenStateThenErrorIsReported() {
+        let errorReported = expectation(description: "Error reported")
+        let model = BookmarkEditorViewModel(creatingFolderWithParentID: nil,
+                                            bookmarksDatabase: db,
+                                            errorEvents: .init(mapping: { event, _, _, _ in
+            XCTAssertEqual(event, .saveFailed(.edit))
+            errorReported.fulfill()
+        }))
+        
+        XCTAssert(model.isNew)
+        model.bookmark.uuid = nil
+        model.save()
+        
+        waitForExpectations(timeout: 1)
     }
 }
