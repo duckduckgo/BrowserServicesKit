@@ -171,7 +171,7 @@ class SecureVaultTests: XCTestCase {
         
         try testVault.storeWebsiteCredentials(credentials)
     
-        let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: "1")
+        let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
         XCTAssertNotNil(fetchedCredentials)
         XCTAssertNotNil(fetchedCredentials?.password)
 
@@ -193,7 +193,7 @@ class SecureVaultTests: XCTestCase {
         _ = try testVault.authWith(password: userPassword)
         try testVault.storeWebsiteCredentials(credentials)
 
-        let fetchedCredentials = try testVault.authWith(password: userPassword).websiteCredentialsFor(accountId: "1")
+        let fetchedCredentials = try testVault.authWith(password: userPassword).websiteCredentialsFor(accountId: 1)
 
         XCTAssertNotNil(fetchedCredentials)
         XCTAssertNotNil(fetchedCredentials?.password)
@@ -212,7 +212,7 @@ class SecureVaultTests: XCTestCase {
         sleep(2) // allow vault to expire password
 
         do {
-            _ = try testVault.websiteCredentialsFor(accountId: "1")
+            _ = try testVault.websiteCredentialsFor(accountId: 1)
         } catch {
             if case SecureVaultError.authRequired = error {
                 // no-op

@@ -404,7 +404,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
 
         let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID)
-        
+
         guard let existingPasswordData = existingCredentials?.password,
               let autofillPasswordData = autofillCredentials.password.data(using: .utf8) else {
             return
@@ -587,6 +587,19 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
 
         return nil
+    }
+
+}
+
+fileprivate extension SecureVault {
+
+    func websiteCredentialsFor(accountId: String) throws -> SecureVaultModels.WebsiteCredentials? {
+        guard let accountIdInt = Int64(accountId) else {
+            assertionFailure("Bad account id format")
+            return nil
+        }
+
+        return try websiteCredentialsFor(accountId: accountIdInt)
     }
 
 }
