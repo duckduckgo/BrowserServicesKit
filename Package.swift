@@ -17,7 +17,7 @@ let package = Package(
         .library(name: "Crashes", targets: ["Crashes"])
     ],
     dependencies: [
-        .package(name: "BloomFilter", url: "https://github.com/duckduckgo/bloom_cpp.git", .revision("14b66a24a6c185d949e78b86b3ea51ad5c7cb51f")),
+        .package(name: "BloomFilter", url: "https://github.com/duckduckgo/bloom_cpp.git", .exact("2.0.1")),
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.3.1")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.1")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
