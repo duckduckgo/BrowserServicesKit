@@ -125,6 +125,7 @@ class CoreDataErrorsParserTests: XCTestCase {
         
         do {
             try context.save()
+            XCTFail("This must fail")
         } catch {
             let error = error as NSError
             
@@ -143,6 +144,7 @@ class CoreDataErrorsParserTests: XCTestCase {
         
         do {
             try context.save()
+            XCTFail("This must fail")
         } catch {
             let error = error as NSError
             
@@ -151,6 +153,78 @@ class CoreDataErrorsParserTests: XCTestCase {
             
             let uniqueSet = Set(info.map { $0.property })
             XCTAssertEqual(uniqueSet, ["attribute", "relationFrom"])
+        }
+    }
+    
+    func testWhenStoreIsReadOnlyThenErrorIsIdentified() {
+        
+        guard let url = db.coordinator.persistentStores.first?.url else {
+            XCTFail()
+            return
+        }
+        let ro = CoreDataDatabase(name: "Test",
+                                  containerLocation: url.deletingLastPathComponent(),
+                                  model: testModel(),
+                                  readOnly: true)
+        ro.loadStore { _, error in
+            XCTAssertNil(error)
+        }
+        let context = ro.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        
+        let e1 = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
+        let e2 = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
+        
+        e1.attribute = "e1"
+        e2.attribute = "e2"
+        e1.relationTo = e2
+        e2.relationTo = e1
+        
+        do {
+            try context.save()
+            XCTFail("This must fail")
+        } catch {
+            let error = error as NSError
+            
+            let info = CoreDataErrorsParser.parse(error: error)
+            XCTAssertEqual(info.first?.domain, NSCocoaErrorDomain)
+            XCTAssertEqual(info.first?.code, 513)
+        }
+    }
+    
+    func testWhenThereIsMergeConflictThenErrorIsIdentified() throws {
+        
+        let context = db.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        
+        let e1 = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
+        let e2 = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
+        
+        e1.attribute = "e1"
+        e2.attribute = "e2"
+        e1.relationTo = e2
+        e2.relationTo = e1
+        
+        try context.save()
+        
+        let anotherContext = db.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        guard let anotherE1 = try anotherContext.existingObject(with: e1.objectID) as? TestEntity else {
+            XCTFail("Expected object")
+            return
+        }
+        
+        e1.attribute = "e1updated"
+        try context.save()
+        
+        anotherE1.attribute = "e1ConflictingUpdate"
+        
+        do {
+            try anotherContext.save()
+            XCTFail("This must fail")
+        } catch {
+            let error = error as NSError
+            
+            let info = CoreDataErrorsParser.parse(error: error)
+            XCTAssertEqual(info.first?.domain, NSCocoaErrorDomain)
+            XCTAssertEqual(info.first?.entity, TestEntity.className())
         }
     }
 }
