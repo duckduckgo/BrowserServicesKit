@@ -23,6 +23,8 @@ import Persistence
 @objc(TestEntity)
 class TestEntity: NSManagedObject {
     
+    static let name = "TestEntity"
+    
     public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
         return NSEntityDescription.entity(forEntityName: "TestEntity", in: context)!
     }
@@ -45,7 +47,7 @@ class CoreDataErrorsParserTests: XCTestCase {
         
         let entity = NSEntityDescription()
         entity.name = "TestEntity"
-        entity.managedObjectClassName = TestEntity.className()
+        entity.managedObjectClassName = TestEntity.name
 
         var properties = Array<NSPropertyDescription>()
 
@@ -130,7 +132,7 @@ class CoreDataErrorsParserTests: XCTestCase {
             let error = error as NSError
             
             let info = CoreDataErrorsParser.parse(error: error)
-            XCTAssertEqual(info.first?.entity, TestEntity.className())
+            XCTAssertEqual(info.first?.entity, TestEntity.name)
             XCTAssertEqual(info.first?.property, "attribute")
         }
     }
@@ -224,7 +226,7 @@ class CoreDataErrorsParserTests: XCTestCase {
             
             let info = CoreDataErrorsParser.parse(error: error)
             XCTAssertEqual(info.first?.domain, NSCocoaErrorDomain)
-            XCTAssertEqual(info.first?.entity, TestEntity.className())
+            XCTAssertEqual(info.first?.entity, TestEntity.name)
         }
     }
 }

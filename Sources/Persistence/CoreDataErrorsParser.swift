@@ -55,12 +55,12 @@ public class CoreDataErrorsParser {
     
     private static func checkValidationError(_ error: NSError) -> ErrorInfo? {
         guard let validationInfo = error.userInfo[NSValidationKeyErrorKey] as? String,
-           let entity = error.userInfo[NSValidationObjectErrorKey] as? NSManagedObject else {
+           let managedObject = error.userInfo[NSValidationObjectErrorKey] as? NSManagedObject else {
             return nil
         }
         return ErrorInfo(code: error.code,
                          domain: error.domain,
-                         entity: entity.className,
+                         entity: managedObject.entity.name,
                          property: validationInfo)
     }
     
