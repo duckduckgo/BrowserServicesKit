@@ -39,9 +39,9 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
     
-    public static func prepareFoldersStructure(in context: NSManagedObjectContext) throws {
+    public static func prepareFoldersStructure(in context: NSManagedObjectContext) {
         
-        func insertRootFolder(uuid: String, into context: NSManagedObjectContext) throws {
+        func insertRootFolder(uuid: String, into context: NSManagedObjectContext) {
             let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
                                         insertInto: context)
             folder.uuid = uuid
@@ -50,11 +50,11 @@ public struct BookmarkUtils {
         }
         
         if fetchRootFolder(context) == nil {
-            try insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
+            insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
         }
         
         if fetchFavoritesFolder(context) == nil {
-            try insertRootFolder(uuid: BookmarkEntity.Constants.favoritesFolderID, into: context)
+            insertRootFolder(uuid: BookmarkEntity.Constants.favoritesFolderID, into: context)
         }
     }
     

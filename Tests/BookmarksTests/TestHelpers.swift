@@ -64,11 +64,7 @@ struct BasicBookmarksStructure {
         //
         // Favorites: 1 -> 2 -> F1 -> 3
         
-        do {
-            try BookmarkUtils.prepareFoldersStructure(in: context)
-        } catch {
-            XCTFail("Couldn't populate base folders: \(error.localizedDescription)")
-        }
+        BookmarkUtils.prepareFoldersStructure(in: context)
         
         guard let rootFolder = BookmarkUtils.fetchRootFolder(context),
               let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
