@@ -49,6 +49,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case getAvailableInputTypes
         case getAutofillData
         case storeFormData
+
+        case sendJSPixel
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -130,6 +132,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
         case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
+
+        case .sendJSPixel: return sendJSPixel
         }
     }
 

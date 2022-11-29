@@ -53,6 +53,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestIdentityWithId identityId: Int64,
                             completionHandler: @escaping (SecureVaultModels.Identity?) -> Void)
 
+    func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel)
+
 }
 
 extension AutofillUserScript {
@@ -505,6 +507,26 @@ extension AutofillUserScript {
     func pmOpenManagePasswords(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
+    }
+
+    // MARK: Pixels
+
+    public struct JSPixel {
+        /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
+        public let pixelName: String
+    }
+
+    func sendJSPixel(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        defer {
+            replyHandler(nil)
+        }
+
+        guard let body = message.messageBody as? [String: Any],
+              let pixelName = body["pixelName"] as? String else {
+            return
+        }
+
+        vaultDelegate?.autofillUserScript(self, didSendPixel: JSPixel(pixelName: pixelName))
     }
 
 }
