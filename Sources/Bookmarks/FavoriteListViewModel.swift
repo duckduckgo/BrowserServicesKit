@@ -125,7 +125,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             try context.save()
         } catch {
             context.rollback()
-            errorEvents?.fire(.saveFailed(.favorites))
+            errorEvents?.fire(.saveFailed(.favorites), error: error)
         }
     }
 

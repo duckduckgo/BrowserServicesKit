@@ -143,7 +143,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             try context.save()
         } catch {
             context.rollback()
-            errorEvents?.fire(.saveFailed(.bookmarks))
+            errorEvents?.fire(.saveFailed(.bookmarks), error: error)
         }
     }
     

@@ -75,7 +75,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
             try context.save()
         } catch {
             context.rollback()
-            errorEvents?.fire(.saveFailed(.menu))
+            errorEvents?.fire(.saveFailed(.menu), error: error)
         }
     }
     

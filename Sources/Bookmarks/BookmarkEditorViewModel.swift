@@ -173,7 +173,7 @@ public class BookmarkEditorViewModel: ObservableObject {
         do {
             try context.save()
         } catch {
-            errorEvents?.fire(.saveFailed(.edit))
+            errorEvents?.fire(.saveFailed(.edit), error: error)
         }
     }
 }
