@@ -36,14 +36,14 @@ public class ReferrerTrimming {
     private let privacyManager: PrivacyConfigurationManaging
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
-    private let contentBlockingManager: ContentBlockerRulesManager
+    private let contentBlockingManager: CompiledRuleListsSource
     
     private var state: TrimmingState = .idle
     
     private var tld: TLD
     
     public init(privacyManager: PrivacyConfigurationManaging,
-                contentBlockingManager: ContentBlockerRulesManager,
+                contentBlockingManager: CompiledRuleListsSource,
                 tld: TLD) {
         self.privacyManager = privacyManager
         self.contentBlockingManager = contentBlockingManager
