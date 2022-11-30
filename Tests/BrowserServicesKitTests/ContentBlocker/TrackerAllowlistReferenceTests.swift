@@ -137,10 +137,6 @@ class TrackerAllowlistReferenceTests: XCTestCase {
         waitForExpectations(timeout: 30, handler: nil)
     }
 
-    private func normalizeScheme(urlString: String) -> String {
-        return urlString.replacingOccurrences(of: "https://", with: "test://").replacingOccurrences(of: "http://", with: "test://")
-    }
-
     // swiftlint:disable function_body_length
     private func popTestAndExecute(onTestExecuted: XCTestExpectation) {
 
@@ -150,11 +146,11 @@ class TrackerAllowlistReferenceTests: XCTestCase {
 
         os_log("TEST: %s", test.description)
 
-        var siteURL = URL(string: normalizeScheme(urlString: test.site))!
+        var siteURL = URL(string: test.site.testSchemeNormalized)!
         if siteURL.absoluteString.hasSuffix(".com") {
             siteURL = siteURL.appendingPathComponent("index.html")
         }
-        let requestURL = URL(string: normalizeScheme(urlString: test.request))!
+        let requestURL = URL(string: test.request.testSchemeNormalized)!
 
         let resource = MockWebsite.EmbeddedResource(type: .script,
                                                     url: requestURL)
