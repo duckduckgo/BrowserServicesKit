@@ -39,16 +39,18 @@ public struct TrackerInfo: Encodable {
     
     // MARK: - Collecting detected elements
     
-    public mutating func add(detectedTracker: DetectedRequest) {
-        trackers.insert(detectedTracker)
+    public mutating func addDetectedTracker(_ tracker: DetectedRequest, onPageWithURL url: URL) {
+        guard tracker.pageUrl == url.absoluteString else { return }
+        trackers.insert(tracker)
     }
     
     public mutating func add(detectedThirdPartyRequest request: DetectedRequest) {
         thirdPartyRequests.insert(request)
     }
 
-    public mutating func add(installedSurrogateHost: String) {
-        installedSurrogates.insert(installedSurrogateHost)
+    public mutating func addInstalledSurrogateHost(_ host: String, for tracker: DetectedRequest, onPageWithURL url: URL) {
+        guard tracker.pageUrl == url.absoluteString else { return }
+        installedSurrogates.insert(host)
     }
 
     // MARK: - Helper accessors

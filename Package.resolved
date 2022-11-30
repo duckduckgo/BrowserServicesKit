@@ -32,9 +32,9 @@
         "package": "PrivacyDashboardResources",
         "repositoryURL": "https://github.com/duckduckgo/privacy-dashboard",
         "state": {
-          "branch": "main",
-          "revision": "931574136d3df9d49bc1066418f748e9c9b1b76d",
-          "version": null
+          "branch": null,
+          "revision": "4e2ce564b7c177eeb9d35c8c4549d8def6863424",
+          "version": "1.0.1"
         }
       },
       {
