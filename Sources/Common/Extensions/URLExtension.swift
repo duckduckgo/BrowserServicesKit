@@ -53,6 +53,11 @@ extension URL {
         user == nil &&
         password == nil
     }
+    
+    public func isPart(ofDomain domain: String) -> Bool {
+        guard let host = host else { return false }
+        return host == domain || host.hasSuffix(".\(domain)")
+    }
 
     public struct NavigationalScheme: RawRepresentable, Hashable {
         public let rawValue: String
