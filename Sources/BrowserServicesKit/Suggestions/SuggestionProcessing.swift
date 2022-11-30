@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 /// Class encapsulates the whole ordering and filtering algorithm
 /// It takes query, history, bookmarks, and apiResult as input parameters
