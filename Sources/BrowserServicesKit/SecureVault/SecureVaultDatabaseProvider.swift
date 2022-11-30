@@ -126,11 +126,22 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 .fetchAll($0)
         }
     }
+    
+    private func normalizedDomain(_ domain: String) -> String {
+        let trimmed = domain.trimmingWhitespace()
+        if !trimmed.starts(with: "https://") && !trimmed.starts(with: "http://") && trimmed.contains("://") {
+            // Contains some other protocol, so don't mess with it
+            return domain
+        }
+
+        let noSchemeOrWWW = domain.dropping(prefix: "https://").dropping(prefix: "http://").droppingWwwPrefix()
+        return URLComponents(string: "https://\(noSchemeOrWWW)")?.host ?? ""
+    }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
-                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
+                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(normalizedDomain(domain)))
                 .fetchAll($0)
         }
     }
