@@ -29,6 +29,15 @@
         }
       },
       {
+        "package": "PrivacyDashboardResources",
+        "repositoryURL": "https://github.com/duckduckgo/privacy-dashboard",
+        "state": {
+          "branch": "main",
+          "revision": "931574136d3df9d49bc1066418f748e9c9b1b76d",
+          "version": null
+        }
+      },
+      {
         "package": "Punycode",
         "repositoryURL": "https://github.com/gumob/PunycodeSwift.git",
         "state": {

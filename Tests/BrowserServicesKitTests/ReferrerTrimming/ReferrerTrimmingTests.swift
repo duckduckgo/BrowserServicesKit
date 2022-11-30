@@ -19,6 +19,7 @@
 import XCTest
 import os.log
 import WebKit
+import Common
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
 import Common

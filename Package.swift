@@ -12,16 +12,19 @@ let package = Package(
     ],
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"]),
-        .library(name: "Crashes", targets: ["Crashes"])
+        .library(name: "UserScript", targets: ["UserScript"]),
+        .library(name: "Crashes", targets: ["Crashes"]),
+        .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.3.1")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.1")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0"))
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0")),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .branch("main"))
     ],
     targets: [
         .target(
@@ -32,8 +35,9 @@ let package = Package(
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
+                "Common",
                 "UserScript",
-                "Common"
+                "ContentBlocking"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -51,10 +55,7 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
-            ]),
-        .target(
-            name: "UserScript"
-        ),
+            ]),    
         .target(
             name: "Crashes"
         ),
@@ -69,6 +70,25 @@ let package = Package(
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]),
+        .target(
+            name: "ContentBlocking",
+            dependencies: [
+                "TrackerRadarKit"
+            ]),
+        .target(
+            name: "UserScript"
+            ),
+        .target(
+            name: "PrivacyDashboard",
+            dependencies: [
+                "Common",
+                "TrackerRadarKit",
+                "UserScript",
+                "ContentBlocking",
+                .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
+            ],
+            path: "Sources/PrivacyDashboard"
+            ),
         
         // MARK: - Test targets
         
@@ -80,6 +100,7 @@ let package = Package(
             resources: [
                 .copy("Resources")
             ]),
+        
         .testTarget(
             name: "CommonTests",
             dependencies: [

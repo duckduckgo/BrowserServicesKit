@@ -1,5 +1,6 @@
 //
-//  UserScriptsProvider.swift
+//  ProtectionStatus.swift
+//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +18,18 @@
 //
 
 import Foundation
-import WebKit
-import UserScript
 
-public protocol UserScriptsProvider: AnyObject {
+public struct ProtectionStatus: Encodable {
 
-    var userScripts: [UserScript] { get }
-    var scripts: [WKUserScript] { get }
-
+    let unprotectedTemporary: Bool
+    let enabledFeatures: [String]
+    let allowlisted: Bool
+    let denylisted: Bool
+    
+    public init(unprotectedTemporary: Bool, enabledFeatures: [String], allowlisted: Bool, denylisted: Bool) {
+        self.unprotectedTemporary = unprotectedTemporary
+        self.enabledFeatures = enabledFeatures
+        self.allowlisted = allowlisted
+        self.denylisted = denylisted
+    }
 }

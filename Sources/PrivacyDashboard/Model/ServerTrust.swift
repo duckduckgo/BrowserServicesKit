@@ -1,5 +1,5 @@
 //
-//  UserScriptsProvider.swift
+//  ServerTrust.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +17,14 @@
 //
 
 import Foundation
-import WebKit
-import UserScript
 
-public protocol UserScriptsProvider: AnyObject {
+public struct ServerTrust {
 
-    var userScripts: [UserScript] { get }
-    var scripts: [WKUserScript] { get }
+    let host: String
+    let secTrust: SecTrust
 
+    public init(host: String, secTrust: SecTrust) {
+        self.host = host
+        self.secTrust = secTrust
+    }
 }
