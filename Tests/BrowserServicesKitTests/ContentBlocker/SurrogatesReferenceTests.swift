@@ -41,14 +41,14 @@ final class SurrogatesReferenceTests: XCTestCase {
     }
     
     func testSurrogates() throws {
-        let data = JsonTestDataLoader()
+        let dataLoader = JsonTestDataLoader()
         
-        let trackerRadarJSONData = data.fromJsonFile(Resource.trackerRadar)
-        let testsData = data.fromJsonFile(Resource.tests)
-        let surrogatesData = data.fromJsonFile(Resource.surrogates)
+        let trackerRadarJSONData = dataLoader.fromJsonFile(Resource.trackerRadar)
+        let testsData = dataLoader.fromJsonFile(Resource.tests)
+        let surrogatesData = dataLoader.fromJsonFile(Resource.surrogates)
         
-        let refTests = try JSONDecoder().decode(RefTests.self, from: testsData)
-        let surrogateTests = refTests.surrogateTests.tests
+        let referenceTests = try JSONDecoder().decode(RefTests.self, from: testsData)
+        let surrogateTests = referenceTests.surrogateTests.tests
         
         let surrogateString = String(data: surrogatesData, encoding: .utf8)!
         
