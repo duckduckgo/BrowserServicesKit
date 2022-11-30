@@ -140,8 +140,9 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
+            let normalizedDomain = normalizedDomain(domain)
             return try SecureVaultModels.WebsiteAccount
-                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(normalizedDomain(domain)))
+                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain) || SecureVaultModels.WebsiteAccount.Columns.domain.like(normalizedDomain))
                 .fetchAll($0)
         }
     }
