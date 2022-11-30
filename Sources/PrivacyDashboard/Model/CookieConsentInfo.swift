@@ -1,5 +1,5 @@
 //
-//  UserScriptsProvider.swift
+//  CookieConsentInfo.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +17,15 @@
 //
 
 import Foundation
-import WebKit
-import UserScript
 
-public protocol UserScriptsProvider: AnyObject {
-
-    var userScripts: [UserScript] { get }
-    var scripts: [WKUserScript] { get }
-
+public struct CookieConsentInfo: Encodable {
+    let consentManaged: Bool
+    let optoutFailed: Bool?
+    let selftestFailed: Bool?
+    
+    public init(consentManaged: Bool, optoutFailed: Bool?, selftestFailed: Bool?) {
+        self.consentManaged = consentManaged
+        self.optoutFailed = optoutFailed
+        self.selftestFailed = selftestFailed
+    }
 }

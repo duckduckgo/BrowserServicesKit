@@ -21,6 +21,7 @@ import WebKit
 import TrackerRadarKit
 import Common
 import UserScript
+import ContentBlocking
 
 public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 

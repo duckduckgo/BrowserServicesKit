@@ -1,7 +1,7 @@
 //
-//  UserScriptsProvider.swift
+//  PermissionAuthorizationState.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,12 +17,9 @@
 //
 
 import Foundation
-import WebKit
-import UserScript
 
-public protocol UserScriptsProvider: AnyObject {
-
-    var userScripts: [UserScript] { get }
-    var scripts: [WKUserScript] { get }
-
+public enum PermissionAuthorizationState: String, CaseIterable {
+    case ask
+    case grant
+    case deny
 }
