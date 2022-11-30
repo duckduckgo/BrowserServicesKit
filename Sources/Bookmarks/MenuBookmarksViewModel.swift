@@ -85,7 +85,9 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
             return
         }
         
-        if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
+        let queriedBookmark = favorite(for: url) ?? bookmark(for: url)
+        
+        if let bookmark = queriedBookmark {
             if bookmark.isFavorite {
                 bookmark.removeFromFavorites()
             } else {
@@ -113,11 +115,10 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         save()
     }
     
-    public func removeBookmark(for url: URL) {
-        if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
-            context.delete(bookmark)
-            save()
-        }
+    public func favorite(for url: URL) -> BookmarkEntity? {
+        BookmarkUtils.fetchBookmark(for: url,
+                                    predicate: NSPredicate(format: "%K == true", #keyPath(BookmarkEntity.isFavorite)),
+                                    context: context)
     }
     
     public func bookmark(for url: URL) -> BookmarkEntity? {

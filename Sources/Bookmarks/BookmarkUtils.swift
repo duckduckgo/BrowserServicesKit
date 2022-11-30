@@ -58,9 +58,12 @@ public struct BookmarkUtils {
         }
     }
     
-    public static func fetchBookmark(for url: URL, context: NSManagedObjectContext) -> BookmarkEntity? {
+    public static func fetchBookmark(for url: URL,
+                                     predicate: NSPredicate = NSPredicate(value: true),
+                                     context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.url), url.absoluteString)
+        let urlPredicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.url), url.absoluteString)
+        request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [urlPredicate, predicate])
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         

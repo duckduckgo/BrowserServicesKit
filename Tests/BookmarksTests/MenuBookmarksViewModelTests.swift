@@ -72,6 +72,10 @@ class MenuBookmarksViewModelTests: XCTestCase {
         
         XCTAssertNil(model.bookmark(for: URL(string: BasicBookmarksStructure.urlString(forName: "0"))!))
         XCTAssertNotNil(model.bookmark(for: URL(string: BasicBookmarksStructure.urlString(forName: "1"))!))
+        XCTAssertNotNil(model.bookmark(for: URL(string: BasicBookmarksStructure.urlString(forName: "F2"))!))
+        
+        XCTAssertNil(model.favorite(for: URL(string: BasicBookmarksStructure.urlString(forName: "F2"))!))
+        XCTAssertNotNil(model.favorite(for: URL(string: BasicBookmarksStructure.urlString(forName: "1"))!))
     }
     
     func testWhenAddingBookmarkThenNewEntryIsCreated() {

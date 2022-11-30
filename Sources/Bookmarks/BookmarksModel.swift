@@ -64,7 +64,7 @@ public protocol MenuBookmarksInteracting {
     func createOrToggleFavorite(title: String, url: URL)
     
     func createBookmark(title: String, url: URL)
-    func removeBookmark(for url: URL)
     
+    func favorite(for url: URL) -> BookmarkEntity?
     func bookmark(for url: URL) -> BookmarkEntity?
 }
