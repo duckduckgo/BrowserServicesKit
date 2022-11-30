@@ -110,9 +110,12 @@ public class ReferrerTrimming {
         
         return newReferrer
     }
-    
+
     public func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
-        var request = navigationAction.request
+        return trimReferrer(for: navigationAction.request, originUrl: originUrl)
+    }
+
+    public func trimReferrer(for request: URLRequest, originUrl: URL?) -> URLRequest? {
         guard let originUrl = originUrl else {
             return nil
         }
@@ -142,6 +145,7 @@ public class ReferrerTrimming {
                                                 destUrl: destUrl,
                                                 referrerUrl: URL(string: referrerHeader) ?? nil,
                                                 trackerData: trackerData) {
+            var request = request
             request.setValue(newReferrer, forHTTPHeaderField: Constants.headerName)
             return request
         }
