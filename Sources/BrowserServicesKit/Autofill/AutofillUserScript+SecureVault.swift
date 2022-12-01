@@ -438,7 +438,7 @@ extension AutofillUserScript {
             } else {
                 credentials = accounts.compactMap {
                     guard let id = $0.id else { return nil }
-                    return CredentialObject(id: String(id), username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                    return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
                 }
             }
 
@@ -478,7 +478,7 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostForMessage(message)) { credentials, credentialsProvider  in
             let credentials: [CredentialObject] = credentials.compactMap {
                 guard let id = $0.id else { return nil }
-                return .init(id: String(id), username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                return .init(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
             }
 
             let response = RequestVaultAccountsResponse(success: credentials)
@@ -619,7 +619,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
         let credentialObjects: [AutofillUserScript.CredentialObject] = accounts.compactMap {
             guard let id = $0.id else { return nil }
-            return .init(id: String(id), username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+            return .init(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
         }
         let username = credentialsProvider.locked || credentialObjects.count > 0
         let password = credentialsProvider.locked || credentialObjects.count > 0
