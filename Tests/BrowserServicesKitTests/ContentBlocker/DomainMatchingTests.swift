@@ -30,7 +30,7 @@ struct RefTests: Decodable {
         let siteURL: String
         let requestURL: String
         let requestType: String
-        let expectAction: String?
+        let expectAction, expectExpression: String?
         let exceptPlatforms: [String]?
         
     }
@@ -43,7 +43,7 @@ struct RefTests: Decodable {
         
     }
     
-    let domainTests: DomainTests
+    let domainTests, surrogateTests: DomainTests
 }
 
 class DomainMatchingTests: XCTestCase {
