@@ -36,7 +36,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public var userUnprotectedDomains: [String] {
-        return Array(locallyUnprotected.unprotectedDomains).normalizedDomainsForContentBlocking()
+        return Array(locallyUnprotected.unprotectedDomains).normalizedDomainsForContentBlocking().sorted()
     }
     
     public var tempUnprotectedDomains: [String] {
