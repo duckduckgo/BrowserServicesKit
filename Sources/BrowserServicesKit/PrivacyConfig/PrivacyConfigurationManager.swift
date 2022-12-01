@@ -114,11 +114,11 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     }
     
     public var privacyConfig: PrivacyConfiguration {
-//        if let fetchedData = fetchedConfigData {
-//            return AppPrivacyConfiguration(data: fetchedData.data,
-//                                           identifier: fetchedData.etag,
-//                                           localProtection: localProtection)
-//        }
+        if let fetchedData = fetchedConfigData {
+            return AppPrivacyConfiguration(data: fetchedData.data,
+                                           identifier: fetchedData.etag,
+                                           localProtection: localProtection)
+        }
 
         return AppPrivacyConfiguration(data: embeddedConfigData.data,
                                        identifier: embeddedConfigData.etag,
