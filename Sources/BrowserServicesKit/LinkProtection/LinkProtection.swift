@@ -26,7 +26,7 @@ public struct LinkProtection {
     private var mainFrameUrl: URL?
     
     public init(privacyManager: PrivacyConfigurationManaging,
-                contentBlockingManager: ContentBlockerRulesManager,
+                contentBlockingManager: CompiledRuleListsSource,
                 errorReporting: EventMapping<AMPProtectionDebugEvents>) {
         linkCleaner = LinkCleaner(privacyManager: privacyManager)
         ampExtractor = AMPCanonicalExtractor(linkCleaner: linkCleaner,
