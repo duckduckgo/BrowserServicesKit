@@ -95,7 +95,6 @@ public enum PrivacyFeature: String {
     case duckPlayer
     case fingerprintingTemporaryStorage
     case fingerprintingBattery
-    case fingerprintingScreenSize
     case gpc
     case httpsUpgrade = "https"
     case autoconsent
