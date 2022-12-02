@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Common
 
 open class AppVersionProvider {
     open func appVersion() -> String? {

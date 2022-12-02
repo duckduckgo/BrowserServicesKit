@@ -226,6 +226,28 @@ class AppPrivacyConfigurationTests: XCTestCase {
         config.userDisabledProtection(forDomain: "enabled2.com")
         XCTAssertTrue(config.isUserUnprotected(domain: "enabled2.com"))
     }
+    
+    func testWhenRequestingUnprotectedSites_ThenTheyAreConsistentlyOrdered() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
+
+        let mockProtectionStore = MockDomainsProtectionStore()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
+                                                  fetchedData: corruptedConfig,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: mockProtectionStore)
+
+        XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
+        XCTAssertNil(manager.fetchedConfigData)
+
+        let config = manager.privacyConfig
+        
+        mockProtectionStore.unprotectedDomains = ["first.com", "second.com"]
+        XCTAssertEqual(config.userUnprotectedDomains, ["first.com", "second.com"])
+        
+        mockProtectionStore.unprotectedDomains = ["second.com", "first.com"]
+        XCTAssertEqual(config.userUnprotectedDomains, ["first.com", "second.com"])
+    }
 
     let exampleConfig =
     """
