@@ -512,8 +512,10 @@ extension AutofillUserScript {
     // MARK: Pixels
 
     public struct JSPixel {
+
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
         public let pixelName: String
+
     }
 
     func sendJSPixel(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
