@@ -610,6 +610,9 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         
         completionHandler(nil, .none)
     }
+    
+    func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel) {
+    }
 }
 
 struct NoneEncryptingEncrypter: UserScriptEncrypter {

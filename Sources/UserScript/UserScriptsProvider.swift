@@ -18,7 +18,6 @@
 
 import Foundation
 import WebKit
-import UserScript
 
 public protocol UserScriptsProvider: AnyObject {
 
