@@ -151,7 +151,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     
     public var totalBookmarksCount: Int {
         let countRequest = BookmarkEntity.fetchRequest()
-        countRequest.predicate = NSPredicate(value: true)
+        countRequest.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
         
         return (try? context.count(for: countRequest)) ?? 0
     }

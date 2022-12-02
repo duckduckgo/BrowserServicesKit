@@ -113,7 +113,7 @@ class BookmarkListViewModelTests: XCTestCase {
         XCTAssert(folder.isFolder)
         
         let totalCount = viewModel.totalBookmarksCount
-        let expectedCountAfterRemoval = totalCount - folder.childrenArray.count - 1
+        let expectedCountAfterRemoval = totalCount - folder.childrenArray.filter { !$0.isFolder }.count
         
         viewModel.deleteBookmark(folder)
         
@@ -127,6 +127,14 @@ class BookmarkListViewModelTests: XCTestCase {
         XCTAssertEqual(diff.count, 1)
         XCTAssertEqual(newViewModel.totalBookmarksCount, expectedCountAfterRemoval)
         XCTAssert(diff.contains(folder.objectID))
+    }
+    
+    func testWhenGettingTotalCountThenFoldersAreNotTakenIntoAccount() {
+        
+        let viewModel = BookmarkListViewModel(bookmarksDatabase: db,
+                                              parentID: nil)
+        
+        XCTAssertEqual(viewModel.totalBookmarksCount, 5)
     }
     
     func testWhenMovingBookmarkItGoesToNewPosition() {
