@@ -511,7 +511,7 @@ extension AutofillUserScript {
 
     // MARK: Pixels
 
-    public struct JSPixel {
+    public struct JSPixel: Equatable {
 
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
         public let pixelName: String
