@@ -14,8 +14,8 @@
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
-          "branch": "ema/send-js-pixels",
-          "revision": "130836637293aea6d4a08a108ddce5a2ec98833c",
+          "branch": null,
+          "revision": "d830d6e047d7f43504319635d4ca90cc935244d8",
           "version": null
         }
       },
