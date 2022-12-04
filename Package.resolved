@@ -32,9 +32,9 @@
         "package": "PrivacyDashboardResources",
         "repositoryURL": "https://github.com/duckduckgo/privacy-dashboard",
         "state": {
-          "branch": "shane/ios-hotfix-fonts",
+          "branch": null,
           "revision": "da643e35ae74610f4f2112feeb394c00383d9172",
-          "version": null
+          "version": "1.0.3"
         }
       },
       {
