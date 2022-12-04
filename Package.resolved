@@ -32,8 +32,8 @@
         "package": "PrivacyDashboardResources",
         "repositoryURL": "https://github.com/duckduckgo/privacy-dashboard",
         "state": {
-          "branch": "michal/exclude-fonts",
-          "revision": "53112a4cd3cb996c79e8ea5936d47ec5d6b252d4",
+          "branch": "shane/ios-hotfix-fonts",
+          "revision": "da643e35ae74610f4f2112feeb394c00383d9172",
           "version": null
         }
       },
