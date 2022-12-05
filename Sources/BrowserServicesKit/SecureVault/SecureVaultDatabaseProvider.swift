@@ -138,7 +138,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
-        if let id = credentials.account.id {
+        if let stringId = credentials.account.id, let id = Int64(stringId) {
             try updateWebsiteCredentials(credentials, usingId: id)
             return id
         } else {
