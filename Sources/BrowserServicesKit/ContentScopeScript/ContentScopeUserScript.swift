@@ -59,6 +59,7 @@ public struct ContentScopeFeatureToggles: Encodable {
     public let passwordGeneration: Bool
     
     public let inlineIconCredentials: Bool
+    public let thirdPartyCredentialsProvider: Bool
     
     // Explicitly defined memberwise init only so it can be public
     public init(emailProtection: Bool,
@@ -67,7 +68,8 @@ public struct ContentScopeFeatureToggles: Encodable {
                 creditCardsAutofill: Bool,
                 credentialsSaving: Bool,
                 passwordGeneration: Bool,
-                inlineIconCredentials: Bool) {
+                inlineIconCredentials: Bool,
+                thirdPartyCredentialsProvider: Bool) {
         
         self.emailProtection = emailProtection
         self.credentialsAutofill = credentialsAutofill
@@ -76,6 +78,7 @@ public struct ContentScopeFeatureToggles: Encodable {
         self.credentialsSaving = credentialsSaving
         self.passwordGeneration = passwordGeneration
         self.inlineIconCredentials = inlineIconCredentials
+        self.thirdPartyCredentialsProvider = thirdPartyCredentialsProvider
     }
     
     enum CodingKeys: String, CodingKey {
@@ -90,6 +93,7 @@ public struct ContentScopeFeatureToggles: Encodable {
         case passwordGeneration = "password_generation"
         
         case inlineIconCredentials = "inlineIcon_credentials"
+        case thirdPartyCredentialsProvider = "third_party_credentials_provider"
     }
 }
 

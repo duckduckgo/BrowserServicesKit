@@ -49,6 +49,11 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case getAvailableInputTypes
         case getAutofillData
         case storeFormData
+        
+        case askToUnlockProvider
+        case checkCredentialsProviderStatus
+        
+        case sendJSPixel
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -130,6 +135,11 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
         case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
+            
+        case .askToUnlockProvider: return askToUnlockProvider
+        case .checkCredentialsProviderStatus: return checkCredentialsProviderStatus
+
+        case .sendJSPixel: return sendJSPixel
         }
     }
 
@@ -179,7 +189,7 @@ extension AutofillUserScript: WKScriptMessageHandlerWithReply {
                                       didReceive message: WKScriptMessage,
                                       replyHandler: @escaping (Any?, String?) -> Void) {
         guard let messageHandler = messageHandlerFor(message.name) else {
-            // Unsupported message fail silently
+            assertionFailure("Unsupported message")
             return
         }
 

@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
           "branch": null,
-          "revision": "7ddea0cc34cc4d2695c1d490fcbb1cb2fde641d6",
-          "version": "5.3.1"
+          "revision": "b16d363471003b39973b0f5418d3af2d37e657ae",
+          "version": "6.0.0"
         }
       },
       {
@@ -33,8 +33,8 @@
         "repositoryURL": "https://github.com/duckduckgo/privacy-dashboard",
         "state": {
           "branch": null,
-          "revision": "4e2ce564b7c177eeb9d35c8c4549d8def6863424",
-          "version": "1.0.1"
+          "revision": "da643e35ae74610f4f2112feeb394c00383d9172",
+          "version": "1.0.3"
         }
       },
       {
