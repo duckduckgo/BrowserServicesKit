@@ -52,6 +52,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         
         case askToUnlockProvider
         case checkCredentialsProviderStatus
+        
+        case sendJSPixel
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -136,6 +138,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
             
         case .askToUnlockProvider: return askToUnlockProvider
         case .checkCredentialsProviderStatus: return checkCredentialsProviderStatus
+
+        case .sendJSPixel: return sendJSPixel
         }
     }
 
