@@ -24,25 +24,6 @@ import WebKit
 import Common
 import os.log
 
-/*
- for $testSet in test.json
-   loadReferenceConfig('config_reference.json')
-
-     for $test in $testSet
-         if $test.exceptPlatforms includes 'current-platform'
-             skip
-
-         $page = createPage(
-             siteURL = $test.siteURL,
-         )
-
-         $page.load('init.js')
-
-         $value = $page.eval($test.property)
-
-         expect($value.toSting()).toBe($test.expectPropertyValue)
- */
-
 final class FingerprintingReferenceTests: XCTestCase {
     private var referenceTests = [Test]()
     private let schemeHandler = TestSchemeHandler()
@@ -51,7 +32,7 @@ final class FingerprintingReferenceTests: XCTestCase {
     private let dataLoader = JsonTestDataLoader()
     private var webView: WKWebView!
     private var mockWebsite: MockWebsite!
-
+    
     private enum Resource {
         static let script = "Resources/privacy-reference-tests/fingerprinting-protections/init.js"
         static let config = "Resources/privacy-reference-tests/fingerprinting-protections/config_reference.json"
@@ -79,57 +60,97 @@ final class FingerprintingReferenceTests: XCTestCase {
                                            embeddedDataProvider: embeddedDataProvider,
                                            localProtection: localProtection)
     }()
-
+    
     override func tearDown() {
         super.tearDown()
         referenceTests.removeAll()
     }
-
+    
     func testBatteryAPI() throws {
-        referenceTests = testData.batteryAPI.tests
-        os_log("TEST SECTION: %s", testData.batteryAPI.name)
+        let sectionName = testData.batteryAPI.name
+        
+        referenceTests = testData.batteryAPI.tests.filter {
+            return $0.exceptPlatforms.contains("ios-browser") == false
+        }
+        
+        guard referenceTests.count > 0 else {
+            os_log("NO TESTS FOR SECTION: %s", sectionName)
+            return
+        }
+        
+        os_log("TEST SECTION: %s", sectionName)
         
         let testsExecuted = expectation(description: "tests executed")
         testsExecuted.expectedFulfillmentCount = referenceTests.count
-
+        
         runTests(onTestExecuted: testsExecuted)
         waitForExpectations(timeout: 30, handler: nil)
     }
     
     func testHardwareAPI() throws {
-        referenceTests =  testData.hardwareAPIs.tests
-        os_log("TEST SECTION: %s", testData.hardwareAPIs.name)
+        let sectionName = testData.hardwareAPIs.name
+        
+        referenceTests =  testData.hardwareAPIs.tests.filter {
+            return $0.exceptPlatforms.contains("ios-browser") == false
+        }
+        
+        guard referenceTests.count > 0 else {
+            os_log("NO TESTS FOR SECTION: %s", sectionName)
+            return
+        }
+        
+        os_log("TEST SECTION: %s", sectionName)
         
         let testsExecuted = expectation(description: "tests executed")
         testsExecuted.expectedFulfillmentCount = referenceTests.count
-
+        
         runTests(onTestExecuted: testsExecuted)
         waitForExpectations(timeout: 30, handler: nil)
     }
     
     func testScreenAPI() throws {
-        referenceTests =  testData.screenAPI.tests
-        os_log("TEST SECTION: %s", testData.screenAPI.name)
-
+        let sectionName = testData.screenAPI.name
+        
+        referenceTests = testData.screenAPI.tests.filter {
+            return $0.exceptPlatforms.contains("ios-browser") == false
+        }
+        guard referenceTests.count > 0 else {
+            os_log("NO TESTS FOR SECTION: %s", sectionName)
+            return
+        }
+        
+        os_log("TEST SECTION: %s", sectionName)
+        
         let testsExecuted = expectation(description: "tests executed")
         testsExecuted.expectedFulfillmentCount = referenceTests.count
-
+        
         runTests(onTestExecuted: testsExecuted)
         waitForExpectations(timeout: 30, handler: nil)
     }
     
     func testStorageAPI() throws {
-        referenceTests = testData.temporaryStorageAPI.tests
-        os_log("TEST SECTION: %s", testData.temporaryStorageAPI.name)
+        let sectionName = testData.temporaryStorageAPI.name
+        
+        referenceTests = testData.temporaryStorageAPI.tests.filter {
+            return $0.exceptPlatforms.contains("ios-browser") == false
+        }
+        
+        guard referenceTests.count > 0 else {
+            os_log("NO TESTS FOR SECTION: %s", sectionName)
+            return
+        }
+        
+        os_log("TEST SECTION: %s", sectionName)
         
         let testsExecuted = expectation(description: "tests executed")
         testsExecuted.expectedFulfillmentCount = referenceTests.count
-
+        
         runTests(onTestExecuted: testsExecuted)
         waitForExpectations(timeout: 30, handler: nil)
     }
     
     private func runTests(onTestExecuted: XCTestExpectation) {
+        
         guard let test = referenceTests.popLast(),
               test.exceptPlatforms.contains("macos-browser") == false else {
             return
@@ -138,53 +159,40 @@ final class FingerprintingReferenceTests: XCTestCase {
         os_log("TEST: %s", test.name)
         
         let requestURL = URL(string: test.siteURL.testSchemeNormalized)!
-
+        
         schemeHandler.reset()
         schemeHandler.requestHandlers[requestURL] = { _ in
             return "<html></html>".data(using: .utf8)!
         }
         
         let request = URLRequest(url: requestURL)
-
+        
         setupWebViewForUserScripTests(schemeHandler: schemeHandler,
                                       privacyConfig: privacyManager.privacyConfig) { webView in
             // Keep webview in memory till test finishes
             self.webView = webView
-            
-            WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
-                                                              WKWebsiteDataTypeMemoryCache,
-                                                              WKWebsiteDataTypeOfflineWebApplicationCache],
-                                                    modifiedSince: Date(timeIntervalSince1970: 0),
-                                                    completionHandler: {
-
-                
-                self.webView.load(request)
-            })
-            
+            self.webView.load(request)
         }
         
         navigationDelegateMock.onDidFinishNavigation = { [weak self] in
             
-            self!.webView.evaluateJavaScript(self!.scriptToInject, completionHandler: { result, err in
-                XCTAssertNil(err, "Script should not fail")
-                
-                self!.webView.evaluateJavaScript(test.property) { result, error in
-                    if let result = result as? String {
-                        print("AAA \(result)")
-                        XCTAssertEqual(result, test.expectPropertyValue, "Values should be equal for test: \(test.name)")
-                    } else if let result = result as? Bool {
-                        let expectedBool = test.expectPropertyValue == "0" ? false : true
-                        XCTAssertEqual(result, expectedBool, "Values should be equal for test: \(test.name)")
-                    } else if let result = result as? Int {
-                        XCTAssertEqual(result, Int(test.expectPropertyValue), "Values should be equal for test: \(test.name)")
-                    }
-                    
-                    DispatchQueue.main.async {
-                        onTestExecuted.fulfill()
-                        self!.runTests(onTestExecuted: onTestExecuted)
-                    }
+            self!.webView.evaluateJavaScript(test.property) { result, error in
+                if let result = result as? String {
+                    XCTAssertEqual(result, test.expectPropertyValue, "Values should be equal for test: \(test.name)")
+                } else if let result = result as? Bool {
+                    let expectedBool = test.expectPropertyValue == "0" ? false : true
+                    XCTAssertEqual(result, expectedBool, "Values should be equal for test: \(test.name)")
+                } else if let result = result as? Int {
+                    XCTAssertEqual(result, Int(test.expectPropertyValue), "Values should be equal for test: \(test.name)")
+                } else {
+                    XCTFail("Should not return nil \(test.name)")
                 }
-            })
+                
+                DispatchQueue.main.async {
+                    onTestExecuted.fulfill()
+                    self!.runTests(onTestExecuted: onTestExecuted)
+                }
+            }
         }
     }
     
@@ -197,6 +205,7 @@ final class FingerprintingReferenceTests: XCTestCase {
         let webView = WKWebView(frame: .init(origin: .zero, size: .init(width: 500, height: 1000)),
                                 configuration: configuration)
         webView.navigationDelegate = self.navigationDelegateMock
+        
         
         let configFeatureToggle = ContentScopeFeatureToggles(emailProtection: false,
                                                              credentialsAutofill: false,
@@ -214,14 +223,25 @@ final class FingerprintingReferenceTests: XCTestCase {
         let contentScopeScript = ContentScopeUserScript(self.privacyManager,
                                                         properties: contentScopeProperties)
         
+        configuration.userContentController.addUserScript(WKUserScript(source: self.scriptToInject,
+                                                                       injectionTime: .atDocumentStart,
+                                                                       forMainFrameOnly: false))
+        
         for messageName in contentScopeScript.messageNames {
             configuration.userContentController.add(contentScopeScript, name: messageName)
         }
         
+        configuration.userContentController.addUserScript(WKUserScript(source: scriptToInject,
+                                                                       injectionTime: .atDocumentEnd,
+                                                                       forMainFrameOnly: false))
+        
+        
         configuration.userContentController.addUserScript(WKUserScript(source: contentScopeScript.source,
                                                                        injectionTime: .atDocumentStart,
                                                                        forMainFrameOnly: false))
+        
         completion(webView)
+        
     }
 }
 
