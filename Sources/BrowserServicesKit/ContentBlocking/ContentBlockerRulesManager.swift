@@ -240,7 +240,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             let rules = generateRules(from: result)
             applyRules(rules)
         } else {
+            lock.lock()
             state = .idle
+            lock.unlock()
         }
         scheduleCompilation()
     }
