@@ -7,13 +7,14 @@
 
 import WebKit
 
-public protocol WebKitDownload: NSObject {
+@objc public protocol WebKitDownload: AnyObject, NSObjectProtocol {
     var originalRequest: URLRequest? { get }
     var webView: WKWebView? { get }
+    var delegate: WKDownloadDelegate? { get set }
 }
 
 extension WebKitDownload {
-    public func cancel(_ completionHandler: ((Data?) -> Void)?) {
+    public func cancel(_ completionHandler: ((Data?) -> Void)? = nil) {
         if #available(macOS 11.3, iOS 14.5, *) {
             if let download = self as? WKDownload {
                 download.cancel(completionHandler)

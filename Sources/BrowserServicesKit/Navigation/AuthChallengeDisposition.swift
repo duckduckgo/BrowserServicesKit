@@ -20,17 +20,17 @@ import Foundation
 
 public enum AuthChallengeDisposition {
     /// Use the specified credential
-    case useCredential(URLCredential?)
+    case credential(URLCredential?)
     /// The entire request will be canceled
-    case cancelAuthenticationChallenge
+    case cancel
     /// This challenge is rejected and the next authentication protection space should be tried
     case rejectProtectionSpace
 
     var dispositionAndCredential: (URLSession.AuthChallengeDisposition, URLCredential?) {
         switch self {
-        case .useCredential(let credential):
+        case .credential(let credential):
             return (.useCredential, credential)
-        case .cancelAuthenticationChallenge:
+        case .cancel:
             return (.cancelAuthenticationChallenge, nil)
         case .rejectProtectionSpace:
             return (.rejectProtectionSpace, nil)

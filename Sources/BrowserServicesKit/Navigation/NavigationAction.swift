@@ -37,6 +37,14 @@ public struct NavigationAction: Equatable {
         targetFrame.isMainFrame
     }
 
+    public var isTargetingNewWindow: Bool {
+        sourceFrame.isSharingWebView(with: targetFrame)
+    }
+
+    public var isUserInitiated: Bool {
+        navigationType.isUserInitiated
+    }
+
     public var url: URL {
         request.url!
     }
@@ -105,7 +113,7 @@ public enum NavigationActionPolicy {
     case cancel(with: NavigationActionCancellationRelatedAction)
     case download
 
-    static var cancel: NavigationActionPolicy = .cancel(with: .none)
+    public static var cancel: NavigationActionPolicy = .cancel(with: .none)
 }
 
 extension NavigationActionPolicy? {

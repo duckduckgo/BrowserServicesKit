@@ -50,7 +50,7 @@ public indirect enum NavigationType: Equatable {
         }
     }
 
-    var isUserInitiated: Bool {
+    public var isUserInitiated: Bool {
         switch self {
         case .linkActivated,
                 .formSubmitted,
@@ -70,12 +70,27 @@ public indirect enum NavigationType: Equatable {
         }
     }
 
-    var isRedirect: Bool {
+    public var isLinkActivated: Bool {
+        if case .linkActivated = self { return true }
+        return false
+    }
+
+    public var isMiddleButtonClick: Bool {
+        if case .linkActivated(isMiddleClick: let isMiddleClick) = self { return isMiddleClick }
+        return false
+    }
+
+    public var isRedirect: Bool {
         if case .redirect = self { return true }
         return false
     }
 
-    var previousNavigation: Navigation? {
+    public var isBackForward: Bool {
+        if case .backForward = self { return true }
+        return false
+    }
+
+    public var previousNavigation: Navigation? {
         if case .redirect(type: _, previousNavigation: let navigation) = self { return navigation }
         return nil
     }

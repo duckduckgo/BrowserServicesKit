@@ -326,7 +326,8 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     func testClientRedirectWithFakeBackAction() {}
     func testClientAndServerRedirect() {}
     func testDoubleServerAndClientRedirect() {}
-
+    func testUserAgent() {}
+    
 }
 
 private final class WillPerformClientRedirectHandler: NSObject, NavigationResponder {

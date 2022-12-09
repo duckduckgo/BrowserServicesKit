@@ -44,6 +44,10 @@ public struct FrameInfo: Equatable {
         request?.url
     }
 
+    func isSharingWebView(with other: FrameInfo) -> Bool {
+        frameInfo?.webView === other.frameInfo?.webView
+    }
+
 }
 
 public struct SecurityOrigin: Hashable {

@@ -291,15 +291,13 @@ extension DistributedWKNavigationDelegate: WKNavigationDelegate {
     @MainActor
     @objc(_webView:willPerformClientRedirectToURL:delay:)
     public func webView(_ webView: WKWebView, willPerformClientRedirectTo url: URL, delay: TimeInterval) {
+        // if method overriding done using registerCustomDelegateMethodHandler(for:selector)
         if let forwardingTarget = self.forwardingTarget(for: #selector(webView(_:willPerformClientRedirectTo:delay:))) {
             withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: DistributedNavigationDelegate?.self, capacity: 1) { $0 } }.pointee!
                 .webView(webView, willPerformClientRedirectTo: url, delay: delay)
             return
         }
-        guard let currentNavigation else {
-            assertionFailure("Unexpected willPerformClientRedirectToURL")
-            return
-        }
+        guard let currentNavigation else { return }
 
         os_log("%s willPerformClientRedirect to: %s", log: self.logger, type: .default, webView.debugDescription, url.absoluteString)
         currentNavigation.willPerformClientRedirect(to: url, delay: delay)
