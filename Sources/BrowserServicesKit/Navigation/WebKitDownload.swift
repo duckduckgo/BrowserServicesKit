@@ -15,10 +15,10 @@ import WebKit
 
 extension WebKitDownload {
     public func cancel(_ completionHandler: ((Data?) -> Void)? = nil) {
-        if #available(macOS 11.3, iOS 14.5, *) {
-            if let download = self as? WKDownload {
-                download.cancel(completionHandler)
-            }
+        if #available(macOS 11.3, iOS 14.5, *),
+           let download = self as? WKDownload {
+
+            download.cancel(completionHandler)
         } else {
             self.perform(#selector(Progress.cancel))
             completionHandler?(nil)
