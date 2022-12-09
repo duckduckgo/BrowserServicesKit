@@ -20,6 +20,10 @@ import Foundation
 
 extension URL {
 
+    public func matches(_ other: URL) -> Bool {
+        return self.absoluteString.dropping(suffix: "/") == other.absoluteString.dropping(suffix: "/")
+    }
+
     // URL without the scheme and the '/' suffix of the path
     // For finding duplicate URLs
     public var naked: URL? {
