@@ -97,6 +97,14 @@ public extension String {
         return matches(regex)
     }
 
+    func replacing(_ regex: NSRegularExpression, with replacement: String) -> String {
+        regex.stringByReplacingMatches(in: self, range: NSRange(location: 0, length: utf16.count), withTemplate: replacement)
+    }
+
+    func replacing(regex pattern: String, with replacement: String) -> String {
+        self.replacing(regex(pattern), with: replacement)
+    }
+
 }
 
 public extension StringProtocol {

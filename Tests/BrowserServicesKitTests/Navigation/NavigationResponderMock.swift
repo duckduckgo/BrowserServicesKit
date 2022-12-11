@@ -21,206 +21,27 @@ import BrowserServicesKit
 import WebKit
 import Common
 
-indirect enum NavType: Equatable {
-    case linkActivated(isMiddleClick: Bool)
-    case formSubmitted
-    case backForward(fromURL: URL?, title: String?)
-    case reload
-    case formResubmitted
-    case redirect(type: RedirectType, previousNavigation: EquatableNav?)
-    case sessionRestoration
-    case userInitatedJavascriptRedirect
-    case custom(UserInfo)
-    case unknown
-
-    init(_ navigationType: NavigationType) {
-        switch navigationType {
-        case .linkActivated(let isMiddleClick):
-            self = .linkActivated(isMiddleClick: isMiddleClick)
-        case .formSubmitted:
-            self = .formSubmitted
-        case .backForward(let from):
-            self = .backForward(fromURL: from?.url, title: from?.title)
-        case .reload:
-            self = .reload
-        case .formResubmitted:
-            self = .formResubmitted
-        case .redirect(let type, let previousNavigation):
-            self = .redirect(type: type, previousNavigation: previousNavigation.map(EquatableNav.init))
-        case .sessionRestoration:
-            self = .sessionRestoration
-        case .userInitatedJavascriptRedirect:
-            self = .userInitatedJavascriptRedirect
-        case .custom(let userInfo):
-            self = .custom(userInfo)
-        case .unknown:
-            self = .unknown
-        }
-    }
-
-}
-struct NavAction: Equatable, CustomStringConvertible {
-    public let navigationType: NavType
-    public let url: URL
-    public let sourceFrameIsMain: Bool
-    public let targetFrameIsMain: Bool
-
-    init(_ navigationAction: NavigationAction) {
-        self.navigationType = .init(navigationAction.navigationType)
-        self.url = navigationAction.url
-        self.sourceFrameIsMain = navigationAction.sourceFrame.isMainFrame
-        self.targetFrameIsMain = navigationAction.targetFrame.isMainFrame
-    }
-
-    init(navigationType: NavType, url: URL, sourceFrameIsMain: Bool = true, targetFrameIsMain: Bool = true) {
-        self.navigationType = navigationType
-        self.url = url
-        self.sourceFrameIsMain = sourceFrameIsMain
-        self.targetFrameIsMain = targetFrameIsMain
-    }
-
-    var description: String {
-        "\(navigationType):\(url.absoluteString):\(sourceFrameIsMain ? "main" : "iframe")->\(targetFrameIsMain ? "main" : "iframe")"
-    }
-}
-struct NavPrefs: Equatable, CustomStringConvertible {
-    var userAgent: String?
-    var contentMode: WKWebpagePreferences.ContentMode
-    var javaScriptEnabled: Bool
-    init(_ prefs: NavigationPreferences) {
-        self.userAgent = prefs.userAgent
-        self.contentMode = prefs.contentMode
-        self.javaScriptEnabled = prefs.javaScriptEnabled
-    }
-    init(userAgent: String?, contentMode: WKWebpagePreferences.ContentMode, javaScriptEnabled: Bool) {
-        self.userAgent = userAgent
-        self.contentMode = contentMode
-        self.javaScriptEnabled = javaScriptEnabled
-    }
-    var description: String {
-        "\(userAgent ?? "")\(contentMode == .recommended ? "" : (contentMode == .mobile ? ":mobile" : "desktop"))\(javaScriptEnabled == false ? ":jsdisabled" : "")"
-    }
-}
-enum NavState: Equatable {
-    case expected
-    case started
-    case awaitingFinishOrClientRedirect
-
-    case awaitingRedirect(type: RedirectType, url: URL?)
-    case redirected
-
-    case responseReceived(URL)
-    case finished
-    case failed(WKError)
-
-    init(_ state: NavigationState) {
-        switch state {
-        case .expected:
-            self = .expected
-        case .started:
-            self = .started
-        case .awaitingFinishOrClientRedirect:
-            self = .awaitingFinishOrClientRedirect
-        case .awaitingRedirect(let type, let url):
-            self = .awaitingRedirect(type: type, url: url)
-        case .redirected:
-            self = .redirected
-        case .responseReceived(let uRLResponse):
-            self = .responseReceived(uRLResponse.url!)
-        case .finished:
-            self = .finished
-        case .failed(let wKError):
-            self = .failed(wKError)
-        }
-    }
-}
-struct EquatableNav: Equatable, CustomStringConvertible {
-    let navigationAction: NavAction
-    let state: NavState
-    let isCommitted: Bool
-    let isSimulated: Bool?
-    let userInfo: UserInfo
-
-    init(_ navigation: Navigation) {
-        self.navigationAction = .init(navigation.navigationAction)
-        self.state = .init(navigation.state)
-        self.isCommitted = navigation.isCommitted
-        self.userInfo = navigation.userInfo
-        self.isSimulated = navigation.isSimulated
-    }
-
-    init(navigationAction: NavAction, state: NavState, isCommitted: Bool = false, isSimulated: Bool?, userInfo: UserInfo = .init()) {
-        self.navigationAction = navigationAction
-        self.state = state
-        self.isCommitted = isCommitted
-        self.isSimulated = isSimulated
-        self.userInfo = userInfo
-    }
-
-    init(navigationAction: NavAction, state: NavState, isCommitted: Bool = false, userInfo: UserInfo = .init()) {
-        self.navigationAction = navigationAction
-        self.state = state
-        self.isCommitted = isCommitted
-        self.isSimulated = isCommitted ? false : nil
-        self.userInfo = userInfo
-    }
-
-    var description: String {
-        "\(navigationAction):\(state):\(isCommitted ? "committed " : "")\(isSimulated != nil ? (isSimulated! ? "simulated " : "real ") : "")\(userInfo.isEmpty ? "" : userInfo.debugDescription)"
-    }
-}
-struct EquatableResponse: Equatable, CustomStringConvertible {
-    var isForMainFrame: Bool
-    var url: URL
-    init(_ response: NavigationResponse) {
-        self.isForMainFrame = response.isForMainFrame
-        self.url = response.url
-    }
-
-    init(isForMainFrame: Bool, url: URL) {
-        self.isForMainFrame = isForMainFrame
-        self.url = url
-    }
-
-    var description: String {
-        (isForMainFrame ? "main:" : "iframe:") + url.absoluteString
-    }
-}
-struct DownloadInfo: Equatable, CustomStringConvertible {
-    var url: URL?
-    init(_ download: WebKitDownload) {
-        self.url = download.originalRequest?.url
-    }
-
-    init(url: URL?) {
-        self.url = url
-    }
-
-    var description: String {
-        url?.absoluteString ?? "<nil>"
-    }
-}
 enum NavigationEvent: Equatable, CustomStringConvertible {
-    case navigationAction(NavAction, NavPrefs = .init(userAgent: nil, contentMode: .recommended, javaScriptEnabled: true))
-    case willCancel(NavAction, NavigationActionCancellationRelatedAction)
-    case didCancel(NavAction,  NavigationActionCancellationRelatedAction)
-    case navActionBecameDownload(NavigationAction, DownloadInfo)
-    case willStart(NavAction)
-    case didStart(EquatableNav)
+    case navigationAction(NavigationAction, NavigationPreferences = .default)
+    case willCancel(NavigationAction, NavigationActionCancellationRelatedAction)
+    case didCancel(NavigationAction,  NavigationActionCancellationRelatedAction)
+    case navActionBecameDownload(NavigationAction, URL)
+    case willStart(NavigationAction)
+    case didStart(Navigation)
     case didReceiveAuthenticationChallenge(URLAuthenticationChallenge)
-    case navigationResponse(EquatableResponse)
-    case navResponseBecameDownload(EquatableResponse, DownloadInfo)
-    case didCommit(EquatableNav)
-    case didReceiveRedirect(EquatableNav, RedirectType)
-    case willFinish(EquatableNav)
-    case didFinish(EquatableNav)
-    case didFail(EquatableNav, WKError)
-    case didTerminate(EquatableNav?)
+    case navigationResponse(NavigationResponse, Navigation?)
+    case navResponseBecameDownload(NavigationResponse, URL)
+    case didCommit(Navigation)
+    case didReceiveRedirect(Navigation, RedirectType)
+    case willFinish(Navigation)
+    case didFinish(Navigation)
+    case didFail(Navigation, WKError)
+    case didTerminate(Navigation?)
 
     var description: String {
         switch self {
         case .navigationAction(let arg, let arg2):
-            return "navigationAction(\(arg)\(arg2.description.isEmpty ? "" : ", " + arg2.description))"
+            return "navigationAction(\(arg)\(arg2.debugDescription.isEmpty ? "" : ", " + arg2.debugDescription))"
         case .willCancel(let arg, let arg2):
             return "willCancel(\(arg), \(arg2))"
         case .didCancel(let arg, let arg2):
@@ -233,8 +54,8 @@ enum NavigationEvent: Equatable, CustomStringConvertible {
             return "didStart(\(arg))"
         case .didReceiveAuthenticationChallenge(let arg):
             return "didReceiveAuthenticationChallenge(\(arg))"
-        case .navigationResponse(let arg):
-            return "navigationResponse(\(arg))"
+        case .navigationResponse(let arg, let arg2):
+            return "navigationResponse(\(arg)) current: \(arg2?.debugDescription ?? "<nil>")"
         case .navResponseBecameDownload(let arg, let arg2):
             return "navResponseBecameDownload(\(arg), \(arg2))"
         case .didCommit(let arg):
@@ -248,7 +69,7 @@ enum NavigationEvent: Equatable, CustomStringConvertible {
         case .didFail(let arg, let arg2):
             return "didFail(\(arg), \(arg2))"
         case .didTerminate(let arg):
-            return "didTerminate(\(arg?.description ?? "<nil>"))"
+            return "didTerminate(\(arg?.debugDescription ?? "<nil>"))"
         }
     }
 }
@@ -260,7 +81,7 @@ class NavigationResponderMock: NavigationResponder {
 
     var onNavigationAction: ((NavigationAction, inout NavigationPreferences) async -> NavigationActionPolicy?)?
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
-        history.append(.navigationAction(.init(navigationAction), .init(preferences)))
+        history.append(.navigationAction(navigationAction, preferences))
         return await onNavigationAction?(navigationAction, &preferences) ?? {
             defaultHandler?()
             return.next
@@ -269,31 +90,31 @@ class NavigationResponderMock: NavigationResponder {
 
     var onWillCancel: ((NavigationAction, NavigationActionCancellationRelatedAction) -> Void)?
     func willCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {
-        history.append(.willCancel(.init(navigationAction), relatedAction))
+        history.append(.willCancel(navigationAction, relatedAction))
         onWillCancel?(navigationAction, relatedAction) ?? defaultHandler?()
     }
 
     var onDidCancel: ((NavigationAction,  NavigationActionCancellationRelatedAction) -> Void)?
     func didCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {
-        history.append(.didCancel(.init(navigationAction), relatedAction))
+        history.append(.didCancel(navigationAction, relatedAction))
         onDidCancel?(navigationAction, relatedAction) ?? defaultHandler?()
     }
 
     var onNavActionBecameDownload: ((NavigationAction, WebKitDownload) -> Void)?
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {
-        history.append(.navActionBecameDownload(navigationAction, .init(download)))
+        history.append(.navActionBecameDownload(navigationAction, download.originalRequest!.url!))
         onNavActionBecameDownload?(navigationAction, download) ?? defaultHandler?()
     }
 
     var onWillStart: ((NavigationAction) -> Void)?
     func willStart(_ navigationAction: NavigationAction) {
-        history.append(.willStart(.init(navigationAction)))
+        history.append(.willStart(navigationAction))
         onWillStart?(navigationAction) ?? defaultHandler?()
     }
 
     var onDidStart: ((Navigation) -> Void)?
     func didStart(_ navigation: Navigation) {
-        history.append(.didStart(.init(navigation)))
+        history.append(.didStart(navigation))
         onDidStart?(navigation) ?? defaultHandler?()
     }
 
@@ -307,54 +128,54 @@ class NavigationResponderMock: NavigationResponder {
         }()
     }
 
-    var onNavigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)?
-    func decidePolicy(for navigationResponse: NavigationResponse) async -> NavigationResponsePolicy? {
-        history.append(.navigationResponse(.init(navigationResponse)))
-        return await onNavigationResponse?(navigationResponse) ?? {
+    var onNavigationResponse: ((NavigationResponse, Navigation?) async -> NavigationResponsePolicy?)?
+    func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation: Navigation?) async -> NavigationResponsePolicy? {
+        history.append(.navigationResponse(navigationResponse, currentNavigation))
+        return await onNavigationResponse?(navigationResponse, currentNavigation) ?? {
             defaultHandler?()
             return .next
         }()
     }
 
     var onNavResponseBecameDownload: ((NavigationResponse, WebKitDownload) -> Void)?
-    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload) {
-        history.append(.navResponseBecameDownload(.init(navigationResponse), .init(download)))
+    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?) {
+        history.append(.navResponseBecameDownload(navigationResponse, download.originalRequest!.url!))
         onNavResponseBecameDownload?(navigationResponse, download) ?? defaultHandler?()
     }
 
     var onDidCommit: ((Navigation) -> Void)?
     func didCommit(_ navigation: Navigation) {
-        history.append(.didCommit(.init(navigation)))
+        history.append(.didCommit(navigation))
         onDidCommit?(navigation) ?? defaultHandler?()
     }
 
     var onDidReceiveRedirect: ((Navigation, RedirectType) -> Void)?
     func navigation(_ navigation: Navigation, didReceive redirect: RedirectType) {
-        history.append(.didReceiveRedirect(.init(navigation), redirect))
+        history.append(.didReceiveRedirect(navigation, redirect))
         onDidReceiveRedirect?(navigation, redirect) ?? defaultHandler?()
     }
 
     var onWillFinish: ((Navigation) -> Void)?
     func navigationWillFinishOrRedirect(_ navigation: Navigation) {
-        history.append(.willFinish(.init(navigation)))
+        history.append(.willFinish(navigation))
         onWillFinish?(navigation) ?? defaultHandler?()
     }
 
     var onDidFinish: ((Navigation) -> Void)?
     func navigationDidFinish(_ navigation: Navigation) {
-        history.append(.didFinish(.init(navigation)))
+        history.append(.didFinish(navigation))
         onDidFinish?(navigation) ?? defaultHandler?()
     }
 
     var onDidFail: ((Navigation, WKError) -> Void)?
     func navigation(_ navigation: Navigation, didFailWith error: WKError) {
-        history.append(.didFail(.init(navigation), error))
+        history.append(.didFail(navigation, error))
         onDidFail?(navigation, error) ?? defaultHandler?()
     }
 
     var onDidTerminate: ((Navigation?) -> Void)?
     func webContentProcessDidTerminate(currentNavigation: Navigation?) {
-        history.append(.didTerminate(currentNavigation.map(EquatableNav.init)))
+        history.append(.didTerminate(currentNavigation))
         onDidTerminate?(currentNavigation) ?? defaultHandler?()
     }
 

@@ -57,6 +57,12 @@ extension URL {
         user == nil &&
         password == nil
     }
+
+    public var securityOrigin: SecurityOrigin {
+        SecurityOrigin(protocol: self.scheme ?? "",
+                       host: self.host ?? "",
+                       port: self.port ?? 0)
+    }
     
     public func isPart(ofDomain domain: String) -> Bool {
         guard let host = host else { return false }

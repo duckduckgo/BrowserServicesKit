@@ -18,42 +18,64 @@
 
 import WebKit
 
+// swiftlint:disable line_length
 public struct NavigationResponse: Equatable {
 
-    private let navigationResponse: WKNavigationResponse
-    let navigation: Navigation?
+    public let response: URLResponse
 
-    internal init(navigationResponse: WKNavigationResponse, navigation: Navigation?) {
-        self.navigationResponse = navigationResponse
-        self.navigation = navigation
+    public let isForMainFrame: Bool
+    public let canShowMIMEType: Bool
+
+    public init(response: URLResponse, isForMainFrame: Bool, canShowMIMEType: Bool) {
+        self.response = response
+        self.isForMainFrame = isForMainFrame
+        self.canShowMIMEType = canShowMIMEType
     }
 
-    public var url: URL {
-        navigationResponse.response.url!
+    init(navigationResponse: WKNavigationResponse) {
+        self.init(response: navigationResponse.response, isForMainFrame: navigationResponse.isForMainFrame, canShowMIMEType: navigationResponse.canShowMIMEType)
     }
 
-    public var isForMainFrame: Bool {
-        navigationResponse.isForMainFrame
-    }
-
-    public var response: URLResponse {
-        navigationResponse.response
-    }
-
-    public var canShowMIMEType: Bool {
-        navigationResponse.canShowMIMEType
-    }
-
-    public var shouldDownload: Bool {
-        response.shouldDownload
+    public static func == (lhs: NavigationResponse, rhs: NavigationResponse) -> Bool {
+        lhs.response.isEqual(to: rhs.response) && lhs.isForMainFrame == rhs.isForMainFrame && lhs.canShowMIMEType == rhs.canShowMIMEType
     }
 
 }
 
-public extension URLResponse {
+extension NavigationResponse {
+
+    public var url: URL {
+        response.url!
+    }
+
+    public var httpResponse: HTTPURLResponse? {
+        response as? HTTPURLResponse
+    }
+
+    public var httpStatusCode: Int? {
+        httpResponse?.statusCode
+    }
+
+    public var shouldDownload: Bool {
+        httpResponse?.shouldDownload ?? false
+    }
+
+}
+
+private extension URLResponse {
+    func isEqual(to other: URLResponse) -> Bool {
+        guard url == other.url && mimeType == other.mimeType && expectedContentLength == other.expectedContentLength && textEncodingName == other.textEncodingName && suggestedFilename == other.suggestedFilename else { return false }
+        if let lhs = self as? HTTPURLResponse, let rhs = other as? HTTPURLResponse {
+            return lhs.statusCode == rhs.statusCode && lhs.allHeaderFields as NSDictionary == rhs.allHeaderFields as NSDictionary
+        }
+        return true
+    }
+}
+
+public extension HTTPURLResponse {
 
     var shouldDownload: Bool {
-        let contentDisposition = (self as? HTTPURLResponse)?.allHeaderFields["Content-Disposition"] as? String
+        let contentDisposition = self.allHeaderFields["Content-Disposition"] as? String
         return contentDisposition?.hasPrefix("attachment") ?? false
     }
 
@@ -61,8 +83,8 @@ public extension URLResponse {
 
 extension NavigationResponse: CustomDebugStringConvertible {
     public var debugDescription: String {
-        let statusCode = { (self.navigationResponse.response as? HTTPURLResponse)?.statusCode }().map(String.init) ?? "??"
-        return "<NavigationResponse: \(statusCode):\(shouldDownload ? " Download" : "") \"\(navigation?.debugDescription ?? "<nil>")\">"
+        let statusCode = self.httpStatusCode.map { String.init($0) } ?? "-"
+        return "<Response: \((response.url ?? NSURL() as URL).absoluteString) status:\(statusCode):\(shouldDownload ? " Download" : "")>"
     }
 }
 
@@ -75,4 +97,8 @@ public enum NavigationResponsePolicy: String, Equatable {
 extension NavigationResponsePolicy? {
     /// Pass decision making to next responder
     public static let next = NavigationResponsePolicy?.none
+}
+
+extension WKNavigationResponsePolicy {
+    static let download = WKNavigationResponsePolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
 }

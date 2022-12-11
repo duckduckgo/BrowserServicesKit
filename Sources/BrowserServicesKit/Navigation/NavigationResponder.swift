@@ -21,7 +21,6 @@ import WebKit
 
 public protocol NavigationResponder {
 
-
     // MARK: Decision making
 
     /// Decides whether to allow or cancel a navigation
@@ -31,17 +30,17 @@ public protocol NavigationResponder {
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy?
 
-    /// Called when one of the Responders returned `.cancel` (with possible related actions) for `decidePolicy(for:navigationAction)` query before submitting the decision to Web View
+    /// Called only for Main Frame Navigation Actions when one of the Responders returned `.cancel` (with possible related actions) for `decidePolicy(for:navigationAction)` query before submitting the decision to Web View
     @MainActor
     func willCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction)
 
-    /// Called when one of the Responders returned `.cancel` (with possible related actions) for `decidePolicy(for:navigationAction)` query after submitting the decision to Web View
+    /// Called only for Main Frame Navigation Actions when one of the Responders returned `.cancel` (with possible related actions) for `decidePolicy(for:navigationAction)` query after submitting the decision to Web View
     @MainActor
     func didCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction)
 
     // MARK: Navigation
 
-    /// Called when all of the Responders returned `.next` or one of the Responders returned `.allow`  for `decidePolicy(for:navigationAction)` query
+    /// Called only for Main Frame Navigation Actions when all of the Responders returned `.next` or one of the Responders returned `.allow`  for `decidePolicy(for:navigationAction)` query
     @MainActor
     func willStart(_ navigationAction: NavigationAction)
     /// Called for `webView:didStartNavigation:` event _except_ for the navigations that were redirected, in this case `navigation(_:didReceive:redirect)` is called
@@ -57,7 +56,7 @@ public protocol NavigationResponder {
     /// Navigation Responders are queried in the provided order until any of them returns a NavigationResponsePolicy decision
     /// Responder Chain proceeds querying a next Responder when `.next` policy decision is returned
     @MainActor
-    func decidePolicy(for navigationResponse: NavigationResponse) async -> NavigationResponsePolicy?
+    func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation: Navigation?) async -> NavigationResponsePolicy?
 
     /// Now the Navigation is considered _happened_ and added to the BackForwardList as a Current Item
     @MainActor
@@ -83,7 +82,7 @@ public protocol NavigationResponder {
     /// Called when one of the Responders returned `.download` for `decidePolicy(for:navigationResponse)` query
     /// Not followed by `navigationDidFinish` or `navigation(_:didFail:)` events
     @MainActor
-    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload)
+    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?)
 
     /// Called on the next RunLoop pass after `navigationWillFinishOrRedirect` if no redirect followed
     @MainActor
@@ -116,8 +115,8 @@ public extension NavigationResponder {
     @MainActor
     func didReceive(_ authenticationChallenge: URLAuthenticationChallenge) async -> AuthChallengeDisposition? { .next }
 
-    func decidePolicy(for navigationResponse: NavigationResponse) async -> NavigationResponsePolicy? { .next }
-    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload) {}
+    func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation: Navigation?) async -> NavigationResponsePolicy? { .next }
+    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?) {}
 
     func didCommit(_ navigation: Navigation) {}
     func navigation(_ navigation: Navigation, didReceive redirect: RedirectType) {}

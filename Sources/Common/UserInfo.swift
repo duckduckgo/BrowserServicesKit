@@ -45,8 +45,8 @@ public struct UserInfo: Equatable {
 
 }
 
-private extension Equatable {
-    func isEqual(to other: Any?) -> Bool {
+public extension Equatable {
+    func isEqual(to other: (any Equatable)?) -> Bool {
         self == other as? Self
     }
 }

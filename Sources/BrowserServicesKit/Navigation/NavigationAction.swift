@@ -20,10 +20,11 @@ import Common
 import Foundation
 import WebKit
 
+// swiftlint:disable line_length
 public struct NavigationAction: Equatable {
 
-    @Debug.Value private static var maxIdentifier: UInt64 = 0
-    @Debug.Value public var identifier: UInt64 = ++Self.maxIdentifier
+    private static var maxIdentifier: UInt64 = 0
+    public var identifier: UInt64 = ++Self.maxIdentifier
 
     public let navigationType: NavigationType
     public let request: URLRequest
@@ -33,33 +34,24 @@ public struct NavigationAction: Equatable {
 
     public let shouldDownload: Bool
 
-    public var isForMainFrame: Bool {
-        targetFrame.isMainFrame
-    }
-
-    public var isTargetingNewWindow: Bool {
-        sourceFrame.isSharingWebView(with: targetFrame)
-    }
-
-    public var isUserInitiated: Bool {
-        navigationType.isUserInitiated
-    }
-
-    public var url: URL {
-        request.url!
-    }
-
-    internal init(navigationType: NavigationType, request: URLRequest, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
+    public init(navigationType: NavigationType, request: URLRequest, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
         self.navigationType = navigationType
+        var request = request
+        if request.allHTTPHeaderFields == nil {
+            request.allHTTPHeaderFields = [:]
+        }
+        if request.url == nil {
+            request.url = NSURL() as URL
+        }
         self.request = request
         self.sourceFrame = sourceFrame
         self.targetFrame = targetFrame
         self.shouldDownload = shouldDownload
     }
 
-    internal init(_ navigationAction: WKNavigationAction, navigationType: NavigationType? = nil) {
-        // In this cruel reality the source frame IS Nullable for initial load events
-        let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .main
+    internal init(webView: WKWebView, navigationAction: WKNavigationAction, navigationType: NavigationType? = nil) {
+        // In this cruel reality the source frame IS Nullable for initial load events, this would mean we‘re targeting the main frame
+        let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
 
         self.init(navigationType: navigationType ?? NavigationType(navigationAction),
                   request: navigationAction.request,
@@ -69,41 +61,83 @@ public struct NavigationAction: Equatable {
                   shouldDownload: navigationAction.shouldDownload)
     }
 
-    internal static func sessionRestoreNavigation(url: URL) -> Self {
-        self.init(navigationType: .sessionRestoration, request: URLRequest(url: url), sourceFrame: .main, targetFrame: .main, shouldDownload: false)
+    internal static func sessionRestoreNavigation(webView: WKWebView) -> Self {
+        self.init(navigationType: .sessionRestoration, request: URLRequest(url: webView.url ?? NSURL() as URL), sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+    }
+
+    public static func == (lhs: NavigationAction, rhs: NavigationAction) -> Bool {
+        lhs.navigationType == rhs.navigationType && lhs.sourceFrame == rhs.sourceFrame && lhs.targetFrame == rhs.targetFrame && lhs.shouldDownload == rhs.shouldDownload
+            && lhs.request.isEqual(to: rhs.request)
     }
 
 }
 
+public extension NavigationAction {
+
+    var isForMainFrame: Bool {
+        targetFrame.isMainFrame
+    }
+
+    var isTargetingNewWindow: Bool {
+        sourceFrame.identity.webView != targetFrame.identity.webView
+    }
+
+    var isUserInitiated: Bool {
+        navigationType.isUserInitiated
+    }
+
+    var url: URL {
+        request.url ?? NSURL() as URL
+    }
+
+}
+
+private extension URLRequest {
+    func isEqual(to other: URLRequest) -> Bool {
+        url == other.url && httpMethod == other.httpMethod && (allHTTPHeaderFields ?? [:]) == (other.allHTTPHeaderFields ?? [:])
+            && cachePolicy == other.cachePolicy && timeoutInterval == other.timeoutInterval
+    }
+}
+
 public struct NavigationPreferences: Equatable {
+
     public var userAgent: String?
     public var contentMode: WKWebpagePreferences.ContentMode
-    private var _javaScriptEnabled: Bool
 
+    fileprivate var javaScriptEnabledValue: Bool
     @available(macOS 11.0, iOS 14.0, *)
     public var javaScriptEnabled: Bool {
         get {
-            _javaScriptEnabled
+            javaScriptEnabledValue
         }
         set {
-            _javaScriptEnabled = newValue
+            javaScriptEnabledValue = newValue
         }
+    }
+
+    public static let `default` = NavigationPreferences(userAgent: nil, contentMode: .recommended, javaScriptEnabled: true)
+
+    public init(userAgent: String?, contentMode: WKWebpagePreferences.ContentMode, javaScriptEnabled: Bool) {
+        self.userAgent = userAgent
+        self.contentMode = contentMode
+        self.javaScriptEnabledValue = javaScriptEnabled
     }
 
     internal init(userAgent: String?, preferences: WKWebpagePreferences) {
         self.contentMode = preferences.preferredContentMode
         if #available(macOS 11.0, iOS 14.0, *) {
-            self._javaScriptEnabled = preferences.allowsContentJavaScript
+            self.javaScriptEnabledValue = preferences.allowsContentJavaScript
         } else {
-            self._javaScriptEnabled = true
+            self.javaScriptEnabledValue = true
         }
     }
 
-    internal func export(to preferences: WKWebpagePreferences) {
+    internal func applying(to preferences: WKWebpagePreferences) -> WKWebpagePreferences {
         preferences.preferredContentMode = contentMode
         if #available(macOS 11.0, iOS 14.0, *) {
             preferences.allowsContentJavaScript = javaScriptEnabled
         }
+        return preferences
     }
 
 }
@@ -121,57 +155,15 @@ extension NavigationActionPolicy? {
     public static let next = NavigationActionPolicy?.none
 }
 
-public enum NavigationActionCancellationRelatedAction : Equatable{
+public enum NavigationActionCancellationRelatedAction: Equatable {
     case none
     case taskCancelled
     case redirect(URLRequest)
     case other(UserInfo)
 }
 
-extension WKNavigationAction {
-#if _SHOULD_PERFORM_DOWNLOAD_ENABLED
-    private static let _shouldPerformDownload = "_shouldPerformDownload"
-#endif
-    var shouldDownload: Bool {
-        if #available(macOS 11.3, iOS 14.5, *) {
-            return shouldPerformDownload
-        }
-#if _SHOULD_PERFORM_DOWNLOAD_ENABLED
-        return self.value(forKey: Self._shouldPerformDownload) as? Bool ?? false
-#else
-        return false
-#endif
-    }
-
-#if _IS_USER_INITIATED_ENABLED
-    private static let _isUserInitiated = "_isUserInitiated"
-    var isUserInitiated: Bool {
-        guard responds(to: NSSelectorFromString(Self._isUserInitiated)) else { return false }
-        return self.value(forKey: Self._isUserInitiated) as? Bool ?? false
-    }
-#else
-    var isUserInitiated: Bool {
-        false
-    }
-#endif
-
-    var safeSourceFrame: WKFrameInfo? {
-        // In this cruel reality the source frame IS Nullable for initial load events
-        withUnsafePointer(to: self.sourceFrame) { $0.withMemoryRebound(to: WKFrameInfo?.self, capacity: 1) { $0 } }.pointee
-    }
-
-#if os(macOS)
-    var isMiddleClick: Bool {
-        buttonNumber == 4
-    }
-#endif
-}
-
 extension WKNavigationActionPolicy {
-    public static let download = WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
-}
-extension WKNavigationResponsePolicy {
-    public static let download = WKNavigationResponsePolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
+    static let download = WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
 }
 
 extension NavigationActionPolicy? {
@@ -207,5 +199,11 @@ extension NavigationActionCancellationRelatedAction: CustomDebugStringConvertibl
         case .redirect(let request): return "redirect(\(request.url!)"
         case .other(let userInfo): return "other(\(userInfo.debugDescription))"
         }
+    }
+}
+
+extension NavigationPreferences: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        "\(userAgent ?? "")\(contentMode == .recommended ? "" : (contentMode == .mobile ? ":mobile" : "desktop"))\(javaScriptEnabledValue == false ? ":jsdisabled" : "")"
     }
 }

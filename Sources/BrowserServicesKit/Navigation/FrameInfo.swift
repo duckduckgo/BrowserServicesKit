@@ -21,65 +21,94 @@ import Foundation
 import WebKit
 
 public struct FrameInfo: Equatable {
-    private let frameInfo: WKFrameInfo?
-    public let isMainFrame: Bool
-
-    public let request: URLRequest?
+    public let identity: FrameIdentity
+    public let url: URL
     public let securityOrigin: SecurityOrigin
 
-    public static let main = FrameInfo(frameInfo: nil, isMainFrame: true, request: nil, securityOrigin: .empty)
-
-    internal init(frameInfo: WKFrameInfo?, isMainFrame: Bool, request: URLRequest?, securityOrigin: SecurityOrigin) {
-        self.frameInfo = frameInfo
-        self.isMainFrame = isMainFrame
-        self.request = request
+    public init(frameIdentity: FrameIdentity, url: URL, securityOrigin: SecurityOrigin) {
+        self.identity = frameIdentity
+        self.url = url
         self.securityOrigin = securityOrigin
     }
 
-    internal init(_ frameInfo: WKFrameInfo) {
-        self.init(frameInfo: frameInfo, isMainFrame: frameInfo.isMainFrame, request: frameInfo.request, securityOrigin: .init(frameInfo.securityOrigin))
+    public init(frame: WKFrameInfo) {
+        self.init(frameIdentity: FrameIdentity(frame), url: frame.request.url ?? NSURL() as URL, securityOrigin: SecurityOrigin(frame.securityOrigin))
     }
 
-    public var url: URL? {
-        request?.url
-    }
-
-    func isSharingWebView(with other: FrameInfo) -> Bool {
-        frameInfo?.webView === other.frameInfo?.webView
+    public static func mainFrame(for webView: WKWebView) -> FrameInfo {
+        FrameInfo(frameIdentity: .mainFrameIdentity(for: webView),
+                  url: webView.url ?? NSURL() as URL,
+                  securityOrigin: webView.url?.securityOrigin ?? .empty)
     }
 
 }
 
-public struct SecurityOrigin: Hashable {
-    public let `protocol`: String
-    public let host: String
-    public let port: Int
+extension FrameInfo {
 
-    public init(`protocol`: String, host: String, port: Int) {
-        self.`protocol` = `protocol`
-        self.host = host
-        self.port = port
+    public var isMainFrame: Bool {
+        identity.isMainFrame
     }
 
-    internal init(_ securityOrigin: WKSecurityOrigin) {
+}
+
+public struct FrameIdentity: Hashable {
+    public typealias WebViewIdentity = NSValue
+
+    public let webView: WebViewIdentity?
+    public var handle: String
+    public let isMainFrame: Bool
+
+    public init(handle: String, webViewIdentity: WebViewIdentity?, isMainFrame: Bool) {
+        self.handle = handle
+        self.webView = webViewIdentity
+        self.isMainFrame = isMainFrame
+    }
+
+    public init(_ frame: WKFrameInfo) {
+        assert(!frame.isMainFrame || frame.handle == WKFrameInfo.mainFrameHandle)
+        self.init(handle: frame.handle,
+                  webViewIdentity: frame.webView.map(WebViewIdentity.init(nonretainedObject:)),
+                  isMainFrame: frame.isMainFrame)
+    }
+
+    public static func mainFrameIdentity(for webView: WKWebView) -> FrameIdentity {
+        self.init(handle: "4", webViewIdentity: WebViewIdentity(nonretainedObject: webView), isMainFrame: true)
+    }
+
+    public static func == (lhs: FrameIdentity, rhs: FrameIdentity) -> Bool {
+#if !WKFRAME_HANDLE_ENABLED
+//        assert(lhs.isMainFrame && rhs.isMainFrame, "comparing non-main frame identities is only possible via javascript or using private APIs")
+#endif
+        return lhs.handle == rhs.handle && lhs.webView == rhs.webView && lhs.isMainFrame == rhs.isMainFrame
+    }
+
+}
+
+extension SecurityOrigin {
+    public init(_ securityOrigin: WKSecurityOrigin) {
         self.init(protocol: securityOrigin.protocol, host: securityOrigin.host, port: securityOrigin.port)
     }
-
-    public static let empty = SecurityOrigin(protocol: "", host: "", port: 0)
 }
 
 extension FrameInfo: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<Frame #\(frameInfo.map { $0.debug_handle } ?? "??")\(isMainFrame ? ": Main" : "")>"
+        "<Frame \(identity.debugDescription); current url: \(url.absoluteString.isEmpty ? "empty" : url.absoluteString)>"
+    }
+}
+extension FrameIdentity: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        "\(webView?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "<nil>")_\(handle)\(isMainFrame ? ": Main" : "")"
     }
 }
 
 public extension WKFrameInfo {
-    var debug_handle: String {
+    static var mainFrameHandle = "4"
+
+    var handle: String {
 #if DEBUG
         String(describing: (self.value(forKey: "_handle") as? NSObject)!.value(forKey: "frameID")!)
 #else
-        "??"
+        self.isMainFrame ? Self.mainFrameHandle : "iframe"
 #endif
     }
 }
