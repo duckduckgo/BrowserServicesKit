@@ -27,34 +27,27 @@ public struct Navigation: Equatable {
     public private(set) var navigationAction: NavigationAction
     public private(set) var state: NavigationState
     public private(set) var isCommitted: Bool = false
-    public private(set) var isSimulated: Bool?
-    /// contains distance from `webView.backForwardList.currentItem` to a navigated item (if `navigationAction.navigationType` is `backForward`)
-    /// negative for back navigations, positive for forward navigations
-    public private(set) var backForwardNavigationDistance: Int?
+    public private(set) var didReceiveAuthenticationChallenge: Bool = false
 
-    public init(navigationAction: NavigationAction, state: NavigationState = .expected, identity: NavigationIdentity = .expected, isCommitted: Bool = false, isSimulated: Bool? = nil, backForwardNavigationDistance: Int? = nil) {
-        assert(backForwardNavigationDistance == nil || navigationAction.navigationType.isBackForward)
-
+    public init(navigationAction: NavigationAction, state: NavigationState = .expected, identity: NavigationIdentity = .expected, isCommitted: Bool = false) {
         self.navigationAction = navigationAction
         self.state = state
         self.identity = identity
         self.isCommitted = isCommitted
-        self.isSimulated = (isCommitted && isSimulated == nil) ? (state == .started ? true : false) : isSimulated
-        self.backForwardNavigationDistance = backForwardNavigationDistance
     }
 
-    static func expected(navigationAction: NavigationAction, current navigation: Navigation?) -> Navigation {
+    static func expected(navigationAction: NavigationAction, redirectedNavigation: Navigation? = nil) -> Navigation {
         let identity: NavigationIdentity?
         switch navigationAction.navigationType {
-        case .redirect(type: .client, history: _, initial: _):
+        case .redirect(let redirect) where redirect.type.isClient:
             // new WKNavigation starts for js redirects
             identity = nil
-        case .redirect(type: .server, history: _, initial: _):
+        case .redirect:
             // the same WKNavigation is continued for server redirects
-            identity = navigation?.identity
+            identity = redirectedNavigation?.identity
         case .reload, .backForward, .formSubmitted, .formResubmitted, .linkActivated,
-             .custom, .sessionRestoration, .unknown, .userInitatedJavascriptNavigation:
-            // not a redirect
+             .custom, .sessionRestoration, .other:
+            // not a redirect navigation
             identity = nil
         }
 
@@ -63,7 +56,7 @@ public struct Navigation: Equatable {
 
     static func started(navigationAction: NavigationAction, navigation wkNavigation: WKNavigation?) -> Navigation {
         var navigation = Navigation(navigationAction: navigationAction, state: .expected, identity: .expected)
-        navigation.started(wkNavigation, backForwardNavigationDistance: nil)
+        navigation.started(wkNavigation)
         return navigation
     }
 
@@ -75,12 +68,12 @@ public struct Navigation: Equatable {
         navigationAction.url
     }
 
-    public var redirectHistory: [URL]? {
-        navigationAction.navigationType.redirectHistory
+    public var redirectHistory: [RedirectHistoryItem]? {
+        navigationAction.navigationType.redirect?.history
     }
 
     public static func == (lhs: Navigation, rhs: Navigation) -> Bool {
-        lhs.identity == rhs.identity && lhs.navigationAction == rhs.navigationAction && lhs.state == rhs.state && lhs.isCommitted == rhs.isCommitted && lhs.isSimulated == rhs.isSimulated && lhs.backForwardNavigationDistance == rhs.backForwardNavigationDistance
+        lhs.identity == rhs.identity && lhs.navigationAction == rhs.navigationAction && lhs.state == rhs.state && lhs.isCommitted == rhs.isCommitted
     }
 
 }
@@ -88,9 +81,7 @@ public struct Navigation: Equatable {
 public enum NavigationState: Equatable {
     case expected
     case started
-    case awaitingFinishOrClientRedirect
 
-    case awaitingRedirect(type: RedirectType, url: URL?)
     case redirected
 
     case responseReceived(NavigationResponse)
@@ -101,16 +92,9 @@ public enum NavigationState: Equatable {
         if case .responseReceived = self { return true }
         return false
     }
-}
 
-public enum RedirectType: Equatable {
-    case client(delay: TimeInterval)
-    case server
-}
-
-extension RedirectType {
-    public var isClient: Bool {
-        if case .client = self { return true }
+    public var isFailed: Bool {
+        if case .failed = self { return true }
         return false
     }
 }
@@ -167,11 +151,8 @@ public struct NavigationIdentity: Equatable {
 
 extension Navigation {
 
-    mutating func started(_ navigation: WKNavigation?, backForwardNavigationDistance: Int?) {
-        assert(backForwardNavigationDistance != 0)
-
+    mutating func started(_ navigation: WKNavigation?) {
         self.identity.resolve(with: navigation)
-        self.backForwardNavigationDistance = backForwardNavigationDistance
 
         guard case .expected = self.state else {
             assertionFailure("unexpected state \(self.state)")
@@ -181,23 +162,13 @@ extension Navigation {
         self.state = .started
     }
 
+    mutating func challengeRececived() {
+        self.didReceiveAuthenticationChallenge = true
+    }
+
     mutating func committed(_ navigation: WKNavigation?) {
         self.identity.resolve(with: navigation)
-
-        switch state {
-        case .responseReceived:
-            self.isSimulated = false
-        case .started:
-            self.isSimulated = true
-        case .expected,
-             .awaitingFinishOrClientRedirect,
-             .awaitingRedirect,
-             .redirected,
-             .finished,
-             .failed:
-            assertionFailure("unexpected state \(self.state)")
-        }
-
+        assert(state == .started || state.isResponseReceived)
         self.isCommitted = true
     }
 
@@ -206,29 +177,18 @@ extension Navigation {
         self.state = .responseReceived(response)
     }
 
-    mutating func willFinish(_ navigation: WKNavigation?) {
+    mutating func didFinish(_ navigation: WKNavigation?) {
         self.identity.resolve(with: navigation)
 
         switch self.state {
-        case .started:
-            assert(self.isSimulated == true, "unexpected willFinish without didCommit")
-            // Shortly after receiving webView:didFinishNavigation: a client redirect navigation may start
-            self.state = .awaitingFinishOrClientRedirect
+        case .started, .redirected:
+            self.state = .finished
         case .responseReceived:
             // regular flow
-            self.state = .awaitingFinishOrClientRedirect
-        case .awaitingRedirect:
-            // state after willPerformClientRedirectToURL, redirect expected
-            break
-        case .expected, .awaitingFinishOrClientRedirect, .redirected, .finished, .failed:
+            self.state = .finished
+        case .expected, .finished, .failed:
             assertionFailure("unexpected state \(self.state)")
         }
-    }
-
-    // On the next pass after `willFinish` we can finish the navigation
-    mutating func didFinish() {
-        assert(state == .awaitingFinishOrClientRedirect)
-        self.state = .finished
     }
 
     mutating func didFail(_ navigation: WKNavigation? = nil, with error: WKError) {
@@ -239,47 +199,15 @@ extension Navigation {
         self.state = .failed(error)
     }
 
-    mutating func willPerformClientRedirect(to url: URL, delay: TimeInterval) {
-        assert(state.isResponseReceived)
-        self.state = .awaitingRedirect(type: .client(delay: delay), url: url)
-    }
-
     mutating func didReceiveServerRedirect(for navigation: WKNavigation?) {
         assert(state == .expected, "didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
         self.identity.resolve(with: navigation)
         self.state = .started
     }
 
-    func redirectType(for url: URL) -> RedirectType? {
-        switch state {
-        case .awaitingRedirect(type: let redirectType, url: let awaitedRedirectUrl):
-            // handle expected redirect
-            if awaitedRedirectUrl?.matches(url) == true || awaitedRedirectUrl == nil {
-                return redirectType
-            }
-            // redirect was expected but for a different url, make a new Navigation just in case
-            return nil
-        case .started:
-            // handle server redirect (after didStartNavigation)
-            return .server
-
-        case .awaitingFinishOrClientRedirect:
-            // handle client (js) redirect
-            return .client(delay: 0)
-
-        case .expected, .responseReceived, .finished, .failed:
-            // not expecting redirect
-            return nil
-
-        case .redirected:
-            assertionFailure("unexpected state \(self.state), Navigation is already redirected")
-            return nil
-        }
-    }
-
     mutating func redirected() {
         switch state {
-        case  .started, .awaitingRedirect, .awaitingFinishOrClientRedirect:
+        case  .started:
             self.state = .redirected
         case .expected, .responseReceived, .finished, .failed, .redirected:
             assertionFailure("unexpected state \(self.state)")
@@ -290,7 +218,7 @@ extension Navigation {
 
 extension Navigation: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<\(identity) #\(navigationAction.identifier): \(isSimulated == true ? "simulated " : "")url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationAction.navigationType)>"
+        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationAction.navigationType)>"
     }
 }
 

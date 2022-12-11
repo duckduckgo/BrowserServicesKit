@@ -17,21 +17,20 @@ public enum NavigationType: Equatable {
     case linkActivated
 #endif
     case formSubmitted
-    case backForward(from: HistoryItemIdentity?)
-    case reload
     case formResubmitted
 
-    case redirect(type: RedirectType, history: [URL], initial: InitialNavigationType)
+    case backForward(distance: Int)
+    case reload
+
+    case redirect(Redirect)
     case sessionRestoration
 
-    /// NavigationAction contains `isUserInitiated` flag indicating that javascript navigation action was initiated by user
-    case userInitatedJavascriptNavigation
+    case other
 
+    /// developer-defined, set using `DistributedNavigationDelegate.setExpectedNavigationType(_:for:url)`
     case custom(UserInfo)
 
-    case unknown
-
-    public init(_ navigationAction: WebViewNavigationAction) {
+    public init(_ navigationAction: WebViewNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?) {
         switch navigationAction.navigationType {
         case .linkActivated:
 #if os(macOS)
@@ -40,44 +39,23 @@ public enum NavigationType: Equatable {
             self = .linkActivated
 #endif
         case .backForward:
-            self = .backForward(from: navigationAction.currentHistoryItemIdentity)
+            self = .backForward(distance: navigationAction.getDistance(from: currentHistoryItemIdentity) ?? 0)
         case .reload:
             self = .reload
         case .formSubmitted:
             self = .formSubmitted
         case .formResubmitted:
             self = .formResubmitted
-#if _IS_USER_INITIATED_ENABLED
-        case .other where navigationAction.isUserInitiated:
-            self = .userInitatedJavascriptNavigation
-#endif
         case .other:
-            self = .unknown
+            self = .other
         @unknown default:
-            self = .unknown
+            self = .other
         }
     }
 
 }
 
 public extension NavigationType {
-
-    var isUserInitiated: Bool {
-        switch self {
-        case .linkActivated,
-                .formSubmitted,
-                .backForward,
-                .reload,
-                .formResubmitted,
-                .userInitatedJavascriptNavigation:
-            return true
-        case .sessionRestoration,
-             .redirect,
-             .custom,
-             .unknown:
-            return false
-        }
-    }
 
     var isLinkActivated: Bool {
         if case .linkActivated = self { return true }
@@ -96,13 +74,8 @@ public extension NavigationType {
         return false
     }
     
-    var redirectType: RedirectType? {
-        if case .redirect(type: let type, history: _, initial: _) = self { return type }
-        return nil
-    }
-
-    var redirectHistory: [URL]? {
-        if case .redirect(type: _, history: let history, initial: _) = self { return history }
+    var redirect: Redirect? {
+        if case .redirect(let redirect) = self { return redirect }
         return nil
     }
 
@@ -111,48 +84,29 @@ public extension NavigationType {
         return false
     }
 
-}
-
-public enum InitialNavigationType: Equatable {
-    case linkActivated
-    case backForward(from: HistoryItemIdentity?)
-    case reload
-    case formSubmitted
-    case formResubmitted
-    case sessionRestoration
-    case userInitatedJavascriptNavigation
-    case custom(UserInfo)
-    case unknown
-
-    public init(navigationType: NavigationType) {
-        switch navigationType {
-        case .linkActivated:
-            self = .linkActivated
-        case .backForward(from: let item):
-            self = .backForward(from: item)
-        case .reload:
-            self = .reload
-        case .formSubmitted:
-            self = .formSubmitted
-        case .formResubmitted:
-            self = .formResubmitted
-        case .redirect(type: _, history: _, initial: let initialType):
-            self = initialType
-        case .sessionRestoration:
-            self = .sessionRestoration
-        case .userInitatedJavascriptNavigation:
-            self = .userInitatedJavascriptNavigation
-        case .custom(let userInfo):
-            self = .custom(userInfo)
-        case .unknown:
-            self = .unknown
-        }
+    var backForwardDistance: Int? {
+        if case .backForward(distance: let distance) = self, distance != 0 { return distance }
+        return nil
     }
+
+    var isGoingBack: Bool {
+        (backForwardDistance ?? 0) < 0
+    }
+
+    var isGoingForward: Bool {
+        (backForwardDistance ?? 0) > 0
+    }
+
+    var isSessionRestoration: Bool {
+        if case .sessionRestoration = self { return true }
+        return false
+    }
+
 }
 
 public protocol WebViewNavigationAction {
     var navigationType: WKNavigationType { get }
-    var currentHistoryItemIdentity: HistoryItemIdentity? { get }
+    func getDistance(from historyItemIdentity: HistoryItemIdentity?) -> Int?
 #if os(macOS)
     var isMiddleClick: Bool { get }
 #endif
@@ -175,21 +129,26 @@ public struct HistoryItemIdentity: Hashable {
     }
 }
 
+extension WKBackForwardListItem {
+
+    public var identity: HistoryItemIdentity { HistoryItemIdentity(self) }
+
+}
+
 extension NavigationType: CustomDebugStringConvertible {
     public var debugDescription: String {
         switch self {
         case .linkActivated: return "linkActivated"
         case .formSubmitted: return "formSubmitted"
-        case .backForward: return "backForward"
+        case .backForward(let distance): return "backForward" + (distance != 0 ? "[\(distance)]" : "")
         case .reload: return "reload"
         case .formResubmitted: return "formResubmitted"
         case .sessionRestoration: return "sessionRestoration"
-        case .userInitatedJavascriptNavigation: return "userInitated"
-        case .unknown: return "unknown"
-        case .redirect(type: let redirectType, history: let history, initial: let initialType):
-            return "redirect(\(redirectType), history: \(history), initial: \(initialType))"
-        case .custom(let name):
-            return "custom(\(name))"
+        case .other: return "other"
+        case .redirect(let redirect):
+            return "redirect(\(redirect.debugDescription))"
+        case .custom(let userInfo):
+            return "custom(\(userInfo))"
         }
     }
 }

@@ -21,7 +21,7 @@ import WebKit
 extension WKNavigationAction: WebViewNavigationAction {
 
     var safeSourceFrame: WKFrameInfo? {
-        // In this cruel reality the source frame IS Nullable for initial load events
+        // In this cruel reality the source frame IS Nullable pretty often
         withUnsafePointer(to: self.sourceFrame) { $0.withMemoryRebound(to: WKFrameInfo?.self, capacity: 1) { $0 } }.pointee
     }
 
@@ -57,9 +57,24 @@ extension WKNavigationAction: WebViewNavigationAction {
     }
 #endif
 
-    public var currentHistoryItemIdentity: HistoryItemIdentity? {
-        guard let currentItem = self.safeSourceFrame?.webView?.backForwardList.currentItem else { return nil }
-        return HistoryItemIdentity(currentItem)
+    /// returns navigation distance from current BackForwardList item for back/forward navigations
+    /// -1-based, negative for back navigations; 1-based, positive for forward navigations
+    public func getDistance(from historyItemIdentity: HistoryItemIdentity?) -> Int? {
+        guard let historyItemIdentity,
+              let backForwardList = (self.safeSourceFrame ?? self.targetFrame)?.webView?.backForwardList
+        else { return nil }
+        if backForwardList.backItem.map(HistoryItemIdentity.init) == historyItemIdentity {
+            return 1
+        } else if backForwardList.forwardItem.map(HistoryItemIdentity.init) == historyItemIdentity {
+            return -1
+        } else if let forwardIndex = backForwardList.forwardList.firstIndex(where: { $0.identity == historyItemIdentity }) {
+            return -forwardIndex - 1 // going back from item in forward list to current, adding 1 to zero based index
+        }
+        let backList = backForwardList.backList
+        if let backIndex = backList.lastIndex(where: { $0.identity == historyItemIdentity }) {
+            return backList.count - backIndex  // going forward from item in _reveresed_ back list to current
+        }
+        return nil
     }
 
 }

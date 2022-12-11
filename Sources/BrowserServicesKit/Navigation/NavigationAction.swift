@@ -26,16 +26,22 @@ public struct NavigationAction: Equatable {
     private static var maxIdentifier: UInt64 = 0
     public var identifier: UInt64 = ++Self.maxIdentifier
 
-    public let navigationType: NavigationType
     public let request: URLRequest
+
+    public let navigationType: NavigationType
+#if _IS_USER_INITIATED_ENABLED
+    public let isUserInitiated: Bool
+#endif
 
     public let sourceFrame: FrameInfo
     public let targetFrame: FrameInfo
 
     public let shouldDownload: Bool
 
-    public init(navigationType: NavigationType, request: URLRequest, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
-        self.navigationType = navigationType
+    /// Actual `BackForwardListItem` identity before the NavigationAction had started
+    public let fromHistoryItemIdentity: HistoryItemIdentity?
+
+    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, isUserInitiated: Bool, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
         var request = request
         if request.allHTTPHeaderFields == nil {
             request.allHTTPHeaderFields = [:]
@@ -44,17 +50,25 @@ public struct NavigationAction: Equatable {
             request.url = NSURL() as URL
         }
         self.request = request
+        self.navigationType = navigationType
+#if _IS_USER_INITIATED_ENABLED
+        self.isUserInitiated = isUserInitiated
+#endif
         self.sourceFrame = sourceFrame
         self.targetFrame = targetFrame
         self.shouldDownload = shouldDownload
+
+        self.fromHistoryItemIdentity = currentHistoryItemIdentity
     }
 
-    internal init(webView: WKWebView, navigationAction: WKNavigationAction, navigationType: NavigationType? = nil) {
+    internal init(webView: WKWebView, navigationAction: WKNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?, navigationType: NavigationType? = nil) {
         // In this cruel reality the source frame IS Nullable for initial load events, this would mean we‘re targeting the main frame
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
 
-        self.init(navigationType: navigationType ?? NavigationType(navigationAction),
-                  request: navigationAction.request,
+        self.init(request: navigationAction.request,
+                  navigationType: navigationType ?? NavigationType(navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity),
+                  currentHistoryItemIdentity: currentHistoryItemIdentity,
+                  isUserInitiated: navigationAction.isUserInitiated,
                   sourceFrame: sourceFrame,
                   // always has targetFrame if not targeting to a new window
                   targetFrame: navigationAction.targetFrame.map(FrameInfo.init) ?? sourceFrame,
@@ -62,7 +76,8 @@ public struct NavigationAction: Equatable {
     }
 
     internal static func sessionRestoreNavigation(webView: WKWebView) -> Self {
-        self.init(navigationType: .sessionRestoration, request: URLRequest(url: webView.url ?? NSURL() as URL), sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+        assert(webView.backForwardList.currentItem == nil)
+        return self.init(request: URLRequest(url: webView.url ?? NSURL() as URL), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
     }
 
     public static func == (lhs: NavigationAction, rhs: NavigationAction) -> Bool {
@@ -80,10 +95,6 @@ public extension NavigationAction {
 
     var isTargetingNewWindow: Bool {
         sourceFrame.identity.webView != targetFrame.identity.webView
-    }
-
-    var isUserInitiated: Bool {
-        navigationType.isUserInitiated
     }
 
     var url: URL {

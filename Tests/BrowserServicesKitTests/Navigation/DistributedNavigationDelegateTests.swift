@@ -655,7 +655,8 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     func testClientAndServerRedirect() {}
     func testDoubleServerAndClientRedirect() {}
     func testUserAgent() {}
-    
+    func testWhenClientRedirectWithDelayAndThenNavigationIsFinished() {}
+    func testWhenNavigationResponderTakesLongToReturnDecisionAndAnotherNavigationComesInBeforeIt
 }
 
 private final class WillPerformClientRedirectHandler: NSObject, NavigationResponder {

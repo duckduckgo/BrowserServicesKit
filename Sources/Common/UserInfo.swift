@@ -18,20 +18,108 @@
 
 import Foundation
 
-@dynamicMemberLookup
-public struct UserInfo: Equatable {
-    public struct Values {}
 
-    private var storage = [AnyKeyPath: any Equatable]()
+/** Arbitrary User Info storage with default values. Equatable. Private extension keys do intersect between extensions.
+ usage:
+```
+ extension UserInfo.Values {
+
+     // define keys with default values and debug description generator
+     var myUserInfoString: Value<String> { .init(default: "My User Info Default Value", description: { "my value key: \($0)" }) }
+
+     var myUserInfoBool: Value<Bool> { .init(default: false, description: { $0 ? "the flag is set" : "" }) }
+
+ }
+
+ let userInfo: UserInfo = [\.myUserInfoString: "my value value", \.myUserInfoBool: true]
+ userInfo.myUserInfoString == "my value value"
+ userInfo.myUserInfoBool = false
+
+```
+ */
+@dynamicMemberLookup
+public struct UserInfo: Equatable, ExpressibleByArrayLiteral {
+    // structure to extend with custom Keys
+    public struct Values {
+        // storage struct
+        public struct Value<ValueType: Equatable> {
+            // stores default value for computed extension properties and actual value when added to `storage`
+            public let value: ValueType
+
+            // description generator, used the one set in the computed extension property
+            let getDescription: ((ValueType) -> String)?
+            public init(default value: ValueType, description: ((ValueType) -> String)? = nil) {
+                self.value = value
+                self.getDescription = description
+            }
+
+            public func isEqual(to other: (any UserInfoValue)?) -> Bool {
+                self.value == (other as? Self)?.value
+            }
+            
+            public var valueType: Any.Type {
+                ValueType.self
+            }
+
+            public func getDescription(forValueAt keyPath: AnyKeyPath) -> String? {
+                guard let keyPath = keyPath as? KeyPath<Values, Values.Value<ValueType>> else {
+                    assertionFailure("Unexpected \(type(of: keyPath)), expected: \(KeyPath<Values, Values.Value<ValueType>>.self)")
+                    return nil
+                }
+                let defaultValue = Values()[keyPath: keyPath]
+                return defaultValue.getDescription?(value)
+            }
+
+        }
+
+        fileprivate static func makeValue<T: Equatable>(from value: T, for keyPath: PartialKeyPath<Values>) -> (any UserInfoValue)? {
+            guard case .some = keyPath as? KeyPath<Values, Values.Value<T>> else {
+                assertionFailure("Unexpected \(type(of: keyPath)), expected: \(KeyPath<Values, Values.Value<T>>.self)")
+                return nil
+            }
+            return Value(default: value)
+        }
+    }
+
+    public struct ArrayLiteralElement {
+        let key: PartialKeyPath<Values>
+        let value: any Equatable
+        public init<T: Equatable>(_ key: KeyPath<Values, Values.Value<T>>, _ value: T) {
+            self.key = key
+            self.value = value
+        }
+        public init<T>(key: KeyPath<Values, Values.Value<T>>, value: T) {
+            self.key = key
+            self.value = value
+        }
+    }
+
+    private var storage = [AnyKeyPath: AnyUserInfoValue]()
 
     public init() {}
 
-    public subscript<T: Equatable>(dynamicMember keyPath: KeyPath<Values, T>) -> T {
+    public init<T: Equatable>(_ key: KeyPath<Values, Values.Value<T>>, _ value: T) {
+        guard let value = Values.makeValue(from: value, for: key) else { return }
+        storage = [key: value]
+    }
+
+    public init<T>(key: KeyPath<Values, Values.Value<T>>, value: T) {
+        guard let value = Values.makeValue(from: value, for: key) else { return }
+        storage = [key: value]
+    }
+
+    public init(arrayLiteral elements: ArrayLiteralElement...) {
+        storage = elements.reduce(into: [:]) { (result, pair) in
+            result[pair.key] = Values.makeValue(from: pair.value, for: pair.key)
+        }
+    }
+
+    public subscript<T: Equatable>(dynamicMember keyPath: KeyPath<Values, Values.Value<T>>) -> T {
         get {
-            (storage[keyPath] as? T) ?? Values()[keyPath: keyPath]
+            (storage[keyPath] as? Values.Value<T>)?.value ?? Values()[keyPath: keyPath].value
         }
         set {
-            storage[keyPath] = newValue
+            storage[keyPath] = Values.Value(default: newValue)
         }
     }
 
@@ -45,19 +133,30 @@ public struct UserInfo: Equatable {
 
 }
 
-public extension Equatable {
-    func isEqual(to other: (any Equatable)?) -> Bool {
-        self == other as? Self
-    }
+public protocol UserInfoValue {
+    associatedtype ValueType: Equatable
+    var valueType: Any.Type { get }
+    var value: ValueType { get }
+    func getDescription(forValueAt keyPath: AnyKeyPath) -> String?
+    func isEqual(to other: (AnyUserInfoValue)?) -> Bool
 }
+
+extension UserInfo.Values.Value: UserInfoValue {}
+public typealias AnyUserInfoValue = any UserInfoValue
 
 extension UserInfo: CustomDebugStringConvertible {
     public var debugDescription: String {
-        var result = "["
-        for (key, value) in storage {
-            result.append("\(key): \(value)")
+        var result = storage.count > 1 ? "[" : ""
+        for (keyPath, value) in storage {
+            if let description = value.getDescription(forValueAt: keyPath) {
+                result.append(description)
+            } else {
+                result.append("\(value.valueType): \(value.value)")
+            }
         }
-        result.append("]")
+        if storage.count > 1 {
+            result.append("]")
+        }
         return result
     }
 }

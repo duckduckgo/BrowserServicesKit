@@ -28,7 +28,7 @@ enum NavigationEvent: Equatable, CustomStringConvertible {
     case navActionBecameDownload(NavigationAction, URL)
     case willStart(NavigationAction)
     case didStart(Navigation)
-    case didReceiveAuthenticationChallenge(URLAuthenticationChallenge)
+    case didReceiveAuthenticationChallenge(URLAuthenticationChallenge, Navigation?)
     case navigationResponse(NavigationResponse, Navigation?)
     case navResponseBecameDownload(NavigationResponse, URL)
     case didCommit(Navigation)
@@ -118,11 +118,11 @@ class NavigationResponderMock: NavigationResponder {
         onDidStart?(navigation) ?? defaultHandler?()
     }
 
-    var onDidReceiveAuthenticationChallenge: ((URLAuthenticationChallenge) async -> AuthChallengeDisposition?)?
+    var onDidReceiveAuthenticationChallenge: ((URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)?
     @MainActor
-    func didReceive(_ authenticationChallenge: URLAuthenticationChallenge) async -> AuthChallengeDisposition? {
+    func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition? {
         history.append(.didReceiveAuthenticationChallenge(authenticationChallenge))
-        return await onDidReceiveAuthenticationChallenge?(authenticationChallenge) ?? {
+        return await onDidReceiveAuthenticationChallenge?(authenticationChallenge, navigation) ?? {
             defaultHandler?()
             return .next
         }()

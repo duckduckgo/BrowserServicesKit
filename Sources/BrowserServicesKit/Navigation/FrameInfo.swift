@@ -65,7 +65,6 @@ public struct FrameIdentity: Hashable {
     }
 
     public init(_ frame: WKFrameInfo) {
-        assert(!frame.isMainFrame || frame.handle == WKFrameInfo.mainFrameHandle)
         self.init(handle: frame.handle,
                   webViewIdentity: frame.webView.map(WebViewIdentity.init(nonretainedObject:)),
                   isMainFrame: frame.isMainFrame)
@@ -76,9 +75,6 @@ public struct FrameIdentity: Hashable {
     }
 
     public static func == (lhs: FrameIdentity, rhs: FrameIdentity) -> Bool {
-#if !WKFRAME_HANDLE_ENABLED
-//        assert(lhs.isMainFrame && rhs.isMainFrame, "comparing non-main frame identities is only possible via javascript or using private APIs")
-#endif
         return lhs.handle == rhs.handle && lhs.webView == rhs.webView && lhs.isMainFrame == rhs.isMainFrame
     }
 
@@ -102,7 +98,7 @@ extension FrameIdentity: CustomDebugStringConvertible {
 }
 
 public extension WKFrameInfo {
-    static var mainFrameHandle = "4"
+    static var defaultMainFrameHandle = "4"
 
     var handle: String {
 #if DEBUG

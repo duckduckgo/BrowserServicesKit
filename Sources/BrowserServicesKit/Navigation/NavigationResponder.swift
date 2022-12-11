@@ -50,7 +50,7 @@ public protocol NavigationResponder {
 
     /// Invoked when the web view needs to respond to an authentication challenge.
     @MainActor
-    func didReceive(_ authenticationChallenge: URLAuthenticationChallenge) async -> AuthChallengeDisposition?
+    func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition?
 
     /// Happens after server redirects and completing authenticationChallenge
     /// Navigation Responders are queried in the provided order until any of them returns a NavigationResponsePolicy decision
@@ -66,13 +66,15 @@ public protocol NavigationResponder {
     @MainActor
     func navigation(_ navigation: Navigation, didReceive redirect: RedirectType)
 
-    /// Called on `webView:didFinishNavigation:` event
-    /// Will be followed by `navigationDidFinish` call if no redirect navigation is followed
-    /// `navigationDidFinish` won‘t be called if the navigation is redirected
-    @MainActor
-    func navigationWillFinishOrRedirect(_ navigation: Navigation)
-
     // MARK: - Completion
+
+    /// Main Frame navigation did finish
+    @MainActor
+    func navigationDidFinish(_ navigation: Navigation)
+
+    /// Called for both `webView:didFailNavigation:` and `webView:didFailProvisionalNavigation:` - check the `isProvisioned` to distinguish
+    @MainActor
+    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool)
 
     /// Called when one of the Responders returned `.download` for `decidePolicy(for:navigationAction)` query
     /// Not followed by `navigationDidFinish` or `navigation(_:didFail:)` events
@@ -83,14 +85,6 @@ public protocol NavigationResponder {
     /// Not followed by `navigationDidFinish` or `navigation(_:didFail:)` events
     @MainActor
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?)
-
-    /// Called on the next RunLoop pass after `navigationWillFinishOrRedirect` if no redirect followed
-    @MainActor
-    func navigationDidFinish(_ navigation: Navigation)
-
-    /// Called for both `webView:didFailNavigation:` and `webView:didFailProvisionalNavigation:` - check the `isProvisioned` to distinguish
-    @MainActor
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool)
 
     /// Called when WebView process was terminated
     /// Not followed by `navigationDidFinish` or `navigation(_:didFail:)` events
@@ -107,24 +101,24 @@ public extension NavigationResponder {
     func willCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {}
     func didCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {}
 
-    func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {}
 
     func willStart(_ navigationAction: NavigationAction) {}
     func didStart(_ navigation: Navigation) {}
 
     @MainActor
-    func didReceive(_ authenticationChallenge: URLAuthenticationChallenge) async -> AuthChallengeDisposition? { .next }
+    func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition? { .next }
 
     func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation: Navigation?) async -> NavigationResponsePolicy? { .next }
-    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?) {}
 
     func didCommit(_ navigation: Navigation) {}
     func navigation(_ navigation: Navigation, didReceive redirect: RedirectType) {}
 
-    func navigationWillFinishOrRedirect(_ navigation: Navigation) {}
     func navigationDidFinish(_ navigation: Navigation) {}
 
     func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {}
+
+    func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {}
+    func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?) {}
 
     func webContentProcessDidTerminate(currentNavigation: Navigation?) {}
 
