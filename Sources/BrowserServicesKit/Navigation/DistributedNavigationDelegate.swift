@@ -31,6 +31,7 @@ public final class DistributedNavigationDelegate: NSObject {
     private let logger: OSLog
 
     private var expectedNavigationAction: (navigationType: NavigationType?, url: URL?)?
+    private var navigationExpectedToStart: Navigation?
 
     @Published
     public private(set) var currentNavigation: Navigation?
@@ -164,8 +165,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // when starting a new (non-redirect) navigation and `didFinish` wasn‘t called for the old one
             reallyFinishNavigation(currentNavigation)
         }
+        navigationExpectedToStart = .expected(navigationAction: navigationAction, current: currentNavigation)
 
-        currentNavigation = .expected(navigationAction: navigationAction, current: currentNavigation)
         for responder in responders {
             responder.willStart(navigationAction)
         }
@@ -196,7 +197,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation wkNavigation: WKNavigation?) {
         let navigation: Navigation
-        if var currentNavigation, let wkNavigation {
+        if var currentNavigation = currentNavigation ?? navigationExpectedToStart, let wkNavigation {
             // regular flow: start .expected navigation
             currentNavigation.started(wkNavigation, backForwardNavigationDistance: getBackForwardNavigationDistanceFromCurrentItem(in: webView))
             navigation = currentNavigation
@@ -206,6 +207,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             navigation = .started(navigationAction: .sessionRestoreNavigation(webView: webView), navigation: wkNavigation)
         }
         currentNavigation = navigation
+        navigationExpectedToStart = nil
+
         os_log("didStart: %s", log: logger, type: .default, navigation.debugDescription)
         assert(navigation.navigationAction.navigationType.redirectType != .server, "server redirects shouldn‘t call didStartProvisionalNavigation")
 

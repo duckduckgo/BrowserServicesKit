@@ -62,7 +62,7 @@ public struct Navigation: Equatable {
     }
 
     static func started(navigationAction: NavigationAction, navigation wkNavigation: WKNavigation?) -> Navigation {
-        var navigation: Navigation = .expected(navigationAction: navigationAction, current: nil)
+        var navigation = Navigation(navigationAction: navigationAction, state: .expected, identity: .expected)
         navigation.started(wkNavigation, backForwardNavigationDistance: nil)
         return navigation
     }
