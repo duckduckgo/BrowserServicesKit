@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
-import Foundation
-import WebKit
-import os.log
+import Combine
 import Common
+import Foundation
+import os.log
+import WebKit
 
 // swiftlint:disable file_length
 // swiftlint:disable line_length
