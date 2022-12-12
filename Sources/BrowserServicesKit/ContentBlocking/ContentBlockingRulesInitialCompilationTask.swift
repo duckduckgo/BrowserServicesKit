@@ -39,16 +39,16 @@ extension ContentBlockerRulesManager {
             self.sourceRules = sourceRules
             self.lastCompiledRules = lastCompiledRules
         }
-        
-        @MainActor
-        func start() async -> [CachedRulesList] {
+
+        func lookupCachedRulesLists() async throws -> [CachedRulesList] {
             let sourceRulesNames = sourceRules.map { $0.name }
             let filteredBySourceLastCompiledRules = lastCompiledRules.filter { sourceRulesNames.contains($0.name) }
-            
+
             var result: [CachedRulesList] = []
             for rules in filteredBySourceLastCompiledRules {
-                guard let ruleList = await WKContentRuleListStore.default()?
-                    .lookUpContentRuleList(forIdentifier: rules.identifier.stringValue) else { continue }
+                guard let ruleList = try await Task(operation: { @MainActor in
+                    try await WKContentRuleListStore.default().contentRuleList(forIdentifier: rules.identifier.stringValue)
+                }).value else { throw WKError(.contentRuleListStoreLookUpFailed) }
 
                 result.append(CachedRulesList(name: rules.name,
                                               rulesList: ruleList,
@@ -57,19 +57,6 @@ extension ContentBlockerRulesManager {
             }
             return result
         }
-        
-    }
-    
-}
 
-private extension WKContentRuleListStore {
-    
-    func lookUpContentRuleList(forIdentifier identifier: String) async -> WKContentRuleList? {
-        await withCheckedContinuation { continuation in
-            lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
-                continuation.resume(returning: ruleList)
-            }
-        }
     }
-    
 }
