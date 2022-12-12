@@ -26,7 +26,7 @@ public protocol EmbeddedDataProvider {
     var embeddedData: Data { get }
 }
 
-public protocol PrivacyConfigurationManaging {
+public protocol PrivacyConfigurationManaging: AnyObject {
 
     var currentConfig: Data { get }
     var updatesPublisher: AnyPublisher<Void, Never> { get }
