@@ -223,22 +223,18 @@ final class FingerprintingReferenceTests: XCTestCase {
         let contentScopeScript = ContentScopeUserScript(self.privacyManager,
                                                         properties: contentScopeProperties)
         
-        configuration.userContentController.addUserScript(WKUserScript(source: self.scriptToInject,
+        configuration.userContentController.addUserScript(WKUserScript(source: "\(scriptToInject) init(window)",
                                                                        injectionTime: .atDocumentStart,
-                                                                       forMainFrameOnly: false))
-        
-        for messageName in contentScopeScript.messageNames {
-            configuration.userContentController.add(contentScopeScript, name: messageName)
-        }
-        
-        configuration.userContentController.addUserScript(WKUserScript(source: scriptToInject,
-                                                                       injectionTime: .atDocumentEnd,
                                                                        forMainFrameOnly: false))
         
         
         configuration.userContentController.addUserScript(WKUserScript(source: contentScopeScript.source,
                                                                        injectionTime: .atDocumentStart,
                                                                        forMainFrameOnly: false))
+        
+        for messageName in contentScopeScript.messageNames {
+            configuration.userContentController.add(contentScopeScript, name: messageName)
+        }
         
         completion(webView)
         
