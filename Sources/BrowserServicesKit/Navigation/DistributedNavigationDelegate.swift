@@ -481,17 +481,20 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 // MARK: - Responders
 extension DistributedNavigationDelegate {
 
-    fileprivate enum ResponderRef<T: NavigationResponder>: AnyResponderRef {
-        case weak(WeakResponderRef<T>)
-        case strong(T)
+    fileprivate enum ResponderRef: AnyResponderRef {
+        case weak(ref: WeakResponderRef, type: NavigationResponder.Type)
+        case strong(NavigationResponder)
         var responder: NavigationResponder? {
             switch self {
-            case .weak(let ref): return ref.responder
+            case .weak(ref: let ref, type: _): return ref.responder
             case .strong(let responder): return responder
             }
         }
         var responderType: String {
-            "\(T.self)"
+            switch self {
+            case .weak(ref: _, type: let type): return "\(type)"
+            case .strong(let responder): return "\(type(of: responder))"
+            }
         }
     }
 
@@ -501,16 +504,16 @@ extension DistributedNavigationDelegate {
             self.ref = ref
         }
         public static func `weak`(_ responder: (some NavigationResponder & AnyObject)) -> ResponderRefMaker {
-            return .init(ResponderRef.weak(WeakResponderRef(responder)))
+            return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
         }
-        public static func `weak`(nullable responder: (some NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
+        public static func `weak`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
             guard let responder = responder else { return nil }
-            return .init(ResponderRef.weak(WeakResponderRef(responder)))
+            return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
         }
-        public static func `strong`(_ responder: some NavigationResponder & AnyObject) -> ResponderRefMaker {
+        public static func `strong`(_ responder: any NavigationResponder & AnyObject) -> ResponderRefMaker {
             return .init(ResponderRef.strong(responder))
         }
-        public static func `strong`(nulable responder: (some NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
+        public static func `strong`(nulable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
             guard let responder = responder else { return nil }
             return .init(ResponderRef.strong(responder))
         }
@@ -518,15 +521,15 @@ extension DistributedNavigationDelegate {
             assert(Mirror(reflecting: responder).displayStyle == .struct, "\(type(of: responder)) is not a struct")
             return .init(ResponderRef.strong(responder))
         }
-        public static func `struct`(nullable responder: NavigationResponder?) -> ResponderRefMaker? {
+        public static func `struct`(nullable responder: (some NavigationResponder)?) -> ResponderRefMaker? {
             guard let responder = responder else { return nil }
             return .struct(responder)
         }
     }
 
-    fileprivate final class WeakResponderRef<T: NavigationResponder> {
+    fileprivate final class WeakResponderRef {
         weak var responder: (NavigationResponder & AnyObject)?
-        init(responder: (NavigationResponder & AnyObject)?) {
+        init(_ responder: (NavigationResponder & AnyObject)?) {
             self.responder = responder
         }
     }
@@ -574,10 +577,4 @@ extension DistributedNavigationDelegate {
 private protocol AnyResponderRef {
     var responder: NavigationResponder? { get }
     var responderType: String { get }
-}
-
-extension DistributedNavigationDelegate.WeakResponderRef where T: AnyObject {
-    convenience init(_ responder: T) {
-        self.init(responder: responder)
-    }
 }
