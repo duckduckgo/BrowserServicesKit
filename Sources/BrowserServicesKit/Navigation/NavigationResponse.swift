@@ -1,5 +1,5 @@
 //
-//  NavigationRespondse.swift
+//  NavigationResponse.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -70,15 +70,6 @@ private extension URLResponse {
         }
         return true
     }
-}
-
-public extension HTTPURLResponse {
-
-    var shouldDownload: Bool {
-        let contentDisposition = self.allHeaderFields["Content-Disposition"] as? String
-        return contentDisposition?.hasPrefix("attachment") ?? false
-    }
-
 }
 
 extension NavigationResponse: CustomDebugStringConvertible {
