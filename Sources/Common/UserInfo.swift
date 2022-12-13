@@ -19,7 +19,8 @@
 import Foundation
 
 
-/** Arbitrary User Info storage with default values. Equatable. Private extension keys do intersect between extensions.
+/**
+ Arbitrary User Info storage with default values. Equatable. Private extension keys do NOT intersect between extensions.
  usage:
 ```
  extension UserInfo.Values {
@@ -31,7 +32,7 @@ import Foundation
 
  }
 
- let userInfo: UserInfo = [\.myUserInfoString: "my value value", \.myUserInfoBool: true]
+ let userInfo: UserInfo = [.init(\.myUserInfoString, "my value value"), .init(\.myUserInfoBool, true)]
  userInfo.myUserInfoString == "my value value"
  userInfo.myUserInfoBool = false
 
@@ -148,6 +149,9 @@ extension UserInfo: CustomDebugStringConvertible {
     public var debugDescription: String {
         var result = storage.count > 1 ? "[" : ""
         for (keyPath, value) in storage {
+            if !result.isEmpty {
+                result.append(", ")
+            }
             if let description = value.getDescription(forValueAt: keyPath) {
                 result.append(description)
             } else {

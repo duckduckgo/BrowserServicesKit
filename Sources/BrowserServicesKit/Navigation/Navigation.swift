@@ -93,6 +93,11 @@ public enum NavigationState: Equatable {
         return false
     }
 
+    public var response: NavigationResponse? {
+        if case .responseReceived(let response) = self { return response }
+        return nil
+    }
+
     public var isFailed: Bool {
         if case .failed = self { return true }
         return false
@@ -200,7 +205,7 @@ extension Navigation {
     }
 
     mutating func didReceiveServerRedirect(for navigation: WKNavigation?) {
-        assert(state == .expected, "didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
+        assert(state == .expected || state == .started, "didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
         self.identity.resolve(with: navigation)
         self.state = .started
     }

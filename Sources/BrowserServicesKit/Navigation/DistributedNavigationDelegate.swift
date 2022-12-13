@@ -444,7 +444,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationAction:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
-        let navigationAction = NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity)
+        let navigationAction = (navigationAction.targetFrame?.isMainFrame == true ? currentNavigation?.navigationAction : nil)
+            ?? NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity)
         for responder in responders {
             responder.navigationAction(navigationAction, didBecome: download)
         }
@@ -454,7 +455,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationResponse:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
-        let navigationResponse = NavigationResponse(navigationResponse: navigationResponse)
+        let navigationResponse = (navigationResponse.isForMainFrame ? currentNavigation?.state.response : nil)
+            ?? NavigationResponse(navigationResponse: navigationResponse)
         for responder in responders {
             responder.navigationResponse(navigationResponse, didBecome: download, currentNavigation: startedNavigation)
         }
