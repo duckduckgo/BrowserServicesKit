@@ -229,7 +229,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     private func willStartDownload(with navigationAction: NavigationAction, in webView: WKWebView) {
         expectedDownloadNavigationAction = navigationAction
         for responder in responders {
-            responder.willStartDownlod(from: navigationAction.url, in: webView)
+            responder.navigationAction(navigationAction, willBecomeDownloadIn: webView)
         }
     }
 
@@ -351,9 +351,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             case .cancel:
                 decisionHandler(.cancel)
             case .download:
-                for responder in self?.responders ?? [] {
-                    responder.willStartDownlod(from: navigationResponse.url, in: webView)
-                }
+                self?.willStartDownload(with: navigationResponse, in: webView)
                 decisionHandler(.download)
             }
         }
@@ -363,7 +361,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     private func willStartDownload(with navigationResponse: NavigationResponse, in webView: WKWebView) {
         expectedDownloadNavigationResponse = navigationResponse
         for responder in responders {
-            responder.willStartDownlod(from: navigationResponse.url, in: webView)
+            responder.navigationResponse(navigationResponse, willBecomeDownloadIn: webView)
         }
     }
 
