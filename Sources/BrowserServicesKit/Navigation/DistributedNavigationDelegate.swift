@@ -43,6 +43,9 @@ public final class DistributedNavigationDelegate: NSObject {
             updateCurrentNavigation()
         }
     }
+    private var expectedDownloadNavigationAction: NavigationAction?
+    private var expectedDownloadNavigationResponse: NavigationResponse?
+
     /// ongoing Main Frame navigation (after `navigationDidStart` event received)
     private var startedNavigation: Navigation? {
         didSet {
@@ -181,6 +184,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 self.didCancel(navigationAction, with: relatedAction)
 
             case .download:
+                self.willStartDownload(with: navigationAction, in: webView)
                 decisionHandler(.download, wkPreferences)
             }
         }
@@ -218,6 +222,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         for responder in responders {
             responder.willStart(navigationAction)
+        }
+    }
+
+    @MainActor
+    private func willStartDownload(with navigationAction: NavigationAction, in webView: WKWebView) {
+        expectedDownloadNavigationAction = navigationAction
+        for responder in responders {
+            responder.willStartDownlod(from: navigationAction.url, in: webView)
         }
     }
 
@@ -332,15 +344,26 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             return decision
 
-        } completion: { (decision: NavigationResponsePolicy?) in
+        } completion: { [weak self] (decision: NavigationResponsePolicy?) in
             switch decision {
             case .allow, .none:
                 decisionHandler(.allow)
             case .cancel:
                 decisionHandler(.cancel)
             case .download:
+                for responder in self?.responders ?? [] {
+                    responder.willStartDownlod(from: navigationResponse.url, in: webView)
+                }
                 decisionHandler(.download)
             }
+        }
+    }
+
+    @MainActor
+    private func willStartDownload(with navigationResponse: NavigationResponse, in webView: WKWebView) {
+        expectedDownloadNavigationResponse = navigationResponse
+        for responder in responders {
+            responder.willStartDownlod(from: navigationResponse.url, in: webView)
         }
     }
 
@@ -444,8 +467,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationAction:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
-        let navigationAction = (navigationAction.targetFrame?.isMainFrame == true ? currentNavigation?.navigationAction : nil)
+        let navigationAction = expectedDownloadNavigationAction
             ?? NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity)
+        self.expectedDownloadNavigationAction = nil
+
         for responder in responders {
             responder.navigationAction(navigationAction, didBecome: download)
         }
@@ -455,8 +480,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationResponse:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
-        let navigationResponse = (navigationResponse.isForMainFrame ? currentNavigation?.state.response : nil)
+        let navigationResponse = expectedDownloadNavigationResponse
             ?? NavigationResponse(navigationResponse: navigationResponse)
+        self.expectedDownloadNavigationResponse = nil
         for responder in responders {
             responder.navigationResponse(navigationResponse, didBecome: download, currentNavigation: startedNavigation)
         }

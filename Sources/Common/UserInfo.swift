@@ -149,7 +149,7 @@ extension UserInfo: CustomDebugStringConvertible {
     public var debugDescription: String {
         var result = storage.count > 1 ? "[" : ""
         for (keyPath, value) in storage {
-            if !result.isEmpty {
+            if result.count > 1 {
                 result.append(", ")
             }
             if let description = value.getDescription(forValueAt: keyPath) {

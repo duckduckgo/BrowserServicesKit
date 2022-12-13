@@ -76,7 +76,11 @@ public protocol NavigationResponder {
     @MainActor
     func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool)
 
-    /// Called when one of the Responders returned `.download` for `decidePolicy(for:navigationAction)` query
+    /// Called when one of the Responders returned `.download` for `decidePolicyNavigationAction:` or `decidePolicyForNavigationResponse:` query
+    @MainActor
+    func willStartDownlod(from url: URL, in webView: WKWebView)
+
+    /// Called after one of the Responders returned `.download` for `decidePolicy(for:navigationAction)` query and download has started
     /// Not followed by `navigationDidFinish` or `navigation(_:didFail:)` events
     @MainActor
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload)
@@ -117,6 +121,7 @@ public extension NavigationResponder {
 
     func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {}
 
+    func willStartDownlod(from url: URL, in webView: WKWebView) {}
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {}
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation: Navigation?) {}
 
