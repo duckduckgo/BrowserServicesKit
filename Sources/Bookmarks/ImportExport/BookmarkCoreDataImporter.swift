@@ -43,10 +43,10 @@ public class BookmarkCoreDataImporter {
                                                   parent: topLevelBookmarksFolder,
                                                   favoritesRoot: topLevelFavoritesFolder)
                     try context.save()
+                    continuation.resume()
                 } catch {
                     continuation.resume(throwing: error)
                 }
-                continuation.resume()
             }
         }
     }

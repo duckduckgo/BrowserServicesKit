@@ -18,6 +18,7 @@
 
 import XCTest
 import Persistence
+import CoreData
 @testable import Bookmarks
 
 class BookmarkUtilsTests: XCTestCase {
