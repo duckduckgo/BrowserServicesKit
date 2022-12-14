@@ -121,7 +121,7 @@ class NavigationResponderMock: NavigationResponder {
     var onDidReceiveAuthenticationChallenge: ((URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)?
     @MainActor
     func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition? {
-        history.append(.didReceiveAuthenticationChallenge(authenticationChallenge))
+        history.append(.didReceiveAuthenticationChallenge(authenticationChallenge, navigation))
         return await onDidReceiveAuthenticationChallenge?(authenticationChallenge, navigation) ?? {
             defaultHandler?()
             return .next

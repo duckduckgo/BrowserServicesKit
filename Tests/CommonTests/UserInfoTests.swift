@@ -29,8 +29,8 @@ private struct TestUserInfo1 {
 }
 
 private extension UserInfo.Values {
-    var testStr: String { "test1" }
-    var testBool: Bool { true }
+    var testStr: Value<String> { Value(default: "test1") { $0 } }
+    var testBool: Value<Bool> { Value(default: true) { _ in "test descr" } }
 }
 
 final class UserInfoTests: XCTestCase {
