@@ -39,9 +39,12 @@ public class BookmarkCoreDataImporter {
                         throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
                     
+                    var existingBookmarkURLs = try allExistingBookmarkURLs(in: context)
+                    
                     try recursivelyCreateEntities(from: bookmarks,
                                                   parent: topLevelBookmarksFolder,
-                                                  favoritesRoot: topLevelFavoritesFolder)
+                                                  favoritesRoot: topLevelFavoritesFolder,
+                                                  existingBookmarkURLs: &existingBookmarkURLs)
                     try context.save()
                     continuation.resume()
                 } catch {
@@ -50,10 +53,25 @@ public class BookmarkCoreDataImporter {
             }
         }
     }
+    
+    private func allExistingBookmarkURLs(in context: NSManagedObjectContext) throws -> Set<String> {
+        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
+        fetch.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
+        fetch.resultType = .dictionaryResultType
+        fetch.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
+        
+        let dict = try context.fetch(fetch) as? [Dictionary<String, Any>]
+        
+        if let result = dict?.compactMap({ $0.first?.value as? String }) {
+            return Set(result)
+        }
+        return []
+    }
 
     private func recursivelyCreateEntities(from bookmarks: [BookmarkOrFolder],
                                            parent: BookmarkEntity,
-                                           favoritesRoot: BookmarkEntity) throws {
+                                           favoritesRoot: BookmarkEntity,
+                                           existingBookmarkURLs: inout Set<String>) throws {
         for bookmarkOrFolder in bookmarks {
             if bookmarkOrFolder.isInvalidBookmark {
                 continue
@@ -67,11 +85,13 @@ public class BookmarkCoreDataImporter {
                 if let children = bookmarkOrFolder.children {
                     try recursivelyCreateEntities(from: children,
                                                   parent: folder,
-                                                  favoritesRoot: favoritesRoot)
+                                                  favoritesRoot: favoritesRoot,
+                                                  existingBookmarkURLs: &existingBookmarkURLs)
                 }
             case .favorite:
                 if let url = bookmarkOrFolder.url {
-                    if let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
+                    if existingBookmarkURLs.contains(url.absoluteString),
+                       let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
                         bookmark.addToFavorites(favoritesRoot: favoritesRoot)
                     } else {
                         let newFavorite = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
@@ -79,6 +99,7 @@ public class BookmarkCoreDataImporter {
                                                                       parent: parent,
                                                                       context: context)
                         newFavorite.addToFavorites(favoritesRoot: favoritesRoot)
+                        existingBookmarkURLs.insert(url.absoluteString)
                     }
                 }
             case .bookmark:
@@ -91,6 +112,7 @@ public class BookmarkCoreDataImporter {
                                                         url: url.absoluteString,
                                                         parent: parent,
                                                         context: context)
+                        existingBookmarkURLs.insert(url.absoluteString)
                     }
                 }
             }
