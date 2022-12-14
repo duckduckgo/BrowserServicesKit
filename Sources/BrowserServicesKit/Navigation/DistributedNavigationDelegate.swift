@@ -107,6 +107,15 @@ private extension DistributedNavigationDelegate {
         Task { @MainActor in
             var result: T?
             for responder in responders {
+#if DEBUG
+                let timeoutWorkItem = DispatchWorkItem {
+                    assertionFailure("decision making is taking longer than expected, probably there‘s a leak")
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
+                defer {
+                    timeoutWorkItem.cancel()
+                }
+#endif
                 guard let decision = await decide(responder) else { continue }
                 result = decision
                 break
@@ -539,7 +548,7 @@ extension DistributedNavigationDelegate {
         public static func `strong`(_ responder: any NavigationResponder & AnyObject) -> ResponderRefMaker {
             return .init(ResponderRef.strong(responder))
         }
-        public static func `strong`(nulable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
+        public static func `strong`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
             guard let responder = responder else { return nil }
             return .init(ResponderRef.strong(responder))
         }

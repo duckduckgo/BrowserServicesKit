@@ -29,5 +29,5 @@ struct TestUserInfo2 {
 }
 
 private extension UserInfo.Values {
-    var testStr: String { "test2" }
+    var testStr: Value<String> { Value(default: "test2") { $0 } }
 }

@@ -91,213 +91,279 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 //
 //    }
 
-    func testRegularNavigationResponderChain1() {
-        navigationDelegate.setResponders(
-            .strong(NavigationResponderMock()),
-            .strong(NavigationResponderMock()),
-            .strong(NavigationResponderMock())
-        )
-
-        // Regular navigation without redirects
-        // 1st: .next
-        responder(at: 0).onNavigationAction = { _, _ in .next }
-        // 2nd: .allow
-        responder(at: 1).onNavigationAction = { _, _ in .allow }
-        // 3rd: not called
-        responder(at: 2).onNavigationAction = { _, _ in XCTFail(); return .cancel }
-
-        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
-        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
-        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
-        let expectedFor2: [NavigationEvent] = [
-            .willStart(expectedNavAction),
-            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
-            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
-            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
-            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
-            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
-        ]
-        let expectedFor0and1 = [.navigationAction(expectedNavAction)] + expectedFor2
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        testSchemeHandler.onRequest = { [responseData] task in
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
-            task.didFinish()
-        }
-
-        webView.load(testSchemeRequest)
-        waitForExpectations(timeout: 1)
-
-        assertHistoryEquals(responder(at: 0).history, expectedFor0and1)
-        assertHistoryEquals(responder(at: 1).history, expectedFor0and1)
-        assertHistoryEquals(responder(at: 2).history, expectedFor2)
-        XCTAssertNil(navigationDelegate.currentNavigation)
-    }
-
-    func testFailingNavigationResponderChain() {
-        navigationDelegate.setResponders(
-            .strong(NavigationResponderMock()),
-            .strong(NavigationResponderMock()),
-            .strong(NavigationResponderMock())
-        )
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        webView.loadSimulatedRequest(httpsRequest, responseHTML: "")
-        waitForExpectations(timeout: 1)
-    }
-
-    func testWhenResponderCancelsNavigation_followingRespondersNotCalled() {
-        navigationDelegate.setResponders(
-            .strong(NavigationResponderMock()),
-            .strong(NavigationResponderMock()),
-            .strong(NavigationResponderMock())
-        )
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        webView.loadSimulatedRequest(httpsRequest, responseHTML: "")
-        waitForExpectations(timeout: 1)
-    }
+//    func testRegularNavigationResponderChain1() {
+//        navigationDelegate.setResponders(
+//            .strong(NavigationResponderMock()),
+//            .strong(NavigationResponderMock()),
+//            .strong(NavigationResponderMock())
+//        )
 //
-//    func testServerRedirect() {
-//        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
-//        responder(at: 0).onNavigationAction = { _, _  in .allow }
+//        // Regular navigation without redirects
+//        // 1st: .next
+//        responder(at: 0).onNavigationAction = { _, _ in .next }
+//        // 2nd: .allow
+//        responder(at: 1).onNavigationAction = { _, _ in .allow }
+//        // 3rd: not called
+//        responder(at: 2).onNavigationAction = { _, _ in XCTFail(); return .cancel }
 //
-//        let expectedNavAction = NavAction(navigationType: .unknown, url: Self.testSchemeURL)
-//        let redirectedNavigation = EquatableNav(navigationAction: expectedNavAction, state: .redirected, isCommitted: false)
-//        let redirectNavAction = NavAction(navigationType: .redirect(type: .server, previousNavigation: redirectedNavigation), url: Self.redirectSchemeURL)
-//        let expectedEvents: [NavigationEvent] = [
-//            .navigationAction(expectedNavAction),
+//        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+//        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
+//        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
+//        let expectedFor2: [NavigationEvent] = [
 //            .willStart(expectedNavAction),
-//            .didStart(.init(navigationAction: expectedNavAction, state: .started)),
-//            .navigationAction(redirectNavAction),
-//            .willStart(redirectNavAction),
-//            .navigationResponse(.init(isForMainFrame: true, url: Self.redirectSchemeURL)),
-//            .didCommit(.init(navigationAction: redirectNavAction, state: .responseReceived(Self.redirectSchemeURL), isCommitted: true)),
-//            .willFinish(.init(navigationAction: redirectNavAction, state: .awaitingFinishOrClientRedirect, isCommitted: true)),
-//            .didFinish(.init(navigationAction: redirectNavAction, state: .finished, isCommitted: true)),
+//            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
+//            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
+//            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
+//            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
+//            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
 //        ]
+//        let expectedFor0and1 = [.navigationAction(expectedNavAction)] + expectedFor2
 //
 //        let eDidFinish = expectation(description: "onDidFinish")
-//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
 //
-//        testSchemeHandler.onRequest = { [unowned self, responseData] task in
-//            task.willPerformRedirection(.response(for: task.request), newRequest: self.redirectSchemeRequest) { request in
-//                task.didReceive(.response(for: self.redirectSchemeRequest))
-//                task.didReceive(responseData)
-//                task.didFinish()
-//            }
+//        testSchemeHandler.onRequest = { [responseData] task in
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive(responseData)
+//            task.didFinish()
 //        }
 //
 //        webView.load(testSchemeRequest)
 //        waitForExpectations(timeout: 1)
 //
+//        assertHistoryEquals(responder(at: 0).history, expectedFor0and1)
+//        assertHistoryEquals(responder(at: 1).history, expectedFor0and1)
+//        assertHistoryEquals(responder(at: 2).history, expectedFor2)
+//        XCTAssertNil(navigationDelegate.currentNavigation)
+//    }
+//
+//    func testFailingNavigationResponderChain() {
+//        navigationDelegate.setResponders(
+//            .strong(NavigationResponderMock()),
+//            .strong(NavigationResponderMock()),
+//            .strong(NavigationResponderMock())
+//        )
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
+//
+//        webView.loadSimulatedRequest(httpsRequest, responseHTML: "")
+//        waitForExpectations(timeout: 1)
+//    }
+//
+//    func testWhenResponderCancelsNavigation_followingRespondersNotCalled() {
+//        navigationDelegate.setResponders(
+//            .strong(NavigationResponderMock()),
+//            .strong(NavigationResponderMock()),
+//            .strong(NavigationResponderMock())
+//        )
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
+//
+//        webView.loadSimulatedRequest(httpsRequest, responseHTML: "")
+//        waitForExpectations(timeout: 1)
+//    }
+////
+////    func testServerRedirect() {
+////        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+////        responder(at: 0).onNavigationAction = { _, _  in .allow }
+////
+////        let expectedNavAction = NavAction(navigationType: .unknown, url: Self.testSchemeURL)
+////        let redirectedNavigation = EquatableNav(navigationAction: expectedNavAction, state: .redirected, isCommitted: false)
+////        let redirectNavAction = NavAction(navigationType: .redirect(type: .server, previousNavigation: redirectedNavigation), url: Self.redirectSchemeURL)
+////        let expectedEvents: [NavigationEvent] = [
+////            .navigationAction(expectedNavAction),
+////            .willStart(expectedNavAction),
+////            .didStart(.init(navigationAction: expectedNavAction, state: .started)),
+////            .navigationAction(redirectNavAction),
+////            .willStart(redirectNavAction),
+////            .navigationResponse(.init(isForMainFrame: true, url: Self.redirectSchemeURL)),
+////            .didCommit(.init(navigationAction: redirectNavAction, state: .responseReceived(Self.redirectSchemeURL), isCommitted: true)),
+////            .willFinish(.init(navigationAction: redirectNavAction, state: .awaitingFinishOrClientRedirect, isCommitted: true)),
+////            .didFinish(.init(navigationAction: redirectNavAction, state: .finished, isCommitted: true)),
+////        ]
+////
+////        let eDidFinish = expectation(description: "onDidFinish")
+////        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+////
+////        testSchemeHandler.onRequest = { [unowned self, responseData] task in
+////            task.willPerformRedirection(.response(for: task.request), newRequest: self.redirectSchemeRequest) { request in
+////                task.didReceive(.response(for: self.redirectSchemeRequest))
+////                task.didReceive(responseData)
+////                task.didFinish()
+////            }
+////        }
+////
+////        webView.load(testSchemeRequest)
+////        waitForExpectations(timeout: 1)
+////
+////        assertHistoryEquals(responder(at: 0).history, expectedEvents)
+////    }
+//
+//    func performAndWaitForDidFinish(_ block: @escaping () -> Void) {
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+//        testSchemeHandler.onRequest = { [responseData] task in
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive(responseData)
+//            task.didFinish()
+//        }
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        DispatchQueue.main.async {
+//            block()
+//        }
+//        waitForExpectations(timeout: 1)
+//    }
+//
+//    func testGoBackInterruptingLoadAsync() {
+//        performAndWaitForDidFinish {
+//            self.webView.load(self.testSchemeRequest)
+//        }
+//        performAndWaitForDidFinish {
+//            self.webView.load(self.testSchemeRequest)
+//        }
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+////
+////        responder(at: 0).onNavigationAction = { _, _ in .allow }
+//        testSchemeHandler.onRequest = { [responseData] task in
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive(responseData)
+////
+////            DispatchQueue.main.async {
+//            print(self.webView.backForwardList.backList)
+//                self.webView.goBack()
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+//                    task.didFinish()
+//                }
+//
+////            }
+//
+//        }
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { navigation in
+//            if navigation.url == Self.testSchemeURL {
+//                eDidFinish.fulfill()
+//            }
+//
+//        }
+//////        block()
+//////        waitForExpectations(timeout: 1)
+//        DispatchQueue.main.async {
+//            self.webView.load(self.redirectSchemeRequest)
+//        }
+//        
+//        waitForExpectations(timeout: 10)
+//        print(responder(at: 0).history.map { $0.description }.joined(separator: "\n"))
+//    }
+//
+//    func testGoBackInterruptingLoad() {
+//        performAndWaitForDidFinish { self.webView.load(self.testSchemeRequest) }
+//
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in
+//            eDidFinish.fulfill()
+//        }
+//
+//        testSchemeHandler.onRequest = { [unowned self, responseData] task in
+//            print("did receive request 2")
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive(responseData)
+//            print("go back!")
+//
+//            self.webView.goBack()
+//        }
+//
+//        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+//        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
+//        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
+//        let expectedEvents: [NavigationEvent] = [
+//            .navigationAction(expectedNavAction),
+//            .willStart(expectedNavAction),
+//            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
+//            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
+//            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
+//            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
+//            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
+//        ]
+//        DispatchQueue.main.async {
+//            self.webView.load(self.redirectSchemeRequest)
+//        }
+//        waitForExpectations(timeout: 10)
+//        print(responder(at: 0).history.map { $0.description }.joined(separator: "\n"))
 //        assertHistoryEquals(responder(at: 0).history, expectedEvents)
 //    }
-
-    func performAndWaitForDidFinish(_ block: @escaping () -> Void) {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
-        testSchemeHandler.onRequest = { [responseData] task in
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
-            task.didFinish()
-        }
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        DispatchQueue.main.async {
-            block()
-        }
-        waitForExpectations(timeout: 1)
-    }
-
-    func testGoBackInterruptingLoadAsync() {
-        performAndWaitForDidFinish {
-            self.webView.load(self.testSchemeRequest)
-        }
-        performAndWaitForDidFinish {
-            self.webView.load(self.testSchemeRequest)
-        }
-        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
 //
-//        responder(at: 0).onNavigationAction = { _, _ in .allow }
-        testSchemeHandler.onRequest = { [responseData] task in
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
+//    func testBackNavigationInterruptingLoad() {
+////        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
 //
-//            DispatchQueue.main.async {
-            print(self.webView.backForwardList.backList)
-                self.webView.goBack()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    task.didFinish()
-                }
-
-//            }
-
-        }
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { navigation in
-            if navigation.url == Self.testSchemeURL {
-                eDidFinish.fulfill()
-            }
-
-        }
-////        block()
+////        testSchemeHandler.onRequest = { [responseData] task in
+////            print("did receive request")
+////            task.didReceive(.response(for: task.request))
+////            task.didReceive(responseData)
+////            task.didFinish()
+////        }
+////
+////        var eDidFinish = expectation(description: "onDidFinish 1")
+////        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+////        print("load", testSchemeRequest.url!, webView.load(testSchemeRequest))
+////
 ////        waitForExpectations(timeout: 1)
-        DispatchQueue.main.async {
-            self.webView.load(self.redirectSchemeRequest)
-        }
-        
-        waitForExpectations(timeout: 10)
-        print(responder(at: 0).history.map { $0.description }.joined(separator: "\n"))
-    }
-
-    func testGoBackInterruptingLoad() {
-        performAndWaitForDidFinish { self.webView.load(self.testSchemeRequest) }
-
-        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in
-            eDidFinish.fulfill()
-        }
-
-        testSchemeHandler.onRequest = { [unowned self, responseData] task in
-            print("did receive request 2")
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
-            print("go back!")
-
-            self.webView.goBack()
-        }
-
-        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
-        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
-        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
-        let expectedEvents: [NavigationEvent] = [
-            .navigationAction(expectedNavAction),
-            .willStart(expectedNavAction),
-            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
-            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
-            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
-            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
-            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
-        ]
-        DispatchQueue.main.async {
-            self.webView.load(self.redirectSchemeRequest)
-        }
-        waitForExpectations(timeout: 10)
-        print(responder(at: 0).history.map { $0.description }.joined(separator: "\n"))
-        assertHistoryEquals(responder(at: 0).history, expectedEvents)
-    }
-
-    func testBackNavigationInterruptingLoad() {
+////        print("did load 1", testSchemeRequest.url!)
+////
+////
+////        eDidFinish = expectation(description: "onDidFinish 2")
+////        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+////
+////        DispatchQueue.main.async {
+////            print("load 2", self.redirectSchemeRequest.url!, self.webView.load(self.testSchemeRequest))
+////        }
+////
+////        waitForExpectations(timeout: 1)
+//        performAndWaitForDidFinish { self.webView.load(self.testSchemeRequest) }
+//        performAndWaitForDidFinish { self.webView.load(self.testSchemeRequest) }
+//        print("did load 2", redirectSchemeRequest.url!)
+//
+//        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+//        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
+//        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
+//        let expectedEvents: [NavigationEvent] = [
+//            .navigationAction(expectedNavAction),
+//            .willStart(expectedNavAction),
+//            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
+//            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
+//            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
+//            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
+//            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
+//        ]
+//
+//        let eDidFinish = expectation(description: "onDidFinish 3")
+//        responder(at: 0).onDidFinish = { _ in
+//            print("onDidFinish (2)")
+////            eDidFinish
+//        }
+//
+//        testSchemeHandler.onRequest = { [unowned self, responseData] task in
+//            print("did receive request 2")
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive(responseData)
+//            print("go back!")
+//            self.webView.goBack()
+//        }
+//
+//        DispatchQueue.main.async {
+//            print("load 3", self.redirectSchemeRequest2.url!, self.webView.load(self.redirectSchemeRequest2))
+//        }
+//        waitForExpectations(timeout: 1)
+//        print("did load", redirectSchemeRequest.url!)
+//
+//        assertHistoryEquals(responder(at: 0).history, expectedEvents)
+//    }
+//
+//    func testBackNavigationInterruptingLoad_working() {
 //        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
-
+//
 //        testSchemeHandler.onRequest = { [responseData] task in
 //            print("did receive request")
 //            task.didReceive(.response(for: task.request))
@@ -307,8 +373,9 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 //
 //        var eDidFinish = expectation(description: "onDidFinish 1")
 //        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-//        print("load", testSchemeRequest.url!, webView.load(testSchemeRequest))
-//
+//        DispatchQueue.main.async {
+//            print("load", self.testSchemeRequest.url!, self.webView.load(self.testSchemeRequest))
+//        }
 //        waitForExpectations(timeout: 1)
 //        print("did load 1", testSchemeRequest.url!)
 //
@@ -317,201 +384,134 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 //        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 //
 //        DispatchQueue.main.async {
-//            print("load 2", self.redirectSchemeRequest.url!, self.webView.load(self.testSchemeRequest))
+//            print("load 2", self.redirectSchemeRequest.url!, self.webView.load(self.redirectSchemeRequest))
 //        }
 //
 //        waitForExpectations(timeout: 1)
-        performAndWaitForDidFinish { self.webView.load(self.testSchemeRequest) }
-        performAndWaitForDidFinish { self.webView.load(self.testSchemeRequest) }
-        print("did load 2", redirectSchemeRequest.url!)
-
-        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
-        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
-        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
-        let expectedEvents: [NavigationEvent] = [
-            .navigationAction(expectedNavAction),
-            .willStart(expectedNavAction),
-            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
-            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
-            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
-            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
-            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
-        ]
-
-        let eDidFinish = expectation(description: "onDidFinish 3")
-        responder(at: 0).onDidFinish = { _ in
-            print("onDidFinish (2)")
-//            eDidFinish
-        }
-
-        testSchemeHandler.onRequest = { [unowned self, responseData] task in
-            print("did receive request 2")
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
-            print("go back!")
-            self.webView.goBack()
-        }
-
-        DispatchQueue.main.async {
-            print("load 3", self.redirectSchemeRequest2.url!, self.webView.load(self.redirectSchemeRequest2))
-        }
-        waitForExpectations(timeout: 1)
-        print("did load", redirectSchemeRequest.url!)
-
-        assertHistoryEquals(responder(at: 0).history, expectedEvents)
-    }
-
-    func testBackNavigationInterruptingLoad_working() {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
-
-        testSchemeHandler.onRequest = { [responseData] task in
-            print("did receive request")
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
-            task.didFinish()
-        }
-
-        var eDidFinish = expectation(description: "onDidFinish 1")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        DispatchQueue.main.async {
-            print("load", self.testSchemeRequest.url!, self.webView.load(self.testSchemeRequest))
-        }
-        waitForExpectations(timeout: 1)
-        print("did load 1", testSchemeRequest.url!)
-
-
-        eDidFinish = expectation(description: "onDidFinish 2")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        DispatchQueue.main.async {
-            print("load 2", self.redirectSchemeRequest.url!, self.webView.load(self.redirectSchemeRequest))
-        }
-
-        waitForExpectations(timeout: 1)
-        print("did load 2", redirectSchemeRequest.url!)
-
-        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
-        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
-        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
-        let expectedEvents: [NavigationEvent] = [
-            .navigationAction(expectedNavAction),
-            .willStart(expectedNavAction),
-            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
-            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
-            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
-            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
-            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
-        ]
-
-        eDidFinish = expectation(description: "onDidFinish 3")
-        responder(at: 0).onDidFinish = { nav in
-            if nav.url == Self.testSchemeURL {
-                print("onDidFinish (2)")
-                eDidFinish.fulfill()
-            }
-        }
-
-        testSchemeHandler.onRequest = { [unowned self, responseData] task in
-            print("did receive request 2")
-            task.didReceive(.response(for: task.request))
-
-            DispatchQueue.main.async {
-                print("go back!", self.webView.backForwardList.backList, self.webView.goBack())
-
-            }
-
-            task.didReceive(responseData)
-            task.didFinish()
-        }
-
-        DispatchQueue.main.async {
-            print("load 3", self.redirectSchemeRequest2.url!, self.webView.load(self.redirectSchemeRequest2))
-        }
-        waitForExpectations(timeout: 10)
-        print("did load", redirectSchemeRequest.url!)
-
-        assertHistoryEquals(responder(at: 0).history, expectedEvents)
-    }
-
-    func testBackNavigationInterruptingLoad_working_frame() {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
-
-        testSchemeHandler.onRequest = { [responseData] task in
-            print("did receive request")
-            task.didReceive(.response(for: task.request))
-            task.didReceive(responseData)
-            task.didFinish()
-        }
-
-        var eDidFinish = expectation(description: "onDidFinish 1")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        DispatchQueue.main.async {
-            print("load", self.testSchemeRequest.url!, self.webView.load(self.testSchemeRequest))
-        }
-        waitForExpectations(timeout: 1)
-        print("did load 1", testSchemeRequest.url!)
-
-
-        eDidFinish = expectation(description: "onDidFinish 2")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        DispatchQueue.main.async {
-            print("load 2", self.redirectSchemeRequest.url!, self.webView.load(self.redirectSchemeRequest))
-        }
-
-        waitForExpectations(timeout: 1)
-        print("did load 2", redirectSchemeRequest.url!)
-
-        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
-        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
-        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
-        let expectedEvents: [NavigationEvent] = [
-            .navigationAction(expectedNavAction),
-            .willStart(expectedNavAction),
-            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
-            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
-            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
-            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
-            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
-        ]
-
-        eDidFinish = expectation(description: "onDidFinish 3")
-        responder(at: 0).onDidFinish = { nav in
-            if nav.url == Self.testSchemeURL {
-                print("onDidFinish (2)")
-                eDidFinish.fulfill()
-            }
-        }
-// TODO: Test using direct nav delegate calls
-
-        testSchemeHandler.onRequest = { [unowned self, responseData] task in
-            print("did receive request \(task.request.url!)")
-
-            if task.request.url == Self.testSchemeFrameURL {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    print("go back!", self.webView.backForwardList.backList, self.webView.goBack())
-                }
-
-                return
-            }
-
-            task.didReceive(.response(for: task.request))
-            task.didReceive("""
-                <html><body><iframe src="\(Self.testSchemeFrameURL)" /></body></html>
-            """.data(using: .utf8)!)
-            DispatchQueue.main.async {
-                task.didFinish()
-            }
-        }
-
-        DispatchQueue.main.async {
-            print("load 3", self.redirectSchemeRequest2.url!, self.webView.load(self.redirectSchemeRequest2))
-        }
-        waitForExpectations(timeout: 10)
-        print("did load", redirectSchemeRequest.url!)
-
-        assertHistoryEquals(responder(at: 0).history, expectedEvents)
-    }
+//        print("did load 2", redirectSchemeRequest.url!)
+//
+//        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+//        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
+//        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
+//        let expectedEvents: [NavigationEvent] = [
+//            .navigationAction(expectedNavAction),
+//            .willStart(expectedNavAction),
+//            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
+//            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
+//            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
+//            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
+//            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
+//        ]
+//
+//        eDidFinish = expectation(description: "onDidFinish 3")
+//        responder(at: 0).onDidFinish = { nav in
+//            if nav.url == Self.testSchemeURL {
+//                print("onDidFinish (2)")
+//                eDidFinish.fulfill()
+//            }
+//        }
+//
+//        testSchemeHandler.onRequest = { [unowned self, responseData] task in
+//            print("did receive request 2")
+//            task.didReceive(.response(for: task.request))
+//
+//            DispatchQueue.main.async {
+//                print("go back!", self.webView.backForwardList.backList, self.webView.goBack())
+//
+//            }
+//
+//            task.didReceive(responseData)
+//            task.didFinish()
+//        }
+//
+//        DispatchQueue.main.async {
+//            print("load 3", self.redirectSchemeRequest2.url!, self.webView.load(self.redirectSchemeRequest2))
+//        }
+//        waitForExpectations(timeout: 10)
+//        print("did load", redirectSchemeRequest.url!)
+//
+//        assertHistoryEquals(responder(at: 0).history, expectedEvents)
+//    }
+//
+//    func testBackNavigationInterruptingLoad_working_frame() {
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+//
+//        testSchemeHandler.onRequest = { [responseData] task in
+//            print("did receive request")
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive(responseData)
+//            task.didFinish()
+//        }
+//
+//        var eDidFinish = expectation(description: "onDidFinish 1")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        DispatchQueue.main.async {
+//            print("load", self.testSchemeRequest.url!, self.webView.load(self.testSchemeRequest))
+//        }
+//        waitForExpectations(timeout: 1)
+//        print("did load 1", testSchemeRequest.url!)
+//
+//
+//        eDidFinish = expectation(description: "onDidFinish 2")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//
+//        DispatchQueue.main.async {
+//            print("load 2", self.redirectSchemeRequest.url!, self.webView.load(self.redirectSchemeRequest))
+//        }
+//
+//        waitForExpectations(timeout: 1)
+//        print("did load 2", redirectSchemeRequest.url!)
+//
+//        let expectedNavAction = NavigationAction(navigationType: .unknown, request: self.testSchemeRequest, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+//        let navIdentity = NavigationIdentity.autoresolvedOnFirstCompare
+//        let expectedResponse = NavigationResponse(response: .response(for: testSchemeRequest), isForMainFrame: true, canShowMIMEType: true)
+//        let expectedEvents: [NavigationEvent] = [
+//            .navigationAction(expectedNavAction),
+//            .willStart(expectedNavAction),
+//            .didStart(.init(navigationAction: expectedNavAction, state: .started, identity: navIdentity)),
+//            .navigationResponse(expectedResponse, .init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity)),
+//            .didCommit(.init(navigationAction: expectedNavAction, state: .responseReceived(expectedResponse), identity: navIdentity, isCommitted: true)),
+//            .willFinish(.init(navigationAction: expectedNavAction, state: .awaitingFinishOrClientRedirect, identity: navIdentity, isCommitted: true)),
+//            .didFinish(.init(navigationAction: expectedNavAction, state: .finished, identity: navIdentity, isCommitted: true)),
+//        ]
+//
+//        eDidFinish = expectation(description: "onDidFinish 3")
+//        responder(at: 0).onDidFinish = { nav in
+//            if nav.url == Self.testSchemeURL {
+//                print("onDidFinish (2)")
+//                eDidFinish.fulfill()
+//            }
+//        }
+//// TODO: Test using direct nav delegate calls
+//
+//        testSchemeHandler.onRequest = { [unowned self, responseData] task in
+//            print("did receive request \(task.request.url!)")
+//
+//            if task.request.url == Self.testSchemeFrameURL {
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                    print("go back!", self.webView.backForwardList.backList, self.webView.goBack())
+//                }
+//
+//                return
+//            }
+//
+//            task.didReceive(.response(for: task.request))
+//            task.didReceive("""
+//                <html><body><iframe src="\(Self.testSchemeFrameURL)" /></body></html>
+//            """.data(using: .utf8)!)
+//            DispatchQueue.main.async {
+//                task.didFinish()
+//            }
+//        }
+//
+//        DispatchQueue.main.async {
+//            print("load 3", self.redirectSchemeRequest2.url!, self.webView.load(self.redirectSchemeRequest2))
+//        }
+//        waitForExpectations(timeout: 10)
+//        print("did load", redirectSchemeRequest.url!)
+//
+//        assertHistoryEquals(responder(at: 0).history, expectedEvents)
+//    }
 
 //
 //    func testDoubleServerRedirect() {
