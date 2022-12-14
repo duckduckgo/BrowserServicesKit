@@ -39,12 +39,12 @@ public class BookmarkCoreDataImporter {
                         throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
                     
-                    var existingBookmarkURLs = try allExistingBookmarkURLs(in: context)
+                    var bookmarkURLToIDMap = try bookmarkURLToID(in: context)
                     
                     try recursivelyCreateEntities(from: bookmarks,
                                                   parent: topLevelBookmarksFolder,
                                                   favoritesRoot: topLevelFavoritesFolder,
-                                                  existingBookmarkURLs: &existingBookmarkURLs)
+                                                  bookmarkURLToIDMap: &bookmarkURLToIDMap)
                     try context.save()
                     continuation.resume()
                 } catch {
@@ -54,24 +54,35 @@ public class BookmarkCoreDataImporter {
         }
     }
     
-    private func allExistingBookmarkURLs(in context: NSManagedObjectContext) throws -> Set<String> {
+    private func bookmarkURLToID(in context: NSManagedObjectContext) throws -> [String: NSManagedObjectID] {
         let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
         fetch.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
         fetch.resultType = .dictionaryResultType
-        fetch.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
+        
+        let idDescription = NSExpressionDescription()
+        idDescription.name = "objectID"
+        idDescription.expression = NSExpression.expressionForEvaluatedObject()
+        idDescription.expressionResultType = .objectIDAttributeType
+        
+        fetch.propertiesToFetch = [idDescription, #keyPath(BookmarkEntity.url)]
         
         let dict = try context.fetch(fetch) as? [Dictionary<String, Any>]
         
-        if let result = dict?.compactMap({ $0.first?.value as? String }) {
-            return Set(result)
+        if let result = dict?.reduce(into: [String: NSManagedObjectID](), { partialResult, data in
+            guard let urlString = data[#keyPath(BookmarkEntity.url)] as? String,
+                  let objectID = data["objectID"] as? NSManagedObjectID else { return }
+                
+            partialResult[urlString] = objectID
+        }) {
+            return result
         }
-        return []
+        return [:]
     }
 
     private func recursivelyCreateEntities(from bookmarks: [BookmarkOrFolder],
                                            parent: BookmarkEntity,
                                            favoritesRoot: BookmarkEntity,
-                                           existingBookmarkURLs: inout Set<String>) throws {
+                                           bookmarkURLToIDMap: inout [String: NSManagedObjectID]) throws {
         for bookmarkOrFolder in bookmarks {
             if bookmarkOrFolder.isInvalidBookmark {
                 continue
@@ -86,12 +97,12 @@ public class BookmarkCoreDataImporter {
                     try recursivelyCreateEntities(from: children,
                                                   parent: folder,
                                                   favoritesRoot: favoritesRoot,
-                                                  existingBookmarkURLs: &existingBookmarkURLs)
+                                                  bookmarkURLToIDMap: &bookmarkURLToIDMap)
                 }
             case .favorite:
                 if let url = bookmarkOrFolder.url {
-                    if existingBookmarkURLs.contains(url.absoluteString),
-                       let bookmark = BookmarkUtils.fetchBookmark(for: url, context: context) {
+                    if let objectID = bookmarkURLToIDMap[url.absoluteString],
+                       let bookmark = try? context.existingObject(with: objectID) as? BookmarkEntity {
                         bookmark.addToFavorites(favoritesRoot: favoritesRoot)
                     } else {
                         let newFavorite = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
@@ -99,7 +110,7 @@ public class BookmarkCoreDataImporter {
                                                                       parent: parent,
                                                                       context: context)
                         newFavorite.addToFavorites(favoritesRoot: favoritesRoot)
-                        existingBookmarkURLs.insert(url.absoluteString)
+                        bookmarkURLToIDMap[url.absoluteString] = newFavorite.objectID
                     }
                 }
             case .bookmark:
@@ -108,11 +119,11 @@ public class BookmarkCoreDataImporter {
                        parent.childrenArray.first(where: { $0.urlObject == url }) != nil {
                         continue
                     } else {
-                        _ = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
-                                                        url: url.absoluteString,
-                                                        parent: parent,
-                                                        context: context)
-                        existingBookmarkURLs.insert(url.absoluteString)
+                        let newBookmark = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
+                                                                      url: url.absoluteString,
+                                                                      parent: parent,
+                                                                      context: context)
+                        bookmarkURLToIDMap[url.absoluteString] = newBookmark.objectID
                     }
                 }
             }
