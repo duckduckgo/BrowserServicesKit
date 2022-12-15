@@ -13,6 +13,8 @@ let package = Package(
     products: [
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "Persistence", targets: ["Persistence"]),
+        .library(name: "Bookmarks", targets: ["Bookmarks"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
@@ -32,6 +34,7 @@ let package = Package(
             dependencies: [
                 "Autofill",
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
+                "Persistence",
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
@@ -46,6 +49,22 @@ let package = Package(
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]),
+        .target(
+            name: "Persistence",
+            dependencies: [
+                "Common"
+            ]
+        ),
+        .target(
+            name: "Bookmarks",
+            dependencies: [
+                "Persistence",
+                "Common"
+            ],
+            resources: [
+                .process("BookmarksModel.xcdatamodeld")
+            ]
+        ),
         .target(
             name: "BloomFilterWrapper",
             dependencies: [
@@ -99,8 +118,8 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources")
-            ]),
-        
+            ]
+        ),
         .testTarget(
             name: "CommonTests",
             dependencies: [
@@ -113,6 +132,12 @@ let package = Package(
             ],
             resources: [
                 .process("testUserScript.js")
+            ]
+        ),
+        .testTarget(
+            name: "PersistenceTests",
+            dependencies: [
+                "Persistence"
             ]
         )
     ],

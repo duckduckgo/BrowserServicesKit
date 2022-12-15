@@ -21,6 +21,7 @@ import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
 import WebKit
+import Common
 
 // swiftlint:disable type_body_length
 // swiftlint:disable line_length
