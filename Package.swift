@@ -135,12 +135,6 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "BookmarksTests",
-            dependencies: [
-                "Bookmarks"
-            ]
-        ),
-        .testTarget(
             name: "PersistenceTests",
             dependencies: [
                 "Persistence"
