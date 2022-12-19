@@ -53,7 +53,8 @@ public extension StaticUserScript {
     }
 
     static func makeWKUserScript() -> WKUserScript {
-        return self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
+        assert(self as? InteractiveUserScript.Type == nil, "StaticUserScript can not be interactive")
+        return self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, didLoadMessageName: nil)
     }
 
 }

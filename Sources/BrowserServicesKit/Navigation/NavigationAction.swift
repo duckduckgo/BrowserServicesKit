@@ -65,6 +65,22 @@ public struct NavigationAction: Equatable {
         // In this cruel reality the source frame IS Nullable for initial load events, this would mean we‘re targeting the main frame
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
 
+        // session restoration
+        if navigationAction.safeSourceFrame == nil,
+           navigationAction.targetFrame?.isMainFrame == true,
+           navigationAction.targetFrame?.request.url == (NSURL() as URL),
+           currentHistoryItemIdentity == nil {
+
+            self.init(request: navigationAction.request,
+                      navigationType: navigationType ?? .sessionRestoration,
+                      currentHistoryItemIdentity: currentHistoryItemIdentity,
+                      isUserInitiated: navigationAction.isUserInitiated,
+                      sourceFrame: sourceFrame, // main
+                      targetFrame: sourceFrame, // main
+                      shouldDownload: false)
+            return
+        }
+
         self.init(request: navigationAction.request,
                   navigationType: navigationType ?? NavigationType(navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity),
                   currentHistoryItemIdentity: currentHistoryItemIdentity,
