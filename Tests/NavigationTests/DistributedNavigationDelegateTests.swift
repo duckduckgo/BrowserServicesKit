@@ -108,6 +108,24 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         
     }
 
+    func testFailingNavigation() {
+        navigationDelegate.setResponders(
+            .strong(NavigationResponderMock())
+        )
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+//        server.notFoundHandler = { request in
+//            return .internalServerError
+//        }
+        server.stop()
+
+        webView.load(URLRequest(url: URL(string: "http://localhost:8084")!))
+
+        waitForExpectations(timeout: 1)
+
+    }
+
 //    func testRegularNavigationResponderChain() {
 //        navigationDelegate.setResponders(
 //            .strong(NavigationResponderMock()),
