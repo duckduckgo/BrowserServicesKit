@@ -16,9 +16,10 @@
 //  limitations under the License.
 //
 
-import XCTest
+import Swifter
 import WebKit
-@testable import BrowserServicesKit
+import XCTest
+@testable import Navigation
 
 func expect(_ description: String, _ file: StaticString = #file, _ line: UInt = #line) -> XCTestExpectation {
     XCTestExpectation(description: description)
@@ -29,11 +30,14 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
     let navigationDelegate = DistributedNavigationDelegate(logger: .default)
     var testSchemeHandler: TestNavigationSchemeHandler! = TestNavigationSchemeHandler()
+    let server = HttpServer()
+
     lazy var webView: WKWebView = {
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(testSchemeHandler, forURLScheme: TestNavigationSchemeHandler.scheme)
         return WKWebView(frame: .zero, configuration: configuration)
     }()
+
     static let httpsURL = URL(string: "https://duckduckgo.com/")!
     static let testSchemeURL = URL(string: TestNavigationSchemeHandler.scheme + "://duckduckgo.com")!
     static let redirectSchemeURL = URL(string: TestNavigationSchemeHandler.scheme + "://redirect-1.com/")!
@@ -56,9 +60,11 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
     override func setUp() {
         webView.navigationDelegate = navigationDelegate
+        try! server.start(8084)
     }
     override func tearDown() {
         self.testSchemeHandler = nil
+        server.stop()
     }
 
     func responder(at index: Int) -> NavigationResponderMock! {
@@ -85,13 +91,24 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
     // MARK: - Tests
 
+    func testRegularNavigation() {
+        navigationDelegate.setResponders(
+            .strong(NavigationResponderMock())
+        )
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        server.notFoundHandler = { request in
+            return .ok(.html("<html>"))
+        }
+
+        webView.load(URLRequest(url: URL(string: "http://localhost:8084")!))
+
+        waitForExpectations(timeout: 1)
+        
+    }
 
 //    func testRegularNavigationResponderChain() {
-//        navigationDelegate.webView?(webView, decidePolicyFor: <#T##WKNavigationAction#>, decisionHandler: <#T##(WKNavigationActionPolicy) -> Void#>)
-//
-//    }
-
-//    func testRegularNavigationResponderChain1() {
 //        navigationDelegate.setResponders(
 //            .strong(NavigationResponderMock()),
 //            .strong(NavigationResponderMock()),

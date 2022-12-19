@@ -92,15 +92,14 @@ extension UserScript {
         let hash = SHA256.hash(data: Data(source.utf8)).hashValue
 
         // send didLoad message when the script was added
-        let scriptDidLoad = didLoadMessageName.map { "webkit.messageHandlers.\($0.rawValue).postMessage({})" } ?? ""
+        let scriptDidLoad = didLoadMessageName.map { "\nwebkit.messageHandlers.\($0.rawValue).postMessage({})" } ?? ""
         // This prevents the script being executed twice which appears to be a WKWebKit issue for about:blank frames when the location changes
         let sourceOut = """
         (() => {
             if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
             \(source)
             window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
-            window.navigator._duckduckgoloader_.push('\(hash)')
-            \(scriptDidLoad)
+            window.navigator._duckduckgoloader_.push('\(hash)')\(scriptDidLoad)
         })()
         """
 

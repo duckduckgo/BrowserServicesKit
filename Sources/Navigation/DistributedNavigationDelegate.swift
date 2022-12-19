@@ -321,7 +321,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // regular flow: start .expected navigation
             expectedNavigation.started(wkNavigation)
             navigation = expectedNavigation
-
         } else {
             // session restoration happens without NavigationAction
             navigation = .started(navigationAction: .sessionRestoreNavigation(webView: webView), navigation: wkNavigation)

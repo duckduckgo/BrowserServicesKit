@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import BrowserServicesKit
+import Navigation
 import WebKit
 import Common
 
@@ -52,8 +52,8 @@ enum NavigationEvent: Equatable, CustomStringConvertible {
             return "willStart(\(arg))"
         case .didStart(let arg):
             return "didStart(\(arg))"
-        case .didReceiveAuthenticationChallenge(let arg):
-            return "didReceiveAuthenticationChallenge(\(arg))"
+        case .didReceiveAuthenticationChallenge(let arg, let arg2):
+            return "didReceiveAuthenticationChallenge(\(arg); \(arg2?.debugDescription ?? "<nil>"))"
         case .navigationResponse(let arg, let arg2):
             return "navigationResponse(\(arg)) current: \(arg2?.debugDescription ?? "<nil>")"
         case .navResponseBecameDownload(let arg, let arg2):

@@ -16,9 +16,9 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import WebKit
-import Common
 
 // swiftlint:disable line_length
 public struct Navigation: Equatable {

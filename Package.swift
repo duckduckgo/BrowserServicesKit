@@ -18,6 +18,7 @@ let package = Package(
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
+        .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
     ],
     dependencies: [
@@ -26,7 +27,8 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.4.1")),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.0.3"))
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.0.3")),
+        .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
     ],
     targets: [
         .target(
@@ -98,6 +100,11 @@ let package = Package(
                 "TrackerRadarKit"
             ]),
         .target(
+            name: "Navigation",
+            dependencies: [
+                "Common"
+            ]),
+        .target(
             name: "UserScript"
             ),
         .target(
@@ -113,7 +120,6 @@ let package = Package(
             ),
         
         // MARK: - Test targets
-        
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -127,6 +133,12 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "NavigationTests",
+            dependencies: [
+                "Navigation",
+                .product(name: "Swifter", package: "swifter")
             ]),
         .testTarget(
             name: "UserScriptTests",
