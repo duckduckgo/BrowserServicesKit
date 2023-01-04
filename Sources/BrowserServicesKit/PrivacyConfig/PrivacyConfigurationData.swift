@@ -40,7 +40,14 @@ public struct PrivacyConfigurationData {
     public let trackerAllowlist: TrackerAllowlist
     public let unprotectedTemporary: [ExceptionEntry]
 
-    public init(json: [String: Any]) {
+    public init(data: Data) throws {
+        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            throw PrivacyConfigurationManager.ParsingError.dataMismatch
+        }
+        self = .init(json: json)
+    }
+
+    internal init(json: [String: Any]) {
 
         if let tempListData = json[CodingKeys.unprotectedTemporary.rawValue] as? [[String: String]] {
             unprotectedTemporary = tempListData.compactMap({ ExceptionEntry(json: $0) })

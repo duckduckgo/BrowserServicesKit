@@ -25,11 +25,9 @@ class PrivacyConfigurationDataTests: XCTestCase {
 
     private var data = JsonTestDataLoader()
 
-    func testJSONParsing() {
+    func testJSONParsing() throws {
         let jsonData = data.fromJsonFile("Resources/privacy-config-example.json")
-        let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-
-        let configData = PrivacyConfigurationData(json: json!)
+        let configData = try PrivacyConfigurationData(data: jsonData)
 
         XCTAssertEqual(configData.unprotectedTemporary.count, 1)
         XCTAssertEqual(configData.unprotectedTemporary.first?.domain, "example.com")
