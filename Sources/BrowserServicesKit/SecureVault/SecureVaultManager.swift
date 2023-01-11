@@ -84,6 +84,9 @@ public class SecureVaultManager {
 
     public init(vault: SecureVault? = nil,
                 passwordManager: PasswordManager? = nil) {
+        #if os(macOS)
+        assert(passwordManager != nil, "Password manager is nil")
+        #endif
         self.vault = vault
         self.passwordManager = passwordManager
     }
