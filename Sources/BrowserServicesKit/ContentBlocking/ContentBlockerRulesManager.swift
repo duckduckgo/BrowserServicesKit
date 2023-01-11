@@ -22,6 +22,7 @@ import WebKit
 import os.log
 import TrackerRadarKit
 import Combine
+import Common
 
 // swiftlint:disable file_length
 // swiftlint:disable type_body_length
@@ -226,19 +227,24 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                             lastCompiledRules: lastCompiledRules)
         let mutex = DispatchSemaphore(value: 0)
-        var result = [InitialCompilationTask.CachedRulesList]()
+        var result: [InitialCompilationTask.CachedRulesList]?
         withUnsafeMutablePointer(to: &result) { pointer in
             Task {
-                pointer.pointee = await initialCompilationTask.start()
-                // Leave context of current thread (most likely Main Thread, cause of await above) as soon as possible.
+                pointer.pointee = try? await initialCompilationTask.lookupCachedRulesLists()
                 mutex.signal()
             }
             // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
             mutex.wait()
         }
-        
-        let rules = generateRules(from: result)
-        applyRules(rules)
+
+        if let result = result {
+            let rules = generateRules(from: result)
+            applyRules(rules)
+        } else {
+            lock.lock()
+            state = .idle
+            lock.unlock()
+        }
         scheduleCompilation()
     }
     

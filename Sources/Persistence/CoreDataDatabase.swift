@@ -18,9 +18,15 @@
 
 import Foundation
 import CoreData
+import Common
 import OSLog
 
-public class CoreDataDatabase {
+public protocol ManagedObjectContextFactory {
+    
+    func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String?) -> NSManagedObjectContext
+}
+
+public class CoreDataDatabase: ManagedObjectContextFactory {
     
     public enum Error: Swift.Error {
         case containerLocationCouldNotBePrepared(underlyingError: Swift.Error)
@@ -40,6 +46,10 @@ public class CoreDataDatabase {
         return container.managedObjectModel
     }
     
+    public var coordinator: NSPersistentStoreCoordinator {
+        return container.persistentStoreCoordinator
+    }
+    
     public static func loadModel(from bundle: Bundle, named name: String) -> NSManagedObjectModel? {
         guard let url = bundle.url(forResource: name, withExtension: "momd") else { return nil }
         
@@ -48,13 +58,15 @@ public class CoreDataDatabase {
     
     public init(name: String,
                 containerLocation: URL,
-                model: NSManagedObjectModel) {
+                model: NSManagedObjectModel,
+                readOnly: Bool = false) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
         self.containerLocation = containerLocation
         
         let description = NSPersistentStoreDescription(url: containerLocation.appendingPathComponent("\(name).sqlite"))
         description.type = NSSQLiteStoreType
+        description.isReadOnly = readOnly
         
         self.container.persistentStoreDescriptions = [description]
     }
@@ -77,9 +89,26 @@ public class CoreDataDatabase {
             let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
             context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
             context.name = "Migration"
-            context.perform {
+            context.performAndWait {
                 completion(context, nil)
                 self.storeLoadedCondition.resolve()
+            }
+        }
+    }
+    
+    public func tearDown(deleteStores: Bool) throws {
+        typealias StoreInfo = (url: URL?, type: String)
+        var storesToDelete = [StoreInfo]()
+        for store in container.persistentStoreCoordinator.persistentStores {
+            storesToDelete.append((url: store.url, type: store.type))
+            try container.persistentStoreCoordinator.remove(store)
+        }
+        
+        if deleteStores {
+            for (url, type) in storesToDelete {
+                if let url = url {
+                    try container.persistentStoreCoordinator.destroyPersistentStore(at: url, ofType: type)
+                }
             }
         }
     }

@@ -20,6 +20,7 @@
 import Foundation
 import TrackerRadarKit
 import os
+import Common
 
 /**
  Encapsulates revision of the Content Blocker Rules source - id/etag of each of the resources used for compilation.
