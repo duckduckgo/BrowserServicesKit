@@ -645,7 +645,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
             guard let id = $0.id else { return nil }
             return .init(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
         }
-        let username = credentialsProvider.locked || credentialObjects.count > 0
+        let username = credentialsProvider.locked || credentialObjects.filter({ !$0.username.isEmpty }).count > 0
         let password = credentialsProvider.locked || credentialObjects.count > 0
         let identities = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities(identities: identities)
         let cards = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards(creditCards: cards)
@@ -665,7 +665,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
-        let username = credentialsProvider.locked || credentials.count > 0
+        let username = credentialsProvider.locked || credentials.filter({ !$0.account.username.isEmpty }).count > 0
         let password = credentialsProvider.locked || credentials.count > 0
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
         let success = AutofillUserScript.AvailableInputTypesSuccess(
