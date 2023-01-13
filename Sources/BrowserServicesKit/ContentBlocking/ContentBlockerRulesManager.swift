@@ -201,6 +201,12 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
         return token
     }
+    
+    public func resetCompilationTime() {
+        lock.lock()
+        compilationStartTime = nil
+        lock.unlock()
+    }
 
     /// Returns true if the compilation should be executed immediately
     private func updateCompilationState(token: CompletionToken) -> Bool {
