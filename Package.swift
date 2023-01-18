@@ -22,7 +22,7 @@ let package = Package(
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.0.0")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.1.1")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.1")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
