@@ -20,34 +20,53 @@ import WebKit
 
 extension WKNavigationAction: WebViewNavigationAction {
 
-    var safeSourceFrame: WKFrameInfo? {
-        // In this cruel reality the source frame IS Nullable pretty often
+    /// Safe Optional `sourceFrame: WKFrameInfo` getter:
+    /// In this cruel reality the source frame IS Nullable for API-initiated loading (WKWebView.loadRequest or for a initial WebView navigation)
+    /// https://github.com/WebKit/WebKit/blob/c39358705b79ccf2da3b76a8be6334e7e3dfcfa6/Source/WebKit/UIProcess/WebPageProxy.cpp#L5708
+    public var safeSourceFrame: WKFrameInfo? {
         withUnsafePointer(to: self.sourceFrame) { $0.withMemoryRebound(to: WKFrameInfo?.self, capacity: 1) { $0 } }.pointee
     }
 
-#if _SHOULD_PERFORM_DOWNLOAD_ENABLED
-    private static let _shouldPerformDownload = "_shouldPerformDownload"
-#endif
-    var shouldDownload: Bool {
+    // prevent exception if private API keys go missing
+    open override func value(forUndefinedKey key: String) -> Any? {
+        assertionFailure("valueForUndefinedKey: \(key)")
+        return nil
+    }
+
+    @nonobjc public var shouldDownload: Bool {
         if #available(macOS 11.3, iOS 14.5, *) {
             return shouldPerformDownload
         }
-#if _SHOULD_PERFORM_DOWNLOAD_ENABLED
-        return self.value(forKey: Self._shouldPerformDownload) as? Bool ?? false
-#else
-        return false
-#endif
+        return self.value(forKey: "shouldPerformDownload") as? Bool ?? false
     }
 
 #if _IS_USER_INITIATED_ENABLED
-    private static let _isUserInitiated = "_isUserInitiated"
-    public var isUserInitiated: Bool {
-        guard responds(to: NSSelectorFromString(Self._isUserInitiated)) else { return false }
-        return self.value(forKey: Self._isUserInitiated) as? Bool ?? false
+    @nonobjc public var isUserInitiated: Bool? {
+        return self.value(forKey: "isUserInitiated") as? Bool
     }
 #else
-    public var isUserInitiated: Bool {
-        false
+    public var isUserInitiated: Bool? {
+        return nil
+    }
+#endif
+
+#if _IS_REDIRECT_ENABLED
+    @nonobjc public var isRedirect: Bool? {
+        return self.value(forKey: "isRedirect") as? Bool
+    }
+#else
+    public var isRedirect: Bool? {
+        return nil
+    }
+#endif
+
+#if _MAIN_FRAME_NAVIGATION_ENABLED
+    @nonobjc public var mainFrameNavigation: WKNavigation? {
+        return self.value(forKey: "mainFrameNavigation") as? WKNavigation
+    }
+#else
+    public var mainFrameNavigation: WKNavigation? {
+        return nil
     }
 #endif
 

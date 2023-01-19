@@ -24,7 +24,10 @@ import WebKit
 public struct NavigationAction: Equatable {
 
     private static var maxIdentifier: UInt64 = 0
-    public var identifier: UInt64 = ++Self.maxIdentifier
+    public var identifier: UInt64 = {
+        Self.maxIdentifier += 1
+        return Self.maxIdentifier
+    }()
 
     public let request: URLRequest
 
@@ -41,18 +44,18 @@ public struct NavigationAction: Equatable {
     /// Actual `BackForwardListItem` identity before the NavigationAction had started
     public let fromHistoryItemIdentity: HistoryItemIdentity?
 
-    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, isUserInitiated: Bool, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
+    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
         var request = request
         if request.allHTTPHeaderFields == nil {
             request.allHTTPHeaderFields = [:]
         }
         if request.url == nil {
-            request.url = NSURL() as URL
+            request.url = .empty
         }
         self.request = request
         self.navigationType = navigationType
 #if _IS_USER_INITIATED_ENABLED
-        self.isUserInitiated = isUserInitiated
+        self.isUserInitiated = isUserInitiated ?? false
 #endif
         self.sourceFrame = sourceFrame
         self.targetFrame = targetFrame
@@ -66,10 +69,14 @@ public struct NavigationAction: Equatable {
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
 
         // session restoration
-        if navigationAction.safeSourceFrame == nil,
+        if case .other = navigationAction.navigationType,
+           case .returnCacheDataElseLoad = navigationAction.request.cachePolicy,
+           navigationAction.isUserInitiated != true,
+           navigationAction.safeSourceFrame == nil,
            navigationAction.targetFrame?.isMainFrame == true,
-           navigationAction.targetFrame?.request.url == (NSURL() as URL),
-           currentHistoryItemIdentity == nil {
+           navigationAction.targetFrame?.request.url?.isEmpty == true,
+           currentHistoryItemIdentity == nil,
+           webView.backForwardList.currentItem != nil {
 
             self.init(request: navigationAction.request,
                       navigationType: navigationType ?? .sessionRestoration,
@@ -93,7 +100,7 @@ public struct NavigationAction: Equatable {
 
     internal static func sessionRestoreNavigation(webView: WKWebView) -> Self {
         assert(webView.backForwardList.currentItem == nil)
-        return self.init(request: URLRequest(url: webView.url ?? NSURL() as URL), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
     }
 
     public static func == (lhs: NavigationAction, rhs: NavigationAction) -> Bool {
@@ -114,14 +121,14 @@ public extension NavigationAction {
     }
 
     var url: URL {
-        request.url ?? NSURL() as URL
+        request.url ?? .empty
     }
 
 }
 
 private extension URLRequest {
     func isEqual(to other: URLRequest) -> Bool {
-        url == other.url && httpMethod == other.httpMethod && (allHTTPHeaderFields ?? [:]) == (other.allHTTPHeaderFields ?? [:])
+        (url ?? .empty).matches(other.url ?? .empty) && httpMethod == other.httpMethod && (allHTTPHeaderFields ?? [:]) == (other.allHTTPHeaderFields ?? [:])
             && cachePolicy == other.cachePolicy && timeoutInterval == other.timeoutInterval
     }
 }
@@ -190,7 +197,12 @@ public enum NavigationActionCancellationRelatedAction: Equatable {
 }
 
 extension WKNavigationActionPolicy {
-    static let download = WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
+    static let downloadPolicy: WKNavigationActionPolicy = {
+        if #available(macOS 11.3, *) {
+            return .download
+        }
+        return WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
+    }()
 }
 
 extension NavigationActionPolicy? {

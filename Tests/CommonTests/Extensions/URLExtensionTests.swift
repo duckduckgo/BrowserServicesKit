@@ -299,6 +299,16 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(actual, expected)
     }
 
+    func testMatchesComparator() {
+        XCTAssertTrue("youtube.com".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("http://youtube.com/".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("https://youtube.com/".url!.matches("https://youtube.com".url!))
+
+        XCTAssertFalse("youtube.com".url!.matches("https://youtube.com".url!))
+        XCTAssertFalse("youtube.com/".url!.matches("https://youtube.com".url!))
+    }
+
 }
 
 private extension String {

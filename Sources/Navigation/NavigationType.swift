@@ -38,7 +38,7 @@ public enum NavigationType: Equatable {
 
     case other
 
-    /// developer-defined, set using `DistributedNavigationDelegate.setExpectedNavigationType(_:for:url)`
+    /// developer-defined, set using `DistributedNavigationDelegate.setExpectedNavigationType(_:matching:)`
     case custom(UserInfo)
 
     public init(_ navigationAction: WebViewNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?) {
@@ -121,13 +121,13 @@ public protocol WebViewNavigationAction {
 #if os(macOS)
     var isMiddleClick: Bool { get }
 #endif
-    var isUserInitiated: Bool { get }
+    var isUserInitiated: Bool? { get }
 }
 
 public struct HistoryItemIdentity: Hashable {
     let object: any AnyObject & Hashable
 
-    init(_ object: any AnyObject & Hashable) {
+    public init(_ object: any AnyObject & Hashable) {
         self.object = object
     }
 

@@ -21,6 +21,7 @@ import Foundation
 
 /**
  Arbitrary User Info storage with default values. Equatable. Private extension keys do NOT intersect between extensions.
+ Used by the Navigation Stack to pass arbitrary data in navigation actions
  usage:
 ```
  extension UserInfo.Values {
@@ -32,9 +33,12 @@ import Foundation
 
  }
 
+ // userInfo.myUserInfoString equals "my value value"
+ // userInfo.myUserInfoBool equals true
  let userInfo: UserInfo = [.init(\.myUserInfoString, "my value value"), .init(\.myUserInfoBool, true)]
- userInfo.myUserInfoString == "my value value"
- userInfo.myUserInfoBool = false
+
+ userInfo.myUserInfoString = "my new value" // now userInfo.myUserInfoString equals "my new value"
+ userInfo.myUserInfoBool = false // now userInfo.myUserInfoBool equals false
 
 ```
  */

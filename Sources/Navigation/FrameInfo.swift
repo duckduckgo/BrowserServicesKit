@@ -32,12 +32,12 @@ public struct FrameInfo: Equatable {
     }
 
     public init(frame: WKFrameInfo) {
-        self.init(frameIdentity: FrameIdentity(frame), url: frame.request.url ?? NSURL() as URL, securityOrigin: SecurityOrigin(frame.securityOrigin))
+        self.init(frameIdentity: FrameIdentity(frame), url: frame.request.url ?? .empty, securityOrigin: SecurityOrigin(frame.securityOrigin))
     }
 
     public static func mainFrame(for webView: WKWebView) -> FrameInfo {
         FrameInfo(frameIdentity: .mainFrameIdentity(for: webView),
-                  url: webView.url ?? NSURL() as URL,
+                  url: webView.url ?? .empty,
                   securityOrigin: webView.url?.securityOrigin ?? .empty)
     }
 
@@ -71,7 +71,7 @@ public struct FrameIdentity: Hashable {
     }
 
     public static func mainFrameIdentity(for webView: WKWebView) -> FrameIdentity {
-        self.init(handle: "4", webViewIdentity: WebViewIdentity(nonretainedObject: webView), isMainFrame: true)
+        self.init(handle: WKFrameInfo.defaultMainFrameHandle, webViewIdentity: WebViewIdentity(nonretainedObject: webView), isMainFrame: true)
     }
 
     public static func == (lhs: FrameIdentity, rhs: FrameIdentity) -> Bool {

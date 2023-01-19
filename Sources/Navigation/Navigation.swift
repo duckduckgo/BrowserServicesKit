@@ -102,6 +102,19 @@ public enum NavigationState: Equatable {
         if case .failed = self { return true }
         return false
     }
+
+    public static func == (lhs: NavigationState, rhs: NavigationState) -> Bool {
+        switch lhs {
+        case .expected: if case .expected = rhs { return true }
+        case .started: if case .started = rhs { return true }
+        case .redirected: if case .redirected = rhs { return true }
+        case .responseReceived(let resp): if case .responseReceived(resp) = rhs { return true }
+        case .finished: if case .finished = rhs { return true }
+        case .failed(let error1): if case .failed(let error2) = rhs { return error1.code == error2.code }
+        }
+        return false
+    }
+
 }
 
 public struct NavigationIdentity: Equatable {
@@ -114,42 +127,13 @@ public struct NavigationIdentity: Equatable {
 
     public static var expected = NavigationIdentity(nil)
 
-    // used for tests to bind the identity to a first resolved navigation on first comparison
-    // since test expectation may have no idea of a real WKNavigation object provided by WebView
-    public static var autoresolvedOnFirstCompare = NavigationIdentity(AutoresolvedValueBox())
-    private class AutoresolvedValueBox {
-        var value: AnyObject?
-    }
-
-    fileprivate var isEmpty: Bool {
-        value == nil
-    }
-
     fileprivate mutating func resolve(with navigation: WKNavigation?) {
-        assert(self.isEmpty || self.value === navigation)
+        assert(self.value == nil || self.value === navigation)
         self.value = navigation
     }
 
-    // on first test expectation comparison set value of boxed AutoresolvedValueBox
-    private func valueResolvingIfNeeded(from other: NavigationIdentity?) -> AnyObject? {
-#if DEBUG
-        guard let autoresolved = self.value as? AutoresolvedValueBox else { return self.value }
-        if let value = autoresolved.value {
-            return value
-        }
-        guard let resolved = other?.valueResolvingIfNeeded(from: nil) else {
-            assertionFailure("comparing 2 empty autoresolved values")
-            return nil
-        }
-        autoresolved.value = resolved
-        return resolved
-#else
-        return value
-#endif
-    }
-
     public static func == (lhs: NavigationIdentity, rhs: NavigationIdentity) -> Bool {
-        return lhs.valueResolvingIfNeeded(from: rhs) === rhs.valueResolvingIfNeeded(from: lhs)
+        return lhs.value === rhs.value
     }
 
 }
@@ -229,13 +213,7 @@ extension Navigation: CustomDebugStringConvertible {
 
 extension NavigationIdentity: CustomStringConvertible {
     public var description: String {
-        guard var value else { return "nil" }
-        if let autoResolved = value as? AutoresolvedValueBox {
-            guard let resolved = autoResolved.value else {
-                return "AUTO_NAVIG_ID_UNRESOLVED"
-            }
-            value = resolved
-        }
+        guard let value else { return "nil" }
         return type(of: value).description() + ":" + Unmanaged.passUnretained(value).toOpaque().debugDescription.replacing(regex: "^0x0*", with: "0x")
     }
 }

@@ -20,7 +20,7 @@ import Foundation
 
 public enum AuthChallengeDisposition {
     /// Use the specified credential
-    case credential(URLCredential?)
+    case credential(URLCredential)
     /// The entire request will be canceled
     case cancel
     /// This challenge is rejected and the next authentication protection space should be tried

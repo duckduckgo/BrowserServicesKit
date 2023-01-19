@@ -65,7 +65,7 @@ extension NavigationResponse {
 
 private extension URLResponse {
     func isEqual(to other: URLResponse) -> Bool {
-        guard url == other.url && mimeType == other.mimeType && expectedContentLength == other.expectedContentLength && textEncodingName == other.textEncodingName && suggestedFilename == other.suggestedFilename else { return false }
+        guard (url ?? .empty).matches(other.url ?? .empty) && mimeType == other.mimeType && expectedContentLength == other.expectedContentLength && textEncodingName == other.textEncodingName && suggestedFilename == other.suggestedFilename else { return false }
         if let lhs = self as? HTTPURLResponse, let rhs = other as? HTTPURLResponse {
             return lhs.statusCode == rhs.statusCode && lhs.allHeaderFields as NSDictionary == rhs.allHeaderFields as NSDictionary
         }
@@ -76,7 +76,7 @@ private extension URLResponse {
 extension NavigationResponse: CustomDebugStringConvertible {
     public var debugDescription: String {
         let statusCode = self.httpStatusCode.map { String.init($0) } ?? "-"
-        return "<Response: \((response.url ?? NSURL() as URL).absoluteString) status:\(statusCode):\(shouldDownload ? " Download" : "")>"
+        return "<Response: \((response.url ?? .empty).absoluteString) status:\(statusCode):\(shouldDownload ? " Download" : "")>"
     }
 }
 
@@ -92,5 +92,10 @@ extension NavigationResponsePolicy? {
 }
 
 extension WKNavigationResponsePolicy {
-    static let download = WKNavigationResponsePolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
+    static let downloadPolicy: WKNavigationResponsePolicy = {
+        if #available(macOS 11.3, *) {
+            return .download
+        }
+        return WKNavigationResponsePolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
+    }()
 }

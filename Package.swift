@@ -49,10 +49,7 @@ let package = Package(
                 .process("ContentBlocking/UserScripts/surrogates.js")
             ],
             swiftSettings: [
-                .define("DEBUG", .when(configuration: .debug)),
-                .define("_SHOULD_PERFORM_DOWNLOAD_ENABLED", .when(platforms: [.macOS])),
-                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
-                .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS]))
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         .target(
             name: "Persistence",
@@ -103,6 +100,13 @@ let package = Package(
             name: "Navigation",
             dependencies: [
                 "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug)),
+                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
+                .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS])),
+                .define("_IS_REDIRECT_ENABLED", .when(platforms: [.macOS])),
+                .define("_MAIN_FRAME_NAVIGATION_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
             name: "UserScript"

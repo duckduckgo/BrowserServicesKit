@@ -60,7 +60,6 @@ public enum InitialNavigationType: Equatable {
     case sessionRestoration
     case other
     case custom(UserInfo)
-    case unknown
 
     public init(extractingFrom navigationType: NavigationType) {
         switch navigationType {
@@ -107,6 +106,10 @@ public struct RedirectHistoryItem: Equatable {
                   url: navigation.url,
                   type: navigation.navigationAction.navigationType.redirect?.type,
                   fromHistoryItemIdentity: navigation.navigationAction.fromHistoryItemIdentity)
+    }
+
+    public static func == (lhs: RedirectHistoryItem, rhs: RedirectHistoryItem) -> Bool {
+        return lhs.url == rhs.url && lhs.type == rhs.type && lhs.fromHistoryItemIdentity == rhs.fromHistoryItemIdentity
     }
 
 }

@@ -1,5 +1,5 @@
 //
-//  URLExtension.swift
+//  SecurityOrigin.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -31,5 +31,9 @@ public struct SecurityOrigin: Hashable {
     }
 
     public static let empty = SecurityOrigin(protocol: "", host: "", port: 0)
+
+    var isEmpty: Bool {
+        self == .empty
+    }
 
 }
