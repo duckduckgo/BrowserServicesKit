@@ -614,8 +614,36 @@ extension AutofillUserScript {
 
     public struct JSPixel: Equatable {
 
+        private enum EmailPixelName: String {
+            case autofillPersonalAddress = "autofill_personal_address"
+            case autofillPrivateAddress = "autofill_private_address"
+        }
+
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
-        public let pixelName: String
+        private let originalPixelName: String
+
+        init(pixelName: String) {
+            self.originalPixelName = pixelName
+        }
+
+        public var isEmailPixel: Bool {
+            switch originalPixelName {
+            case EmailPixelName.autofillPersonalAddress.rawValue,
+                EmailPixelName.autofillPrivateAddress.rawValue: return true
+            default: return false
+            }
+        }
+
+        public var pixelName: String {
+            switch originalPixelName {
+            case EmailPixelName.autofillPersonalAddress.rawValue:
+                return "email_filled_main"
+            case EmailPixelName.autofillPrivateAddress.rawValue:
+                return "email_filled_random"
+            default:
+                return originalPixelName
+            }
+        }
 
     }
 
