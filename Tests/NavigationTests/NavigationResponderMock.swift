@@ -45,7 +45,7 @@ enum NavigationEvent: Equatable {
     case didCommit(Nav)
     case didReceiveRedirect(Nav, RedirectType)
     case didFinish(Nav)
-    case didFail(Nav, code: Int)
+    case didFail(Nav, /*code:*/ Int)
     case didTerminate(Nav?)
 }
 
@@ -176,12 +176,6 @@ class NavigationResponderMock: NavigationResponder {
         onDidCommit?(navigation) ?? defaultHandler(event)
     }
 
-    var onDidReceiveRedirect: ((Navigation, RedirectType) -> Void)?
-    func navigation(_ navigation: Navigation, didReceive redirect: RedirectType) {
-        let event = append(.didReceiveRedirect(Nav(navigation), redirect))
-        onDidReceiveRedirect?(navigation, redirect) ?? defaultHandler(event)
-    }
-
     var onDidFinish: ((Navigation) -> Void)?
     func navigationDidFinish(_ navigation: Navigation) {
         let event = append(.didFinish(Nav(navigation)))
@@ -190,7 +184,7 @@ class NavigationResponderMock: NavigationResponder {
 
     var onDidFail: ((Navigation, WKError) -> Void)?
     func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {
-        let event = append(.didFail(Nav(navigation), code: error.code.rawValue))
+        let event = append(.didFail(Nav(navigation), error.code.rawValue))
         onDidFail?(navigation, error) ?? defaultHandler(event)
     }
 

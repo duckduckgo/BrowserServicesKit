@@ -29,7 +29,8 @@ func expect(_ description: String, _ file: StaticString = #file, _ line: UInt = 
 @available(macOS 12.0, *)
 final class DistributedNavigationDelegateTests: XCTestCase {
 
-    let navigationDelegate = DistributedNavigationDelegate(logger: .default)
+    let navigationDelegateProxy = NavigationDelegateProxy(delegate: DistributedNavigationDelegate(logger: .default))
+    var navigationDelegate: DistributedNavigationDelegate { navigationDelegateProxy.delegate }
     var testSchemeHandler: TestNavigationSchemeHandler! = TestNavigationSchemeHandler()
     let server = HttpServer()
 
@@ -48,6 +49,9 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         let local1 = URL(string: "http://localhost:8084/1")!
         let local2 = URL(string: "http://localhost:8084/2")!
         let local3 = URL(string: "http://localhost:8084/3")!
+
+        let aboutBlank = URL(string: "about:blank")!
+        let aboutPrefs = URL(string: "about:prefs")!
     }
     let urls = URLs()
 
@@ -65,6 +69,100 @@ final class DistributedNavigationDelegateTests: XCTestCase {
                 </body></html>
             """.data(using: .utf8)!
         }
+
+        let aboutPrefsInteractionStateData = Data([0x00, 0x00, 0x00, 0x02]) + """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+            <key>IsAppInitiated</key>
+            <true/>
+            <key>RenderTreeSize</key>
+            <integer>3</integer>
+            <key>SessionHistory</key>
+            <dict>
+            <key>SessionHistoryCurrentIndex</key>
+            <integer>0</integer>
+            <key>SessionHistoryEntries</key>
+            <array>
+                <dict>
+                    <key>SessionHistoryEntryData</key>
+                    <data>
+                    AAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAeLI8QbDyBQAA
+                    AAAAAAAAAP////8AAAAAd7I8QbDyBQD/////AAAAAAAA
+                    AAAAAAAAAAAAAP////8=
+                    </data>
+                    <key>SessionHistoryEntryOriginalURL</key>
+                    <string>about:prefs</string>
+                    <key>SessionHistoryEntryShouldOpenExternalURLsPolicyKey</key>
+                    <integer>1</integer>
+                    <key>SessionHistoryEntryTitle</key>
+                    <string></string>
+                    <key>SessionHistoryEntryURL</key>
+                    <string>about:prefs</string>
+                </dict>
+            </array>
+            <key>SessionHistoryVersion</key>
+            <integer>1</integer>
+            </dict>
+            </dict>
+            </plist>
+        """.data(using: .utf8)!
+
+        let aboutPrefsAfterRegularNavigationInteractionStateData = Data([0x00, 0x00, 0x00, 0x02]) + """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+            <key>IsAppInitiated</key>
+            <true/>
+            <key>RenderTreeSize</key>
+            <integer>3</integer>
+            <key>SessionHistory</key>
+            <dict>
+            <key>SessionHistoryCurrentIndex</key>
+            <integer>1</integer>
+            <key>SessionHistoryEntries</key>
+            <array>
+                <dict>
+                    <key>SessionHistoryEntryData</key>
+                    <data>
+                    AAAAAAAAAAACAAAAAAAAAAAAAAAAAAAARIMiXLDyBQAA
+                    AAAAAAAAAP////8AAAAAQ4MiXLDyBQD/////AAAAAAAA
+                    AAAAAIA/AAAAAP////8=
+                    </data>
+                    <key>SessionHistoryEntryOriginalURL</key>
+                    <string>http://localhost:8084/</string>
+                    <key>SessionHistoryEntryShouldOpenExternalURLsPolicyKey</key>
+                    <integer>1</integer>
+                    <key>SessionHistoryEntryTitle</key>
+                    <string></string>
+                    <key>SessionHistoryEntryURL</key>
+                    <string>http://localhost:8084/</string>
+                </dict>
+                <dict>
+                    <key>SessionHistoryEntryData</key>
+                    <data>
+                    AAAAAAAAAAACAAAAAAAAAAAAAAAAAAAARoMiXLDyBQAA
+                    AAAAAAAAAP////8AAAAARYMiXLDyBQD/////AAAAAAAA
+                    AAAAAAAAAAAAAP////8=
+                    </data>
+                    <key>SessionHistoryEntryOriginalURL</key>
+                    <string>about:blank</string>
+                    <key>SessionHistoryEntryShouldOpenExternalURLsPolicyKey</key>
+                    <integer>1</integer>
+                    <key>SessionHistoryEntryTitle</key>
+                    <string></string>
+                    <key>SessionHistoryEntryURL</key>
+                    <string>about:blank</string>
+                </dict>
+            </array>
+            <key>SessionHistoryVersion</key>
+            <integer>1</integer>
+            </dict>
+            </dict>
+            </plist>
+        """.data(using: .utf8)!
 
         let interactionStateData = Data([0x00, 0x00, 0x00, 0x02]) + """
             <?xml version="1.0" encoding="UTF-8"?>
@@ -124,7 +222,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     let data = DataSource()
 
     override func setUp() {
-        webView.navigationDelegate = navigationDelegate
+        webView.navigationDelegate = navigationDelegateProxy
     }
 
     override func tearDown() {
@@ -158,7 +256,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             let event1 = lhs.indices.contains(idx) ? lhs[idx] : nil
             let event2 = rhs.indices.contains(idx) ? rhs[idx] : nil
             if event1 != event2 {
-                if case .navigationResponse(let r1) = event1, case .navigationResponse(let r2) = event2 {
+                if case .navigationAction(let r1) = event1, case .navigationAction(let r2) = event2 {
                     print(r1)
                     print(r2)
                 }
@@ -226,7 +324,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(0),
             .didStart(Nav(action: 0, .started)),
-            .didFail(Nav(action: 0, .failed(WKError(-1004))), code: -1004)
+            .didFail(Nav(action: 0, .failed(WKError(-1004))), -1004)
         ])
     }
 
@@ -377,7 +475,120 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didFinish(Nav(action: 0, .finished, .committed))
         ])
     }
-    // TODO: about:blank navigation; about:blank session restoration
+
+    func testGoBackAfterSessionRestoration() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        webView.interactionState = data.interactionStateData
+
+        waitForExpectations(timeout: 1)
+
+        server.middleware = [{ request in
+            return .ok(.html("<html />"))
+        }]
+        try server.start(8084)
+
+        let eDidFinish2 = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish2.fulfill() }
+        responder(at: 0).clear()
+        webView.goBack()
+
+        waitForExpectations(timeout: 1)
+        print(responder(at: 0).history.encoded(with: urls, webView: webView, dataSource: data))
+
+        assertHistoryEquals(responder(at: 0).history, [
+            .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: webView.item(at: 1), src: main(urls.local)),
+            .willStart(0),
+            .didStart(Nav(action: 0, .started)),
+            .response(Nav(action: 0, .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: 0, .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
+            .didFinish(Nav(action: 0, .finished, .committed))
+        ])
+    }
+
+    func testWhenAboutPrefsSessionIsRestored_navigationTypeIsSessionRestoration() {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        let eDidFinish = expectation(description: "onDidFinish")
+
+        let mainFrame = FrameInfo.mainFrame(for: webView)
+        responder(at: 0).onWillStart = { [urls] navigationAction in
+            XCTAssertEqual(navigationAction, NavigationAction(req(urls.aboutBlank, [:], cachePolicy: .returnCacheDataElseLoad), .sessionRestoration, src: mainFrame))
+        }
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        webView.interactionState = data.aboutPrefsAfterRegularNavigationInteractionStateData
+
+        waitForExpectations(timeout: 1)
+        assertHistoryEquals(responder(at: 0).history, [
+            .willStart(0),
+            .didStart(Nav(action: 0, .started)),
+            .didCommit(Nav(action: 0, .started, .committed)),
+            .didFinish(Nav(action: 0, .finished, .committed))
+        ])
+    }
+
+    // initial about: navigation doesn‘t wait for decidePolicyForNavigationAction
+    func testAboutNavigation() {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        let eDidFinish = expectation(description: "onDidFinish")
+
+        let mainFrame = FrameInfo.mainFrame(for: webView)
+        responder(at: 0).onWillStart = { [urls] navigationAction in
+            XCTAssertEqual(navigationAction, NavigationAction(req(urls.aboutPrefs), .other, src: mainFrame))
+        }
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        webView.load(req(urls.aboutPrefs))
+
+        waitForExpectations(timeout: 1)
+
+        assertHistoryEquals(responder(at: 0).history, [
+            .willStart(0),
+            .didStart(Nav(action: 0, .started)),
+            .didCommit(Nav(action: 0, .started, .committed)),
+            .didFinish(Nav(action: 0, .finished, .committed))
+        ])
+    }
+
+    func testAboutNavigationAfterRegularNavigation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        let eDidFinish = expectation(description: "onDidFinish 1")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        server.middleware = [{ request in
+            return .ok(.data(self.data.html))
+        }]
+
+        try server.start(8084)
+        webView.load(req(urls.local))
+
+        waitForExpectations(timeout: 1)
+
+        let eDidFinish2 = expectation(description: "onDidFinish 2")
+        responder(at: 0).onDidFinish = { _ in eDidFinish2.fulfill() }
+        webView.load(req(urls.aboutBlank))
+        waitForExpectations(timeout: 1)
+
+        assertHistoryEquals(responder(at: 0).history, [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(0),
+            .didStart(Nav(action: 0, .started)),
+            .response(Nav(action: 0, .resp(urls.local, data.html.count))),
+            .didCommit(Nav(action: 0, .resp(urls.local, data.html.count), .committed)),
+            .didFinish(Nav(action: 0, .finished, .committed)),
+
+            .navigationAction(req(urls.aboutBlank), .other, from: webView.item(at: -1), src: main(urls.local)),
+            .willStart(1),
+            .didStart(Nav(action: 1, .started)),
+            .didCommit(Nav(action: 1, .started, .committed)),
+            .didFinish(Nav(action: 1, .finished, .committed))
+        ])
+
+    }
+
+//    print(responder(at: 0).history.encoded(with: urls, webView: webView, dataSource: data))
 
 ////
 ////    func testServerRedirect() {
@@ -481,49 +692,84 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     }
 
     func testSimulatedRequestAfterCustomSchemeRequest() {
-        let window = NSWindow(contentRect: NSRect(x: 300, y: 300, width: 50, height: 50), styleMask: .titled, backing: .buffered, defer: false)
-        let view = NSView(frame: NSRect(x: 0, y: 0, width: 50, height: 50))
-        view.addSubview(webView)
-
-        window.contentView = view
-        window.orderFront(nil)
-//        windows.append(window)
-
+        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
+        navigationDelegateProxy.failureEventsDispatchTime = .afterWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        let eDidFinish1 = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish1.fulfill() }
-        webView.load(req("about:blank"))
-//        waitForExpectations(timeout: 1)
-        RunLoop.main.run(until: Date() + 10.3)
-
         testSchemeHandler.onRequest = { [webView, data, urls] task in
-            DispatchQueue.main.async {
-                webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                withExtendedLifetime(task, {})
-            }
+            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
         }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
         webView.load(req(urls.testScheme))
-//        webView.evaluateJavaScript("window.open('" + urls.testScheme.absoluteString + "')")
 
-        RunLoop.main.run(until: Date() + 1)
-        waitForExpectations(timeout: 15)
+        waitForExpectations(timeout: 1)
         
-        print(responder(at: 0).history.encoded(with: urls, webView: webView, dataSource: data))
         assertHistoryEquals(responder(at: 0).history, [
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(0),
             .didStart(Nav(action: 0, .started)),
-            .response(Nav(action: 0, .resp(urls.testScheme, status: nil, data.html.count))),
-            .didCommit(Nav(action: 0, .resp(urls.testScheme, status: nil, data.html.count), .committed)),
-            .didFinish(Nav(action: 0, .finished, .committed))
+            .navigationAction(req(urls.https), .other, src: main()),
+            .willStart(1),
+            .didFail(Nav(action: 0, .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+            .didStart(Nav(action: 1, .started)),
+            .didCommit(Nav(action: 1, .started, .committed)),
+            .didFinish(Nav(action: 1, .finished, .committed))
         ])
+    }
 
-        withExtendedLifetime(window, {})
+    func testSimulatedRequestAfterCustomSchemeRequestWithFailureBeforeWillStartNavigation() {
+        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
+        navigationDelegateProxy.failureEventsDispatchTime = .beforeWillStartNavigationAction
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        testSchemeHandler.onRequest = { [webView, data, urls] task in
+            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+        }
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        webView.load(req(urls.testScheme))
+
+        waitForExpectations(timeout: 1)
+
+        assertHistoryEquals(responder(at: 0).history, [
+            .navigationAction(req(urls.testScheme), .other, src: main()),
+            .willStart(0),
+            .didStart(Nav(action: 0, .started)),
+            .navigationAction(req(urls.https), .other, src: main()),
+            .didFail(Nav(action: 0, .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+            .willStart(1),
+            .didStart(Nav(action: 1, .started)),
+            .didCommit(Nav(action: 1, .started, .committed)),
+            .didFinish(Nav(action: 1, .finished, .committed))
+        ])
+    }
+
+    func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterDidStartNavigation() {
+        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
+        navigationDelegateProxy.failureEventsDispatchTime = .afterDidStartNavigationAction
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        testSchemeHandler.onRequest = { [webView, data, urls] task in
+            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+        }
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        webView.load(req(urls.testScheme))
+
+        waitForExpectations(timeout: 1)
+
+        assertHistoryEquals(responder(at: 0).history, [
+            .navigationAction(req(urls.testScheme), .other, src: main()),
+            .willStart(0),
+            .didStart(Nav(action: 0, .started)),
+            .navigationAction(req(urls.https), .other, src: main()),
+            .willStart(1),
+            .didStart(Nav(action: 1, .started)),
+            .didFail(Nav(action: 0, .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+            .didCommit(Nav(action: 1, .started, .committed)),
+            .didFinish(Nav(action: 1, .finished, .committed))
+        ])
     }
 
     func testRealRequestAfterCustomSchemeRequest() {
@@ -561,6 +807,9 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     // TODO: Test about:blank restoration
 
     // TODO: Test loading interruption by new request
+
+    // TODO: Test regular back navigation
+    // TODO: Test regular forward navigation
 
 //    func testGoBackInterruptingLoadAsync() {
 //        performAndWaitForDidFinish {
@@ -1095,6 +1344,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     // TODO: Reset Expected navigation type after navigation or main navigation to another domain
     // TODO: termination
     // TODO: Redirect History
+    // TODO: user-initiated nav action (nav action types)
 
     func testWhenClientRedirectWithDelayAndThenNavigationIsFinished() {}
     func testWhenNavigationResponderTakesLongToReturnDecisionAndAnotherNavigationComesInBeforeIt() {}

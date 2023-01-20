@@ -20,6 +20,12 @@ import Foundation
 
 extension URL {
 
+    public static let empty = (NSURL(string: "") ?? NSURL()) as URL
+
+    public var isEmpty: Bool {
+        absoluteString.isEmpty
+    }
+
     public func matches(_ other: URL) -> Bool {
         return self.absoluteString.dropping(suffix: "/") == other.absoluteString.dropping(suffix: "/")
     }

@@ -65,7 +65,7 @@ public struct NavigationAction: Equatable {
     }
 
     internal init(webView: WKWebView, navigationAction: WKNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?, navigationType: NavigationType? = nil) {
-        // In this cruel reality the source frame IS Nullable for initial load events, this would mean we‘re targeting the main frame
+        // In this cruel reality the source frame IS Nullable for developer-initiated load events, this would mean we‘re targeting the main frame
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
 
         // session restoration

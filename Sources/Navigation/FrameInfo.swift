@@ -21,6 +21,7 @@ import Foundation
 import WebKit
 
 public struct FrameInfo: Equatable {
+
     public let identity: FrameIdentity
     public let url: URL
     public let securityOrigin: SecurityOrigin
@@ -41,14 +42,16 @@ public struct FrameInfo: Equatable {
                   securityOrigin: webView.url?.securityOrigin ?? .empty)
     }
 
+    public static func == (lhs: FrameInfo, rhs: FrameInfo) -> Bool {
+        return lhs.identity == rhs.identity && lhs.url.matches(rhs.url) && lhs.securityOrigin == rhs.securityOrigin
+    }
+
 }
 
 extension FrameInfo {
-
     public var isMainFrame: Bool {
         identity.isMainFrame
     }
-
 }
 
 public struct FrameIdentity: Hashable {

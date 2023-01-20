@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
+import Combine
+import Common
 import Foundation
 import Navigation
 import WebKit
-import Common
 
 extension NavigationEvent {
 
@@ -245,7 +246,7 @@ private func dataConst(forLength length: Int64, in dataSource: Any) -> String {
 }
 
 var defaultHeaders = [
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+    "User-Agent": WKWebView().value(forKey: "userAgent") as! String,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 ]
 
@@ -375,6 +376,21 @@ extension NavigationAction {
             }
         } else {
             headers = ", nil"
+        }
+        switch request.cachePolicy {
+        case .useProtocolCachePolicy: break
+        case .reloadIgnoringLocalCacheData:
+            headers += ", cachePolicy: .reloadIgnoringLocalCacheData"
+        case .reloadIgnoringLocalAndRemoteCacheData:
+            headers += ", cachePolicy: .reloadIgnoringLocalAndRemoteCacheData"
+        case .returnCacheDataElseLoad:
+            headers += ", cachePolicy: .returnCacheDataElseLoad"
+        case .returnCacheDataDontLoad:
+            headers += ", cachePolicy: .returnCacheDataDontLoad"
+        case .reloadRevalidatingCacheData:
+            headers += ", cachePolicy: .reloadRevalidatingCacheData"
+        @unknown default:
+            fatalError()
         }
         return """
         .init(
@@ -599,4 +615,91 @@ extension Array where Element == NavigationEvent {
         return result
     }
 
+}
+
+class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
+    var delegate: DistributedNavigationDelegate
+
+    enum FailureEventsDispatchTime {
+        case instant
+        case beforeWillStartNavigationAction
+        case afterWillStartNavigationAction
+        case afterDidStartNavigationAction
+    }
+    var failureEventsDispatchTime: FailureEventsDispatchTime = .instant
+
+    init(delegate: DistributedNavigationDelegate) {
+        self.delegate = delegate
+    }
+
+    // forward delegate calls to DistributedNavigationDelegate
+    override func responds(to selector: Selector!) -> Bool {
+        delegate.responds(to: selector)
+    }
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        delegate
+    }
+
+    private var didFailWorkItem: DispatchWorkItem? {
+        willSet {
+            didFailWorkItem?.perform()
+        }
+    }
+
+    @MainActor
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+        delegate.webView(webView, decidePolicyFor: navigationAction, preferences: preferences) { [self] policy, preferences in
+            decisionHandler(policy, preferences)
+            switch self.failureEventsDispatchTime {
+            case .instant, .afterDidStartNavigationAction: break
+            case .beforeWillStartNavigationAction:
+                self.didFailWorkItem = nil // trigger if set after decidePolicyFor callback
+            case .afterWillStartNavigationAction:
+                navigationAction.onDeinit {
+                    self.didFailWorkItem = nil
+                }
+            }
+        }
+    }
+
+    @MainActor
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        delegate.webView(webView, didStartProvisionalNavigation: navigation)
+        if case .afterDidStartNavigationAction = self.failureEventsDispatchTime {
+            self.didFailWorkItem = nil
+        }
+    }
+
+    @MainActor
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        guard failureEventsDispatchTime != .instant else {
+            delegate.webView(webView, didFail: navigation, withError: error)
+            return
+        }
+        didFailWorkItem = DispatchWorkItem { [delegate] in
+            delegate.webView(webView, didFail: navigation, withError: error)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: didFailWorkItem!)
+    }
+
+    @MainActor
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        guard failureEventsDispatchTime != .instant else {
+            delegate.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
+            return
+        }
+        didFailWorkItem = DispatchWorkItem { [delegate] in
+            delegate.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: didFailWorkItem!)
+    }
+
+}
+
+private extension NSObject {
+    private static let onDeinitKey = UnsafeRawPointer(bitPattern: "onDeinitKey".hashValue)!
+    func onDeinit(do job: @escaping () -> Void) {
+        let cancellable = AnyCancellable(job)
+        objc_setAssociatedObject(self, Self.onDeinitKey, cancellable, .OBJC_ASSOCIATION_RETAIN)
+    }
 }

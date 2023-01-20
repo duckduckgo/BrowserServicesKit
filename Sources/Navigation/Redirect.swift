@@ -44,14 +44,15 @@ public enum RedirectType: Equatable {
     case server
 }
 
-extension RedirectType {
-    public var isClient: Bool {
+public extension RedirectType {
+    var isClient: Bool {
         if case .client = self { return true }
         return false
     }
 }
 
 public enum InitialNavigationType: Equatable {
+
     case linkActivated
     case backForward(distance: Int)
     case reload
@@ -83,6 +84,7 @@ public enum InitialNavigationType: Equatable {
             self = .custom(userInfo)
         }
     }
+
 }
 
 public struct RedirectHistoryItem: Equatable {

@@ -31,6 +31,7 @@ extension WebKitDownload {
 
             download.cancel(completionHandler)
         } else {
+            // perform objc _WKDownload.cancel selector
             self.perform(#selector(Progress.cancel))
             completionHandler?(nil)
         }

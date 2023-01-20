@@ -21,7 +21,7 @@ import WebKit
 extension WKNavigationAction: WebViewNavigationAction {
 
     /// Safe Optional `sourceFrame: WKFrameInfo` getter:
-    /// In this cruel reality the source frame IS Nullable for API-initiated loading (WKWebView.loadRequest or for a initial WebView navigation)
+    /// In this cruel reality the source frame IS Nullable for Developer-initiated load API calls (WKWebView.loadRequest or for a initial WebView navigation)
     /// https://github.com/WebKit/WebKit/blob/c39358705b79ccf2da3b76a8be6334e7e3dfcfa6/Source/WebKit/UIProcess/WebPageProxy.cpp#L5708
     public var safeSourceFrame: WKFrameInfo? {
         withUnsafePointer(to: self.sourceFrame) { $0.withMemoryRebound(to: WKFrameInfo?.self, capacity: 1) { $0 } }.pointee

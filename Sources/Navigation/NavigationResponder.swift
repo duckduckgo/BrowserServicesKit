@@ -43,7 +43,7 @@ public protocol NavigationResponder {
     /// Called only for Main Frame Navigation Actions when all of the Responders returned `.next` or one of the Responders returned `.allow`  for `decidePolicy(for:navigationAction)` query
     @MainActor
     func willStart(_ navigationAction: NavigationAction)
-    /// Called for `webView:didStartNavigation:` event _except_ for the navigations that were redirected, in this case `navigation(_:didReceive:redirect)` is called
+    /// Called for `webView:didStartNavigation:` event _except_ for the navigations that were redirected
     /// May be called without preceding `decidePolicy(for:navigationAction)` for Session Restoration navigations
     @MainActor
     func didStart(_ navigation: Navigation)
@@ -61,10 +61,6 @@ public protocol NavigationResponder {
     /// Now the Navigation is considered _happened_ and added to the BackForwardList as a Current Item
     @MainActor
     func didCommit(_ navigation: Navigation)
-
-    /// Called _before_ `decidePolicy(for:navigationAction)` for navigations being redirected by server or client (js)
-    @MainActor
-    func navigation(_ navigation: Navigation, didReceive redirect: RedirectType)
 
     // MARK: - Completion
 
@@ -118,7 +114,6 @@ public extension NavigationResponder {
     func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation: Navigation?) async -> NavigationResponsePolicy? { .next }
 
     func didCommit(_ navigation: Navigation) {}
-    func navigation(_ navigation: Navigation, didReceive redirect: RedirectType) {}
 
     func navigationDidFinish(_ navigation: Navigation) {}
 

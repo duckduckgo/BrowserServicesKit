@@ -16,18 +16,20 @@
 //  limitations under the License.
 //
 
+import Combine
 import Common
 import Foundation
 import WebKit
 
 // swiftlint:disable line_length
-public struct Navigation: Equatable {
+public final class Navigation {
+
     fileprivate(set) var identity: NavigationIdentity
 
-    public private(set) var navigationAction: NavigationAction
-    public private(set) var state: NavigationState
-    public private(set) var isCommitted: Bool = false
-    public private(set) var didReceiveAuthenticationChallenge: Bool = false
+    public internal(set) var navigationAction: NavigationAction
+    @Published public fileprivate(set) var state: NavigationState
+    @Published public private(set) var isCommitted: Bool = false
+    @Published public private(set) var didReceiveAuthenticationChallenge: Bool = false
 
     public init(navigationAction: NavigationAction, state: NavigationState = .expected, identity: NavigationIdentity = .expected, isCommitted: Bool = false) {
         self.navigationAction = navigationAction
@@ -36,26 +38,27 @@ public struct Navigation: Equatable {
         self.isCommitted = isCommitted
     }
 
-    static func expected(navigationAction: NavigationAction, redirectedNavigation: Navigation? = nil) -> Navigation {
-        let identity: NavigationIdentity?
+    static func expected(navigationAction: NavigationAction, identity expectedIdentity: NavigationIdentity) -> Navigation {
+        let identity: NavigationIdentity
         switch navigationAction.navigationType {
         case .redirect(let redirect) where redirect.type.isClient:
             // new WKNavigation starts for js redirects
-            identity = nil
+            identity = expectedIdentity
         case .redirect:
             // the same WKNavigation is continued for server redirects
-            identity = redirectedNavigation?.identity
+            assertionFailure("should not create new Navigation for redirects")
+            identity = expectedIdentity
         case .reload, .backForward, .formSubmitted, .formResubmitted, .linkActivated,
              .custom, .sessionRestoration, .other:
             // not a redirect navigation
-            identity = nil
+            identity = expectedIdentity
         }
 
-        return Navigation(navigationAction: navigationAction, state: .expected, identity: identity ?? .expected)
+        return Navigation(navigationAction: navigationAction, state: .expected, identity: identity)
     }
 
     static func started(navigationAction: NavigationAction, navigation wkNavigation: WKNavigation?) -> Navigation {
-        var navigation = Navigation(navigationAction: navigationAction, state: .expected, identity: .expected)
+        let navigation = Navigation(navigationAction: navigationAction, state: .expected, identity: .expected)
         navigation.started(wkNavigation)
         return navigation
     }
@@ -72,13 +75,14 @@ public struct Navigation: Equatable {
         navigationAction.navigationType.redirect?.history
     }
 
-    public static func == (lhs: Navigation, rhs: Navigation) -> Bool {
-        lhs.identity == rhs.identity && lhs.navigationAction == rhs.navigationAction && lhs.state == rhs.state && lhs.isCommitted == rhs.isCommitted
+    public var isCompleted: Bool {
+        return state.isFinished || state.isFailed
     }
 
 }
 
 public enum NavigationState: Equatable {
+
     case expected
     case started
 
@@ -96,6 +100,11 @@ public enum NavigationState: Equatable {
     public var response: NavigationResponse? {
         if case .responseReceived(let response) = self { return response }
         return nil
+    }
+
+    public var isFinished: Bool {
+        if case .finished = self { return true }
+        return false
     }
 
     public var isFailed: Bool {
@@ -119,28 +128,30 @@ public enum NavigationState: Equatable {
 
 public struct NavigationIdentity: Equatable {
 
-    private var value: AnyObject?
+    private var value: NSValue?
 
     public init(_ value: AnyObject?) {
-        self.value = value
+        self.value = value.map(NSValue.init(nonretainedObject:))
     }
 
     public static var expected = NavigationIdentity(nil)
 
     fileprivate mutating func resolve(with navigation: WKNavigation?) {
-        assert(self.value == nil || self.value === navigation)
-        self.value = navigation
+        guard let navigation else { return }
+        let newValue = NSValue(nonretainedObject: navigation)
+        assert(self.value == nil || self.value == newValue)
+        self.value = newValue
     }
 
     public static func == (lhs: NavigationIdentity, rhs: NavigationIdentity) -> Bool {
-        return lhs.value === rhs.value
+        return lhs.value == rhs.value
     }
 
 }
 
 extension Navigation {
 
-    mutating func started(_ navigation: WKNavigation?) {
+    func started(_ navigation: WKNavigation?) {
         self.identity.resolve(with: navigation)
 
         guard case .expected = self.state else {
@@ -151,22 +162,22 @@ extension Navigation {
         self.state = .started
     }
 
-    mutating func challengeRececived() {
+    func challengeRececived() {
         self.didReceiveAuthenticationChallenge = true
     }
 
-    mutating func committed(_ navigation: WKNavigation?) {
+    func committed(_ navigation: WKNavigation?) {
         self.identity.resolve(with: navigation)
         assert(state == .started || state.isResponseReceived)
         self.isCommitted = true
     }
 
-    mutating func receivedResponse(_ response: NavigationResponse) {
+    func receivedResponse(_ response: NavigationResponse) {
         assert(state == .started)
         self.state = .responseReceived(response)
     }
 
-    mutating func didFinish(_ navigation: WKNavigation?) {
+    func didFinish(_ navigation: WKNavigation?) {
         self.identity.resolve(with: navigation)
 
         switch self.state {
@@ -180,7 +191,7 @@ extension Navigation {
         }
     }
 
-    mutating func didFail(_ navigation: WKNavigation? = nil, with error: WKError) {
+    func didFail(_ navigation: WKNavigation? = nil, with error: WKError) {
         assert(state != .expected, "non-started navigations should‘t receive didFail")
         if let navigation {
             self.identity.resolve(with: navigation)
@@ -188,19 +199,39 @@ extension Navigation {
         self.state = .failed(error)
     }
 
-    mutating func didReceiveServerRedirect(for navigation: WKNavigation?) {
-        assert(state == .expected || state == .started, "didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
+    func didReceiveServerRedirect(for navigation: WKNavigation?) {
+        assert(state == .redirected, "didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
         self.identity.resolve(with: navigation)
         self.state = .started
     }
 
-    mutating func redirected() {
+    func redirected() {
         switch state {
-        case  .started:
+        case .started:
             self.state = .redirected
         case .expected, .responseReceived, .finished, .failed, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
+    }
+
+}
+
+// ensures Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
+final class WKNavigationLifetimeTracker: NSObject {
+    private let navigation: Navigation
+    private static let wkNavigationLifetimeKey = UnsafeRawPointer(bitPattern: "wkNavigationLifetimeKey".hashValue)!
+
+    init(navigation: Navigation) {
+        self.navigation = navigation
+    }
+
+    func bind(to wkNavigation: NSObject) {
+        objc_setAssociatedObject(wkNavigation, Self.wkNavigationLifetimeKey, self, .OBJC_ASSOCIATION_RETAIN)
+    }
+
+    deinit {
+        guard !navigation.isCompleted else { return }
+        navigation.state = .failed(WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)))
     }
 
 }
@@ -213,8 +244,20 @@ extension Navigation: CustomDebugStringConvertible {
 
 extension NavigationIdentity: CustomStringConvertible {
     public var description: String {
-        guard let value else { return "nil" }
-        return type(of: value).description() + ":" + Unmanaged.passUnretained(value).toOpaque().debugDescription.replacing(regex: "^0x0*", with: "0x")
+        "WKNavigation: " + (value?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "nil")
+    }
+}
+
+extension NavigationState: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .expected: return "expected"
+        case .started: return "started"
+        case .redirected: return "redirected"
+        case .responseReceived(let response): return "responseReceived(\(response.debugDescription))"
+        case .finished: return "finished"
+        case .failed(let error): return "failed(\(error.errorDescription ?? error.localizedDescription))"
+        }
     }
 }
 

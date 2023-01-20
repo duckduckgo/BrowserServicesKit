@@ -19,6 +19,7 @@
 import Foundation
 
 public enum AuthChallengeDisposition {
+
     /// Use the specified credential
     case credential(URLCredential)
     /// The entire request will be canceled
@@ -36,6 +37,7 @@ public enum AuthChallengeDisposition {
             return (.rejectProtectionSpace, nil)
         }
     }
+    
 }
 
 extension AuthChallengeDisposition? {
