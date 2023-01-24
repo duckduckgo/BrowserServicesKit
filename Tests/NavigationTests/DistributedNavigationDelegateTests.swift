@@ -1310,8 +1310,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     }
 
     func testSimulatedRequestAfterCustomSchemeRequest() {
-        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (because it works different in runtime than in tests)
-        navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
+        navigationDelegateProxy.finishEventsDispatchTime = .instant
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         testSchemeHandler.onRequest = { [webView, data, urls] task in
             webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
@@ -1326,10 +1325,10 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(cached(0)),
             .didStart(Nav(action: cached(0), .started)),
+            .didFail(Nav(action: cached(0), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
 
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(cached(1)),
-            .didFail(Nav(action: cached(0), .failed(WKError(-999))), -999),
             .didStart(Nav(action: cached(1), .started)),
             .didCommit(Nav(action: cached(1), .started, .committed)),
             .didFinish(Nav(action: cached(1), .finished, .committed))
@@ -1358,6 +1357,34 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didFail(Nav(action: cached(0), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
 
             .willStart(cached(1)),
+            .didStart(Nav(action: cached(1), .started)),
+            .didCommit(Nav(action: cached(1), .started, .committed)),
+            .didFinish(Nav(action: cached(1), .finished, .committed))
+        ])
+    }
+
+    func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterWillStartNavigation() {
+        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (because it works different in runtime than in tests)
+        navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        testSchemeHandler.onRequest = { [webView, data, urls] task in
+            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+        }
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        webView.load(req(urls.testScheme))
+        waitForExpectations(timeout: 1)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.testScheme), .other, src: main()),
+            .willStart(cached(0)),
+            .didStart(Nav(action: cached(0), .started)),
+
+            .navigationAction(req(urls.https), .other, src: main()),
+            .willStart(cached(1)),
+            .didFail(Nav(action: cached(0), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+
             .didStart(Nav(action: cached(1), .started)),
             .didCommit(Nav(action: cached(1), .started, .committed)),
             .didFinish(Nav(action: cached(1), .finished, .committed))
@@ -1459,7 +1486,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(cached(0)),
             .didStart(Nav(action: cached(0), .started)),
-            .didFail(Nav(action: cached(0), .failed(WKError(-999))), -999)
+            .didFail(Nav(action: cached(0), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled)
         ])
     }
 
@@ -1484,7 +1511,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(cached(0)),
             .didStart(Nav(action: cached(0), .started)),
-            .didFail(Nav(action: cached(0), .failed(WKError(-999))), -999)
+            .didFail(Nav(action: cached(0), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled)
         ])
     }
 
