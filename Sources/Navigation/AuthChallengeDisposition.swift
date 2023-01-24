@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum AuthChallengeDisposition {
+public enum AuthChallengeDisposition: Sendable {
 
     /// Use the specified credential
     case credential(URLCredential)
