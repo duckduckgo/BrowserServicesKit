@@ -22,58 +22,62 @@ import Foundation
 import Navigation
 import WebKit
 
+typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[NavAction]>)
 extension NavigationEvent {
 
-    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) -> NavigationEvent {
-        .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, isUserInitiated, src: src, targ: targ, shouldDownload))
+    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) -> NavigationEvent {
+        .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: targ, shouldDownload))
     }
     
     static func response(_ nav: Nav) -> NavigationEvent {
         .navigationResponse(.navigation(nav))
     }
+    static func response(_ response: NavigationResponse, _ nav: Nav?) -> NavigationEvent {
+        .navigationResponse(.response(response, navigation: nav))
+    }
 
-    func encoded(urls: Any, webView: WKWebView, dataSource: Any) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         let v = { () -> String in
             switch self {
             case .navigationAction(let arg, let arg2):
                 if let prefs = arg2.encoded() {
-                    return ".navigationAction(\(arg.encoded(urls: urls, webView: webView)), \(prefs))"
+                    return ".navigationAction(\(arg.navigationAction.encoded(context)), \(prefs))"
                 } else {
-                    return ".navigationAction" + arg.encoded(urls: urls, webView: webView).dropping(prefix: ".init")
+                    return ".navigationAction" + arg.navigationAction.encoded(context).dropping(prefix: ".init")
                 }
             case .willCancel(let arg, let arg2):
-                return ".willCancel(\(arg.encoded(urls: urls, webView: webView))\(arg2 == .none ? "" : "," + arg2.encoded(urls: urls)))"
+                return ".willCancel(\(arg.navigationAction.encoded(context))\(arg2 == .none ? "" : "," + arg2.encoded(context)))"
             case .didCancel(let arg, let arg2):
-                return ".didCancel(\(arg.encoded(urls: urls, webView: webView))\(arg2 == .none ? "" : "," + arg2.encoded(urls: urls)))"
+                return ".didCancel(\(arg.navigationAction.encoded(context))\(arg2 == .none ? "" : "," + arg2.encoded(context)))"
             case .navActionBecameDownload(let arg, let arg2):
-                return "navActionBecameDownload(\(arg.encoded(urls: urls, webView: webView)), \(urlConst(for: arg2, in: urls)!))"
+                return "navActionBecameDownload(\(arg.navigationAction.encoded(context)), \(urlConst(for: arg2, in: context.urls)!))"
             case .willStart(let arg):
-                return ".willStart(\(arg))"
+                return ".willStart(\(arg.navigationAction.encoded(context)))"
             case .didStart(let arg):
-                return ".didStart(\(arg.encoded(urls: urls, dataSource: dataSource)))"
+                return ".didStart(\(arg.encoded(context)))"
             case .didReceiveAuthenticationChallenge(let arg, let arg2):
-                return ".didReceiveAuthenticationChallenge(\(arg.encoded()), \(arg2?.encoded(urls: urls, dataSource: dataSource) ?? "nil"))"
-            case .navigationResponse(.response(let resp)):
-                return ".navigationResponse(\(resp.encoded(urls: urls, dataSource: dataSource)))"
+                return ".didReceiveAuthenticationChallenge(\(arg.encoded()), \(arg2?.encoded(context) ?? "nil"))"
+            case .navigationResponse(.response(let resp, navigation: let nav)):
+                return ".response(.\(resp.encoded(context)), \(nav == nil ? "nil" : nav!.encoded(context)))"
             case .navigationResponse(.navigation(let nav)):
-                return ".response(\(nav.encoded(urls: urls, dataSource: dataSource)))"
+                return ".response(\(nav.encoded(context)))"
 
             case .navResponseBecameDownload(let arg, let arg2):
-                return ".navResponseBecameDownload(\(arg), \(urlConst(for: arg2, in: urls)!))"
+                return ".navResponseBecameDownload(\(arg), \(urlConst(for: arg2, in: context.urls)!))"
             case .didCommit(let arg):
-                return ".didCommit(\(arg.encoded(urls: urls, dataSource: dataSource)))"
-            case .didReceiveRedirect(let arg, let arg2):
-                return ".didReceiveRedirect(\(arg.encoded(urls: urls, dataSource: dataSource)), \(arg2))"
+                return ".didCommit(\(arg.encoded(context)))"
+            case .didReceiveRedirect(let arg):
+                return ".didReceiveRedirect(\(arg.encoded(context)))"
             case .didFinish(let arg):
-                return ".didFinish(\(arg.encoded(urls: urls, dataSource: dataSource)))"
+                return ".didFinish(\(arg.encoded(context)))"
             case .didFail(let arg, let arg2):
-                return ".didFail(\(arg.encoded(urls: urls, dataSource: dataSource)), \(arg2))"
+                return ".didFail(\(arg.encoded(context)), \(arg2))"
             case .didTerminate(let arg):
-                return arg != nil ? ".didTerminate(\(arg!.encoded(urls: urls, dataSource: dataSource)))" : ".terminated"
+                return arg != nil ? ".didTerminate(\(arg!.encoded(context)))" : ".terminated"
             }
         }().replacing(regex: "\\s\\s+", with: "")
 
-        return v.replacingOccurrences(of: "  ", with: " ").replacing(regex: "\\s*,\\s*", with: ", ").replacing(regex: "\\s*\\+\\s*", with: " + ").replacing(regex: "\\s+\\)", with: ")")
+        return v.replacingOccurrences(of: "  ", with: " ").replacing(regex: "\\s*,\\s*", with: ", ").replacing(regex: "\\s*\\+\\s*", with: " + ").replacing(regex: "\\s+\\)", with: ")").replacingOccurrences(of: "en-GB, ", with: "en-GB,").replacingOccurrences(of: ", , ", with: ", ").replacingOccurrences(of: "..", with: ".")
     }
 
     static var terminated = NavigationEvent.didTerminate(nil)
@@ -97,7 +101,8 @@ extension URLProtectionSpace {
 }
 
 struct Nav: Equatable {
-    var navigationActionIdx: Int
+    var navigationAction: NavAction
+    var redirects: [NavAction]
     var state: NavigationState
     var isCommitted: Bool = false
     var didReceiveAuthenticationChallenge: Bool = false
@@ -108,21 +113,16 @@ struct Nav: Equatable {
     enum DidReceiveAuthenticationChallenge {
         case gotAuth
     }
-    init(action navigationActionIdx: Int, _ state: NavigationState, _ isCommitted: IsCommitted? = nil, _ didReceiveAuthenticationChallenge: DidReceiveAuthenticationChallenge? = nil) {
-        self.navigationActionIdx = navigationActionIdx
+    init(action navigationAction: NavAction, redirects: [NavAction] = [], _ state: NavigationState, _ isCommitted: IsCommitted? = nil, _ didReceiveAuthenticationChallenge: DidReceiveAuthenticationChallenge? = nil) {
+        self.navigationAction = navigationAction
         self.state = state
         self.isCommitted = isCommitted != nil
         self.didReceiveAuthenticationChallenge = didReceiveAuthenticationChallenge != nil
-    }
-    init(act navigationActionIdx: Int, _ navigation: Navigation) {
-        self.navigationActionIdx = navigationActionIdx
-        self.state = navigation.state
-        self.isCommitted = navigation.isCommitted
-        self.didReceiveAuthenticationChallenge = navigation.didReceiveAuthenticationChallenge
+        self.redirects = redirects
     }
 
-    func encoded(urls: Any, dataSource: Any) -> String {
-        "Nav(action: \(navigationActionIdx), \(state.encoded(urls: urls, dataSource: dataSource)) \(isCommitted ? ", .committed" : (didReceiveAuthenticationChallenge ? ", nil" : "")) \(didReceiveAuthenticationChallenge ? ", .gotAuth" : ""))"
+    func encoded(_ context: EncodingContext) -> String {
+        "Nav(action: \(navigationAction.navigationAction.encoded(context)), \(redirects.isEmpty ? "" : "redirects: [\(redirects.map { $0.navigationAction.encoded(context) }.joined(separator: ", "))], ")\(state.encoded(context)) \(isCommitted ? ", .committed" : (didReceiveAuthenticationChallenge ? ", nil" : "")) \(didReceiveAuthenticationChallenge ? ", .gotAuth" : ""))"
     }
 }
 
@@ -139,7 +139,7 @@ extension NavigationState {
         }
     }
 
-    func encoded(urls: Any, dataSource: Any) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         switch self {
         case .expected:
             return ".expected"
@@ -148,7 +148,7 @@ extension NavigationState {
         case .redirected:
             return ".redirected"
         case .responseReceived(let resp):
-            return "." + resp.encoded(urls: urls, dataSource: dataSource)
+            return "." + resp.encoded(context)
         case .finished:
             return ".finished"
         case .failed(let error):
@@ -191,11 +191,11 @@ extension NavigationResponse {
         let response = MockHTTPURLResponse(url: url, statusCode: status, mime: mime, httpVersion: nil, headerFields: headers)!
         return self.init(response: response, isForMainFrame: true, canShowMIMEType: true)
     }
-    func encoded(urls: Any, dataSource: Any) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         if !canShowMIMEType || !isForMainFrame {
-            return ".resp(\(response.encoded(urls: urls, dataSource: dataSource))\(isForMainFrame ? "" : ".nonMain")\(canShowMIMEType ? "" : ".cantShow"))"
+            return ".resp(\(response.encoded(context))\(isForMainFrame ? "" : ", .nonMain")\(canShowMIMEType ? "" : ", .cantShow"))"
         } else {
-            return response.encoded(urls: urls, dataSource: dataSource)
+            return response.encoded(context)
         }
     }
 }
@@ -264,7 +264,7 @@ func resp(_ url: URL, mime: String? = "text/html", _ length: Int = -1, _ encodin
 }
 
 extension URLResponse {
-    func encoded(urls: Any, dataSource: Any) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         var headers = ""
         let defaultHeaders = [String: String].default
         var headerFields = (self as? HTTPURLResponse)?.allHeaderFields as? [String: String] ?? [:]
@@ -283,13 +283,20 @@ extension URLResponse {
 
         return """
         resp(
-            \(urlConst(for: self.url!, in: urls)!),
+            \(urlConst(for: self.url!, in: context.urls)!),
             \((self as? HTTPURLResponse)?.statusCode != 200 ? "status: " + ((self as? HTTPURLResponse).map { String($0.statusCode) } ?? "nil") + "," : "")
             \(mimeType != "text/html" ? "mime: \"\(mimeType ?? "nil")\"," : "")
-            \(expectedContentLength != -1 ? "\(dataConst(forLength: expectedContentLength, in: dataSource))" + (textEncodingName != nil ? "," : "") : "")
+            \(expectedContentLength != -1 ? "\(dataConst(forLength: expectedContentLength, in: context.dataSource))" + (textEncodingName != nil ? "," : "") : "")
             \(textEncodingName != nil ? "\"\(textEncodingName!)\"" : "")
             \(headers)
-        """.trimmingWhitespace().dropping(suffix: ",") + ")"
+        """.replacingOccurrences(of: ", ,", with: ", ").trimmingWhitespace().dropping(suffix: ",") + ")"
+    }
+}
+
+extension URLRequest {
+    func isEqual(to other: URLRequest) -> Bool {
+        (url ?? .empty).matches(other.url ?? .empty) && httpMethod == other.httpMethod && (allHTTPHeaderFields ?? [:]) == (other.allHTTPHeaderFields ?? [:])
+        && cachePolicy == other.cachePolicy && timeoutInterval == other.timeoutInterval
     }
 }
 
@@ -301,14 +308,14 @@ extension NavigationActionCancellationRelatedAction {
     static func redir(_ url: String) -> NavigationActionCancellationRelatedAction {
         .redirect(req(url))
     }
-    func encoded(urls: Any) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         switch self {
         case .none:
             return ""
         case .taskCancelled:
             return ".cancelled"
         case .redirect(let req):
-            return ".redir(\(urlConst(for: req.url!, in: urls)!))"
+            return ".redir(\(urlConst(for: req.url!, in: context.urls)!))"
         case .other(let userInfo):
             return "<##other: \(userInfo.debugDescription)>"
         }
@@ -356,10 +363,15 @@ extension NavigationAction {
     enum ShouldDownload {
         case shouldDownload
     }
-    init(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, _ isUserInitiated: UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: ShouldDownload? = nil) {
-        self.init(request: request, navigationType: navigationType, currentHistoryItemIdentity: currentHistoryItemIdentity, isUserInitiated: isUserInitiated != nil, sourceFrame: src, targetFrame: targ ?? src, shouldDownload: shouldDownload != nil)
-    }
-    func encoded(urls: Any, webView: WKWebView) -> String {
+
+    func encoded(_ context: EncodingContext) -> String {
+
+        if let idx = context.navigationActions.pointee.firstIndex(of: .init(self)) {
+            return "cached(\(idx))"
+        } else {
+            context.navigationActions.pointee.append(.init(self))
+        }
+
 #if _IS_USER_INITIATED_ENABLED
         let isUserInitiated = self.isUserInitiated ? ".userInitiated," : ""
 #else
@@ -394,24 +406,26 @@ extension NavigationAction {
         }
         return """
         .init(
-            req(\(urlConst(for: url, in: urls)!)\(headers)),
-            \(navigationType.encoded(with: urls, webView: webView)),
-            \(fromHistoryItemIdentity != nil ? "from: " + fromHistoryItemIdentity!.encoded(with: webView) + "," : "")
+            req(\(urlConst(for: url, in: context.urls)!)\(headers)),
+            \(navigationType.encoded(context)),
+            \(fromHistoryItemIdentity != nil ? "from: " + fromHistoryItemIdentity!.encoded(context) + "," : "")
+            \(redirectHistory != nil ? "redirects: [\(redirectHistory!.map { $0.encoded(context) }.joined(separator: ", "))]," : "")
             \(isUserInitiated)
-            src: \(sourceFrame.encoded(urls: urls)),
-            \(targetFrame == sourceFrame  ? "" : "targ: " + targetFrame.encoded(urls: urls) + ",")
+            src: \(sourceFrame.encoded(context)),
+            \(targetFrame == sourceFrame  ? "" : "targ: " + targetFrame.encoded(context) + ",")
             \(shouldDownload ? ".shouldDownload," : "")
-        """.trimmingWhitespace().dropping(suffix: ",") + ")"
+        """.trimmingWhitespace().dropping(suffix: ",") +
+        ")"
     }
 }
 
 extension FrameInfo {
-    func encoded(urls: Any) -> String {
-        let secOrigin = (securityOrigin == url.securityOrigin ? "" : ", secOrigin: " + securityOrigin.encoded(urls: urls))
+    func encoded(_ context: EncodingContext) -> String {
+        let secOrigin = (securityOrigin == url.securityOrigin ? "" : ", secOrigin: " + securityOrigin.encoded(context))
         if self.isMainFrame {
-            return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: urls)!) + secOrigin + ")"
+            return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)!) + secOrigin + ")"
         } else {
-            return "frame(\(identity.handle), \(urlConst(for: url, in: urls)!)\(secOrigin))"
+            return "frame(\(identity.handle), \(urlConst(for: url, in: context.urls)!)\(secOrigin))"
         }
     }
 }
@@ -422,9 +436,9 @@ extension SecurityOrigin: ExpressibleByStringLiteral {
         self = URL(string: stringLiteral)!.securityOrigin
     }
 
-    func encoded(urls: Any) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         let url = URL(string: self.protocol + "://" + self.host + (port > 0 ? ":\(port)" : ""))!
-        if let const = urlConst(for: url, in: urls) {
+        if let const = urlConst(for: url, in: context.urls) {
             return const + ".securityOrigin"
         } else {
             return "\"\(url.absoluteString)\""
@@ -443,7 +457,7 @@ extension NavigationType {
     static func backForw(_ dist: Int) -> NavigationType { .backForward(distance: dist) }
     static var restore = NavigationType.sessionRestoration
 
-    func encoded(with urls: Any, webView: WKWebView) -> String {
+    func encoded(_ context: EncodingContext) -> String {
         switch self {
         case .linkActivated(isMiddleClick: let isMiddleClick):
             return isMiddleClick ? ".link(.middleClick)" : ".link"
@@ -455,8 +469,14 @@ extension NavigationType {
             return ".backForw(\(distance))"
         case .reload:
             return ".reload"
-        case .redirect(let redirect):
-            return ".redirect(\(redirect.encoded(with: urls, webView: webView)))"
+        case .redirect(.server):
+            return ".redirect(.server)"
+        case .redirect(.client(delay: let delay)) where delay != 0:
+            return ".redirect(.client(delay: \(delay)))"
+        case .redirect(.client):
+            return ".redirect(.client)"
+        case .redirect(.developer):
+            return ".redirect(.developer)"
         case .sessionRestoration:
             return ".restore"
         case .other:
@@ -464,78 +484,6 @@ extension NavigationType {
         case .custom(let userInfo):
             return "<##custom: \(userInfo.debugDescription)>"
         }
-    }
-}
-extension Redirect {
-    init(_ type: RedirectType, _ history: [RedirectHistoryItem] = [], _ initial: InitialNavigationType) {
-        self.init(type: type, history: history, initialNavigationType: initial)
-    }
-    init(_ type: RedirectType, _ historyItem: RedirectHistoryItem, _ initial: InitialNavigationType) {
-        self.init(type: type, history: [historyItem], initialNavigationType: initial)
-    }
-    func encoded(with urls: Any, webView: WKWebView) -> String {
-        """
-        .init(
-            \(type.encoded()),
-            \(history.isEmpty ? "" : history.encoded(with: urls, webView: webView) + ",")
-            \(initialNavigationType.encoded())
-        )
-        """
-    }
-}
-
-extension InitialNavigationType {
-    static var link = InitialNavigationType.linkActivated
-    static func backForw(_ dist: Int) -> NavigationType { .backForward(distance: dist) }
-    static var form = NavigationType.formSubmitted
-    static var formRe = NavigationType.formResubmitted
-    static var restore = NavigationType.sessionRestoration
-
-    func encoded() -> String {
-        switch self {
-        case .linkActivated:
-            return ".link"
-        case .backForward(distance: let distance):
-            return ".backForw(\(distance))"
-        case .reload:
-            return ".reload"
-        case .formSubmitted:
-            return ".form"
-        case .formResubmitted:
-            return ".formRe"
-        case .sessionRestoration:
-            return ".restore"
-        case .other:
-            return ".other"
-        case .custom(let userInfo):
-            return "<##custom: \(userInfo.debugDescription)>"
-        }
-    }
-}
-
-extension Array where Element == RedirectHistoryItem {
-    func encoded(with urls: Any, webView: WKWebView) -> String {
-        if count == 1 { return self[0].encoded(with: urls, webView: webView) }
-        var result = "[\n"
-        for (idx, item) in self.enumerated() {
-            if idx > 0 {
-                result.append(",\n")
-            }
-            result.append(item.encoded(with: urls, webView: webView))
-        }
-        result.append("]")
-        return result
-    }
-}
-extension RedirectHistoryItem {
-    init(_ url: URL, _ type: RedirectType? = nil, from: HistoryItemIdentity? = nil) {
-        self.init(identifier: 0, url: url, type: type, fromHistoryItemIdentity: from)
-    }
-    init(_ url: String, _ type: RedirectType? = nil, from: HistoryItemIdentity? = nil) {
-        self.init(URL(string: url)!, type, from: from)
-    }
-    func encoded(with urls: Any, webView: WKWebView) -> String {
-        ".init(\(urlConst(for: url, in: urls)!) \(type != nil ? "," + type!.encoded() : "") \(fromHistoryItemIdentity != nil ? ", from: \(fromHistoryItemIdentity!.encoded(with: webView))" : ""))"
     }
 }
 
@@ -550,12 +498,14 @@ extension RedirectType {
             return ".client(\(Int(delay * 1000)))"
         case .server:
             return ".server"
+        case .developer:
+            return ".developer"
         }
     }
 }
 extension HistoryItemIdentity {
-    func encoded(with webView: WKWebView) -> String {
-        "webView.item(at: \(webView.getDistance(from: self)!))"
+    func encoded(_ context: EncodingContext) -> String {
+        "webView.item(at: \(context.webView.getDistance(from: self)!))"
     }
 }
 extension WKWebView {
@@ -603,15 +553,20 @@ extension NavigationEvent {
 }
 extension Array where Element == NavigationEvent {
 
-    func encoded(with urls: Any, webView: WKWebView, dataSource: Any) -> String {
+    func encoded(with urls: Any, webView: WKWebView, dataSource: Any, navigationActions outNavActions: inout [NavAction]) -> String {
+        var navigationActions = [NavAction]()
         var result = "[\n"
         for (idx, item) in self.enumerated() {
             if idx > 0 {
                 result.append(",\n")
             }
-            result.append("  " + item.encoded(urls: urls, webView: webView, dataSource: dataSource))
+            withUnsafeMutablePointer(to: &navigationActions) { navigationActionsPtr in
+                result.append("  " + item.encoded((urls: urls, webView: webView, dataSource: dataSource, navigationActions: navigationActionsPtr)))
+            }
         }
         result.append("\n]")
+
+        outNavActions = navigationActions
         return result
     }
 
@@ -620,13 +575,13 @@ extension Array where Element == NavigationEvent {
 class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
     var delegate: DistributedNavigationDelegate
 
-    enum FailureEventsDispatchTime {
+    enum FinishEventsDispatchTime {
         case instant
         case beforeWillStartNavigationAction
         case afterWillStartNavigationAction
         case afterDidStartNavigationAction
     }
-    var failureEventsDispatchTime: FailureEventsDispatchTime = .instant
+    var finishEventsDispatchTime: FinishEventsDispatchTime = .instant
 
     init(delegate: DistributedNavigationDelegate) {
         self.delegate = delegate
@@ -640,9 +595,10 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
         delegate
     }
 
-    private var didFailWorkItem: DispatchWorkItem? {
+    private var finishWorkItem: DispatchWorkItem? {
         willSet {
-            didFailWorkItem?.perform()
+            guard let finishWorkItem, !finishWorkItem.isCancelled else { return }
+            finishWorkItem.perform()
         }
     }
 
@@ -650,13 +606,13 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
         delegate.webView(webView, decidePolicyFor: navigationAction, preferences: preferences) { [self] policy, preferences in
             decisionHandler(policy, preferences)
-            switch self.failureEventsDispatchTime {
+            switch self.finishEventsDispatchTime {
             case .instant, .afterDidStartNavigationAction: break
             case .beforeWillStartNavigationAction:
-                self.didFailWorkItem = nil // trigger if set after decidePolicyFor callback
+                self.finishWorkItem = nil // trigger if set after decidePolicyFor callback
             case .afterWillStartNavigationAction:
                 navigationAction.onDeinit {
-                    self.didFailWorkItem = nil
+                    self.finishWorkItem = nil
                 }
             }
         }
@@ -665,33 +621,48 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
     @MainActor
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         delegate.webView(webView, didStartProvisionalNavigation: navigation)
-        if case .afterDidStartNavigationAction = self.failureEventsDispatchTime {
-            self.didFailWorkItem = nil
+        if case .afterDidStartNavigationAction = self.finishEventsDispatchTime {
+            self.finishWorkItem = nil
         }
+    }
+
+    @MainActor
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard finishEventsDispatchTime != .instant else {
+            delegate.webView(webView, didFinish: navigation)
+            return
+        }
+        finishWorkItem = DispatchWorkItem { [delegate, weak self] in
+            self?.finishWorkItem?.cancel()
+            delegate.webView(webView, didFinish: navigation)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: finishWorkItem!)
     }
 
     @MainActor
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        guard failureEventsDispatchTime != .instant else {
+        guard finishEventsDispatchTime != .instant else {
             delegate.webView(webView, didFail: navigation, withError: error)
             return
         }
-        didFailWorkItem = DispatchWorkItem { [delegate] in
+        finishWorkItem = DispatchWorkItem { [delegate, weak self] in
+            self?.finishWorkItem?.cancel()
             delegate.webView(webView, didFail: navigation, withError: error)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: didFailWorkItem!)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: finishWorkItem!)
     }
 
     @MainActor
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        guard failureEventsDispatchTime != .instant else {
+        guard finishEventsDispatchTime != .instant else {
             delegate.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
             return
         }
-        didFailWorkItem = DispatchWorkItem { [delegate] in
+        finishWorkItem = DispatchWorkItem { [delegate, weak self] in
+            self?.finishWorkItem?.cancel()
             delegate.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: didFailWorkItem!)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: finishWorkItem!)
     }
 
 }

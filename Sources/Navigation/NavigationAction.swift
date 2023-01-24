@@ -21,7 +21,7 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
-public struct NavigationAction: Equatable {
+public struct NavigationAction {
 
     private static var maxIdentifier: UInt64 = 0
     public var identifier: UInt64 = {
@@ -35,16 +35,17 @@ public struct NavigationAction: Equatable {
 #if _IS_USER_INITIATED_ENABLED
     public let isUserInitiated: Bool
 #endif
+    public let shouldDownload: Bool
 
     public let sourceFrame: FrameInfo
     public let targetFrame: FrameInfo
 
-    public let shouldDownload: Bool
-
     /// Actual `BackForwardListItem` identity before the NavigationAction had started
     public let fromHistoryItemIdentity: HistoryItemIdentity?
+    /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
+    public let redirectHistory: [NavigationAction]?
 
-    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
+    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
         var request = request
         if request.allHTTPHeaderFields == nil {
             request.allHTTPHeaderFields = [:]
@@ -57,40 +58,47 @@ public struct NavigationAction: Equatable {
 #if _IS_USER_INITIATED_ENABLED
         self.isUserInitiated = isUserInitiated ?? false
 #endif
-        self.sourceFrame = sourceFrame
-        self.targetFrame = targetFrame
         self.shouldDownload = shouldDownload
 
+        self.sourceFrame = sourceFrame
+        self.targetFrame = targetFrame
+
         self.fromHistoryItemIdentity = currentHistoryItemIdentity
+        self.redirectHistory = redirectHistory
     }
 
-    internal init(webView: WKWebView, navigationAction: WKNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?, navigationType: NavigationType? = nil) {
+    internal init(webView: WKWebView, navigationAction: WKNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, navigationType: NavigationType? = nil) {
         // In this cruel reality the source frame IS Nullable for developer-initiated load events, this would mean we‘re targeting the main frame
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
+        var navigationType = navigationType
 
-        // session restoration
+
         if case .other = navigationAction.navigationType,
            case .returnCacheDataElseLoad = navigationAction.request.cachePolicy,
-           navigationAction.isUserInitiated != true,
+           navigationType == nil,
+           redirectHistory == nil,
            navigationAction.safeSourceFrame == nil,
            navigationAction.targetFrame?.isMainFrame == true,
            navigationAction.targetFrame?.request.url?.isEmpty == true,
-           currentHistoryItemIdentity == nil,
            webView.backForwardList.currentItem != nil {
 
-            self.init(request: navigationAction.request,
-                      navigationType: navigationType ?? .sessionRestoration,
-                      currentHistoryItemIdentity: currentHistoryItemIdentity,
-                      isUserInitiated: navigationAction.isUserInitiated,
-                      sourceFrame: sourceFrame, // main
-                      targetFrame: sourceFrame, // main
-                      shouldDownload: false)
-            return
+            // go back after failing session restoration has `other` Navigation Type
+            if let currentHistoryItemIdentity,
+               let distance = navigationAction.getDistance(from: currentHistoryItemIdentity) {
+
+                navigationType = .backForward(distance: distance)
+
+            // session restoration
+            } else if navigationAction.isUserInitiated != true,
+                      currentHistoryItemIdentity == nil {
+                navigationType = .sessionRestoration
+            }
         }
 
         self.init(request: navigationAction.request,
                   navigationType: navigationType ?? NavigationType(navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity),
                   currentHistoryItemIdentity: currentHistoryItemIdentity,
+                  redirectHistory: redirectHistory,
                   isUserInitiated: navigationAction.isUserInitiated,
                   sourceFrame: sourceFrame,
                   // always has targetFrame if not targeting to a new window
@@ -100,12 +108,7 @@ public struct NavigationAction: Equatable {
 
     internal static func sessionRestoreNavigation(webView: WKWebView) -> Self {
         assert(webView.backForwardList.currentItem == nil)
-        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
-    }
-
-    public static func == (lhs: NavigationAction, rhs: NavigationAction) -> Bool {
-        lhs.navigationType == rhs.navigationType && lhs.sourceFrame == rhs.sourceFrame && lhs.targetFrame == rhs.targetFrame && lhs.shouldDownload == rhs.shouldDownload
-            && lhs.request.isEqual(to: rhs.request)
+        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
     }
 
 }
@@ -124,13 +127,6 @@ public extension NavigationAction {
         request.url ?? .empty
     }
 
-}
-
-private extension URLRequest {
-    func isEqual(to other: URLRequest) -> Bool {
-        (url ?? .empty).matches(other.url ?? .empty) && httpMethod == other.httpMethod && (allHTTPHeaderFields ?? [:]) == (other.allHTTPHeaderFields ?? [:])
-            && cachePolicy == other.cachePolicy && timeoutInterval == other.timeoutInterval
-    }
 }
 
 public struct NavigationPreferences: Equatable {

@@ -52,6 +52,10 @@ public protocol NavigationResponder {
     @MainActor
     func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition?
 
+    /// Invoked when Redirect (either server or client) received for a Navigation
+    @MainActor
+    func didReceiveServerRedirect(_ navigationAction: NavigationAction, for navigation: Navigation)
+
     /// Happens after server redirects and completing authenticationChallenge
     /// Navigation Responders are queried in the provided order until any of them returns a NavigationResponsePolicy decision
     /// Responder Chain proceeds querying a next Responder when `.next` policy decision is returned
@@ -110,6 +114,8 @@ public extension NavigationResponder {
 
     @MainActor
     func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition? { .next }
+
+    func didReceiveServerRedirect(_ navigationAction: NavigationAction, for navigation: Navigation) {}
 
     func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation: Navigation?) async -> NavigationResponsePolicy? { .next }
 

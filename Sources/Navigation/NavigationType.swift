@@ -33,7 +33,7 @@ public enum NavigationType: Equatable {
     case backForward(distance: Int)
     case reload
 
-    case redirect(Redirect)
+    case redirect(RedirectType)
     case sessionRestoration
 
     case other
@@ -85,7 +85,7 @@ public extension NavigationType {
         return false
     }
     
-    var redirect: Redirect? {
+    var redirect: RedirectType? {
         if case .redirect(let redirect) = self { return redirect }
         return nil
     }
@@ -157,7 +157,7 @@ extension NavigationType: CustomDebugStringConvertible {
         case .sessionRestoration: return "sessionRestoration"
         case .other: return "other"
         case .redirect(let redirect):
-            return "redirect(\(redirect.debugDescription))"
+            return "redirect(\(redirect))"
         case .custom(let userInfo):
             return "custom(\(userInfo))"
         }

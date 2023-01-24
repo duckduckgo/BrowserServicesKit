@@ -32,10 +32,10 @@ public final class DistributedNavigationDelegate: NSObject {
 
     /// Developer-defined mapping to an expected main frame WKNavigation or "other" navigation type matching URL (for js-redirects).
     /// May incude custom NavigationTypes defined using UserInfo
-    public private(set) var expectedNavigationAction: (navigationType: NavigationType?, condition: NavigationMatchingCondition?)?
+    private var expectedNavigationAction: (condition: NavigationMatchingCondition?, navigationType: NavigationType?, redirectHistory: [NavigationAction]?)?
     /// sets developer-defined NavigationType for a next expected WKNavigationAction
-    public func setExpectedNavigationType(_ navigationType: NavigationType, matching condition: NavigationMatchingCondition) {
-        expectedNavigationAction = (navigationType, condition)
+    public func setExpectedNavigationType(_ navigationType: NavigationType, matching condition: NavigationMatchingCondition, keepingCurrentNavigationRedirectHistory: Bool = false) {
+        expectedNavigationAction = (condition, navigationType, keepingCurrentNavigationRedirectHistory ? currentNavigation?.navigationActions : nil)
     }
 
     /// approved navigation before `navigationDidStart` event received
@@ -139,14 +139,16 @@ private extension DistributedNavigationDelegate {
     /// Maps `WKNavigationAction` to `NavigationAction` according to an active server redirect or an expected NavigationType
     func navigationAction(for navigationAction: WKNavigationAction, in webView: WKWebView) -> NavigationAction {
         guard navigationAction.targetFrame?.isMainFrame == true else {
-            return NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity)
+            return NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil)
         }
 
         let navigationType: NavigationType?
+        let redirectHistory: [NavigationAction]?
         if let expected = expectedNavigationAction,
            expected.condition?.matches(navigationAction) ?? true {
             // client-defined or client-redirect expected navigation type matching current main frame navigation URL
             navigationType = expected.navigationType
+            redirectHistory = expected.redirectHistory
             // ! don‘t nullify the expectedNavigationAction until the decision is taken
 
         } else if let startedNavigation,
@@ -156,14 +158,15 @@ private extension DistributedNavigationDelegate {
                   navigationAction.safeSourceFrame != nil,
                   navigationAction.isRedirect != false {
             // received server redirect
-            navigationType = .redirect(Redirect(type: .server, appending: startedNavigation, to: startedNavigation.navigationAction.navigationType.redirect))
-            startedNavigation.redirected()
+            navigationType = .redirect(.server)
+            redirectHistory = startedNavigation.navigationActions
 
         } else {
             navigationType = nil // resolve from WKNavigationAction navigation type
+            redirectHistory = nil
         }
 
-        return NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, navigationType: navigationType)
+        return NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: redirectHistory, navigationType: navigationType)
     }
 
 }
@@ -220,6 +223,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             case .download:
                 self.willStartDownload(with: navigationAction, in: webView)
+                self.willStartDownload(with: navigationAction, in: webView)
                 decisionHandler(.downloadPolicy, wkPreferences)
             }
             // don‘t release the original WKNavigationAction until the end
@@ -235,9 +239,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         var redirectedNavigation: Navigation?
         if let startedNavigation {
             switch startedNavigation.state {
-            case .redirected:
+            case .started, .redirected:
+                guard case .redirect(.server) = navigationAction.navigationType else { break }
                 redirectedNavigation = startedNavigation
-            case .started, .responseReceived:
+            case .responseReceived:
                 // current navigation still didn‘t receive didFinish or didFail event yet
                 // further operations (didReceiveAuthenticationChallenge, didReceiveServerRedirect, didStart)
                 // should use `navigationExpectedToStart`, let the `startedNavigation` finish
@@ -250,9 +255,13 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         let identity = wkNavigation.map(NavigationIdentity.init)
-        if let redirectedNavigation, identity == redirectedNavigation.identity {
+        if let redirectedNavigation,
+            identity == redirectedNavigation.identity
+            // if navigationAction._mainFrameNavigation disabled
+            || identity == nil {
+
             // overwrite navigationAction for redirected navigation
-            redirectedNavigation.navigationAction = navigationAction
+            redirectedNavigation.redirected(with: navigationAction)
             self.navigationExpectedToStart = nil
 
         } else {
@@ -309,11 +318,11 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         let navigation = navigationExpectedToStart ?? startedNavigation
         navigation?.challengeRececived()
 
-        os_log("didReceive challenge: %s: %s", log: logger, type: .default, navigation?.debugDescription ?? webView.debugDescription, String(describing: challenge))
+        os_log("didReceive challenge: %s: %s", log: logger, type: .default, navigation?.debugDescription ?? webView.debugDescription, challenge.protectionSpace.description)
 
         makeAsyncDecision { responder in
             guard let decision = await responder.didReceive(challenge, for: navigation) else { return .next }
-            os_log("%s: %s decision: %s", log: self.logger, type: .default, String(describing: challenge), "\(type(of: responder))", String(describing: decision.dispositionAndCredential.0/*disposition*/))
+            os_log("%s: %s decision: %s", log: self.logger, type: .default, String(describing: challenge), "\(type(of: responder))", decision.description)
 
             return decision
 
@@ -336,7 +345,11 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         navigation.didReceiveServerRedirect(for: wkNavigation)
-        os_log("didReceiveServerRedirect for: %s", log: logger, type: .default, navigation.debugDescription)
+        os_log("didReceiveServerRedirect %s for: %s", log: logger, type: .default, navigation.navigationAction.debugDescription, navigation.debugDescription)
+
+        for responder in responders {
+            responder.didReceiveServerRedirect(navigation.navigationAction, for: navigation)
+        }
     }
 
     // MARK: Navigation
@@ -349,14 +362,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             expectedNavigation.started(wkNavigation)
             navigation = expectedNavigation
         } else {
-            // session restoration happens without NavigationAction
+            // session restoration happening without NavigationAction
             navigation = .started(navigationAction: .sessionRestoreNavigation(webView: webView), navigation: wkNavigation)
         }
         self.startedNavigation = navigation
         self.navigationExpectedToStart = nil
 
         os_log("didStart: %s", log: logger, type: .default, navigation.debugDescription)
-        assert(navigation.navigationAction.navigationType.redirect?.type != .server, "server redirects shouldn‘t call didStartProvisionalNavigation")
+        assert(navigation.navigationAction.navigationType.redirect?.isServer != true, "server redirects shouldn‘t call didStartProvisionalNavigation")
 
         for responder in responders {
             responder.didStart(navigation)
@@ -430,16 +443,13 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         os_log("willPerformClientRedirect to: %s, current: %s", log: logger, type: .default, url.absoluteString, startedNavigation.debugDescription)
         if expectedNavigationAction?.condition != .other(url: url) {
             // next decidePolicyForNavigationAction event should have Client Redirect navigation type
-            setExpectedNavigationType(.redirect(Redirect(type: .client(delay: delay),
-                                                         appending: startedNavigation,
-                                                         to: startedNavigation.navigationAction.navigationType.redirect)),
-                                      matching: .other(url: url))
+            setExpectedNavigationType(.redirect(.client(delay: delay)), matching: .other(url: url), keepingCurrentNavigationRedirectHistory: true)
         }
     }
 
     @objc(_webViewDidCancelClientRedirect:)
     func webViewDidCancelClientRedirect(_ webView: WKWebView) {
-        if expectedNavigationAction?.navigationType?.redirect?.type.isClient == true {
+        if case .client = expectedNavigationAction?.navigationType?.redirect {
             expectedNavigationAction = nil
         }
     }
@@ -455,6 +465,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             return
         }
 
+        currentHistoryItemIdentity = webView.backForwardList.currentItem.map(HistoryItemIdentity.init)
         navigation.didFinish(wkNavigation)
         os_log("didFinish: %s", log: logger, type: .default, navigation.debugDescription)
 
@@ -476,6 +487,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             return
         }
 
+        currentHistoryItemIdentity = webView.backForwardList.currentItem.map(HistoryItemIdentity.init)
         navigation.didFail(wkNavigation, with: error)
         os_log("didFail %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
 
@@ -497,6 +509,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             return
         }
 
+        currentHistoryItemIdentity = webView.backForwardList.currentItem.map(HistoryItemIdentity.init)
         navigation.didFail(wkNavigation, with: error)
         os_log("didFail provisional %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
 
@@ -514,7 +527,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @objc(webView:navigationAction:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
         let navigationAction = expectedDownloadNavigationAction
-            ?? NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity)
+            ?? NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil)
         self.expectedDownloadNavigationAction = nil
 
         for responder in responders {

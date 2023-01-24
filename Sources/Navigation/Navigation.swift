@@ -26,13 +26,23 @@ public final class Navigation {
 
     fileprivate(set) var identity: NavigationIdentity
 
-    public internal(set) var navigationAction: NavigationAction
+    internal private(set) var navigationActions: [NavigationAction]
+
     @Published public fileprivate(set) var state: NavigationState
     @Published public private(set) var isCommitted: Bool = false
     @Published public private(set) var didReceiveAuthenticationChallenge: Bool = false
 
+    /// Currently performed Navigation Action. May change for server redirects.
+    public var navigationAction: NavigationAction {
+        navigationActions.last!
+    }
+    /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
+    public var redirectHistory: [NavigationAction] {
+        Array(navigationActions.dropLast())
+    }
+
     public init(navigationAction: NavigationAction, state: NavigationState = .expected, identity: NavigationIdentity = .expected, isCommitted: Bool = false) {
-        self.navigationAction = navigationAction
+        self.navigationActions = (navigationAction.redirectHistory ?? []) + [navigationAction]
         self.state = state
         self.identity = identity
         self.isCommitted = isCommitted
@@ -41,10 +51,10 @@ public final class Navigation {
     static func expected(navigationAction: NavigationAction, identity expectedIdentity: NavigationIdentity) -> Navigation {
         let identity: NavigationIdentity
         switch navigationAction.navigationType {
-        case .redirect(let redirect) where redirect.type.isClient:
+        case .redirect(.client), .redirect(.developer):
             // new WKNavigation starts for js redirects
             identity = expectedIdentity
-        case .redirect:
+        case .redirect(.server):
             // the same WKNavigation is continued for server redirects
             assertionFailure("should not create new Navigation for redirects")
             identity = expectedIdentity
@@ -69,10 +79,6 @@ public final class Navigation {
 
     public var url: URL {
         navigationAction.url
-    }
-
-    public var redirectHistory: [RedirectHistoryItem]? {
-        navigationAction.navigationType.redirect?.history
     }
 
     public var isCompleted: Bool {
@@ -200,15 +206,24 @@ extension Navigation {
     }
 
     func didReceiveServerRedirect(for navigation: WKNavigation?) {
-        assert(state == .redirected, "didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
         self.identity.resolve(with: navigation)
-        self.state = .started
+        switch state {
+        case .redirected:
+            // expected didReceiveServerRedirect
+            self.state = .started
+        case .started:
+            // duplicate(cyclic) server redirect called without decidePolicyForNavigationAction:
+            self.navigationActions.append(self.navigationActions.last!)
+        case .expected, .failed, .finished, .responseReceived:
+            assertionFailure("didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
+        }
     }
 
-    func redirected() {
+    func redirected(with navigationAction: NavigationAction) {
         switch state {
         case .started:
             self.state = .redirected
+            self.navigationActions.append(navigationAction)
         case .expected, .responseReceived, .finished, .failed, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
@@ -266,6 +281,7 @@ extension RedirectType: CustomStringConvertible {
         switch self {
         case .client(delay: let delay): return "client" + (delay > 0 ? "(delay: \(delay))" : "")
         case .server: return "server"
+        case .developer: return "developer"
         }
     }
 }

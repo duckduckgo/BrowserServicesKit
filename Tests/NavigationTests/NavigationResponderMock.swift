@@ -22,20 +22,20 @@ import WebKit
 import Common
 
 enum NavigationEvent: Equatable {
-    case navigationAction(NavigationAction, NavigationPreferences = .default)
-    case willCancel(NavigationAction, NavigationActionCancellationRelatedAction)
-    case didCancel(NavigationAction,  NavigationActionCancellationRelatedAction = .none)
-    case navActionBecameDownload(NavigationAction, URL)
-    case willStart(Int)
+    case navigationAction(NavAction, NavigationPreferences = .default)
+    case willCancel(NavAction, NavigationActionCancellationRelatedAction)
+    case didCancel(NavAction,  NavigationActionCancellationRelatedAction = .none)
+    case navActionBecameDownload(NavAction, URL)
+    case willStart(NavAction)
     case didStart(Nav)
     case didReceiveAuthenticationChallenge(URLProtectionSpace, Nav?)
 
     enum EitherResponseOrNavigation: Equatable {
-        case response(NavigationResponse)
+        case response(NavigationResponse, navigation: Nav?)
         case navigation(Nav)
         var response: NavigationResponse {
             switch self {
-            case .response(let resp): return resp
+            case .response(let resp, navigation: _): return resp
             case .navigation(let nav): return nav.state.response!
             }
         }
@@ -43,17 +43,55 @@ enum NavigationEvent: Equatable {
     case navigationResponse(EitherResponseOrNavigation)
     case navResponseBecameDownload(Int, URL)
     case didCommit(Nav)
-    case didReceiveRedirect(Nav, RedirectType)
+    case didReceiveRedirect(Nav)
     case didFinish(Nav)
     case didFail(Nav, /*code:*/ Int)
     case didTerminate(Nav?)
+
+    static func navigationAction(_ navigationAction: NavigationAction, _ prefs: NavigationPreferences = .default) -> NavigationEvent {
+        return .navigationAction(NavAction(navigationAction), prefs)
+    }
+    static func willCancel(_ navigationAction: NavigationAction, _ action: NavigationActionCancellationRelatedAction) -> NavigationEvent {
+        return .willCancel(NavAction(navigationAction), action)
+    }
+    static func didCancel(_ navigationAction: NavigationAction, _ action: NavigationActionCancellationRelatedAction = .none) -> NavigationEvent {
+        return .didCancel(NavAction(navigationAction), action)
+    }
+    static func navActionBecameDownload(_ navigationAction: NavigationAction, _ url: URL) -> NavigationEvent {
+        return .navActionBecameDownload(NavAction(navigationAction), url)
+    }
+
+    var redirectEvent: Nav? {
+        if case .didReceiveRedirect(let nav) = self { return nav }
+        return nil
+    }
+}
+
+struct NavAction: Equatable {
+    let navigationAction: NavigationAction
+
+    init(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) {
+        self.navigationAction = .init(request: request, navigationType: navigationType, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: redirects?.map(\.navigationAction), isUserInitiated: isUserInitiated != nil, sourceFrame: src, targetFrame: targ ?? src, shouldDownload: shouldDownload != nil)
+    }
+
+    init(_ navigationAction: NavigationAction) {
+        self.navigationAction = navigationAction
+    }
+
+    static func == (navAct1: NavAction, navAct2: NavAction) -> Bool {
+        let lhs = navAct1.navigationAction
+        let rhs = navAct2.navigationAction
+        return lhs.navigationType == rhs.navigationType && lhs.sourceFrame == rhs.sourceFrame && lhs.targetFrame == rhs.targetFrame && lhs.shouldDownload == rhs.shouldDownload
+            && lhs.request.isEqual(to: rhs.request) && lhs.fromHistoryItemIdentity == rhs.fromHistoryItemIdentity
+            && lhs.redirectHistory?.enumerated().contains { rhs.redirectHistory?.indices.contains($0.offset) != true || NavAction(rhs.redirectHistory![$0.offset]) != NavAction($0.element) } != true
+    }
 }
 
 class NavigationResponderMock: NavigationResponder {
 
     private(set) var history: [NavigationEvent] = []
     private(set) var navigations: [Navigation] = []
-    private(set) var navigationActions: [NavigationAction] = []
+    var navigationActionsCache: [NavAction] = []
     private(set) var navigationResponses: [NavigationResponse] = []
 
     var defaultHandler: ((NavigationEvent) -> Void) = {
@@ -69,7 +107,7 @@ class NavigationResponderMock: NavigationResponder {
     func clear() {
         history = []
         navigations = []
-        navigationActions = []
+        navigationActionsCache = []
         navigationResponses = []
     }
 
@@ -81,7 +119,6 @@ class NavigationResponderMock: NavigationResponder {
     var onNavigationAction: ((NavigationAction, inout NavigationPreferences) async -> NavigationActionPolicy?)?
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
         let event = append(.navigationAction(navigationAction, preferences))
-        navigationActions.append(navigationAction)
         guard let onNavigationAction = onNavigationAction else {
             defaultHandler(event)
             return.next
@@ -109,31 +146,19 @@ class NavigationResponderMock: NavigationResponder {
 
     var onWillStart: ((NavigationAction) -> Void)?
     func willStart(_ navigationAction: NavigationAction) {
-        let actionIdx: Int
-        if let idx = navigationActions.firstIndex(of: navigationAction) {
-            actionIdx = idx
-        } else {
-            navigationActions.append(navigationAction)
-            actionIdx = navigationActions.count - 1
-        }
-
-        let event = append(.willStart(actionIdx))
+        let event = append(.willStart(.init(navigationAction)))
         onWillStart?(navigationAction) ?? defaultHandler(event)
     }
 
     func Nav(_ navigation: Navigation) -> Nav {
-        let actionIdx: Int
-        if let idx = navigationActions.firstIndex(of: navigation.navigationAction) {
-            actionIdx = idx
-        } else {
-            navigationActions.append(navigation.navigationAction)
-            actionIdx = navigationActions.count - 1
-        }
-        return NavigationTests.Nav(act: actionIdx, navigation)
+        NavigationTests.Nav(action: .init(navigation.navigationAction),
+                            redirects: navigation.redirectHistory.map { NavAction($0) },
+                            navigation.state,
+                            navigation.isCommitted ? .committed : nil,
+                            navigation.didReceiveAuthenticationChallenge ? .gotAuth : nil)
     }
     func Nav(_ navigation: Navigation?) -> Nav? {
-        navigation == nil ? nil :
-            NavigationTests.Nav(act: navigationActions.firstIndex(of: navigation!.navigationAction)!, navigation!)
+        navigation == nil ? nil : .some(Nav(navigation!))
     }
 
     var onDidStart: ((Navigation) -> Void)?
@@ -153,11 +178,23 @@ class NavigationResponderMock: NavigationResponder {
         }()
     }
 
+    var onDidReceiveRedirect: ((NavigationAction, Navigation) -> Void)?
+    @MainActor
+    func didReceiveServerRedirect(_ navigationAction: NavigationAction, for navigation: Navigation) {
+        assert(NavAction(navigation.navigationAction) == NavAction(navigationAction))
+        let event = append(.didReceiveRedirect(Nav(navigation)))
+        onDidReceiveRedirect?(navigationAction, navigation) ?? {
+            defaultHandler(event)
+        }()
+    }
+
     var onNavigationResponse: ((NavigationResponse, Navigation?) async -> NavigationResponsePolicy?)?
     func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation navigation: Navigation?) async -> NavigationResponsePolicy? {
         navigationResponses.append(navigationResponse)
-        assert(navigation == nil || navigation!.state == .responseReceived(navigationResponse))
-        let event = append(.navigationResponse(navigation == nil ? .response(navigationResponse) : .navigation(Nav(navigation!))))
+        assert(navigation == nil || !navigationResponse.isForMainFrame || navigation!.state == .responseReceived(navigationResponse))
+        let event = append(.navigationResponse(navigation == nil || !navigationResponse.isForMainFrame
+                                               ? .response(navigationResponse, navigation: navigation.map(Nav(_:)))
+                                               : .navigation(Nav(navigation!))))
         return await onNavigationResponse?(navigationResponse, navigation) ?? {
             defaultHandler(event)
             return .next

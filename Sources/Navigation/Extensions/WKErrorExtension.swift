@@ -19,35 +19,43 @@
 import Common
 import WebKit
 
+extension WKError {
+
+    public var failingUrl: URL? {
+        return _nsError.userInfo[NSURLErrorFailingURLStringErrorKey] as? URL
+    }
+
+    public var isFrameLoadInterrupted: Bool {
+        code == .frameLoadInterruptedByPolicyChange && _nsError.domain == WKError.WebKitErrorDomain
+    }
+
+    public var isNavigationCancelled: Bool {
+        code.rawValue == NSURLErrorCancelled && _nsError.domain == NSURLErrorDomain
+    }
+
+}
+
 private protocol WKErrorProtocol {
-    var _isFrameLoadInterrupted: Bool { get }
+    static var _WebKitErrorDomain: String { get }
 }
 
 extension WKError: WKErrorProtocol {
 
-    public var failingUrl: URL? {
-        return (self as NSError).userInfo[NSURLErrorFailingURLStringErrorKey] as? URL
-    }
-
-    public var isFrameLoadInterrupted: Bool { (self as WKErrorProtocol)._isFrameLoadInterrupted }
     // suppress deprecation warning
     @available(macOS, introduced: 10.3, deprecated: 10.14)
-    fileprivate var _isFrameLoadInterrupted: Bool {
-        let error = self as NSError
-        return error.code == WebKitErrorFrameLoadInterruptedByPolicyChange && error.domain == WebKitErrorDomain
-    }
+    fileprivate static var _WebKitErrorDomain: String { WebKit.WebKitErrorDomain }
+    static var WebKitErrorDomain: String { (self as WKErrorProtocol.Type)._WebKitErrorDomain }
 
-    public var isNavigationCancelled: Bool {
-        let error = self as NSError
-        return error.code == NSURLErrorCancelled && error.domain == NSURLErrorDomain
-    }
+}
 
+extension WKError.Code {
+    static let frameLoadInterruptedByPolicyChange = WKError.Code(rawValue: WebKitErrorFrameLoadInterruptedByPolicyChange)!
 }
 
 extension WKError: LocalizedError {
 
     public var errorDescription: String? {
-        "<WKError \((self as NSError).domain) error \(code)\(self.failingUrl != nil ? "url: \"\(self.failingUrl!)\"" : "")>"
+        "<WKError \((self as NSError).domain) error \(code.rawValue) \"\(self.localizedDescription)\"\(self.failingUrl != nil ? " url: \"\(self.failingUrl!)\"" : "")>"
     }
 
 }

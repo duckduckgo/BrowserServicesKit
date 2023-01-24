@@ -37,6 +37,17 @@ public enum AuthChallengeDisposition {
             return (.rejectProtectionSpace, nil)
         }
     }
+
+    var description: String {
+        switch self {
+        case .credential:
+            return "credential"
+        case .cancel:
+            return "cancel"
+        case .rejectProtectionSpace:
+            return "rejectProtectionSpace"
+        }
+    }
     
 }
 
