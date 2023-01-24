@@ -77,7 +77,7 @@ extension NavigationEvent {
             }
         }().replacing(regex: "\\s\\s+", with: "")
 
-        return v.replacingOccurrences(of: "  ", with: " ").replacing(regex: "\\s*,\\s*", with: ", ").replacing(regex: "\\s*\\+\\s*", with: " + ").replacing(regex: "\\s+\\)", with: ")").replacingOccurrences(of: "en-GB, ", with: "en-GB,").replacingOccurrences(of: ", , ", with: ", ").replacingOccurrences(of: "..", with: ".")
+        return v.replacingOccurrences(of: "  ", with: " ").replacing(regex: "\\s*,\\s*", with: ", ").replacing(regex: "\\s*\\+\\s*", with: " + ").replacing(regex: "\\s+\\)", with: ")").replacing(regex: "Accept-Language\\\": \\\"\\S\\S-\\S\\S, ", with: "en-XX,").replacingOccurrences(of: ", , ", with: ", ").replacingOccurrences(of: "..", with: ".")
     }
 
     static var terminated = NavigationEvent.didTerminate(nil)
@@ -293,10 +293,95 @@ extension URLResponse {
     }
 }
 
-extension URLRequest {
-    func isEqual(to other: URLRequest) -> Bool {
-        (url ?? .empty).matches(other.url ?? .empty) && httpMethod == other.httpMethod && (allHTTPHeaderFields ?? [:]) == (other.allHTTPHeaderFields ?? [:])
-        && cachePolicy == other.cachePolicy && timeoutInterval == other.timeoutInterval
+func compare<T>(_ name: String, _ lhs: T, _ rhs: T, using comparator: (T, T) -> Bool) -> String? {
+    if comparator(lhs, rhs) { return nil }
+    return "`\(name)`: \(lhs) not equal to \(rhs)"
+}
+
+func compare<T: TestComparable>(_ name: String, _ lhs: T, _ rhs: T) -> String? {
+    if let diff = T.difference(between: lhs, and: rhs) {
+        return "`\(name)`: \(diff)"
+    }
+    return nil
+}
+func compare_tc<T: TestComparable>(_ name: String, _ lhs: T, _ rhs: T) -> String? {
+    compare(name, lhs, rhs)
+}
+
+func compare<T: Equatable>(_ name: String, _ lhs: T, _ rhs: T) -> String? {
+    compare(name, lhs, rhs, using: ==)
+}
+
+protocol TestComparable {
+    static func difference(between lhs: Self, and rhs: Self) -> String?
+}
+
+extension NavigationAction: TestComparable {
+
+    static func difference(between lhs: NavigationAction, and rhs: NavigationAction) -> String? {
+        compare("navigationType", lhs.navigationType, rhs.navigationType)
+        ?? compare_tc("sourceFrame", lhs.sourceFrame, rhs.sourceFrame)
+        ?? compare_tc("targetFrame", lhs.targetFrame, rhs.targetFrame)
+        ?? compare("shouldDownload", lhs.shouldDownload, rhs.shouldDownload)
+        ?? compare_tc("request", lhs.request, rhs.request)
+        ?? compare("fromHistoryItemIdentity", lhs.fromHistoryItemIdentity, rhs.fromHistoryItemIdentity)
+        ?? compare("redirectHistory", lhs.redirectHistory, rhs.redirectHistory)
+    }
+
+}
+extension [NavigationAction]?: TestComparable {
+
+    static func difference(between lhs: [NavigationAction]?, and rhs: [NavigationAction]?) -> String? {
+        guard let lhs, let rhs else {
+            if let lhs {
+                return "\(lhs) not equal to <nil>"
+            }
+            if let rhs {
+                return "<nil> not equal to \(rhs)"
+            }
+            return nil
+        }
+        for (i, element) in lhs.enumerated() {
+            guard rhs.indices.contains(i) else {
+                return "[\(i)]: \(element) not equal to <nil>"
+            }
+            if let diff = NavigationAction.difference(between: element, and: rhs[i]) {
+                return "[\(i)]: \(diff)"
+            }
+        }
+        if rhs.count > lhs.count {
+            return "[\(lhs.count)]: <nil> not equal to \(rhs[lhs.count])"
+        }
+        return nil
+    }
+
+}
+
+extension URLRequest: TestComparable {
+
+    private func prettifiedHeaders() -> [String: String] {
+        var headers = (allHTTPHeaderFields ?? [:])
+        if let lang = headers["Accept-Language"] {
+            headers["Accept-Language"] = lang.replacing(regex: "^\\S\\S-\\S\\S", with: "en-XX")
+        }
+        return headers
+    }
+
+    static func difference(between lhs: URLRequest, and rhs: URLRequest) -> String? {
+        compare("url", lhs.url ?? .empty, rhs.url ?? .empty) { $0.matches($1) }
+        ?? compare("httpMethod", lhs.httpMethod, rhs.httpMethod)
+        ?? compare("allHTTPHeaderFields", lhs.prettifiedHeaders(), rhs.prettifiedHeaders())
+        ?? compare("cachePolicy", lhs.cachePolicy, rhs.cachePolicy)
+        ?? compare("timeoutInterval", lhs.timeoutInterval, rhs.timeoutInterval)
+    }
+
+}
+
+extension FrameInfo: TestComparable {
+    static func difference(between lhs: FrameInfo, and rhs: FrameInfo) -> String? {
+        compare("identity", lhs.identity, rhs.identity)
+        ?? compare("url", lhs.url, rhs.url) { $0.matches($1) }
+        ?? compare("securityOrigin", lhs.securityOrigin, rhs.securityOrigin)
     }
 }
 

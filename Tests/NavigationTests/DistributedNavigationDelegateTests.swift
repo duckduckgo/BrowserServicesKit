@@ -278,13 +278,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
                 printEncoded(responder: responderIdx)
 
                 if case .navigationAction(let r1, _) = event1, case .navigationAction(let r2, _) = event2 {
-                    if r1.navigationAction.request.allHTTPHeaderFields != r2.navigationAction.request.allHTTPHeaderFields {
-                        let (k, v) = r1.navigationAction.request.allHTTPHeaderFields!.first(where: { r2.navigationAction.request.allHTTPHeaderFields![$0.0] != $0.1 })!
-                        XCTFail("\nk: \(k): \"\(v)\" not equal to \(r2.navigationAction.request.allHTTPHeaderFields![k].map { "\"" + String(describing: $0) + "\"" } ?? "<nil>")", file: file, line: line)
-                    } else {
-                        print(r1)
-                        print(r2)
-                    }
+                    XCTFail(NavAction.difference(between: r1, and: r2)!)
                 } else if case .didReceiveRedirect(let h1) = event1, case .didReceiveRedirect(let h2) = event2 {
                     print(h1)
                     print(h2)
@@ -929,7 +923,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .willStart(cached(0)),
             .didStart(Nav(action: cached(0), .started)),
 
-            .navigationAction(req(urls.local2, defaultHeaders + ["Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate", "Accept-Language": "en-GB,en;q=0.9"]), .redirect(.server), redirects: [cached(0)], src: main()),
+            .navigationAction(req(urls.local2, defaultHeaders + ["Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate", "Accept-Language": "en-GA,en;q=0.9"]), .redirect(.server), redirects: [cached(0)], src: main()),
             .willStart(cached(1)),
             .didReceiveRedirect(Nav(action: cached(1), redirects: [cached(0)], .started)),
 
@@ -980,7 +974,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .willStart(cached(0)),
             .didStart(Nav(action: cached(0), .started)),
 
-            .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-GB,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [cached(0)], src: main()),
+            .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-GA,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [cached(0)], src: main()),
             .willStart(cached(1)),
             .didReceiveRedirect(Nav(action: cached(1), redirects: [cached(0)], .started)),
 

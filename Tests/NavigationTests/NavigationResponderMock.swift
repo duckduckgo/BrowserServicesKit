@@ -67,7 +67,7 @@ enum NavigationEvent: Equatable {
     }
 }
 
-struct NavAction: Equatable {
+struct NavAction: Equatable, TestComparable {
     let navigationAction: NavigationAction
 
     init(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) {
@@ -78,12 +78,12 @@ struct NavAction: Equatable {
         self.navigationAction = navigationAction
     }
 
-    static func == (navAct1: NavAction, navAct2: NavAction) -> Bool {
-        let lhs = navAct1.navigationAction
-        let rhs = navAct2.navigationAction
-        return lhs.navigationType == rhs.navigationType && lhs.sourceFrame == rhs.sourceFrame && lhs.targetFrame == rhs.targetFrame && lhs.shouldDownload == rhs.shouldDownload
-            && lhs.request.isEqual(to: rhs.request) && lhs.fromHistoryItemIdentity == rhs.fromHistoryItemIdentity
-            && lhs.redirectHistory?.enumerated().contains { rhs.redirectHistory?.indices.contains($0.offset) != true || NavAction(rhs.redirectHistory![$0.offset]) != NavAction($0.element) } != true
+    static func difference(between lhs: NavAction, and rhs: NavAction) -> String? {
+        NavigationAction.difference(between: lhs.navigationAction, and: rhs.navigationAction)
+    }
+
+    static func == (lhs: NavAction, rhs: NavAction) -> Bool {
+        return NavigationAction.difference(between: lhs.navigationAction, and: rhs.navigationAction) == nil
     }
 }
 
