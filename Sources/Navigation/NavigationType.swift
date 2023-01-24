@@ -39,7 +39,7 @@ public enum NavigationType: Equatable {
     case other
 
     /// developer-defined, set using `DistributedNavigationDelegate.setExpectedNavigationType(_:matching:)`
-    case custom(UserInfo)
+    case custom(CustomNavigationType)
 
     public init(_ navigationAction: WebViewNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?) {
         switch navigationAction.navigationType {
@@ -64,6 +64,14 @@ public enum NavigationType: Equatable {
         }
     }
 
+}
+
+public struct CustomNavigationType: RawRepresentable, Hashable {
+    public var rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
 }
 
 public extension NavigationType {
@@ -158,8 +166,8 @@ extension NavigationType: CustomDebugStringConvertible {
         case .other: return "other"
         case .redirect(let redirect):
             return "redirect(\(redirect))"
-        case .custom(let userInfo):
-            return "custom(\(userInfo))"
+        case .custom(let name):
+            return "custom(\(name.rawValue))"
         }
     }
 }

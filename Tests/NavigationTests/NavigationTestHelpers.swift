@@ -566,8 +566,8 @@ extension NavigationType {
             return ".restore"
         case .other:
             return ".other"
-        case .custom(let userInfo):
-            return "<##custom: \(userInfo.debugDescription)>"
+        case .custom(let name):
+            return "<##custom: \(name.rawValue)>"
         }
     }
 }
