@@ -1290,29 +1290,6 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didFinish(Nav(action: cached(0), .finished, .committed))
         ])
     }
-//
-//    func testCustomSchemeHandlerReturningRequestWithAnotherURL() {
-////        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-////        testSchemeHandler.onRequest = { [responseData=data.html] task in
-////            task.didReceive(.response(for: task.request, mimeType: "text/html", expectedLength: responseData.count))
-////            task.didReceive(responseData)
-////            task.didFinish()
-////        }
-////        let eDidFinish = expectation(description: "onDidFinish")
-////        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-////        webView.load(req(urls.testScheme))
-////
-////        waitForExpectations(timeout: 1)
-////
-////        assertHistoryEquals(responder(at: 0).history, [
-////            .navigationAction(req(urls.testScheme), .other, src: main()),
-////            .willStart(0),
-////            .didStart(Nav(action: 0, .started)),
-////            .response(Nav(action: 0, .resp(urls.testScheme, status: nil, data.html.count))),
-////            .didCommit(Nav(action: 0, .resp(urls.testScheme, status: nil, data.html.count), .committed)),
-////            .didFinish(Nav(action: 0, .finished, .committed))
-////        ])
-//    }
 
     func testSimulatedRequest() {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -1404,6 +1381,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(cached(0)),
             .didStart(Nav(action: cached(0), .started)),
+
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(cached(1)),
             .didStart(Nav(action: cached(1), .started)),
@@ -1413,39 +1391,135 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         ])
     }
 
-//    func testRealRequestAfterCustomSchemeRequest() {
-//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-//        testSchemeHandler.onRequest = { [responseData=data.html] task in
-//            // TODO: real request
-//        }
-//        let eDidFinish = expectation(description: "onDidFinish")
-//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-//        webView.load(req(urls.testScheme))
-//
-//        waitForExpectations(timeout: 1)
-//
-//        assertHistoryEquals(responder(at: 0).history, [
-//            .navigationAction(req(urls.testScheme), .other, src: main()),
-//            .willStart(0),
-//            .didStart(Nav(action: 0, .started)),
-//            .response(Nav(action: 0, .resp(urls.testScheme, status: nil, data.html.count))),
-//            .didCommit(Nav(action: 0, .resp(urls.testScheme, status: nil, data.html.count), .committed)),
-//            .didFinish(Nav(action: 0, .finished, .committed))
-//        ])
-//
-//    }
-//
-//    func testStopLoading() {
-//
-//    }
+    func testRealRequestAfterCustomSchemeRequest() {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        testSchemeHandler.onRequest = { [data, urls] task in
+            task.didReceive(.response(for: req(urls.local1)))
+            task.didReceive(data.html)
+            task.didFinish()
+        }
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        webView.load(req(urls.testScheme))
+
+        waitForExpectations(timeout: 1)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.testScheme), .other, src: main()),
+            .willStart(cached(0)),
+            .didStart(Nav(action: cached(0), .started)),
+            .response(Nav(action: cached(0), .resp(urls.local1, status: nil, data.empty.count))),
+            .didCommit(Nav(action: cached(0), .resp(urls.local1, status: nil, data.empty.count), .committed)),
+            .didFinish(Nav(action: cached(0), .finished, .committed))
+        ])
+    }
+
+    func testStopLoadingBeforeWillStart() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.data(data.html))
+        }]
+        try server.start(8084)
+
+        let eStopped = expectation(description: "loading stopped")
+        responder(at: 0).onNavigationAction = { [unowned webView] _, _ in
+            webView.stopLoading()
+            eStopped.fulfill()
+            return .next
+        }
+
+        webView.load(req(urls.local))
+        waitForExpectations(timeout: 1)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(cached(0))
+        ])
+    }
+
+    func testStopLoadingAfterWillStart() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.data(data.html))
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onWillStart = { [unowned webView] _ in
+            webView.stopLoading()
+        }
+        let eDidFail = expectation(description: "onDidFail")
+        responder(at: 0).onDidFail = { _, _ in eDidFail.fulfill() }
+
+        webView.load(req(urls.local))
+        waitForExpectations(timeout: 1)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(cached(0)),
+            .didStart(Nav(action: cached(0), .started)),
+            .didFail(Nav(action: cached(0), .failed(WKError(-999))), -999)
+        ])
+    }
+
+    func testStopLoadingAfterDidStart() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.data(data.html))
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onDidStart = { [unowned webView] _ in
+            webView.stopLoading()
+        }
+        let eDidFail = expectation(description: "onDidFail")
+        responder(at: 0).onDidFail = { _, _ in eDidFail.fulfill() }
+
+        webView.load(req(urls.local))
+        waitForExpectations(timeout: 1)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(cached(0)),
+            .didStart(Nav(action: cached(0), .started)),
+            .didFail(Nav(action: cached(0), .failed(WKError(-999))), -999)
+        ])
+    }
+
+    func testStopLoadingAfterResponse() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.data(data.html))
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onNavigationResponse = { [unowned webView] _, _ in
+            webView.stopLoading()
+            return .next
+        }
+        let eDidFail = expectation(description: "onDidFail")
+        responder(at: 0).onDidFail = { _, _ in eDidFail.fulfill() }
+        webView.load(req(urls.local))
+        waitForExpectations(timeout: 1)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(cached(0)),
+            .didStart(Nav(action: cached(0), .started)),
+            .response(Nav(action: cached(0), .resp(urls.local, data.html.count))),
+            .didFail(Nav(action: cached(0), .failed(WKError(.frameLoadInterruptedByPolicyChange))), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue)
+        ])
+    }
+
 //    func testNewUserInitiatedRequestWhileCustomSchemeRequestInProgress() {
 //
 //    }
 //
-//    // TODO: Test duck player custom scheme+server redirect
 //    // TODO: Test simulated request after normal request
 //    // TODO: Test custom scheme session restoration
-//    // TODO: Test about:blank restoration
 //
 //    // TODO: Test loading interruption by new request
 //
@@ -1888,8 +1962,6 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
     func testUserAgent() {} // test user prefs
     // TODO: test non-main-frame nav action
-    // TODO: test cancelling navigation didFailNavigation
-    // TODO: Task cancellation
     // TODO: targeting new window
     // TODO: session restoration/navigation to about:blank (no NavigationAction)
     // TODO: javascript Enable

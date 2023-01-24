@@ -116,7 +116,7 @@ class NavigationResponderMock: NavigationResponder {
         return event
     }
 
-    var onNavigationAction: ((NavigationAction, inout NavigationPreferences) async -> NavigationActionPolicy?)?
+    var onNavigationAction: (@MainActor (NavigationAction, inout NavigationPreferences) async -> NavigationActionPolicy?)?
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
         let event = append(.navigationAction(navigationAction, preferences))
         guard let onNavigationAction = onNavigationAction else {

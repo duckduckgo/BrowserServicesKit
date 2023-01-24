@@ -27,30 +27,15 @@ final class TestNavigationSchemeHandler: NSObject, WKURLSchemeHandler {
 
     static let scheme = "test"
 
-    public var onRequest: ((RedirectableWKURLSchemeTask) -> Void)?
+    public var onRequest: ((WKURLSchemeTask) -> Void)?
 
     func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
-        self.onRequest?(urlSchemeTask.redirectable()) ?? {
+        self.onRequest?(urlSchemeTask) ?? {
             urlSchemeTask.didFailWithError(WKError(.unknown))
         }()
     }
 
     @objc
     func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) { }
-
-}
-
-extension WKURLSchemeTask {
-    func redirectable() -> RedirectableWKURLSchemeTask {
-        withUnsafePointer(to: self) { $0.withMemoryRebound(to: RedirectableWKURLSchemeTask?.self, capacity: 1) { $0 } }.pointee!
-    }
-}
-
-@objc protocol RedirectableWKURLSchemeTask: WKURLSchemeTask {
-
-    @objc(_willPerformRedirection:newRequest:completionHandler:)
-    func willPerformRedirection(_ response: URLResponse, newRequest: URLRequest, completionHandler: @escaping (URLRequest) -> Void)
-    @objc(_didPerformRedirection:newRequest:)
-    func didPerformRedirection(_ response: URLResponse, newRequest: URLRequest)
 
 }
