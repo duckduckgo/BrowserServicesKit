@@ -53,6 +53,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
             
             self?.context.mergeChanges(fromContextDidSave: notification)
+            self?.context.refreshAllObjects()
             self?.refresh()
             self?.subject.send()
         }
