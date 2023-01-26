@@ -144,7 +144,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         guard let dict = message.body as? [String: Any],
               let target = dict["target"] as? String
         else {
-            assertionFailure("handleOpenSettings: expected { url: '...' } ")
+            assertionFailure("handleOpenSettings: expected { target: '...' } ")
             return
         }
 
