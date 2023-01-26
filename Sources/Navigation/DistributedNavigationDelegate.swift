@@ -248,26 +248,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         guard navigationAction.isForMainFrame else { return }
         os_log("willStart %s with %s", log: logger, type: .default, navigationAction.debugDescription, wkNavigation?.description ?? "<nil>")
 
-        var redirectedNavigation: Navigation?
-        if let startedNavigation {
-            switch startedNavigation.state {
-            case .started, .redirected:
-                guard case .redirect(.server) = navigationAction.navigationType else { break }
-                redirectedNavigation = startedNavigation
-            case .responseReceived:
-                // current navigation still didn‘t receive didFinish or didFail event yet
-                // further operations (didReceiveAuthenticationChallenge, didReceiveServerRedirect, didStart)
-                // should use `navigationExpectedToStart`, let the `startedNavigation` finish
-                break
-            case .expected:
-                assertionFailure("dropping previous expectated navigation: \(startedNavigation.navigationAction.debugDescription)")
-            case .finished, .failed:
-                assertionFailure("finished navigation should be nil")
-            }
-        }
-
         let identity = wkNavigation.map(NavigationIdentity.init)
-        if let redirectedNavigation,
+        if let redirectedNavigation = self.redirectedNavigation(for: navigationAction),
             identity == redirectedNavigation.identity
             // if navigationAction._mainFrameNavigation disabled
             || identity == nil {
@@ -291,6 +273,26 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         for responder in responders {
             responder.willStart(navigationAction)
         }
+    }
+
+    private func redirectedNavigation(for navigationAction: NavigationAction) -> Navigation? {
+        guard let startedNavigation else { return nil }
+
+        switch startedNavigation.state {
+        case .started, .redirected:
+            guard case .redirect(.server) = navigationAction.navigationType else { break }
+            return startedNavigation
+        case .responseReceived:
+            // current navigation still didn‘t receive didFinish or didFail event yet
+            // further operations (didReceiveAuthenticationChallenge, didReceiveServerRedirect, didStart)
+            // should use `navigationExpectedToStart`, let the `startedNavigation` finish
+            break
+        case .expected:
+            assertionFailure("dropping previous expectated navigation: \(startedNavigation.navigationAction.debugDescription)")
+        case .finished, .failed:
+            assertionFailure("finished navigation should be nil")
+        }
+        return nil
     }
 
     @MainActor

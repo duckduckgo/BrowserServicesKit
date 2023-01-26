@@ -23,6 +23,15 @@ import WebKit
 import XCTest
 @testable import Navigation
 
+// swiftlint:disable file_length
+// swiftlint:disable line_length
+// swiftlint:disable function_body_length
+// swiftlint:disable unused_closure_parameter
+// swiftlint:disable type_body_length
+// swiftlint:disable trailing_comma
+// swiftlint:disable opening_brace
+// swiftlint:disable force_try
+
 func expect(_ description: String, _ file: StaticString = #file, _ line: UInt = #line) -> XCTestExpectation {
     XCTestExpectation(description: description)
 }
@@ -481,7 +490,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         let eOnNavigationAction2 = expectation(description: "onNavigationAction 2")
         responder(at: 1).onNavigationAction = { _, _ in eOnNavigationAction2.fulfill(); return .allow }
         // 3rd: not called
-        responder(at: 2).onNavigationAction = { _, _ in XCTFail(); return .cancel }
+        responder(at: 2).onNavigationAction = { _, _ in XCTFail("Unexpected navAction"); return .cancel }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
@@ -571,7 +580,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             return .credential(URLCredential(user: "t", password: "t", persistence: .none))
         }
         // 3rd: not called
-        responder(at: 2).onDidReceiveAuthenticationChallenge = { _, _ in XCTFail(); return .cancel }
+        responder(at: 2).onDidReceiveAuthenticationChallenge = { _, _ in XCTFail("Unexpected didReceiveAuthChallenge"); return .cancel }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
@@ -1810,7 +1819,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .resp(urls.local2, data.metaRedirect.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .resp(urls.local2, data.metaRedirect.count), .committed)),
 
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer":urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)),
             .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, .committed)),
 
             .willStart(navAct(3)),
@@ -2581,7 +2590,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
     func testDownloadNavigationActionFromFrame() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-
+        navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
         server.middleware = [{ [data] request in
             guard request.path == "/" else { return nil }
             return .ok(.html(data.htmlWithIframe3.string()!))
@@ -2615,8 +2624,8 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, .empty, secOrigin: urls.local.securityOrigin)),
             .navActionWillBecomeDownload(navAct(2)),
 
-            .didFinish(Nav(action: navAct(1), .finished, .committed)),
-            .navActionBecameDownload(navAct(2), urls.local3)
+            .navActionBecameDownload(navAct(2), urls.local3),
+            .didFinish(Nav(action: navAct(1), .finished, .committed))
         ])
     }
 
@@ -2707,6 +2716,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
     // TODO: didFail non-provisional navigation
 
     func testWhenNavigationResponderTakesLongToReturnDecisionAndAnotherNavigationComesInBeforeIt() {}
+
 }
 
 private final class CustomCallbacksHandler: NSObject, NavigationResponder {

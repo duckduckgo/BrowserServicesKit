@@ -21,10 +21,13 @@ import Navigation
 import WebKit
 import Common
 
+// swiftlint:disable line_length
+// swiftlint:disable identifier_name
+
 enum NavigationEvent: Equatable {
     case navigationAction(NavAction, NavigationPreferences = .default)
     case willCancel(NavAction, NavigationActionCancellationRelatedAction)
-    case didCancel(NavAction,  NavigationActionCancellationRelatedAction = .none)
+    case didCancel(NavAction, NavigationActionCancellationRelatedAction = .none)
     case navActionWillBecomeDownload(NavAction)
     case navActionBecameDownload(NavAction, String)
     case willStart(NavAction)
@@ -137,7 +140,7 @@ class NavigationResponderMock: NavigationResponder {
         onWillCancel?(navigationAction, relatedAction) ?? defaultHandler(event)
     }
 
-    var onDidCancel: ((NavigationAction,  NavigationActionCancellationRelatedAction) -> Void)?
+    var onDidCancel: ((NavigationAction, NavigationActionCancellationRelatedAction) -> Void)?
     func didCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {
         let event = append(.didCancel(navigationAction, relatedAction))
         onDidCancel?(navigationAction, relatedAction) ?? defaultHandler(event)

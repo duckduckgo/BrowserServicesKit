@@ -22,6 +22,14 @@ import Foundation
 import Navigation
 import WebKit
 
+// swiftlint:disable file_length
+// swiftlint:disable line_length
+// swiftlint:disable cyclomatic_complexity
+// swiftlint:disable force_try
+// swiftlint:disable force_cast
+// swiftlint:disable implicit_getter
+// swiftlint:disable large_tuple
+
 typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, history: [UInt64: HistoryItemIdentity])
 extension NavigationEvent {
 
@@ -187,7 +195,7 @@ extension NavigationResponse {
                   isForMainFrame: true, canShowMIMEType: true)
     }
 
-    static func resp(_ url: URL, status: Int = 200, mime: String? = "text/html", _ length: Int = -1, _ encoding: String? = nil, headers: [String: String] = .default, _ isNotForMainFrame: IsNotForMainFrame? = nil,  _ cantShowMIMEType: CannotShowMimeType? = nil) -> NavigationResponse {
+    static func resp(_ url: URL, status: Int = 200, mime: String? = "text/html", _ length: Int = -1, _ encoding: String? = nil, headers: [String: String] = .default, _ isNotForMainFrame: IsNotForMainFrame? = nil, _ cantShowMIMEType: CannotShowMimeType? = nil) -> NavigationResponse {
         var headers = headers
         if length >= 0 {
             headers["Content-Length"] = String(length)
@@ -215,7 +223,7 @@ class MockHTTPURLResponse: HTTPURLResponse {
     override var suggestedFilename: String? {
         URLResponse(url: url!, mimeType: mimeType, expectedContentLength: Int(expectedContentLength), textEncodingName: textEncodingName).suggestedFilename ?? super.suggestedFilename
     }
-    init?(url: URL, statusCode: Int, mime: String?, httpVersion: String? = nil, headerFields: [String : String]?) {
+    init?(url: URL, statusCode: Int, mime: String?, httpVersion: String? = nil, headerFields: [String: String]?) {
         self.mime = mime
         super.init(url: url, statusCode: statusCode, httpVersion: httpVersion, headerFields: headerFields)
     }
@@ -447,7 +455,7 @@ extension [String: String] {
         return result
     }
 
-    static func +(lhs: Self, rhs: Self) -> Self {
+    static func + (lhs: Self, rhs: Self) -> Self {
         lhs.merging(rhs, uniquingKeysWith: { $1 })
     }
 }

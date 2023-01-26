@@ -19,6 +19,9 @@
 import WebKit
 @testable import Navigation
 
+// swiftlint:disable identifier_name
+// swiftlint:disable line_length
+
 class WKNavigationActionMock: NSObject {
 
     @objc var sourceFrame: WKFrameInfo

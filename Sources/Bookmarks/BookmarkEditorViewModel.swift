@@ -124,8 +124,8 @@ public class BookmarkEditorViewModel: ObservableObject {
         func descendInto(_ folders: [BookmarkEntity], depth: Int) {
             folders.forEach { entity in
                 if entity.isFolder,                    
-                    entity.uuid != bookmark.uuid
-                {
+                    entity.uuid != bookmark.uuid {
+
                     locations.append(Location(bookmark: entity, depth: depth))
                     descendInto(entity.childrenArray, depth: depth + 1)
                 }

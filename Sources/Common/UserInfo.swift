@@ -18,7 +18,6 @@
 
 import Foundation
 
-
 /**
  Arbitrary User Info storage with default values. Equatable. Private extension keys do NOT intersect between extensions.
  Used by the Navigation Stack to pass arbitrary data in navigation actions

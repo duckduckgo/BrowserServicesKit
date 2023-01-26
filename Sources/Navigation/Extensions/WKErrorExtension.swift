@@ -55,7 +55,8 @@ extension WKError.Code {
 extension WKError: LocalizedError {
 
     public var errorDescription: String? {
-        "<WKError \((self as NSError).domain) error \(code.rawValue) \"\(self.localizedDescription)\"\(self.failingUrl != nil ? " url: \"\(self.failingUrl!)\"" : "")>"
+        "<WKError \((self as NSError).domain) error \(code.rawValue) \"\(self.localizedDescription)\"" +
+        "\(self.failingUrl != nil ? " url: \"\(self.failingUrl!)\"" : "")>"
     }
 
 }
