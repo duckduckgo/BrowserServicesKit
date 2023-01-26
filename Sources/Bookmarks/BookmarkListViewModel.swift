@@ -73,6 +73,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
             
             self?.context.mergeChanges(fromContextDidSave: notification)
+            self?.context.refreshAllObjects()
             self?.refresh()
             self?.subject.send()
         }
