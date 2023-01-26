@@ -2600,14 +2600,14 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         }]
         try server.start(8084)
 
-        let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
                 return .download
             }
             return .next
         }
-        responder(at: 0).onNavActionBecameDownload = { _, _ in
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
             eDidFinish.fulfill()
         }
 
