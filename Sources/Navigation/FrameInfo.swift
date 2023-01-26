@@ -54,8 +54,8 @@ extension FrameInfo {
     }
 }
 
+public typealias WebViewIdentity = NSValue
 public struct FrameIdentity: Hashable {
-    public typealias WebViewIdentity = NSValue
 
     public let webView: WebViewIdentity?
     public var handle: String
@@ -101,13 +101,20 @@ extension FrameIdentity: CustomDebugStringConvertible {
 }
 
 public extension WKFrameInfo {
-    static var defaultMainFrameHandle = "4"
+    internal static var defaultMainFrameHandle = "4"
 
-    var handle: String {
+    // prevent exception if private API keys go missing
+    override func value(forUndefinedKey key: String) -> Any? {
+        assertionFailure("valueForUndefinedKey: \(key)")
+        return nil
+    }
+
+    @nonobjc var handle: String {
 #if DEBUG
-        String(describing: (self.value(forKey: "_handle") as? NSObject)!.value(forKey: "frameID")!)
+        String(describing: (self.value(forKey: "handle") as? NSObject)!.value(forKey: "frameID")!)
 #else
         self.isMainFrame ? Self.mainFrameHandle : "iframe"
 #endif
     }
+
 }

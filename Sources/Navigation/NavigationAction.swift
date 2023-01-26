@@ -24,6 +24,10 @@ import WebKit
 public struct NavigationAction {
 
     private static var maxIdentifier: UInt64 = 0
+#if DEBUG
+    static func resetIdentifier() { maxIdentifier = 0 }
+#endif
+
     public var identifier: UInt64 = {
         Self.maxIdentifier += 1
         return Self.maxIdentifier
@@ -44,6 +48,20 @@ public struct NavigationAction {
     public let fromHistoryItemIdentity: HistoryItemIdentity?
     /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
     public let redirectHistory: [NavigationAction]?
+
+    public var isSameDocumentNavigation: Bool {
+        let currentURL = targetFrame.url.absoluteString
+        let newURL = self.url.absoluteString
+
+        switch navigationType {
+        case .linkActivated, .other, .custom:
+            return newURL.hashedSuffix != nil && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+        case .backForward:
+            return (newURL.hashedSuffix != nil || currentURL.hashedSuffix != nil) && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+        case .reload, .formSubmitted, .formResubmitted, .redirect, .sessionRestoration:
+            return false
+        }
+    }
 
     public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
         var request = request
@@ -71,7 +89,6 @@ public struct NavigationAction {
         // In this cruel reality the source frame IS Nullable for developer-initiated load events, this would mean we‘re targeting the main frame
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
         var navigationType = navigationType
-
 
         if case .other = navigationAction.navigationType,
            case .returnCacheDataElseLoad = navigationAction.request.cachePolicy,

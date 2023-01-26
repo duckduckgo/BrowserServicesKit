@@ -118,6 +118,7 @@ public enum NavigationState: Equatable {
         return false
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     public static func == (lhs: NavigationState, rhs: NavigationState) -> Bool {
         switch lhs {
         case .expected: if case .expected = rhs { return true }

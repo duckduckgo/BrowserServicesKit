@@ -60,6 +60,20 @@ public extension String {
     func droppingWwwPrefix() -> String {
         self.dropping(prefix: "www.")
     }
+
+    var hashedSuffix: String? {
+        if let idx = self.firstIndex(of: "#") {
+            return String(self[idx...])
+        }
+        return nil
+    }
+
+    func droppingHashedSuffix() -> String {
+        if let idx = self.firstIndex(of: "#") {
+            return String(self[..<idx])
+        }
+        return self
+    }
     
     func autofillNormalized() -> String {
         let autofillCharacterSet = CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters).union(.symbols)

@@ -27,7 +27,10 @@ extension URL {
     }
 
     public func matches(_ other: URL) -> Bool {
-        return self.absoluteString.dropping(suffix: "/") == other.absoluteString.dropping(suffix: "/")
+        let string1 = self.absoluteString
+        let string2 = other.absoluteString
+        return string1.droppingHashedSuffix().dropping(suffix: "/").appending(string1.hashedSuffix ?? "")
+            == string2.droppingHashedSuffix().dropping(suffix: "/").appending(string2.hashedSuffix ?? "")
     }
 
     // URL without the scheme and the '/' suffix of the path

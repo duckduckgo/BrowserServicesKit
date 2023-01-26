@@ -25,7 +25,8 @@ enum NavigationEvent: Equatable {
     case navigationAction(NavAction, NavigationPreferences = .default)
     case willCancel(NavAction, NavigationActionCancellationRelatedAction)
     case didCancel(NavAction,  NavigationActionCancellationRelatedAction = .none)
-    case navActionBecameDownload(NavAction, URL)
+    case navActionWillBecomeDownload(NavAction)
+    case navActionBecameDownload(NavAction, String)
     case willStart(NavAction)
     case didStart(Nav)
     case didReceiveAuthenticationChallenge(URLProtectionSpace, Nav?)
@@ -41,6 +42,7 @@ enum NavigationEvent: Equatable {
         }
     }
     case navigationResponse(EitherResponseOrNavigation)
+    case navResponseWillBecomeDownload(Int)
     case navResponseBecameDownload(Int, URL)
     case didCommit(Nav)
     case didReceiveRedirect(Nav)
@@ -57,8 +59,11 @@ enum NavigationEvent: Equatable {
     static func didCancel(_ navigationAction: NavigationAction, _ action: NavigationActionCancellationRelatedAction = .none) -> NavigationEvent {
         return .didCancel(NavAction(navigationAction), action)
     }
-    static func navActionBecameDownload(_ navigationAction: NavigationAction, _ url: URL) -> NavigationEvent {
-        return .navActionBecameDownload(NavAction(navigationAction), url)
+    static func navActionWillBecomeDownload(_ navigationAction: NavigationAction) -> NavigationEvent {
+        return .navActionWillBecomeDownload(NavAction(navigationAction))
+    }
+    static func navActionBecameDownload(_ navigationAction: NavAction, _ url: URL) -> NavigationEvent {
+        return .navActionBecameDownload(navigationAction, url.string.dropping(suffix: "/"))
     }
 
     var redirectEvent: Nav? {
@@ -91,7 +96,7 @@ class NavigationResponderMock: NavigationResponder {
 
     private(set) var history: [NavigationEvent] = []
     private(set) var navigations: [Navigation] = []
-    var navigationActionsCache: [NavAction] = []
+    var navigationActionsCache: (dict: [UInt64: NavAction], max: UInt64) = ([:], 0)
     private(set) var navigationResponses: [NavigationResponse] = []
 
     var defaultHandler: ((NavigationEvent) -> Void) = {
@@ -106,9 +111,6 @@ class NavigationResponderMock: NavigationResponder {
 
     func clear() {
         history = []
-        navigations = []
-        navigationActionsCache = []
-        navigationResponses = []
     }
 
     private func append(_ event: NavigationEvent) -> NavigationEvent {
@@ -118,6 +120,9 @@ class NavigationResponderMock: NavigationResponder {
 
     var onNavigationAction: (@MainActor (NavigationAction, inout NavigationPreferences) async -> NavigationActionPolicy?)?
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? {
+        navigationActionsCache.dict[navigationAction.identifier] = .init(navigationAction)
+        navigationActionsCache.max = max(navigationActionsCache.max, navigationAction.identifier)
+
         let event = append(.navigationAction(navigationAction, preferences))
         guard let onNavigationAction = onNavigationAction else {
             defaultHandler(event)
@@ -138,14 +143,25 @@ class NavigationResponderMock: NavigationResponder {
         onDidCancel?(navigationAction, relatedAction) ?? defaultHandler(event)
     }
 
+    var onNavActionWillBecomeDownload: ((NavigationAction) -> Void)?
+    func navigationAction(_ navigationAction: NavigationAction, willBecomeDownloadIn webView: WKWebView) {
+        let event = append(.navActionWillBecomeDownload(navigationAction))
+        onNavActionWillBecomeDownload?(navigationAction) ?? defaultHandler(event)
+    }
+
     var onNavActionBecameDownload: ((NavigationAction, WebKitDownload) -> Void)?
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {
-        let event = append(.navActionBecameDownload(navigationAction, download.originalRequest!.url!))
+        let event = append(.navActionBecameDownload(NavAction(navigationAction), download.originalRequest!.url!))
         onNavActionBecameDownload?(navigationAction, download) ?? defaultHandler(event)
     }
 
     var onWillStart: ((NavigationAction) -> Void)?
     func willStart(_ navigationAction: NavigationAction) {
+        if navigationActionsCache.dict[navigationAction.identifier] == nil {
+            navigationActionsCache.dict[navigationAction.identifier] = .init(navigationAction)
+            navigationActionsCache.max = max(navigationActionsCache.max, navigationAction.identifier)
+        }
+
         let event = append(.willStart(.init(navigationAction)))
         onWillStart?(navigationAction) ?? defaultHandler(event)
     }
@@ -199,6 +215,13 @@ class NavigationResponderMock: NavigationResponder {
             defaultHandler(event)
             return .next
         }()
+
+    }
+
+    var onNavResponseWillBecomeDownload: ((NavigationResponse) -> Void)?
+    func navigationResponse(_ navigationResponse: NavigationResponse, willBecomeDownloadIn webView: WKWebView) {
+        let event = append(.navResponseWillBecomeDownload(navigationResponses.firstIndex(of: navigationResponse)!))
+        onNavResponseWillBecomeDownload?(navigationResponse) ?? defaultHandler(event)
     }
 
     var onNavResponseBecameDownload: ((NavigationResponse, WebKitDownload) -> Void)?

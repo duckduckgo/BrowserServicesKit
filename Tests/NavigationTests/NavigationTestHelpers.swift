@@ -22,7 +22,7 @@ import Foundation
 import Navigation
 import WebKit
 
-typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[NavAction]>)
+typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, history: [UInt64: HistoryItemIdentity])
 extension NavigationEvent {
 
     static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) -> NavigationEvent {
@@ -34,6 +34,10 @@ extension NavigationEvent {
     }
     static func response(_ response: NavigationResponse, _ nav: Nav?) -> NavigationEvent {
         .navigationResponse(.response(response, navigation: nav))
+    }
+
+    static func willCancel(_ navigationAction: NavAction) -> NavigationEvent {
+        .willCancel(navigationAction, .none)
     }
 
     func encoded(_ context: EncodingContext) -> String {
@@ -49,8 +53,10 @@ extension NavigationEvent {
                 return ".willCancel(\(arg.navigationAction.encoded(context))\(arg2 == .none ? "" : "," + arg2.encoded(context)))"
             case .didCancel(let arg, let arg2):
                 return ".didCancel(\(arg.navigationAction.encoded(context))\(arg2 == .none ? "" : "," + arg2.encoded(context)))"
+            case .navActionWillBecomeDownload(let arg):
+                return ".navActionWillBecomeDownload(\(arg.navigationAction.encoded(context)))"
             case .navActionBecameDownload(let arg, let arg2):
-                return "navActionBecameDownload(\(arg.navigationAction.encoded(context)), \(urlConst(for: arg2, in: context.urls)!))"
+                return ".navActionBecameDownload(\(arg.navigationAction.encoded(context)), \(urlConst(for: URL(string: arg2)!, in: context.urls)!))"
             case .willStart(let arg):
                 return ".willStart(\(arg.navigationAction.encoded(context)))"
             case .didStart(let arg):
@@ -61,7 +67,8 @@ extension NavigationEvent {
                 return ".response(.\(resp.encoded(context)), \(nav == nil ? "nil" : nav!.encoded(context)))"
             case .navigationResponse(.navigation(let nav)):
                 return ".response(\(nav.encoded(context)))"
-
+            case .navResponseWillBecomeDownload(let arg):
+                return ".navResponseWillBecomeDownload(\(arg))"
             case .navResponseBecameDownload(let arg, let arg2):
                 return ".navResponseBecameDownload(\(arg), \(urlConst(for: arg2, in: context.urls)!))"
             case .didCommit(let arg):
@@ -77,7 +84,7 @@ extension NavigationEvent {
             }
         }().replacing(regex: "\\s\\s+", with: "")
 
-        return v.replacingOccurrences(of: "  ", with: " ").replacing(regex: "\\s*,\\s*", with: ", ").replacing(regex: "\\s*\\+\\s*", with: " + ").replacing(regex: "\\s+\\)", with: ")").replacing(regex: "Accept-Language\\\": \\\"\\S\\S-\\S\\S, ", with: "en-XX,").replacingOccurrences(of: ", , ", with: ", ").replacingOccurrences(of: "..", with: ".")
+        return v.replacingOccurrences(of: "  ", with: " ").replacing(regex: "\\s*,\\s*", with: ", ").replacing(regex: "\\s*\\+\\s*", with: " + ").replacing(regex: "\\s+\\)", with: ")").replacing(regex: "Accept-Language\\\": \\\"\\S\\S-\\S\\S, ", with: "Accept-Language\": \"en-XX,").replacingOccurrences(of: ", , ", with: ", ").replacingOccurrences(of: "..", with: ".")
     }
 
     static var terminated = NavigationEvent.didTerminate(nil)
@@ -180,7 +187,7 @@ extension NavigationResponse {
                   isForMainFrame: true, canShowMIMEType: true)
     }
 
-    static func resp(_ url: URL, status: Int, mime: String? = "text/html", _ length: Int = -1, _ encoding: String? = nil, headers: [String: String] = .default) -> NavigationResponse {
+    static func resp(_ url: URL, status: Int = 200, mime: String? = "text/html", _ length: Int = -1, _ encoding: String? = nil, headers: [String: String] = .default, _ isNotForMainFrame: IsNotForMainFrame? = nil,  _ cantShowMIMEType: CannotShowMimeType? = nil) -> NavigationResponse {
         var headers = headers
         if length >= 0 {
             headers["Content-Length"] = String(length)
@@ -189,11 +196,11 @@ extension NavigationResponse {
             headers["Content-Encoding"] = encoding
         }
         let response = MockHTTPURLResponse(url: url, statusCode: status, mime: mime, httpVersion: nil, headerFields: headers)!
-        return self.init(response: response, isForMainFrame: true, canShowMIMEType: true)
+        return self.init(response: response, isForMainFrame: isNotForMainFrame == nil, canShowMIMEType: cantShowMIMEType == nil)
     }
     func encoded(_ context: EncodingContext) -> String {
         if !canShowMIMEType || !isForMainFrame {
-            return ".resp(\(response.encoded(context))\(isForMainFrame ? "" : ", .nonMain")\(canShowMIMEType ? "" : ", .cantShow"))"
+            return ".\(response.encoded(context).dropping(suffix: ")"))\(isForMainFrame ? "" : ", .nonMain")\(canShowMIMEType ? "" : ", .cantShow"))"
         } else {
             return response.encoded(context)
         }
@@ -273,9 +280,9 @@ extension URLResponse {
             headers = ""
         } else if (self as? HTTPURLResponse)?.allHeaderFields != nil {
             if Set(headerFields.keys).intersection(defaultHeaders.keys).count == defaultHeaders.count {
-                headers = ", headers: .default + " + headerFields.filter { $0.value != defaultHeaders[$0.key] }.encoded()
+                headers = ", headers: .default + " + headerFields.filter { $0.value != defaultHeaders[$0.key] }.encoded(context: context)
             } else {
-                headers = ", headers: " + headerFields.encoded()
+                headers = ", headers: " + headerFields.encoded(context: context)
             }
         } else {
             headers = ", headers: nil"
@@ -423,14 +430,18 @@ extension NavigationPreferences {
 }
 
 extension [String: String] {
-    func encoded() -> String {
+    func encoded(context: EncodingContext) -> String {
         if self.isEmpty { return "[:]" }
         var result = "["
         for (idx, item) in self.enumerated() {
             if idx > 0 {
                 result.append(",\n")
             }
-            result.append("\"\(item.key)\": \"\(item.value)\"")
+            var value = "\"\(item.value)\""
+            if let url = URL(string: item.value), let const = urlConst(for: url, in: context.urls) {
+                value = const + (item.value.hasSuffix("/") ? ".separatedString" : ".string")
+            }
+            result.append("\"\(item.key)\": \(value)")
         }
         result.append("]")
         return result
@@ -451,10 +462,10 @@ extension NavigationAction {
 
     func encoded(_ context: EncodingContext) -> String {
 
-        if let idx = context.navigationActions.pointee.firstIndex(of: .init(self)) {
-            return "cached(\(idx))"
+        if context.navigationActions.pointee[self.identifier] != nil {
+            return "navAct(\(self.identifier))"
         } else {
-            context.navigationActions.pointee.append(.init(self))
+            context.navigationActions.pointee[self.identifier] = .init(self)
         }
 
 #if _IS_USER_INITIATED_ENABLED
@@ -467,9 +478,9 @@ extension NavigationAction {
             headers = ""
         } else if let headerFields = request.allHTTPHeaderFields {
             if Set(headerFields.keys).intersection(defaultHeaders.keys).count == defaultHeaders.count {
-                headers = ", defaultHeaders + " + headerFields.filter { $0.value != defaultHeaders[$0.key] }.encoded()
+                headers = ", defaultHeaders + " + headerFields.filter { $0.value != defaultHeaders[$0.key] }.encoded(context: context)
             } else {
-                headers = ", " + headerFields.encoded()
+                headers = ", " + headerFields.encoded(context: context)
             }
         } else {
             headers = ", nil"
@@ -506,11 +517,11 @@ extension NavigationAction {
 
 extension FrameInfo {
     func encoded(_ context: EncodingContext) -> String {
-        let secOrigin = (securityOrigin == url.securityOrigin ? "" : ", secOrigin: " + securityOrigin.encoded(context))
+        let secOrigin = (securityOrigin == url.securityOrigin ? "" : "secOrigin: " + securityOrigin.encoded(context))
         if self.isMainFrame {
-            return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)!) + secOrigin + ")"
+            return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)! + (secOrigin.isEmpty ? "" : ", "))  + secOrigin + ")"
         } else {
-            return "frame(\(identity.handle), \(urlConst(for: url, in: context.urls)!)\(secOrigin))"
+            return "frame(\(identity.handle), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
         }
     }
 }
@@ -590,7 +601,8 @@ extension RedirectType {
 }
 extension HistoryItemIdentity {
     func encoded(_ context: EncodingContext) -> String {
-        "webView.item(at: \(context.webView.getDistance(from: self)!))"
+        let navigationActionIdx = context.history.first(where: { $0.value == self })!.key
+        return "history[\(navigationActionIdx)]"
     }
 }
 extension WKWebView {
@@ -606,9 +618,6 @@ extension WKWebView {
             return -(backList.count - backIndex)  // going forward from item in _reveresed_ back list to current
         }
         return nil
-    }
-    func item(at idx: Int) -> HistoryItemIdentity {
-        HistoryItemIdentity(self.backForwardList.item(at: idx)!)
     }
 }
 
@@ -638,20 +647,19 @@ extension NavigationEvent {
 }
 extension Array where Element == NavigationEvent {
 
-    func encoded(with urls: Any, webView: WKWebView, dataSource: Any, navigationActions outNavActions: inout [NavAction]) -> String {
-        var navigationActions = [NavAction]()
+    func encoded(with urls: Any, webView: WKWebView, dataSource: Any, history: [UInt64: HistoryItemIdentity]) -> String {
+        var navigationActions = [UInt64: NavAction]()
         var result = "[\n"
         for (idx, item) in self.enumerated() {
             if idx > 0 {
                 result.append(",\n")
             }
             withUnsafeMutablePointer(to: &navigationActions) { navigationActionsPtr in
-                result.append("  " + item.encoded((urls: urls, webView: webView, dataSource: dataSource, navigationActions: navigationActionsPtr)))
+                result.append("  " + item.encoded((urls: urls, webView: webView, dataSource: dataSource, navigationActions: navigationActionsPtr, history: history)))
             }
         }
         result.append("\n]")
 
-        outNavActions = navigationActions
         return result
     }
 
@@ -721,7 +729,7 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
             self?.finishWorkItem?.cancel()
             delegate.webView(webView, didFinish: navigation)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: finishWorkItem!)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: finishWorkItem!)
     }
 
     @MainActor
@@ -734,7 +742,7 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
             self?.finishWorkItem?.cancel()
             delegate.webView(webView, didFail: navigation, withError: error)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: finishWorkItem!)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: finishWorkItem!)
     }
 
     @MainActor
@@ -747,7 +755,7 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
             self?.finishWorkItem?.cancel()
             delegate.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01, execute: finishWorkItem!)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: finishWorkItem!)
     }
 
 }
@@ -757,5 +765,59 @@ private extension NSObject {
     func onDeinit(do job: @escaping () -> Void) {
         let cancellable = AnyCancellable(job)
         objc_setAssociatedObject(self, Self.onDeinitKey, cancellable, .OBJC_ASSOCIATION_RETAIN)
+    }
+}
+
+extension Data {
+
+    static let sessionRestorationMagic = Data([0x00, 0x00, 0x00, 0x02])
+
+    var plist: [String: Any] {
+        var data = self
+        if data.prefix(through: Self.sessionRestorationMagic.count - 1) == Self.sessionRestorationMagic {
+            data.removeFirst(Self.sessionRestorationMagic.count)
+        }
+        return try! PropertyListSerialization.propertyList(from: data, options: [], format: nil) as! [String: Any]
+    }
+
+    func string() -> String? {
+        String(data: self, encoding: .utf8)
+    }
+
+}
+
+extension [String: Any] {
+
+    var plist: Data {
+        try! PropertyListSerialization.data(fromPropertyList: self, format: .xml, options: 0)
+    }
+    var interactionStateData: Data {
+        Data.sessionRestorationMagic + self.plist
+    }
+
+    subscript<T>(_ key: String, as _: T.Type) -> T? {
+        get {
+            self[key] as! T?
+        }
+        _modify {
+            var value = withUnsafeMutablePointer(to: &self[key]) { ptr in
+                defer {
+                    ptr.pointee = nil
+                }
+                return ptr.pointee as! T?
+            }
+            yield &value
+            self[key] = value
+        }
+    }
+
+}
+
+extension URL {
+    var string: String {
+        self.absoluteString
+    }
+    var separatedString: String {
+        self.absoluteString.hasSuffix("/") ? self.absoluteString : self.absoluteString + "/"
     }
 }

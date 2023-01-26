@@ -108,7 +108,6 @@ public extension NavigationResponder {
     func willCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {}
     func didCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {}
 
-
     func willStart(_ navigationAction: NavigationAction) {}
     func didStart(_ navigation: Navigation) {}
 

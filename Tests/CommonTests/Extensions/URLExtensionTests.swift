@@ -302,11 +302,20 @@ final class URLExtensionTests: XCTestCase {
     func testMatchesComparator() {
         XCTAssertTrue("youtube.com".url!.matches("http://youtube.com".url!))
         XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com".url!))
-        XCTAssertTrue("http://youtube.com/".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("youtube.com".url!.matches("http://youtube.com/".url!))
+        XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com/".url!))
+        XCTAssertTrue("http://youtube.com/".url!.matches("youtube.com".url!))
+        XCTAssertTrue("http://youtube.com".url!.matches("youtube.com/".url!))
         XCTAssertTrue("https://youtube.com/".url!.matches("https://youtube.com".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com#link#1".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com#link#1".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com/#link#1".url!))
+        XCTAssertTrue("https://youtube.com#link#1".url!.matches("https://youtube.com/#link#1".url!))
 
         XCTAssertFalse("youtube.com".url!.matches("https://youtube.com".url!))
         XCTAssertFalse("youtube.com/".url!.matches("https://youtube.com".url!))
+        XCTAssertFalse("youtube.com/#link#1".url!.matches("https://youtube.com#link#2".url!))
+        XCTAssertFalse("youtube.com/#link#1".url!.matches("https://youtube.com#link".url!))
     }
 
 }
