@@ -345,10 +345,10 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         FrameInfo(frameIdentity: .mainFrameIdentity(for: webView), url: current, securityOrigin: secOrigin ?? current.securityOrigin)
     }
 
-    func frame(_ handle: Int, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
-        FrameInfo(frameIdentity: FrameIdentity(handle: "\(handle)", webViewIdentity: .init(nonretainedObject: webView), isMainFrame: false), url: url, securityOrigin: secOrigin ?? url.securityOrigin)
+    func frame(_ handle: String, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+        FrameInfo(frameIdentity: FrameIdentity(handle: handle, webViewIdentity: .init(nonretainedObject: webView), isMainFrame: false), url: url, securityOrigin: secOrigin ?? url.securityOrigin)
     }
-    func frame(_ handle: Int, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+    func frame(_ handle: String, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         frame(handle, URL(string: url)!, secOrigin: secOrigin)
     }
 
@@ -654,6 +654,15 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         }
         responder(at: 2).onDidReceiveAuthenticationChallenge = { _, _ in .next }
 
+        var frameHandle: String!
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.path == urls.local3.path {
+                frameHandle = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+            }
+            return .next
+        }
+
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
 
@@ -682,7 +691,8 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response( Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), .committed, .gotAuth)),
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, .empty, secOrigin: urls.local.securityOrigin)),
+
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), .committed, .gotAuth)),
             .response(.resp(resp(urls.local3, data.html.count), .nonMain), Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), .committed, .gotAuth)),
             .didFinish(Nav(action: navAct(1), .finished, .committed, .gotAuth))
@@ -694,7 +704,8 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didStart( Nav(action: navAct(1), .started)),
             .response( Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), .committed, .gotAuth)),
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, .empty, secOrigin: urls.local.securityOrigin)),
+
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(resp(urls.local3, data.html.count), .nonMain), Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count), .committed, .gotAuth)),
             .didFinish(Nav(action: navAct(1), .finished, .committed, .gotAuth))
         ])
@@ -1124,6 +1135,14 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
         let eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        var frameHandle: String!
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.path == urls.local3.path {
+                frameHandle = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+            }
+            return .next
+        }
 
         webView.load(req(urls.local))
         waitForExpectations(timeout: 5)
@@ -1157,19 +1176,19 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .response(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
             // #2 frame nav
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, .committed)),
 
             // #3 js frame nav
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #3 -> #1 goBack in frame
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(9, urls.local1)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(frameHandle, urls.local1)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
             // #1 -> #3 goForward in frame
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(9, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameHandle, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil)
         ])
     }
@@ -1190,6 +1209,15 @@ final class DistributedNavigationDelegateTests: XCTestCase {
 
         let eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        var frameHandle: String!
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.path == urls.local3.path {
+                frameHandle = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+            }
+            return .next
+        }
 
         webView.interactionState = data.interactionStateData
         waitForExpectations(timeout: 5)
@@ -1231,20 +1259,20 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .response(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
             // #2 frame nav
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(8, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, .committed)),
 
             // #3 js frame nav
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(8, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #3 -> #1 goBack in frame
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(8, urls.local1)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(frameHandle, urls.local1)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #1 -> #3 goForward in frame
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(8, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameHandle, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil)
         ])
     }
@@ -1279,6 +1307,17 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             guard counter == 3 else { return }
             eDidFinish.fulfill()
         }
+        var newFrameIdentity: FrameIdentity!
+        responder(at: 0).onNavigationAction = { [urls, webView] navAction, _ in
+            if navAction.url.path == urls.local2.path {
+                XCTAssertTrue(navAction.isTargetingNewWindow)
+                newFrameIdentity = navAction.targetFrame.identity
+                XCTAssertNotEqual(newFrameIdentity, .mainFrameIdentity(for: webView))
+                XCTAssertTrue(newFrameIdentity.isMainFrame)
+                XCTAssertNotEqual(newFrameIdentity.handle, WKFrameInfo.defaultMainFrameHandle)
+            }
+            return .next
+        }
 
         webView.load(req(urls.local))
         waitForExpectations(timeout: 5)
@@ -1292,7 +1331,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didCommit(Nav(action: navAct(1), .resp(urls.local, data.htmlWithOpenInNewWindow.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: main(urls.local),
-                              targ: FrameInfo(frameIdentity: .init(handle: "9", webViewIdentity: WebViewIdentity(nonretainedObject: newWebView), isMainFrame: true), url: .empty, securityOrigin: urls.local.securityOrigin)),
+                              targ: FrameInfo(frameIdentity: newFrameIdentity, url: .empty, securityOrigin: urls.local.securityOrigin)),
             .willStart(navAct(2)),
 
             .didFinish(Nav(action: navAct(1), .finished, .committed)),
@@ -1303,7 +1342,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .didFinish(Nav(action: navAct(2), .finished, .committed)),
 
             .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(2)],
-                              src: FrameInfo(frameIdentity: .init(handle: "9", webViewIdentity: WebViewIdentity(nonretainedObject: newWebView), isMainFrame: true), url: urls.local2, securityOrigin: urls.local.securityOrigin)),
+                              src: FrameInfo(frameIdentity: newFrameIdentity, url: urls.local2, securityOrigin: urls.local.securityOrigin)),
             .willStart(navAct(3)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(2)], .started)),
             .response(Nav(action: navAct(3), redirects: [navAct(2)], .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
@@ -2820,8 +2859,11 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         }]
         try server.start(8084)
 
+        var frameHandle: String!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
+                frameHandle = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
                 return .download
             }
             return .next
@@ -2841,7 +2883,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
             .response(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]), .committed)),
 
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .navActionWillBecomeDownload(navAct(2)),
 
             .navActionBecameDownload(navAct(2), urls.local3),
@@ -2910,6 +2952,14 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         webView.load(req(urls.local))
         waitForExpectations(timeout: 5)
 
+        var frameHandle: String!
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.path == urls.local1.path {
+                frameHandle = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+            }
+            return .next
+        }
         responder(at: 0).onNavigationResponse = { _, _ in
             .download
         }
@@ -2922,7 +2972,7 @@ final class DistributedNavigationDelegateTests: XCTestCase {
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(4, urls.local), targ: frame(9, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
             .navResponseWillBecomeDownload(2),
             .navResponseBecameDownload(2, urls.local1)
