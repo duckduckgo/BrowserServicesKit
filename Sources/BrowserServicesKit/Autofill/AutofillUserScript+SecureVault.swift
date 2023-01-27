@@ -622,8 +622,11 @@ extension AutofillUserScript {
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
         private let originalPixelName: String
 
-        init(pixelName: String) {
+        public let pixelParameters: [String: String]?
+
+        init(pixelName: String, pixelParameters: [String: String]?) {
             self.originalPixelName = pixelName
+            self.pixelParameters = pixelParameters
         }
 
         public var isEmailPixel: Bool {
@@ -657,7 +660,9 @@ extension AutofillUserScript {
             return
         }
 
-        vaultDelegate?.autofillUserScript(self, didSendPixel: JSPixel(pixelName: pixelName))
+        let pixelParameters = body["params"] as? [String: String]
+
+        vaultDelegate?.autofillUserScript(self, didSendPixel: JSPixel(pixelName: pixelName, pixelParameters: pixelParameters))
     }
 
 }
