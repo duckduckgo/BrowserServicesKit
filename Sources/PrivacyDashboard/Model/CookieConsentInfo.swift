@@ -20,14 +20,11 @@ import Foundation
 
 public struct CookieConsentInfo: Encodable {
     let consentManaged: Bool
-    let cosmetic: Bool?
     let optoutFailed: Bool?
     let selftestFailed: Bool?
-    let configurable = true;
-
-    public init(consentManaged: Bool, cosmetic: Bool?, optoutFailed: Bool?, selftestFailed: Bool?) {
+    
+    public init(consentManaged: Bool, optoutFailed: Bool?, selftestFailed: Bool?) {
         self.consentManaged = consentManaged
-        self.cosmetic = cosmetic
         self.optoutFailed = optoutFailed
         self.selftestFailed = selftestFailed
     }

@@ -28,7 +28,6 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
-    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool)
 }
@@ -47,7 +46,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardShowReportBrokenSite
         case privacyDashboardSubmitBrokenSiteReport
         case privacyDashboardOpenUrlInNewTab
-        case privacyDashboardOpenSettings
         case privacyDashboardSetPermission
         case privacyDashboardSetPermissionPaused
     }
@@ -83,8 +81,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSetPermission(message: message)
         case .privacyDashboardSetPermissionPaused:
             handleSetPermissionPaused(message: message)
-        case .privacyDashboardOpenSettings:
-            handleOpenSettings(message: message)
         }
     }
     
@@ -139,18 +135,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
         delegate?.userScript(self, didRequestOpenUrlInNewTab: url)
     }
-
-    private func handleOpenSettings(message: WKScriptMessage) {
-        guard let dict = message.body as? [String: Any],
-              let target = dict["target"] as? String
-        else {
-            assertionFailure("handleOpenSettings: expected { target: '...' } ")
-            return
-        }
-
-        delegate?.userScript(self, didRequestOpenSettings: target)
-    }
-
+    
     private func handleSetPermission(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let permission = dict["permission"] as? String,
