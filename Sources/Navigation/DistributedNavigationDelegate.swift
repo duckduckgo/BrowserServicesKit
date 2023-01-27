@@ -35,16 +35,25 @@ public final class DistributedNavigationDelegate: NSObject {
     /// May incude custom NavigationTypes defined using UserInfo
     private var expectedNavigationAction: (condition: NavigationMatchingCondition?, navigationType: NavigationType?, redirectHistory: [NavigationAction]?)?
     /// sets developer-defined NavigationType for a next expected WKNavigationAction
+    @MainActor
     public func setExpectedNavigationType(_ navigationType: NavigationType, matching condition: NavigationMatchingCondition, keepingCurrentNavigationRedirectHistory: Bool = false) {
         expectedNavigationAction = (condition, navigationType, keepingCurrentNavigationRedirectHistory ? currentNavigation?.navigationActions : nil)
     }
 
-    /// approved navigation before `navigationDidStart` event received
+    /// approved navigation before `navigationDidStart` event received (useful for authentication challenge and redirect events)
     private var navigationExpectedToStart: Navigation? {
         didSet {
             updateCurrentNavigation()
         }
     }
+
+    // currently processed NavigationAction decision Task
+    private var navigationActionDecisionTask: Task<Void, Never>? {
+        willSet {
+            navigationActionDecisionTask?.cancel()
+        }
+    }
+    // useful for non-mainframe navigation actions to keep an initiating action ref
     private var expectedDownloadNavigationAction: NavigationAction?
     private var expectedDownloadNavigationResponse: NavigationResponse?
 
@@ -74,6 +83,7 @@ public final class DistributedNavigationDelegate: NSObject {
     }
 
     public init(logger: OSLog) {
+        dispatchPrecondition(condition: .onQueue(.main))
         self.logger = logger
     }
 
@@ -83,6 +93,8 @@ public final class DistributedNavigationDelegate: NSObject {
      ```
      **/
     public func setResponders(_ refs: ResponderRefMaker?...) {
+        dispatchPrecondition(condition: .onQueue(.main))
+
         let nonnullRefs = refs.compactMap { $0 }
         responderRefs = nonnullRefs.map(\.ref)
         assert(responders.count == nonnullRefs.count, "Some NavigationResponders were released right after adding: "
@@ -122,29 +134,50 @@ public enum NavigationMatchingCondition: Equatable {
 private extension DistributedNavigationDelegate {
 
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
-    func makeAsyncDecision<T>(decide: @escaping (NavigationResponder) async -> T?,
-                              completion: @escaping (T?) -> Void) {
-        Task { @MainActor in
+    func makeAsyncDecision<T>(decide: @escaping @MainActor (NavigationResponder) async -> T?,
+                              completion: @escaping @MainActor (T?) -> Void,
+                              cancellation: @escaping @MainActor () -> Void) -> Task<Void, Never> {
+        Task.detached { @MainActor [responders] in
             var result: T?
             for responder in responders {
+                guard !Task.isCancelled else {
+                    cancellation()
+                    return
+                }
+
 #if DEBUG
+                let typeOfResponder = type(of: responder)
                 let timeoutWorkItem = DispatchWorkItem {
-                    assertionFailure("decision making is taking longer than expected, probably there‘s a leak")
+                    assertionFailure("decision making is taking longer than expected, probably there‘s a leak in \(typeOfResponder)")
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
                 defer { // swiftlint:disable:this inert_defer
                     timeoutWorkItem.cancel()
                 }
 #endif
-                guard let decision = await decide(responder) else { continue }
-                result = decision
-                break
+                if let decision = await decide(responder) {
+                    result = decision
+                    break
+                }
             }
+            guard !Task.isCancelled else {
+                cancellation()
+                return
+            }
+
             completion(result)
         }
     }
 
+    func makeAsyncDecision<T>(decide: @escaping @MainActor (NavigationResponder) async -> T?,
+                              completion: @escaping @MainActor (T?) -> Void) {
+        _=makeAsyncDecision(decide: decide, completion: completion, cancellation: {
+            completion(nil)
+        })
+    }
+
     /// Maps `WKNavigationAction` to `NavigationAction` according to an active server redirect or an expected NavigationType
+    @MainActor
     func navigationAction(for navigationAction: WKNavigationAction, in webView: WKWebView) -> NavigationAction {
         guard navigationAction.targetFrame?.isMainFrame == true else {
             return NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil)
@@ -190,7 +223,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         os_log("decidePolicyFor: %s: %s", log: logger, type: .default, navigationAction.debugDescription, wkNavigationAction.mainFrameNavigation?.description ?? "<nil>")
 
         // initial `about:` scheme navigation doesn‘t wait for decision
-
         if (navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about
             && (webView.backForwardList.currentItem == nil || navigationAction.navigationType == .sessionRestoration))
             // same-document navigations do the same
@@ -203,13 +235,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
 
         var preferences = NavigationPreferences(userAgent: webView.customUserAgent, preferences: wkPreferences)
-        makeAsyncDecision { responder in
+        let task = makeAsyncDecision { responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
-            guard !Task.isCancelled else {
-                os_log("cancelling %s because of Task cancellation", log: self.logger, type: .default, navigationAction.debugDescription)
-                return .cancel(with: .taskCancelled)
-            }
             guard let decision = await responder.decidePolicy(for: navigationAction, preferences: &preferences) else { return .next }
             os_log("%s: %s decision: %s", log: self.logger, type: .default, navigationAction.debugDescription, "\(type(of: responder))", decision.debugDescription)
 
@@ -217,6 +245,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
         } completion: { (decision: NavigationActionPolicy?) in
             dispatchPrecondition(condition: .onQueue(.main))
+
             if self.expectedNavigationAction?.navigationType == navigationAction.navigationType && self.expectedNavigationAction?.condition?.matches(wkNavigationAction) == true {
                 self.expectedNavigationAction = nil // reset
             }
@@ -240,6 +269,16 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             }
             // don‘t release the original WKNavigationAction until the end
             withExtendedLifetime(wkNavigationAction) {}
+
+        } cancellation: {
+            dispatchPrecondition(condition: .onQueue(.main))
+
+            os_log("Task cancelled for %s", log: self.logger, type: .default, navigationAction.debugDescription)
+            decisionHandler(.cancel, wkPreferences)
+        }
+
+        if navigationAction.isForMainFrame {
+            self.navigationActionDecisionTask = task
         }
     }
 
@@ -275,6 +314,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
     }
 
+    @MainActor
     private func redirectedNavigation(for navigationAction: NavigationAction) -> Navigation? {
         guard let startedNavigation else { return nil }
 
@@ -336,12 +376,16 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         os_log("didReceive challenge: %s: %s", log: logger, type: .default, navigation?.debugDescription ?? webView.debugDescription, challenge.protectionSpace.description)
 
         makeAsyncDecision { responder in
+            dispatchPrecondition(condition: .onQueue(.main))
+
             guard let decision = await responder.didReceive(challenge, for: navigation) else { return .next }
             os_log("%s: %s decision: %s", log: self.logger, type: .default, String(describing: challenge), "\(type(of: responder))", decision.description)
 
             return decision
 
         } completion: { (decision: AuthChallengeDisposition?) in
+            dispatchPrecondition(condition: .onQueue(.main))
+
             guard let (disposition, credential) = decision?.dispositionAndCredential else {
                 os_log("%s: performDefaultHandling", log: self.logger, type: .default, String(describing: challenge))
                 completionHandler(.performDefaultHandling, nil)
@@ -368,6 +412,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     }
 
     // MARK: Navigation
+    @MainActor
     public func webView(_ webView: WKWebView, navigation: WKNavigation, didSameDocumentNavigation navigationType: Int) {
         if let forwardingTarget = forwardingTarget(for: #selector(webView(_:navigation:didSameDocumentNavigation:))) {
             withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
@@ -414,12 +459,16 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         os_log("decidePolicyFor response: %s current: %s", log: logger, type: .default, navigationResponse.debugDescription, startedNavigation?.debugDescription ?? "<nil>")
 
         makeAsyncDecision { [startedNavigation] responder in
+            dispatchPrecondition(condition: .onQueue(.main))
+
             guard let decision = await responder.decidePolicy(for: navigationResponse, currentNavigation: startedNavigation) else { return .next }
             os_log("%s: %s decision: %s", log: self.logger, type: .default, navigationResponse.debugDescription, "\(type(of: responder))", "\(decision)")
 
             return decision
 
         } completion: { [weak self] (decision: NavigationResponsePolicy?) in
+            dispatchPrecondition(condition: .onQueue(.main))
+
             switch decision {
             case .allow, .none:
                 decisionHandler(.allow)
@@ -477,7 +526,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
     }
 
-    func webViewDidCancelClientRedirect(_ webView: WKWebView) {
+    @MainActor
+    public func webViewDidCancelClientRedirect(_ webView: WKWebView) {
         // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
         if let forwardingTarget = forwardingTarget(for: #selector(webViewDidCancelClientRedirect(_:))) {
             withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
@@ -557,7 +607,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
     }
 
-    func webView(_ webView: WKWebView, didFinishLoadWith request: URLRequest, in frame: WKFrameInfo) {
+    @MainActor
+    public func webView(_ webView: WKWebView, didFinishLoadWith request: URLRequest, in frame: WKFrameInfo) {
         // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
         if let forwardingTarget = forwardingTarget(for: #selector(webView(_:didFinishLoadWith:in:))) {
             withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
@@ -567,7 +618,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
     }
 
-    func webView(_ webView: WKWebView, didFailProvisionalLoadWith request: URLRequest, in frame: WKFrameInfo, with error: Error) {
+    @MainActor
+    public func webView(_ webView: WKWebView, didFailProvisionalLoadWith request: URLRequest, in frame: WKFrameInfo, with error: Error) {
         // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
         if let forwardingTarget = forwardingTarget(for: #selector(webView(_:didFailProvisionalLoadWith:in:with:))) {
             withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
@@ -691,6 +743,7 @@ extension DistributedNavigationDelegate {
     /// this will lead to the designated DistributedNavigationDelegate method not called at all.
     /// !!! Only one responder can be registered per custom method handler
     public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, for selector: Selector) {
+        dispatchPrecondition(condition: .onQueue(.main))
         assert(customDelegateMethodHandlers[selector] == nil)
         customDelegateMethodHandlers[selector] = handler.ref
     }

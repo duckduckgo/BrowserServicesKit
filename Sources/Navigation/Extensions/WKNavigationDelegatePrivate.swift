@@ -17,7 +17,7 @@
 
 import WebKit
 
-@objc protocol WKNavigationDelegatePrivate: WKNavigationDelegate {
+@objc public protocol WKNavigationDelegatePrivate: WKNavigationDelegate {
 
     @objc(_webView:didFinishLoadWithRequest:inFrame:)
     optional func webView(_ webView: WKWebView, didFinishLoadWith request: URLRequest, in frame: WKFrameInfo)

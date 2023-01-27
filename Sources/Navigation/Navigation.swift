@@ -22,6 +22,7 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
+@MainActor
 public final class Navigation {
 
     fileprivate(set) var identity: NavigationIdentity
@@ -233,6 +234,7 @@ extension Navigation {
 }
 
 // ensures Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
+@MainActor
 final class WKNavigationLifetimeTracker: NSObject {
     private let navigation: Navigation
     private static let wkNavigationLifetimeKey = UnsafeRawPointer(bitPattern: "wkNavigationLifetimeKey".hashValue)!
@@ -245,9 +247,15 @@ final class WKNavigationLifetimeTracker: NSObject {
         objc_setAssociatedObject(wkNavigation, Self.wkNavigationLifetimeKey, self, .OBJC_ASSOCIATION_RETAIN)
     }
 
-    deinit {
+    private static func checkNavigationCompletion(_ navigation: Navigation) {
         guard !navigation.isCompleted else { return }
         navigation.state = .failed(WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled)))
+    }
+
+    deinit {
+        DispatchQueue.main.async { [navigation] in
+            Self.checkNavigationCompletion(navigation)
+        }
     }
 
 }

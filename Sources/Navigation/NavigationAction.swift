@@ -204,7 +204,6 @@ extension NavigationActionPolicy? {
 
 public enum NavigationActionCancellationRelatedAction: Equatable {
     case none
-    case taskCancelled
     case redirect(URLRequest)
     case other(UserInfo)
 }
@@ -247,7 +246,6 @@ extension NavigationActionCancellationRelatedAction: CustomDebugStringConvertibl
     public var debugDescription: String {
         switch self {
         case .none: return ""
-        case .taskCancelled: return "taskCancelled"
         case .redirect(let request): return "redirect(\(request.url!)"
         case .other(let userInfo): return "other(\(userInfo.debugDescription))"
         }

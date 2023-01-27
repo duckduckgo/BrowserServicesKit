@@ -85,8 +85,8 @@ extension NavigationEvent {
                 return ".didReceiveRedirect(\(arg.encoded(context)))"
             case .didFinish(let arg):
                 return ".didFinish(\(arg.encoded(context)))"
-            case .didFail(let arg, let arg2):
-                return ".didFail(\(arg.encoded(context)), \(arg2))"
+            case .didFail(let arg, let arg2, isProvisioned: let arg3):
+                return ".didFail(\(arg.encoded(context)), \(arg2)\(arg3 ? "" : ", isProvisioned: false"))"
             case .didTerminate(let arg):
                 return arg != nil ? ".didTerminate(\(arg!.encoded(context)))" : ".terminated"
             }
@@ -401,7 +401,6 @@ extension FrameInfo: TestComparable {
 }
 
 extension NavigationActionCancellationRelatedAction {
-    static var cancelled = NavigationActionCancellationRelatedAction.taskCancelled
     static func redir(_ url: URL) -> NavigationActionCancellationRelatedAction {
         .redirect(req(url))
     }
@@ -412,8 +411,6 @@ extension NavigationActionCancellationRelatedAction {
         switch self {
         case .none:
             return ""
-        case .taskCancelled:
-            return ".cancelled"
         case .redirect(let req):
             return ".redir(\(urlConst(for: req.url!, in: context.urls)!))"
         case .other(let userInfo):
@@ -684,6 +681,8 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
     }
     var finishEventsDispatchTime: FinishEventsDispatchTime = .instant
 
+    var enableWillPerformClientRedirect: Bool = true
+
     init(delegate: DistributedNavigationDelegate) {
         self.delegate = delegate
     }
@@ -764,6 +763,13 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
             delegate.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: finishWorkItem!)
+    }
+
+    @MainActor
+    @objc(_webView:willPerformClientRedirectToURL:delay:)
+    func webView(_ webView: WKWebView, willPerformClientRedirectTo url: URL, delay: TimeInterval) {
+        guard enableWillPerformClientRedirect else { return }
+        delegate.webView(webView, willPerformClientRedirectTo: url, delay: delay)
     }
 
 }

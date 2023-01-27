@@ -50,7 +50,7 @@ enum NavigationEvent: Equatable {
     case didCommit(Nav)
     case didReceiveRedirect(Nav)
     case didFinish(Nav)
-    case didFail(Nav, /*code:*/ Int)
+    case didFail(Nav, /*code:*/ Int, isProvisioned: Bool)
     case didTerminate(Nav?)
 
     static func navigationAction(_ navigationAction: NavigationAction, _ prefs: NavigationPreferences = .default) -> NavigationEvent {
@@ -67,6 +67,9 @@ enum NavigationEvent: Equatable {
     }
     static func navActionBecameDownload(_ navigationAction: NavAction, _ url: URL) -> NavigationEvent {
         return .navActionBecameDownload(navigationAction, url.string.dropping(suffix: "/"))
+    }
+    static func didFail(_ nav: Nav, _ code: Int) -> NavigationEvent {
+        return .didFail(nav, code, isProvisioned: true)
     }
 
     var redirectEvent: Nav? {
@@ -102,16 +105,41 @@ class NavigationResponderMock: NavigationResponder {
     var navigationActionsCache: (dict: [UInt64: NavAction], max: UInt64) = ([:], 0)
     private(set) var navigationResponses: [NavigationResponse] = []
 
-    var defaultHandler: ((NavigationEvent) -> Void) = {
+    static let defaultHandler: ((NavigationEvent) -> Void) = {
         fatalError("not handled: \($0)")
     }
+    var defaultHandler: ((NavigationEvent) -> Void)
 
-    init(defaultHandler: ((NavigationEvent) -> Void)? = nil) {
-        if let defaultHandler {
-            self.defaultHandler = defaultHandler
-        }
+    init(defaultHandler: @escaping ((NavigationEvent) -> Void) = NavigationResponderMock.defaultHandler) {
+        self.defaultHandler = defaultHandler
     }
 
+    func reset() {
+        clear()
+        
+        onNavigationAction = nil
+        onWillCancel = nil
+        onDidCancel = nil
+        onWillStart = nil
+        onDidStart = nil
+        onDidReceiveAuthenticationChallenge = nil
+        onDidReceiveRedirect = nil
+        onNavigationResponse = nil
+        onDidFail = nil
+        onDidFinish = nil
+        onDidCommit = nil
+        onDidTerminate = nil
+
+        onNavActionWillBecomeDownload = nil
+        onNavActionBecameDownload = nil
+
+        onNavResponseWillBecomeDownload = nil
+        onNavResponseBecameDownload = nil
+
+        defaultHandler = { 
+            fatalError("event received after test completed: \($0)")
+        }
+    }
     func clear() {
         history = []
     }
@@ -134,31 +162,31 @@ class NavigationResponderMock: NavigationResponder {
         return await onNavigationAction(navigationAction, &preferences)
     }
 
-    var onWillCancel: ((NavigationAction, NavigationActionCancellationRelatedAction) -> Void)?
+    var onWillCancel: (@MainActor (NavigationAction, NavigationActionCancellationRelatedAction) -> Void)?
     func willCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {
         let event = append(.willCancel(navigationAction, relatedAction))
         onWillCancel?(navigationAction, relatedAction) ?? defaultHandler(event)
     }
 
-    var onDidCancel: ((NavigationAction, NavigationActionCancellationRelatedAction) -> Void)?
+    var onDidCancel: (@MainActor (NavigationAction, NavigationActionCancellationRelatedAction) -> Void)?
     func didCancel(_ navigationAction: NavigationAction, with relatedAction: NavigationActionCancellationRelatedAction) {
         let event = append(.didCancel(navigationAction, relatedAction))
         onDidCancel?(navigationAction, relatedAction) ?? defaultHandler(event)
     }
 
-    var onNavActionWillBecomeDownload: ((NavigationAction) -> Void)?
+    var onNavActionWillBecomeDownload: (@MainActor (NavigationAction) -> Void)?
     func navigationAction(_ navigationAction: NavigationAction, willBecomeDownloadIn webView: WKWebView) {
         let event = append(.navActionWillBecomeDownload(navigationAction))
         onNavActionWillBecomeDownload?(navigationAction) ?? defaultHandler(event)
     }
 
-    var onNavActionBecameDownload: ((NavigationAction, WebKitDownload) -> Void)?
+    var onNavActionBecameDownload: (@MainActor (NavigationAction, WebKitDownload) -> Void)?
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {
         let event = append(.navActionBecameDownload(NavAction(navigationAction), download.originalRequest!.url!))
         onNavActionBecameDownload?(navigationAction, download) ?? defaultHandler(event)
     }
 
-    var onWillStart: ((NavigationAction) -> Void)?
+    var onWillStart: (@MainActor (NavigationAction) -> Void)?
     func willStart(_ navigationAction: NavigationAction) {
         if navigationActionsCache.dict[navigationAction.identifier] == nil {
             navigationActionsCache.dict[navigationAction.identifier] = .init(navigationAction)
@@ -169,6 +197,7 @@ class NavigationResponderMock: NavigationResponder {
         onWillStart?(navigationAction) ?? defaultHandler(event)
     }
 
+    @MainActor
     func Nav(_ navigation: Navigation) -> Nav {
         NavigationTests.Nav(action: .init(navigation.navigationAction),
                             redirects: navigation.redirectHistory.map { NavAction($0) },
@@ -176,18 +205,19 @@ class NavigationResponderMock: NavigationResponder {
                             navigation.isCommitted ? .committed : nil,
                             navigation.didReceiveAuthenticationChallenge ? .gotAuth : nil)
     }
+    @MainActor
     func Nav(_ navigation: Navigation?) -> Nav? {
         navigation == nil ? nil : .some(Nav(navigation!))
     }
 
-    var onDidStart: ((Navigation) -> Void)?
+    var onDidStart: (@MainActor (Navigation) -> Void)?
     func didStart(_ navigation: Navigation) {
         navigations.append(navigation)
         let event = append(.didStart(Nav(navigation)))
         onDidStart?(navigation) ?? defaultHandler(event)
     }
 
-    var onDidReceiveAuthenticationChallenge: ((URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)?
+    var onDidReceiveAuthenticationChallenge: (@MainActor (URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)?
     @MainActor
     func didReceive(_ authenticationChallenge: URLAuthenticationChallenge, for navigation: Navigation?) async -> AuthChallengeDisposition? {
         let event = append(.didReceiveAuthenticationChallenge(authenticationChallenge.protectionSpace, Nav(navigation)))
@@ -197,7 +227,7 @@ class NavigationResponderMock: NavigationResponder {
         }()
     }
 
-    var onDidReceiveRedirect: ((NavigationAction, Navigation) -> Void)?
+    var onDidReceiveRedirect: (@MainActor (NavigationAction, Navigation) -> Void)?
     @MainActor
     func didReceiveServerRedirect(_ navigationAction: NavigationAction, for navigation: Navigation) {
         assert(NavAction(navigation.navigationAction) == NavAction(navigationAction))
@@ -207,12 +237,13 @@ class NavigationResponderMock: NavigationResponder {
         }()
     }
 
-    var onNavigationResponse: ((NavigationResponse, Navigation?) async -> NavigationResponsePolicy?)?
+    var onNavigationResponse: (@MainActor (NavigationResponse, Navigation?) async -> NavigationResponsePolicy?)?
+    @MainActor
     func decidePolicy(for navigationResponse: NavigationResponse, currentNavigation navigation: Navigation?) async -> NavigationResponsePolicy? {
         navigationResponses.append(navigationResponse)
         assert(navigation == nil || !navigationResponse.isForMainFrame || navigation!.state == .responseReceived(navigationResponse))
         let event = append(.navigationResponse(navigation == nil || !navigationResponse.isForMainFrame
-                                               ? .response(navigationResponse, navigation: navigation.map(Nav(_:)))
+                                               ? .response(navigationResponse, navigation: Nav(navigation))
                                                : .navigation(Nav(navigation!))))
         return await onNavigationResponse?(navigationResponse, navigation) ?? {
             defaultHandler(event)
@@ -221,37 +252,37 @@ class NavigationResponderMock: NavigationResponder {
 
     }
 
-    var onNavResponseWillBecomeDownload: ((NavigationResponse) -> Void)?
+    var onNavResponseWillBecomeDownload: (@MainActor (NavigationResponse) -> Void)?
     func navigationResponse(_ navigationResponse: NavigationResponse, willBecomeDownloadIn webView: WKWebView) {
         let event = append(.navResponseWillBecomeDownload(navigationResponses.firstIndex(of: navigationResponse)!))
         onNavResponseWillBecomeDownload?(navigationResponse) ?? defaultHandler(event)
     }
 
-    var onNavResponseBecameDownload: ((NavigationResponse, WebKitDownload) -> Void)?
+    var onNavResponseBecameDownload: (@MainActor (NavigationResponse, WebKitDownload) -> Void)?
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload, currentNavigation navigation: Navigation?) {
         let event = append(.navResponseBecameDownload(navigationResponses.firstIndex(of: navigationResponse)!, download.originalRequest!.url!))
         onNavResponseBecameDownload?(navigationResponse, download) ?? defaultHandler(event)
     }
 
-    var onDidCommit: ((Navigation) -> Void)?
+    var onDidCommit: (@MainActor (Navigation) -> Void)?
     func didCommit(_ navigation: Navigation) {
         let event = append(.didCommit(Nav(navigation)))
         onDidCommit?(navigation) ?? defaultHandler(event)
     }
 
-    var onDidFinish: ((Navigation) -> Void)?
+    var onDidFinish: (@MainActor (Navigation) -> Void)?
     func navigationDidFinish(_ navigation: Navigation) {
         let event = append(.didFinish(Nav(navigation)))
         onDidFinish?(navigation) ?? defaultHandler(event)
     }
 
-    var onDidFail: ((Navigation, WKError) -> Void)?
+    var onDidFail: (@MainActor (Navigation, WKError) -> Void)?
     func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {
-        let event = append(.didFail(Nav(navigation), error.code.rawValue))
+        let event = append(.didFail(Nav(navigation), error.code.rawValue, isProvisioned: false))
         onDidFail?(navigation, error) ?? defaultHandler(event)
     }
 
-    var onDidTerminate: ((Navigation?) -> Void)?
+    var onDidTerminate: (@MainActor (Navigation?) -> Void)?
     func webContentProcessDidTerminate(currentNavigation navigation: Navigation?) {
         let event = append(.didTerminate(Nav(navigation)))
         onDidTerminate?(navigation) ?? defaultHandler(event)
