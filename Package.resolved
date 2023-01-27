@@ -14,9 +14,9 @@
         "package": "Autofill",
         "repositoryURL": "https://github.com/duckduckgo/duckduckgo-autofill.git",
         "state": {
-          "branch": "mateusz/apple-autofill-pixels",
-          "revision": "fa811d1b2780b53d095f8aa89863e3db0ec60769",
-          "version": null
+          "branch": null,
+          "revision": "49c5e80e44306937cb3eaa7afb690b7889de3895",
+          "version": "6.2.0"
         }
       },
       {
