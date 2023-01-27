@@ -25,7 +25,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch isEnabled: Bool)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: String)
 
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
@@ -37,6 +36,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetPermission permissionName: String, to state: PermissionAuthorizationState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, setPermission permissionName: String, paused: Bool)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: String)
 #endif
     
 }
@@ -224,7 +224,9 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings target: String) {
+#if os(macOS)
         delegate?.privacyDashboardController(self, didRequestOpenSettings: target)
+#endif
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo isProtected: Bool) {
