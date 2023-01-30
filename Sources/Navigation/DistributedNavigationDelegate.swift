@@ -27,8 +27,8 @@ import WebKit
 // swiftlint:disable large_tuple
 public final class DistributedNavigationDelegate: NSObject {
 
-    private var responderRefs: [AnyResponderRef] = []
-    private var customDelegateMethodHandlers = [Selector: AnyResponderRef]()
+    private var responders = ResponderChain<NavigationResponder>()
+    private var customDelegateMethodHandlers = [Selector: ResponderRef<NavigationResponder>]()
     private let logger: OSLog
 
     /// Developer-defined mapping to an expected main frame WKNavigation or "other" navigation type matching URL (for js-redirects).
@@ -92,23 +92,10 @@ public final class DistributedNavigationDelegate: NSObject {
      navigationDelegate.setResponders( .weak(responder1), .weak(nullable: responder2), .strong(responder3), .strong(nullable: responder4))
      ```
      **/
-    public func setResponders(_ refs: ResponderRefMaker?...) {
+    public func setResponders(_ refs: ResponderRefMaker<NavigationResponder>?...) {
         dispatchPrecondition(condition: .onQueue(.main))
 
-        let nonnullRefs = refs.compactMap { $0 }
-        responderRefs = nonnullRefs.map(\.ref)
-        assert(responders.count == nonnullRefs.count, "Some NavigationResponders were released right after adding: "
-               + "\(Set(nonnullRefs.map(\.ref.responderType)).subtracting(responders.map { "\(type(of: $0))" }))")
-    }
-
-    public var responders: [NavigationResponder] {
-        return responderRefs.enumerated().reversed().compactMap { (idx, ref) in
-            guard let responder = ref.responder else {
-                responderRefs.remove(at: idx)
-                return nil
-            }
-            return responder
-        }.reversed()
+        responders.setResponders(refs.compactMap { $0 })
     }
 
 }
@@ -675,64 +662,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
 }
 
-// MARK: - Responders
-extension DistributedNavigationDelegate {
-
-    fileprivate enum ResponderRef: AnyResponderRef {
-        case weak(ref: WeakResponderRef, type: NavigationResponder.Type)
-        case strong(NavigationResponder)
-        var responder: NavigationResponder? {
-            switch self {
-            case .weak(ref: let ref, type: _): return ref.responder
-            case .strong(let responder): return responder
-            }
-        }
-        var responderType: String {
-            switch self {
-            case .weak(ref: _, type: let type): return "\(type)"
-            case .strong(let responder): return "\(type(of: responder))"
-            }
-        }
-    }
-
-    public struct ResponderRefMaker {
-        fileprivate let ref: AnyResponderRef
-        private init(_ ref: AnyResponderRef) {
-            self.ref = ref
-        }
-        public static func `weak`(_ responder: (some NavigationResponder & AnyObject)) -> ResponderRefMaker {
-            return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
-        }
-        public static func `weak`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
-            guard let responder = responder else { return nil }
-            return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
-        }
-        public static func `strong`(_ responder: any NavigationResponder & AnyObject) -> ResponderRefMaker {
-            return .init(ResponderRef.strong(responder))
-        }
-        public static func `strong`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
-            guard let responder = responder else { return nil }
-            return .init(ResponderRef.strong(responder))
-        }
-        public static func `struct`(_ responder: some NavigationResponder) -> ResponderRefMaker {
-            assert(Mirror(reflecting: responder).displayStyle == .struct, "\(type(of: responder)) is not a struct")
-            return .init(ResponderRef.strong(responder))
-        }
-        public static func `struct`(nullable responder: (some NavigationResponder)?) -> ResponderRefMaker? {
-            guard let responder = responder else { return nil }
-            return .struct(responder)
-        }
-    }
-
-    fileprivate final class WeakResponderRef {
-        weak var responder: (NavigationResponder & AnyObject)?
-        init(_ responder: (NavigationResponder & AnyObject)?) {
-            self.responder = responder
-        }
-    }
-
-}
-
 // MARK: - Forwarding
 extension DistributedNavigationDelegate {
 
@@ -742,12 +671,12 @@ extension DistributedNavigationDelegate {
     /// (such as one of the decidePolicyForNavigationAction (sync/async/with preferences) methods or a higher priority private API method)
     /// this will lead to the designated DistributedNavigationDelegate method not called at all.
     /// !!! Only one responder can be registered per custom method handler
-    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, for selector: Selector) {
+    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker<NavigationResponder>, for selector: Selector) {
         dispatchPrecondition(condition: .onQueue(.main))
         assert(customDelegateMethodHandlers[selector] == nil)
         customDelegateMethodHandlers[selector] = handler.ref
     }
-    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, for selectors: [Selector]) {
+    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker<NavigationResponder>, for selectors: [Selector]) {
         for selector in selectors {
             registerCustomDelegateMethodHandler(handler, for: selector)
         }
@@ -764,9 +693,4 @@ extension DistributedNavigationDelegate {
         return customDelegateMethodHandlers[selector]?.responder
     }
 
-}
-
-private protocol AnyResponderRef {
-    var responder: NavigationResponder? { get }
-    var responderType: String { get }
 }
