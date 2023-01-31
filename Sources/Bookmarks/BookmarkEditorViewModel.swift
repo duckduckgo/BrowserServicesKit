@@ -108,6 +108,11 @@ public class BookmarkEditorViewModel: ObservableObject {
             otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
 
             self?.context.mergeChanges(fromContextDidSave: notification)
+
+            if let bookmark = self?.bookmark, !bookmark.isInserted {
+                self?.context.refresh(bookmark, mergeChanges: true)
+            }
+
             self?.refresh()
             self?.subject.send()
         }
