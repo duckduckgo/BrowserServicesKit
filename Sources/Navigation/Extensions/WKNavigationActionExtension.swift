@@ -96,4 +96,23 @@ extension WKNavigationAction: WebViewNavigationAction {
         return nil
     }
 
+    public var isSameDocumentNavigation: Bool {
+        guard let currentURL = targetFrame?.request.url?.absoluteString,
+              let newURL = self.request.url?.absoluteString,
+              !currentURL.isEmpty,
+              !newURL.isEmpty
+        else { return false }
+
+        switch navigationType {
+        case .linkActivated, .other:
+            return newURL.hashedSuffix != nil && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+        case .backForward:
+            return (newURL.hashedSuffix != nil || currentURL.hashedSuffix != nil) && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+        case .reload, .formSubmitted, .formResubmitted:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
 }

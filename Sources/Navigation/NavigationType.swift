@@ -35,6 +35,7 @@ public enum NavigationType: Equatable {
 
     case redirect(RedirectType)
     case sessionRestoration
+    case sameDocumentNavigation
 
     case other
 
@@ -57,6 +58,8 @@ public enum NavigationType: Equatable {
             self = .formSubmitted
         case .formResubmitted:
             self = .formResubmitted
+        case .other where navigationAction.isSameDocumentNavigation:
+            self = .sameDocumentNavigation
         case .other:
             self = .other
         @unknown default:
@@ -125,6 +128,8 @@ public extension NavigationType {
 
 public protocol WebViewNavigationAction {
     var navigationType: WKNavigationType { get }
+    var isSameDocumentNavigation: Bool { get }
+
     func getDistance(from historyItemIdentity: HistoryItemIdentity?) -> Int?
 #if os(macOS)
     var isMiddleClick: Bool { get }
@@ -166,6 +171,8 @@ extension NavigationType: CustomDebugStringConvertible {
         case .other: return "other"
         case .redirect(let redirect):
             return "redirect(\(redirect))"
+        case .sameDocumentNavigation:
+            return "sameDocumentNavigation"
         case .custom(let name):
             return "custom(\(name.rawValue))"
         }

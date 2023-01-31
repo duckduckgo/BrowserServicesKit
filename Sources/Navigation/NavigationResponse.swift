@@ -20,25 +20,26 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
-public struct NavigationResponse: Equatable {
+public struct NavigationResponse {
 
     public let response: URLResponse
 
     public let isForMainFrame: Bool
     public let canShowMIMEType: Bool
 
-    public init(response: URLResponse, isForMainFrame: Bool, canShowMIMEType: Bool) {
+    /// Currently active Main Frame Navigation associated with the NavigationResponse
+    /// May be non-nil for non-main-frame NavigationResponse
+    public internal(set) weak var mainFrameNavigation: Navigation?
+
+    public init(response: URLResponse, isForMainFrame: Bool, canShowMIMEType: Bool, mainFrameNavigation: Navigation?) {
         self.response = response
         self.isForMainFrame = isForMainFrame
         self.canShowMIMEType = canShowMIMEType
+        self.mainFrameNavigation = mainFrameNavigation
     }
 
-    init(navigationResponse: WKNavigationResponse) {
-        self.init(response: navigationResponse.response, isForMainFrame: navigationResponse.isForMainFrame, canShowMIMEType: navigationResponse.canShowMIMEType)
-    }
-
-    public static func == (lhs: NavigationResponse, rhs: NavigationResponse) -> Bool {
-        lhs.response.isEqual(to: rhs.response) && lhs.isForMainFrame == rhs.isForMainFrame && lhs.canShowMIMEType == rhs.canShowMIMEType
+    init(navigationResponse: WKNavigationResponse, mainFrameNavigation: Navigation?) {
+        self.init(response: navigationResponse.response, isForMainFrame: navigationResponse.isForMainFrame, canShowMIMEType: navigationResponse.canShowMIMEType, mainFrameNavigation: mainFrameNavigation)
     }
 
 }
@@ -61,16 +62,6 @@ extension NavigationResponse {
         httpResponse?.shouldDownload ?? false
     }
 
-}
-
-private extension URLResponse {
-    func isEqual(to other: URLResponse) -> Bool {
-        guard (url ?? .empty).matches(other.url ?? .empty) && mimeType == other.mimeType && expectedContentLength == other.expectedContentLength && textEncodingName == other.textEncodingName && suggestedFilename == other.suggestedFilename else { return false }
-        if let lhs = self as? HTTPURLResponse, let rhs = other as? HTTPURLResponse {
-            return lhs.statusCode == rhs.statusCode && lhs.allHeaderFields as NSDictionary == rhs.allHeaderFields as NSDictionary
-        }
-        return true
-    }
 }
 
 extension NavigationResponse: CustomDebugStringConvertible {

@@ -1,7 +1,7 @@
 //
-//  IntersectingUserInfoValuesTestHelper.swift
+//  NavigationEvent.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,17 +17,21 @@
 //
 
 import Foundation
-import Common
+import WebKit
 
-struct TestUserInfo2 {
-    static func value(in userInfo: UserInfo) -> String {
-        return userInfo.testStr
-    }
-    static func setValue(_ value: String, in userInfo: inout UserInfo) {
-        userInfo.testStr = value
-    }
-}
+public enum NavigationEvent {
 
-private extension UserInfo.Values {
-    var testStr: Value<String> { Value(default: "test2") { $0 } }
+    case willStart
+    case didStart
+    case redirected(NavigationAction)
+    case authenticationChallenge(URLProtectionSpace)
+
+    case responseReceived(NavigationResponse)
+    case didCommit
+
+    case didBecomeDownload(WebKitDownload)
+
+    case didFinish
+    case didFail(WKError)
+
 }

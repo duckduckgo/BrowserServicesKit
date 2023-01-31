@@ -21,6 +21,11 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
+
+public struct MainFrame {
+    fileprivate init() {}
+}
+
 public struct NavigationAction {
 
     private static var maxIdentifier: UInt64 = 0
@@ -44,26 +49,23 @@ public struct NavigationAction {
     public let sourceFrame: FrameInfo
     public let targetFrame: FrameInfo
 
+    /// Used to protect main frame .redirect NavigationActionPolicy actions as only main frame can be redirected
+    /// `nil` for non-main-frame navigations
+    public var mainFrameTarget: MainFrame? {
+        guard targetFrame.isMainFrame else { return nil }
+        return MainFrame()
+    }
+
+    /// Currently active Main Frame Navigation associated with the NavigationAction
+    /// May be non-nil for non-main-frame NavigationActions
+    public internal(set) weak var mainFrameNavigation: Navigation?
+
     /// Actual `BackForwardListItem` identity before the NavigationAction had started
     public let fromHistoryItemIdentity: HistoryItemIdentity?
     /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
     public let redirectHistory: [NavigationAction]?
 
-    public var isSameDocumentNavigation: Bool {
-        let currentURL = targetFrame.url.absoluteString
-        let newURL = self.url.absoluteString
-
-        switch navigationType {
-        case .linkActivated, .other, .custom:
-            return newURL.hashedSuffix != nil && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
-        case .backForward:
-            return (newURL.hashedSuffix != nil || currentURL.hashedSuffix != nil) && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
-        case .reload, .formSubmitted, .formResubmitted, .redirect, .sessionRestoration:
-            return false
-        }
-    }
-
-    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool) {
+    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool, mainFrameNavigation: Navigation?) {
         var request = request
         if request.allHTTPHeaderFields == nil {
             request.allHTTPHeaderFields = [:]
@@ -83,9 +85,10 @@ public struct NavigationAction {
 
         self.fromHistoryItemIdentity = currentHistoryItemIdentity
         self.redirectHistory = redirectHistory
+        self.mainFrameNavigation = mainFrameNavigation
     }
 
-    internal init(webView: WKWebView, navigationAction: WKNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, navigationType: NavigationType? = nil) {
+    internal init(webView: WKWebView, navigationAction: WKNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, navigationType: NavigationType? = nil, mainFrameNavigation: Navigation?) {
         // In this cruel reality the source frame IS Nullable for developer-initiated load events, this would mean we‘re targeting the main frame
         let sourceFrame = (navigationAction.safeSourceFrame ?? navigationAction.targetFrame).map(FrameInfo.init) ?? .mainFrame(for: webView)
         var navigationType = navigationType
@@ -120,12 +123,13 @@ public struct NavigationAction {
                   sourceFrame: sourceFrame,
                   // always has targetFrame if not targeting to a new window
                   targetFrame: navigationAction.targetFrame.map(FrameInfo.init) ?? sourceFrame,
-                  shouldDownload: navigationAction.shouldDownload)
+                  shouldDownload: navigationAction.shouldDownload,
+                  mainFrameNavigation: mainFrameNavigation)
     }
 
-    internal static func sessionRestoreNavigation(webView: WKWebView) -> Self {
+    internal static func sessionRestoreNavigation(webView: WKWebView, mainFrameNavigation: Navigation?) -> Self {
         assert(webView.backForwardList.currentItem == nil)
-        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false)
+        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
     }
 
 }
@@ -191,21 +195,14 @@ public struct NavigationPreferences: Equatable {
 
 public enum NavigationActionPolicy {
     case allow
-    case cancel(with: NavigationActionCancellationRelatedAction)
+    case cancel
     case download
-
-    public static var cancel: NavigationActionPolicy = .cancel(with: .none)
+    case redirect(MainFrame, (Navigator) -> Void)
 }
 
 extension NavigationActionPolicy? {
     /// Pass decision making to next responder
     public static let next = NavigationActionPolicy?.none
-}
-
-public enum NavigationActionCancellationRelatedAction: Equatable {
-    case none
-    case redirect(URLRequest)
-    case other(UserInfo)
 }
 
 extension WKNavigationActionPolicy {
@@ -236,18 +233,9 @@ extension NavigationActionPolicy: CustomDebugStringConvertible {
     public var debugDescription: String {
         switch self {
         case .allow: return "allow"
-        case .cancel(let action): return "cancel\((action.debugDescription.isEmpty ? "" : ":") + action.debugDescription)"
+        case .cancel: return "cancel"
         case .download: return "download"
-        }
-    }
-}
-
-extension NavigationActionCancellationRelatedAction: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        switch self {
-        case .none: return ""
-        case .redirect(let request): return "redirect(\(request.url!)"
-        case .other(let userInfo): return "other(\(userInfo.debugDescription))"
+        case .redirect: return "redirect"
         }
     }
 }

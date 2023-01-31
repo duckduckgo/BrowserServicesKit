@@ -18,15 +18,15 @@
 
 import Foundation
 
-public struct ResponderChain<Responder> {
+public struct ResponderChain {
 
-    private var responderRefs: [ResponderRef<Responder>]
+    private var responderRefs: [any AnyResponderRef]
 
-    public init(responderRefs: [ResponderRef<Responder>] = []) {
+    public init(responderRefs: [any AnyResponderRef] = []) {
         self.responderRefs = responderRefs
     }
 
-    public mutating func setResponders(_ refs: [ResponderRefMaker<Responder>]) {
+    public mutating func setResponders(_ refs: [ResponderRefMaker]) {
         dispatchPrecondition(condition: .onQueue(.main))
 
         let nonnullRefs = refs.compactMap { $0 }
@@ -35,14 +35,14 @@ public struct ResponderChain<Responder> {
                + "\(Set(nonnullRefs.map(\.ref.responderType)).subtracting(getResponders().map { "\(type(of: $0))" }))")
     }
 
-    public mutating func append(_ ref: ResponderRefMaker<Responder>) {
+    public mutating func append(_ ref: ResponderRefMaker) {
         dispatchPrecondition(condition: .onQueue(.main))
         assert(ref.ref.responder != nil)
 
         responderRefs.append(ref.ref)
     }
 
-    public func getResponders() -> [Responder] {
+    public func getResponders() -> [NavigationResponder] {
         return responderRefs.compactMap(\.responder)
     }
 
@@ -51,13 +51,13 @@ public struct ResponderChain<Responder> {
 extension ResponderChain: Sequence {
 
     public struct Iterator: IteratorProtocol {
-        private var iterator: Array<ResponderRef<Responder>>.Iterator
+        private var iterator: Array<any AnyResponderRef>.Iterator
 
-        fileprivate init(refs: [ResponderRef<Responder>]) {
+        fileprivate init(refs: [any AnyResponderRef]) {
             self.iterator = refs.makeIterator()
         }
 
-        public mutating func next() -> Responder? {
+        public mutating func next() -> NavigationResponder? {
             while let ref = iterator.next() {
                 if let responder = ref.responder {
                     return responder
@@ -77,61 +77,62 @@ extension ResponderChain: Sequence {
 
 }
 
-public enum ResponderRef<Responder> {
+public enum ResponderRef: AnyResponderRef {
+    case weak(ref: WeakResponderRef, type: NavigationResponder.Type)
+    case strong(NavigationResponder)
 
-    case weak(getter: () -> Responder?, type: Responder.Type)
-    case strong(Responder)
-
-    var responder: Responder? {
+    public var responder: NavigationResponder? {
         switch self {
-        case .weak(getter: let getter, type: _): return getter()
+        case .weak(ref: let ref, type: _): return ref.responder
         case .strong(let responder): return responder
         }
     }
 
-    var responderType: String {
+    public var responderType: String {
         switch self {
-        case .weak(getter: _, type: let type): return "\(type)"
+        case .weak(ref: _, type: let type): return "\(type)"
         case .strong(let responder): return "\(type(of: responder))"
         }
     }
-
 }
 
-public struct ResponderRefMaker<Responder> {
-
-    internal let ref: ResponderRef<Responder>
-
-    private init(_ ref: ResponderRef<Responder>) {
+public struct ResponderRefMaker {
+    internal let ref: AnyResponderRef
+    private init(_ ref: AnyResponderRef) {
         self.ref = ref
     }
-
-    public static func `weak`<Responder: AnyObject>(_ responder: Responder) -> ResponderRefMaker<Responder> {
-        return .init(ResponderRef<Responder>.weak(getter: { [weak responder] in responder }, type: type(of: responder)))
+    public static func `weak`(_ responder: (some NavigationResponder & AnyObject)) -> ResponderRefMaker {
+        return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
     }
-
-    public static func `weak`<Responder: AnyObject>(nullable responder: Responder?) -> ResponderRefMaker<Responder>? {
+    public static func `weak`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
         guard let responder = responder else { return nil }
-        return .init(ResponderRef<Responder>.weak(getter: { [weak responder] in responder }, type: type(of: responder)))
+        return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
     }
-
-    public static func `strong`<Responder: AnyObject>(_ responder: Responder) -> ResponderRefMaker<Responder> {
-        return .init(ResponderRef<Responder>.strong(responder))
+    public static func `strong`(_ responder: any NavigationResponder & AnyObject) -> ResponderRefMaker {
+        return .init(ResponderRef.strong(responder))
     }
-
-    public static func `strong`<Responder: AnyObject>(nullable responder: Responder?) -> ResponderRefMaker<Responder>? {
+    public static func `strong`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
         guard let responder = responder else { return nil }
-        return .init(ResponderRef<Responder>.strong(responder))
+        return .init(ResponderRef.strong(responder))
     }
-
-    public static func `struct`<Responder>(_ responder: Responder) -> ResponderRefMaker<Responder> {
+    public static func `struct`(_ responder: some NavigationResponder) -> ResponderRefMaker {
         assert(Mirror(reflecting: responder).displayStyle == .struct, "\(type(of: responder)) is not a struct")
-        return .init(ResponderRef<Responder>.strong(responder))
+        return .init(ResponderRef.strong(responder))
     }
-
-    public static func `struct`<Responder>(nullable responder: Responder?) -> ResponderRefMaker<Responder>? {
+    public static func `struct`(nullable responder: (some NavigationResponder)?) -> ResponderRefMaker? {
         guard let responder = responder else { return nil }
         return .struct(responder)
     }
+}
 
+public final class WeakResponderRef {
+    weak var responder: (NavigationResponder & AnyObject)?
+    init(_ responder: (NavigationResponder & AnyObject)?) {
+        self.responder = responder
+    }
+}
+
+public protocol AnyResponderRef {
+    var responder: NavigationResponder? { get }
+    var responderType: String { get }
 }
