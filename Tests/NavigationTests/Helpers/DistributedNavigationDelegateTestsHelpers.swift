@@ -24,7 +24,53 @@ import XCTest
 @testable import Navigation
 
 @available(macOS 12.0, *)
-extension DistributedNavigationDelegateTests {
+class DistributedNavigationDelegateTestsBase: XCTestCase {
+
+    var navigationDelegateProxy: NavigationDelegateProxy!
+
+    var navigationDelegate: DistributedNavigationDelegate { navigationDelegateProxy.delegate }
+    var testSchemeHandler: TestNavigationSchemeHandler! = TestNavigationSchemeHandler()
+    var server: HttpServer!
+
+    var currentHistoryItemIdentityCancellable: AnyCancellable!
+    var history = [UInt64: HistoryItemIdentity]()
+
+    var _webView: WKWebView!
+    var webView: WKWebView {
+        if let _webView { return _webView }
+
+        let webView = makeWebView()
+        _webView = webView
+        return webView
+    }
+    var usedWebViews = [WKWebView]()
+    var usedDelegates = [NavigationDelegateProxy]()
+
+    let data = DataSource()
+    let urls = URLs()
+
+    override func setUp() {
+        NavigationAction.resetIdentifier()
+        server = HttpServer()
+        navigationDelegateProxy = DistributedNavigationDelegateTests.makeNavigationDelegateProxy()
+    }
+
+    override func tearDown() {
+        self.testSchemeHandler = nil
+        server.stop()
+        self.navigationDelegate.responders.forEach { ($0 as! NavigationResponderMock).reset() }
+        if let _webView {
+            usedWebViews.append(_webView)
+            self._webView = nil
+        }
+        self.usedDelegates.append(navigationDelegateProxy)
+        navigationDelegateProxy = DistributedNavigationDelegateTests.makeNavigationDelegateProxy()
+    }
+    
+}
+
+@available(macOS 12.0, *)
+extension DistributedNavigationDelegateTestsBase {
 
     static func makeNavigationDelegateProxy() -> NavigationDelegateProxy {
         NavigationDelegateProxy(delegate: DistributedNavigationDelegate(logger: .default))
