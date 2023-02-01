@@ -34,4 +34,6 @@ import WebKit
     @objc(_webView:navigation:didSameDocumentNavigation:)
     optional func webView(_ webView: WKWebView, navigation: WKNavigation, didSameDocumentNavigation navigationType: Int)
 
+    @objc(_webView:webContentProcessDidTerminateWithReason:)
+    optional func webView(_ webView: WKWebView, webContentProcessDidTerminateWith reason: WKProcessTerminationReason)
 }

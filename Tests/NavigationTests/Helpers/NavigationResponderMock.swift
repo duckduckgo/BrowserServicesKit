@@ -61,8 +61,8 @@ enum TestsNavigationEvent: TestComparable {
     case didCommit(Nav, line: UInt = #line)
     case didReceiveRedirect(NavAction, Nav, line: UInt = #line)
     case didFinish(Nav, line: UInt = #line)
-    case didFail(Nav, /*code:*/ Int, isProvisional: Bool, line: UInt = #line)
-    case didTerminate(Nav?, line: UInt = #line)
+    case didFail(Nav, /*code:*/ Int, line: UInt = #line)
+    case didTerminate(WKProcessTerminationReason?, line: UInt = #line)
 
     static func navigationAction(_ navigationAction: NavigationAction, _ prefs: NavigationPreferences = .default, line: UInt = #line) -> TestsNavigationEvent {
         return .navigationAction(NavAction(navigationAction), prefs, line: line)
@@ -72,9 +72,6 @@ enum TestsNavigationEvent: TestComparable {
     }
     static func navActionBecameDownload(_ navigationAction: NavAction, _ url: URL, line: UInt = #line) -> TestsNavigationEvent {
         return .navActionBecameDownload(navigationAction, url.string.dropping(suffix: "/"), line: line)
-    }
-    static func didFail(_ nav: Nav, _ code: Int, line: UInt = #line) -> TestsNavigationEvent {
-        return .didFail(nav, code, isProvisional: true, line: line)
     }
 
     static func didReceiveRedirect(_ nav: Nav, line: UInt = #line) -> TestsNavigationEvent {
@@ -329,16 +326,16 @@ class NavigationResponderMock: NavigationResponder {
         onDidFinish?(navigation) ?? defaultHandler(event)
     }
 
-    var onDidFail: (@MainActor (Navigation, WKError, Bool) -> Void)?
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {
-        let event = append(.didFail(Nav(navigation), error.code.rawValue, isProvisional: isProvisional))
-        onDidFail?(navigation, error, isProvisional) ?? defaultHandler(event)
+    var onDidFail: (@MainActor (Navigation, WKError) -> Void)?
+    func navigation(_ navigation: Navigation, didFailWith error: WKError) {
+        let event = append(.didFail(Nav(navigation), error.code.rawValue))
+        onDidFail?(navigation, error) ?? defaultHandler(event)
     }
 
-    var onDidTerminate: (@MainActor (Navigation?) -> Void)?
-    func webContentProcessDidTerminate(currentNavigation navigation: Navigation?) {
-        let event = append(.didTerminate(Nav(navigation)))
-        onDidTerminate?(navigation) ?? defaultHandler(event)
+    var onDidTerminate: (@MainActor (WKProcessTerminationReason?) -> Void)?
+    func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {
+        let event = append(.didTerminate(reason))
+        onDidTerminate?(reason) ?? defaultHandler(event)
     }
 
 }

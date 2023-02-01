@@ -79,10 +79,10 @@ extension TestsNavigationEvent {
                 return ".didReceiveRedirect(\(navAct.navigationAction.encoded(context)), \(nav.encoded(context)))"
             case .didFinish(let arg, line: _):
                 return ".didFinish(\(arg.encoded(context)))"
-            case .didFail(let arg, let arg2, isProvisional: let arg3, line: _):
-                return ".didFail(\(arg.encoded(context)), \(arg2)\(arg3 ? "" : ", isProvisional: false"))"
+            case .didFail(let arg, let arg2, line: _):
+                return ".didFail(\(arg.encoded(context)), \(arg2))"
             case .didTerminate(let arg, line: _):
-                return arg != nil ? ".didTerminate(\(arg!.encoded(context)))" : ".terminated"
+                return arg != nil ? ".didTerminate(\(arg.map { ".init(rawValue: \($0.rawValue))" } ?? "nil"))" : ".terminated"
             }
         }().replacing(regex: "\\s\\s+", with: "")
 

@@ -64,9 +64,9 @@ public protocol NavigationResponder {
     @MainActor
     func navigationDidFinish(_ navigation: Navigation)
 
-    /// Called for both `webView:didFailNavigation:` and `webView:didFailProvisionalNavigation:` - check the `isProvisional` to distinguish
+    /// Called for both `webView:didFailNavigation:` and `webView:didFailProvisionalNavigation:` - check the `navigation.isCurrent` to distinguish
     @MainActor
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool)
+    func navigation(_ navigation: Navigation, didFailWith error: WKError)
 
     /// Called when one of the Responders returned `.download` for `decidePolicyNavigationAction:` query
     @MainActor
@@ -86,9 +86,8 @@ public protocol NavigationResponder {
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload)
 
     /// Called when WebView process was terminated
-    /// Not followed by `navigationDidFinish` or `navigation(_:didFail:)` events
     @MainActor
-    func webContentProcessDidTerminate(currentNavigation: Navigation?)
+    func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?)
 
 }
 
@@ -112,13 +111,13 @@ public extension NavigationResponder {
 
     func navigationDidFinish(_ navigation: Navigation) {}
 
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {}
+    func navigation(_ navigation: Navigation, didFailWith error: WKError) {}
 
     func navigationAction(_ navigationAction: NavigationAction, willBecomeDownloadIn webView: WKWebView) {}
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {}
     func navigationResponse(_ navigationResponse: NavigationResponse, willBecomeDownloadIn webView: WKWebView) {}
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload) {}
 
-    func webContentProcessDidTerminate(currentNavigation: Navigation?) {}
+    func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {}
 
 }

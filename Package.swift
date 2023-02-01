@@ -107,6 +107,7 @@ let package = Package(
                 .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS])),
                 .define("_IS_REDIRECT_ENABLED", .when(platforms: [.macOS])),
                 .define("_MAIN_FRAME_NAVIGATION_ENABLED", .when(platforms: [.macOS])),
+                .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
             name: "UserScript"

@@ -153,7 +153,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
     func testGoBackAfterSessionRestorationCacheFailure() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         let eDidFail = expectation(description: "onDidFail")
-        responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
+        responder(at: 0).onDidFail = { _, _ in eDidFail.fulfill() }
 
         // restore before server startup to raise cache failure
         withWebView { webView in
@@ -184,7 +184,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004, isProvisional: true),
+            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004),
 
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[1], src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
@@ -205,7 +205,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
     func testGoForwardAfterSessionRestorationCacheFailure() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         let eDidFail = expectation(description: "onDidFail")
-        responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
+        responder(at: 0).onDidFail = { _, _ in eDidFail.fulfill() }
 
         // restore before server startup to raise cache failure
         var sessionState = data.interactionStateData.plist
@@ -239,7 +239,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004, isProvisional: true),
+            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004),
 
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),

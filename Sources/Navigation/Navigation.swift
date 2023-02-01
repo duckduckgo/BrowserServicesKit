@@ -101,7 +101,7 @@ public extension NavigationProtocol {
                               navigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)? = nil,
                               didCommit: ((Navigation) -> Void)? = nil,
                               navigationDidFinish: ((Navigation) -> Void)? = nil,
-                              navigationDidFail: ((Navigation, WKError, _: Bool) -> Void)? = nil,
+                              navigationDidFail: ((Navigation, WKError) -> Void)? = nil,
                               navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
                               navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
                               navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
@@ -119,7 +119,7 @@ public extension NavigationProtocol {
                             navigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)? = nil,
                             didCommit: ((Navigation) -> Void)? = nil,
                             navigationDidFinish: ((Navigation) -> Void)? = nil,
-                            navigationDidFail: ((Navigation, WKError, _: Bool) -> Void)? = nil,
+                            navigationDidFail: ((Navigation, WKError) -> Void)? = nil,
                             navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
                             navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
                             navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
@@ -391,7 +391,7 @@ final class WKNavigationLifetimeTracker: NSObject {
         navigation.state = .failed(error)
 
         for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error, isProvisional: navigation.isCommitted)
+            responder.navigation(navigation, didFailWith: error)
         }
     }
 

@@ -130,7 +130,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
                 .download
         }
         let eDidFail = expectation(description: "onDidFail")
-        responder(at: 0).onDidFail = { _, _, _ in
+        responder(at: 0).onDidFail = { _, _ in
             eDidFail.fulfill()
         }
 
@@ -150,7 +150,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
 
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue)
 
         ])
     }

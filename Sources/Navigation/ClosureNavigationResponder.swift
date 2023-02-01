@@ -61,9 +61,9 @@ public struct ClosureNavigationResponder: NavigationResponder {
         navigationDidFinish?(navigation)
     }
 
-    let navigationDidFail: ((Navigation, WKError, _ isProvisional: Bool) -> Void)?
-    public func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {
-        navigationDidFail?(navigation, error, isProvisional)
+    let navigationDidFail: ((Navigation, WKError) -> Void)?
+    public func navigation(_ navigation: Navigation, didFailWith error: WKError) {
+        navigationDidFail?(navigation, error)
     }
 
     let navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)?
@@ -84,9 +84,9 @@ public struct ClosureNavigationResponder: NavigationResponder {
         navigationResponseDidBecomeDownload?(navigationResponse, download)
     }
 
-    let webContentProcessDidTerminate: ((Navigation?) -> Void)?
-    public func webContentProcessDidTerminate(currentNavigation: Navigation?) {
-        webContentProcessDidTerminate?(currentNavigation)
+    let webContentProcessDidTerminate: ((WKProcessTerminationReason?) -> Void)?
+    public func webContentProcessDidTerminate(with reason: WKProcessTerminationReason) {
+        webContentProcessDidTerminate?(reason)
     }
 
     public init(decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
@@ -97,12 +97,12 @@ public struct ClosureNavigationResponder: NavigationResponder {
                 navigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)? = nil,
                 didCommit: ((Navigation) -> Void)? = nil,
                 navigationDidFinish: ((Navigation) -> Void)? = nil,
-                navigationDidFail: ((Navigation, WKError, _: Bool) -> Void)? = nil,
+                navigationDidFail: ((Navigation, WKError) -> Void)? = nil,
                 navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
                 navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
                 navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
                 navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil,
-                webContentProcessDidTerminate: ((Navigation?) -> Void)? = nil) {
+                webContentProcessDidTerminate: ((WKProcessTerminationReason?) -> Void)? = nil) {
         self.decidePolicy = decidePolicy
         self.willStart = willStart
         self.didStart = didStart

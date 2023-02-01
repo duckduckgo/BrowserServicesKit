@@ -529,10 +529,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             // just in case anything goes wrong we would still send the didFinish after some delay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay + 0.5, execute: delayedFinishItem!)
 
-        }, navigationDidFail: { navigation, error, isProvisional in
+        }, navigationDidFail: { navigation, error in
             sendDidFinishToResponders = nil
             for responder in originalResponders {
-                responder.navigation(navigation, didFailWith: error, isProvisional: isProvisional)
+                responder.navigation(navigation, didFailWith: error)
             }
         })
         // set Navigation state to .redirected and expect the redirect NavigationAction
@@ -583,10 +583,21 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
     @MainActor
     public func webView(_ webView: WKWebView, didFail wkNavigation: WKNavigation?, withError error: Error) {
+        self.webView(webView, didFail: wkNavigation, isProvisional: false, with: error)
+    }
+
+    @MainActor
+    public func webView(_ webView: WKWebView, didFailProvisionalNavigation wkNavigation: WKNavigation?, withError error: Error) {
+        self.webView(webView, didFail: wkNavigation, isProvisional: true, with: error)
+    }
+
+    @MainActor
+    private func webView(_ webView: WKWebView, didFail wkNavigation: WKNavigation?, isProvisional: Bool, with error: Error) {
         let error = error as? WKError ?? WKError(_nsError: error as NSError)
         let navigation = wkNavigation?.navigation ?? startedNavigation
+
         guard let navigation, navigation.identity == wkNavigation.map(NavigationIdentity.init) || wkNavigation == nil else {
-            os_log("dropping didFailNavigation: %s with: %s, as another navigation is active: %s", log: logger, type: .default, wkNavigation?.description ?? "<nil>", error.errorDescription ?? error.localizedDescription, navigation?.debugDescription ?? "<nil>")
+            os_log("dropping didFail%sNavigation: %s with: %s, as another navigation is active: %s", log: logger, type: .default, isProvisional ? "Provisional" : "", wkNavigation?.description ?? "<nil>", error.errorDescription ?? error.localizedDescription, navigation?.debugDescription ?? "<nil>")
             return
         }
 
@@ -595,29 +606,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         os_log("didFail %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
 
         for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error, isProvisional: false)
-        }
-
-        if self.startedNavigation === navigation {
-            self.startedNavigation = nil
-        }
-    }
-
-    @MainActor
-    public func webView(_ webView: WKWebView, didFailProvisionalNavigation wkNavigation: WKNavigation?, withError error: Error) {
-        let error = error as? WKError ?? WKError(_nsError: error as NSError)
-        let navigation = wkNavigation?.navigation ?? startedNavigation
-        guard let navigation, navigation.identity == wkNavigation.map(NavigationIdentity.init) || wkNavigation == nil else {
-            os_log("dropping didFailProvisionalNavigation: %s with: %s, as another navigation is active: %s", log: logger, type: .default, wkNavigation?.description ?? "<nil>", error.errorDescription ?? error.localizedDescription, navigation?.debugDescription ?? "<nil>")
-            return
-        }
-
-        updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
-        navigation.didFail(wkNavigation, with: error)
-        os_log("didFail provisional %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
-
-        for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error, isProvisional: true)
+            responder.navigation(navigation, didFailWith: error)
         }
 
         if self.startedNavigation === navigation {
@@ -689,13 +678,32 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
     @MainActor
     public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        startedNavigation?.didFail(with: WKError(WKError.Code.webContentProcessTerminated))
-        os_log("%s process did terminate; current navigation: %s", log: logger, type: .default, webView.debugDescription, startedNavigation?.debugDescription ?? "<nil>")
+        self.webView(webView, processDidTerminateWith: nil)
+    }
+
+#if TERMINATE_WITH_REASON_ENABLED
+    @MainActor
+    public func webView(_ webView: WKWebView, webContentProcessDidTerminateWith reason: WKProcessTerminationReason) {
+        self.webView(webView, processDidTerminateWith: WKProcessTerminationReason(rawValue: reason.rawValue))
+    }
+#endif
+
+    @MainActor
+    private func webView(_ webView: WKWebView, processDidTerminateWith reason: WKProcessTerminationReason?) {
+        os_log("%s webContentProcessDidTerminateWithReason: %d", log: logger, type: .default, webView.debugDescription, reason?.rawValue ?? -1)
 
         for responder in responders {
-            responder.webContentProcessDidTerminate(currentNavigation: startedNavigation)
+            responder.webContentProcessDidTerminate(with: reason ?? .init(rawValue: Int.max))
         }
-        self.startedNavigation = nil
+        if startedNavigation != nil {
+            var userInfo = [String: Any]()
+            if let reason {
+                userInfo[WKProcessTerminationReason.userInfoKey] = reason
+            }
+            let error = WKError(WKError.Code.webContentProcessTerminated, userInfo: userInfo)
+            self.webView(webView, didFail: nil, isProvisional: true, with: error)
+            self.startedNavigation = nil
+        }
         self.navigationExpectedToStart = nil
     }
 
