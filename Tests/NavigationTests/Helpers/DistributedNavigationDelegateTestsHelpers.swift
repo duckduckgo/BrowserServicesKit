@@ -36,12 +36,15 @@ class DistributedNavigationDelegateTestsBase: XCTestCase {
     var history = [UInt64: HistoryItemIdentity]()
 
     var _webView: WKWebView!
-    var webView: WKWebView {
-        if let _webView { return _webView }
-
-        let webView = makeWebView()
-        _webView = webView
-        return webView
+    func withWebView<T>(do block: (WKWebView) throws -> T) rethrows -> T {
+        let webView = _webView ?? {
+            let webView = makeWebView()
+            _webView = webView
+            return webView
+        }()
+        return try autoreleasepool {
+            try block(webView)
+        }
     }
     var usedWebViews = [WKWebView]()
     var usedDelegates = [NavigationDelegateProxy]()
@@ -341,60 +344,33 @@ extension DistributedNavigationDelegateTestsBase {
     // MARK: FrameInfo mocking
 
     func main(_ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
-        FrameInfo(frameIdentity: .mainFrameIdentity(for: webView), url: current, securityOrigin: secOrigin ?? current.securityOrigin)
+        withWebView { webView in
+            FrameInfo(frameIdentity: .mainFrameIdentity(for: webView), url: current, securityOrigin: secOrigin ?? current.securityOrigin)
+        }
     }
 
     func frame(_ handle: String, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
-        FrameInfo(frameIdentity: FrameIdentity(handle: handle, webViewIdentity: .init(nonretainedObject: webView), isMainFrame: false), url: url, securityOrigin: secOrigin ?? url.securityOrigin)
+        withWebView { webView in
+            FrameInfo(frameIdentity: FrameIdentity(handle: handle, webViewIdentity: .init(nonretainedObject: webView), isMainFrame: false), url: url, securityOrigin: secOrigin ?? url.securityOrigin)
+        }
     }
     func frame(_ handle: String, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         frame(handle, URL(string: url)!, secOrigin: secOrigin)
     }
 
     // Event sequence checking
-    func assertHistory(ofResponderAt responderIdx: Int, equalsTo rhs: [TestsNavigationEvent], file: StaticString = #file, line: UInt = #line) {
+    func assertHistory(ofResponderAt responderIdx: Int, equalsTo rhs: [TestsNavigationEvent], file: StaticString = #file, line: UInt = #line, useEventLine: Bool = true) {
         let lhs = responder(at: responderIdx).history
+        var lastEventLine = line
         for idx in 0..<max(lhs.count, rhs.count) {
             let event1 = lhs.indices.contains(idx) ? lhs[idx] : nil
             let event2 = rhs.indices.contains(idx) ? rhs[idx] : nil
-            if event1 != event2 {
+            let line = useEventLine ? (event2?.line ?? lastEventLine) : line
+            lastEventLine = line
+
+            if let diff = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2) {
                 printEncoded(responder: responderIdx)
-
-                if case .navigationAction(let r1, _) = event1, case .navigationAction(let r2, _) = event2 {
-                    XCTFail("#\(idx):" + NavAction.difference(between: r1, and: r2)!)
-                    continue
-                } else if case .navigationResponse(.navigation(let n1)) = event1, case .navigationResponse(.navigation(let n2)) = event2 {
-                    XCTFail("#\(idx):" + Nav.difference(between: n1, and: n2)!)
-                    continue
-                } else if case .didFinish(let n1) = event1, case .didFinish(let n2) = event2 {
-                    XCTFail("#\(idx):" + Nav.difference(between: n1, and: n2)!)
-                    continue
-                } else if case .didCommit(let n1) = event1, case .didCommit(let n2) = event2 {
-                    XCTFail("#\(idx):" + Nav.difference(between: n1, and: n2)!)
-                    continue
-                } else if case .didFail(let nav1, let code1, isProvisional: let isProvisional1) = event1,
-                          case .didFail(let nav2, let code2, isProvisional: let isProvisional2) = event2 {
-                    XCTAssertEqual(code1, code2, "#\(idx): code")
-                    XCTAssertEqual(isProvisional1, isProvisional2, "#\(idx): isProvisional")
-                    XCTFail("#\(idx):" + Nav.difference(between: nav1, and: nav2)!)
-                    continue
-                } else if case .navigationResponse(.response(let resp1, let nav1)) = event1,
-                          case .navigationResponse(.response(let resp2, let nav2)) = event2 {
-
-                    if let diff = NavigationResponse.difference(between: resp1.response, and: resp2.response) {
-                        XCTFail("#\(idx):" + diff)
-                    }
-                    if let nav1, let nav2, let diff = Nav.difference(between: nav1, and: nav2) {
-                        XCTFail("#\(idx):" + diff)
-                    } else {
-                        XCTFail("#\(idx): \(nav1.debugDescription) not equal to \(nav2.debugDescription)")
-                    }
-                    continue
-                }
-
-                XCTFail("#\(idx):\n\(event1 != nil ? "\(event1!)" : "<nil>")\n not equal to" +
-                        "\n\(event2 != nil ? "\(event2!)" : "<nil>")",
-                        file: file, line: line)
+                XCTFail("\n#\(idx): " + diff, file: file, line: line)
             }
         }
     }
@@ -402,11 +378,13 @@ extension DistributedNavigationDelegateTestsBase {
     func assertHistory(ofResponderAt responderIdx: Int, equalsToHistoryOfResponderAt responderIdx2: Int,
                        file: StaticString = #file,
                        line: UInt = #line) {
-        assertHistory(ofResponderAt: responderIdx, equalsTo: responder(at: responderIdx2).history)
+        assertHistory(ofResponderAt: responderIdx, equalsTo: responder(at: responderIdx2).history, file: file, line: line, useEventLine: false)
     }
 
     func encodedResponderHistory(at idx: Int = 0) -> String {
-        responder(at: idx).history.encoded(with: urls, webView: webView, dataSource: data, history: history, responderNavigationResponses: responder(at: 0).navigationResponses)
+        withWebView { webView in
+            responder(at: idx).history.encoded(with: urls, webView: webView, dataSource: data, history: history, responderNavigationResponses: responder(at: 0).navigationResponses)
+        }
     }
 
     func printEncoded(responder idx: Int = 0) {

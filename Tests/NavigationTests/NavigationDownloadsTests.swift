@@ -52,7 +52,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             eDidFinish.fulfill()
         }
 
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(URLRequest(url: urls.local))
         }
         waitForExpectations(timeout: 5)
@@ -90,7 +90,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             eDidFinish.fulfill()
         }
 
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
@@ -134,7 +134,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             eDidFail.fulfill()
         }
 
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
@@ -149,7 +149,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
 
         ])
     }
@@ -171,7 +171,9 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         let eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         var frameHandle: String!
@@ -190,7 +192,9 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             eDidFailLoadingFrame.fulfill()
         }
         responder(at: 0).clear()
-        webView.evaluateJavaScript("window.frames[0].location.href = '\(urls.local1.string)'")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.frames[0].location.href = '\(urls.local1.string)'")
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [

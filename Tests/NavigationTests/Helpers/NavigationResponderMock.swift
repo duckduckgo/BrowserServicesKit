@@ -24,13 +24,13 @@ import Common
 // swiftlint:disable line_length
 // swiftlint:disable identifier_name
 
-enum TestsNavigationEvent: Equatable {
-    case navigationAction(NavAction, NavigationPreferences = .default)
-    case navActionWillBecomeDownload(NavAction)
-    case navActionBecameDownload(NavAction, String)
-    case willStart(Nav)
-    case didStart(Nav)
-    case didReceiveAuthenticationChallenge(URLProtectionSpace, Nav?)
+enum TestsNavigationEvent: TestComparable {
+    case navigationAction(NavAction, NavigationPreferences = .default, line: UInt = #line)
+    case navActionWillBecomeDownload(NavAction, line: UInt = #line)
+    case navActionBecameDownload(NavAction, String, line: UInt = #line)
+    case willStart(Nav, line: UInt = #line)
+    case didStart(Nav, line: UInt = #line)
+    case didReceiveAuthenticationChallenge(URLProtectionSpace, Nav?, line: UInt = #line)
 
     enum EitherResponseOrNavigation: Equatable {
         case response(NavResponse, navigation: Nav?)
@@ -55,36 +55,94 @@ enum TestsNavigationEvent: Equatable {
             return false
         }
     }
-    case navigationResponse(EitherResponseOrNavigation)
-    case navResponseWillBecomeDownload(Int)
-    case navResponseBecameDownload(Int, URL)
-    case didCommit(Nav)
-    case didReceiveRedirect(NavAction, Nav)
-    case didFinish(Nav)
-    case didFail(Nav, /*code:*/ Int, isProvisional: Bool)
-    case didTerminate(Nav?)
+    case navigationResponse(EitherResponseOrNavigation, line: UInt = #line)
+    case navResponseWillBecomeDownload(Int, line: UInt = #line)
+    case navResponseBecameDownload(Int, URL, line: UInt = #line)
+    case didCommit(Nav, line: UInt = #line)
+    case didReceiveRedirect(NavAction, Nav, line: UInt = #line)
+    case didFinish(Nav, line: UInt = #line)
+    case didFail(Nav, /*code:*/ Int, isProvisional: Bool, line: UInt = #line)
+    case didTerminate(Nav?, line: UInt = #line)
 
-    static func navigationAction(_ navigationAction: NavigationAction, _ prefs: NavigationPreferences = .default) -> TestsNavigationEvent {
-        return .navigationAction(NavAction(navigationAction), prefs)
+    static func navigationAction(_ navigationAction: NavigationAction, _ prefs: NavigationPreferences = .default, line: UInt = #line) -> TestsNavigationEvent {
+        return .navigationAction(NavAction(navigationAction), prefs, line: line)
     }
-    static func navActionWillBecomeDownload(_ navigationAction: NavigationAction) -> TestsNavigationEvent {
-        return .navActionWillBecomeDownload(NavAction(navigationAction))
+    static func navActionWillBecomeDownload(_ navigationAction: NavigationAction, line: UInt = #line) -> TestsNavigationEvent {
+        return .navActionWillBecomeDownload(NavAction(navigationAction), line: line)
     }
-    static func navActionBecameDownload(_ navigationAction: NavAction, _ url: URL) -> TestsNavigationEvent {
-        return .navActionBecameDownload(navigationAction, url.string.dropping(suffix: "/"))
+    static func navActionBecameDownload(_ navigationAction: NavAction, _ url: URL, line: UInt = #line) -> TestsNavigationEvent {
+        return .navActionBecameDownload(navigationAction, url.string.dropping(suffix: "/"), line: line)
     }
-    static func didFail(_ nav: Nav, _ code: Int) -> TestsNavigationEvent {
-        return .didFail(nav, code, isProvisional: true)
+    static func didFail(_ nav: Nav, _ code: Int, line: UInt = #line) -> TestsNavigationEvent {
+        return .didFail(nav, code, isProvisional: true, line: line)
     }
 
-    static func didReceiveRedirect(_ nav: Nav) -> TestsNavigationEvent {
-        return .didReceiveRedirect(nav.navigationAction, nav)
+    static func didReceiveRedirect(_ nav: Nav, line: UInt = #line) -> TestsNavigationEvent {
+        return .didReceiveRedirect(nav.navigationAction, nav, line: line)
     }
 
     var redirectEvent: Nav? {
-        if case .didReceiveRedirect(_, let nav) = self { return nav }
+        if case .didReceiveRedirect(_, let nav, line: _) = self { return nav }
         return nil
     }
+
+    var line: UInt {
+        Mirror(reflecting: Mirror(reflecting: self).children.first!.value).children.first(where: { $0.label == "line" })?.value as! UInt
+    }
+
+    static func difference(between lhs: TestsNavigationEvent, and rhs: TestsNavigationEvent) -> String? {
+        let caseMirror1 = Mirror(reflecting: lhs).children.first!
+        let caseMirror2 = Mirror(reflecting: rhs).children.first!
+        return compare(caseMirror1.label!, caseMirror1.label!, caseMirror2.label)
+        ?? {
+            let values1 = Mirror(reflecting: caseMirror1.value).children.map { $0.value }
+            for (idx, child2) in Mirror(reflecting: caseMirror2.value).children.enumerated() {
+                let label: String
+                if child2.label == "line" { continue }
+                if let childLabel = child2.label, !childLabel.matches(regex("\\.\\d+")) {
+                    label = childLabel
+                } else {
+                    label = ""
+                }
+                func compareAnyTestComparable(_ lhs: any TestComparable, _ rhs: (any TestComparable)?) -> String? {
+                    func compareSomeTestComparable<T: TestComparable>(_ lhs: T, _ rhs: (any TestComparable)?) -> String? {
+                        compare(label, .some(lhs), rhs as? T)
+                    }
+                    return compareSomeTestComparable(lhs, rhs)
+                }
+                func compareAnyTestComparable(_ lhs: (any TestComparable)?, _ rhs: any TestComparable) -> String? {
+                    func compareSomeTestComparable<T: TestComparable>(_ lhs: (any TestComparable)?, _ rhs: T) -> String? {
+                        compare(label, lhs as? T, .some(rhs))
+                    }
+                    return compareSomeTestComparable(lhs, rhs)
+                }
+                func compareAnyEquatable(_ lhs: any Equatable, _ rhs: any Equatable) -> String? {
+                    func compareSomeEquatable<T: Equatable>(_ lhs: T, _ rhs: any Equatable) -> String? {
+                        compare(label, lhs, rhs as? T)
+                    }
+                    return compareSomeEquatable(lhs, rhs)
+                }
+
+                if let testComparable = values1[idx] as? any TestComparable {
+                    if let diff = compareAnyTestComparable(testComparable, child2.value as? any TestComparable) {
+                        return diff
+                    }
+                } else if let testComparable2 = child2.value as? any TestComparable {
+                    if let diff = compareAnyTestComparable(values1[idx] as? any TestComparable, testComparable2) {
+                        return diff
+                    }
+                } else if let equatable = values1[idx] as? any Equatable {
+                    if let diff = compareAnyEquatable(equatable, child2.value as! any Equatable) {
+                        return diff
+                    }
+                } else {
+                    fatalError("non-equatable")
+                }
+            }
+            return nil
+        }()
+    }
+
 }
 
 struct NavAction: Equatable, TestComparable {
@@ -283,7 +341,7 @@ class NavigationResponderMock: NavigationResponder {
 
     var onDidFail: (@MainActor (Navigation, WKError, Bool) -> Void)?
     func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {
-        let event = append(.didFail(Nav(navigation), error.code.rawValue, isProvisional: false))
+        let event = append(.didFail(Nav(navigation), error.code.rawValue, isProvisional: isProvisional))
         onDidFail?(navigation, error, isProvisional) ?? defaultHandler(event)
     }
 

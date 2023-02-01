@@ -48,7 +48,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         
         // regular navigation from an empty state
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
         
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
@@ -76,7 +78,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 2).onDidFail = { _, _, _ in eDidFail.fulfill() }
         
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local1))
         }
         
@@ -107,7 +109,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         responder(at: 2).onDidFail = { _, _, _ in eDidFail.fulfill() }
         
         try server.start(8084)
-        webView.load(req(urls.local1))
+        withWebView { webView in
+            _=webView.load(req(urls.local1))
+        }
         waitForExpectations(timeout: 5)
         
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -115,14 +119,14 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local1, status: 404, mime: "text/plain", headers: ["Server": "Swifter Unspecified"]))),
-            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local1), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
         ])
     }
     
@@ -132,14 +136,16 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
         
         // not calling server.start
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
         
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail( Nav(action: navAct(1), .failed(WKError(NSURLErrorCannotConnectToHost))), NSURLErrorCannotConnectToHost, isProvisional: false)
+            .didFail( Nav(action: navAct(1), .failed(WKError(NSURLErrorCannotConnectToHost))), NSURLErrorCannotConnectToHost, isProvisional: true)
         ])
     }
     
@@ -168,7 +174,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
         
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
         
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -207,7 +215,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
         
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
         
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -232,6 +242,8 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
     func testOpenInNewWindow() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegateProxy.finishEventsDispatchTime = .instant
+
         let uiDelegate = WKUIDelegateMock()
         var newWebView: WKWebView!
         uiDelegate.createWebViewWithConfig = { [unowned navigationDelegateProxy] config, _, _ in
@@ -239,7 +251,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             newWebView.navigationDelegate = navigationDelegateProxy
             return newWebView
         }
-        webView.uiDelegate = uiDelegate
+        withWebView { webView in
+            webView.uiDelegate = uiDelegate
+        }
 
         server.middleware = [{ [data] request in
             guard request.path == "/" else { return nil }
@@ -261,7 +275,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             eDidFinish.fulfill()
         }
         var newFrameIdentity: FrameIdentity!
-        responder(at: 0).onNavigationAction = { [urls, webView] navAction, _ in
+        responder(at: 0).onNavigationAction = { [urls, unowned webView=withWebView(do: { $0 })] navAction, _ in
             if navAction.url.path == urls.local2.path {
                 XCTAssertTrue(navAction.isTargetingNewWindow)
                 newFrameIdentity = navAction.targetFrame.identity
@@ -272,7 +286,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             return .next
         }
 
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         XCTAssertTrue(navAct(2).navigationAction.isTargetingNewWindow)
@@ -317,12 +333,16 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
         var eDidFinish = expectation(description: "didFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         responder(at: 0).clear()
         eDidFinish = expectation(description: "didReload")
-        webView.reload()
+        withWebView { webView in
+            _=webView.reload()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -352,7 +372,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }
 
         // #1 load URL
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         // #2 load URL#namedlink
@@ -360,7 +382,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         customCallbacksHandler.didSameDocumentNavigation = { _, type in
             if type == 3 { eDidFinish.fulfill() }
         }
-        webView.load(req(urls.localHashed1))
+        withWebView { webView in
+            _=webView.load(req(urls.localHashed1))
+        }
         waitForExpectations(timeout: 5)
 
         responder(at: 0).clear()
@@ -370,7 +394,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             eNavAction.fulfill()
             return .allow
         }
-        webView.reload()
+        withWebView { webView in
+            _=webView.reload()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -392,7 +418,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.load(req(urls.aboutPrefs))
+        withWebView { webView in
+            _=webView.load(req(urls.aboutPrefs))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -413,12 +441,16 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
 
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         let eDidFinish2 = expectation(description: "onDidFinish 2")
         responder(at: 0).onDidFinish = { _ in eDidFinish2.fulfill() }
-        webView.load(req(urls.aboutBlank))
+        withWebView { webView in
+            _=webView.load(req(urls.aboutBlank))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -447,7 +479,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.testScheme))
+        withWebView { webView in
+            _=webView.load(req(urls.testScheme))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -468,7 +502,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+        withWebView { webView in
+            _=webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -483,20 +519,22 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
     func testSimulatedRequestAfterCustomSchemeRequest() {
         navigationDelegateProxy.finishEventsDispatchTime = .instant
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [webView, data, urls] task in
+        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
             webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
         }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.testScheme))
+        withWebView { webView in
+            _=webView.load(req(urls.testScheme))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: true),
 
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
@@ -510,13 +548,15 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .beforeWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [webView, data, urls] task in
+        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
             webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
         }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.testScheme))
+        withWebView { webView in
+            _=webView.load(req(urls.testScheme))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -525,7 +565,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.https), .other, src: main()),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: true),
 
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
             .didStart(Nav(action: navAct(2), .started)),
@@ -538,13 +578,15 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (because it works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [webView, data, urls] task in
+        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
             webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
         }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.testScheme))
+        withWebView { webView in
+            _=webView.load(req(urls.testScheme))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -554,7 +596,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: true),
 
             .didStart(Nav(action: navAct(2), .started)),
             .didCommit(Nav(action: navAct(2), .started, .committed)),
@@ -566,13 +608,15 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [webView, data, urls] task in
+        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
             webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
         }
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.testScheme))
+        withWebView { webView in
+            _=webView.load(req(urls.testScheme))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -583,7 +627,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
             .didStart(Nav(action: navAct(2), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: true),
             .didCommit(Nav(action: navAct(2), .started, .committed)),
             .didFinish(Nav(action: navAct(2), .finished, .committed))
         ])
@@ -598,7 +642,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        webView.load(req(urls.testScheme))
+        withWebView { webView in
+            _=webView.load(req(urls.testScheme))
+        }
 
         waitForExpectations(timeout: 5)
 
@@ -623,7 +669,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         try server.start(8084)
 
 
-        responder(at: 0).onNavigationAction = { [unowned webView] _, _ in
+        responder(at: 0).onNavigationAction = { [unowned webView=withWebView(do: { $0 })] _, _ in
             webView.stopLoading()
             return .next
         }
@@ -632,7 +678,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             eStopped.fulfill()
         }
 
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
@@ -652,7 +698,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
         try server.start(8084)
 
-        responder(at: 0).onWillStart = { [unowned webView] _ in
+        responder(at: 0).onWillStart = { [unowned webView=withWebView(do: { $0 })] _ in
             DispatchQueue.main.async {
                 webView.stopLoading()
             }
@@ -660,14 +706,16 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
 
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: true)
         ])
     }
 
@@ -679,20 +727,22 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
         try server.start(8084)
 
-        responder(at: 0).onDidStart = { [unowned webView] _ in
+        responder(at: 0).onDidStart = { [unowned webView=withWebView(do: { $0 })] _ in
             webView.stopLoading()
         }
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
 
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: true)
         ])
     }
 
@@ -704,13 +754,15 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
         try server.start(8084)
 
-        responder(at: 0).onNavigationResponse = { [unowned webView] _ in
+        responder(at: 0).onNavigationResponse = { [unowned webView=withWebView(do: { $0 })] _ in
             webView.stopLoading()
             return .next
         }
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -718,7 +770,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 200, data.html.count))),
-            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
         ])
     }
 
@@ -741,7 +793,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }
 
         // run first request (will wait in async onNavigationAction)
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
@@ -763,7 +815,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         responder(at: 0).onDidFail = { _, _, _ in
             onDidFail.fulfill()
         }
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local2))
         }
         waitForExpectations(timeout: 5)
@@ -816,7 +868,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }
 
         // run first request (will wait in async onNavigationAction)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         // when wait for the first decision has been redirected run a second request
@@ -824,7 +878,9 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         responder(at: 0).onDidFinish = { _ in
             eOnDidFinish.fulfill()
         }
-        webView.load(req(urls.local3))
+        withWebView { webView in
+            _=webView.load(req(urls.local3))
+        }
         waitForExpectations(timeout: 5)
 
         unlock()
@@ -838,7 +894,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local3), .other, src: main()),
             .willStart(Nav(action: navAct(3), .navigationActionReceived)),
 
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange))), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false),
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange))), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true),
 
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
@@ -869,7 +925,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }
 
         // run first request (will wait in async onNavigationAction)
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
@@ -890,7 +946,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         responder(at: 0).onDidFail = { _, _, _ in
             onDidFail.fulfill()
         }
-        autoreleasepool {
+        withWebView { webView in
             _=webView.load(req(urls.local2))
         }
         waitForExpectations(timeout: 5)

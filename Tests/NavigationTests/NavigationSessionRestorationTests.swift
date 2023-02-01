@@ -41,7 +41,9 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
         try server.start(8084)
-        webView.interactionState = data.interactionStateData
+        withWebView { webView in
+            webView.interactionState = data.interactionStateData
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -60,7 +62,9 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
         try server.start(8084)
-        webView.interactionState = data.customSchemeInteractionStateData
+        withWebView { webView in
+            webView.interactionState = data.customSchemeInteractionStateData
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -81,13 +85,17 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         }]
         try server.start(8084)
 
-        webView.interactionState = data.interactionStateData
+        withWebView { webView in
+            webView.interactionState = data.interactionStateData
+        }
         waitForExpectations(timeout: 5)
 
         let eDidFinish2 = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish2.fulfill() }
         responder(at: 0).clear()
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -112,13 +120,17 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
 
         var sessionState = data.interactionStateData.plist
         sessionState["SessionHistory", as: [String: Any].self]!["SessionHistoryCurrentIndex"] = 0
-        webView.interactionState = Data.sessionRestorationMagic + sessionState.plist
+        withWebView { webView in
+            webView.interactionState = Data.sessionRestorationMagic + sessionState.plist
+        }
         waitForExpectations(timeout: 5)
 
         let eDidFinish2 = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish2.fulfill() }
 
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -144,7 +156,9 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         responder(at: 0).onDidFail = { _, _, _ in eDidFail.fulfill() }
 
         // restore before server startup to raise cache failure
-        webView.interactionState = data.interactionStateData
+        withWebView { webView in
+            webView.interactionState = data.interactionStateData
+        }
         waitForExpectations(timeout: 5)
 
         server.middleware = [{ [data] request in
@@ -155,18 +169,22 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         var eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinish = expectation(description: "onDidFinish 2")
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004, isProvisional: true),
 
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[1], src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
@@ -193,7 +211,9 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         var sessionState = data.interactionStateData.plist
         sessionState["SessionHistory", as: [String: Any].self]!["SessionHistoryCurrentIndex"] = 0
 
-        webView.interactionState = sessionState.interactionStateData
+        withWebView { webView in
+            webView.interactionState = sessionState.interactionStateData
+        }
         waitForExpectations(timeout: 5)
 
         server.middleware = [{ [data] request in
@@ -204,18 +224,22 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         var eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinish = expectation(description: "onDidFinish 2")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004, isProvisional: true),
 
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
@@ -239,7 +263,9 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.interactionState = data.aboutPrefsAfterRegularNavigationInteractionStateData
+        withWebView { webView in
+            webView.interactionState = data.aboutPrefsAfterRegularNavigationInteractionStateData
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [

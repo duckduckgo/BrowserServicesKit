@@ -69,7 +69,9 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             return .ok(.html(data.html.string()!))
         }]
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -132,7 +134,9 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             return .ok(.data(data.htmlWithIframe3))
         }]
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -186,7 +190,9 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             }
         }]
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -223,7 +229,9 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             }
         }]
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -231,14 +239,14 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: true)
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: true)
         ])
     }
 
@@ -263,7 +271,9 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             }
         }]
         try server.start(8084)
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [

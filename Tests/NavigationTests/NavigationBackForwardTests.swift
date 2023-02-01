@@ -46,19 +46,27 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         var eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinish = expectation(description: "onDidFinish 2")
-        webView.load(req(urls.local1))
+        withWebView { webView in
+            _=webView.load(req(urls.local1))
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinish = expectation(description: "onDidFinish back")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinish = expectation(description: "onDidFinish forw")
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -108,18 +116,24 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         for url in [urls.local, urls.local1, urls.local2, urls.local3, urls.local4] {
             eDidFinish = expectation(description: "onDidFinish \(url.string)")
 
-            webView.load(req(url))
+            withWebView { webView in
+                _=webView.load(req(url))
+            }
             waitForExpectations(timeout: 5)
         }
 
         responder(at: 0).clear()
 
         eDidFinish = expectation(description: "onDidFinish back")
-        webView.go(to: webView.backForwardList.item(at: -3)!)
+        withWebView { webView in
+            _=webView.go(to: webView.backForwardList.item(at: -3)!)
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinish = expectation(description: "onDidFinish forw")
-        webView.go(to: webView.backForwardList.item(at: 3)!)
+        withWebView { webView in
+            _=webView.go(to: webView.backForwardList.item(at: 3)!)
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -163,7 +177,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             return .next
         }
 
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         var eDidFinishLoadingFrame = expectation(description: "didFinishLoadingFrame 1")
@@ -172,15 +188,21 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         }
         didFinishLoadingFrameHandler.didFailProvisionalLoadInFrame = { _, _, error in XCTFail("Unexpected failure \(error)") }
 
-        webView.evaluateJavaScript("window.frames[0].location.href = '\(urls.local1.string)'")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.frames[0].location.href = '\(urls.local1.string)'")
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinishLoadingFrame = expectation(description: "didFinishLoadingFrame back")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         eDidFinishLoadingFrame = expectation(description: "didFinishLoadingFrame forw")
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         XCTAssertFalse(navAct(2).navigationAction.isTargetingNewWindow)
@@ -238,7 +260,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             return .next
         }
 
-        webView.interactionState = data.interactionStateData
+        withWebView { webView in
+            webView.interactionState = data.interactionStateData
+        }
         waitForExpectations(timeout: 5)
 
         var eDidFinishLoadingFrame = expectation(description: "didFinishLoadingFrame 1")
@@ -247,7 +271,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         }
         didFinishLoadingFrameHandler.didFailProvisionalLoadInFrame = { _, _, error in XCTFail("Unexpected failure \(error)") }
 
-        webView.evaluateJavaScript("window.frames[0].location.href = '\(urls.local1.string)'")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.frames[0].location.href = '\(urls.local1.string)'")
+        }
         waitForExpectations(timeout: 5)
 
         let expectClearCache = expectation(description: "cache cleared")
@@ -257,7 +283,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         waitForExpectations(timeout: 5)
 
         eDidFinishLoadingFrame = expectation(description: "didFinishLoadingFrame back")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         let expectClearCache2 = expectation(description: "cache cleared 2")
@@ -267,7 +295,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         waitForExpectations(timeout: 5)
 
         eDidFinishLoadingFrame = expectation(description: "didFinishLoadingFrame forw")
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -311,7 +341,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         responder(at: 0).onNavigationAction = { navigationAction, _ in .allow }
 
         // #1 load URL
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         // #2 load URL#namedlink
@@ -319,55 +351,77 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         customCallbacksHandler.didSameDocumentNavigation = { _, type in
             if type == 3 { eDidFinish.fulfill() }
         }
-        webView.load(req(urls.localHashed1))
+        withWebView { webView in
+            _=webView.load(req(urls.localHashed1))
+        }
         waitForExpectations(timeout: 5)
 
         // #3 load URL#namedlink2
         eDidFinish = expectation(description: "#3")
-        webView.evaluateJavaScript("window.location.href = '\(urls.localHashed2.string)'")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.location.href = '\(urls.localHashed2.string)'")
+        }
         waitForExpectations(timeout: 5)
 
         // #4 load URL#namedlink
         eDidFinish = expectation(description: "#4")
-        webView.evaluateJavaScript("window.location.href = '\(urls.localHashed1.string)'")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.location.href = '\(urls.localHashed1.string)'")
+        }
         waitForExpectations(timeout: 5)
 
         // #4.1 go back to URL#namedlink2
         eDidFinish = expectation(description: "#4.1")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
         // #4.2
         eDidFinish = expectation(description: "#4.2")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
         // #4.3
         eDidFinish = expectation(description: "#4.3")
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
         // #4.4
         eDidFinish = expectation(description: "#4.4")
-        webView.goForward()
+        withWebView { webView in
+            _=webView.goForward()
+        }
         waitForExpectations(timeout: 5)
 
         // #5 load URL#
         eDidFinish = expectation(description: "#5")
-        webView.evaluateJavaScript("window.location.href = '\(urls.localHashed.string)'")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.location.href = '\(urls.localHashed.string)'")
+        }
         waitForExpectations(timeout: 5)
 
         // #6 load URL
         eDidFinish = expectation(description: "#6")
-        webView.load(req(urls.local))
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
         waitForExpectations(timeout: 5)
 
         // #7 go back to URL#
         // !! here‘s the WebKit bug: no forward item will be present here
         eDidFinish = expectation(description: "#7")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         // #8 go back to URL#namedlink
         eDidFinish = expectation(description: "#8")
-        webView.goBack()
+        withWebView { webView in
+            _=webView.goBack()
+        }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [

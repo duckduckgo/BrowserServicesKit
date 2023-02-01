@@ -33,55 +33,55 @@ import WebKit
 typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, navigationResponses: UnsafeMutablePointer<[NavigationResponse]>, responderResponses: [NavResponse], history: [UInt64: HistoryItemIdentity])
 extension TestsNavigationEvent {
 
-    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) -> TestsNavigationEvent {
-        .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: targ, shouldDownload))
+    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil, line: UInt = #line) -> TestsNavigationEvent {
+        .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: targ, shouldDownload), line: line)
     }
     
-    static func response(_ nav: Nav) -> TestsNavigationEvent {
-        .navigationResponse(.navigation(nav))
+    static func response(_ nav: Nav, line: UInt = #line) -> TestsNavigationEvent {
+        .navigationResponse(.navigation(nav), line: line)
     }
-    static func response(_ response: NavResponse, _ nav: Nav?) -> TestsNavigationEvent {
-        .navigationResponse(.response(response, navigation: nav))
+    static func response(_ response: NavResponse, _ nav: Nav?, line: UInt = #line) -> TestsNavigationEvent {
+        .navigationResponse(.response(response, navigation: nav), line: line)
     }
 
     func encoded(_ context: EncodingContext) -> String {
         let v = { () -> String in
             switch self {
-            case .navigationAction(let arg, let arg2):
+            case .navigationAction(let arg, let arg2, line: _):
                 if let prefs = arg2.encoded() {
                     return ".navigationAction(\(arg.navigationAction.encoded(context)), \(prefs))"
                 } else {
                     return ".navigationAction(" + arg.navigationAction.encoded(context).dropping(prefix: ".init") + ")"
                 }
-            case .navActionWillBecomeDownload(let arg):
+            case .navActionWillBecomeDownload(let arg, line: _):
                 return ".navActionWillBecomeDownload(\(arg.navigationAction.encoded(context)))"
-            case .navActionBecameDownload(let arg, let arg2):
+            case .navActionBecameDownload(let arg, let arg2, line: _):
                 return ".navActionBecameDownload(\(arg.navigationAction.encoded(context)), \(urlConst(for: URL(string: arg2)!, in: context.urls)!))"
-            case .willStart(let arg):
+            case .willStart(let arg, line: _):
                 return ".willStart(\(arg.encoded(context)))"
-            case .didStart(let arg):
+            case .didStart(let arg, line: _):
                 return ".didStart(\(arg.encoded(context)))"
-            case .didReceiveAuthenticationChallenge(let arg, let arg2):
+            case .didReceiveAuthenticationChallenge(let arg, let arg2, line: _):
                 return ".didReceiveAuthenticationChallenge(\(arg.encoded()), \(arg2?.encoded(context) ?? "nil"))"
-            case .navigationResponse(.response(let resp, navigation: let nav)):
+            case .navigationResponse(.response(let resp, navigation: let nav), line: _):
                 return ".response(.\(resp.response.encoded(context)), \(nav == nil ? "nil" : nav!.encoded(context)))"
-            case .navigationResponse(.navigation(let nav)):
+            case .navigationResponse(.navigation(let nav), line: _):
                 return ".response(\(nav.encoded(context)))"
-            case .navResponseWillBecomeDownload(let arg):
+            case .navResponseWillBecomeDownload(let arg, line: _):
                 return ".navResponseWillBecomeDownload(\(arg))"
-            case .navResponseBecameDownload(let arg, let arg2):
+            case .navResponseBecameDownload(let arg, let arg2, line: _):
                 return ".navResponseBecameDownload(\(arg), \(urlConst(for: arg2, in: context.urls)!))"
-            case .didCommit(let arg):
+            case .didCommit(let arg, line: _):
                 return ".didCommit(\(arg.encoded(context)))"
-            case .didReceiveRedirect(let navAct, let nav) where nav.navigationAction == navAct:
+            case .didReceiveRedirect(let navAct, let nav, line: _) where nav.navigationAction == navAct:
                 return ".didReceiveRedirect(\(nav.encoded(context)))"
-            case .didReceiveRedirect(let navAct, let nav):
+            case .didReceiveRedirect(let navAct, let nav, line: _):
                 return ".didReceiveRedirect(\(navAct.navigationAction.encoded(context)), \(nav.encoded(context)))"
-            case .didFinish(let arg):
+            case .didFinish(let arg, line: _):
                 return ".didFinish(\(arg.encoded(context)))"
-            case .didFail(let arg, let arg2, isProvisional: let arg3):
+            case .didFail(let arg, let arg2, isProvisional: let arg3, line: _):
                 return ".didFail(\(arg.encoded(context)), \(arg2)\(arg3 ? "" : ", isProvisional: false"))"
-            case .didTerminate(let arg):
+            case .didTerminate(let arg, line: _):
                 return arg != nil ? ".didTerminate(\(arg!.encoded(context)))" : ".terminated"
             }
         }().replacing(regex: "\\s\\s+", with: "")
@@ -374,12 +374,12 @@ extension URLResponse {
 
 func compare<T>(_ name: String, _ lhs: T, _ rhs: T, using comparator: (T, T) -> Bool) -> String? {
     if comparator(lhs, rhs) { return nil }
-    return "`\(name)`: \(lhs) not equal to \(rhs)"
+    return (name.isEmpty ? "" : "\(name): ") + "`\(lhs)` not equal to `\(rhs)`"
 }
 
 func compare<T: TestComparable>(_ name: String, _ lhs: T, _ rhs: T) -> String? {
     if let diff = T.difference(between: lhs, and: rhs) {
-        return "`\(name)`: \(diff)"
+        return (name.isEmpty ? "" : "\(name): ") + "\(diff)"
     }
     return nil
 }
@@ -387,8 +387,9 @@ func compare_tc<T: TestComparable>(_ name: String, _ lhs: T, _ rhs: T) -> String
     compare(name, lhs, rhs)
 }
 func compare<T: TestComparable>(_ name: String, _ lhs: T?, _ rhs: T?) -> String? {
+    if case .none = lhs, case .none = rhs { return nil }
     guard let lhs, let rhs else {
-        return "`\(name)`: \(String(describing: lhs)) not equal to \(String(describing: rhs))"
+        return (name.isEmpty ? "" : "\(name): ") + "`\(String(describing: lhs))` not equal to `\(String(describing: rhs))`"
     }
     return compare(name, lhs, rhs)
 }
