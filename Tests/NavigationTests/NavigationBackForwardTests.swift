@@ -130,7 +130,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .didCommit(Nav(action: navAct(6), .responseReceived, resp: resp(1), .committed)),
             .didFinish(Nav(action: navAct(6), .finished, resp: resp(1), .committed)),
 
-                .navigationAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(3), from: history[2], src: main(urls.local1)),
+            .navigationAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(3), from: history[2], src: main(urls.local1)),
             .willStart(Nav(action: navAct(7), .navigationActionReceived)),
             .didStart(Nav(action: navAct(7), .started)),
             .didCommit(Nav(action: navAct(7), .started, .committed)),
@@ -389,7 +389,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             // goBack/goForward ignored for same doc decidePolicyForNavigationAction not called
 
             // #5 load URL#
-                .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[4], src: main(urls.localHashed1)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[4], src: main(urls.localHashed1)), .navigationActionReceived)),
 
             // #6 load URL
             .navigationAction(req(urls.local), .other, from: history[5], src: main(urls.localHashed)),
@@ -401,7 +401,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
             // history items replaced due to WebKit bug
             // #7 go back to URL#
-                .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[6], src: main(urls.local)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[6], src: main(urls.local)), .navigationActionReceived)),
             // #8 go back to URL#namedlink
             .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[7], src: main(urls.localHashed)), .navigationActionReceived))
         ])

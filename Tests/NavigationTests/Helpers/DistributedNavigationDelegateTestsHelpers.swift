@@ -372,10 +372,10 @@ extension DistributedNavigationDelegateTestsBase {
                 } else if case .didCommit(let n1) = event1, case .didCommit(let n2) = event2 {
                     XCTFail("#\(idx):" + Nav.difference(between: n1, and: n2)!)
                     continue
-                } else if case .didFail(let nav1, let code1, isProvisioned: let isProvisioned1) = event1,
-                          case .didFail(let nav2, let code2, isProvisioned: let isProvisioned2) = event2 {
+                } else if case .didFail(let nav1, let code1, isProvisional: let isProvisional1) = event1,
+                          case .didFail(let nav2, let code2, isProvisional: let isProvisional2) = event2 {
                     XCTAssertEqual(code1, code2, "#\(idx): code")
-                    XCTAssertEqual(isProvisioned1, isProvisioned2, "#\(idx): isProvisioned")
+                    XCTAssertEqual(isProvisional1, isProvisional2, "#\(idx): isProvisional")
                     XCTFail("#\(idx):" + Nav.difference(between: nav1, and: nav2)!)
                     continue
                 } else if case .navigationResponse(.response(let resp1, let nav1)) = event1,

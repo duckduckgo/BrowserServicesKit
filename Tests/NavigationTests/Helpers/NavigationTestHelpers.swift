@@ -79,8 +79,8 @@ extension TestsNavigationEvent {
                 return ".didReceiveRedirect(\(navAct.navigationAction.encoded(context)), \(nav.encoded(context)))"
             case .didFinish(let arg):
                 return ".didFinish(\(arg.encoded(context)))"
-            case .didFail(let arg, let arg2, isProvisioned: let arg3):
-                return ".didFail(\(arg.encoded(context)), \(arg2)\(arg3 ? "" : ", isProvisioned: false"))"
+            case .didFail(let arg, let arg2, isProvisional: let arg3):
+                return ".didFail(\(arg.encoded(context)), \(arg2)\(arg3 ? "" : ", isProvisional: false"))"
             case .didTerminate(let arg):
                 return arg != nil ? ".didTerminate(\(arg!.encoded(context)))" : ".terminated"
             }
@@ -227,10 +227,6 @@ extension NavResponse {
     static func resp(_ response: URLResponse, _ isNotForMainFrame: IsNotForMainFrame? = nil, _ cantShowMIMEType: CannotShowMimeType? = nil) -> NavResponse {
         NavResponse(response: .init(response: response, isForMainFrame: isNotForMainFrame == nil, canShowMIMEType: cantShowMIMEType == nil, mainFrameNavigation: nil))
     }
-//    static func resp(_ url: URL, mime: String? = "text/html", _ length: Int = -1, _ encoding: String? = nil) -> NavResponse {
-//        NavResponse(response: .init(response: URLResponse(url: url, mimeType: mime, expectedContentLength: length, textEncodingName: encoding),
-//                                    isForMainFrame: true, canShowMIMEType: true, mainFrameNavigation: nil))
-//    }
 
     static func resp(_ url: URL, status: Int = 200, mime: String? = "text/html", _ length: Int = -1, _ encoding: String? = nil, headers: [String: String] = .default, _ isNotForMainFrame: IsNotForMainFrame? = nil, _ cantShowMIMEType: CannotShowMimeType? = nil) -> NavResponse {
         var headers = headers

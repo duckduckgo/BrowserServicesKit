@@ -61,9 +61,9 @@ public struct ClosureNavigationResponder: NavigationResponder {
         navigationDidFinish?(navigation)
     }
 
-    let navigationDidFail: ((Navigation, WKError, _ isProvisioned: Bool) -> Void)?
-    public func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {
-        navigationDidFail?(navigation, error, isProvisioned)
+    let navigationDidFail: ((Navigation, WKError, _ isProvisional: Bool) -> Void)?
+    public func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {
+        navigationDidFail?(navigation, error, isProvisional)
     }
 
     let navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)?

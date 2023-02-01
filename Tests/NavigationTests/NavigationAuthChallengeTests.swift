@@ -146,7 +146,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
             .response(.resp(urls.local3, data.html.count, nil, .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
 
-                .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
@@ -231,14 +231,14 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: false)
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: false)
         ])
     }
 

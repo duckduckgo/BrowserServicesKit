@@ -64,9 +64,9 @@ public protocol NavigationResponder {
     @MainActor
     func navigationDidFinish(_ navigation: Navigation)
 
-    /// Called for both `webView:didFailNavigation:` and `webView:didFailProvisionalNavigation:` - check the `isProvisioned` to distinguish
+    /// Called for both `webView:didFailNavigation:` and `webView:didFailProvisionalNavigation:` - check the `isProvisional` to distinguish
     @MainActor
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool)
+    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool)
 
     /// Called when one of the Responders returned `.download` for `decidePolicyNavigationAction:` query
     @MainActor
@@ -112,7 +112,7 @@ public extension NavigationResponder {
 
     func navigationDidFinish(_ navigation: Navigation) {}
 
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {}
+    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {}
 
     func navigationAction(_ navigationAction: NavigationAction, willBecomeDownloadIn webView: WKWebView) {}
     func navigationAction(_ navigationAction: NavigationAction, didBecome download: WebKitDownload) {}

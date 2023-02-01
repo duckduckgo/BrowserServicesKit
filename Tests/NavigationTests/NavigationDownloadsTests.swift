@@ -102,10 +102,10 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-                .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .navActionWillBecomeDownload(navAct(2)),
 
-                .navActionBecameDownload(navAct(2), urls.local3),
+            .navActionBecameDownload(navAct(2), urls.local3),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
         ])
     }
@@ -149,7 +149,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisioned: false)
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
 
         ])
     }

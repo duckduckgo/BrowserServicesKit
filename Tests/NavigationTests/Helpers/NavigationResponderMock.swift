@@ -61,7 +61,7 @@ enum TestsNavigationEvent: Equatable {
     case didCommit(Nav)
     case didReceiveRedirect(NavAction, Nav)
     case didFinish(Nav)
-    case didFail(Nav, /*code:*/ Int, isProvisioned: Bool)
+    case didFail(Nav, /*code:*/ Int, isProvisional: Bool)
     case didTerminate(Nav?)
 
     static func navigationAction(_ navigationAction: NavigationAction, _ prefs: NavigationPreferences = .default) -> TestsNavigationEvent {
@@ -74,7 +74,7 @@ enum TestsNavigationEvent: Equatable {
         return .navActionBecameDownload(navigationAction, url.string.dropping(suffix: "/"))
     }
     static func didFail(_ nav: Nav, _ code: Int) -> TestsNavigationEvent {
-        return .didFail(nav, code, isProvisioned: true)
+        return .didFail(nav, code, isProvisional: true)
     }
 
     static func didReceiveRedirect(_ nav: Nav) -> TestsNavigationEvent {
@@ -91,7 +91,7 @@ struct NavAction: Equatable, TestComparable {
     let navigationAction: NavigationAction
 
     init(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil) {
-        self.navigationAction = .init(request: request, navigationType: navigationType, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: redirects?.map(\.navigationAction), isUserInitiated: isUserInitiated != nil, sourceFrame: src, targetFrame: targ ?? src, shouldDownload: shouldDownload != nil, mainFrameNavigation: nil) // TODO: mainFrameNavigation
+        self.navigationAction = .init(request: request, navigationType: navigationType, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: redirects?.map(\.navigationAction), isUserInitiated: isUserInitiated != nil, sourceFrame: src, targetFrame: targ ?? src, shouldDownload: shouldDownload != nil, mainFrameNavigation: nil) // TODO: check mainFrameNavigation
     }
 
     init(_ navigationAction: NavigationAction) {
@@ -282,9 +282,9 @@ class NavigationResponderMock: NavigationResponder {
     }
 
     var onDidFail: (@MainActor (Navigation, WKError, Bool) -> Void)?
-    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisioned: Bool) {
-        let event = append(.didFail(Nav(navigation), error.code.rawValue, isProvisioned: false))
-        onDidFail?(navigation, error, isProvisioned) ?? defaultHandler(event)
+    func navigation(_ navigation: Navigation, didFailWith error: WKError, isProvisional: Bool) {
+        let event = append(.didFail(Nav(navigation), error.code.rawValue, isProvisional: false))
+        onDidFail?(navigation, error, isProvisional) ?? defaultHandler(event)
     }
 
     var onDidTerminate: (@MainActor (Navigation?) -> Void)?

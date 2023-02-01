@@ -395,7 +395,7 @@ final class WKNavigationLifetimeTracker: NSObject {
         navigation.state = .failed(error)
 
         for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error, isProvisioned: navigation.isCommitted)
+            responder.navigation(navigation, didFailWith: error, isProvisional: navigation.isCommitted)
         }
     }
 

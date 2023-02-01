@@ -84,11 +84,11 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1), .other, src: main()),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
         ])
         assertHistory(ofResponderAt: 1, equalsToHistoryOfResponderAt: 0)
         assertHistory(ofResponderAt: 2, equalsTo: [
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
         ])
     }
     
@@ -115,14 +115,14 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local1, status: 404, mime: "text/plain", headers: ["Server": "Swifter Unspecified"]))),
-            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local1), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
         ])
     }
     
@@ -139,7 +139,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail( Nav(action: navAct(1), .failed(WKError(NSURLErrorCannotConnectToHost))), NSURLErrorCannotConnectToHost, isProvisioned: false)
+            .didFail( Nav(action: navAct(1), .failed(WKError(NSURLErrorCannotConnectToHost))), NSURLErrorCannotConnectToHost, isProvisional: false)
         ])
     }
     
@@ -283,20 +283,20 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithOpenInNewWindow.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-                .navigationAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: main(urls.local),
+            .navigationAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: main(urls.local),
                                   targ: FrameInfo(frameIdentity: newFrameIdentity, url: .empty, securityOrigin: urls.local.securityOrigin)),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
 
-                .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
-                .didStart(Nav(action: navAct(2), .started)),
+            .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
             .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(2)], src: FrameInfo(frameIdentity: newFrameIdentity, url: urls.local2, securityOrigin: urls.local.securityOrigin)),
                                 Nav(action: navAct(2), .redirected(.client), resp: resp(1), .committed)),
             .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed)),
 
-                .navigationAction(navAct(3)),
+            .navigationAction(navAct(3)),
             .willStart(Nav(action: navAct(3), redirects: [navAct(2)], .navigationActionReceived)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(2)], .started)),
             .response(Nav(action: navAct(3), redirects: [navAct(2)], .responseReceived, resp: .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
@@ -496,7 +496,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
 
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
@@ -525,7 +525,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.https), .other, src: main()),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
 
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
             .didStart(Nav(action: navAct(2), .started)),
@@ -554,7 +554,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
 
             .didStart(Nav(action: navAct(2), .started)),
             .didCommit(Nav(action: navAct(2), .started, .committed)),
@@ -583,7 +583,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived)),
             .didStart(Nav(action: navAct(2), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
             .didCommit(Nav(action: navAct(2), .started, .committed)),
             .didFinish(Nav(action: navAct(2), .finished, .committed))
         ])
@@ -640,7 +640,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
         ])
     }
 
@@ -667,7 +667,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
         ])
     }
 
@@ -692,7 +692,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
         ])
     }
 
@@ -718,7 +718,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 200, data.html.count))),
-            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisioned: false)
+            .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false)
         ])
     }
 
@@ -780,8 +780,8 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local), .other, src: main()),
             .navigationAction(req(urls.local2), .other, src: main()),
 
-            .didFail(Nav(action: navAct(2), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false)
+            .didFail(Nav(action: navAct(2), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false)
         ])
     }
 
@@ -833,12 +833,12 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived)),
             .didStart(Nav(action: navAct(1), .started)),
-            .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
+        .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
 
             .navigationAction(req(urls.local3), .other, src: main()),
             .willStart(Nav(action: navAct(3), .navigationActionReceived)),
 
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange))), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisioned: false),
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange))), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: false),
 
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
@@ -907,8 +907,8 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
             .navigationAction(req(urls.local2), .other, src: main()),
 
-            .didFail(Nav(action: navAct(2), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisioned: false),
+            .didFail(Nav(action: navAct(2), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled, isProvisional: false),
         ])
     }
 

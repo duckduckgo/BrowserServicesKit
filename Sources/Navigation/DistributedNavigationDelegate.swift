@@ -529,10 +529,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             // just in case anything goes wrong we would still send the didFinish after some delay
             DispatchQueue.main.asyncAfter(deadline: .now() + delay + 0.5, execute: delayedFinishItem!)
 
-        }, navigationDidFail: { navigation, error, isProvisioned in
+        }, navigationDidFail: { navigation, error, isProvisional in
             sendDidFinishToResponders = nil
             for responder in originalResponders {
-                responder.navigation(navigation, didFailWith: error, isProvisioned: isProvisioned)
+                responder.navigation(navigation, didFailWith: error, isProvisional: isProvisional)
             }
         })
         // set Navigation state to .redirected and expect the redirect NavigationAction
@@ -595,7 +595,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         os_log("didFail %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
 
         for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error, isProvisioned: false)
+            responder.navigation(navigation, didFailWith: error, isProvisional: false)
         }
 
         if self.startedNavigation === navigation {
@@ -617,7 +617,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         os_log("didFail provisional %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
 
         for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error, isProvisioned: true)
+            responder.navigation(navigation, didFailWith: error, isProvisional: true)
         }
 
         if self.startedNavigation === navigation {
