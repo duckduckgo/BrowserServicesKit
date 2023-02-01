@@ -114,8 +114,9 @@ struct Nav: Equatable {
     var response: NavResponse?
     var redirects: [NavAction]
     var state: NavigationState
-    var isCommitted: Bool = false
-    var didReceiveAuthenticationChallenge: Bool = false
+    var isCommitted: Bool
+    var didReceiveAuthenticationChallenge: Bool
+    var isCurrent: Bool
 
     enum IsCommitted {
         case committed
@@ -123,19 +124,34 @@ struct Nav: Equatable {
     enum DidReceiveAuthenticationChallenge {
         case gotAuth
     }
-    init(action navigationAction: NavAction, redirects: [NavAction] = [], _ state: NavigationState, resp response: NavResponse? = nil, _ isCommitted: IsCommitted? = nil, _ didReceiveAuthenticationChallenge: DidReceiveAuthenticationChallenge? = nil) {
+
+    init(action navigationAction: NavAction, redirects: [NavAction] = [], _ state: NavigationState, resp response: NavResponse? = nil, _ isCommitted: IsCommitted? = nil, _ didReceiveAuthenticationChallenge: DidReceiveAuthenticationChallenge? = nil, isCurrent: Bool = true) {
         self.navigationAction = navigationAction
         self.state = state
         self.response = response
         self.isCommitted = isCommitted != nil
         self.didReceiveAuthenticationChallenge = didReceiveAuthenticationChallenge != nil
         self.redirects = redirects
+        self.isCurrent = isCurrent
     }
 
     func encoded(_ context: EncodingContext) -> String {
         "Nav(action: \(navigationAction.navigationAction.encoded(context)), \(redirects.isEmpty ? "" : "redirects: [\(redirects.map { $0.navigationAction.encoded(context) }.joined(separator: ", "))], ")\(state.encoded(context))" +
         "\(response != nil ? ", resp: \(response!.response.encoded(context))" : "")" +
-        "\(isCommitted ? ", .committed" : (didReceiveAuthenticationChallenge ? ", nil" : "")) \(didReceiveAuthenticationChallenge ? ", .gotAuth" : ""))"
+        "\(isCommitted ? ", .committed" : (didReceiveAuthenticationChallenge ? ", nil" : "")) \(didReceiveAuthenticationChallenge ? ", .gotAuth" : "")" +
+        "\(isCurrent == false ? ", isCurrent: false" : "")" +
+        ")"
+    }
+}
+extension Nav: TestComparable {
+    static func difference(between lhs: Nav, and rhs: Nav) -> String? {
+        compare_tc("navigationAction", lhs.navigationAction, rhs.navigationAction)
+        ?? compare("response", lhs.response?.response, rhs.response?.response)
+        ?? compare("redirects", lhs.redirects, rhs.redirects)
+        ?? compare("state", lhs.state, rhs.state)
+        ?? compare("isCommitted", lhs.isCommitted, rhs.isCommitted)
+        ?? compare("didReceiveAuthenticationChallenge", lhs.didReceiveAuthenticationChallenge, rhs.didReceiveAuthenticationChallenge)
+        ?? compare("isCurrent", lhs.isCurrent, rhs.isCurrent)
     }
 }
 

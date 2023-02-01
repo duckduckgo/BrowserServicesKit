@@ -97,7 +97,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -141,7 +141,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
             .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.server))),
@@ -149,7 +149,8 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
+
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue, isProvisional: true)
 
         ])
     }

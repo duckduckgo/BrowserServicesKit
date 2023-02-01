@@ -105,7 +105,7 @@ extension WKNavigationAction: WebViewNavigationAction {
 
         switch navigationType {
         case .linkActivated, .other:
-            return newURL.hashedSuffix != nil && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+            return self.isRedirect != true && newURL.hashedSuffix != nil && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
         case .backForward:
             return (newURL.hashedSuffix != nil || currentURL.hashedSuffix != nil) && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
         case .reload, .formSubmitted, .formResubmitted:

@@ -76,7 +76,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]), nil, .gotAuth)),
@@ -86,7 +86,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
@@ -141,7 +141,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
@@ -155,7 +155,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
@@ -197,7 +197,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 401, headers: ["Server": "Swifter Unspecified", "Www-Authenticate": "Basic"]), nil, .gotAuth)),
@@ -236,7 +236,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: true)
@@ -244,7 +244,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled, isProvisional: true)
         ])
@@ -278,7 +278,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 401, headers: ["Server": "Swifter Unspecified", "Www-Authenticate": "Basic"]), nil, .gotAuth)),
@@ -288,7 +288,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 401, headers: ["Server": "Swifter Unspecified", "Www-Authenticate": "Basic"]), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),

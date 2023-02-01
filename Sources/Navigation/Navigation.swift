@@ -48,9 +48,10 @@ public final class Navigation {
     }
     public private(set) var navigationResponse: NavigationResponse?
 
-    init(identity: NavigationIdentity, responders: ResponderChain, state: NavigationState, isCurrent: Bool, isCommitted: Bool = false) {
+    init(identity: NavigationIdentity, responders: ResponderChain, state: NavigationState, redirectHistory: [NavigationAction]? = nil, isCurrent: Bool, isCommitted: Bool = false) {
         self.state = state
         self.identity = identity
+        self.navigationActions = redirectHistory ?? []
         self.isCommitted = isCommitted
         self.navigationResponders = responders
         self.isCurrent = isCurrent
@@ -227,15 +228,14 @@ extension Navigation {
 
         switch state {
         case .expected(let navigationType):
-            // new navigations
             assert(navigationType == nil || navigationType == navigationAction.navigationType)
-            let navigationActions = (navigationAction.redirectHistory ?? []) + [navigationAction]
-            if self.navigationActions.isEmpty {
-                self.navigationActions = navigationActions
+            if let redirectHistory = navigationAction.redirectHistory, !redirectHistory.isEmpty {
+                // new navigations started from navigationAction
+                assert(navigationActions.isEmpty)
+                self.navigationActions = (navigationAction.redirectHistory ?? []) + [navigationAction]
             } else {
-                // replace empty NavigationAction with expectedNavigationType with the actual NavigationAction
-                _=self.navigationActions.removeLast()
-                self.navigationActions.append(contentsOf: navigationActions)
+                // navigations redirected from decidePolicyForNavigationAction handler
+                self.navigationActions.append(navigationAction)
             }
             self.state = .navigationActionReceived
 
@@ -295,7 +295,6 @@ extension Navigation {
         case .expected, .navigationActionReceived, .finished, .failed:
             assertionFailure("unexpected state \(self.state)")
         }
-        isCurrent = false
     }
 
     func didFail(_ navigation: WKNavigation? = nil, with error: WKError) {
@@ -304,7 +303,6 @@ extension Navigation {
             self.resolve(with: navigation)
         }
         self.state = .failed(error)
-        isCurrent = false
     }
 
     func willPerformServerRedirect(with navigationAction: NavigationAction) {
@@ -360,7 +358,6 @@ extension Navigation {
             return
         }
         self.state = .finished
-        self.isCurrent = false
     }
 
     func didCancelClientRedirect() {
@@ -369,7 +366,6 @@ extension Navigation {
             return
         }
         self.state = .started
-        self.isCurrent = false
     }
 
 }

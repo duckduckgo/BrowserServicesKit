@@ -113,7 +113,7 @@ public extension WKFrameInfo {
 #if DEBUG
         String(describing: (self.value(forKey: "handle") as? NSObject)!.value(forKey: "frameID")!)
 #else
-        self.isMainFrame ? Self.mainFrameHandle : "iframe"
+        self.isMainFrame ? Self.defaultMainFrameHandle : "iframe"
 #endif
     }
 

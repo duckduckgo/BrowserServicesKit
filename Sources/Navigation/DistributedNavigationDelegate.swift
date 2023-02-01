@@ -273,7 +273,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
                 assert(navigationAction.isForMainFrame)
 
                 decisionHandler(.cancel, wkPreferences)
-                redirect(webView.navigator(distributedNavigationDelegate: self))
+                redirect(webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation))
 
             case .download:
                 self.willStartDownload(with: navigationAction, in: webView)

@@ -72,7 +72,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsTo: [
             // #1
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -80,7 +80,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
             // #2
             .navigationAction(req(urls.local1), .other, from: history[1], src: main(urls.local)),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
@@ -88,14 +88,14 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
             // #2 -> #1 back
             .navigationAction(req(urls.local, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[2], src: main(urls.local1)),
-            .willStart(Nav(action: navAct(3), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(3), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(3), .started)),
             .didCommit(Nav(action: navAct(3), .started, .committed)),
             .didFinish(Nav(action: navAct(3), .finished, .committed)),
 
             // #1 -> #2 forward
             .navigationAction(req(urls.local1, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(1), from: history[1], src: main(urls.local)),
-            .willStart(Nav(action: navAct(4), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(4), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(4), .started)),
             .didCommit(Nav(action: navAct(4), .started, .committed)),
             .didFinish(Nav(action: navAct(4), .finished, .committed))
@@ -138,14 +138,14 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-3), from: history[5], src: main(urls.local4)),
-            .willStart(Nav(action: navAct(6), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(6), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(6), .started)),
             .response(Nav(action: navAct(6), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(6), .responseReceived, resp: resp(1), .committed)),
             .didFinish(Nav(action: navAct(6), .finished, resp: resp(1), .committed)),
 
             .navigationAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(3), from: history[2], src: main(urls.local1)),
-            .willStart(Nav(action: navAct(7), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(7), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(7), .started)),
             .didCommit(Nav(action: navAct(7), .started, .committed)),
             .didFinish(Nav(action: navAct(7), .finished, .committed))
@@ -212,7 +212,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsTo: [
             // #1 main nav
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -303,7 +303,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsTo: [
             // #1 main nav
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -427,27 +427,27 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsTo: [
             // #1 load URL
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             // #2 load URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed1), .sameDocumentNavigation, from: history[1], src: main(urls.local)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed1), .sameDocumentNavigation, from: history[1], src: main(urls.local)), .navigationActionReceived, isCurrent: false)),
             // #3 load URL#namedlink2
-            .willStart(Nav(action: NavAction(req(urls.localHashed2, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[2], src: main(urls.localHashed1)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed2, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[2], src: main(urls.localHashed1)), .navigationActionReceived, isCurrent: false)),
             // #3.1 load URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed1, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[3], src: main(urls.localHashed2)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed1, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[3], src: main(urls.localHashed2)), .navigationActionReceived, isCurrent: false)),
 
             // goBack/goForward ignored for same doc decidePolicyForNavigationAction not called
 
             // #5 load URL#
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[4], src: main(urls.localHashed1)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[4], src: main(urls.localHashed1)), .navigationActionReceived, isCurrent: false)),
 
             // #6 load URL
             .navigationAction(req(urls.local), .other, from: history[5], src: main(urls.localHashed)),
-            .willStart(Nav(action: navAct(6), .navigationActionReceived)),
+            .willStart(Nav(action: navAct(6), .navigationActionReceived, isCurrent: false)),
             .didStart( Nav(action: navAct(6), .started)),
             .response(Nav(action: navAct(6), .responseReceived, resp: resp(0))),
             .didCommit(Nav(action: navAct(6), .responseReceived, resp: resp(0), .committed)),
@@ -455,9 +455,9 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
             // history items replaced due to WebKit bug
             // #7 go back to URL#
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[6], src: main(urls.local)), .navigationActionReceived)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[6], src: main(urls.local)), .navigationActionReceived, isCurrent: false)),
             // #8 go back to URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[7], src: main(urls.localHashed)), .navigationActionReceived))
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[7], src: main(urls.localHashed)), .navigationActionReceived, isCurrent: false))
         ])
     }
 

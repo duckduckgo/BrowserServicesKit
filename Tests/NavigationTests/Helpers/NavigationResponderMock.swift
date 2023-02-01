@@ -165,20 +165,9 @@ struct NavAction: Equatable, TestComparable {
     }
 }
 
-extension Nav: TestComparable {
-    static func difference(between lhs: Nav, and rhs: Nav) -> String? {
-        compare_tc("navigationAction", lhs.navigationAction, rhs.navigationAction)
-        ?? compare("response", lhs.response?.response, rhs.response?.response)
-        ?? compare("redirects", lhs.redirects, rhs.redirects)
-        ?? compare("state", lhs.state, rhs.state)
-        ?? compare("isCommitted", lhs.isCommitted, rhs.isCommitted)
-        ?? compare("didReceiveAuthenticationChallenge", lhs.didReceiveAuthenticationChallenge, rhs.didReceiveAuthenticationChallenge)
-    }
-}
-
 class NavigationResponderMock: NavigationResponder {
 
-    private(set) var history: [TestsNavigationEvent] = []
+    var history: [TestsNavigationEvent] = []
     private(set) var navigations: [Navigation] = []
     var navigationActionsCache: (dict: [UInt64: NavAction], max: UInt64) = ([:], 0)
     private(set) var navigationResponses: [NavResponse] = []
@@ -269,7 +258,8 @@ class NavigationResponderMock: NavigationResponder {
                             navigation.state,
                             resp: navigation.navigationResponse.map(NavResponse.init),
                             navigation.isCommitted ? .committed : nil,
-                            navigation.didReceiveAuthenticationChallenge ? .gotAuth : nil)
+                            navigation.didReceiveAuthenticationChallenge ? .gotAuth : nil,
+                            isCurrent: navigation.isCurrent)
     }
     @MainActor
     func Nav(_ navigation: Navigation?) -> Nav? {
