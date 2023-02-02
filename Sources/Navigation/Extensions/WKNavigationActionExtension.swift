@@ -76,6 +76,17 @@ extension WKNavigationAction: WebViewNavigationAction {
     }
 #endif
 
+    // associated NavigationAction wrapper for the WKNavigationAction
+    private static let navigationActionKey = UnsafeRawPointer(bitPattern: "navigationActionKey".hashValue)!
+    internal var navigationAction: NavigationAction? {
+        get {
+            objc_getAssociatedObject(self, Self.navigationActionKey) as? NavigationAction
+        }
+        set {
+            objc_setAssociatedObject(self, Self.navigationActionKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
     /// returns navigation distance from current BackForwardList item for back/forward navigations
     /// -1-based, negative for back navigations; 1-based, positive for forward navigations
     public func getDistance(from historyItemIdentity: HistoryItemIdentity?) -> Int? {
@@ -114,5 +125,15 @@ extension WKNavigationAction: WebViewNavigationAction {
             return false
         }
     }
+}
+
+extension WKNavigationActionPolicy {
+    
+    static let downloadPolicy: WKNavigationActionPolicy = {
+        if #available(macOS 11.3, iOS 14.5, *) {
+            return .download
+        }
+        return WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
+    }()
 
 }

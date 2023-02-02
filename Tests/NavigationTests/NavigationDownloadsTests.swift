@@ -185,7 +185,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             return .next
         }
         responder(at: 0).onNavigationResponse = { _ in
-                .download
+            .download
         }
         let eDidFailLoadingFrame = expectation(description: "didFailLoadingFrame")
         didFinishLoadingFrameHandler.didFailProvisionalLoadInFrame = { request, frame, _ in
@@ -205,6 +205,163 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    // TODO: multiple download actions
+    func testMultipleDownloadNavigationActions() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
+
+        server.middleware = [{ [data] request in
+            guard request.path == "/" else { return nil }
+            return .ok(.html(data.htmlWith3iFrames.string()!))
+        }, { [data] request in
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        var frameHandles = [String: String]()
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            guard navAction.url.matches(urls.local) else {
+                frameHandles[navAction.url.path] = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(navAction.targetFrame.identity.handle, WKFrameInfo.defaultMainFrameHandle)
+                return .download
+            }
+            return .next
+        }
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        // sort navActionBecameDownload by url
+        responder(at: 0).history
+            .replaceSubrange(11...13, with: responder(at: 0)
+                .history[11...13]
+                .sorted {
+                    guard case .navActionBecameDownload(_, let url1, _) = $0, case .navActionBecameDownload(_, let url2, _) = $1 else {
+                        XCTFail("unexpected \($0) or \($1)")
+                        return false
+                    }
+
+                    return Int(String(url1.last!))! < Int(String(url2.last!))!
+                })
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWith3iFrames.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local2.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navActionWillBecomeDownload(navAct(2)),
+
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local3.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navActionWillBecomeDownload(navAct(3)),
+
+            .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local4.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navActionWillBecomeDownload(navAct(4)),
+
+            .navActionBecameDownload(navAct(2), urls.local2),
+            .navActionBecameDownload(navAct(3), urls.local3),
+            .navActionBecameDownload(navAct(4), urls.local4),
+
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+        ])
+    }
+
+    func testMultipleDownloadNavigationResponses() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
+
+        server.middleware = [{ [data] request in
+            guard request.path == "/" else { return nil }
+            return .ok(.html(data.htmlWith3iFrames.string()!))
+        }, { [data] request in
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        var frameHandles = [String: String]()
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if !navAction.url.matches(urls.local) {
+                frameHandles[navAction.url.path] = navAction.targetFrame.identity.handle
+                XCTAssertNotEqual(navAction.targetFrame.identity.handle, WKFrameInfo.defaultMainFrameHandle)
+            }
+            return .allow
+        }
+        responder(at: 0).onNavigationResponse = { [urls] navResponse in
+            guard navResponse.url.matches(urls.local) else {
+                return .download
+            }
+            return .allow
+        }
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 50)
+
+        // sort download events by url and event order
+        responder(at: 0).history
+            .replaceSubrange(8...16, with: responder(at: 0)
+                .history[8...16]
+                .sorted {
+                    func eventAndUrlIdx(from event: TestsNavigationEvent) -> (event: Int, idx: Int) {
+                        switch event {
+                        case .navigationResponse(.response(let response, _), _):
+                            return (0, Int(String(response.response.url.string.last!))!)
+                        case .navResponseWillBecomeDownload(let idx, _):
+                            return (1, idx + 1)
+                        case .navResponseBecameDownload(_, let url, _):
+                            return (2, Int(String(url.string.last!))!)
+                        default:
+                            XCTFail("unexpected \(event)")
+                            return (0, 0)
+                        }
+                    }
+                    let lhs = eventAndUrlIdx(from: $0)
+                    let rhs = eventAndUrlIdx(from: $1)
+                    if lhs.idx == rhs.idx {
+                        return lhs.event < rhs.event
+                    } else {
+                        return lhs.idx < rhs.idx
+                    }
+                })
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWith3iFrames.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local2.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local3.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local4.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+
+            .response(.resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+            .navResponseWillBecomeDownload(1),
+            .navResponseBecameDownload(1, urls.local2),
+
+            .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+            .navResponseWillBecomeDownload(2),
+            .navResponseBecameDownload(2, urls.local3),
+
+            .response(.resp(urls.local4, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+            .navResponseWillBecomeDownload(3),
+            .navResponseBecameDownload(3, urls.local4),
+
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+        ])
+    }
 
 }

@@ -22,7 +22,7 @@ extension WKNavigation {
 
     private static let navigationKey = UnsafeRawPointer(bitPattern: "navigationKey".hashValue)!
 
-    var navigation: Navigation? {
+    internal var navigation: Navigation? {
         get {
             objc_getAssociatedObject(self, Self.navigationKey) as? Navigation
         }

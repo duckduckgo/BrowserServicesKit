@@ -67,7 +67,7 @@ extension NavigationResponse {
 extension NavigationResponse: CustomDebugStringConvertible {
     public var debugDescription: String {
         let statusCode = self.httpStatusCode.map { String.init($0) } ?? "-"
-        return "<Response: \((response.url ?? .empty).absoluteString) status:\(statusCode):\(shouldDownload ? " Download" : "")>"
+        return "<Response: \((response.url ?? .empty).absoluteString) status:\(statusCode)\(self.isForMainFrame ? "" : " non-main-frame")\(shouldDownload ? " shouldDownload" : "")>"
     }
 }
 
@@ -80,13 +80,4 @@ public enum NavigationResponsePolicy: String, Equatable {
 extension NavigationResponsePolicy? {
     /// Pass decision making to next responder
     public static let next = NavigationResponsePolicy?.none
-}
-
-extension WKNavigationResponsePolicy {
-    static let downloadPolicy: WKNavigationResponsePolicy = {
-        if #available(macOS 11.3, iOS 14.5, *) {
-            return .download
-        }
-        return WKNavigationResponsePolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
-    }()
 }

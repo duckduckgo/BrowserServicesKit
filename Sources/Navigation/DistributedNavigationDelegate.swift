@@ -45,10 +45,6 @@ public final class DistributedNavigationDelegate: NSObject {
             navigationActionDecisionTask?.cancel()
         }
     }
-    // useful for non-mainframe navigation actions to keep an initiating action ref
-    private var expectedDownloadNavigationAction: NavigationAction?
-    // TODO: multiple expected responses?
-    private var expectedDownloadNavigationResponse: NavigationResponse?
 
     /// ongoing Main Frame navigation (after `navigationDidStart` event received)
     @MainActor
@@ -223,6 +219,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         let navigation = navigation(for: wkNavigationAction, in: webView)
         let navigationAction = navigation?.navigationAction
             ?? NavigationAction(webView: webView, navigationAction: wkNavigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, mainFrameNavigation: startedNavigation)
+        wkNavigationAction.navigationAction = navigationAction
+
         let mainFrameNavigation = withExtendedLifetime(navigation) {
             navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation : nil
         }
@@ -309,7 +307,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
     @MainActor
     private func willStartDownload(with navigationAction: NavigationAction, in webView: WKWebView) {
-        expectedDownloadNavigationAction = navigationAction
         let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
             responder.navigationAction(navigationAction, willBecomeDownloadIn: webView)
@@ -408,12 +405,13 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     @MainActor
     public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         let navigationResponse = NavigationResponse(navigationResponse: wkNavigationResponse, mainFrameNavigation: startedNavigation)
+        wkNavigationResponse.navigationResponse = navigationResponse
         if wkNavigationResponse.isForMainFrame {
             assert(startedNavigation != nil)
             startedNavigation?.receivedResponse(navigationResponse)
         }
 
-        os_log("decidePolicyFor response: %s current: %s", log: logger, type: .default, navigationResponse.debugDescription, startedNavigation?.debugDescription ?? "<nil>")
+        os_log("decidePolicyFor response: %s: %s current: %s", log: logger, type: .default, navigationResponse.debugDescription, wkNavigationResponse.debugDescription, startedNavigation?.debugDescription ?? "<nil>")
 
         let responders = (navigationResponse.isForMainFrame ? startedNavigation?.navigationResponders : nil) ?? responders
         makeAsyncDecision(with: responders) { responder in
@@ -441,7 +439,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
     @MainActor
     private func willStartDownload(with navigationResponse: NavigationResponse, in webView: WKWebView) {
-        expectedDownloadNavigationResponse = navigationResponse
         let responders = (navigationResponse.isForMainFrame ? navigationResponse.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
             responder.navigationResponse(navigationResponse, willBecomeDownloadIn: webView)
@@ -643,41 +640,54 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     @MainActor
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationAction:didBecomeDownload:)
-    public func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
-        let navigationAction = expectedDownloadNavigationAction
-            ?? NavigationAction(webView: webView, navigationAction: navigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, mainFrameNavigation: startedNavigation)
-        self.expectedDownloadNavigationAction = nil
+    public func webView(_ webView: WKWebView, navigationAction wkNavigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        let navigationAction = wkNavigationAction.navigationAction ?? {
+            assertionFailure("WKNavigationAction has no associated NavigationAction")
+            return NavigationAction(webView: webView, navigationAction: wkNavigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, mainFrameNavigation: startedNavigation)
+        }()
+        os_log("navigationActionDidBecomeDownload: %s", log: logger, type: .default, navigationAction.debugDescription)
 
         let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
             responder.navigationAction(navigationAction, didBecome: download)
         }
+
         if navigationAction.isForMainFrame {
             navigationAction.mainFrameNavigation?.didFail(with: WKError(.frameLoadInterruptedByPolicyChange))
+        }
+        if navigationAction.isForMainFrame,
+           let navigation = navigationAction.mainFrameNavigation {
+
+            navigation.didFail(with: WKError(.frameLoadInterruptedByPolicyChange))
+            if startedNavigation === navigation {
+                self.startedNavigation = nil
+            }
         }
     }
 
     @MainActor
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationResponse:didBecomeDownload:)
-    public func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
-        let navigationResponse = expectedDownloadNavigationResponse
-            ?? NavigationResponse(navigationResponse: navigationResponse, mainFrameNavigation: startedNavigation)
+    public func webView(_ webView: WKWebView, navigationResponse wkNavigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        let navigationResponse = wkNavigationResponse.navigationResponse ?? {
+            assertionFailure("WKNavigationResponse has no associated NavigationResponse")
+            return NavigationResponse(navigationResponse: wkNavigationResponse, mainFrameNavigation: startedNavigation)
+        }()
+        os_log("navigationResponseDidBecomeDownload: %s", log: logger, type: .default, navigationResponse.debugDescription)
 
         let responders = (navigationResponse.isForMainFrame ? navigationResponse.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
             responder.navigationResponse(navigationResponse, didBecome: download)
         }
 
-        if let startedNavigation, let expectedDownloadNavigationResponse,
-           case .responseReceived = startedNavigation.state,
-           let url = startedNavigation.navigationResponse?.url,
-           expectedDownloadNavigationResponse.url.matches(url) {
+        if navigationResponse.isForMainFrame,
+           let navigation = navigationResponse.mainFrameNavigation {
 
-            self.startedNavigation = nil
-            self.startedNavigation?.didFail(with: WKError(.frameLoadInterruptedByPolicyChange))
+            navigation.didFail(with: WKError(.frameLoadInterruptedByPolicyChange))
+            if startedNavigation === navigation {
+                self.startedNavigation = nil
+            }
         }
-        self.expectedDownloadNavigationResponse = nil
     }
 
     @MainActor

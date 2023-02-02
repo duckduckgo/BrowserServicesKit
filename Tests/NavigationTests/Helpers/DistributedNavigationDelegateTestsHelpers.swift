@@ -127,7 +127,14 @@ extension DistributedNavigationDelegateTestsBase {
                 </body>
             </html>
         """.data(using: .utf8)!
-        let htmlWithIframe3 = "<html><body><iframe src='/3' /></body></html>".data(using: .utf8)!
+        let htmlWithIframe3 = "<html><body><iframe src='/3'></iframe></body></html>".data(using: .utf8)!
+        let htmlWith3iFrames = """
+        <html><body>
+            <iframe src='/2'></iframe>
+            <iframe src='/3'></iframe>
+            <iframe src='/4'></iframe>
+        </body></html>
+        """.data(using: .utf8)!
         let htmlWithOpenInNewWindow: Data = {
             """
                 <html><body>

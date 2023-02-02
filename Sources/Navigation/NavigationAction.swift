@@ -205,15 +205,6 @@ extension NavigationActionPolicy? {
     public static let next = NavigationActionPolicy?.none
 }
 
-extension WKNavigationActionPolicy {
-    static let downloadPolicy: WKNavigationActionPolicy = {
-        if #available(macOS 11.3, iOS 14.5, *) {
-            return .download
-        }
-        return WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel
-    }()
-}
-
 extension NavigationActionPolicy? {
     public var debugDescription: String {
         if case .some(let policy) = self {
