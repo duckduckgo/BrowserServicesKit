@@ -36,9 +36,8 @@ import XCTest
 class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
     func testClientRedirectToSameDocument() throws {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         let customCallbacksHandler = CustomCallbacksHandler()
-        navigationDelegate.registerCustomDelegateMethodHandler(.strong(customCallbacksHandler), for: #selector(CustomCallbacksHandler.webView(_:navigation:didSameDocumentNavigation:)))
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(customCallbacksHandler))
 
         server.middleware = [{ [data] request in
             return .ok(.html(data.sameDocumentClientRedirectData.string()!))
@@ -51,7 +50,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         let eDidSameDocumentNavigation = expectation(description: "#2")
         customCallbacksHandler.didSameDocumentNavigation = { _, type in
-            if type == 3 { eDidSameDocumentNavigation.fulfill() }
+            if type == .sessionStatePop { eDidSameDocumentNavigation.fulfill() }
         }
 
         withWebView { webView in

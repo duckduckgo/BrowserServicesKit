@@ -157,10 +157,8 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
     }
 
     func testDownloadNavigationResponseFromFrame() throws {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         let didFinishLoadingFrameHandler = CustomCallbacksHandler()
-        navigationDelegate.registerCustomDelegateMethodHandler(.strong(didFinishLoadingFrameHandler), for: #selector(CustomCallbacksHandler.webView(_:didFinishLoadWith:in:)))
-        navigationDelegate.registerCustomDelegateMethodHandler(.strong(didFinishLoadingFrameHandler), for: #selector(CustomCallbacksHandler.webView(_:didFailProvisionalLoadWith:in:with:)))
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(didFinishLoadingFrameHandler))
 
         server.middleware = [{ [data] request in
             guard request.path == "/" else { return nil }

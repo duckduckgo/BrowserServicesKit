@@ -89,6 +89,22 @@ public protocol NavigationResponder {
     @MainActor
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?)
 
+    // MARK: - Private
+    @MainActor
+    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?)
+
+    @MainActor
+    func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval)
+
+    @MainActor
+    func webViewDidCancelClientRedirect(currentNavigation: Navigation?)
+
+    @MainActor
+    func didFinishLoad(with request: URLRequest, in frame: WKFrameInfo)
+
+    @MainActor
+    func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error)
+
 }
 
 // MARK: - Delegate methods are optional
@@ -119,5 +135,20 @@ public extension NavigationResponder {
     func navigationResponse(_ navigationResponse: NavigationResponse, didBecome download: WebKitDownload) {}
 
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {}
+
+    @MainActor
+    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {}
+
+    @MainActor
+    func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval) {}
+
+    @MainActor
+    func webViewDidCancelClientRedirect(currentNavigation: Navigation?) {}
+
+    @MainActor
+    func didFinishLoad(with request: URLRequest, in frame: WKFrameInfo) {}
+
+    @MainActor
+    func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error) {}
 
 }

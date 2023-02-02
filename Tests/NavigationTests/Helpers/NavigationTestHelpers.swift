@@ -959,29 +959,22 @@ extension URL {
 final class CustomCallbacksHandler: NSObject, NavigationResponder {
 
     var willPerformClientRedirectHandler: ((URL, TimeInterval) -> Void)?
-    @objc(_webView:willPerformClientRedirectToURL:delay:)
-    func webView(_ webView: WKWebView, willPerformClientRedirectTo url: URL, delay: TimeInterval) {
+    func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval) {
         self.willPerformClientRedirectHandler?(url, delay)
     }
 
     var didFinishLoadingFrame: ((URLRequest, WKFrameInfo) -> Void)?
-    @objc(_webView:didFinishLoadWithRequest:inFrame:)
-    func webView(_ webView: WKWebView, didFinishLoadWith request: URLRequest, in frame: WKFrameInfo) {
-        print("_webView:", webView, "didFinishLoadWithRequest:", request, "inFrame:", frame)
+    func didFinishLoad(with request: URLRequest, in frame: WKFrameInfo) {
         self.didFinishLoadingFrame?(request, frame)
     }
 
     var didFailProvisionalLoadInFrame: ((URLRequest, WKFrameInfo, Error) -> Void)?
-    @objc(_webView:didFailProvisionalLoadWithRequest:inFrame:withError:)
-    func webView(_ webView: WKWebView, didFailProvisionalLoadWith request: URLRequest, in frame: WKFrameInfo, with error: Error) {
-        print("_webView:", webView, "didFailProvisionalLoadWithRequest:", request, "inFrame:", frame, "withError:", error)
+    func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error) {
         self.didFailProvisionalLoadInFrame?(request, frame, error)
     }
 
-    var didSameDocumentNavigation: ((WKNavigation, Int) -> Void)?
-    @objc(_webView:navigation:didSameDocumentNavigation:)
-    func webView(_ webView: WKWebView, navigation: WKNavigation, didSameDocumentNavigation navigationType: Int) {
-        print("_webView:", webView, "navigation:", navigation, "didSameDocumentNavigation:", navigationType)
+    var didSameDocumentNavigation: ((Navigation?, WKSameDocumentNavigationType?) -> Void)?
+    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {
         self.didSameDocumentNavigation?(navigation, navigationType)
     }
 

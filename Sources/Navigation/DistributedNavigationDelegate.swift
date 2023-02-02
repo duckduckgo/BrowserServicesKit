@@ -207,7 +207,7 @@ private extension DistributedNavigationDelegate {
 }
 
 // MARK: - WKNavigationDelegate
-extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
+extension DistributedNavigationDelegate: WKNavigationDelegate {
 
     // MARK: Policy making
 
@@ -370,17 +370,18 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     // MARK: Navigation
 
     @MainActor
-    public func webView(_ webView: WKWebView, navigation: WKNavigation, didSameDocumentNavigation navigationType: Int) {
-        if let forwardingTarget = forwardingTarget(for: #selector(webView(_:navigation:didSameDocumentNavigation:))) {
-            withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
-                .webView?(webView, navigation: navigation, didSameDocumentNavigation: navigationType)
-        }
-
-        os_log("didSameDocumentNavigation %s: %d", log: logger, type: .default, navigation.debugDescription, navigationType)
+    @objc(_webView:navigation:didSameDocumentNavigation:)
+    public func webView(_ webView: WKWebView, wkNavigation: WKNavigation?, didSameDocumentNavigation navigationType: Int) {
+        os_log("didSameDocumentNavigation %s: %d", log: logger, type: .default, wkNavigation.debugDescription, navigationType)
 
         // currentHistoryItemIdentity should only change for completed navigation, not while in progress
-        if navigationType == 0 {
+        let navigationType = WKSameDocumentNavigationType(rawValue: navigationType)
+        if case .anchorNavigation = navigationType {
             updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+        }
+
+        for responder in responders {
+            responder.navigation(wkNavigation?.navigation, didSameDocumentNavigationOf: navigationType)
         }
     }
 
@@ -450,11 +451,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     // swiftlint:disable function_body_length
     // swiftlint:disable cyclomatic_complexity
     @MainActor
+    @objc(_webView:willPerformClientRedirectToURL:delay:)
     public func webView(_ webView: WKWebView, willPerformClientRedirectTo url: URL, delay: TimeInterval) {
-        // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
-        if let forwardingTarget = forwardingTarget(for: #selector(webView(_:willPerformClientRedirectTo:delay:))) {
-            withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
-                .webView?(webView, willPerformClientRedirectTo: url, delay: delay)
+        for responder in responders {
+            responder.webViewWillPerformClientRedirect(to: url, withDelay: delay)
         }
 
         // willPerformClientRedirect happens whenever WebView is navigated via JS or Refresh header
@@ -551,13 +551,12 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     // swiftlint:enable cyclomatic_complexity
 
     @MainActor
+    @objc(_webViewDidCancelClientRedirect:)
     public func webViewDidCancelClientRedirect(_ webView: WKWebView) {
         os_log("webViewDidCancelClientRedirect", log: logger, type: .default)
 
-        // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
-        if let forwardingTarget = forwardingTarget(for: #selector(webViewDidCancelClientRedirect(_:))) {
-            withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
-                .webViewDidCancelClientRedirect?(webView)
+        for responder in responders {
+            responder.webViewDidCancelClientRedirect(currentNavigation: startedNavigation)
         }
 
         if case .willPerformClientRedirect = startedNavigation?.state {
@@ -636,25 +635,23 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     }
 
     @MainActor
+    @objc(_webView:didFinishLoadWithRequest:inFrame:)
     public func webView(_ webView: WKWebView, didFinishLoadWith request: URLRequest, in frame: WKFrameInfo) {
-        // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
-        if let forwardingTarget = forwardingTarget(for: #selector(webView(_:didFinishLoadWith:in:))) {
-            withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
-                .webView?(webView, didFinishLoadWith: request, in: frame)
-        }
-
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+
+        for responder in responders {
+            responder.didFinishLoad(with: request, in: frame)
+        }
     }
 
     @MainActor
+    @objc(_webView:didFailProvisionalLoadWithRequest:inFrame:withError:)
     public func webView(_ webView: WKWebView, didFailProvisionalLoadWith request: URLRequest, in frame: WKFrameInfo, with error: Error) {
-        // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
-        if let forwardingTarget = forwardingTarget(for: #selector(webView(_:didFailProvisionalLoadWith:in:with:))) {
-            withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
-                .webView?(webView, didFailProvisionalLoadWith: request, in: frame, with: error)
-        }
-
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+
+        for responder in responders {
+            responder.didFailProvisionalLoad(with: request, in: frame, with: error)
+        }
     }
 
     // MARK: Downloads
@@ -744,6 +741,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
 #if TERMINATE_WITH_REASON_ENABLED
     @MainActor
+    @objc(_webView:webContentProcessDidTerminateWithReason:)
     public func webView(_ webView: WKWebView, webContentProcessDidTerminateWith reason: Int) {
         self.webView(webView, processDidTerminateWith: WKProcessTerminationReason(rawValue: reason))
     }
@@ -779,14 +777,17 @@ extension DistributedNavigationDelegate {
     /// (such as one of the decidePolicyForNavigationAction (sync/async/with preferences) methods or a higher priority private API method)
     /// this will lead to the designated DistributedNavigationDelegate method not called at all.
     /// !!! Only one responder can be registered per custom method handler
-    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, for selector: Selector) {
+    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, forSelectorNamed selectorStr: String) {
         dispatchPrecondition(condition: .onQueue(.main))
+        let selector = NSSelectorFromString(selectorStr)
         assert(customDelegateMethodHandlers[selector] == nil)
+        assert((handler.ref.responder as? NSObject)!.responds(to: selector))
         customDelegateMethodHandlers[selector] = handler.ref
     }
-    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, for selectors: [Selector]) {
+    
+    public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, forSelectorsNamed selectors: [String]) {
         for selector in selectors {
-            registerCustomDelegateMethodHandler(handler, for: selector)
+            registerCustomDelegateMethodHandler(handler, forSelectorNamed: selector)
         }
     }
 

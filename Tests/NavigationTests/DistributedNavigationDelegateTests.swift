@@ -419,9 +419,8 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testReloadAfterSameDocumentNavigation() throws {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         let customCallbacksHandler = CustomCallbacksHandler()
-        navigationDelegate.registerCustomDelegateMethodHandler(.strong(customCallbacksHandler), for: #selector(CustomCallbacksHandler.webView(_:navigation:didSameDocumentNavigation:)))
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(customCallbacksHandler))
 
         server.middleware = [{ [data] request in
             return .ok(.html(data.html.string()!))
@@ -443,7 +442,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         // #2 load URL#namedlink
         eDidFinish = expectation(description: "#2")
         customCallbacksHandler.didSameDocumentNavigation = { _, type in
-            if type == 3 { eDidFinish.fulfill() }
+            if type == .sessionStatePop { eDidFinish.fulfill() }
         }
         withWebView { webView in
             _=webView.load(req(urls.localHashed1))
