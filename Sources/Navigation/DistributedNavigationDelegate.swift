@@ -262,7 +262,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
                 }
                 decisionHandler(.allow, preferences.applying(to: wkPreferences))
 
-                if let mainFrameNavigation {
+                if let mainFrameNavigation, !mainFrameNavigation.isCurrent {
+                    // another navigation is starting
+                    self.startedNavigation?.didResignCurrent()
                     self.willStart(mainFrameNavigation)
                 }
 
@@ -552,6 +554,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
     }
 
+#else
+    @nonobjc public func webView(_: WKWebView, willPerformClientRedirectTo _: URL, delay: TimeInterval) {}
 #endif
 
     // MARK: Completion

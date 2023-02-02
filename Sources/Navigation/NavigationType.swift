@@ -44,6 +44,10 @@ public enum NavigationType: Equatable {
 
     public init(_ navigationAction: WebViewNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?) {
         switch navigationAction.navigationType {
+        case .linkActivated where navigationAction.isSameDocumentNavigation,
+             .other where navigationAction.isSameDocumentNavigation:
+            self = .sameDocumentNavigation
+
         case .linkActivated:
 #if os(macOS)
             self = .linkActivated(isMiddleClick: navigationAction.isMiddleClick)
@@ -58,8 +62,6 @@ public enum NavigationType: Equatable {
             self = .formSubmitted
         case .formResubmitted:
             self = .formResubmitted
-        case .other where navigationAction.isSameDocumentNavigation:
-            self = .sameDocumentNavigation
         case .other:
             self = .other
         @unknown default:

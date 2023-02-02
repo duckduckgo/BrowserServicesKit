@@ -32,7 +32,7 @@ import XCTest
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
 
-@available(macOS 12.0, *)
+@available(macOS 12.0, iOS 15.0, *)
 class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
 
     @MainActor
@@ -147,13 +147,18 @@ class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
         navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .linkActivated, request: req(urls.local)).navigationAction
         e = expectation(description: "decisionHandler 2 called")
         responder(at: 0).onNavigationAction = { action, _ in
+#if os(macOS)
             XCTAssertEqual(action.navigationType, .linkActivated(isMiddleClick: false))
+#else
+            XCTAssertEqual(action.navigationType, .linkActivated)
+#endif
             e.fulfill()
             return .cancel
         }
         navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
         waitForExpectations(timeout: 1)
 
+#if os(macOS)
         navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .linkActivated, request: req(urls.local), buttonNumber: 4).navigationAction
         e = expectation(description: "decisionHandler 2 called")
         responder(at: 0).onNavigationAction = { action, _ in
@@ -164,6 +169,7 @@ class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
         }
         navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
         waitForExpectations(timeout: 1)
+#endif
 
         navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .reload, request: req(urls.local)).navigationAction
         e = expectation(description: "decisionHandler 2 called")
@@ -175,6 +181,7 @@ class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
         navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
         waitForExpectations(timeout: 1)
 
+#if _IS_USER_INITIATED_ENABLED
         navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .other, request: req(urls.local), isUserInitiated: true).navigationAction
         e = expectation(description: "decisionHandler 2 called")
         responder(at: 0).onNavigationAction = { action, _ in
@@ -184,9 +191,9 @@ class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
         }
         navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
         waitForExpectations(timeout: 1)
+#endif
     }
 
     // TODO: validate user-initiated navigation isn‘t interpreted as client redirect
-    // TODO: navigation.isCurrent (may check in Nav initialization default arg = true)
 
 }

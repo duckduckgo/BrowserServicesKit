@@ -41,15 +41,29 @@ private protocol WKErrorProtocol {
 
 extension WKError: WKErrorProtocol {
 
-    // suppress deprecation warning
+    // suppress WebKit.WebKitErrorDomain deprecation warning
     @available(macOS, introduced: 10.3, deprecated: 10.14)
-    fileprivate static var _WebKitErrorDomain: String { WebKit.WebKitErrorDomain }
+    fileprivate static var _WebKitErrorDomain: String {
+#if os(macOS)
+        assert(WebKit.WebKitErrorDomain == "WebKitErrorDomain")
+        return WebKit.WebKitErrorDomain
+#else
+        return "WebKitErrorDomain"
+#endif
+    }
     static var WebKitErrorDomain: String { (self as WKErrorProtocol.Type)._WebKitErrorDomain }
 
 }
 
 extension WKError.Code {
-    static let frameLoadInterruptedByPolicyChange = WKError.Code(rawValue: WebKitErrorFrameLoadInterruptedByPolicyChange)!
+#if os(macOS)
+    static let frameLoadInterruptedByPolicyChange: WKError.Code = {
+        assert(WebKitErrorFrameLoadInterruptedByPolicyChange == 102)
+        return WKError.Code(rawValue: WebKitErrorFrameLoadInterruptedByPolicyChange)!
+    }()
+#else
+    static let frameLoadInterruptedByPolicyChange = WKError.Code(rawValue: 102)!
+#endif
 }
 
 extension WKError: LocalizedError {

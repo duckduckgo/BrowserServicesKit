@@ -207,7 +207,7 @@ extension NavigationActionPolicy? {
 
 extension WKNavigationActionPolicy {
     static let downloadPolicy: WKNavigationActionPolicy = {
-        if #available(macOS 11.3, *) {
+        if #available(macOS 11.3, iOS 14.5, *) {
             return .download
         }
         return WKNavigationActionPolicy(rawValue: Self.allow.rawValue + 1) ?? .cancel

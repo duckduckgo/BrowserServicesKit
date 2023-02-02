@@ -32,7 +32,7 @@ import XCTest
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
 
-@available(macOS 12.0, *)
+@available(macOS 12.0, iOS 15.0, *)
 class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
     func testDownloadNavigationAction() throws {
@@ -144,7 +144,6 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.server))),
             .didReceiveRedirect(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .navResponseWillBecomeDownload(0),

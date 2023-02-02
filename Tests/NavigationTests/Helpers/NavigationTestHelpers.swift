@@ -239,7 +239,6 @@ extension NavResponse {
         case cantShow
     }
 
-    // TODO: mainFrameNavigation: nil
     static func resp(_ response: URLResponse, _ isNotForMainFrame: IsNotForMainFrame? = nil, _ cantShowMIMEType: CannotShowMimeType? = nil) -> NavResponse {
         NavResponse(response: .init(response: response, isForMainFrame: isNotForMainFrame == nil, canShowMIMEType: cantShowMIMEType == nil, mainFrameNavigation: nil))
     }
@@ -619,8 +618,12 @@ extension NavigationType {
     enum MiddleClick {
         case middleClick
     }
+
+#if os(macOS)
     static var link = NavigationType.linkActivated(isMiddleClick: false)
     static func link(_ middleClick: MiddleClick) -> NavigationType { .linkActivated(isMiddleClick: true) }
+#endif
+
     static var form = NavigationType.formSubmitted
     static var formRe = NavigationType.formResubmitted
     static func backForw(_ dist: Int) -> NavigationType { .backForward(distance: dist) }
@@ -628,8 +631,13 @@ extension NavigationType {
 
     func encoded(_ context: EncodingContext) -> String {
         switch self {
+#if os(macOS)
         case .linkActivated(isMiddleClick: let isMiddleClick):
             return isMiddleClick ? ".link(.middleClick)" : ".link"
+#else
+        case .linkActivated:
+            return ".linkActivated"
+#endif
         case .formSubmitted:
             return ".form"
         case .formResubmitted:

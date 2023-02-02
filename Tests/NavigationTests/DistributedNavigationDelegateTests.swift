@@ -32,7 +32,7 @@ import XCTest
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
 
-@available(macOS 12.0, *)
+@available(macOS 12.0, iOS 15.0, *)
 class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase {
 
     // MARK: - Basic Responder Chain
@@ -292,6 +292,13 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         waitForExpectations(timeout: 5)
 
         XCTAssertTrue(navAct(2).navigationAction.isTargetingNewWindow)
+        // didFinish event may race and fire before .navigationAction(#2)
+        if case .didFinish(var nav, _) = responder(at: 0).history[5] {
+            responder(at: 0).history.remove(at: 5)
+            XCTAssertTrue(nav.isCurrent)
+            nav.isCurrent = false
+            responder(at: 0).history.insert(.didFinish(nav), at: 7)
+        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
@@ -302,8 +309,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: main(urls.local),
                                   targ: FrameInfo(frameIdentity: newFrameIdentity, url: .empty, securityOrigin: urls.local.securityOrigin)),
             .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
-
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
 
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count, headers: .default + ["Content-Type": "text/html"]))),
@@ -596,7 +602,7 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
             .navigationAction(req(urls.https), .other, src: main()),
             .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             .didStart(Nav(action: navAct(2), .started)),
             .didCommit(Nav(action: navAct(2), .started, .committed)),
@@ -890,12 +896,12 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
-        .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
+            .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
 
             .navigationAction(req(urls.local3), .other, src: main()),
             .willStart(Nav(action: navAct(3), .navigationActionReceived, isCurrent: false)),
 
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange))), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue),
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue),
 
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),

@@ -32,7 +32,7 @@ import XCTest
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
 
-@available(macOS 12.0, *)
+@available(macOS 12.0, iOS 15.0, *)
 class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
     func testGoBack() throws {
@@ -461,10 +461,6 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    // TODO: test same-document navigation with only "#navlink" url
-
-    // TODO: test goBack interrupting load after didCommit
-    // TODO: test goBack to same document interrupting load before didCommit
     // TODO: js history manipulation
 
 }

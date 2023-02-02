@@ -34,9 +34,11 @@ class WKNavigationActionMock: NSObject {
 
     @objc var shouldPerformDownload: Bool = false
 
+#if os(macOS)
     @objc var modifierFlags: NSEvent.ModifierFlags
 
     @objc var buttonNumber: Int
+#endif
 
     @objc var isUserInitiated: Bool
 
@@ -46,6 +48,7 @@ class WKNavigationActionMock: NSObject {
         withUnsafePointer(to: self) { $0.withMemoryRebound(to: WKNavigationAction.self, capacity: 1) { $0 } }.pointee
     }
 
+#if os(macOS)
     init(sourceFrame: WKFrameInfo, targetFrame: WKFrameInfo? = nil, navigationType: WKNavigationType, request: URLRequest, isUserInitiated: Bool = false, shouldPerformDownload: Bool = false, modifierFlags: NSEvent.ModifierFlags = [], buttonNumber: Int = 0, mainFrameNavigation: Any? = nil) {
         self.sourceFrame = sourceFrame
         self.targetFrame = targetFrame
@@ -57,6 +60,17 @@ class WKNavigationActionMock: NSObject {
         self.isUserInitiated = isUserInitiated
         self.mainFrameNavigation = mainFrameNavigation
     }
+#else
+    init(sourceFrame: WKFrameInfo, targetFrame: WKFrameInfo? = nil, navigationType: WKNavigationType, request: URLRequest, isUserInitiated: Bool = false, shouldPerformDownload: Bool = false, mainFrameNavigation: Any? = nil) {
+        self.sourceFrame = sourceFrame
+        self.targetFrame = targetFrame
+        self.navigationType = navigationType
+        self.request = request
+        self.shouldPerformDownload = shouldPerformDownload
+        self.isUserInitiated = isUserInitiated
+        self.mainFrameNavigation = mainFrameNavigation
+    }
+#endif
 
 }
 

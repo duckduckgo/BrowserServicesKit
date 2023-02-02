@@ -32,7 +32,7 @@ import XCTest
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
 
-@available(macOS 12.0, *)
+@available(macOS 12.0, iOS 15.0, *)
 class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
     func testWhenAuthenticationChallengeReceived_responderChainReceivesEvents() throws {
