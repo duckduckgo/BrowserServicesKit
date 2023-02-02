@@ -205,8 +205,7 @@ class NavigationValuesTests: DistributedNavigationDelegateTestsBase {
         navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
         waitForExpectations(timeout: 1)
 
-        navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .other, request: req(urls.local), isUserInitiated: false, modifierFlags: [.option, .shift], buttonNumber: 4).navigationAction
-        // TODO: validate can be other or form submit with middle click
+        navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .other, request: req(urls.local), isUserInitiated: false, modifierFlags: [.option, .shift]).navigationAction
         e = expectation(description: "decisionHandler 2 called")
         responder(at: 0).onNavigationAction = { action, _ in
             XCTAssertEqual(action.navigationType, .other)

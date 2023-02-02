@@ -1305,7 +1305,8 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         }]
         try server.start(8084)
 
-        responder(at: 0).onDidReceiveRedirect = { [unowned webView=withWebView(do: { $0 })] _, _ in
+        responder(at: 0).onDidReceiveRedirect = { [unowned webView=withWebView(do: { $0 }), unowned server] _, _ in
+            server!.stop()
             webView.stopLoading()
         }
 
@@ -1425,6 +1426,50 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    // TODO: cancel client redirect with initial navigationDidFail
+    // somewhat arguable: I don‘t know how to simulate failing navigation after it has performed client redirect
+    // but just in case it can be failed we‘re handling it the same way as the one competed normally
+    func testClientRedirectWithFailingInitialNavigation() throws {
+        navigationDelegateProxy.finishEventsDispatchTime = .beforeWillStartNavigationAction
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+        }
+
+        server.middleware = [{ [data] request in
+            guard request.path == "/" else { return nil }
+            return .ok(.html(data.clientRedirectData.string()!))
+        }, { [data] request in
+            return .ok(.data(data.html))
+        }]
+        try server.start(8084)
+
+        navigationDelegateProxy.replaceDidFinishWithDidFailWithError = WKError(.unknown)
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
+
+            .didFail(Nav(action: navAct(1), .failed(WKError(.unknown)), resp: resp(0), .committed, isCurrent: false), WKError.Code.unknown.rawValue),
+
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
+            .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.html.count))),
+            .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(1), .committed)),
+
+            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(1), .committed))
+        ])
+    }
 
 }

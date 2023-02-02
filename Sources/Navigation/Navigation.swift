@@ -276,6 +276,12 @@ extension Navigation {
         if let navigation {
             self.resolve(with: navigation)
         }
+
+        if case .willPerformClientRedirect = self.state {
+            // expecting didPerformClientRedirect/didCancelClientRedirect/didFail
+            return
+        }
+
         self.state = .failed(error)
     }
 
@@ -326,12 +332,16 @@ extension Navigation {
         }
     }
 
-    func didSendDidPerformClientRedirectToResponders() {
+    func didSendDidPerformClientRedirectToResponders(with error: WKError? = nil) {
         guard case .redirected(.client) = state else {
             assertionFailure("unexpected didPerformClientRedirect")
             return
         }
-        self.state = .finished
+        if let error {
+            self.state = .failed(error)
+        } else {
+            self.state = .finished
+        }
     }
 
     func didCancelClientRedirect() {

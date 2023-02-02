@@ -818,8 +818,15 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
         }
     }
 
+    var replaceDidFinishWithDidFailWithError: WKError?
     @MainActor
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if let error = replaceDidFinishWithDidFailWithError {
+            self.replaceDidFinishWithDidFailWithError = nil
+            self.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
+            return
+        }
+
         guard finishEventsDispatchTime != .instant else {
             delegate.webView(webView, didFinish: navigation)
             return

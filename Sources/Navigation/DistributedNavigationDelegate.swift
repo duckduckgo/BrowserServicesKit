@@ -447,6 +447,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
 #if WILLPERFORMCLIENTREDIRECT_ENABLED
 
+    // swiftlint:disable function_body_length
+    // swiftlint:disable cyclomatic_complexity
     @MainActor
     public func webView(_ webView: WKWebView, willPerformClientRedirectTo url: URL, delay: TimeInterval) {
         // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
@@ -473,6 +475,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         // override the original Navigation ResponderChain to postpone didFinish event
         // otherwise the `startedNavigation` would be set to nil and won‘t be related to new Navigation
         var delayedFinishItem: DispatchWorkItem?
+        var navigationError: WKError?
         redirectedNavigation.overrideResponders(redirected: { navigationAction, navigation in
             // called from `decidePolicyForNavigationAction`: `startedNavigation.didPerformClientRedirect(with: navigationAction)`
             guard !navigation.isCompleted else { return }
@@ -486,7 +489,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
             guard let sendDidFinish = sendDidFinishToResponders else { return }
             // set Navigation state to `finished`
-            navigation.didSendDidPerformClientRedirectToResponders()
+            navigation.didSendDidPerformClientRedirectToResponders(with: navigationError)
             // send `navigationDidFinish` to the original Navigation ResponderChain (if `navigationDidFinish` already received)
             sendDidFinish(navigation)
             sendDidFinishToResponders = nil
@@ -518,17 +521,39 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay + 0.5, execute: delayedFinishItem!)
 
         }, navigationDidFail: { navigation, error in
-            sendDidFinishToResponders = nil
-            for responder in originalResponders {
-                responder.navigation(navigation, didFailWith: error)
+            // normally we should receive "navigationDidFinish", but handling didFail the same way
+            let sendDidFinish = { (navigation: Navigation) in
+                if !navigation.isCompleted {
+                    navigation.didFail(with: error)
+                }
+                for responder in originalResponders {
+                    responder.navigation(navigation, didFailWith: error)
+                }
             }
+            guard !navigation.isCompleted else {
+                sendDidFinish(navigation)
+                return
+            }
+
+            sendDidFinishToResponders = sendDidFinish
+            navigationError = error
+
+            delayedFinishItem = DispatchWorkItem {
+                sendDidFinishToResponders?(navigation)
+                sendDidFinishToResponders = nil
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay + 0.5, execute: delayedFinishItem!)
         })
         // set Navigation state to .redirected and expect the redirect NavigationAction
         redirectedNavigation.willPerformClientRedirect(to: url, delay: delay)
     }
+    // swiftlint:enable function_body_length
+    // swiftlint:enable cyclomatic_complexity
 
     @MainActor
     public func webViewDidCancelClientRedirect(_ webView: WKWebView) {
+        os_log("webViewDidCancelClientRedirect", log: logger, type: .default)
+
         // if method implemented in Responder using registerCustomDelegateMethodHandler(for:selector)
         if let forwardingTarget = forwardingTarget(for: #selector(webViewDidCancelClientRedirect(_:))) {
             withUnsafePointer(to: forwardingTarget) { $0.withMemoryRebound(to: WKNavigationDelegatePrivate.self, capacity: 1) { $0 } }.pointee
@@ -602,6 +627,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
 
         if self.startedNavigation === navigation {
+            if case .willPerformClientRedirect = navigation.state {
+                // expecting didPerformClientRedirect
+                return
+            }
             self.startedNavigation = nil
         }
     }
