@@ -335,9 +335,6 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
                     }
                 })
 
-        func response(matching url: URL) -> Int {
-            responder(at: 0).navigationResponses.firstIndex(where: { $0.url.matches(url) })!
-        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
@@ -365,5 +362,27 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    // TODO: download cancel
+    func testDownloadCancellation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        let eDidFinish = expectation(description: "onDidFinish")
+
+        responder(at: 0).onNavigationAction = { _, _ in .download }
+        responder(at: 0).onNavActionBecameDownload = { _, download in
+            (download as WebKitDownload).cancel { _ in
+                eDidFinish.fulfill()
+            }
+        }
+
+        withWebView { webView in
+            _=webView.load(URLRequest(url: urls.local))
+        }
+        waitForExpectations(timeout: 5)
+    }
+
 }

@@ -353,6 +353,10 @@ extension DistributedNavigationDelegateTestsBase {
         return responder(at: 0).navigationResponses[idx]
     }
 
+    func response(matching url: URL) -> Int {
+        responder(at: 0).navigationResponses.firstIndex(where: { $0.url.matches(url) })!
+    }
+
     // MARK: FrameInfo mocking
 
     func main(_ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {

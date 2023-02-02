@@ -1426,8 +1426,8 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local2, data.html.count))),
-            .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(1), .committed)),
-            .didFinish(Nav(action: navAct(3), .finished, resp: resp(1), .committed)),
+            .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(response(matching: urls.local2)), .committed)),
+            .didFinish(Nav(action: navAct(3), .finished, resp: resp(response(matching: urls.local2)), .committed)),
         ])
     }
 
