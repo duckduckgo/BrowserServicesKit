@@ -160,6 +160,9 @@ struct NavResponse: Equatable {
     static func == (lhs: NavResponse, rhs: NavResponse) -> Bool {
         NavigationResponse.difference(between: lhs.response, and: rhs.response) == nil
     }
+    var url: URL {
+        response.url
+    }
 }
 
 extension NavigationState {
@@ -196,6 +199,8 @@ extension NavigationState {
             return ".failed(WKError(\(error.encoded())))"
         case .navigationActionReceived:
             return ".navigationActionReceived"
+        case .approved:
+            return ".approved"
         }
     }
 }
@@ -783,8 +788,15 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
         }
     }
 
+    var nextNavigationActionShouldBeUserInitiated: Bool = false
+
     @MainActor
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+        if nextNavigationActionShouldBeUserInitiated {
+            navigationAction._isUserInitiated = true
+            nextNavigationActionShouldBeUserInitiated = false
+        }
+
         delegate.webView(webView, decidePolicyFor: navigationAction, preferences: preferences) { [self] policy, preferences in
             decisionHandler(policy, preferences)
             switch self.finishEventsDispatchTime {
@@ -853,6 +865,27 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
         delegate.webView(webView, willPerformClientRedirectTo: url, delay: delay)
     }
 
+}
+
+private extension WKNavigationAction {
+    private static let isUserInitiatedKey = UnsafeRawPointer(bitPattern: "isUserInitiatedKey".hashValue)!
+
+    @nonobjc var _isUserInitiated: Bool {
+        get {
+#if _IS_USER_INITIATED_ENABLED
+            return (objc_getAssociatedObject(self, Self.isUserInitiatedKey) as? Bool) ?? self.value(forKey: "_isUserInitiated") as! Bool
+#else
+            return false
+#endif
+        }
+        set {
+            objc_setAssociatedObject(self, Self.isUserInitiatedKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
+    @objc var isUserInitiated: Bool {
+        _isUserInitiated
+    }
 }
 
 private extension NSObject {

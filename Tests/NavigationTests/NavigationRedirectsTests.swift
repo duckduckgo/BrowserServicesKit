@@ -61,12 +61,12 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.sameDocumentClientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-            .willStart(Nav(action: NavAction(req(urls.localHashed1, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[1], src: main(urls.local)), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed1, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[1], src: main(urls.local)), .approved, isCurrent: false)),
 
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
         ])
@@ -101,17 +101,17 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local3Hashed), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local3Hashed, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local3Hashed)),
-                                Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed)),
 
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local3Hashed))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(2)),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(1), .committed)),
@@ -147,7 +147,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9"]), .redirect(.server), redirects: [navAct(1)], src: main()),
@@ -201,7 +201,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local, cachePolicy: .reloadIgnoringLocalCacheData), .other, from: history[1], src: main(urls.local))),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
 
             .navigationAction(NavAction(req(urls.localHashed, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"], cachePolicy: .reloadIgnoringLocalCacheData), .redirect(.server), from: history[1], redirects: [navAct(2)], src: main(urls.local))),
@@ -240,23 +240,21 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, mime: "text/plain", headers: ["Refresh": "1; url=/2", "Server": "Swifter Unspecified"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-            .didReceiveRedirect(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local)),
-                                    Nav(action: navAct(1), .redirected(.client(delay: 1)), resp: resp(0), .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client(delay: 1)), resp: resp(0), .committed, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(2)),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(1), .committed)),
             .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(1), .committed))
         ])
-
     }
 
     func testMetaRedirectAfterServerRedirect() throws {
@@ -294,7 +292,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [navAct(1)], src: main()),
@@ -302,13 +300,12 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)),
-                                Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2))),
+            .didReceiveRedirect(navAct(3), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)),
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .started)),
 
             .navigationAction(req(urls.local4, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Upgrade-Insecure-Requests": "1", "Accept-Language": "en-GB,en;q=0.9", "Referer": urls.local2.string]), .redirect(.server), from: history[2], redirects: [navAct(1), navAct(2), navAct(3)], src: main(urls.local2)),
@@ -351,36 +348,34 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.metaRedirect.count))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local)),
-                                Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+                .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(2)),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.clientRedirectData.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(1), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1), navAct(2)], src: main(urls.local3)),
-                                Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(1), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1), navAct(2)], src: main(urls.local3))),
+            .didReceiveRedirect(navAct(3), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(1), .committed, isCurrent: false)),
 
-            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(1), .committed)),
+            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(1), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(3)),
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .started)),
             .response(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .responseReceived, resp: resp(1))),
             .didCommit(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .responseReceived, resp: resp(1), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1), navAct(2), navAct(3)], src: main(urls.local3)),
-                                Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .redirected(.client), resp: resp(1), .committed)),
-            .didFinish(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .finished, resp: resp(1), .committed)),
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1), navAct(2), navAct(3)], src: main(urls.local3))),
+            .didReceiveRedirect(navAct(4), Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .redirected(.client), resp: resp(1), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(4)),
-            .willStart(Nav(action: navAct(4), redirects: [navAct(1), navAct(2), navAct(3)], .navigationActionReceived, isCurrent: false)),
+            .didFinish(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .finished, resp: resp(1), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(4), redirects: [navAct(1), navAct(2), navAct(3)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(4), redirects: [navAct(1), navAct(2), navAct(3)], .started)),
             .response(Nav(action: navAct(4), redirects: [navAct(1), navAct(2), navAct(3)], .responseReceived, resp: .resp(urls.local2, data.html.count))),
             .didCommit(Nav(action: navAct(4), redirects: [navAct(1), navAct(2), navAct(3)], .responseReceived, resp: resp(3), .committed)),
@@ -424,7 +419,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-GB,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [navAct(1)], src: main()),
@@ -432,12 +427,12 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2))),
+            .didReceiveRedirect(navAct(3), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(3)),
-            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(0), .committed, isCurrent: false)),
 
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .started)),
 
             .navigationAction(req(urls.local4, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Upgrade-Insecure-Requests": "1", "Accept-Language": "en-GB,en;q=0.9", "Referer": urls.local2.string]), .redirect(.server), from: history[2], redirects: [navAct(1), navAct(2), navAct(3)], src: main(urls.local2)),
@@ -485,7 +480,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-GB,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [navAct(1)], src: main()),
@@ -493,11 +488,10 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)),
-                                Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2))),
+            .didReceiveRedirect(navAct(3), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(3)),
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .approved, isCurrent: false)),
             .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(0), .committed, isCurrent: false)),
 
             .didStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .started)),
@@ -540,26 +534,26 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local)),
-                                    Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed)),
-            .navigationAction(navAct(2)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(1), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1), navAct(2)], src: main(urls.local3)),
-                                Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(1), .committed)),
-            .navigationAction(navAct(3)),
-            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(1), .committed)),
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local3.string]), .redirect(.client), from: history[1], redirects: [navAct(1), navAct(2)], src: main(urls.local3))),
+            .didReceiveRedirect(navAct(3), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(1), .committed, isCurrent: false)),
 
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .navigationActionReceived, isCurrent: false)),
+            .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(1), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .started)),
             .response(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .responseReceived, resp: .resp(urls.local2, data.html.count))),
             .didCommit(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .responseReceived, resp: resp(2), .committed)),
@@ -592,16 +586,16 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.metaRedirect.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local)),
-                                Nav(action: navAct(1), .redirected(.client(delay: 1)), resp: resp(0), .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client(delay: 1)), resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local)),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.html.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(1), .committed)),
@@ -635,14 +629,14 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: main(urls.local)),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local3, data.html.count))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
@@ -686,17 +680,17 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
             .didReceiveRedirect(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count))),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: resp(0), .committed)),
-            .didReceiveRedirect(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2)), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed)),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(1), navAct(2)], src: main(urls.local2))),
+            .didReceiveRedirect(navAct(3), Nav(action: navAct(2), redirects: [navAct(1)], .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
 
-            .navigationAction(navAct(3)),
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), redirects: [navAct(1), navAct(2)], .started)),
             .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, resp: resp(0), .committed, isCurrent: false)),
 
@@ -735,7 +729,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         var expected: [TestsNavigationEvent] =  [
 
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-GB,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [navAct(1)], src: main()),
             .didReceiveRedirect(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
@@ -782,7 +776,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         var expected: [TestsNavigationEvent] =  [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-GB,en;q=0.9", "Upgrade-Insecure-Requests": "1", "Accept-Encoding": "gzip, deflate"]), .redirect(.server), redirects: [navAct(1)], src: main()),
@@ -832,10 +826,9 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             .navigationAction(NavAction(req(urls.https), .custom(.init(rawValue: "redir")), src: main())),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .started, .committed)),
             .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, .committed))
@@ -873,9 +866,8 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
-            .willStart(Nav(action: NavAction(req(urls.aboutBlank), .redirect(.developer), src: main()), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: NavAction(req(urls.aboutBlank), .redirect(.developer), src: main()), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .didCommit(Nav(action: navAct(2), redirects: [navAct(1)], .started, .committed)),
             .didFinish(Nav(action: navAct(2), redirects: [navAct(1)], .finished, .committed))
@@ -886,12 +878,8 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let eDidFail = expectation(description: "onDidFail")
-        var counter = 0
         responder(at: 0).onDidFail = { _, _ in
-            counter += 1
-            if counter == 2 {
-                eDidFail.fulfill()
-            }
+            eDidFail.fulfill()
         }
 
         responder(at: 0).onNavigationAction = { [urls] action, _ in
@@ -926,10 +914,9 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             .navigationAction(NavAction(req(urls.local2), .redirect(.developer), src: main())),
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count))),
             .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue)
@@ -962,7 +949,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         withWebView { webView in
             _=webView.load(req(urls.local))
         }
-        waitForExpectations(timeout: 50)
+        waitForExpectations(timeout: 5)
 
         // sometimes NavigationAction #2 Task is cancelled and doesn‘t get get to responder
         responder(at: 0).history.removeAll(where: {
@@ -974,19 +961,18 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             return false
         })
         // did fail event may race and fire after .willStart(#2)
-        if case .didFail = responder(at: 0).history[4] {
-            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 4), at: 2)
+        if case .didFail = responder(at: 0).history[3] {
+            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 3), at: 1)
         }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             // .navigationAction(NavAction(req(urls.local2), .redirect(.developer), src: main())),
-            // .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            // .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didFail(Nav(action: NavAction(req(urls.local2), .redirect(.developer), src: main()), redirects: [navAct(1)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             .navigationAction(NavAction(req(urls.local3), .redirect(.developer), src: main())),
-            .willStart(Nav(action: navAct(3), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), redirects: [navAct(1)], .approved, isCurrent: false)),
 
             .didStart(Nav(action: navAct(3), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(3), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.html.count))),
@@ -1043,23 +1029,25 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
                 return navAction.navigationAction.identifier == 4
             } else if case .willStart(let nav, _) = $0 {
                 return nav.navigationAction.navigationAction.identifier == 4
+            } else if case .didFail(let nav, _, _) = $0 {
+                // did fail event may be missing if
+                return nav.navigationAction.navigationAction.url.matches(urls.local4)
             }
             return false
         })
-        // did fail event may race and fire after .willStart(#2)
-        if case .didFail = responder(at: 0).history[4] {
-            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 4), at: 2)
+
+        if case .didFail = responder(at: 0).history[3] {
+            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 3), at: 1)
         }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, from: history[2], src: main(urls.local2))),
-            .didFail(Nav(action: navAct(3), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             // .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .redirect(.developer), from: history[2], src: main(urls.local2))),
-            // .willStart(Nav(action: navAct(4), redirects: [navAct(3)], .navigationActionReceived, isCurrent: false)),
-            .didFail(Nav(action: NavAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .redirect(.developer), from: history[2], src: main(urls.local2)), redirects: [navAct(3)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
+            // .willStart(Nav(action: navAct(4), redirects: [navAct(3)], .approved, isCurrent: false)),
+            // .didFail(Nav(action: NavAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .redirect(.developer), from: history[2], src: main(urls.local2)), redirects: [navAct(3)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             .navigationAction(NavAction(req(urls.local3), .custom(.init(rawValue: "redir")), from: history[2], src: main(urls.local2))),
-            .willStart(Nav(action: navAct(5), redirects: [navAct(3)], .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(5), redirects: [navAct(3)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(5), redirects: [navAct(3)], .started)),
             .response(Nav(action: navAct(5), redirects: [navAct(3)], .responseReceived, resp: .resp(urls.local3, data.html.count))),
             .didCommit(Nav(action: navAct(5), redirects: [navAct(3)], .responseReceived, resp: resp(2), .committed)),
@@ -1068,7 +1056,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertEqual(_webView.backForwardList.backList.count, 1)
     }
 
-    func testWhenRedirectIsInterruptedThenDidFailProvisionalIsCalled() throws {
+    func testWhenServerRedirectIsInterruptedThenDidFailProvisionalIsCalled() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         server.middleware = [{ [urls, data] request in
@@ -1100,7 +1088,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Language": "en-XX,en;q=0.9", "Accept-Encoding": "gzip, deflate", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
@@ -1153,13 +1141,13 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.testScheme), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.testScheme, status: nil, data.html.count))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
             .navigationAction(NavAction(req(urls.local4), .other, from: history[1], src: main(urls.testScheme))),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
 
             .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), resp: resp(0), .committed, isCurrent: false), NSURLErrorCancelled),
 
@@ -1170,8 +1158,280 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    // TODO: cancel client redirect (userRedirectWillCancel)
+    func testClientRedirectNavigationActionCancellation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegateProxy.finishEventsDispatchTime = .instant
+
+        server.middleware = [{ [urls, data] request in
+            switch request.path {
+            case urls.local2.path:
+                return .ok(.data(data.html))
+            default:
+                return .raw(200, "OK", ["refresh": "1; url=" + urls.local2.path]) { writer in
+                    try! writer.write(data.empty)
+                }
+            }
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.matches(urls.local2) {
+                return .cancel
+            }
+            return .allow
+        }
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, mime: "text/plain", headers: ["Refresh": "1; url=/2", "Server": "Swifter Unspecified"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+        ])
+    }
+
+    func testClientRedirectNavigationActionCancellationWhenDidFinishReceivedAfterNavigationAction() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
+
+        server.middleware = [{ [urls, data] request in
+            switch request.path {
+            case urls.local2.path:
+                return .ok(.data(data.html))
+            default:
+                return .raw(200, "OK", ["refresh": "1; url=" + urls.local2.path]) { writer in
+                    try! writer.write(data.empty)
+                }
+            }
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.matches(urls.local2) {
+                return .cancel
+            }
+            return .allow
+        }
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, mime: "text/plain", headers: ["Refresh": "1; url=/2", "Server": "Swifter Unspecified"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+        ])
+    }
+
+    func testClientRedirectNavigationResponseCancellation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [urls, data] request in
+            switch request.path {
+            case urls.local2.path:
+                return .ok(.data(data.html))
+            default:
+                return .raw(200, "OK", ["refresh": "1; url=" + urls.local2.path]) { writer in
+                    try! writer.write(data.empty)
+                }
+            }
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onNavigationResponse = { [urls] navResponse in
+            if navResponse.url.matches(urls.local2) {
+                return .cancel
+            }
+            return .allow
+        }
+
+        let eDidFail = expectation(description: "onDidFail")
+        responder(at: 0).onDidFail = { _, _ in
+            eDidFail.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, mime: "text/plain", headers: ["Refresh": "1; url=/2", "Server": "Swifter Unspecified"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client(delay: 1)), resp: resp(0), .committed, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
+            .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count))),
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(1)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue)
+        ])
+    }
+
+    func testClientRedirectStoppedOnDidReceiveRedirect() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [urls, data] request in
+            switch request.path {
+            case urls.local2.path:
+                return .ok(.data(data.html))
+            default:
+                return .ok(.html(data.clientRedirectData.string()!))
+            }
+        }]
+        try server.start(8084)
+
+        responder(at: 0).onDidReceiveRedirect = { [unowned webView=withWebView(do: { $0 })] _, _ in
+            webView.stopLoading()
+        }
+
+        let eDidFail = expectation(description: "onDidFail")
+        responder(at: 0).onDidFail = { _, _ in
+            eDidFail.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
+
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+
+            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+        ])
+    }
+
+    @MainActor
+    func testUserInitiatedRedirectNotInterpretedAsClientRedirect() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let lock = NSLock()
+        let unlock = { lock.unlock() }
+        defer {
+            lock.try()
+            lock.unlock()
+        }
+
+        server.middleware = [{ [unowned webView=withWebView(do: { $0 }), unowned navigationDelegateProxy, urls, data] request in
+            switch request.path {
+            case urls.local3.path:
+                DispatchQueue.main.async {
+                    navigationDelegateProxy!.nextNavigationActionShouldBeUserInitiated = true
+                    webView.evaluateJavaScript("window.location.href='\(urls.local2)'")
+                }
+                lock.lock()
+                lock.unlock()
+
+                return .ok(.data(data.html))
+            case urls.local2.path:
+                return .ok(.data(data.html))
+            default:
+                return .ok(.html(data.htmlWithIframe3.string()!))
+            }
+        }]
+        try server.start(8084)
+
+        let eDidFinish1 = expectation(description: "onDidFinish 1")
+        let eDidFinish2 = expectation(description: "onDidFinish 2")
+        var eDidFinish = eDidFinish1
+        responder(at: 0).onNavigationAction = { @MainActor [urls] navAction, _ in
+            if navAction.url.matches(urls.local2) {
+#if _IS_USER_INITIATED_ENABLED
+                XCTAssertTrue(navAction.isUserInitiated)
+#endif
+                unlock()
+            }
+            return .allow
+        }
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+            eDidFinish = eDidFinish2
+        }
+
+        lock.lock()
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        // filter out iframe events
+        responder(at: 0).history.removeAll {
+            switch $0 {
+            case .navigationAction(let navAct, _, _):
+                return navAct.navigationAction.url.matches(urls.local3)
+            case .navigationResponse(.response(let resp, _), _):
+                return resp.response.url.matches(urls.local3)
+            case .didCommit(let nav, _):
+                return nav.navigationAction.navigationAction.url.matches(urls.local3)
+            case .didFinish(let nav, _):
+                return nav.navigationAction.navigationAction.url.matches(urls.local3)
+            default:
+                return false
+            }
+        }
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(NavAction(req(urls.local), .other, src: main())),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+
+            // user-initiated action
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], .userInitiated, src: main(urls.local))),
+
+            .willStart(Nav(action: navAct(3), .approved, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+
+            .didStart(Nav(action: navAct(3), .started)),
+            .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local2, data.html.count))),
+            .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(1), .committed)),
+            .didFinish(Nav(action: navAct(3), .finished, resp: resp(1), .committed)),
+        ])
+    }
+
+
     // TODO: cancel client redirect with initial navigationDidFail
-    // TODO: validate user-initiated navigation isn‘t interpreted as client redirect
 
 }

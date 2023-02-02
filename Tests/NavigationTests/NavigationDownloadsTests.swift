@@ -96,7 +96,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -140,7 +140,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
             .didReceiveRedirect(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
@@ -249,7 +249,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWith3iFrames.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -306,7 +306,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         withWebView { webView in
             _=webView.load(req(urls.local))
         }
-        waitForExpectations(timeout: 50)
+        waitForExpectations(timeout: 5)
 
         // sort download events by url and event order
         responder(at: 0).history
@@ -335,9 +335,12 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
                     }
                 })
 
+        func response(matching url: URL) -> Int {
+            responder(at: 0).navigationResponses.firstIndex(where: { $0.url.matches(url) })!
+        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWith3iFrames.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -348,15 +351,15 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
             .response(.resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .navResponseWillBecomeDownload(1),
-            .navResponseBecameDownload(1, urls.local2),
+            .navResponseBecameDownload(response(matching: urls.local2), urls.local2),
 
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .navResponseWillBecomeDownload(2),
-            .navResponseBecameDownload(2, urls.local3),
+            .navResponseBecameDownload(response(matching: urls.local3), urls.local3),
 
             .response(.resp(urls.local4, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .navResponseWillBecomeDownload(3),
-            .navResponseBecameDownload(3, urls.local4),
+            .navResponseBecameDownload(response(matching: urls.local4), urls.local4),
 
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
         ])

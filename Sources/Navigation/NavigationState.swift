@@ -23,6 +23,7 @@ public enum NavigationState: Equatable {
 
     case expected(NavigationType?)
     case navigationActionReceived
+    case approved
     case started
 
     case willPerformClientRedirect(delay: TimeInterval)
@@ -62,6 +63,7 @@ public enum NavigationState: Equatable {
         switch lhs {
         case .expected(let navigationType): if case .expected(navigationType) = rhs { return true }
         case .navigationActionReceived: if case .navigationActionReceived = rhs { return true }
+        case .approved: if case .approved = rhs { return true }
         case .started: if case .started = rhs { return true }
         case .willPerformClientRedirect(delay: let delay): if case .willPerformClientRedirect(delay: delay) = rhs { return true }
         case .redirected(let type): if case .redirected(type) = rhs { return true }

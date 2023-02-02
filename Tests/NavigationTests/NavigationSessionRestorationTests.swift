@@ -44,7 +44,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 404, mime: "text/plain", headers: ["Server": "Swifter Unspecified"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
@@ -64,7 +64,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .willStart(Nav(action: .init(req(urls.aboutPrefs, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: .init(req(urls.aboutPrefs, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didCommit(Nav(action: navAct(1), .started, .committed)),
             .didFinish(Nav(action: navAct(1), .finished, .committed)),
@@ -96,7 +96,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[1], src: main(urls.local)),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
@@ -131,14 +131,14 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: main(urls.local1)),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
@@ -178,19 +178,19 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004),
 
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[1], src: main()),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(2), .finished, resp: resp(0), .committed)),
 
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[2], src: main(urls.local1)),
-            .willStart(Nav(action: navAct(3), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(1), .committed)),
@@ -233,19 +233,19 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .restore, src: main()),
-            .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didFail(Nav(action: navAct(1), .failed(WKError(-1004))), -1004),
 
             .navigationAction(req(urls.local, cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: main()),
-            .willStart(Nav(action: navAct(2), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(2), .finished, resp: resp(0), .committed)),
 
             .navigationAction(req(urls.local1, cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[2], src: main(urls.local)),
-            .willStart(Nav(action: navAct(3), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: navAct(3), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(1), .committed)),
@@ -265,7 +265,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .willStart(Nav(action: .init(req(urls.aboutBlank, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .navigationActionReceived, isCurrent: false)),
+            .willStart(Nav(action: .init(req(urls.aboutBlank, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didCommit(Nav(action: navAct(1), .started, .committed)),
             .didFinish(Nav(action: navAct(1), .finished, .committed)),

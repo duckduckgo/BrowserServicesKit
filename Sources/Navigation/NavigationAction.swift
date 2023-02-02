@@ -216,7 +216,12 @@ extension NavigationActionPolicy? {
 
 extension NavigationAction: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<NavigationAction #\(identifier): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame != targetFrame ? sourceFrame.debugDescription + " -> " : "")\(targetFrame.debugDescription)>"
+#if _IS_USER_INITIATED_ENABLED
+        let isUserInitiatedStr = isUserInitiated ? " [user-initiated]" : ""
+#else
+        let isUserInitiatedStr = ""
+#endif
+        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame != targetFrame ? sourceFrame.debugDescription + " -> " : "")\(targetFrame.debugDescription)>"
     }
 }
 

@@ -66,6 +66,16 @@ public final class Navigation {
         request.url ?? .empty
     }
 
+    public var isApproved: Bool {
+        switch state {
+        case .expected, .navigationActionReceived:
+            return false
+        case .approved, .started, .willPerformClientRedirect,
+             .redirected, .responseReceived, .finished, .failed:
+            return true
+        }
+    }
+
     public var isCompleted: Bool {
         return state.isFinished || state.isFailed
     }
@@ -199,15 +209,23 @@ extension Navigation {
         case .started:
             willPerformServerRedirect(with: navigationAction)
 
-        case .navigationActionReceived, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
+        case .navigationActionReceived, .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
+    }
+
+    func willStart() {
+        guard case .navigationActionReceived = self.state else {
+            assertionFailure("unexpected state \(self.state)")
+            return
+        }
+        self.state = .approved
     }
 
     func started(_ navigation: WKNavigation?) {
         self.resolve(with: navigation)
 
-        guard case .navigationActionReceived = self.state else {
+        guard case .approved = self.state else {
             assertionFailure("unexpected state \(self.state)")
             return
         }
@@ -237,7 +255,7 @@ extension Navigation {
         self.state = .responseReceived
     }
 
-    func didFinish(_ navigation: WKNavigation?) {
+    func didFinish(_ navigation: WKNavigation? = nil) {
         self.resolve(with: navigation)
 
         switch self.state {
@@ -249,7 +267,7 @@ extension Navigation {
         case .responseReceived:
             // regular flow
             self.state = .finished
-        case .expected, .navigationActionReceived, .finished, .failed:
+        case .expected, .navigationActionReceived, .approved, .finished, .failed:
             assertionFailure("unexpected state \(self.state)")
         }
     }
@@ -269,7 +287,7 @@ extension Navigation {
         case .started:
             self.state = .redirected(.server)
             self.navigationActions.append(navigationAction)
-        case .expected, .navigationActionReceived, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
+        case .expected, .navigationActionReceived, .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
     }
@@ -283,7 +301,7 @@ extension Navigation {
         case .started:
             // duplicate(cyclic) server redirect called without decidePolicyForNavigationAction:
             self.navigationActions.append(self.navigationActions.last!)
-        case .expected, .navigationActionReceived, .failed, .finished, .responseReceived, .willPerformClientRedirect, .redirected:
+        case .expected, .navigationActionReceived, .approved, .failed, .finished, .responseReceived, .willPerformClientRedirect, .redirected:
             assertionFailure("didReceiveServerRedirect should happen after decidePolicyForNavigationAction")
         }
     }
@@ -292,7 +310,7 @@ extension Navigation {
         switch state {
         case .started, .responseReceived:
             self.state = .willPerformClientRedirect(delay: delay)
-        case .expected, .navigationActionReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
+        case .expected, .navigationActionReceived, .approved, .finished, .failed, .willPerformClientRedirect, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
     }
@@ -318,11 +336,11 @@ extension Navigation {
     }
 
     func didCancelClientRedirect() {
-        guard case .redirected(.client) = state else {
+        guard case .willPerformClientRedirect = state else {
             assertionFailure("unexpected didPerformClientRedirect")
             return
         }
-        self.state = .started
+        self.state = .responseReceived
     }
 
 }
@@ -342,7 +360,7 @@ final class WKNavigationLifetimeTracker: NSObject {
     }
 
     private static func checkNavigationCompletion(_ navigation: Navigation) {
-        guard !navigation.isCompleted else { return }
+        guard !navigation.isCompleted, navigation.isApproved else { return }
 
         let error = WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled))
         navigation.state = .failed(error)
@@ -377,6 +395,7 @@ extension NavigationState: CustomStringConvertible {
         switch self {
         case .expected(let navigationType): return "expected(\(navigationType?.debugDescription ?? ""))"
         case .navigationActionReceived: return "navigationActionReceived"
+        case .approved: return "approved"
         case .started: return "started"
         case .willPerformClientRedirect: return "willPerformClientRedirect"
         case .redirected: return "redirected"

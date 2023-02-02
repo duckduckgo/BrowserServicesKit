@@ -144,6 +144,9 @@ let package = Package(
             dependencies: [
                 "Navigation",
                 .product(name: "Swifter", package: "swifter")
+            ],
+            swiftSettings: [
+                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
             ]),
         .testTarget(
             name: "UserScriptTests",

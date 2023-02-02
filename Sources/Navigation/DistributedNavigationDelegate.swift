@@ -189,19 +189,17 @@ private extension DistributedNavigationDelegate {
                   case .willPerformClientRedirect(delay: let delay) = startedNavigation.state,
                   // new navigations are started for client redirects
                   startedNavigation.identity != navigation.identity {
-            navigationType = .redirect(.client(delay: delay))
-            redirectHistory = startedNavigation.navigationActions
+            // user-initiated actions aren‘t client redirects
+            if wkNavigationAction.isUserInitiated != true {
+                navigationType = .redirect(.client(delay: delay))
+                redirectHistory = startedNavigation.navigationActions
+            } else {
+                startedNavigation.didCancelClientRedirect()
+            }
         }
 
         let navigationAction = NavigationAction(webView: webView, navigationAction: wkNavigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: redirectHistory, navigationType: navigationType, mainFrameNavigation: navigation)
         navigation.navigationActionReceived(navigationAction)
-
-        if case .redirect(.client) = navigationType {
-            // notify the original (redirected) Navigation about the redirect NavigationAction received
-            // this should call the overriden ResponderChain inside `willPerformClientRedirect`
-            // that in turn notifies the original responders and finishes the Navigation
-            startedNavigation?.didPerformClientRedirect(with: navigationAction)
-        }
 
         return navigation
     }
@@ -225,7 +223,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation : nil
         }
         assert(navigationAction.mainFrameNavigation != nil || !navigationAction.isForMainFrame)
-        os_log("decidePolicyFor: %s: %s", log: logger, type: .default, navigationAction.debugDescription, mainFrameNavigation?.debugDescription ?? "<nil>")
+        os_log("decidePolicyFor: %s", log: logger, type: .default, navigationAction.debugDescription)
 
         // initial `about:` scheme navigation doesn‘t wait for decision
         if (navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about
@@ -299,6 +297,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     private func willStart(_ navigation: Navigation) {
         os_log("willStart %s", log: logger, type: .default, navigation.debugDescription)
 
+        if case .redirect(.client) = navigation.navigationAction.navigationType {
+            // notify the original (redirected) Navigation about the redirect NavigationAction received
+            // this should call the overriden ResponderChain inside `willPerformClientRedirect`
+            // that in turn notifies the original responders and finishes the Navigation
+            startedNavigation?.didPerformClientRedirect(with: navigation.navigationAction)
+        }
+
+        navigation.willStart()
         for responder in navigation.navigationResponders {
             responder.willStart(navigation)
         }
@@ -313,7 +319,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
     }
 
-    // MARK: Pre-Navigation
+    // MARK: Pre-Navigation: Auth, Server Redirects
 
     @MainActor
     public func webView(_ webView: WKWebView,
@@ -411,7 +417,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             startedNavigation?.receivedResponse(navigationResponse)
         }
 
-        os_log("decidePolicyFor response: %s: %s current: %s", log: logger, type: .default, navigationResponse.debugDescription, wkNavigationResponse.debugDescription, startedNavigation?.debugDescription ?? "<nil>")
+        os_log("decidePolicyFor: %s", log: logger, type: .default, navigationResponse.debugDescription)
 
         let responders = (navigationResponse.isForMainFrame ? startedNavigation?.navigationResponders : nil) ?? responders
         makeAsyncDecision(with: responders) { responder in
@@ -437,28 +443,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         }
     }
 
-    @MainActor
-    private func willStartDownload(with navigationResponse: NavigationResponse, in webView: WKWebView) {
-        let responders = (navigationResponse.isForMainFrame ? navigationResponse.mainFrameNavigation?.navigationResponders : nil) ?? responders
-        for responder in responders {
-            responder.navigationResponse(navigationResponse, willBecomeDownloadIn: webView)
-        }
-    }
-
-    @MainActor
-    public func webView(_ webView: WKWebView, didCommit wkNavigation: WKNavigation?) {
-        guard let navigation = wkNavigation?.navigation ?? startedNavigation else {
-            assertionFailure("Unexpected didCommitNavigation")
-            return
-        }
-        updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
-        navigation.committed(wkNavigation)
-        os_log("didCommit: %s", log: logger, type: .default, navigation.debugDescription)
-
-        for responder in navigation.navigationResponders {
-            responder.didCommit(navigation)
-        }
-    }
+    // MARK: Client Redirect
 
 #if WILLPERFORMCLIENTREDIRECT_ENABLED
 
@@ -473,6 +458,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         // willPerformClientRedirect happens whenever WebView is navigated via JS or Refresh header
         // we only consider this a "client redirect" when there‘s an ongoing Navigation
         guard let redirectedNavigation = startedNavigation,
+              redirectedNavigation.state.isResponseReceived,
               // don‘t handle same-document navigations
               !(url.absoluteString.hashedSuffix != nil && redirectedNavigation.url.absoluteString.droppingHashedSuffix() == url.absoluteString.droppingHashedSuffix())
         else { return }
@@ -507,6 +493,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
         }, navigationDidFinish: { navigation in
             let sendDidFinish = { (navigation: Navigation) in
+                if !navigation.isCompleted {
+                    navigation.didFinish()
+                }
                 for responder in originalResponders {
                     responder.navigationDidFinish(navigation)
                 }
@@ -639,6 +628,31 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
     }
 
+    // MARK: Downloads
+
+    @MainActor
+    private func willStartDownload(with navigationResponse: NavigationResponse, in webView: WKWebView) {
+        let responders = (navigationResponse.isForMainFrame ? navigationResponse.mainFrameNavigation?.navigationResponders : nil) ?? responders
+        for responder in responders {
+            responder.navigationResponse(navigationResponse, willBecomeDownloadIn: webView)
+        }
+    }
+
+    @MainActor
+    public func webView(_ webView: WKWebView, didCommit wkNavigation: WKNavigation?) {
+        guard let navigation = wkNavigation?.navigation ?? startedNavigation else {
+            assertionFailure("Unexpected didCommitNavigation")
+            return
+        }
+        updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+        navigation.committed(wkNavigation)
+        os_log("didCommit: %s", log: logger, type: .default, navigation.debugDescription)
+
+        for responder in navigation.navigationResponders {
+            responder.didCommit(navigation)
+        }
+    }
+
     @MainActor
     @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationAction:didBecomeDownload:)
@@ -691,6 +705,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
             }
         }
     }
+
+    // MARK: Termination
 
     @MainActor
     public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
