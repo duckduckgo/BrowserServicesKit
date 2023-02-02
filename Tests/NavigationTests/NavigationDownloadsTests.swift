@@ -119,15 +119,18 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
                 try! writer.write(data.empty)
             }
         }, { [data] request in
-            return .ok(.html(data.html.string()!))
+            return .ok(.data(data.html, contentType: "application/zip"))
         }]
         try server.start(8084)
 
         responder(at: 0).onNavigationAction = { _, params in
             return .allow
         }
-        responder(at: 0).onNavigationResponse = { _ in
-                .download
+        responder(at: 0).onNavigationResponse = { resp in
+            XCTAssertFalse(resp.canShowMIMEType)
+            XCTAssertFalse(resp.shouldDownload)
+            XCTAssertEqual(resp.httpResponse?.isSuccessful, true)
+            return .download
         }
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 0).onDidFail = { _, _ in
@@ -145,7 +148,7 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .didStart(Nav(action: navAct(1), .started)),
             .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
             .didReceiveRedirect(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
-            .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
+            .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, mime: "application/zip", data.html.count, headers: .default + ["Content-Type": "application/zip"], nil, .cantShow))),
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
 

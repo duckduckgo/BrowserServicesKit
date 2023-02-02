@@ -219,10 +219,4 @@ class NavigationValuesTests: DistributedNavigationDelegateTestsBase {
     }
 #endif
 
-
-
-    // TODO: NavigationResponse.isSuccessful
-    // TODO: WKError.isFrameLoadInterrupted, isNavigationCancelled, failingUrl
-
-    // TODO: ClosureNavigationResponder
 }

@@ -42,6 +42,10 @@ public struct NavigationResponse {
         self.init(response: navigationResponse.response, isForMainFrame: navigationResponse.isForMainFrame, canShowMIMEType: navigationResponse.canShowMIMEType, mainFrameNavigation: mainFrameNavigation)
     }
 
+    var isSuccessful: Bool? {
+        httpResponse?.isSuccessful
+    }
+
 }
 
 extension NavigationResponse {

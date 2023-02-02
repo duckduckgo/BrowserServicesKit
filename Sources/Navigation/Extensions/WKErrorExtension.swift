@@ -22,7 +22,7 @@ import WebKit
 extension WKError {
 
     public var failingUrl: URL? {
-        return _nsError.userInfo[NSURLErrorFailingURLStringErrorKey] as? URL
+        return _nsError.userInfo[NSURLErrorFailingURLErrorKey] as? URL
     }
 
     public var isFrameLoadInterrupted: Bool {

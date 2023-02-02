@@ -40,8 +40,23 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     func testWhenNavigationFinished_didFinishIsCalled() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        responder(at: 0).onNavigationResponse = { [urls] resp in
+            XCTAssertTrue(resp.url.matches(urls.local))
+            XCTAssertEqual(resp.isSuccessful, true)
+            XCTAssertEqual(resp.httpResponse?.statusCode, 200)
+            XCTAssertEqual(resp.httpResponse?.statusCode, 200)
+            XCTAssertTrue(resp.canShowMIMEType)
+            XCTAssertFalse(resp.shouldDownload)
+            XCTAssertEqual(resp.mainFrameNavigation?.state, .responseReceived)
+            XCTAssertNotNil(resp.mainFrameNavigation?.navigationResponse)
+            return .next
+        }
         let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        responder(at: 0).onDidFinish = { nav in
+            XCTAssertEqual(nav.state, .finished)
+            eDidFinish.fulfill()
+        }
         
         server.middleware = [{ [data] request in
             return .ok(.data(data.html))
@@ -100,12 +115,23 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .strong(NavigationResponderMock(defaultHandler: { _ in }))
         )
         
-        responder(at: 0).onNavigationResponse = { _ in .next }
+        responder(at: 0).onNavigationResponse = { resp in
+            XCTAssertEqual(resp.isSuccessful, false)
+            XCTAssertEqual(resp.httpResponse?.statusCode, 404)
+            XCTAssertEqual(resp.httpResponse?.statusCode, 404)
+            return .next
+        }
         responder(at: 1).onNavigationResponse = { _ in .cancel }
         responder(at: 2).onNavigationResponse = { _ in XCTFail("Unexpected decidePolicyForNavigationAction:"); return .next }
         
         let eDidFail = expectation(description: "onDidFail")
-        responder(at: 2).onDidFail = { _, _ in eDidFail.fulfill() }
+        responder(at: 2).onDidFail = { @MainActor [urls] nav, error in
+            XCTAssertEqual(error._nsError.domain, WKError.WebKitErrorDomain)
+            XCTAssertTrue(nav.state.isFailed)
+            XCTAssertTrue(error.isFrameLoadInterrupted)
+            XCTAssertEqual(error.failingUrl?.matches(urls.local1), true)
+            eDidFail.fulfill()
+        }
         
         try server.start(8084)
         withWebView { webView in
@@ -562,6 +588,12 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        responder(at: 0).onDidFail = { [urls] _, error in
+            XCTAssertEqual(error._nsError.domain, NSURLErrorDomain)
+            XCTAssertTrue(error.isNavigationCancelled)
+            XCTAssertEqual(error.failingUrl?.matches(urls.testScheme), true)
+        }
+
         withWebView { webView in
             _=webView.load(req(urls.testScheme))
         }
