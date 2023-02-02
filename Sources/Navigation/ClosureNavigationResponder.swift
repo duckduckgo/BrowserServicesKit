@@ -85,7 +85,7 @@ public struct ClosureNavigationResponder: NavigationResponder {
     }
 
     let webContentProcessDidTerminate: ((WKProcessTerminationReason?) -> Void)?
-    public func webContentProcessDidTerminate(with reason: WKProcessTerminationReason) {
+    public func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {
         webContentProcessDidTerminate?(reason)
     }
 

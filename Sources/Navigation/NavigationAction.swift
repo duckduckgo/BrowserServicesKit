@@ -41,6 +41,10 @@ public struct NavigationAction {
     public let request: URLRequest
 
     public let navigationType: NavigationType
+#if os(macOS)
+    public internal(set) var modifierFlags: NSEvent.ModifierFlags = []
+#endif
+
 #if _IS_USER_INITIATED_ENABLED
     public let isUserInitiated: Bool
 #endif
@@ -125,6 +129,9 @@ public struct NavigationAction {
                   targetFrame: navigationAction.targetFrame.map(FrameInfo.init) ?? sourceFrame,
                   shouldDownload: navigationAction.shouldDownload,
                   mainFrameNavigation: mainFrameNavigation)
+#if os(macOS)
+        self.modifierFlags = navigationAction.modifierFlags
+#endif
     }
 
     internal static func sessionRestoreNavigation(webView: WKWebView, mainFrameNavigation: Navigation?) -> Self {

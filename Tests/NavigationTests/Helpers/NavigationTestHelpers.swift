@@ -796,7 +796,6 @@ class NavigationDelegateProxy: NSObject, WKNavigationDelegate {
             navigationAction._isUserInitiated = true
             nextNavigationActionShouldBeUserInitiated = false
         }
-
         delegate.webView(webView, decidePolicyFor: navigationAction, preferences: preferences) { [self] policy, preferences in
             decisionHandler(policy, preferences)
             switch self.finishEventsDispatchTime {

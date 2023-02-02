@@ -31,9 +31,10 @@ import XCTest
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
+// swiftlint:disable identifier_name
 
 @available(macOS 12.0, iOS 15.0, *)
-class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase {
+class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase {
 
     // MARK: - Basic Responder Chain
 
@@ -351,6 +352,38 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local, defaultHeaders + ["Upgrade-Insecure-Requests": "1"], cachePolicy: .reloadIgnoringLocalCacheData), .reload, from: history[1], src: main(urls.local)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+            .didStart( Nav(action: navAct(2), .started)),
+            .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(2), .finished, resp: resp(0), .committed))
+        ])
+    }
+
+    func testJSReload() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        var eDidFinish = expectation(description: "didFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        responder(at: 0).clear()
+        eDidFinish = expectation(description: "didReload")
+        withWebView { webView in
+            webView.evaluateJavaScript("window.history.go(0)")
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(NavAction(req(urls.local, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], .userInitiated, src: main(urls.local))),
             .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didStart( Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),

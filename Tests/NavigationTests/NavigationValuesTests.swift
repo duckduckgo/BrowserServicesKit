@@ -27,7 +27,7 @@ import XCTest
 // swiftlint:disable function_body_length
 
 @available(macOS 12.0, iOS 15.0, *)
-class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
+class NavigationValuesTests: DistributedNavigationDelegateTestsBase {
 
     @MainActor
     func testNavigationActionPreferences() {
@@ -188,7 +188,39 @@ class  NavigationValuesTests: DistributedNavigationDelegateTestsBase {
 #endif
     }
 
-    // TODO: hotkeys
+#if os(macOS)
+    @MainActor
+    func testNavigationHotkeys() {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let webView = withWebView { $0 }
+        var navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .linkActivated, request: req(urls.local), isUserInitiated: true, modifierFlags: [.capsLock, .command, .function]).navigationAction
+        var e = expectation(description: "decisionHandler 1 called")
+        responder(at: 0).onNavigationAction = { action, _ in
+            XCTAssertEqual(action.navigationType, .link)
+            XCTAssertEqual(action.modifierFlags, [.capsLock, .command, .function])
+            e.fulfill()
+            return .cancel
+        }
+        navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
+        waitForExpectations(timeout: 1)
+
+        navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .other, request: req(urls.local), isUserInitiated: false, modifierFlags: [.option, .shift], buttonNumber: 4).navigationAction
+        // TODO: validate can be other or form submit with middle click
+        e = expectation(description: "decisionHandler 2 called")
+        responder(at: 0).onNavigationAction = { action, _ in
+            XCTAssertEqual(action.navigationType, .other)
+            XCTAssertEqual(action.modifierFlags, [.option, .shift])
+            e.fulfill()
+            return .cancel
+        }
+        navigationDelegate.webView(webView, decidePolicyFor: navAction, preferences: WKWebpagePreferences()) { _, _ in }
+        waitForExpectations(timeout: 1)
+    }
+#endif
+
+
+
     // TODO: NavigationResponse.isSuccessful
     // TODO: WKError.isFrameLoadInterrupted, isNavigationCancelled, failingUrl
 

@@ -32,9 +32,9 @@ import XCTest
 // swiftlint:disable opening_brace
 
 @available(macOS 12.0, iOS 15.0, *)
-class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
+class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
-    func testGoBack() throws {
+    func testGoBackForward() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         server.middleware = [{ [data] request in
@@ -65,6 +65,73 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         eDidFinish = expectation(description: "onDidFinish forw")
         withWebView { webView in
             _=webView.goForward()
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            // #1
+            .navigationAction(req(urls.local), .other, src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
+
+            // #2
+            .navigationAction(req(urls.local1), .other, from: history[1], src: main(urls.local)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(2), .started)),
+            .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
+            .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed)),
+
+            // #2 -> #1 back
+            .navigationAction(req(urls.local, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[2], src: main(urls.local1)),
+            .willStart(Nav(action: navAct(3), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(3), .started)),
+            .didCommit(Nav(action: navAct(3), .started, .committed)),
+            .didFinish(Nav(action: navAct(3), .finished, .committed)),
+
+            // #1 -> #2 forward
+            .navigationAction(req(urls.local1, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(1), from: history[1], src: main(urls.local)),
+            .willStart(Nav(action: navAct(4), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(4), .started)),
+            .didCommit(Nav(action: navAct(4), .started, .committed)),
+            .didFinish(Nav(action: navAct(4), .finished, .committed)),
+        ])
+    }
+
+    func testJSGoBackForward() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        var eDidFinish = expectation(description: "onDidFinish 1")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        eDidFinish = expectation(description: "onDidFinish 2")
+        withWebView { webView in
+            _=webView.load(req(urls.local1))
+        }
+        waitForExpectations(timeout: 5)
+
+        eDidFinish = expectation(description: "onDidFinish back")
+        withWebView { webView in
+            webView.evaluateJavaScript("history.back()")
+        }
+        waitForExpectations(timeout: 5)
+
+        eDidFinish = expectation(description: "onDidFinish forw")
+        withWebView { webView in
+            webView.evaluateJavaScript("history.forward()")
         }
         waitForExpectations(timeout: 5)
 
@@ -459,6 +526,77 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    // TODO: js history manipulation
+    func testJSHistoryManipulation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        let customCallbacksHandler = CustomCallbacksHandler()
+        navigationDelegate.registerCustomDelegateMethodHandler(.strong(customCallbacksHandler), for: #selector(CustomCallbacksHandler.webView(_:navigation:didSameDocumentNavigation:)))
+
+        server.middleware = [{ [data] request in
+            XCTAssertEqual(request.path, "/")
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        var eDidFinish = expectation(description: "onDidFinish 1")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+        responder(at: 0).clear()
+
+        eDidFinish = expectation(description: "onDidFinish 2")
+
+        var didPushStateCounter = 0
+        let eDidSameDocumentNavigation = expectation(description: "onDidSameDocumentNavigation")
+        customCallbacksHandler.didSameDocumentNavigation = { _, type in
+            didPushStateCounter += 1
+            if didPushStateCounter == 4 {
+                eDidSameDocumentNavigation.fulfill()
+            }
+        }
+
+        withWebView { webView in
+            webView.evaluateJavaScript("history.pushState({page: 1}, '1', '/1')", in: nil, in: WKContentWorld.page) { _ in
+                webView.evaluateJavaScript("history.pushState({page: 3}, '3', '/3')", in: nil, in: WKContentWorld.page) { _ in
+                    webView.evaluateJavaScript("history.pushState({page: 2}, '2', '/2')", in: nil, in: WKContentWorld.page) { _ in
+                        webView.evaluateJavaScript("history.go(-1)", in: nil, in: WKContentWorld.page) { _ in
+                            eDidFinish.fulfill()
+                        }
+                    }
+                }
+            }
+        }
+        waitForExpectations(timeout: 5)
+
+        // now navigate from pseudo "/3" to "/3#hashed"
+        var eDidGoBack = expectation(description: "onDidGoToNamedLink")
+        customCallbacksHandler.didSameDocumentNavigation = { _, type in
+            if type == 3 { eDidGoBack.fulfill() }
+        }
+        withWebView { webView in
+            _=webView.load(req(urls.local3Hashed))
+        }
+        waitForExpectations(timeout: 5)
+
+        // back
+        eDidGoBack = expectation(description: "onDidGoBack")
+        withWebView { webView in
+            _=webView.goBack()
+        }
+        waitForExpectations(timeout: 5)
+
+        // back
+        eDidGoBack = expectation(description: "onDidGoBack 2")
+        withWebView { webView in
+            _=webView.goBack()
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .willStart(Nav(action: NavAction(req(urls.local3Hashed), .sameDocumentNavigation, from: history[1], src: main(urls.local3)), .approved, isCurrent: false))
+        ])
+    }
 
 }

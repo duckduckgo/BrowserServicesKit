@@ -26,7 +26,6 @@ import XCTest
 // swiftlint:disable line_length
 // swiftlint:disable file_length
 // swiftlint:disable identifier_name
-// swiftlint:disable force_cast
 
 @available(macOS 12.0, iOS 15.0, *)
 class DistributedNavigationDelegateTestsBase: XCTestCase {
@@ -66,7 +65,7 @@ class DistributedNavigationDelegateTestsBase: XCTestCase {
     override func tearDown() {
         self.testSchemeHandler = nil
         server.stop()
-        self.navigationDelegate.responders.forEach { ($0 as! NavigationResponderMock).reset() }
+        self.navigationDelegate.responders.forEach { ($0 as? NavigationResponderMock)?.reset() }
         if let _webView {
             usedWebViews.append(_webView)
             self._webView = nil
@@ -92,8 +91,11 @@ extension DistributedNavigationDelegateTestsBase {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = navigationDelegateProxy
         currentHistoryItemIdentityCancellable = navigationDelegate.$currentHistoryItemIdentity.sink { [unowned self] historyItem in
-            guard let historyItem, !self.history.contains(where: { $0.value == historyItem }) else { return }
-            let lastNavigationAction = self.responder(at: 0).navigationActionsCache.max
+            guard let historyItem,
+                  !self.history.contains(where: { $0.value == historyItem }),
+                  let lastNavigationAction = self.responder(at: 0)?.navigationActionsCache.max
+            else { return }
+
             self.history[lastNavigationAction] = historyItem
         }
 
@@ -343,7 +345,7 @@ extension DistributedNavigationDelegateTestsBase {
         for (idx, responder) in navigationDelegate.responders.enumerated() where idx == index {
             return responder as? NavigationResponderMock
         }
-        fatalError("responder at \(index) not present")
+        return nil
     }
 
     func navAct(_ idx: UInt64) -> NavAction {

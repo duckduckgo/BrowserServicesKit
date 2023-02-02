@@ -30,9 +30,10 @@ import XCTest
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
 // swiftlint:disable trailing_comma
+// swiftlint:disable file_length
 
 @available(macOS 12.0, iOS 15.0, *)
-class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
+class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
     func testDownloadNavigationAction() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -234,17 +235,31 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         }
         waitForExpectations(timeout: 5)
 
-        // sort navActionBecameDownload by url
+        // sort download events by url and event order
         responder(at: 0).history
-            .replaceSubrange(11...13, with: responder(at: 0)
-                .history[11...13]
+            .replaceSubrange(5...13, with: responder(at: 0)
+                .history[5...13]
                 .sorted {
-                    guard case .navActionBecameDownload(_, let url1, _) = $0, case .navActionBecameDownload(_, let url2, _) = $1 else {
-                        XCTFail("unexpected \($0) or \($1)")
-                        return false
+                    func eventAndUrlIdx(from event: TestsNavigationEvent) -> (event: Int, idx: Int) {
+                        switch event {
+                        case .navigationAction(let navAction, _, _):
+                            return (0, Int(String(navAction.navigationAction.url.string.last!))!)
+                        case .navActionWillBecomeDownload(let navAction, _):
+                            return (1, Int(String(navAction.navigationAction.url.string.last!))!)
+                        case .navActionBecameDownload(let navAction, _, _):
+                            return (2, Int(String(navAction.navigationAction.url.string.last!))!)
+                        default:
+                            XCTFail("unexpected \(event)")
+                            return (0, 0)
+                        }
                     }
-
-                    return Int(String(url1.last!))! < Int(String(url2.last!))!
+                    let lhs = eventAndUrlIdx(from: $0)
+                    let rhs = eventAndUrlIdx(from: $1)
+                    if lhs.idx == rhs.idx {
+                        return lhs.event < rhs.event
+                    } else {
+                        return lhs.idx < rhs.idx
+                    }
                 })
 
         assertHistory(ofResponderAt: 0, equalsTo: [
@@ -256,15 +271,14 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
             .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local2.path]!, .empty, secOrigin: urls.local.securityOrigin))),
             .navActionWillBecomeDownload(navAct(2)),
+            .navActionBecameDownload(navAct(2), urls.local2),
 
             .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local3.path]!, .empty, secOrigin: urls.local.securityOrigin))),
             .navActionWillBecomeDownload(navAct(3)),
+            .navActionBecameDownload(navAct(3), urls.local3),
 
             .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandles[urls.local4.path]!, .empty, secOrigin: urls.local.securityOrigin))),
             .navActionWillBecomeDownload(navAct(4)),
-
-            .navActionBecameDownload(navAct(2), urls.local2),
-            .navActionBecameDownload(navAct(3), urls.local3),
             .navActionBecameDownload(navAct(4), urls.local4),
 
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),

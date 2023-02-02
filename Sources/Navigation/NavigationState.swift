@@ -75,3 +75,19 @@ public enum NavigationState: Equatable {
     }
 
 }
+
+extension NavigationState: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .expected(let navigationType): return "expected(\(navigationType?.debugDescription ?? ""))"
+        case .navigationActionReceived: return "navigationActionReceived"
+        case .approved: return "approved"
+        case .started: return "started"
+        case .willPerformClientRedirect: return "willPerformClientRedirect"
+        case .redirected: return "redirected"
+        case .responseReceived: return "responseReceived"
+        case .finished: return "finished"
+        case .failed(let error): return "failed(\(error.errorDescription ?? error.localizedDescription))"
+        }
+    }
+}

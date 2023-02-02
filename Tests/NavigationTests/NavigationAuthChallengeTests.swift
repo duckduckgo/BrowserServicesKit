@@ -31,7 +31,7 @@ import XCTest
 // swiftlint:disable trailing_comma
 
 @available(macOS 12.0, iOS 15.0, *)
-class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
+class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
     func testWhenAuthenticationChallengeReceived_responderChainReceivesEvents() throws {
         navigationDelegate.setResponders(

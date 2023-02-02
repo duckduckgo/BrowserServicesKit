@@ -29,7 +29,7 @@ import XCTest
 // swiftlint:disable opening_brace
 
 @available(macOS 12.0, iOS 15.0, *)
-class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase {
+class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase {
 
     func testWhenSessionIsRestored_navigationTypeIsSessionRestoration() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))

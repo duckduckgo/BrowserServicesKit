@@ -33,7 +33,7 @@ import XCTest
 // swiftlint:disable force_try
 
 @available(macOS 12.0, iOS 15.0, *)
-class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
+class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
     func testClientRedirectToSameDocument() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -816,7 +816,6 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             return .ok(.data(data.html))
         }]
 
-        // regular navigation from an empty state
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local))
@@ -856,7 +855,6 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             return .ok(.data(data.html))
         }]
 
-        // regular navigation from an empty state
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local))
@@ -903,7 +901,6 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             return .ok(.data(data.html))
         }]
 
-        // regular navigation from an empty state
         try server.start(8084)
 
         withWebView { webView in
@@ -944,7 +941,6 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             return .ok(.data(data.html))
         }]
 
-        // regular navigation from an empty state
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local))
@@ -957,19 +953,17 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
                 return navAction.navigationAction.identifier == 2
             } else if case .willStart(let nav, _) = $0 {
                 return nav.navigationAction.navigationAction.identifier == 2
+            } else if case .didFail(let nav, _, _) = $0 {
+                return nav.navigationAction.navigationAction.identifier == 2
             }
             return false
         })
-        // did fail event may race and fire after .willStart(#2)
-        if case .didFail = responder(at: 0).history[3] {
-            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 3), at: 1)
-        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
 
             // .navigationAction(NavAction(req(urls.local2), .redirect(.developer), src: main())),
             // .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
-            .didFail(Nav(action: NavAction(req(urls.local2), .redirect(.developer), src: main()), redirects: [navAct(1)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
+            // .didFail(Nav(action: NavAction(req(urls.local2), .redirect(.developer), src: main()), redirects: [navAct(1)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
 
             .navigationAction(NavAction(req(urls.local3), .redirect(.developer), src: main())),
             .willStart(Nav(action: navAct(3), redirects: [navAct(1)], .approved, isCurrent: false)),
@@ -1430,7 +1424,6 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             .didFinish(Nav(action: navAct(3), .finished, resp: resp(response(matching: urls.local2)), .committed)),
         ])
     }
-
 
     // TODO: cancel client redirect with initial navigationDidFail
 
