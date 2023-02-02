@@ -675,7 +675,6 @@ class  DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBas
         }]
         try server.start(8084)
 
-
         responder(at: 0).onNavigationAction = { [unowned webView=withWebView(do: { $0 })] _, _ in
             webView.stopLoading()
             return .next

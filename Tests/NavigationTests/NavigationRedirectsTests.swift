@@ -550,7 +550,6 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             .navigationAction(navAct(2)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
-
             .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local3, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
@@ -1172,5 +1171,7 @@ class  NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
     }
 
     // TODO: cancel client redirect (userRedirectWillCancel)
+    // TODO: cancel client redirect with initial navigationDidFail
+    // TODO: validate user-initiated navigation isn‘t interpreted as client redirect
 
 }

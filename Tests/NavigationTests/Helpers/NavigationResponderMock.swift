@@ -23,6 +23,7 @@ import Common
 
 // swiftlint:disable line_length
 // swiftlint:disable identifier_name
+// swiftlint:disable force_cast
 
 enum TestsNavigationEvent: TestComparable {
     case navigationAction(NavAction, NavigationPreferences = .default, line: UInt = #line)

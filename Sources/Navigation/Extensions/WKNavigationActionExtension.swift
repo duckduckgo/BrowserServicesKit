@@ -18,6 +18,7 @@
 
 import WebKit
 
+// swiftlint:disable line_length
 extension WKNavigationAction: WebViewNavigationAction {
 
     /// Safe Optional `sourceFrame: WKFrameInfo` getter:
@@ -128,7 +129,7 @@ extension WKNavigationAction: WebViewNavigationAction {
 }
 
 extension WKNavigationActionPolicy {
-    
+
     static let downloadPolicy: WKNavigationActionPolicy = {
         if #available(macOS 11.3, iOS 14.5, *) {
             return .download

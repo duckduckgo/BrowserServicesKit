@@ -24,7 +24,6 @@ import WebKit
 
 // swiftlint:disable file_length
 // swiftlint:disable line_length
-// swiftlint:disable large_tuple
 public final class DistributedNavigationDelegate: NSObject {
 
     internal var responders = ResponderChain()
@@ -102,7 +101,7 @@ private extension DistributedNavigationDelegate {
                               completion: @escaping @MainActor (T?) -> Void,
                               cancellation: @escaping @MainActor () -> Void) -> Task<Void, Never> {
         dispatchPrecondition(condition: .onQueue(.main))
-        // TODO: make task run sync if on main queue
+        // TO DO: ideally the Task should be executed synchronously until the first await, check it later when custom Executors arrive to Swift
         return Task.detached { @MainActor [responders] in
             var result: T?
             for responder in responders {
@@ -215,7 +214,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     // MARK: Policy making
 
     @MainActor
-    public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+    public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) { // swiftlint:disable:this function_body_length
+
         let navigation = navigation(for: wkNavigationAction, in: webView)
         let navigationAction = navigation?.navigationAction
             ?? NavigationAction(webView: webView, navigationAction: wkNavigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, mainFrameNavigation: startedNavigation)
@@ -487,7 +487,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
         // override the original Navigation ResponderChain to postpone didFinish event
         // otherwise the `startedNavigation` would be set to nil and won‘t be related to new Navigation
         var delayedFinishItem: DispatchWorkItem?
-        redirectedNavigation.overridingResponders(redirected: { navigationAction, navigation in
+        redirectedNavigation.overrideResponders(redirected: { navigationAction, navigation in
             // called from `decidePolicyForNavigationAction`: `startedNavigation.didPerformClientRedirect(with: navigationAction)`
             guard !navigation.isCompleted else { return }
 
@@ -560,7 +560,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
     @MainActor
     public func webView(_ webView: WKWebView, didFinish wkNavigation: WKNavigation?) {
         let navigation = wkNavigation?.navigation ?? startedNavigation
-        guard let navigation, navigation.identity == wkNavigation.map(NavigationIdentity.init) || wkNavigation == nil else {
+        guard let navigation,
+              navigation.identity == wkNavigation.map(NavigationIdentity.init) || wkNavigation == nil
+        else {
             os_log("dropping didFinishNavigation: %s, as another navigation is active: %s", log: logger, type: .default, wkNavigation?.description ?? "<nil>", navigation?.debugDescription ?? "<nil>")
             return
         }
@@ -697,8 +699,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegatePrivate {
 
 #if TERMINATE_WITH_REASON_ENABLED
     @MainActor
-    public func webView(_ webView: WKWebView, webContentProcessDidTerminateWith reason: WKProcessTerminationReason) {
-        self.webView(webView, processDidTerminateWith: WKProcessTerminationReason(rawValue: reason.rawValue))
+    public func webView(_ webView: WKWebView, webContentProcessDidTerminateWith reason: Int) {
+        self.webView(webView, processDidTerminateWith: WKProcessTerminationReason(rawValue: reason))
     }
 #endif
 

@@ -23,14 +23,13 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable file_length
 // swiftlint:disable line_length
 // swiftlint:disable function_body_length
 // swiftlint:disable unused_closure_parameter
 // swiftlint:disable type_body_length
-// swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
+// swiftlint:disable trailing_comma
 
 @available(macOS 12.0, iOS 15.0, *)
 class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
@@ -106,7 +105,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navActionWillBecomeDownload(navAct(2)),
 
             .navActionBecameDownload(navAct(2), urls.local3),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
         ])
     }
 
@@ -149,8 +148,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
 
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue)
-
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue),
         ])
     }
 
@@ -201,7 +199,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
             .navResponseWillBecomeDownload(2),
-            .navResponseBecameDownload(2, urls.local1)
+            .navResponseBecameDownload(2, urls.local1),
         ])
     }
 
@@ -269,7 +267,7 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navActionBecameDownload(navAct(3), urls.local3),
             .navActionBecameDownload(navAct(4), urls.local4),
 
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
         ])
     }
 
@@ -360,8 +358,9 @@ class  NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navResponseWillBecomeDownload(3),
             .navResponseBecameDownload(3, urls.local4),
 
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
         ])
     }
 
+    // TODO: download cancel
 }

@@ -92,26 +92,7 @@ public extension NavigationProtocol {
         navigationResponders.setResponders(refs.compactMap { $0 })
     }
 
-    @discardableResult
-    func overridingResponders(with decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
-                              willStart: ((_: Navigation) -> Void)? = nil,
-                              didStart: ((_: Navigation) -> Void)? = nil,
-                              authenticationChallenge: ((_: URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)? = nil,
-                              redirected: ((_: NavigationAction, Navigation) -> Void)? = nil,
-                              navigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)? = nil,
-                              didCommit: ((Navigation) -> Void)? = nil,
-                              navigationDidFinish: ((Navigation) -> Void)? = nil,
-                              navigationDidFail: ((Navigation, WKError) -> Void)? = nil,
-                              navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
-                              navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
-                              navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
-                              navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil) -> Self {
-        self.overrideResponders(.struct(ClosureNavigationResponder(decidePolicy: decidePolicy, willStart: willStart, didStart: didStart, authenticationChallenge: authenticationChallenge, redirected: redirected, navigationResponse: navigationResponse, didCommit: didCommit, navigationDidFinish: navigationDidFinish, navigationDidFail: navigationDidFail, navigationActionWillBecomeDownload: navigationActionWillBecomeDownload, navigationActionDidBecomeDownload: navigationActionDidBecomeDownload, navigationResponseWillBecomeDownload: navigationResponseWillBecomeDownload, navigationResponseDidBecomeDownload: navigationResponseDidBecomeDownload)))
-        return self
-    }
-
-    @discardableResult
-    func appendingResponder(with decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
+    func overrideResponders(with decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
                             willStart: ((_: Navigation) -> Void)? = nil,
                             didStart: ((_: Navigation) -> Void)? = nil,
                             authenticationChallenge: ((_: URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)? = nil,
@@ -123,64 +104,40 @@ public extension NavigationProtocol {
                             navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
                             navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
                             navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
-                            navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil) -> Self {
+                            navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil) {
+        self.overrideResponders(.struct(ClosureNavigationResponder(decidePolicy: decidePolicy, willStart: willStart, didStart: didStart, authenticationChallenge: authenticationChallenge, redirected: redirected, navigationResponse: navigationResponse, didCommit: didCommit, navigationDidFinish: navigationDidFinish, navigationDidFail: navigationDidFail, navigationActionWillBecomeDownload: navigationActionWillBecomeDownload, navigationActionDidBecomeDownload: navigationActionDidBecomeDownload, navigationResponseWillBecomeDownload: navigationResponseWillBecomeDownload, navigationResponseDidBecomeDownload: navigationResponseDidBecomeDownload)))
+    }
+
+    func appendResponder(with decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
+                         willStart: ((_: Navigation) -> Void)? = nil,
+                         didStart: ((_: Navigation) -> Void)? = nil,
+                         authenticationChallenge: ((_: URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)? = nil,
+                         redirected: ((_: NavigationAction, Navigation) -> Void)? = nil,
+                         navigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)? = nil,
+                         didCommit: ((Navigation) -> Void)? = nil,
+                         navigationDidFinish: ((Navigation) -> Void)? = nil,
+                         navigationDidFail: ((Navigation, WKError) -> Void)? = nil,
+                         navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
+                         navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
+                         navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
+                         navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil) {
         self.navigationResponders.append(.struct(ClosureNavigationResponder(decidePolicy: decidePolicy, willStart: willStart, didStart: didStart, authenticationChallenge: authenticationChallenge, redirected: redirected, navigationResponse: navigationResponse, didCommit: didCommit, navigationDidFinish: navigationDidFinish, navigationDidFail: navigationDidFail, navigationActionWillBecomeDownload: navigationActionWillBecomeDownload, navigationActionDidBecomeDownload: navigationActionDidBecomeDownload, navigationResponseWillBecomeDownload: navigationResponseWillBecomeDownload, navigationResponseDidBecomeDownload: navigationResponseDidBecomeDownload)))
-        return self
     }
 
-}
-
-public enum NavigationState: Equatable {
-
-    case expected(NavigationType?)
-    case navigationActionReceived
-    case started
-
-    case willPerformClientRedirect(delay: TimeInterval)
-    case redirected(RedirectType)
-
-    case responseReceived
-    case finished
-    case failed(WKError)
-
-    public var isExpected: Bool {
-        if case .expected = self { return true }
-        return false
-    }
-
-    var expectedNavigationType: NavigationType? {
-        if case .expected(let navigationType) = self { return navigationType }
-        return nil
-    }
-
-    public var isResponseReceived: Bool {
-        if case .responseReceived = self { return true }
-        return false
-    }
-
-    public var isFinished: Bool {
-        if case .finished = self { return true }
-        return false
-    }
-
-    public var isFailed: Bool {
-        if case .failed = self { return true }
-        return false
-    }
-
-    // swiftlint:disable:next cyclomatic_complexity
-    public static func == (lhs: NavigationState, rhs: NavigationState) -> Bool {
-        switch lhs {
-        case .expected(let navigationType): if case .expected(navigationType) = rhs { return true }
-        case .navigationActionReceived: if case .navigationActionReceived = rhs { return true }
-        case .started: if case .started = rhs { return true }
-        case .willPerformClientRedirect(delay: let delay): if case .willPerformClientRedirect(delay: delay) = rhs { return true }
-        case .redirected(let type): if case .redirected(type) = rhs { return true }
-        case .responseReceived: if case .responseReceived = rhs { return true }
-        case .finished: if case .finished = rhs { return true }
-        case .failed(let error1): if case .failed(let error2) = rhs { return error1.code == error2.code }
-        }
-        return false
+    func prependResponder(with decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
+                          willStart: ((_: Navigation) -> Void)? = nil,
+                          didStart: ((_: Navigation) -> Void)? = nil,
+                          authenticationChallenge: ((_: URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)? = nil,
+                          redirected: ((_: NavigationAction, Navigation) -> Void)? = nil,
+                          navigationResponse: ((NavigationResponse) async -> NavigationResponsePolicy?)? = nil,
+                          didCommit: ((Navigation) -> Void)? = nil,
+                          navigationDidFinish: ((Navigation) -> Void)? = nil,
+                          navigationDidFail: ((Navigation, WKError) -> Void)? = nil,
+                          navigationActionWillBecomeDownload: ((NavigationAction, WKWebView) -> Void)? = nil,
+                          navigationActionDidBecomeDownload: ((NavigationAction, WebKitDownload) -> Void)? = nil,
+                          navigationResponseWillBecomeDownload: ((NavigationResponse, WKWebView) -> Void)? = nil,
+                          navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil) {
+        self.navigationResponders.prepend(.struct(ClosureNavigationResponder(decidePolicy: decidePolicy, willStart: willStart, didStart: didStart, authenticationChallenge: authenticationChallenge, redirected: redirected, navigationResponse: navigationResponse, didCommit: didCommit, navigationDidFinish: navigationDidFinish, navigationDidFail: navigationDidFail, navigationActionWillBecomeDownload: navigationActionWillBecomeDownload, navigationActionDidBecomeDownload: navigationActionDidBecomeDownload, navigationResponseWillBecomeDownload: navigationResponseWillBecomeDownload, navigationResponseDidBecomeDownload: navigationResponseDidBecomeDownload)))
     }
 
 }

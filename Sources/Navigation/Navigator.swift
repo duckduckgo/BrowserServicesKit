@@ -19,6 +19,7 @@
 import Foundation
 import WebKit
 
+// swiftlint:disable line_length
 @MainActor
 public struct Navigator {
 
@@ -119,7 +120,7 @@ public class ExpectedNavigation {
     }
 
     public var navigationResponders: ResponderChain {
-        get {
+        get { // swiftlint:disable:this implicit_getter
             navigation.navigationResponders
         }
         _modify {

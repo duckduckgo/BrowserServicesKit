@@ -23,14 +23,10 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable file_length
 // swiftlint:disable line_length
-// swiftlint:disable function_body_length
 // swiftlint:disable unused_closure_parameter
-// swiftlint:disable type_body_length
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
-// swiftlint:disable force_try
 
 @available(macOS 12.0, iOS 15.0, *)
 class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase {
@@ -71,7 +67,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .willStart(Nav(action: .init(req(urls.aboutPrefs, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didCommit(Nav(action: navAct(1), .started, .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, .committed))
+            .didFinish(Nav(action: navAct(1), .finished, .committed)),
         ])
     }
 
@@ -104,7 +100,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
-            .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed))
+            .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed)),
         ])
     }
 
@@ -146,7 +142,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
-            .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed))
+            .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed)),
         ])
     }
 
@@ -198,7 +194,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(1), .committed)),
-            .didFinish(Nav(action: navAct(3), .finished, resp: resp(1), .committed))
+            .didFinish(Nav(action: navAct(3), .finished, resp: resp(1), .committed)),
         ])
     }
 
@@ -253,7 +249,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .didStart(Nav(action: navAct(3), .started)),
             .response(Nav(action: navAct(3), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(3), .responseReceived, resp: resp(1), .committed)),
-            .didFinish(Nav(action: navAct(3), .finished, resp: resp(1), .committed))
+            .didFinish(Nav(action: navAct(3), .finished, resp: resp(1), .committed)),
         ])
     }
 
@@ -272,7 +268,7 @@ class  NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase
             .willStart(Nav(action: .init(req(urls.aboutBlank, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didCommit(Nav(action: navAct(1), .started, .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, .committed))
+            .didFinish(Nav(action: navAct(1), .finished, .committed)),
         ])
     }
 

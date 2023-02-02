@@ -23,14 +23,12 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable file_length
 // swiftlint:disable line_length
 // swiftlint:disable function_body_length
 // swiftlint:disable unused_closure_parameter
-// swiftlint:disable type_body_length
-// swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
 // swiftlint:disable force_try
+// swiftlint:disable trailing_comma
 
 @available(macOS 12.0, iOS 15.0, *)
 class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
@@ -81,7 +79,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 2, equalsTo: [
@@ -90,7 +88,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])
     }
 
@@ -161,7 +159,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
             .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, nil, .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])
     }
 
@@ -202,7 +200,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 401, headers: ["Server": "Swifter Unspecified", "Www-Authenticate": "Basic"]), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])
         assertHistory(ofResponderAt: 0, equalsToHistoryOfResponderAt: 1)
         assertHistory(ofResponderAt: 1, equalsToHistoryOfResponderAt: 2)
@@ -246,7 +244,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled)
+            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), nil, .gotAuth), NSURLErrorCancelled),
         ])
     }
 
@@ -292,7 +290,7 @@ class  NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, status: 401, headers: ["Server": "Swifter Unspecified", "Www-Authenticate": "Basic"]), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth))
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])
     }
 

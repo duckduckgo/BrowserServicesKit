@@ -30,7 +30,6 @@ import XCTest
 // swiftlint:disable type_body_length
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
-// swiftlint:disable force_try
 
 @available(macOS 12.0, iOS 15.0, *)
 class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
@@ -98,8 +97,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .willStart(Nav(action: navAct(4), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(4), .started)),
             .didCommit(Nav(action: navAct(4), .started, .committed)),
-            .didFinish(Nav(action: navAct(4), .finished, .committed))
-
+            .didFinish(Nav(action: navAct(4), .finished, .committed)),
         ])
     }
 
@@ -148,7 +146,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .willStart(Nav(action: navAct(7), .navigationActionReceived, isCurrent: false)),
             .didStart(Nav(action: navAct(7), .started)),
             .didCommit(Nav(action: navAct(7), .started, .committed)),
-            .didFinish(Nav(action: navAct(7), .finished, .committed))
+            .didFinish(Nav(action: navAct(7), .finished, .committed)),
         ])
     }
 
@@ -230,7 +228,7 @@ class  NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .response(resp(1), nil),
             // #1 -> #3 goForward in frame
             .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameHandle, urls.local3)),
-            .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil)
+            .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
         ])
     }
 

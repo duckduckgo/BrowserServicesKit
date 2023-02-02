@@ -42,6 +42,13 @@ public struct ResponderChain {
         responderRefs.append(ref.ref)
     }
 
+    public mutating func prepend(_ ref: ResponderRefMaker) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        assert(ref.ref.responder != nil)
+
+        responderRefs.insert(ref.ref, at: 0)
+    }
+
     public func getResponders() -> [NavigationResponder] {
         return responderRefs.compactMap(\.responder)
     }
@@ -78,22 +85,23 @@ extension ResponderChain: Sequence {
 }
 
 public enum ResponderRef: AnyResponderRef {
-    case weak(ref: WeakResponderRef, type: NavigationResponder.Type)
+    case weak(getter: () -> NavigationResponder?, type: NavigationResponder.Type)
     case strong(NavigationResponder)
 
     public var responder: NavigationResponder? {
         switch self {
-        case .weak(ref: let ref, type: _): return ref.responder
+        case .weak(getter: let getter, type: _): return getter()
         case .strong(let responder): return responder
         }
     }
 
     public var responderType: String {
         switch self {
-        case .weak(ref: _, type: let type): return "\(type)"
+        case .weak(getter: _, type: let type): return "\(type)"
         case .strong(let responder): return "\(type(of: responder))"
         }
     }
+
 }
 
 public struct ResponderRefMaker {
@@ -102,11 +110,11 @@ public struct ResponderRefMaker {
         self.ref = ref
     }
     public static func `weak`(_ responder: (some NavigationResponder & AnyObject)) -> ResponderRefMaker {
-        return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
+        return .init(ResponderRef.weak(getter: { [weak responder] in responder }, type: type(of: responder)))
     }
     public static func `weak`(nullable responder: (any NavigationResponder & AnyObject)?) -> ResponderRefMaker? {
         guard let responder = responder else { return nil }
-        return .init(ResponderRef.weak(ref: WeakResponderRef(responder), type: type(of: responder)))
+        return .init(ResponderRef.weak(getter: { [weak responder] in responder }, type: type(of: responder)))
     }
     public static func `strong`(_ responder: any NavigationResponder & AnyObject) -> ResponderRefMaker {
         return .init(ResponderRef.strong(responder))
@@ -123,13 +131,7 @@ public struct ResponderRefMaker {
         guard let responder = responder else { return nil }
         return .struct(responder)
     }
-}
 
-public final class WeakResponderRef {
-    weak var responder: (NavigationResponder & AnyObject)?
-    init(_ responder: (NavigationResponder & AnyObject)?) {
-        self.responder = responder
-    }
 }
 
 public protocol AnyResponderRef {
