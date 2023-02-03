@@ -42,27 +42,27 @@ public struct NavigationResponse {
         self.init(response: navigationResponse.response, isForMainFrame: navigationResponse.isForMainFrame, canShowMIMEType: navigationResponse.canShowMIMEType, mainFrameNavigation: mainFrameNavigation)
     }
 
-    var isSuccessful: Bool? {
+    public var isSuccessful: Bool? {
         httpResponse?.isSuccessful
     }
 
 }
 
-extension NavigationResponse {
+public extension NavigationResponse {
 
-    public var url: URL {
+    var url: URL {
         response.url!
     }
 
-    public var httpResponse: HTTPURLResponse? {
+    var httpResponse: HTTPURLResponse? {
         response as? HTTPURLResponse
     }
 
-    public var httpStatusCode: Int? {
+    var httpStatusCode: Int? {
         httpResponse?.statusCode
     }
 
-    public var shouldDownload: Bool {
+    var shouldDownload: Bool {
         httpResponse?.shouldDownload ?? false
     }
 
