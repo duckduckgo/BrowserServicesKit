@@ -105,6 +105,10 @@ public protocol NavigationResponder {
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error)
 
+    /// Return true to disable stop on decidePolicyForNavigationAction taking longer than 5 secoinds
+    @MainActor
+    var shouldDisableLongDecisionMakingChecks: Bool { get }
+
 }
 
 // MARK: - Delegate methods are optional
@@ -150,5 +154,7 @@ public extension NavigationResponder {
 
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error) {}
+
+    var shouldDisableLongDecisionMakingChecks: Bool { false }
 
 }

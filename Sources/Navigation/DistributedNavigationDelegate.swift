@@ -95,6 +95,10 @@ public final class DistributedNavigationDelegate: NSObject {
 
 private extension DistributedNavigationDelegate {
 
+#if DEBUG
+    static var sigIntRaisedForResponders = Set<String>()
+#endif
+
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
     func makeAsyncDecision<T>(with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
@@ -111,15 +115,40 @@ private extension DistributedNavigationDelegate {
                 }
 
 #if DEBUG
-                let typeOfResponder = type(of: responder)
-                let timeoutWorkItem = DispatchWorkItem {
-                    assertionFailure("decision making is taking longer than expected, probably there‘s a leak in \(typeOfResponder)")
+                let typeOfResponder = "\(type(of: responder))"
+                let timeoutWorkItem = Self.sigIntRaisedForResponders.contains(typeOfResponder) ? nil : DispatchWorkItem {
+                    guard !responder.shouldDisableLongDecisionMakingChecks else { return }
+                    Self.sigIntRaisedForResponders.insert(typeOfResponder)
+
+                    func fileLine(file: StaticString = #file, line: Int = #line) -> String {
+                        return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
+                    }
+                    os_log("""
+
+                    
+                    ------------------------------------------------------------------------------------------------------
+                        BREAK at %s:
+                    ------------------------------------------------------------------------------------------------------
+                        Decision making is taking longer than expected
+                        This may be indicating that there‘s a leak in %s Navigation Responder
+
+                        Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
+                        for known long decision making to disable this warning
+
+                        Hit Continue (^⌘Y) to continue program execution
+                    ------------------------------------------------------------------------------------------------------
+
+                    """, type: .debug, fileLine(), typeOfResponder)
+                    raise(SIGINT)
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
+                if let timeoutWorkItem {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
+                }
                 defer { // swiftlint:disable:this inert_defer
-                    timeoutWorkItem.cancel()
+                    timeoutWorkItem?.cancel()
                 }
 #endif
+
                 if let decision = await decide(responder) {
                     result = decision
                     break
