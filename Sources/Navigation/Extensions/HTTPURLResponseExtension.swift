@@ -27,8 +27,20 @@ public extension HTTPURLResponse {
 
     static let acceptedStatusCodes = 200..<300
 
+    enum HTTPURLResponseError: Error {
+        case invalidStatusCode
+    }
+
+    func validateStatusCode<S: Sequence>(statusCode acceptedStatusCodes: S) -> Error? where S.Iterator.Element == Int {
+        return acceptedStatusCodes.contains(statusCode) ? nil : HTTPURLResponseError.invalidStatusCode
+    }
+
+    func validateStatusCode() -> Error? {
+        validateStatusCode(statusCode: Self.acceptedStatusCodes)
+    }
+
     var isSuccessful: Bool {
-        Self.acceptedStatusCodes.contains(statusCode)
+        validateStatusCode() == nil
     }
 
 }
