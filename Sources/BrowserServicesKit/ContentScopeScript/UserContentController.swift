@@ -162,13 +162,8 @@ final public class UserContentController: WKUserContentController {
     }
 
     public struct ContentRulesNotFoundError: Error {}
-    @MainActor
-    public func enableGlobalContentRuleList(withIdentifier identifier: String) throws {
-        guard let ruleList = contentBlockingAssets?.globalRuleLists[identifier]
-                // when enabling from a $contentBlockingAssets subscription, the ruleList gets
-                // to contentRuleLists before contentBlockingAssets value is set
-                ?? contentRuleLists[.global(identifier)] else {
-            Logger.contentBlocking.debug("\(self): ❗️ can‘t enable rule list `\(identifier)` as it‘s not available")
+    public func enableGlobalContentRuleList(withIdentifcontentBlockingAssetsier identifier: String) throws {
+        guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotFoundError()
         }
         guard contentRuleLists[.global(identifier)] == nil else { return /* already enabled */ }
@@ -239,6 +234,21 @@ final public class UserContentController: WKUserContentController {
 
         self.removeAllContentRuleLists()
     }
+
+#if WEBKIT_EXTENSIONS
+    public override func removeAllUserScripts() {
+        let removeUserScriptSelector = NSSelectorFromString("_removeUserScript:")
+        if responds(to: removeUserScriptSelector) {
+            // Remove only scripts equivalent to content blocking
+            // assets' scripts that are currently loaded.
+            let contentBlockingUserScriptsSources = contentBlockingAssets?.userScripts.userScripts.map { $0.makeWKUserScriptSync().source } ?? []
+            let scriptsToRemove = userScripts.filter { contentBlockingUserScriptsSources.contains($0.source) }
+            scriptsToRemove.forEach({ perform(removeUserScriptSelector, with: $0) })
+        } else {
+            super.removeAllUserScripts()
+        }
+    }
+#endif
 
     @MainActor
     func addHandler(_ userScript: UserScript) {
