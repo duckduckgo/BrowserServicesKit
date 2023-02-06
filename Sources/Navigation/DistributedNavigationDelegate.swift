@@ -166,7 +166,7 @@ private extension DistributedNavigationDelegate {
     func makeAsyncDecision<T>(with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
                               completion: @escaping @MainActor (T?) -> Void) {
-        _=makeAsyncDecision(with: responders, decide: decide, completion: completion, cancellation: {
+        _=makeAsyncDecision(with: responders, decide: decide, completion: completion, cancellation: { @MainActor in
             completion(nil)
         })
     }
@@ -269,7 +269,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         var preferences = NavigationPreferences(userAgent: webView.customUserAgent, preferences: wkPreferences)
-        let task = makeAsyncDecision(with: mainFrameNavigation?.navigationResponders ?? responders) { responder in
+        let task = makeAsyncDecision(with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.decidePolicy(for: navigationAction, preferences: &preferences) else { return .next }
@@ -277,7 +277,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             return decision
 
-        } completion: { (decision: NavigationActionPolicy?) in
+        } completion: { @MainActor [self] (decision: NavigationActionPolicy?) in
             dispatchPrecondition(condition: .onQueue(.main))
 
             switch decision {
@@ -360,7 +360,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         os_log("didReceive challenge: %s: %s", log: logger, type: .default, navigation?.debugDescription ?? webView.debugDescription, challenge.protectionSpace.description)
 
-        makeAsyncDecision(with: navigation?.navigationResponders ?? responders) { responder in
+        makeAsyncDecision(with: navigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.didReceive(challenge, for: navigation) else { return .next }
@@ -368,7 +368,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             return decision
 
-        } completion: { (decision: AuthChallengeDisposition?) in
+        } completion: { @MainActor [self] (decision: AuthChallengeDisposition?) in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let (disposition, credential) = decision?.dispositionAndCredential else {
@@ -450,7 +450,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         os_log("decidePolicyFor: %s", log: logger, type: .default, navigationResponse.debugDescription)
 
         let responders = (navigationResponse.isForMainFrame ? startedNavigation?.navigationResponders : nil) ?? responders
-        makeAsyncDecision(with: responders) { responder in
+        makeAsyncDecision(with: responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.decidePolicy(for: navigationResponse) else { return .next }
@@ -458,7 +458,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             return decision
 
-        } completion: { [weak self] (decision: NavigationResponsePolicy?) in
+        } completion: { @MainActor [weak self] (decision: NavigationResponsePolicy?) in
             dispatchPrecondition(condition: .onQueue(.main))
 
             switch decision {
