@@ -431,7 +431,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         self.navigationExpectedToStart = nil
 
         os_log("didStart: %s", log: logger, type: .default, navigation.debugDescription)
-        assert(navigation.navigationAction.navigationType.redirect?.isServer != true, "server redirects shouldn‘t call didStartProvisionalNavigation")
+        assert(navigation.navigationAction.navigationType.redirect != .server, "server redirects shouldn‘t call didStartProvisionalNavigation")
 
         for responder in navigation.navigationResponders {
             responder.didStart(navigation)
@@ -647,6 +647,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+
+        if navigation.isCurrent && !isProvisional {
+            navigation.didResignCurrent()
+        }
         navigation.didFail(wkNavigation, with: error)
         os_log("didFail %s: %s", log: logger, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
 

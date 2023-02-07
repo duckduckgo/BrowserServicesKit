@@ -32,14 +32,4 @@ public extension RedirectType {
         return false
     }
 
-    var isServer: Bool {
-        if case .server = self { return true }
-        return false
-    }
-
-    var isDeveloper: Bool {
-        if case .developer = self { return true }
-        return false
-    }
-
 }
