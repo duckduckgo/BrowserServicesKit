@@ -149,6 +149,10 @@ extension WKNavigation {
 
 extension WKWebView {
 
+    public func navigator() -> Navigator? {
+        Navigator(webView: self)
+    }
+
     public func navigator(distributedNavigationDelegate: DistributedNavigationDelegate) -> Navigator {
         Navigator(webView: self, distributedNavigationDelegate: distributedNavigationDelegate, currentNavigation: nil)
     }
