@@ -21,11 +21,15 @@ import WebKit
 import Combine
 import PrivacyDashboardResources
 
+public enum PrivacyDashboardOpenSettingsTarget: String {
+    case general
+    case cookiePopupManagement = "cpm"
+}
+
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
-    
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch isEnabled: Bool)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: String)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
 
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
@@ -224,7 +228,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings target: String) {
-        delegate?.privacyDashboardController(self, didRequestOpenSettings: target)
+        let settingsTarget = PrivacyDashboardOpenSettingsTarget(rawValue: target) ?? .general
+        delegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo isProtected: Bool) {
