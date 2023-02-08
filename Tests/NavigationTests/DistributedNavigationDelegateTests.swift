@@ -303,7 +303,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         responder(at: 0).onNavigationAction = { [urls, unowned webView=withWebView(do: { $0 })] navAction, _ in
             if navAction.url.path == urls.local2.path {
                 XCTAssertTrue(navAction.isTargetingNewWindow)
-                newFrameIdentity = navAction.targetFrame.identity
+                newFrameIdentity = navAction.targetFrame?.identity
                 XCTAssertNotEqual(newFrameIdentity, .mainFrameIdentity(for: webView))
                 XCTAssertTrue(newFrameIdentity.isMainFrame)
                 XCTAssertNotEqual(newFrameIdentity.handle, WKFrameInfo.defaultMainFrameHandle)
@@ -349,6 +349,50 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .response(Nav(action: navAct(3), redirects: [navAct(2)], .responseReceived, resp: .resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(3), redirects: [navAct(2)], .responseReceived, resp: resp(2), .committed)),
             .didFinish(Nav(action: navAct(3), redirects: [navAct(2)], .finished, resp: resp(2), .committed))
+        ])
+    }
+
+    func testLinkOpeningNewWindow() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegateProxy.finishEventsDispatchTime = .instant
+
+        server.middleware = [{ [data] request in
+            return .ok(.html(data.htmlWithOpenInNewWindowLink.string()!))
+        }]
+        try server.start(8084)
+
+        var eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in
+            eDidFinish.fulfill()
+        }
+
+        var eDidRequestNewWindow: XCTestExpectation!
+        responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+            if navAction.url.path == urls.local2.path {
+                XCTAssertTrue(navAction.isTargetingNewWindow)
+                XCTAssertNil(navAction.targetFrame)
+                DispatchQueue.main.async {
+                    eDidRequestNewWindow.fulfill()
+                }
+                return .cancel
+            }
+            return .next
+        }
+
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+        responder(at: 0).clear()
+
+        eDidRequestNewWindow = expectation(description: "onDidRequestNewWindow")
+        withWebView { webView in
+            webView.evaluateJavaScript("document.getElementById('lnk').click()")
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .link, from: history[1], .userInitiated, src: main(urls.local), targ: nil))
         ])
     }
 

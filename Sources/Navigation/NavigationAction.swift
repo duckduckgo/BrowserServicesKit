@@ -50,13 +50,15 @@ public struct NavigationAction {
 #endif
     public let shouldDownload: Bool
 
+    /// The frame requesting the navigation
     public let sourceFrame: FrameInfo
-    public let targetFrame: FrameInfo
+    /// The target frame, `nil` if this is a new window navigation
+    public let targetFrame: FrameInfo?
 
     /// Used to protect main frame .redirect NavigationActionPolicy actions as only main frame can be redirected
     /// `nil` for non-main-frame navigations
     public var mainFrameTarget: MainFrame? {
-        guard targetFrame.isMainFrame else { return nil }
+        guard targetFrame?.isMainFrame == true else { return nil }
         return MainFrame()
     }
 
@@ -69,7 +71,7 @@ public struct NavigationAction {
     /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
     public let redirectHistory: [NavigationAction]?
 
-    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo, shouldDownload: Bool, mainFrameNavigation: Navigation?) {
+    public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo?, shouldDownload: Bool, mainFrameNavigation: Navigation?) {
         var request = request
         if request.allHTTPHeaderFields == nil {
             request.allHTTPHeaderFields = [:]
@@ -126,7 +128,7 @@ public struct NavigationAction {
                   isUserInitiated: navigationAction.isUserInitiated,
                   sourceFrame: sourceFrame,
                   // always has targetFrame if not targeting to a new window
-                  targetFrame: navigationAction.targetFrame.map(FrameInfo.init) ?? sourceFrame,
+                  targetFrame: navigationAction.targetFrame.map(FrameInfo.init),
                   shouldDownload: navigationAction.shouldDownload,
                   mainFrameNavigation: mainFrameNavigation)
 #if os(macOS)
@@ -144,11 +146,11 @@ public struct NavigationAction {
 public extension NavigationAction {
 
     var isForMainFrame: Bool {
-        targetFrame.isMainFrame
+        targetFrame?.isMainFrame == true
     }
 
     var isTargetingNewWindow: Bool {
-        sourceFrame.identity.webView != targetFrame.identity.webView
+        sourceFrame.identity.webView != targetFrame?.identity.webView
     }
 
     var url: URL {

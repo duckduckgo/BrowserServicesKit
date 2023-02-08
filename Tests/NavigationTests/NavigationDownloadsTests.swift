@@ -79,7 +79,7 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameHandle: String!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
-                frameHandle = navAction.targetFrame.identity.handle
+                frameHandle = navAction.targetFrame?.identity.handle
                 XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
                 return .download
             }
@@ -179,7 +179,7 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameHandle: String!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local1.path {
-                frameHandle = navAction.targetFrame.identity.handle
+                frameHandle = navAction.targetFrame?.identity.handle
                 XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next
@@ -220,8 +220,8 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameHandles = [String: String]()
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             guard navAction.url.matches(urls.local) else {
-                frameHandles[navAction.url.path] = navAction.targetFrame.identity.handle
-                XCTAssertNotEqual(navAction.targetFrame.identity.handle, WKFrameInfo.defaultMainFrameHandle)
+                frameHandles[navAction.url.path] = navAction.targetFrame?.identity.handle
+                XCTAssertNotEqual(navAction.targetFrame?.identity.handle, WKFrameInfo.defaultMainFrameHandle)
                 return .download
             }
             return .next
@@ -301,8 +301,8 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameHandles = [String: String]()
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if !navAction.url.matches(urls.local) {
-                frameHandles[navAction.url.path] = navAction.targetFrame.identity.handle
-                XCTAssertNotEqual(navAction.targetFrame.identity.handle, WKFrameInfo.defaultMainFrameHandle)
+                frameHandles[navAction.url.path] = navAction.targetFrame?.identity.handle
+                XCTAssertNotEqual(navAction.targetFrame?.identity.handle, WKFrameInfo.defaultMainFrameHandle)
             }
             return .allow
         }

@@ -234,7 +234,7 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         var frameHandle: String!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
-                frameHandle = navAction.targetFrame.identity.handle
+                frameHandle = navAction.targetFrame?.identity.handle
                 XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next
@@ -315,7 +315,7 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         var frameHandle: String!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
-                frameHandle = navAction.targetFrame.identity.handle
+                frameHandle = navAction.targetFrame?.identity.handle
                 XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next

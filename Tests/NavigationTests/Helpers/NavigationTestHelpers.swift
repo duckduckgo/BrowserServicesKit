@@ -33,8 +33,12 @@ import WebKit
 typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, navigationResponses: UnsafeMutablePointer<[NavigationResponse]>, responderResponses: [NavResponse], history: [UInt64: HistoryItemIdentity])
 extension TestsNavigationEvent {
 
-    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo? = nil, _ shouldDownload: NavigationAction.ShouldDownload? = nil, line: UInt = #line) -> TestsNavigationEvent {
+    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, targ: FrameInfo?, _ shouldDownload: NavigationAction.ShouldDownload? = nil, line: UInt = #line) -> TestsNavigationEvent {
         .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: targ, shouldDownload), line: line)
+    }
+
+    static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, _ shouldDownload: NavigationAction.ShouldDownload? = nil, line: UInt = #line) -> TestsNavigationEvent {
+        .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: src, shouldDownload), line: line)
     }
     
     static func response(_ nav: Nav, line: UInt = #line) -> TestsNavigationEvent {
@@ -406,6 +410,9 @@ func compare<T: TestComparable>(_ name: String, _ lhs: T, _ rhs: T) -> String? {
 func compare_tc<T: TestComparable>(_ name: String, _ lhs: T, _ rhs: T) -> String? {
     compare(name, lhs, rhs)
 }
+func compare_tc<T: TestComparable>(_ name: String, _ lhs: T?, _ rhs: T?) -> String? {
+    compare(name, lhs, rhs)
+}
 func compare<T: TestComparable>(_ name: String, _ lhs: T?, _ rhs: T?) -> String? {
     if case .none = lhs, case .none = rhs { return nil }
     guard let lhs, let rhs else {
@@ -585,7 +592,7 @@ extension NavigationAction {
             \(redirectHistory != nil ? "redirects: [\(redirectHistory!.map { $0.encoded(context) }.joined(separator: ", "))]," : "")
             \(isUserInitiated)
             src: \(sourceFrame.encoded(context)),
-            \(targetFrame == sourceFrame  ? "" : "targ: " + targetFrame.encoded(context) + ",")
+            \(targetFrame == sourceFrame  ? "" : "targ: " + (targetFrame?.encoded(context) ?? "nil") + ",")
             \(shouldDownload ? ".shouldDownload," : "")
         """.trimmingWhitespace().dropping(suffix: ",") +
         ")"

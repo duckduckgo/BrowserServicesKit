@@ -151,6 +151,13 @@ extension DistributedNavigationDelegateTestsBase {
                 </body></html>
             """.data(using: .utf8)!
         }()
+        let htmlWithOpenInNewWindowLink: Data = {
+            """
+                <html><body>
+                <a id="lnk" target="_blank" href="http://localhost:8084/2">the link</a>
+                </body></html>
+            """.data(using: .utf8)!
+        }()
 
         let metaRedirect = """
         <html>
