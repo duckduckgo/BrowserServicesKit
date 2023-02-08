@@ -152,7 +152,7 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navResponseWillBecomeDownload(0),
             .navResponseBecameDownload(0, urls.local2),
 
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0), isCurrent: false), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue),
+            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue),
         ])
     }
 
