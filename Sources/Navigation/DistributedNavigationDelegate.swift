@@ -754,15 +754,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         for responder in responders {
             responder.navigationResponse(navigationResponse, didBecome: download)
         }
-
-        if navigationResponse.isForMainFrame,
-           let navigation = navigationResponse.mainFrameNavigation {
-
-            navigation.didFail(with: WKError(.frameLoadInterruptedByPolicyChange))
-            if startedNavigation === navigation {
-                self.startedNavigation = nil
-            }
-        }
     }
 
     // MARK: Termination
