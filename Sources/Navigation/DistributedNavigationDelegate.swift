@@ -144,7 +144,7 @@ private extension DistributedNavigationDelegate {
                 if let timeoutWorkItem {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
                 }
-                defer { // swiftlint:disable:this inert_defer
+                defer {
                     timeoutWorkItem?.cancel()
                 }
 #endif
