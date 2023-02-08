@@ -105,7 +105,7 @@ public protocol NavigationResponder {
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error)
 
-    /// Return true to disable stop on decidePolicyForNavigationAction taking longer than 5 secoinds
+    /// Return true to disable stop on decidePolicyForNavigationAction taking longer than 4 secoinds
     @MainActor
     var shouldDisableLongDecisionMakingChecks: Bool { get }
 
