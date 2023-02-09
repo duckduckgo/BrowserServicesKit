@@ -154,6 +154,9 @@
                 "stringValue": "value",
                 "numericalValue": 1
             },
+        },
+        "windowsWaitlist": {
+            "state": "enabled"
         }
     },
     "unprotectedTemporary": [
