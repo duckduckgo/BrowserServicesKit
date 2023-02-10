@@ -20,6 +20,7 @@
 import XCTest
 import Foundation
 @testable import BrowserServicesKit
+@testable import Common
 
 // swiftlint:disable line_length
 class AppAttributeMatcherTests: XCTestCase {

@@ -7,7 +7,7 @@ import Foundation
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("14.0"),
+        .iOS("15.0"),
         .macOS("10.15")
     ],
     products: [
@@ -18,7 +18,9 @@ let package = Package(
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
-        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
+        .library(name: "Configuration", targets: ["Configuration"]),
+        .library(name: "API", targets: ["API"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.2.0")),
@@ -74,7 +76,7 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
-            ]),    
+            ]),
         .target(
             name: "Crashes"
         ),
@@ -96,7 +98,7 @@ let package = Package(
             ]),
         .target(
             name: "UserScript"
-            ),
+        ),
         .target(
             name: "PrivacyDashboard",
             dependencies: [
@@ -107,7 +109,18 @@ let package = Package(
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard"
-            ),
+        ),
+        .target(
+            name: "Configuration",
+            dependencies: [
+                "API",
+                "Common"
+            ]),
+        .target(
+            name: "API",
+            dependencies: [
+                "Common"
+            ]),
         
         // MARK: - Test targets
         
@@ -138,6 +151,12 @@ let package = Package(
             name: "PersistenceTests",
             dependencies: [
                 "Persistence"
+            ]
+        ),
+        .testTarget(
+            name: "ConfigurationTests",
+            dependencies: [
+                "Configuration"
             ]
         )
     ],

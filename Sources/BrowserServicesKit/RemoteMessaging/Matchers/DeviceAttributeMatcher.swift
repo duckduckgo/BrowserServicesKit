@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Common
 
 public struct DeviceAttributeMatcher: AttributeMatcher {
 
@@ -25,7 +26,7 @@ public struct DeviceAttributeMatcher: AttributeMatcher {
     let localeIdentifier: String
 
     public init() {
-        self.init(osVersion: AppVersion.shared.osVersion(), locale: Locale.current.identifier)
+        self.init(osVersion: AppVersion.shared.osVersion, locale: Locale.current.identifier)
     }
 
     public init(osVersion: String, locale: String) {
