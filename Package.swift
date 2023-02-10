@@ -86,7 +86,8 @@ let package = Package(
                 .product(name: "Punnycode", package: "Punycode")
             ],
             resources: [
-                .process("TLD/tlds.json")
+                .process("TLD/tlds.json"),
+                .process("Media.xcassets")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
