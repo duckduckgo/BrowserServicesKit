@@ -1,8 +1,7 @@
 //
-//  ArrayExtension.swift
-//  DuckDuckGo
+//  WKProcessTerminationReason.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,17 +16,12 @@
 //  limitations under the License.
 //
 
-import Foundation
+@objc
+public enum WKProcessTerminationReason: Int {
+    case exceededMemoryLimit = 0
+    case exceededCPULimit
+    case requestedByClient
+    case crash
 
-extension Array where Element: Hashable {
-
-    public func removingDuplicates<T: Hashable>(byKey key: (Element) -> T) -> [Element] {
-         var result = [Element]()
-         var seen = Set<T>()
-         for value in self where seen.insert(key(value)).inserted {
-             result.append(value)
-         }
-         return result
-     }
-
+    public static let userInfoKey: String = "WKProcessTerminationReasonKey"
 }

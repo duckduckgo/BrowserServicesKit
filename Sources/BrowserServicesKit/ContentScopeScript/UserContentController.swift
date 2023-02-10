@@ -140,8 +140,8 @@ final public class UserContentController: WKUserContentController {
     }
 
     private func installUserScripts(_ userScripts: UserScriptsProvider) {
-        userScripts.scripts.forEach(self.addUserScript)
         userScripts.userScripts.forEach(self.addHandler)
+        userScripts.scripts.forEach(self.addUserScript)
     }
 
     public override func removeAllUserScripts() {
@@ -150,13 +150,13 @@ final public class UserContentController: WKUserContentController {
     }
 
     func addHandlerNoContentWorld(_ userScript: UserScript) {
-        for messageName in userScript.messageNames {
+        for messageName in userScript.messageNamesIncludingDidLoad {
             add(userScript, name: messageName)
         }
     }
 
     func addHandler(_ userScript: UserScript) {
-        for messageName in userScript.messageNames {
+        for messageName in userScript.messageNamesIncludingDidLoad {
             if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
                 if let handlerWithReply = userScript as? WKScriptMessageHandlerWithReply {
@@ -171,7 +171,7 @@ final public class UserContentController: WKUserContentController {
     }
 
     func removeHandler(_ userScript: UserScript) {
-        userScript.messageNames.forEach {
+        userScript.messageNamesIncludingDidLoad.forEach {
             if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
                 removeScriptMessageHandler(forName: $0, contentWorld: contentWorld)
@@ -181,6 +181,12 @@ final public class UserContentController: WKUserContentController {
         }
     }
 
+}
+
+extension UserScript {
+    var messageNamesIncludingDidLoad: [String] {
+        self.messageNames + ((self as? InteractiveUserScript).map { [$0.scriptDidLoadMessageName.rawValue] } ?? [])
+    }
 }
 
 public extension UserContentController {

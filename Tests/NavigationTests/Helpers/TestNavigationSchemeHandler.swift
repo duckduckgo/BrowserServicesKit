@@ -1,5 +1,5 @@
 //
-//  ArrayExtension.swift
+//  TestNavigationSchemeHandler.swift
 //  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
@@ -17,17 +17,25 @@
 //  limitations under the License.
 //
 
-import Foundation
+import XCTest
+import WebKit
 
-extension Array where Element: Hashable {
+final class TestNavigationSchemeHandler: NSObject, WKURLSchemeHandler {
+    typealias RequestResponse = (URL) -> Data
 
-    public func removingDuplicates<T: Hashable>(byKey key: (Element) -> T) -> [Element] {
-         var result = [Element]()
-         var seen = Set<T>()
-         for value in self where seen.insert(key(value)).inserted {
-             result.append(value)
-         }
-         return result
-     }
+    var requestHandlers = [URL: RequestResponse]()
+
+    static let scheme = "test"
+
+    public var onRequest: ((WKURLSchemeTask) -> Void)?
+
+    func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        self.onRequest?(urlSchemeTask) ?? {
+            urlSchemeTask.didFailWithError(WKError(.unknown))
+        }()
+    }
+
+    @objc
+    func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) { }
 
 }
