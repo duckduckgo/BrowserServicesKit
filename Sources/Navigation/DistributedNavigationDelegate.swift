@@ -116,30 +116,39 @@ private extension DistributedNavigationDelegate {
 
 #if DEBUG
                 let typeOfResponder = "\(type(of: responder))"
-                let timeoutWorkItem = Self.sigIntRaisedForResponders.contains(typeOfResponder) ? nil : DispatchWorkItem {
-                    guard !responder.shouldDisableLongDecisionMakingChecks else { return }
-                    Self.sigIntRaisedForResponders.insert(typeOfResponder)
+                var timeoutWorkItem: DispatchWorkItem?
+                if !Self.sigIntRaisedForResponders.contains(typeOfResponder),
+                   // class-type responder will be queried for shouldDisableLongDecisionMakingChecks after delay
+                   (responder as? NavigationResponder & AnyObject) != nil
+                    // struct-type can‘t be mutated so it should have shouldDisableLongDecisionMakingChecks set permanently if its decisions take long
+                    || !responder.shouldDisableLongDecisionMakingChecks {
 
-                    func fileLine(file: StaticString = #file, line: Int = #line) -> String {
-                        return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
+                    let responder = responder as? NavigationResponder & AnyObject
+                    timeoutWorkItem = DispatchWorkItem { [weak responder] in
+                        guard responder?.shouldDisableLongDecisionMakingChecks != true else { return }
+                        Self.sigIntRaisedForResponders.insert(typeOfResponder)
+
+                        func fileLine(file: StaticString = #file, line: Int = #line) -> String {
+                            return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
+                        }
+                        os_log("""
+
+
+                        ------------------------------------------------------------------------------------------------------
+                            BREAK at %s:
+                        ------------------------------------------------------------------------------------------------------
+                            Decision making is taking longer than expected
+                            This may be indicating that there‘s a leak in %s Navigation Responder
+
+                            Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
+                            for known long decision making to disable this warning
+
+                            Hit Continue (^⌘Y) to continue program execution
+                        ------------------------------------------------------------------------------------------------------
+
+                        """, type: .debug, fileLine(), typeOfResponder)
+                        raise(SIGINT)
                     }
-                    os_log("""
-
-                    
-                    ------------------------------------------------------------------------------------------------------
-                        BREAK at %s:
-                    ------------------------------------------------------------------------------------------------------
-                        Decision making is taking longer than expected
-                        This may be indicating that there‘s a leak in %s Navigation Responder
-
-                        Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
-                        for known long decision making to disable this warning
-
-                        Hit Continue (^⌘Y) to continue program execution
-                    ------------------------------------------------------------------------------------------------------
-
-                    """, type: .debug, fileLine(), typeOfResponder)
-                    raise(SIGINT)
                 }
                 if let timeoutWorkItem {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
