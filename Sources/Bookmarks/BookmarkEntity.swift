@@ -107,14 +107,15 @@ public class BookmarkEntity: NSManagedObject {
         return object
     }
     
-    public func addToFavorites(insertAtBeginning: Bool = false,
+    // If `insertAt` is nil, it is inserted at the end.
+    public func addToFavorites(insertAt: Int? = nil,
                                favoritesRoot root: BookmarkEntity) {
         assert(root.uuid == BookmarkEntity.Constants.favoritesFolderID)
         
         isFavorite = true
         
-        if insertAtBeginning {
-            root.insertIntoFavorites(self, at: 0)
+        if let position = insertAt {
+            root.insertIntoFavorites(self, at: position)
         } else {
             root.addToFavorites(self)
         }
@@ -165,7 +166,7 @@ extension BookmarkEntity {
 extension BookmarkEntity {
     
     @objc(insertObject:inFavoritesAtIndex:)
-    @NSManaged public func insertIntoFavorites(_ value: BookmarkEntity, at idx: Int)
+    @NSManaged private func insertIntoFavorites(_ value: BookmarkEntity, at idx: Int)
 
     @objc(addFavoritesObject:)
     @NSManaged private func addToFavorites(_ value: BookmarkEntity)
