@@ -18,7 +18,6 @@
 //
 
 import XCTest
-import AppKit
 import BrowserServicesKit
 import os.log
 import WebKit

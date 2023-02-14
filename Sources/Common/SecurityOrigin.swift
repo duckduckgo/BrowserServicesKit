@@ -1,8 +1,7 @@
 //
-//  ArrayExtension.swift
-//  DuckDuckGo
+//  SecurityOrigin.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,15 +18,22 @@
 
 import Foundation
 
-extension Array where Element: Hashable {
+public struct SecurityOrigin: Hashable {
 
-    public func removingDuplicates<T: Hashable>(byKey key: (Element) -> T) -> [Element] {
-         var result = [Element]()
-         var seen = Set<T>()
-         for value in self where seen.insert(key(value)).inserted {
-             result.append(value)
-         }
-         return result
-     }
+    public let `protocol`: String
+    public let host: String
+    public let port: Int
+
+    public init(`protocol`: String, host: String, port: Int) {
+        self.`protocol` = `protocol`
+        self.host = host
+        self.port = port
+    }
+
+    public static let empty = SecurityOrigin(protocol: "", host: "", port: 0)
+
+    var isEmpty: Bool {
+        self == .empty
+    }
 
 }

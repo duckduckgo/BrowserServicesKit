@@ -1,8 +1,7 @@
 //
-//  ArrayExtension.swift
-//  DuckDuckGo
+//  WKNavigationExtension.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,17 +16,19 @@
 //  limitations under the License.
 //
 
-import Foundation
+import WebKit
 
-extension Array where Element: Hashable {
+extension WKNavigation {
 
-    public func removingDuplicates<T: Hashable>(byKey key: (Element) -> T) -> [Element] {
-         var result = [Element]()
-         var seen = Set<T>()
-         for value in self where seen.insert(key(value)).inserted {
-             result.append(value)
-         }
-         return result
-     }
+    private static let navigationKey = UnsafeRawPointer(bitPattern: "navigationKey".hashValue)!
+
+    internal var navigation: Navigation? {
+        get {
+            objc_getAssociatedObject(self, Self.navigationKey) as? Navigation
+        }
+        set {
+            objc_setAssociatedObject(self, Self.navigationKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
 
 }
