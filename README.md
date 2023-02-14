@@ -24,6 +24,13 @@ Run `git submodule update --init --recursive`
 
 Run `swift test` on the project root folder. Please note that running the tests on Xcode will not work.
 
+## Additional configuration
+
+In projects utilizing the Swift Package Manager, it may not be possible to specify a custom file name when creating new Swift files within Xcode, resulting in the generation of placeholder names (i.e. "File.swift"). To resolve this issue: 
+
+Run `scripts/setup-new-file-template.sh`
+
+It will add a template named "Swift File For Package" to your Xcode templates, allowing for the specification of a custom file name when creating new Swift files.
 
 ### SwiftLint
 
