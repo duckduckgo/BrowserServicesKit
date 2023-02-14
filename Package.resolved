@@ -68,9 +68,9 @@
         "package": "TrackerRadarKit",
         "repositoryURL": "https://github.com/duckduckgo/TrackerRadarKit",
         "state": {
-          "branch": "bunn/fix/action-type",
-          "revision": "abdf7ffe5374291d5c093f907df79c7fa4b91423",
-          "version": null
+          "branch": null,
+          "revision": "4684440d03304e7638a2c8086895367e90987463",
+          "version": "1.2.1"
         }
       }
     ]
