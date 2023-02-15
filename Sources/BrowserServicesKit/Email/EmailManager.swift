@@ -103,6 +103,8 @@ public extension Notification.Name {
     static let emailDidSignIn = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignIn")
     static let emailDidSignOut = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignOut")
     static let emailDidGenerateAlias = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidGenerateAlias")
+    static let emailDidIncontextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidIncontextSignup")
+    static let emailDidCloseEmailProtection = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCloseEmailProtection")
 }
 
 public enum AliasRequestError: Error {

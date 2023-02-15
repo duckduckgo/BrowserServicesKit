@@ -105,7 +105,10 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     /// Called from the child autofill to return referenced credentials
     func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: "none")
-        if lastOpenHost == nil || message.messageHost != lastOpenHost {
+        if (previousIncontextSignupPermanentlyDismissedAt != incontextSignupPermanentlyDismissedAt) {
+            previousIncontextSignupPermanentlyDismissedAt = incontextSignupPermanentlyDismissedAt
+            response = GetSelectedCredentialsResponse(type: "state")
+        } else if lastOpenHost == nil || message.messageHost != lastOpenHost {
             response = GetSelectedCredentialsResponse(type: "stop")
         } else if let selectedDetailsData = selectedDetailsData {
             response = GetSelectedCredentialsResponse(type: "ok", data: selectedDetailsData.data, configType: selectedDetailsData.configType)
