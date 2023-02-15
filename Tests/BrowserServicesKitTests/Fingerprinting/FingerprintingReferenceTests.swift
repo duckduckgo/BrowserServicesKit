@@ -209,6 +209,7 @@ final class FingerprintingReferenceTests: XCTestCase {
         
         
         let configFeatureToggle = ContentScopeFeatureToggles(emailProtection: false,
+                                                             emailProtectionIncontextSignup: false,
                                                              credentialsAutofill: false,
                                                              identitiesAutofill: false,
                                                              creditCardsAutofill: false,
