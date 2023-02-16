@@ -28,6 +28,15 @@ public class BookmarkEntity: NSManagedObject {
         public static let rootFolderID = "bookmarks_root"
         public static let favoritesFolderID = "favorites_root"
     }
+
+    public enum Error: Swift.Error {
+        case mustExistInsideRootFolder
+        case folderStructureHasCycle
+        case folderHasURL
+        case bookmarkRequiresURL
+        case invalidFavoritesFolder
+        case invalidFavoritesStatus
+    }
     
     @nonobjc public class func fetchRequest() -> NSFetchRequest<BookmarkEntity> {
         return NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
@@ -57,6 +66,16 @@ public class BookmarkEntity: NSManagedObject {
         
         uuid = UUID().uuidString
         isFavorite = false
+    }
+
+    public override func validateForInsert() throws {
+        try super.validateForInsert()
+        try validate()
+    }
+
+    public override func validateForUpdate() throws {
+        try super.validateForUpdate()
+        try validate()
     }
     
     public var urlObject: URL? {
@@ -110,7 +129,6 @@ public class BookmarkEntity: NSManagedObject {
     // If `insertAt` is nil, it is inserted at the end.
     public func addToFavorites(insertAt: Int? = nil,
                                favoritesRoot root: BookmarkEntity) {
-        assert(root.uuid == BookmarkEntity.Constants.favoritesFolderID)
         
         isFavorite = true
         
@@ -125,6 +143,68 @@ public class BookmarkEntity: NSManagedObject {
         isFavorite = false
         favoriteFolder = nil
     }
+}
+
+// MARK: Validation
+extension BookmarkEntity {
+
+    func validate() throws {
+        try validateThatEntitiesExistInsideTheRootFolder()
+        try validateBookmarkURLRequirement()
+        try validateThatFoldersDoNotHaveURLs()
+        try validateThatFolderHierarchyHasNoCycles()
+        try validateFavoritesStatus()
+        try validateFavoritesFolder()
+    }
+
+    func validateThatEntitiesExistInsideTheRootFolder() throws {
+        if parent == nil,
+           Constants.favoritesFolderID != uuid && Constants.rootFolderID != uuid {
+            throw Error.mustExistInsideRootFolder
+        }
+    }
+
+    func validateBookmarkURLRequirement() throws {
+        if !isFolder, url == nil {
+            throw Error.bookmarkRequiresURL
+        }
+    }
+
+    func validateFavoritesStatus() throws {
+        let isInFavoriteCollection = favoriteFolder != nil
+        if isFavorite != isInFavoriteCollection {
+            throw Error.invalidFavoritesStatus
+        }
+    }
+
+    func validateFavoritesFolder() throws {
+        if let favoritesFolderID = favoriteFolder?.uuid,
+            favoritesFolderID != Constants.favoritesFolderID {
+            throw Error.invalidFavoritesFolder
+        }
+    }
+
+    func validateThatFoldersDoNotHaveURLs() throws {
+        if isFolder, url != nil {
+            throw Error.folderHasURL
+        }
+    }
+
+    /// Validates that entities do not reference any of their ancestors, causing a cycle.
+    /// We don't need to look at children, as due to relationships nature, any relationship change affects at least two Entities - thus it is ok to validate only by checking towards Root.
+    func validateThatFolderHierarchyHasNoCycles() throws {
+
+        var currentFolder: BookmarkEntity? = self
+
+        while let current = currentFolder {
+            if current.parent?.uuid == uuid {
+                throw Error.folderStructureHasCycle
+            }
+
+            currentFolder = currentFolder?.parent
+        }
+    }
+
 }
 
 // MARK: Generated accessors for children
