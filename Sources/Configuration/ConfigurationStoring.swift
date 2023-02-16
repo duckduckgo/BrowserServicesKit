@@ -21,9 +21,11 @@ import Foundation
 
 protocol ConfigurationStoring {
     
-    func loadData(for: Configuration) -> Data?
-    func loadEtag(for: Configuration) -> String?
-    func saveData(_ data: Data, for: Configuration) throws
-    func saveEtag(_ etag: String, for: Configuration) throws
+    func loadData(for configuration: Configuration) -> Data?
+    func loadEtag(for configuration: Configuration) -> String?
+    func loadEmbeddedEtag(for configuration: Configuration) -> String?
+    
+    mutating func saveData(_ data: Data, for configuration: Configuration) throws
+    mutating func saveEtag(_ etag: String, for configuration: Configuration) throws
     
 }

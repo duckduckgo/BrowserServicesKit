@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import API
 
 public enum Configuration {
     
@@ -30,22 +31,29 @@ public enum Configuration {
 public struct ConfigurationManager {
     
     let store: ConfigurationStoring
-    // provide custom url mapping <-
+    let onDidStore: (() -> Void)?
+    let userAgent: APIHeaders.UserAgent
     
-//    func fetchBloomFilter() async {
-//        let fetcher = ConfigurationFetcher(store: store)
-//        do {
-//            try await fetcher.fetch([.init(configuration: .bloomFilter),
-//                                     .init(configuration: .bloomFilterSpec)])
-//            // update https upgrade!
-//            try await fetcher.fetch([.init(configuration: .privacyConfig)])
-//            // update privacy config!
-//
-//            // and so on...
-//
-//        } catch {
-//            print(error)
-//        }
-//    }
+    func fetchBloomFilter(withCustomUrls customUrls: [(configuration: Configuration, url: URL)] = []) async {
+        let tasks = mergeTasks([ConfigurationFetchTask(configuration: .bloomFilter),
+                                ConfigurationFetchTask(configuration: .bloomFilterSpec)],
+                               withCustomUrls: customUrls)
+        
+        let fetcher = ConfigurationFetcher(store: store, onDidStore: {}, userAgent: "")
+        do {
+            try await fetcher.fetch(tasks)
+        } catch {
+            
+        }
+    }
+    
+    private func mergeTasks(_ tasks: [ConfigurationFetchTask],
+                            withCustomUrls customUrls: [(configuration: Configuration, url: URL)]) -> [ConfigurationFetchTask] {
+        return tasks.map { task in
+            let customUrl = customUrls.first(where: { $0.configuration == task.configuration })?.url
+            return ConfigurationFetchTask(configuration: task.configuration,
+                                          url: customUrl ?? task.url)
+        }
+    }
     
 }

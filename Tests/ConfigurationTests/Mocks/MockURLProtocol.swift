@@ -33,6 +33,7 @@ final class MockURLProtocol: URLProtocol {
         guard let handler = MockURLProtocol.requestHandler else {
             fatalError("Handler is unavailable.")
         }
+        MockURLProtocol.lastRequest = request
         
         do {
             let (response, data) = try handler(request)

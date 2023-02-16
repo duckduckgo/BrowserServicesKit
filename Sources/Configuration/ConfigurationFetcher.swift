@@ -21,7 +21,7 @@ import Foundation
 import Common
 import API
 
-fileprivate extension Configuration {
+extension Configuration {
     
     var url: URL {
         switch self {
@@ -36,14 +36,12 @@ fileprivate extension Configuration {
 public struct ConfigurationFetchTask {
     
     let configuration: Configuration
-    let etag: String?
     let url: URL?
     
-    fileprivate var endpoint: URL { url ?? configuration.url }
+    var endpoint: URL { url ?? configuration.url }
     
-    public init(configuration: Configuration, etag: String? = nil, url: URL? = nil) {
+    public init(configuration: Configuration, url: URL? = nil) {
         self.configuration = configuration
-        self.etag = etag
         self.url = url
     }
     
@@ -55,13 +53,15 @@ final class ConfigurationFetcher: ConfigurationFetching {
     
     enum Error: Swift.Error {
         
+        case urlSession(Swift.Error)
         case invalidResponse
         case missingEtagInResponse
+        case emptyData
         case invalidStatusCode
         
     }
     
-    private let store: ConfigurationStoring
+    private var store: ConfigurationStoring
     private let onDidStore: () -> Void
     private let urlSession: URLSession
     private let userAgent: APIHeaders.UserAgent
@@ -80,9 +80,7 @@ final class ConfigurationFetcher: ConfigurationFetching {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             fetchTasks.forEach { task in
                 group.addTask {
-                    let result = try await self.fetch(from: task.endpoint,
-                                                      withEtag: task.etag)
-                    return (task.configuration, result)
+                    (task.configuration, try await self.fetch(from: task.endpoint, withEtag: self.etag(for: task.configuration)))
                 }
             }
 
@@ -98,24 +96,35 @@ final class ConfigurationFetcher: ConfigurationFetching {
         }
     }
     
+    private func etag(for configuration: Configuration) -> String? {
+        if let etag = store.loadEtag(for: configuration), store.loadData(for: configuration) != nil {
+            return etag
+        }
+        return store.loadEmbeddedEtag(for: configuration)
+    }
+    
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
         let request = URLRequest.makeRequest(url: url, headers: makeHeaders(with: etag))
-        // todo: os_log
-        let (data, response) = try await urlSession.data(for: request)
-
-        guard let response = response as? HTTPURLResponse else {
-            throw Error.invalidResponse
-        }
+        let (data, response) = try await fetch(for: request)
+        
+        guard let response = response as? HTTPURLResponse else { throw Error.invalidResponse }
         try assertSuccessfulStatusCode(for: response)
-
-        guard let etag = response.etag?.dropping(prefix: "W/") else {
-            throw Error.missingEtagInResponse
-        }
+        
+        guard let etag = response.etag?.dropping(prefix: "W/") else { throw Error.missingEtagInResponse }
+        guard data.count > 0 else { throw Error.emptyData }
 
         return (etag, data)
     }
     
     private func makeHeaders(with etag: String?) -> HTTPHeaders { APIHeaders(with: userAgent).defaultHeaders(with: etag) }
+    
+    private func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await urlSession.data(for: request)
+        } catch let error {
+            throw Error.urlSession(error)
+        }
+    }
     
     private func assertSuccessfulStatusCode(for response: HTTPURLResponse) throws {
         do {
@@ -127,6 +136,7 @@ final class ConfigurationFetcher: ConfigurationFetching {
     
     private func store(_ result: ConfigurationFetchResult, for configuration: Configuration) throws {
         try store.saveData(result.data, for: configuration)
+        try store.saveEtag(result.etag, for: configuration)
     }
     
 }
