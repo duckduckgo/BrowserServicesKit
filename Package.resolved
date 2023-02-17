@@ -23,9 +23,9 @@
         "package": "GRDB",
         "repositoryURL": "https://github.com/duckduckgo/GRDB.swift.git",
         "state": {
-          "branch": null,
-          "revision": "8eac7de76dff73dc467d5c43f9beabc61a6d6e02",
-          "version": "2.0.0"
+          "branch": "dominik/xcframework",
+          "revision": "9734ea578e7902b016efd29825d0463d85533e56",
+          "version": null
         }
       },
       {
@@ -44,6 +44,15 @@
           "branch": null,
           "revision": "4356ec54e073741449640d3d50a1fd24fd1e1b8b",
           "version": "2.1.0"
+        }
+      },
+      {
+        "package": "SQLCipher-framework",
+        "repositoryURL": "https://github.com/ayoy/SQLCipher-XCFramework.git",
+        "state": {
+          "branch": null,
+          "revision": "ff249de6a996fa6536b9ca631e5a079b847b0a35",
+          "version": "0.0.1"
         }
       },
       {
