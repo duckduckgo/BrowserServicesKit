@@ -8,7 +8,7 @@ source="$script_dir/assets/Swift File For Package.xctemplate"
 destination="/Applications/Xcode.app/Contents/Developer/Library/Xcode/Templates/File Templates/MultiPlatform/Source/Swift File For Package.xctemplate"
 
 # Create a symbolic link
-ln -sF "$source" "$destination"
+ln -sFn "$source" "$destination"
 
 # Check if the symlink was created successfully
 if [[ ! -L "$destination" ]]; then
