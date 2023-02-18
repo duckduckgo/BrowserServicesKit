@@ -1,5 +1,5 @@
 //
-//  Configuration.swift
+//  ConfigurationFetcherTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -21,7 +21,7 @@ import XCTest
 @testable import Configuration
 @testable import API
 
-final class ConfigurationTests: XCTestCase {
+final class ConfigurationFetcherTests: XCTestCase {
     
     func makeConfigurationFetcher(with store: ConfigurationStoring) -> ConfigurationFetcher {
         let testConfiguration = URLSessionConfiguration.default
@@ -119,13 +119,28 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertNil(store.loadData(for: .bloomFilterSpec))
     }
     
-    //  Etags logic
+    // -
+    
+    func testWhenEtagAndDataAreStoredThenResponseIsStored() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, self.privacyConfigData) }
+        let oldEtag = UUID().uuidString
+        let oldData = Data()
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfig] = (oldEtag, oldData)
+
+        let fetcher = makeConfigurationFetcher(with: store)
+        try? await fetcher.fetch([.init(configuration: .privacyConfig)])
+        
+        XCTAssertEqual(store.loadData(for: .privacyConfig), self.privacyConfigData)
+        XCTAssertEqual(store.loadEtag(for: .privacyConfig), HTTPURLResponse.testEtag)
+    }
     
     func testWhenNoEtagIsStoredThenResponseIsStored() async throws {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigData) }
         let store = MockStore()
         let fetcher = makeConfigurationFetcher(with: store)
         try await fetcher.fetch([.init(configuration: .privacyConfig)])
+        XCTAssertEqual(store.loadData(for: .privacyConfig), self.privacyConfigData)
         XCTAssertEqual(store.loadEtag(for: .privacyConfig), HTTPURLResponse.testEtag)
     }
     
@@ -208,6 +223,18 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch))
     }
     
+    func testWhenEtagProvidedThenItIsAddedToRequest() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
+        let etag = UUID().uuidString
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfig] = (etag, Data())
+        
+        let fetcher = makeConfigurationFetcher(with: store)
+        try? await fetcher.fetch([.init(configuration: .privacyConfig)])
+        
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch), etag)
+    }
+    
     func testWhenEmbeddedEtagAndExternalEtagProvidedThenExternalAddedToRequest() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let etag = UUID().uuidString
@@ -222,10 +249,4 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch), etag)
     }
     
-    // ???testWhenEtagIsPresentThenResponseIsStoredOnlyWhenNeeded???
-
-    // test_when_embedded_etag_and_external_etag_provided_then_external_included_in_request
-    // test_when_embedded_etag_provided_then_is_included_in_request
-    // test_when_response_is_success_and_valid_etag_then_meta_returned_and_data_stored
-
 }
