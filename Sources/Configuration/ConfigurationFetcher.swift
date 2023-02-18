@@ -25,9 +25,12 @@ extension Configuration {
     
     var url: URL {
         switch self {
-        case .bloomFilter: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom.bin")!
+        case .bloomFilterBinary: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom.bin")!
         case .bloomFilterSpec: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom-spec.json")!
-        case .privacyConfig: return URL(string: "whatever")!
+        case .bloomFilterExcludedDomains: return URL(string: "")!
+        case .privacyConfiguration: return URL(string: "whatever")!
+        case .surrogates: return URL(string: "")!
+        case .trackerRadar: return URL(string: "")!
         }
     }
     
@@ -58,19 +61,23 @@ final class ConfigurationFetcher: ConfigurationFetching {
         case missingEtagInResponse
         case emptyData
         case invalidStatusCode
+        case invalidPayload
         
     }
     
     private var store: ConfigurationStoring
+    private let validator: ConfigurationValidating
     private let onDidStore: () -> Void
     private let urlSession: URLSession
     private let userAgent: APIHeaders.UserAgent
     
     init(store: ConfigurationStoring,
+         validator: ConfigurationValidating = ConfigurationValidator(),
          onDidStore: @escaping () -> Void,
          urlSession: URLSession = .shared,
          userAgent: APIHeaders.UserAgent) {
         self.store = store
+        self.validator = validator
         self.onDidStore = onDidStore
         self.urlSession = urlSession
         self.userAgent = userAgent
@@ -80,7 +87,9 @@ final class ConfigurationFetcher: ConfigurationFetching {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             fetchTasks.forEach { task in
                 group.addTask {
-                    (task.configuration, try await self.fetch(from: task.endpoint, withEtag: self.etag(for: task.configuration)))
+                    let fetchResult = try await self.fetch(from: task.endpoint, withEtag: self.etag(for: task.configuration))
+                    try self.validator.validate(fetchResult.data, for: task.configuration)
+                    return (task.configuration, fetchResult)
                 }
             }
 

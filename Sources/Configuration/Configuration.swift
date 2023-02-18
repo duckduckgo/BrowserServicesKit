@@ -22,9 +22,12 @@ import API
 
 public enum Configuration {
     
-    case bloomFilter
+    case bloomFilterBinary
     case bloomFilterSpec
-    case privacyConfig
+    case bloomFilterExcludedDomains
+    case privacyConfiguration
+    case surrogates
+    case trackerRadar
     
 }
 
@@ -35,7 +38,7 @@ public struct ConfigurationManager {
     let userAgent: APIHeaders.UserAgent
     
     func fetchBloomFilter(withCustomUrls customUrls: [(configuration: Configuration, url: URL)] = []) async {
-        let tasks = mergeTasks([ConfigurationFetchTask(configuration: .bloomFilter),
+        let tasks = mergeTasks([ConfigurationFetchTask(configuration: .bloomFilterBinary),
                                 ConfigurationFetchTask(configuration: .bloomFilterSpec)],
                                withCustomUrls: customUrls)
         

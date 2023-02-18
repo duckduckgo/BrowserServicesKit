@@ -114,6 +114,7 @@ let package = Package(
             name: "Configuration",
             dependencies: [
                 "API",
+                "BrowserServicesKit",
                 "Common"
             ]),
         .target(
@@ -150,7 +151,8 @@ let package = Package(
         .testTarget(
             name: "PersistenceTests",
             dependencies: [
-                "Persistence"
+                "Persistence",
+                "TrackerRadarKit"
             ]
         ),
         .testTarget(
