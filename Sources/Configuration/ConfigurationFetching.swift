@@ -23,7 +23,7 @@ import API
 
 protocol ConfigurationFetching {
     
-    func fetch(_ configurations: [Configuration]) async throws
+    func fetch(_ configurations: [Configuration], onDidStore: (() -> Void)?) async throws
 
 }
 
@@ -44,18 +44,15 @@ final class ConfigurationFetcher: ConfigurationFetching {
     
     private var store: ConfigurationStoring
     private let validator: ConfigurationValidating
-    private let onDidStore: () -> Void
     private let urlSession: URLSession
     private let userAgent: APIHeaders.UserAgent
     
     init(store: ConfigurationStoring,
          validator: ConfigurationValidating = ConfigurationValidator(),
-         onDidStore: @escaping () -> Void,
          urlSession: URLSession = .shared,
          userAgent: APIHeaders.UserAgent) {
         self.store = store
         self.validator = validator
-        self.onDidStore = onDidStore
         self.urlSession = urlSession
         self.userAgent = userAgent
     }
@@ -72,9 +69,9 @@ final class ConfigurationFetcher: ConfigurationFetching {
      - Important:
         This function uses a throwing task group to download and validate the configurations in parallel. If any of the tasks in the group throws an error, the group is cancelled and the function rethrows the error. So, if any configuration fails to fetch or validate, none of the configurations will be stored.
 
-        The `onDidStore` closure, also provided at initialization, will be called after all the configurations are successfully stored.
+        The `onDidStore` closure will be called after all the configurations are successfully stored.
     */
-    func fetch(_ configurations: [Configuration]) async throws {
+    func fetch(_ configurations: [Configuration], onDidStore: (() -> Void)? = nil) async throws {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             configurations.forEach { configuration in
                 group.addTask {
@@ -92,7 +89,7 @@ final class ConfigurationFetcher: ConfigurationFetching {
             for (configuration, fetchResult) in fetchResults {
                 try self.store(fetchResult, for: configuration)
             }
-            onDidStore()
+            onDidStore?()
         }
     }
     

@@ -29,7 +29,6 @@ final class ConfigurationFetcherTests: XCTestCase {
         testConfiguration.protocolClasses = [MockURLProtocol.self]
         return ConfigurationFetcher(store: store,
                                     validator: validator,
-                                    onDidStore: {},
                                     urlSession: URLSession(configuration: testConfiguration),
                                     userAgent: "")
     }
