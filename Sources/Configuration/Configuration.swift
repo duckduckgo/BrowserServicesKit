@@ -18,7 +18,6 @@
 //
 
 import Foundation
-//import API
 
 public enum Configuration {
     
@@ -29,37 +28,28 @@ public enum Configuration {
     case surrogates
     case trackerRadar
     
+    var defaultURL: URL {
+        switch self {
+        case .bloomFilterBinary: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom.bin")!
+        case .bloomFilterSpec: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom-spec.json")!
+        case .bloomFilterExcludedDomains: return URL(string: "")!
+        case .privacyConfiguration: return URL(string: "whatever")!
+        case .surrogates: return URL(string: "")!
+        case .trackerRadar: return URL(string: "")!
+        }
+    }
+    
+    var url: URL {
+        if let customURL = Configuration.customURLs[self] {
+            return customURL
+        }
+        return defaultURL
+    }
+    
+    static func setCustomURL(_ url: URL, for configuration: Configuration) {
+        Configuration.customURLs[configuration] = url
+    }
+    
+    private static var customURLs: [Configuration: URL] = [:]
+    
 }
-
-//public struct ConfigurationManager {
-//
-//    let store: ConfigurationStoring
-//    let onDidStore: (() -> Void)?
-//    let userAgent: APIHeaders.UserAgent
-//
-//
-//
-//    func fetchBloomFilter(withCustomUrls customUrls: [(configuration: Configuration, url: URL)] = []) async {
-//        let tasks = mergeTasks([ConfigurationFetchTask(configuration: .bloomFilterBinary),
-//                                ConfigurationFetchTask(configuration: .bloomFilterSpec)],
-//                               withCustomUrls: customUrls)
-//
-//        let fetcher = ConfigurationFetcher(store: store, onDidStore: {}, userAgent: "")
-//        do {
-//            fetcher.fetch([])
-//            try await fetcher.fetch(tasks)
-//        } catch {
-//
-//        }
-//    }
-//
-//    private func mergeTasks(_ tasks: [ConfigurationFetchTask],
-//                            withCustomUrls customUrls: [(configuration: Configuration, url: URL)]) -> [ConfigurationFetchTask] {
-//        return tasks.map { task in
-//            let customUrl = customUrls.first(where: { $0.configuration == task.configuration })?.url
-//            return ConfigurationFetchTask(configuration: task.configuration,
-//                                          url: customUrl ?? task.url)
-//        }
-//    }
-//
-//}
