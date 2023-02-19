@@ -18,7 +18,7 @@
 //
 
 import Foundation
-import API
+//import API
 
 public enum Configuration {
     
@@ -31,32 +31,35 @@ public enum Configuration {
     
 }
 
-public struct ConfigurationManager {
-    
-    let store: ConfigurationStoring
-    let onDidStore: (() -> Void)?
-    let userAgent: APIHeaders.UserAgent
-    
-    func fetchBloomFilter(withCustomUrls customUrls: [(configuration: Configuration, url: URL)] = []) async {
-        let tasks = mergeTasks([ConfigurationFetchTask(configuration: .bloomFilterBinary),
-                                ConfigurationFetchTask(configuration: .bloomFilterSpec)],
-                               withCustomUrls: customUrls)
-        
-        let fetcher = ConfigurationFetcher(store: store, onDidStore: {}, userAgent: "")
-        do {
-            try await fetcher.fetch(tasks)
-        } catch {
-            
-        }
-    }
-    
-    private func mergeTasks(_ tasks: [ConfigurationFetchTask],
-                            withCustomUrls customUrls: [(configuration: Configuration, url: URL)]) -> [ConfigurationFetchTask] {
-        return tasks.map { task in
-            let customUrl = customUrls.first(where: { $0.configuration == task.configuration })?.url
-            return ConfigurationFetchTask(configuration: task.configuration,
-                                          url: customUrl ?? task.url)
-        }
-    }
-    
-}
+//public struct ConfigurationManager {
+//
+//    let store: ConfigurationStoring
+//    let onDidStore: (() -> Void)?
+//    let userAgent: APIHeaders.UserAgent
+//
+//
+//
+//    func fetchBloomFilter(withCustomUrls customUrls: [(configuration: Configuration, url: URL)] = []) async {
+//        let tasks = mergeTasks([ConfigurationFetchTask(configuration: .bloomFilterBinary),
+//                                ConfigurationFetchTask(configuration: .bloomFilterSpec)],
+//                               withCustomUrls: customUrls)
+//
+//        let fetcher = ConfigurationFetcher(store: store, onDidStore: {}, userAgent: "")
+//        do {
+//            fetcher.fetch([])
+//            try await fetcher.fetch(tasks)
+//        } catch {
+//
+//        }
+//    }
+//
+//    private func mergeTasks(_ tasks: [ConfigurationFetchTask],
+//                            withCustomUrls customUrls: [(configuration: Configuration, url: URL)]) -> [ConfigurationFetchTask] {
+//        return tasks.map { task in
+//            let customUrl = customUrls.first(where: { $0.configuration == task.configuration })?.url
+//            return ConfigurationFetchTask(configuration: task.configuration,
+//                                          url: customUrl ?? task.url)
+//        }
+//    }
+//
+//}

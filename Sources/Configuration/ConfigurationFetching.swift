@@ -21,6 +21,6 @@ import Foundation
 
 protocol ConfigurationFetching {
     
-    func fetch(_ tasks: [ConfigurationFetchTask]) async throws
+    func fetch(_ configurations: [Configuration]) async throws
 
 }

@@ -24,6 +24,13 @@ import API
 extension Configuration {
     
     var url: URL {
+        if let customURL = Configuration.customURLs[self] {
+            return customURL
+        }
+        return defaultURL
+    }
+    
+    var defaultURL: URL {
         switch self {
         case .bloomFilterBinary: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom.bin")!
         case .bloomFilterSpec: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom-spec.json")!
@@ -34,19 +41,11 @@ extension Configuration {
         }
     }
     
-}
-
-public struct ConfigurationFetchTask {
-    
-    let configuration: Configuration
-    let url: URL?
-    
-    var endpoint: URL { url ?? configuration.url }
-    
-    public init(configuration: Configuration, url: URL? = nil) {
-        self.configuration = configuration
-        self.url = url
+    static func setCustomURL(_ url: URL, for configuration: Configuration) {
+        Configuration.customURLs[configuration] = url
     }
+    
+    private static var customURLs: [Configuration: URL] = [:]
     
 }
 
@@ -83,13 +82,27 @@ final class ConfigurationFetcher: ConfigurationFetching {
         self.userAgent = userAgent
     }
     
-    func fetch(_ fetchTasks: [ConfigurationFetchTask]) async throws {
+    /**
+     Downloads and stores the configurations provided in parallel.
+
+     - Parameters:
+        - configurations: An array of `Configuration` enums that need to be downloaded and stored.
+
+     - Throws:
+        If any configuration fails to fetch or validate, a corresponding error is thrown.
+
+     - Important:
+        This function uses a throwing task group to download and validate the configurations in parallel. If any of the tasks in the group throws an error, the group is cancelled and the function rethrows the error. So, if any configuration fails to fetch or validate, none of the configurations will be stored.
+
+        The `onDidStore` closure, also provided at initialization, will be called after all the configurations are successfully stored.
+    */
+    func fetch(_ configurations: [Configuration]) async throws {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
-            fetchTasks.forEach { task in
+            configurations.forEach { configuration in
                 group.addTask {
-                    let fetchResult = try await self.fetch(from: task.endpoint, withEtag: self.etag(for: task.configuration))
-                    try self.validator.validate(fetchResult.data, for: task.configuration)
-                    return (task.configuration, fetchResult)
+                    let fetchResult = try await self.fetch(from: configuration.url, withEtag: self.etag(for: configuration))
+                    try self.validator.validate(fetchResult.data, for: configuration)
+                    return (configuration, fetchResult)
                 }
             }
 
