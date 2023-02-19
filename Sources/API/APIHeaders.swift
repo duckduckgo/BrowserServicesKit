@@ -20,6 +20,7 @@
 import Foundation
 
 public typealias HTTPHeaders = [String: String]
+public typealias QueryParameters = [(String, String)]
 
 public struct APIHeaders {
     
@@ -53,7 +54,7 @@ public struct APIHeaders {
         return defaultHeaders.merging([HTTPHeaderField.ifNoneMatch: etag]) { (_, new) in new }
     }
     
-    func addHeaders(to request: inout URLRequest) {
+   public func addHeaders(to request: inout URLRequest) {
         request.addValue(HTTPHeaderField.userAgent, forHTTPHeaderField: userAgent)
     }
     

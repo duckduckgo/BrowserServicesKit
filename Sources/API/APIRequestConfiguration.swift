@@ -1,0 +1,70 @@
+//
+//  APIRequestConfiguration.swift
+//  DuckDuckGo
+//
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+
+import Foundation
+
+extension APIRequest {
+    
+    public struct Configuration {
+        
+        let url: URL
+        let method: HTTPMethod
+        let queryParameters: QueryParameters
+        let allowedQueryReservedCharacters: CharacterSet?
+        let headers: HTTPHeaders
+        let body: Data?
+        let timeoutInterval: TimeInterval
+        let attribution: URLRequestAttribution?
+        
+        public init(url: URL,
+                    method: HTTPMethod = .get,
+                    queryParameters: QueryParameters = [],
+                    allowedQueryReservedCharacters: CharacterSet? = nil,
+                    headers: HTTPHeaders,
+                    body: Data? = nil,
+                    timeoutInterval: TimeInterval = 60.0,
+                    attribution: URLRequestAttribution? = nil) {
+            self.url = url
+            self.method = method
+            self.queryParameters = queryParameters
+            self.allowedQueryReservedCharacters = allowedQueryReservedCharacters
+            self.headers = headers
+            self.body = body
+            self.timeoutInterval = timeoutInterval
+            self.attribution = attribution
+        }
+        
+        var request: URLRequest {
+            let url = url.appendingParameters(queryParameters, allowedReservedCharacters: allowedQueryReservedCharacters)
+            var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
+            request.allHTTPHeaderFields = headers
+            request.httpMethod = method.rawValue
+            request.httpBody = body
+            if #available(iOS 15.0, macOS 12.0, *) {
+                if let attribution = attribution?.urlRequestAttribution {
+                    request.attribution = attribution
+                }
+            }
+            return request
+        }
+        
+    }
+    
+}

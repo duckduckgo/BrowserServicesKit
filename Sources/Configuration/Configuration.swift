@@ -27,15 +27,18 @@ public enum Configuration {
     case privacyConfiguration
     case surrogates
     case trackerRadar
+    case FBConfig
     
     var defaultURL: URL {
         switch self {
         case .bloomFilterBinary: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom.bin")!
         case .bloomFilterSpec: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom-spec.json")!
-        case .bloomFilterExcludedDomains: return URL(string: "")!
-        case .privacyConfiguration: return URL(string: "whatever")!
-        case .surrogates: return URL(string: "")!
-        case .trackerRadar: return URL(string: "")!
+        case .bloomFilterExcludedDomains: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-false-positives.json")!
+        case .privacyConfiguration: return URL(string: "https://staticcdn.duckduckgo.com/trackerblocking/config/v2/macos-config.json")! // TODO!!
+        case .surrogates: return URL(string: "https://duckduckgo.com/contentblocking.js?l=surrogates")!
+        case .trackerRadar: return URL(string: "https://staticcdn.duckduckgo.com/trackerblocking/v3/apple-tds.json")!
+        // In archived repo, to be refactored shortly (https://staticcdn.duckduckgo.com/useragents/social_ctp_configuration.json)
+        case .FBConfig: return URL(string: "https://staticcdn.duckduckgo.com/useragents/")!
         }
     }
     
@@ -46,7 +49,7 @@ public enum Configuration {
         return defaultURL
     }
     
-    static func setCustomURL(_ url: URL, for configuration: Configuration) {
+    public static func setCustomURL(_ url: URL, for configuration: Configuration) {
         Configuration.customURLs[configuration] = url
     }
     

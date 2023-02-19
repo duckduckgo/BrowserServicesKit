@@ -1,5 +1,5 @@
 //
-//  ConfigurationStoring.swift
+//  URLRequestAttribution.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -18,14 +18,24 @@
 //
 
 import Foundation
+import Common
 
-public protocol ConfigurationStoring {
+public enum URLRequestAttribution {
     
-    func loadData(for configuration: Configuration) -> Data?
-    func loadEtag(for configuration: Configuration) -> String?
-    func loadEmbeddedEtag(for configuration: Configuration) -> String?
+    case none
+    case developer
+    case user
     
-    mutating func saveData(_ data: Data, for configuration: Configuration) throws
-    mutating func saveEtag(_ etag: String, for configuration: Configuration) throws
+    @available(iOS 15.0, macOS 12.0, *)
+    public var urlRequestAttribution: URLRequest.Attribution? {
+        switch self {
+        case .developer:
+            return .developer
+        case .user:
+            return .user
+        case .none:
+            return nil
+        }
+    }
     
 }

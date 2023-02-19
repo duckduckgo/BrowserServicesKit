@@ -1,5 +1,5 @@
 //
-//  ConfigurationStoring.swift
+//  APIRequestResponse.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,13 +19,13 @@
 
 import Foundation
 
-public protocol ConfigurationStoring {
+extension APIRequest {
     
-    func loadData(for configuration: Configuration) -> Data?
-    func loadEtag(for configuration: Configuration) -> String?
-    func loadEmbeddedEtag(for configuration: Configuration) -> String?
-    
-    mutating func saveData(_ data: Data, for configuration: Configuration) throws
-    mutating func saveEtag(_ etag: String, for configuration: Configuration) throws
+    public struct Response {
+        
+        let data: Data
+        let response: URLResponse
+        
+    }
     
 }

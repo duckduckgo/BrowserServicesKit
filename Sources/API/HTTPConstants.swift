@@ -1,5 +1,5 @@
 //
-//  ConfigurationStoring.swift
+//  HTTPConstants.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,13 +19,29 @@
 
 import Foundation
 
-public protocol ConfigurationStoring {
+public enum HTTPHeaderField {
     
-    func loadData(for configuration: Configuration) -> Data?
-    func loadEtag(for configuration: Configuration) -> String?
-    func loadEmbeddedEtag(for configuration: Configuration) -> String?
-    
-    mutating func saveData(_ data: Data, for configuration: Configuration) throws
-    mutating func saveEtag(_ etag: String, for configuration: Configuration) throws
+    static let acceptEncoding = "Accept-Encoding"
+    static let acceptLanguage = "Accept-Language"
+    static let userAgent = "User-Agent"
+    static let etag = "ETag"
+    static let ifNoneMatch = "If-None-Match"
+    static let moreInfo = "X-DuckDuckGo-MoreInfo"
     
 }
+
+public enum HTTPMethod: String {
+    
+    case get = "GET"
+    case head = "HEAD"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+    case connect = "CONNECT"
+    case options = "OPTIONS"
+    case trace = "TRACE"
+    case patch = "PATCH"
+    
+}
+
+

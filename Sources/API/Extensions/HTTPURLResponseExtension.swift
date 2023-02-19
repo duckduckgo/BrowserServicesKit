@@ -18,21 +18,32 @@
 //
 
 import Foundation
+import Common
 
 public extension HTTPURLResponse {
     
-    enum Error: Swift.Error {
+    enum Constants {
         
-        case invalidStatusCode
+        static let weakEtagPrefix = "W/"
         
     }
     
     func assertStatusCode<S: Sequence>(_ acceptedStatusCodes: S) throws where S.Iterator.Element == Int {
-        guard acceptedStatusCodes.contains(statusCode) else {
-            throw Error.invalidStatusCode
-        }
+        guard acceptedStatusCodes.contains(statusCode) else { throw APIRequest.Error.invalidStatusCode }
     }
     
-    var etag: String? { value(forHTTPHeaderField: HTTPHeaderField.etag) }
+    func assertSuccessfulStatusCode() throws {
+        try assertStatusCode(200..<300)
+    }
+    
+    func etag(shouldDropWeakPrefix: Bool) -> String? {
+        let etag = value(forHTTPHeaderField: HTTPHeaderField.etag)
+        if shouldDropWeakPrefix {
+            return etag?.dropping(prefix: HTTPURLResponse.Constants.weakEtagPrefix)
+        }
+        return etag
+    }
+    
+    var etag: String? { etag(shouldDropWeakPrefix: true) }
     
 }

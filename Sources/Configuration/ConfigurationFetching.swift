@@ -29,7 +29,7 @@ protocol ConfigurationFetching {
 
 typealias ConfigurationFetchResult = (etag: String, data: Data)
 
-final class ConfigurationFetcher: ConfigurationFetching {
+public final class ConfigurationFetcher: ConfigurationFetching {
     
     enum Error: Swift.Error {
         
@@ -43,18 +43,22 @@ final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private var store: ConfigurationStoring
-    private let validator: ConfigurationValidating
-    private let urlSession: URLSession
     private let userAgent: APIHeaders.UserAgent
+    private let urlSession: URLSession
+    private let validator: ConfigurationValidating
+    
+    public convenience init(store: ConfigurationStoring, userAgent: APIHeaders.UserAgent, urlSession: URLSession = .shared) {
+        self.init(store: store, userAgent: userAgent, validator: ConfigurationValidator())
+    }
     
     init(store: ConfigurationStoring,
-         validator: ConfigurationValidating = ConfigurationValidator(),
+         userAgent: APIHeaders.UserAgent,
          urlSession: URLSession = .shared,
-         userAgent: APIHeaders.UserAgent) {
+         validator: ConfigurationValidating = ConfigurationValidator()) {
         self.store = store
-        self.validator = validator
-        self.urlSession = urlSession
         self.userAgent = userAgent
+        self.urlSession = urlSession
+        self.validator = validator
     }
     
     /**
@@ -71,7 +75,7 @@ final class ConfigurationFetcher: ConfigurationFetching {
 
         The `onDidStore` closure will be called after all the configurations are successfully stored.
     */
-    func fetch(_ configurations: [Configuration], onDidStore: (() -> Void)? = nil) async throws {
+    public func fetch(_ configurations: [Configuration], onDidStore: (() -> Void)? = nil) async throws {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             configurations.forEach { configuration in
                 group.addTask {
@@ -101,36 +105,13 @@ final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
-        let request = URLRequest.makeRequest(url: url, headers: makeHeaders(with: etag))
-        let (data, response) = try await fetch(for: request)
-        
-        guard let response = response as? HTTPURLResponse else { throw Error.invalidResponse }
-        try assertSuccessfulStatusCode(for: response)
-        
-        guard let etag = response.etag?.dropping(prefix: "W/") else { throw Error.missingEtagInResponse }
-        guard data.count > 0 else { throw Error.emptyData }
+        let configuration = APIRequest.Configuration(url: url, headers: APIHeaders(with: userAgent).defaultHeaders(with: etag))
+        let request = APIRequest<ConfigurationFetchResult>(configuration: configuration, urlSession: urlSession)
+        let (data, response) = try await request.fetch()
 
         return (etag, data)
     }
-    
-    private func makeHeaders(with etag: String?) -> HTTPHeaders { APIHeaders(with: userAgent).defaultHeaders(with: etag) }
-    
-    private func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
-        do {
-            return try await urlSession.data(for: request)
-        } catch let error {
-            throw Error.urlSession(error)
-        }
-    }
-    
-    private func assertSuccessfulStatusCode(for response: HTTPURLResponse) throws {
-        do {
-            try response.assertStatusCode(200..<300)
-        } catch {
-            throw Error.invalidStatusCode
-        }
-    }
-    
+
     private func store(_ result: ConfigurationFetchResult, for configuration: Configuration) throws {
         try store.saveData(result.data, for: configuration)
         try store.saveEtag(result.etag, for: configuration)

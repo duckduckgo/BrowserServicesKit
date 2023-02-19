@@ -26,7 +26,7 @@ protocol ConfigurationValidating {
     
 }
 
-struct ConfigurationValidator: ConfigurationValidating {
+public struct ConfigurationValidator: ConfigurationValidating {
 
     func validate(_ data: Data, for location: Configuration) throws {
         do {
