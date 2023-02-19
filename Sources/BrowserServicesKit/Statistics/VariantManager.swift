@@ -20,7 +20,7 @@
 import Foundation
 
 public enum FeatureName: String {
-
+    case fireButtonWithColorFill
     // Used for unit tests
     case dummy
 }

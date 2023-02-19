@@ -1,6 +1,5 @@
 //
-//  UserScriptTestHelper.swift
-//  DuckDuckGo
+//  Redirect.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -17,21 +16,20 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
-import CryptoKit
 
-struct UserScriptTestHelper {
-    
-    static func getScriptOutput (_ src: String) -> String {
-        let hash = SHA256.hash(data: Data(src.utf8)).hashValue
+public enum RedirectType: Equatable {
+    case client(delay: TimeInterval)
+    case server
+    case developer
+}
 
-        return """
-        (() => {
-            if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
-            \(src)
-            window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
-            window.navigator._duckduckgoloader_.push('\(hash)')
-        })()
-        """
+public extension RedirectType {
+
+    var isClient: Bool {
+        if case .client = self { return true }
+        return false
     }
+
 }

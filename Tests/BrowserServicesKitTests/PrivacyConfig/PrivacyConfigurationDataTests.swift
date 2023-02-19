@@ -36,6 +36,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertNotNil(duckPlayerFeature)
         XCTAssertEqual(duckPlayerFeature?.state, "enabled")
 
+        let windowsWaitlistFeature = configData.features["windowsWaitlist"]
+        XCTAssertNotNil(windowsWaitlistFeature)
+        XCTAssertEqual(windowsWaitlistFeature?.state, "enabled")
+
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
         XCTAssertEqual(gpcFeature?.state, "enabled")
@@ -75,6 +79,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         let duckPlayerFeature = configData.features["duckPlayer"]
         XCTAssertNotNil(duckPlayerFeature)
         XCTAssertEqual(duckPlayerFeature?.state, "enabled")
+
+        let windowsWaitlistFeature = configData.features["windowsWaitlist"]
+        XCTAssertNotNil(windowsWaitlistFeature)
+        XCTAssertEqual(windowsWaitlistFeature?.state, "enabled")
 
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
