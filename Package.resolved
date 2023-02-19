@@ -21,11 +21,11 @@
       },
       {
         "package": "GRDB",
-        "repositoryURL": "https://github.com/ayoy/GRDB-SQLCipher.git",
+        "repositoryURL": "https://github.com/DuckDuckGo/GRDB.swift.git",
         "state": {
           "branch": null,
-          "revision": "e08b285270bc02366e5be75c2a8ca7420de741f9",
-          "version": "0.0.1"
+          "revision": "053d890417cdb587377156bc18f230a2caca8a51",
+          "version": "2.1.0"
         }
       },
       {
