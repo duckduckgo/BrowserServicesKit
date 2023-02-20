@@ -118,8 +118,22 @@ final class APIRequestTests: XCTestCase {
             _ = try await request.fetch()
             XCTFail("Expected an error to be thrown")
         } catch {
-            guard let error = error as? APIRequest.Error,
-                  case .invalidStatusCode = error else {
+            guard let error = error as? APIRequest.Error, case .invalidStatusCode = error else {
+                XCTFail("Unexpected error thrown: \(error).")
+                return
+            }
+        }
+    }
+    
+    func testWhenNotModifiedResponseThenInvalidResponseErrorIsThrown() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
+        let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
+        let request = APIRequest(configuration: configuration, urlSession: mockURLSession)
+        do {
+            _ = try await request.fetch()
+            XCTFail("Expected an error to be thrown")
+        } catch {
+            guard let error = error as? APIRequest.Error, case .invalidResponse = error else {
                 XCTFail("Unexpected error thrown: \(error).")
                 return
             }
