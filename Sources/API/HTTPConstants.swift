@@ -21,12 +21,12 @@ import Foundation
 
 public enum HTTPHeaderField {
     
-    static let acceptEncoding = "Accept-Encoding"
-    static let acceptLanguage = "Accept-Language"
-    static let userAgent = "User-Agent"
-    static let etag = "ETag"
-    static let ifNoneMatch = "If-None-Match"
-    static let moreInfo = "X-DuckDuckGo-MoreInfo"
+    public static let acceptEncoding = "Accept-Encoding"
+    public static let acceptLanguage = "Accept-Language"
+    public static let userAgent = "User-Agent"
+    public static let etag = "ETag"
+    public static let ifNoneMatch = "If-None-Match"
+    public static let moreInfo = "X-DuckDuckGo-MoreInfo"
     
 }
 
@@ -43,5 +43,3 @@ public enum HTTPMethod: String {
     case patch = "PATCH"
     
 }
-
-

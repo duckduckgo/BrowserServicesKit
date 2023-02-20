@@ -17,16 +17,16 @@
 //  limitations under the License.
 //
 
-
 import Foundation
+import Common
 
 extension APIRequest {
     
-    public struct Configuration {
+    public struct Configuration<QueryParams: Collection> where QueryParams.Element == (key: String, value: String) {
         
         let url: URL
         let method: HTTPMethod
-        let queryParameters: QueryParameters
+        let queryParameters: QueryParams
         let allowedQueryReservedCharacters: CharacterSet?
         let headers: HTTPHeaders
         let body: Data?
@@ -35,9 +35,9 @@ extension APIRequest {
         
         public init(url: URL,
                     method: HTTPMethod = .get,
-                    queryParameters: QueryParameters = [],
+                    queryParameters: QueryParams = [],
                     allowedQueryReservedCharacters: CharacterSet? = nil,
-                    headers: HTTPHeaders,
+                    headers: HTTPHeaders = APIHeaders().defaultHeaders,
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
                     attribution: URLRequestAttribution? = nil) {

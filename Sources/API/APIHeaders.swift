@@ -20,18 +20,19 @@
 import Foundation
 
 public typealias HTTPHeaders = [String: String]
-public typealias QueryParameters = [(String, String)]
 
 public struct APIHeaders {
     
     public typealias UserAgent = String
-    private let userAgent: UserAgent
+    public static var userAgent: UserAgent?
     
-    public init(with userAgent: UserAgent) {
-        self.userAgent = userAgent
-    }
+    public init() { }
     
     public var defaultHeaders: HTTPHeaders {
+        guard let userAgent = APIHeaders.userAgent else {
+            fatalError("Please set the userAgent before accessing defaultHeaders.")
+        }
+        
         let acceptEncoding = "gzip;q=1.0, compress;q=0.5"
         let languages = Locale.preferredLanguages.prefix(6)
         let acceptLanguage = languages.enumerated().map { index, language in
@@ -50,12 +51,7 @@ public struct APIHeaders {
         guard let etag = etag else {
             return defaultHeaders
         }
-        
         return defaultHeaders.merging([HTTPHeaderField.ifNoneMatch: etag]) { (_, new) in new }
-    }
-    
-   public func addHeaders(to request: inout URLRequest) {
-        request.addValue(HTTPHeaderField.userAgent, forHTTPHeaderField: userAgent)
     }
     
 }

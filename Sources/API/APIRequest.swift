@@ -19,33 +19,34 @@
 
 import Foundation
 
-public typealias APIRequestCompletion = (APIRequest.Response?, Error?) -> Void
+public typealias APIResponse = (data: Data, response: HTTPURLResponse)
+public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
 
 public struct APIRequest {
     
     private let request: URLRequest
     private let urlSession: URLSession
+    private let requirements: [APIResponseRequirement]
     
-    public init(configuration: APIRequest.Configuration,
-                urlSession: URLSession = .shared) {
+    public init<QueryParams: Collection>(configuration: APIRequest.Configuration<QueryParams>,
+                                         requirements: [APIResponseRequirement] = [],
+                                         urlSession: URLSession = .shared) {
         self.request = configuration.request
+        self.requirements = requirements
         self.urlSession = urlSession
     }
 
     @discardableResult
-    public func fetch(useEphemeralURLSession: Bool = true,
-                      callBackOnMainThread: Bool = false,
-                      completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
-        let session = URLSession.makeSession(useMainThreadCallbackQueue: callBackOnMainThread, ephemeral: useEphemeralURLSession)
-        let task = session.dataTask(with: request) { (data, response, error) in
+    public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
+        let task = urlSession.dataTask(with: request) { (data, response, error) in
             if let error = error {
                 completion(nil, .urlSession(error))
             } else {
                 do {
-                    try self.validate(data: data, response: response)
-                    completion(APIRequest.Response(data: data, response: response), nil)
+                    let response = try self.validateAndUnwrap(data: data, response: response)
+                    completion(response, nil)
                 } catch {
-                    completion(nil, error)
+                    completion(nil, error as? APIRequest.Error ?? .urlSession(error))
                 }
             }
         }
@@ -53,23 +54,33 @@ public struct APIRequest {
         return task
     }
     
-    private func validate(data: Data?,
-                          response: URLResponse?,
-                          shouldThrowOnMissingEtag: Bool = false) throws {
-        guard let httpResponse = response?.asHTTPURLResponse else { throw APIRequest.Error.invalidResponse }
+    private func validateAndUnwrap(data: Data?, response: URLResponse?) throws -> APIResponse {
+        let httpResponse = try getHTTPResponse(from: response)
         try httpResponse.assertSuccessfulStatusCode()
         
-        let etag = httpResponse.etag
-        if shouldThrowOnMissingEtag && etag == nil {
-            throw APIRequest.Error.missingEtagInResponse
+        for requirement in requirements {
+            switch requirement {
+            case .nonEmptyData:
+                if data?.count == 0 { throw APIRequest.Error.emptyData }
+            case .etag:
+                if httpResponse.etag == nil { throw APIRequest.Error.missingEtagInResponse }
+            }
         }
-        guard let data = data, data.count > 0 else { throw APIRequest.Error.emptyData } // is it ok for every request?
+        
+        guard let data = data else { throw APIRequest.Error.emptyData } // todo: what to do here?
+        return (data, httpResponse)
+    }
+    
+    private func getHTTPResponse(from response: URLResponse?) throws -> HTTPURLResponse {
+        guard let httpResponse = response?.asHTTPURLResponse else {
+            throw APIRequest.Error.invalidResponse
+        }
+        return httpResponse
     }
 
-    public func fetch() async throws -> APIRequest.Response {
+    public func fetch() async throws -> APIResponse {
         let (data, response) = try await fetch(for: request)
-        try validate(data: data, response: response, shouldThrowOnMissingEtag: true)
-        return APIRequest.Response(data: data, response: response)
+        return try validateAndUnwrap(data: data, response: response)
     }
         
     private func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
@@ -81,4 +92,3 @@ public struct APIRequest {
     }
 
 }
-

@@ -23,7 +23,7 @@ import API
 
 protocol ConfigurationFetching {
     
-    func fetch(_ configurations: [Configuration], onDidStore: (() -> Void)?) async throws
+    func fetch(_ configurations: [Configuration], onDidStore: (() throws -> Void)?) async throws
 
 }
 
@@ -43,22 +43,19 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private var store: ConfigurationStoring
-    private let userAgent: APIHeaders.UserAgent
     private let urlSession: URLSession
     private let validator: ConfigurationValidating
     
-    public convenience init(store: ConfigurationStoring, userAgent: APIHeaders.UserAgent, urlSession: URLSession = .shared) {
-        self.init(store: store, userAgent: userAgent, validator: ConfigurationValidator())
+    public convenience init(store: ConfigurationStoring, urlSession: URLSession = .shared) {
+        self.init(store: store, validator: ConfigurationValidator())
     }
     
     init(store: ConfigurationStoring,
-         userAgent: APIHeaders.UserAgent,
-         urlSession: URLSession = .shared,
-         validator: ConfigurationValidating = ConfigurationValidator()) {
+         validator: ConfigurationValidating = ConfigurationValidator(),
+         urlSession: URLSession = .shared) {
         self.store = store
-        self.userAgent = userAgent
-        self.urlSession = urlSession
         self.validator = validator
+        self.urlSession = urlSession
     }
     
     /**
@@ -75,7 +72,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
 
         The `onDidStore` closure will be called after all the configurations are successfully stored.
     */
-    public func fetch(_ configurations: [Configuration], onDidStore: (() -> Void)? = nil) async throws {
+    public func fetch(_ configurations: [Configuration], onDidStore: (() throws -> Void)? = nil) async throws {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             configurations.forEach { configuration in
                 group.addTask {
@@ -93,7 +90,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             for (configuration, fetchResult) in fetchResults {
                 try self.store(fetchResult, for: configuration)
             }
-            onDidStore?()
+            try onDidStore?()
         }
     }
     
@@ -105,11 +102,10 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
-        let configuration = APIRequest.Configuration(url: url, headers: APIHeaders(with: userAgent).defaultHeaders(with: etag))
-        let request = APIRequest<ConfigurationFetchResult>(configuration: configuration, urlSession: urlSession)
+        let configuration = APIRequest.Configuration(url: url, headers: APIHeaders().defaultHeaders(with: etag))
+        let request = APIRequest(configuration: configuration, requirements: [.etag])
         let (data, response) = try await request.fetch()
-
-        return (etag, data)
+        return (response.etag!, data)
     }
 
     private func store(_ result: ConfigurationFetchResult, for configuration: Configuration) throws {

@@ -30,6 +30,11 @@ extension HTTPURLResponse {
                                     httpVersion: nil,
                                     headerFields: [HTTPHeaderField.etag: testEtag])!
     
+    static let okNoEtag = HTTPURLResponse(url: testUrl,
+                                          statusCode: 200,
+                                          httpVersion: nil,
+                                          headerFields: [:])!
+    
     static let notModified = HTTPURLResponse(url: testUrl,
                                              statusCode: 304,
                                              httpVersion: nil,
@@ -39,11 +44,6 @@ extension HTTPURLResponse {
                                                      statusCode: 500,
                                                      httpVersion: nil,
                                                      headerFields: [:])!
-    
-    static let okNoEtag = HTTPURLResponse(url: testUrl,
-                                          statusCode: 200,
-                                          httpVersion: nil,
-                                          headerFields: [:])!
     
 }
 

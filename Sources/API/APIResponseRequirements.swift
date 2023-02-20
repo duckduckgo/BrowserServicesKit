@@ -1,5 +1,5 @@
 //
-//  APIRequestResponse.swift
+//  APIResponseRequirement.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,13 +19,9 @@
 
 import Foundation
 
-extension APIRequest {
+public enum APIResponseRequirement {
     
-    public struct Response {
-        
-        let data: Data
-        let response: URLResponse
-        
-    }
+    case etag
+    case nonEmptyData
     
 }

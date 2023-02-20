@@ -36,6 +36,15 @@ public extension HTTPURLResponse {
         try assertStatusCode(200..<300)
     }
     
+    var isSuccessfulResponse: Bool {
+        do {
+            try assertSuccessfulStatusCode()
+            return true
+        } catch {
+            return false
+        }
+    }
+    
     func etag(shouldDropWeakPrefix: Bool) -> String? {
         let etag = value(forHTTPHeaderField: HTTPHeaderField.etag)
         if shouldDropWeakPrefix {
