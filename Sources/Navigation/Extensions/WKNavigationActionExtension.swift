@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import os.log
 import WebKit
 
 // swiftlint:disable line_length
@@ -25,8 +26,72 @@ extension WKNavigationAction: WebViewNavigationAction {
     /// In this cruel reality the source frame IS Nullable for Developer-initiated load API calls (WKWebView.loadRequest or for a initial WebView navigation)
     /// https://github.com/WebKit/WebKit/blob/c39358705b79ccf2da3b76a8be6334e7e3dfcfa6/Source/WebKit/UIProcess/WebPageProxy.cpp#L5708
     public var safeSourceFrame: WKFrameInfo? {
-        withUnsafePointer(to: self.sourceFrame) { $0.withMemoryRebound(to: WKFrameInfo?.self, capacity: 1) { $0 } }.pointee
+        _=WKNavigationAction.addSafetyCheckForSafeSourceFrameUsageOnce
+        return self.perform(#selector(getter: sourceFrame))?.takeUnretainedValue() as? WKFrameInfo
     }
+
+#if DEBUG
+
+    private static var ignoredSourceFrameUsageSymbols = Set<String>()
+
+    // ensure `.safeSourceFrame` is used and not `.sourceFrame`
+    static var addSafetyCheckForSafeSourceFrameUsageOnce: Void = {
+        let originalSourceFrameMethod = class_getInstanceMethod(WKNavigationAction.self, #selector(getter: WKNavigationAction.sourceFrame))!
+        let swizzledSourceFrameMethod = class_getInstanceMethod(WKNavigationAction.self, #selector(WKNavigationAction.swizzledSourceFrame))!
+        method_exchangeImplementations(originalSourceFrameMethod, swizzledSourceFrameMethod)
+
+        // ignore `sourceFrame` selector calls from `safeSourceFrame` itself
+        ignoredSourceFrameUsageSymbols.insert(callingSymbol())
+    }()
+
+    // get symbol from stack trace for a caller of a calling method
+    static private func callingSymbol() -> String {
+        let stackTrace = Thread.callStackSymbols
+        // find `callingSymbol` itself or dispatch_once_callout
+        var callingSymbolIdx = stackTrace.firstIndex(where: { $0.contains("_dispatch_once_callout") })
+            ?? stackTrace.firstIndex(where: { $0.contains("callingSymbol") })!
+        // procedure calling `callingSymbol`
+        callingSymbolIdx += 1
+
+        var symbolName: String
+        repeat {
+            // caller for the procedure
+            callingSymbolIdx += 1
+            symbolName = String(stackTrace[callingSymbolIdx].split(separator: " ")[3])
+        } while stackTrace[callingSymbolIdx - 1].contains(symbolName.dropping(suffix: "To")) // skip objc wrappers
+
+        return symbolName
+    }
+
+    @objc dynamic private func swizzledSourceFrame() -> WKFrameInfo? {
+        func fileLine(file: StaticString = #file, line: Int = #line) -> String {
+            return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
+        }
+
+        // don‘t break twice
+        if Self.ignoredSourceFrameUsageSymbols.insert(Self.callingSymbol()).inserted {
+            os_log("""
+
+
+            ------------------------------------------------------------------------------------------------------
+                BREAK at %s:
+            ------------------------------------------------------------------------------------------------------
+                Don‘t use `WKNavigationAction.sourceFrame` as it has incorrect nullability
+                Use `WKNavigationAction.safeSourceFrame` instead
+
+                Hit Continue (^⌘Y) to continue program execution
+            ------------------------------------------------------------------------------------------------------
+
+            """, type: .debug, fileLine())
+            raise(SIGINT)
+        }
+
+        return self.swizzledSourceFrame() // call the original
+    }
+
+#else
+    static var addSafetyCheckForSafeSourceFrameUsageOnce: Void { () }
+#endif
 
     // prevent exception if private API keys go missing
     open override func value(forUndefinedKey key: String) -> Any? {
@@ -109,7 +174,7 @@ extension WKNavigationAction: WebViewNavigationAction {
     }
 
     public var isSameDocumentNavigation: Bool {
-        guard let currentURL = targetFrame?.request.url?.absoluteString,
+        guard let currentURL = targetFrame?.safeRequest?.url?.absoluteString,
               let newURL = self.request.url?.absoluteString,
               !currentURL.isEmpty,
               !newURL.isEmpty
