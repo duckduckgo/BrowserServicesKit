@@ -22,7 +22,7 @@ import Common
 
 public enum URLRequestAttribution {
     
-    case none
+    case none // todo change
     case developer
     case user
     

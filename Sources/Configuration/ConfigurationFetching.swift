@@ -103,7 +103,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
         let configuration = APIRequest.Configuration(url: url, headers: APIHeaders().defaultHeaders(with: etag))
-        let request = APIRequest(configuration: configuration, requirements: [.etag])
+        let request = APIRequest(configuration: configuration, requirements: [.all])
         let (data, response) = try await request.fetch()
         return (response.etag!, data)
     }

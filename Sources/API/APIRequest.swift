@@ -26,10 +26,10 @@ public struct APIRequest {
     
     private let request: URLRequest
     private let urlSession: URLSession
-    private let requirements: [APIResponseRequirement]
+    private let requirements: APIResponseRequirements
     
     public init<QueryParams: Collection>(configuration: APIRequest.Configuration<QueryParams>,
-                                         requirements: [APIResponseRequirement] = [],
+                                         requirements: APIResponseRequirements = [],
                                          urlSession: URLSession = .shared) {
         self.request = configuration.request
         self.requirements = requirements
@@ -57,17 +57,15 @@ public struct APIRequest {
     private func validateAndUnwrap(data: Data?, response: URLResponse?) throws -> APIResponse {
         let httpResponse = try getHTTPResponse(from: response)
         try httpResponse.assertSuccessfulStatusCode()
+        let data = data ?? Data()
         
-        for requirement in requirements {
-            switch requirement {
-            case .nonEmptyData:
-                if data?.count == 0 { throw APIRequest.Error.emptyData }
-            case .etag:
-                if httpResponse.etag == nil { throw APIRequest.Error.missingEtagInResponse }
-            }
+        if requirements.contains(.etag), httpResponse.etag == nil {
+            throw APIRequest.Error.missingEtagInResponse
+        }
+        if requirements.contains(.nonEmptyData), data.count == 0 {
+            throw APIRequest.Error.emptyData
         }
         
-        guard let data = data else { throw APIRequest.Error.emptyData } // todo: what to do here?
         return (data, httpResponse)
     }
     
