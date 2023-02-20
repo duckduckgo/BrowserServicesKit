@@ -105,7 +105,7 @@ public struct NavigationAction {
            redirectHistory == nil,
            navigationAction.safeSourceFrame == nil,
            navigationAction.targetFrame?.isMainFrame == true,
-           navigationAction.targetFrame?.request.url?.isEmpty == true,
+           navigationAction.targetFrame?.safeRequest?.url?.isEmpty == true,
            webView.backForwardList.currentItem != nil {
 
             // go back after failing session restoration has `other` Navigation Type

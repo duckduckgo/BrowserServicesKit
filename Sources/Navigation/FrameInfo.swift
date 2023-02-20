@@ -33,7 +33,7 @@ public struct FrameInfo: Equatable {
     }
 
     public init(frame: WKFrameInfo) {
-        self.init(frameIdentity: FrameIdentity(frame), url: frame.request.url ?? .empty, securityOrigin: SecurityOrigin(frame.securityOrigin))
+        self.init(frameIdentity: FrameIdentity(frame), url: frame.safeRequest?.url ?? .empty, securityOrigin: SecurityOrigin(frame.securityOrigin))
     }
 
     public static func mainFrame(for webView: WKWebView) -> FrameInfo {
@@ -98,23 +98,4 @@ extension FrameIdentity: CustomDebugStringConvertible {
     public var debugDescription: String {
         "\(webView?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "<nil>")_\(handle)\(isMainFrame ? ": Main" : "")"
     }
-}
-
-public extension WKFrameInfo {
-    internal static var defaultMainFrameHandle = "4"
-
-    // prevent exception if private API keys go missing
-    override func value(forUndefinedKey key: String) -> Any? {
-        assertionFailure("valueForUndefinedKey: \(key)")
-        return nil
-    }
-
-    @nonobjc var handle: String {
-#if DEBUG
-        String(describing: (self.value(forKey: "handle") as? NSObject)!.value(forKey: "frameID")!)
-#else
-        self.isMainFrame ? Self.defaultMainFrameHandle : "iframe"
-#endif
-    }
-
 }
