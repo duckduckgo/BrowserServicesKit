@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import WebKit
+import Common
 import os.log
+import WebKit
 
 public extension WKFrameInfo {
 
@@ -84,20 +85,8 @@ public extension WKFrameInfo {
 
         // don‘t break twice
         if Self.ignoredRequestUsageSymbols.insert(Self.callingSymbol()).inserted {
-            os_log("""
-
-
-            ------------------------------------------------------------------------------------------------------
-                BREAK at %s:
-            ------------------------------------------------------------------------------------------------------
-                Don‘t use `WKFrameInfo.request` as it has incorrect nullability
-                Use `WKFrameInfo.safeRequest` instead
-
-                Hit Continue (^⌘Y) to continue program execution
-            ------------------------------------------------------------------------------------------------------
-
-            """, type: .debug, fileLine())
-            raise(SIGINT)
+            breakByRaisingSigInt("Don‘t use `WKFrameInfo.request` as it has incorrect nullability\n" +
+                                 "Use `WKFrameInfo.safeRequest` instead")
         }
         
         return self.swizzledRequest() // call the original
@@ -108,4 +97,3 @@ public extension WKFrameInfo {
 #endif
 
 }
-

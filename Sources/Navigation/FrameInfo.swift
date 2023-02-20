@@ -20,6 +20,7 @@ import Common
 import Foundation
 import WebKit
 
+// swiftlint:disable line_length
 public struct FrameInfo: Equatable {
 
     public weak var webView: WKWebView?

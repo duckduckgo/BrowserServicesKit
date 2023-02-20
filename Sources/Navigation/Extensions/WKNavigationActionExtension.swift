@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Common
 import os.log
 import WebKit
 
@@ -41,7 +42,7 @@ extension WKNavigationAction: WebViewNavigationAction {
         method_exchangeImplementations(originalSourceFrameMethod, swizzledSourceFrameMethod)
 
         // ignore `sourceFrame` selector calls from `safeSourceFrame` itself
-        ignoredSourceFrameUsageSymbols.insert(callingSymbol())
+//        ignoredSourceFrameUsageSymbols.insert(callingSymbol())
     }()
 
     // get symbol from stack trace for a caller of a calling method
@@ -70,20 +71,8 @@ extension WKNavigationAction: WebViewNavigationAction {
 
         // don‘t break twice
         if Self.ignoredSourceFrameUsageSymbols.insert(Self.callingSymbol()).inserted {
-            os_log("""
-
-
-            ------------------------------------------------------------------------------------------------------
-                BREAK at %s:
-            ------------------------------------------------------------------------------------------------------
-                Don‘t use `WKNavigationAction.sourceFrame` as it has incorrect nullability
-                Use `WKNavigationAction.safeSourceFrame` instead
-
-                Hit Continue (^⌘Y) to continue program execution
-            ------------------------------------------------------------------------------------------------------
-
-            """, type: .debug, fileLine())
-            raise(SIGINT)
+            breakByRaisingSigInt("Don‘t use `WKNavigationAction.sourceFrame` as it has incorrect nullability\n" +
+                                 "Use `WKNavigationAction.safeSourceFrame` instead")
         }
 
         return self.swizzledSourceFrame() // call the original
