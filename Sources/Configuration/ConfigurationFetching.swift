@@ -33,11 +33,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     
     enum Error: Swift.Error {
         
-        case urlSession(Swift.Error)
-        case invalidResponse
-        case missingEtagInResponse
-        case emptyData
-        case invalidStatusCode
+        case apiRequest(APIRequest.Error)
         case invalidPayload
         
     }
@@ -103,7 +99,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
         let configuration = APIRequest.Configuration(url: url, headers: APIHeaders().defaultHeaders(with: etag))
-        let request = APIRequest(configuration: configuration, requirements: [.all])
+        let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession)
         let (data, response) = try await request.fetch()
         return (response.etag!, data)
     }

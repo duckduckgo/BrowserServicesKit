@@ -137,6 +137,11 @@ let package = Package(
             dependencies: [
                 "Common"
             ]),
+        .target(
+            name: "TestUtils",
+            dependencies: [
+                "API"
+            ]),
         
         // MARK: - Test targets
         .testTarget(
@@ -152,6 +157,11 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "APITests",
+            dependencies: [
+                "TestUtils"
             ]),
         .testTarget(
             name: "NavigationTests",
@@ -181,7 +191,8 @@ let package = Package(
         .testTarget(
             name: "ConfigurationTests",
             dependencies: [
-                "Configuration"
+                "Configuration",
+                "TestUtils"
             ]
         )
     ],

@@ -20,8 +20,17 @@
 import XCTest
 @testable import Configuration
 @testable import API
+@testable import TestUtils
 
 final class ConfigurationFetcherTests: XCTestCase {
+    
+    enum MockError: Error {
+        case someError
+    }
+    
+    override class func setUp() {
+        APIHeaders.userAgent = ""
+    }
     
     func makeConfigurationFetcher(store: ConfigurationStoring = MockStore(),
                                   validator: ConfigurationValidating = MockValidator()) -> ConfigurationFetcher {
@@ -30,74 +39,6 @@ final class ConfigurationFetcherTests: XCTestCase {
         return ConfigurationFetcher(store: store,
                                     validator: validator,
                                     urlSession: URLSession(configuration: testConfiguration))
-    }
-    
-    enum MockError: Error {
-        case someError
-    }
-    
-    // Server responses handling logic
-    
-    func testWhenUrlSessionThrowsErrorThenWrappedUrlSessionErrorIsThrown() async {
-        MockURLProtocol.requestHandler = { _ in throw MockError.someError }
-        let fetcher = makeConfigurationFetcher()
-        do {
-            try await fetcher.fetch([.privacyConfiguration])
-            XCTFail("Expected an error to be thrown")
-        } catch {
-            guard let fetcherError = error as? ConfigurationFetcher.Error,
-                  case .urlSession = fetcherError else {
-                XCTFail("Unexpected error thrown: \(error).")
-                return
-            }
-        }
-    }
-    
-    func testWhenThereIsNoResponseThenEmptyDataErrorIsThrown() async {
-        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, nil) }
-        let fetcher = makeConfigurationFetcher()
-        do {
-            try await fetcher.fetch([.privacyConfiguration])
-            XCTFail("Expected an error to be thrown")
-        } catch {
-            guard let fetcherError = error as? ConfigurationFetcher.Error,
-                  case .emptyData = fetcherError else {
-                XCTFail("Unexpected error thrown: \(error).")
-                return
-            }
-        }
-    }
-    
-    let privacyConfigurationData = Data("Privacy Config".utf8)
-    
-    func testWhenEtagIsMissingInResponseThenMissingEtagErrorIsThrown() async {
-        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.okNoEtag, self.privacyConfigurationData) }
-        let fetcher = makeConfigurationFetcher()
-        do {
-            try await fetcher.fetch([.privacyConfiguration])
-            XCTFail("Expected an error to be thrown")
-        } catch {
-            guard let fetcherError = error as? ConfigurationFetcher.Error,
-                  case .missingEtagInResponse = fetcherError else {
-                XCTFail("Unexpected error thrown: \(error).")
-                return
-            }
-        }
-    }
-    
-    func testWhenInternalServerErrorThenInvalidStatusCodeErrorIsThrown() async {
-        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
-        let fetcher = makeConfigurationFetcher()
-        do {
-            try await fetcher.fetch([.privacyConfiguration])
-            XCTFail("Expected an error to be thrown")
-        } catch {
-            guard let fetcherError = error as? ConfigurationFetcher.Error,
-                  case .invalidStatusCode = fetcherError else {
-                XCTFail("Unexpected error thrown: \(error).")
-                return
-            }
-        }
     }
     
     func testWhenOneAssetFailsToFetchThenOtherIsNotStored() async {
@@ -118,6 +59,8 @@ final class ConfigurationFetcherTests: XCTestCase {
         XCTAssertNil(store.loadData(for: .bloomFilterSpec))
     }
     
+    let privacyConfigurationData = Data("Privacy Config".utf8)
+    
     func testWhenValidateDataFailsThenErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
         let validatorMock = MockValidator()
@@ -135,8 +78,6 @@ final class ConfigurationFetcherTests: XCTestCase {
             }
         }
     }
-    
-    // -
     
     func testWhenEtagAndDataAreStoredThenResponseIsStored() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, self.privacyConfigurationData) }

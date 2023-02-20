@@ -22,7 +22,7 @@ import Common
 
 public enum URLRequestAttribution {
     
-    case none // todo change
+    case unattributed
     case developer
     case user
     
@@ -33,7 +33,7 @@ public enum URLRequestAttribution {
             return .developer
         case .user:
             return .user
-        case .none:
+        case .unattributed:
             return nil
         }
     }
