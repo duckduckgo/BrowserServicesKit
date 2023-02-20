@@ -29,7 +29,8 @@ final class ConfigurationFetcherTests: XCTestCase {
     }
     
     override class func setUp() {
-        APIHeaders.userAgent = ""
+        APIHeaders.setUserAgent("")
+        Configuration.setURLProvider(MockConfigurationURLProvider())
     }
     
     func makeConfigurationFetcher(store: ConfigurationStoring = MockStore(),
@@ -205,22 +206,6 @@ final class ConfigurationFetcherTests: XCTestCase {
         try? await fetcher.fetch([.privacyConfiguration])
         
         XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch), etag)
-    }
-    
-    // -
-    
-    func testWhenConfigurationCustomURLProvidedThenConfigurationIsFetchedFromCustomURL() async {
-        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
-        
-        let configuration = Configuration.privacyConfiguration
-        let fetcher = makeConfigurationFetcher()
-        try? await fetcher.fetch([configuration])
-        XCTAssertEqual(MockURLProtocol.lastRequest?.url, configuration.defaultURL)
-        
-        let customURL = URL(string:"https://www.customurl.com")!
-        Configuration.setCustomURL(customURL, for: configuration)
-        try? await fetcher.fetch([configuration])
-        XCTAssertEqual(MockURLProtocol.lastRequest?.url, customURL)
     }
     
 }

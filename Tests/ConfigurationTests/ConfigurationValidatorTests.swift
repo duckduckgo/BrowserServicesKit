@@ -56,13 +56,13 @@ final class ConfigurationValidatorTests: XCTestCase {
 
         let data = try JSONEncoder().encode(trackerData)
 
-        XCTAssertNoThrow(try validator.validate(data, for: .trackerRadar))
+        XCTAssertNoThrow(try validator.validate(data, for: .trackerDataSet))
     }
 
     func testWhenIncorrectTrackerDataIsPassedThenErrorIsThrown() throws {
         let data = try XCTUnwrap(Self.htmlPayload.data(using: .utf8))
 
-        XCTAssertThrowsError(try validator.validate(data, for: .trackerRadar)) { error in
+        XCTAssertThrowsError(try validator.validate(data, for: .trackerDataSet)) { error in
             guard case ConfigurationFetcher.Error.invalidPayload = error else {
                 XCTFail("Unexpected error thrown: \(error)")
                 return

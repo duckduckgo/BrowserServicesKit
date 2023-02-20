@@ -33,7 +33,7 @@ public struct ConfigurationValidator: ConfigurationValidating {
             switch location {
             case .privacyConfiguration:
                 try validatePrivacyConfiguration(with: data)
-            case .trackerRadar:
+            case .trackerDataSet:
                 try validateTrackerDataSet(with: data)
             default:
                 break

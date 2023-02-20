@@ -28,7 +28,7 @@ final class APIRequestTests: XCTestCase {
     }
         
     override class func setUp() {
-        APIHeaders.userAgent = ""
+        APIHeaders.setUserAgent("")
     }
     
     private var mockURLSession: URLSession {
@@ -133,7 +133,7 @@ final class APIRequestTests: XCTestCase {
             _ = try await request.fetch()
             XCTFail("Expected an error to be thrown")
         } catch {
-            guard let error = error as? APIRequest.Error, case .invalidResponse = error else {
+            guard let error = error as? APIRequest.Error, case .invalidStatusCode = error else {
                 XCTFail("Unexpected error thrown: \(error).")
                 return
             }
