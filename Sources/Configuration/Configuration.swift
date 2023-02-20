@@ -19,6 +19,12 @@
 
 import Foundation
 
+public protocol ConfigurationURLProvider {
+    
+    func url(for configuration: Configuration) -> URL
+    
+}
+
 public enum Configuration {
     
     case bloomFilterBinary
@@ -29,30 +35,14 @@ public enum Configuration {
     case trackerRadar
     case FBConfig
     
-    var defaultURL: URL {
-        switch self {
-        case .bloomFilterBinary: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom.bin")!
-        case .bloomFilterSpec: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-bloom-spec.json")!
-        case .bloomFilterExcludedDomains: return URL(string: "https://staticcdn.duckduckgo.com/https/https-mobile-v2-false-positives.json")!
-        case .privacyConfiguration: return URL(string: "https://staticcdn.duckduckgo.com/trackerblocking/config/v2/macos-config.json")! // TODO!!
-        case .surrogates: return URL(string: "https://duckduckgo.com/contentblocking.js?l=surrogates")!
-        case .trackerRadar: return URL(string: "https://staticcdn.duckduckgo.com/trackerblocking/v3/apple-tds.json")!
-        // In archived repo, to be refactored shortly (https://staticcdn.duckduckgo.com/useragents/social_ctp_configuration.json)
-        case .FBConfig: return URL(string: "https://staticcdn.duckduckgo.com/useragents/")!
-        }
+    private static var urlProvider: ConfigurationURLProvider?
+    public static func setUrlProvider(_ urlProvider: ConfigurationURLProvider) {
+        self.urlProvider = urlProvider
     }
     
     var url: URL {
-        if let customURL = Configuration.customURLs[self] {
-            return customURL
-        }
-        return defaultURL
+        guard let urlProvider = Self.urlProvider else { fatalError("Please set the urlProvider before accessing url.") }
+        return urlProvider.url(for: self)
     }
-    
-    public static func setCustomURL(_ url: URL, for configuration: Configuration) {
-        Configuration.customURLs[configuration] = url
-    }
-    
-    private static var customURLs: [Configuration: URL] = [:]
     
 }
