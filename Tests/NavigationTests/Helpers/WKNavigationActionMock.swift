@@ -84,15 +84,8 @@ class WKFrameInfoMock: NSObject {
 
     @objc weak var webView: WKWebView?
 
-    class FrameID: NSObject {
-        @objc var frameID: String
-        init(frameID: String) {
-            self.frameID = frameID
-        }
-    }
-
-    @objc var handle: FrameID {
-        FrameID(frameID: isMainFrame ? WKFrameInfo.defaultMainFrameHandle : "9")
+    @objc var handle: FrameHandle {
+        isMainFrame ? .fallbackMainFrameHandle : .fallbackNonMainFrameHandle
     }
 
     init(isMainFrame: Bool, request: URLRequest, securityOrigin: WKSecurityOrigin, webView: WKWebView?) {

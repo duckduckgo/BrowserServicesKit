@@ -21,7 +21,8 @@ import os.log
 
 public extension WKFrameInfo {
 
-    internal static var defaultMainFrameHandle = "4"
+    internal static var defaultMainFrameHandle: UInt64 = 4
+    internal static var defaultNonMainFrameHandle: UInt64 = 9
 
     // prevent exception if private API keys go missing
     override func value(forUndefinedKey key: String) -> Any? {
@@ -29,12 +30,12 @@ public extension WKFrameInfo {
         return nil
     }
 
-    @nonobjc var handle: String {
-#if DEBUG
-        String(describing: (self.value(forKey: "handle") as? NSObject)!.value(forKey: "frameID")!)
-#else
-        self.isMainFrame ? Self.defaultMainFrameHandle : "iframe"
-#endif
+    @nonobjc var handle: FrameHandle {
+        guard let handle = self.value(forKey: "handle") as? FrameHandle else {
+            assertionFailure("WKFrameInfo.handle is missing")
+            return self.isMainFrame ? (webView?.mainFrameHandle ?? .fallbackMainFrameHandle) : .fallbackNonMainFrameHandle
+        }
+        return handle
     }
 
     /// Safe Optional `request: URLRequest` getter:

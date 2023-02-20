@@ -231,11 +231,11 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
         let eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        var frameHandle: String!
+        var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
-                frameHandle = navAction.targetFrame?.identity.handle
-                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+                frameID = navAction.targetFrame?.handle.frameID
+                XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next
         }
@@ -280,19 +280,19 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             // #2 frame nav
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             // #3 js frame nav
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #3 -> #1 goBack in frame
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(frameHandle, urls.local1)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(frameID, urls.local1)),
             .response(resp(1), nil),
             // #1 -> #3 goForward in frame
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameHandle, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameID, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
         ])
     }
@@ -312,11 +312,11 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         let eDidFinish = expectation(description: "onDidFinish 1")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
-        var frameHandle: String!
+        var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
-                frameHandle = navAction.targetFrame?.identity.handle
-                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+                frameID = navAction.targetFrame?.handle.frameID
+                XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next
         }
@@ -369,20 +369,20 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             // #2 frame nav
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             // #3 js frame nav
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #3 -> #1 goBack in frame
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(frameHandle, urls.local1)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(-1), from: history[3], src: frame(frameID, urls.local1)),
             .response(resp(1), nil),
 
             // #1 -> #3 goForward in frame
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameHandle, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString], cachePolicy: .returnCacheDataElseLoad), .backForw(1), from: history[1], src: frame(frameID, urls.local3)),
             .response(resp(2), nil)
         ])
     }
