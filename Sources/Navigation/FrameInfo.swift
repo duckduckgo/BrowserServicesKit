@@ -50,7 +50,7 @@ public struct FrameInfo: Equatable {
     }
 
     public static func == (lhs: FrameInfo, rhs: FrameInfo) -> Bool {
-        return lhs.handle == rhs.handle && lhs.url.matches(rhs.url) && lhs.securityOrigin == rhs.securityOrigin
+        return lhs.handle == rhs.handle && lhs.webView == rhs.webView && lhs.isMainFrame == rhs.isMainFrame && lhs.url.matches(rhs.url) && lhs.securityOrigin == rhs.securityOrigin
     }
 
 }
