@@ -91,18 +91,80 @@ extension UserScript {
                                  requiresRunInPageContentWorld: Bool = false) -> WKUserScript {
         let hash = SHA256.hash(data: Data(source.utf8)).hashValue
 
+        let shouldRun = !source.contains("sjcl")
         // send didLoad message when the script was added
         let scriptDidLoad = didLoadMessageName.map { "webkit.messageHandlers.\($0.rawValue).postMessage({})" } ?? ""
         // This prevents the script being executed twice which appears to be a WKWebKit issue for about:blank frames when the location changes
         let sourceOut = """
         (() => {
-            if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
-            \(source)
-            window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
-            window.navigator._duckduckgoloader_.push('\(hash)')
-            \(scriptDidLoad)
+        
+                 if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
+        if (\(shouldRun)) {return}
+                 \(source)
+        
+        Object.defineProperty(window.navigator, '_duckduckgoloader_', {
+        value: window.navigator._duckduckgoloader_ || [],
+        enumerable: false
+        })
+                 \(scriptDidLoad)
+        /*
+        if (!window.navigator.checkerDDG) {
+                window.navigator.checkerDDG = true;
+        const inspectKeys = Object.keys(window).filter((a) => {return a.startsWith('webkit') || a.startsWith('safari')  || a.startsWith('navigator')})
+        //const inspectKeys = Object.keys(window)
+        console.log({inspectKeys})
+        function wrap(global, key, val) {
+          if (val === undefined) { return val }
+          if (!Object.is(returnVal) && !(typeof returnVal === 'function')) {return val }
+        console.log('err', new Error().stack)
+          return new Proxy(val, {
+            get(...args) {
+              console.log(`global.${key}.get`, args[1], document.currentScript); //, new Error().stack);
+              const returnVal = Reflect.get(...args)
+              if (Object.is(returnVal) || typeof returnVal === 'function') { return wrap('global', key+'.get', returnVal)}
+              return returnVal
+            },
+            set() {
+              console.log(`window.${key}.set`, ...args); //, new Error().stack);
+              return Reflect.set(...args)
+            },
+            apply() {
+              console.log(`window.${key}.apply`, ...args); //, new Error().stack);
+              return Reflect.apply(...args)
+            },
+          });
+        }
+        
+        for (let key of inspectKeys) {
+        const val = window[key]
+        // console.log({key, val})
+        if (val === undefined) { continue }
+        window[key] = new Proxy(val, {
+          get(...args) {
+            console.log(`window.${key}.get`, args[1], document.currentScript, new Error().stack);
+            return wrap(`window`, key, Reflect.get(...args))
+          },
+          set() {
+            console.log(`window.${key}.set`, ...args); //, new Error().stack);
+            return Reflect.set(...args)
+          },
+          apply() {
+            console.log(`window.${key}.apply`, ...args); //, new Error().stack);
+            return Reflect.apply(...args)
+          },
+        });
+        }
+        }
+        */
         })()
         """
+        /*
+         if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
+         \(source)
+         window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
+         window.navigator._duckduckgoloader_.push('\(hash)')
+         \(scriptDidLoad)
+         */
 
         if #available(macOS 11.0, iOS 14.0, *) {
             let contentWorld = getContentWorld(requiresRunInPageContentWorld)
