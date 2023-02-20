@@ -36,7 +36,7 @@ public enum Configuration {
     case FBConfig
     
     private static var urlProvider: ConfigurationURLProvider?
-    public static func setUrlProvider(_ urlProvider: ConfigurationURLProvider) {
+    public static func setURLProvider(_ urlProvider: ConfigurationURLProvider) {
         self.urlProvider = urlProvider
     }
     
