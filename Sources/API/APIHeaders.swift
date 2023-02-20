@@ -24,7 +24,10 @@ public typealias HTTPHeaders = [String: String]
 public struct APIHeaders {
     
     public typealias UserAgent = String
-    public static var userAgent: UserAgent?
+    private static var userAgent: UserAgent?
+    public static func setUserAgent(_ userAgent: UserAgent) {
+        self.userAgent = userAgent
+    }
     
     public init() { }
     

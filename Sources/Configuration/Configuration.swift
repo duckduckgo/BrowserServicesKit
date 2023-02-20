@@ -32,7 +32,7 @@ public enum Configuration {
     case bloomFilterExcludedDomains
     case privacyConfiguration
     case surrogates
-    case trackerRadar
+    case trackerDataSet
     case FBConfig
     
     private static var urlProvider: ConfigurationURLProvider?
