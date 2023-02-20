@@ -7,7 +7,7 @@ import Foundation
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("15.0"),
+        .iOS("14.0"),
         .macOS("10.15")
     ],
     products: [
