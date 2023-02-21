@@ -475,7 +475,7 @@ extension URLRequest: TestComparable {
     private func prettifiedHeaders() -> [String: String] {
         var headers = (allHTTPHeaderFields ?? [:])
         if let lang = headers["Accept-Language"] {
-            headers["Accept-Language"] = lang.replacing(regex: "^\\S\\S-\\S\\S", with: "en-XX")
+            headers["Accept-Language"] = lang.replacing(regex: "^\\S\\S-\\S\\S,\\s?\\S\\S", with: "en-XX,en")
         }
         return headers
     }
