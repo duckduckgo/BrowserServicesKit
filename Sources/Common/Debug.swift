@@ -20,6 +20,8 @@
 import Foundation
 import os.log
 
+#if DEBUG
+
 public func breakByRaisingSigInt(_ description: String, file: StaticString = #file, line: Int = #line) {
     let fileLine = "\(("\(file)" as NSString).lastPathComponent):\(line)"
     os_log("""
@@ -37,3 +39,5 @@ public func breakByRaisingSigInt(_ description: String, file: StaticString = #fi
     """, type: .debug, fileLine, description.components(separatedBy: "\n").map { "    " + $0.trimmingWhitespace() }.joined(separator: "\n"))
     raise(SIGINT)
 }
+
+#endif

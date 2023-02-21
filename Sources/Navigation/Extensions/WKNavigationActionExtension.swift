@@ -42,7 +42,7 @@ extension WKNavigationAction: WebViewNavigationAction {
         method_exchangeImplementations(originalSourceFrameMethod, swizzledSourceFrameMethod)
 
         // ignore `sourceFrame` selector calls from `safeSourceFrame` itself
-//        ignoredSourceFrameUsageSymbols.insert(callingSymbol())
+        ignoredSourceFrameUsageSymbols.insert(callingSymbol())
     }()
 
     // get symbol from stack trace for a caller of a calling method
