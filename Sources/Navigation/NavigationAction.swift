@@ -150,7 +150,8 @@ public extension NavigationAction {
     }
 
     var isTargetingNewWindow: Bool {
-        sourceFrame.identity.webView != targetFrame?.identity.webView
+        assert(sourceFrame.webView != nil || targetFrame?.webView != nil)
+        return sourceFrame.webView != targetFrame?.webView || targetFrame?.webView == nil
     }
 
     var url: URL {

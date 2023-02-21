@@ -16,12 +16,14 @@
 //  limitations under the License.
 //
 
-import WebKit
+import Common
 import os.log
+import WebKit
 
 public extension WKFrameInfo {
 
-    internal static var defaultMainFrameHandle = "4"
+    internal static var defaultMainFrameHandle: UInt64 = 4
+    internal static var defaultNonMainFrameHandle: UInt64 = 9
 
     // prevent exception if private API keys go missing
     override func value(forUndefinedKey key: String) -> Any? {
@@ -29,12 +31,12 @@ public extension WKFrameInfo {
         return nil
     }
 
-    @nonobjc var handle: String {
-#if DEBUG
-        String(describing: (self.value(forKey: "handle") as? NSObject)!.value(forKey: "frameID")!)
-#else
-        self.isMainFrame ? Self.defaultMainFrameHandle : "iframe"
-#endif
+    @nonobjc var handle: FrameHandle {
+        guard let handle = self.value(forKey: "handle") as? FrameHandle else {
+            assertionFailure("WKFrameInfo.handle is missing")
+            return self.isMainFrame ? (webView?.mainFrameHandle ?? .fallbackMainFrameHandle) : .fallbackNonMainFrameHandle
+        }
+        return handle
     }
 
     /// Safe Optional `request: URLRequest` getter:
@@ -83,20 +85,8 @@ public extension WKFrameInfo {
 
         // don‘t break twice
         if Self.ignoredRequestUsageSymbols.insert(Self.callingSymbol()).inserted {
-            os_log("""
-
-
-            ------------------------------------------------------------------------------------------------------
-                BREAK at %s:
-            ------------------------------------------------------------------------------------------------------
-                Don‘t use `WKFrameInfo.request` as it has incorrect nullability
-                Use `WKFrameInfo.safeRequest` instead
-
-                Hit Continue (^⌘Y) to continue program execution
-            ------------------------------------------------------------------------------------------------------
-
-            """, type: .debug, fileLine())
-            raise(SIGINT)
+            breakByRaisingSigInt("Don‘t use `WKFrameInfo.request` as it has incorrect nullability\n" +
+                                 "Use `WKFrameInfo.safeRequest` instead")
         }
         
         return self.swizzledRequest() // call the original
@@ -107,4 +97,3 @@ public extension WKFrameInfo {
 #endif
 
 }
-

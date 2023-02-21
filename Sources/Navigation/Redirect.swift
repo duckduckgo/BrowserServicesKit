@@ -33,3 +33,13 @@ public extension RedirectType {
     }
 
 }
+
+extension RedirectType: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .client(delay: let delay): return "client" + (delay > 0 ? "(delay: \(delay))" : "")
+        case .server: return "server"
+        case .developer: return "developer"
+        }
+    }
+}

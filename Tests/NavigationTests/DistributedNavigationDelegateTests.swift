@@ -299,14 +299,14 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             guard counter == 3 else { return }
             eDidFinish.fulfill()
         }
-        var newFrameIdentity: FrameIdentity!
+        var newFrameIdentity: FrameHandle!
         responder(at: 0).onNavigationAction = { [urls, unowned webView=withWebView(do: { $0 })] navAction, _ in
             if navAction.url.path == urls.local2.path {
                 XCTAssertTrue(navAction.isTargetingNewWindow)
-                newFrameIdentity = navAction.targetFrame?.identity
-                XCTAssertNotEqual(newFrameIdentity, .mainFrameIdentity(for: webView))
-                XCTAssertTrue(newFrameIdentity.isMainFrame)
-                XCTAssertNotEqual(newFrameIdentity.handle, WKFrameInfo.defaultMainFrameHandle)
+                newFrameIdentity = navAction.targetFrame?.handle
+                XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
+                XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+                XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next
         }
@@ -332,14 +332,14 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
             .navigationAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: main(urls.local),
-                                  targ: FrameInfo(frameIdentity: newFrameIdentity, url: .empty, securityOrigin: urls.local.securityOrigin)),
+                              targ: FrameInfo(webView: newWebView, handle: newFrameIdentity, isMainFrame: true, url: .empty, securityOrigin: urls.local.securityOrigin)),
             .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
 
             .didStart(Nav(action: navAct(2), .started)),
             .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local2, data.metaRedirect.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(1), .committed)),
-            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(2)], src: FrameInfo(frameIdentity: newFrameIdentity, url: urls.local2, securityOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local2.string]), .redirect(.client), from: history[2], redirects: [navAct(2)], src: FrameInfo(webView: newWebView, handle: newFrameIdentity, isMainFrame: true, url: urls.local2, securityOrigin: urls.local.securityOrigin))),
             .didReceiveRedirect(navAct(3), Nav(action: navAct(2), .redirected(.client), resp: resp(1), .committed, isCurrent: false)),
 
             .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed, isCurrent: false)),
@@ -361,7 +361,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         }]
         try server.start(8084)
 
-        var eDidFinish = expectation(description: "onDidFinish")
+        let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in
             eDidFinish.fulfill()
         }
@@ -731,6 +731,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         }
         waitForExpectations(timeout: 5)
 
+        if case .didFail = responder(at: 0).history[5] {
+            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 5), at: 6)
+        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),

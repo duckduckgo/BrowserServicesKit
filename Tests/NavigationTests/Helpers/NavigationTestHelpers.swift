@@ -492,7 +492,8 @@ extension URLRequest: TestComparable {
 
 extension FrameInfo: TestComparable {
     static func difference(between lhs: FrameInfo, and rhs: FrameInfo) -> String? {
-        compare("identity", lhs.identity, rhs.identity)
+        compare("webView", lhs.webView, rhs.webView)
+        ?? compare("handle", lhs.handle, rhs.handle)
         ?? compare("url", lhs.url, rhs.url) { $0.matches($1) }
         ?? compare("securityOrigin", lhs.securityOrigin, rhs.securityOrigin)
     }
@@ -605,7 +606,7 @@ extension FrameInfo {
         if self.isMainFrame {
             return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)! + (secOrigin.isEmpty ? "" : ", "))  + secOrigin + ")"
         } else {
-            return "frame(\(identity.handle), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
+            return "frame(\(handle.frameID), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
         }
     }
 }
