@@ -138,13 +138,14 @@ final class ConfigurationFetcherTests: XCTestCase {
     }
     
     func testWhenResponseIsNotModifiedThenNoDataStored() async {
-        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, self.privacyConfigurationData) }
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, nil) }
         let store = MockStore()
         
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch([.privacyConfiguration])
         
         XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
+        XCTAssertNil(store.loadData(for: .privacyConfiguration))
     }
     
     func testWhenEtagAndDataStoredThenEtagAddedToRequest() async {

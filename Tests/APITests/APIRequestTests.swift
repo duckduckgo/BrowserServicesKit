@@ -140,4 +140,17 @@ final class APIRequestTests: XCTestCase {
         }
     }
     
+    func testWhenNotModifiedResponseButItIsAllowedThenResponseWithNilDataIsReturned() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
+        let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
+        let request = APIRequest(configuration: configuration, requirements: .allow304, urlSession: mockURLSession)
+        do {
+            let (data, response) = try await request.fetch()
+            XCTAssertNil(data)
+            XCTAssertEqual(response.etag, HTTPURLResponse.testEtag)
+        } catch {
+            XCTFail("Unexpected error thrown: \(error).")
+        }
+    }
+    
 }

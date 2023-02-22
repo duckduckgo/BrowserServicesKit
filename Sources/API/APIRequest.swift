@@ -57,9 +57,11 @@ public struct APIRequest {
     private func validateAndUnwrap(data: Data?, response: URLResponse?) throws -> APIResponse {
         let httpResponse = try getHTTPResponse(from: response)
         
+        var data = data
         if requirements.contains(.allow304) {
             let statusCodes = HTTPURLResponse.Constants.successfulStatusCodes + [HTTPURLResponse.Constants.notModifiedStatusCode]
             try httpResponse.assertStatusCode(statusCodes)
+            data = nil // to avoid returning empty data
         } else {
             try httpResponse.assertSuccessfulStatusCode()
             let data = data ?? Data()
