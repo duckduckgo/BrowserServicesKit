@@ -61,13 +61,13 @@ public struct APIRequest {
             let statusCodes = HTTPURLResponse.Constants.successfulStatusCodes + [HTTPURLResponse.Constants.notModifiedStatusCode]
             try httpResponse.assertStatusCode(statusCodes)
         } else {
+            try httpResponse.assertSuccessfulStatusCode()
             let data = data ?? Data()
             if requirements.contains(.nonEmptyData), data.isEmpty {
                 throw APIRequest.Error.emptyData
             }
         }
         
-        try httpResponse.assertSuccessfulStatusCode()
         if requirements.contains(.etag), httpResponse.etag == nil {
             throw APIRequest.Error.missingEtagInResponse
         }
