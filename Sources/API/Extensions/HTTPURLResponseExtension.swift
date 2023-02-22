@@ -25,15 +25,17 @@ public extension HTTPURLResponse {
     enum Constants {
         
         static let weakEtagPrefix = "W/"
+        static let successfulStatusCodes = Array(200..<300)
+        static let notModifiedStatusCode = 304
         
     }
     
     func assertStatusCode<S: Sequence>(_ acceptedStatusCodes: S) throws where S.Iterator.Element == Int {
-        guard acceptedStatusCodes.contains(statusCode) else { throw APIRequest.Error.invalidStatusCode }
+        guard acceptedStatusCodes.contains(statusCode) else { throw APIRequest.Error.invalidStatusCode(statusCode) }
     }
     
     func assertSuccessfulStatusCode() throws {
-        try assertStatusCode(200..<300)
+        try assertStatusCode(Constants.successfulStatusCodes)
     }
     
     var isSuccessfulResponse: Bool {

@@ -19,7 +19,7 @@
 
 import Foundation
 
-public typealias APIResponse = (data: Data, response: HTTPURLResponse)
+public typealias APIResponse = (data: Data?, response: HTTPURLResponse)
 public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
 
 public struct APIRequest {
@@ -56,14 +56,20 @@ public struct APIRequest {
     
     private func validateAndUnwrap(data: Data?, response: URLResponse?) throws -> APIResponse {
         let httpResponse = try getHTTPResponse(from: response)
-        try httpResponse.assertSuccessfulStatusCode()
-        let data = data ?? Data()
         
+        if requirements.contains(.allow304) {
+            let statusCodes = HTTPURLResponse.Constants.successfulStatusCodes + [HTTPURLResponse.Constants.notModifiedStatusCode]
+            try httpResponse.assertStatusCode(statusCodes)
+        } else {
+            let data = data ?? Data()
+            if requirements.contains(.nonEmptyData), data.isEmpty {
+                throw APIRequest.Error.emptyData
+            }
+        }
+        
+        try httpResponse.assertSuccessfulStatusCode()
         if requirements.contains(.etag), httpResponse.etag == nil {
             throw APIRequest.Error.missingEtagInResponse
-        }
-        if requirements.contains(.nonEmptyData), data.count == 0 {
-            throw APIRequest.Error.emptyData
         }
         
         return (data, httpResponse)

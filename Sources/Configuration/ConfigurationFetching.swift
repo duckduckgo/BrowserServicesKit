@@ -27,7 +27,7 @@ protocol ConfigurationFetching {
 
 }
 
-typealias ConfigurationFetchResult = (etag: String, data: Data)
+typealias ConfigurationFetchResult = (etag: String, data: Data?)
 
 public final class ConfigurationFetcher: ConfigurationFetching {
     
@@ -73,7 +73,9 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             configurations.forEach { configuration in
                 group.addTask {
                     let fetchResult = try await self.fetch(from: configuration.url, withEtag: self.etag(for: configuration))
-                    try self.validator.validate(fetchResult.data, for: configuration)
+                    if let data = fetchResult.data {
+                        try self.validator.validate(data, for: configuration)
+                    }
                     return (configuration, fetchResult)
                 }
             }
@@ -105,8 +107,10 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
 
     private func store(_ result: ConfigurationFetchResult, for configuration: Configuration) throws {
-        try store.saveData(result.data, for: configuration)
-        try store.saveEtag(result.etag, for: configuration)
+        if let data = result.data {
+            try store.saveData(data, for: configuration)
+            try store.saveEtag(result.etag, for: configuration)
+        }
     }
     
 }

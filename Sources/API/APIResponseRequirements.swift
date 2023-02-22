@@ -28,7 +28,9 @@ public struct APIResponseRequirements: OptionSet {
     
     public static let nonEmptyData = APIResponseRequirements(rawValue: 1 << 0)
     public static let etag = APIResponseRequirements(rawValue: 1 << 1)
+    public static let allow304 = APIResponseRequirements(rawValue: 1 << 2)
     
-    public static let all: APIResponseRequirements = [.nonEmptyData, .etag]
+    public static let `default`: APIResponseRequirements = [.nonEmptyData, .etag]
+    public static let all: APIResponseRequirements = [.nonEmptyData, .etag, .allow304]
     
 }

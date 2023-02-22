@@ -21,14 +21,28 @@ import Foundation
 
 extension APIRequest {
     
-    public enum Error: Swift.Error {
+    public enum Error: Swift.Error, LocalizedError {
         
         case urlSession(Swift.Error)
         case invalidResponse
         case missingEtagInResponse
         case emptyData
-        case invalidStatusCode
+        case invalidStatusCode(Int)
         
+        public var errorDescription: String? {
+            switch self {
+            case .urlSession(let error):
+                return "URL session error: \(error.localizedDescription)"
+            case .invalidResponse:
+                return "Invalid response received."
+            case .missingEtagInResponse:
+                return "ETag header missing in response."
+            case .emptyData:
+                return "Empty data received in response."
+            case .invalidStatusCode(let statusCode):
+                return "Invalid status code received in response (\(statusCode))."
+            }
+        }
     }
     
 }
