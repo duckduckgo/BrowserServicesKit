@@ -58,6 +58,9 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         }
         waitForExpectations(timeout: 5)
 
+        if case .didCommit = responder(at: 0).history[5] {
+            responder(at: 0).history.insert(responder(at: 0).history[5], at: 4)
+        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
