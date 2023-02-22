@@ -43,7 +43,7 @@ final class SurrogatesReferenceTests: XCTestCase {
     func testSurrogates() throws {
         let dataLoader = JsonTestDataLoader()
         
-        let trackerRadarJSONData = dataLoader.fromJsonFile(Resource.trackerRadar)
+        let trackerRadarJSONData = dataLoader.fromJsonFile(Resource.trackerDataSet)
         let testsData = dataLoader.fromJsonFile(Resource.tests)
         let surrogatesData = dataLoader.fromJsonFile(Resource.surrogates)
         
