@@ -104,6 +104,7 @@ final class SuggestionProcessing {
                 default:
                     score = 0
                 }
+                
                 return (item, score)
             }
             // Filter not relevant

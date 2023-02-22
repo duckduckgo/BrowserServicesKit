@@ -54,9 +54,9 @@ extension HistoryEntryMock {
 extension BookmarkMock {
 
     static var someBookmarks: [Bookmark] {
-        [ BookmarkMock(url: URL(string: "http://duckduckgo.com")!, title: "DuckDuckGo", isFavorite: true),
-          BookmarkMock(url: URL(string: "spreadprivacy.com")!, title: "Test 2", isFavorite: true),
-          BookmarkMock(url: URL(string: "wikipedia.org")!, title: "Wikipedia", isFavorite: false) ]
+        [ BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: true),
+          BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: true),
+          BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false) ]
     }
 
 }
