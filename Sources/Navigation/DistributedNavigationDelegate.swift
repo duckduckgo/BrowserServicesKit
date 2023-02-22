@@ -128,26 +128,13 @@ private extension DistributedNavigationDelegate {
                         guard responder?.shouldDisableLongDecisionMakingChecks != true else { return }
                         Self.sigIntRaisedForResponders.insert(typeOfResponder)
 
-                        func fileLine(file: StaticString = #file, line: Int = #line) -> String {
-                            return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
-                        }
-                        os_log("""
-
-
-                        ------------------------------------------------------------------------------------------------------
-                            BREAK at %s:
-                        ------------------------------------------------------------------------------------------------------
+                        breakByRaisingSigInt("""
                             Decision making is taking longer than expected
-                            This may be indicating that there‘s a leak in %s Navigation Responder
+                            This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder
 
                             Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
                             for known long decision making to disable this warning
-
-                            Hit Continue (^⌘Y) to continue program execution
-                        ------------------------------------------------------------------------------------------------------
-
-                        """, type: .debug, fileLine(), typeOfResponder)
-                        raise(SIGINT)
+                        """)
                     }
                 }
                 if let timeoutWorkItem {

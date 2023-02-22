@@ -370,17 +370,17 @@ extension DistributedNavigationDelegateTestsBase {
 
     func main(_ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         withWebView { webView in
-            FrameInfo(frameIdentity: .mainFrameIdentity(for: webView), url: current, securityOrigin: secOrigin ?? current.securityOrigin)
+            FrameInfo(webView: webView, handle: webView.mainFrameHandle, isMainFrame: true, url: current, securityOrigin: secOrigin ?? current.securityOrigin)
         }
     }
 
-    func frame(_ handle: String, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+    func frame(_ frameID: UInt64, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         withWebView { webView in
-            FrameInfo(frameIdentity: FrameIdentity(handle: handle, webViewIdentity: .init(nonretainedObject: webView), isMainFrame: false), url: url, securityOrigin: secOrigin ?? url.securityOrigin)
+            FrameInfo(webView: webView, handle: .init(rawValue: frameID), isMainFrame: false, url: url, securityOrigin: secOrigin ?? url.securityOrigin)
         }
     }
-    func frame(_ handle: String, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
-        frame(handle, URL(string: url)!, secOrigin: secOrigin)
+    func frame(_ frameID: UInt64, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+        frame(frameID, URL(string: url)!, secOrigin: secOrigin)
     }
 
     // Event sequence checking

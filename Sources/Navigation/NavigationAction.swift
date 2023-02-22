@@ -105,7 +105,7 @@ public struct NavigationAction {
            redirectHistory == nil,
            navigationAction.safeSourceFrame == nil,
            navigationAction.targetFrame?.isMainFrame == true,
-           navigationAction.targetFrame?.request.url?.isEmpty == true,
+           navigationAction.targetFrame?.safeRequest?.url?.isEmpty == true,
            webView.backForwardList.currentItem != nil {
 
             // go back after failing session restoration has `other` Navigation Type
@@ -150,7 +150,8 @@ public extension NavigationAction {
     }
 
     var isTargetingNewWindow: Bool {
-        sourceFrame.identity.webView != targetFrame?.identity.webView
+        assert(sourceFrame.webView != nil || targetFrame?.webView != nil)
+        return sourceFrame.webView != targetFrame?.webView || targetFrame?.webView == nil
     }
 
     var url: URL {
