@@ -36,6 +36,7 @@ public struct APIRequest {
         self.urlSession = urlSession
     }
 
+    @available(*, deprecated, message: "This method is deprecated. Please use the 'fetch()' async method instead.")
     @discardableResult
     public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
         let task = urlSession.dataTask(with: request) { (data, response, error) in
@@ -58,10 +59,8 @@ public struct APIRequest {
         let httpResponse = try getHTTPResponse(from: response)
         
         var data = data
-        if requirements.contains(.allow304) {
-            let statusCodes = HTTPURLResponse.Constants.successfulStatusCodes + [HTTPURLResponse.Constants.notModifiedStatusCode]
-            try httpResponse.assertStatusCode(statusCodes)
-            data = nil // to avoid returning empty data
+        if requirements.contains(.allow304), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
+            data = nil // Avoid returning empty data
         } else {
             try httpResponse.assertSuccessfulStatusCode()
             let data = data ?? Data()
