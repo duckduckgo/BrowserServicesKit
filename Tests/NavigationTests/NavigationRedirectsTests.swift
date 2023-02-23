@@ -1032,9 +1032,6 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             return false
         })
 
-        if case .didFail = responder(at: 0).history[3] {
-            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 3), at: 1)
-        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, from: history[2], src: main(urls.local2))),
 
