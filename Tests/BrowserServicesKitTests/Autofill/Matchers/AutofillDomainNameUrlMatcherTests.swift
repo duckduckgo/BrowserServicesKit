@@ -1,5 +1,5 @@
 //
-//  AutofillUrlMatcherTests.swift
+//  AutofillDomainNameUrlMatcherTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -21,7 +21,7 @@ import XCTest
 import BrowserServicesKit
 import Common
 
-final class AutofillUrlMatcherTests: XCTestCase {
+final class AutofillDomainNameUrlMatcherTests: XCTestCase {
 
     private let tld = TLD()
     private let autofillDomainNameUrlMatcher = AutofillDomainNameUrlMatcher()
@@ -51,13 +51,13 @@ final class AutofillUrlMatcherTests: XCTestCase {
         XCTAssertEqual("RandomText", autofillDomainNameUrlMatcher.cleanRawUrl("thisIs@RandomText"))
     }
 
-    func testwhenUrlsAreIdenticalThenMatchingForAutofill() {
+    func testWhenUrlsAreIdenticalThenMatchingForAutofill() {
         let currentUrl = "https://example.com"
         let savedUrl = "https://example.com"
         XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
-    func testwhenUrlsAreIdenticalExceptForUppercaseVisitedSiteThenMatchingForAutofill() {
+    func testWhenUrlsAreIdenticalExceptForUppercaseVisitedSiteThenMatchingForAutofill() {
         let currentUrl = "https://example.com"
         let savedUrl = "https://EXAMPLE.COM"
         XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
