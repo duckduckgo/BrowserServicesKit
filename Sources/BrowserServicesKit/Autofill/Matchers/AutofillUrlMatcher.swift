@@ -23,6 +23,7 @@ import Common
 public protocol AutofillUrlMatcher {
     func cleanRawUrl(_ rawUrl: String) -> String
     func isMatchingForAutofill(currentSite: String, savedSite: String, tld: TLD) -> Bool
+    func normalizeSchemeForAutofill(_ rawUrl: String) -> URLComponents?
 }
 
 public struct AutofillDomainNameUrlMatcher: AutofillUrlMatcher {
@@ -65,7 +66,7 @@ public struct AutofillDomainNameUrlMatcher: AutofillUrlMatcher {
         return false
     }
 
-    private func normalizeSchemeForAutofill(_ rawUrl: String) -> URLComponents? {
+    public func normalizeSchemeForAutofill(_ rawUrl: String) -> URLComponents? {
         if !rawUrl.starts(with: URL.URLProtocol.https.scheme) &&
            !rawUrl.starts(with: URL.URLProtocol.http.scheme) &&
            rawUrl.contains("://") {
