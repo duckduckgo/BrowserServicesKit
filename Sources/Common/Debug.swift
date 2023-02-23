@@ -40,4 +40,24 @@ public func breakByRaisingSigInt(_ description: String, file: StaticString = #fi
     raise(SIGINT)
 }
 
+// get symbol from stack trace for a caller of a calling method
+public func callingSymbol() -> String {
+    let stackTrace = Thread.callStackSymbols
+    // find `callingSymbol` itself or dispatch_once_callout
+    var callingSymbolIdx = stackTrace.firstIndex(where: { $0.contains("_dispatch_once_callout") })
+    ?? stackTrace.firstIndex(where: { $0.contains("callingSymbol") })!
+    // procedure calling `callingSymbol`
+    callingSymbolIdx += 1
+
+    var symbolName: String
+    repeat {
+        // caller for the procedure
+        callingSymbolIdx += 1
+        let line = stackTrace[callingSymbolIdx].replacingOccurrences(of: Bundle.main.name!, with: "DDG")
+        symbolName = String(line.split(separator: " ")[3])
+    } while stackTrace[callingSymbolIdx - 1].contains(symbolName.dropping(suffix: "To")) // skip objc wrappers
+
+    return symbolName
+}
+
 #endif

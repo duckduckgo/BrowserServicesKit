@@ -25,7 +25,7 @@ final class SuggestionTests: XCTestCase {
         let url = URL.aURL
         let title = "DuckDuckGo"
         let isFavorite = true
-        let bookmarkMock = BookmarkMock(url: url, title: title, isFavorite: isFavorite)
+        let bookmarkMock = BookmarkMock(url: url.absoluteString, title: title, isFavorite: isFavorite)
         let suggestion = Suggestion(bookmark: bookmarkMock)
 
         XCTAssertEqual(suggestion, Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: isFavorite))
@@ -104,10 +104,11 @@ final class SuggestionTests: XCTestCase {
         let title = "Title"
 
 
-        let bookmark = BookmarkMock(url: url, title: title, isFavorite: true)
+        let bookmark = BookmarkMock(url: url.absoluteString, title: title, isFavorite: true)
         let suggestion = Suggestion(bookmark: bookmark)
 
-        guard case .bookmark = suggestion else {
+        guard let suggestion = suggestion,
+              case .bookmark = suggestion else {
             XCTFail("Wrong type of suggestion")
             return
         }
