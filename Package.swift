@@ -19,7 +19,8 @@ let package = Package(
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
-        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
+        .library(name: "Sync", targets: ["Sync"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.3.0")),
@@ -123,7 +124,13 @@ let package = Package(
             ],
             path: "Sources/PrivacyDashboard"
             ),
-        
+        .target(
+            name: "Sync",
+            dependencies: [
+                "Common"
+            ]
+            ),
+
         // MARK: - Test targets
         .testTarget(
             name: "BrowserServicesKitTests",
