@@ -5,8 +5,10 @@ script_dir=$(dirname "$(readlink -f "$0")")
 
 # Define the source and destination variables
 source="$script_dir/assets/Swift File For Package.xctemplate"
-destination="/Applications/Xcode.app/Contents/Developer/Library/Xcode/Templates/File Templates/MultiPlatform/Source/Swift File For Package.xctemplate"
+destdir="${HOME}/Library/Developer/Xcode/Templates/File Templates/Source"
+destination="${destdir}/Swift File For Package.xctemplate"
 
+mkdir -p  "${destdir}"
 # Create a symbolic link
 ln -sFn "$source" "$destination"
 
