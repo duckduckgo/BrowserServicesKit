@@ -81,10 +81,10 @@ final class AutofillDomainNameUrlMatcherTests: XCTestCase {
         XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
-    func testWhenSavedSiteContainsSubdomainAndVisitedSiteDoesNotThenNoMatchingForAutofill() {
+    func testWhenSavedSiteContainsSubdomainAndVisitedSiteDoesNotThenMatchingForAutofill() {
         let currentUrl = "example.com"
         let savedUrl = "login.example.com"
-        XCTAssertFalse(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
+        XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
     func testWhenSavedSiteDoesNotContainSubdomainAndVisitedSiteDoesThenMatchingForAutofill() {
@@ -93,10 +93,10 @@ final class AutofillDomainNameUrlMatcherTests: XCTestCase {
         XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
-    func testWhenUrlsHaveDifferentSubdomainsThenNoMatchingForAutofill() {
+    func testWhenUrlsHaveDifferentSubdomainsThenMatchingForAutofill() {
         let currentUrl = "login.example.com"
         let savedUrl = "test.example.com"
-        XCTAssertFalse(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
+        XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
     func testWhenSavedSiteContainsWwwSubdomainAndVisitedSiteDoesNotThenMatchingForAutofill() {
@@ -147,16 +147,16 @@ final class AutofillDomainNameUrlMatcherTests: XCTestCase {
         XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
-    func testWhenSavedSiteContainNestedSubdomainsAndVisitedSiteContainsMatchingRootSubdomainThenNotMatchingForAutofill() {
+    func testWhenSavedSiteContainNestedSubdomainsAndVisitedSiteContainsMatchingRootSubdomainThenMatchingForAutofill() {
         let currentUrl = "a.example.com"
         let savedUrl = "login.a.example.com"
-        XCTAssertFalse(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
+        XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
-    func testWhenSavedSiteContainSubdomainAndVisitedSiteContainsNestedSubdomainsThenNotMatchingForAutofill() {
+    func testWhenSavedSiteContainSubdomainAndVisitedSiteContainsNestedSubdomainsThenMatchingForAutofill() {
         let currentUrl = "login.a.example.com"
         let savedUrl = "a.example.com"
-        XCTAssertFalse(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
+        XCTAssertTrue(autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: currentUrl, savedSite: savedUrl, tld: tld))
     }
 
     func testWhenSavedSiteHasNoSubdomainAndVisitedMaliciousSitePartiallyContainSavedSiteThenNoMatchingForAutofill() {
