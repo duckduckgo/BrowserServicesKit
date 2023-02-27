@@ -20,12 +20,18 @@
 import Foundation
 
 extension Bundle {
-    
+
     struct Keys {
+        static let name = kCFBundleNameKey as String
         static let versionNumber = "CFBundleShortVersionString"
     }
-    
+
     public var releaseVersionNumber: String? {
         return infoDictionary?[Keys.versionNumber] as? String
     }
+
+    public var name: String? {
+        object(forInfoDictionaryKey: Keys.name) as? String
+    }
+
 }
