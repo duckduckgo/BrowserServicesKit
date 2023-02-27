@@ -45,32 +45,13 @@ extension WKNavigationAction: WebViewNavigationAction {
         ignoredSourceFrameUsageSymbols.insert(callingSymbol())
     }()
 
-    // get symbol from stack trace for a caller of a calling method
-    static private func callingSymbol() -> String {
-        let stackTrace = Thread.callStackSymbols
-        // find `callingSymbol` itself or dispatch_once_callout
-        var callingSymbolIdx = stackTrace.firstIndex(where: { $0.contains("_dispatch_once_callout") })
-            ?? stackTrace.firstIndex(where: { $0.contains("callingSymbol") })!
-        // procedure calling `callingSymbol`
-        callingSymbolIdx += 1
-
-        var symbolName: String
-        repeat {
-            // caller for the procedure
-            callingSymbolIdx += 1
-            symbolName = String(stackTrace[callingSymbolIdx].split(separator: " ")[3])
-        } while stackTrace[callingSymbolIdx - 1].contains(symbolName.dropping(suffix: "To")) // skip objc wrappers
-
-        return symbolName
-    }
-
     @objc dynamic private func swizzledSourceFrame() -> WKFrameInfo? {
         func fileLine(file: StaticString = #file, line: Int = #line) -> String {
             return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
         }
 
         // don‘t break twice
-        if Self.ignoredSourceFrameUsageSymbols.insert(Self.callingSymbol()).inserted {
+        if Self.ignoredSourceFrameUsageSymbols.insert(callingSymbol()).inserted {
             breakByRaisingSigInt("Don‘t use `WKNavigationAction.sourceFrame` as it has incorrect nullability\n" +
                                  "Use `WKNavigationAction.safeSourceFrame` instead")
         }
