@@ -55,11 +55,7 @@ public struct AutofillDomainNameUrlMatcher: AutofillUrlMatcher {
         }
 
         if currentUrlComponents.eTLDplus1(tld: tld) == savedUrlComponents.eTLDplus1(tld: tld) {
-            if currentUrlComponents.subdomain(tld: tld) == savedUrlComponents.subdomain(tld: tld) ||
-               subdomainsAreTheSameIgnoringWWW(currentSite: currentUrlComponents, savedSite: savedUrlComponents, tld: tld) ||
-               (savedUrlComponents.subdomain(tld: tld) ?? "").isEmpty {
-                return true
-            }
+            return true
         }
 
         return false
@@ -75,17 +71,6 @@ public struct AutofillDomainNameUrlMatcher: AutofillUrlMatcher {
 
         let noScheme = rawUrl.dropping(prefix: URL.URLProtocol.https.scheme).dropping(prefix: URL.URLProtocol.http.scheme)
         return URLComponents(string: "\(URL.URLProtocol.https.scheme)\(noScheme)")
-    }
-
-    private func subdomainsAreTheSameIgnoringWWW(currentSite: URLComponents, savedSite: URLComponents, tld: TLD) -> Bool {
-        let currentSiteSubdomain = currentSite.subdomain(tld: tld)?.replacingOccurrences(of: Constants.www, with: "") ?? ""
-        let savedSiteSubdomain = savedSite.subdomain(tld: tld)?.replacingOccurrences(of: Constants.www, with: "") ?? ""
-
-        return currentSiteSubdomain == savedSiteSubdomain
-    }
-
-    private enum Constants {
-        static let www = "www"
     }
 
 }
