@@ -138,6 +138,10 @@ public class EmailManager {
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
     public weak var requestDelegate: EmailManagerRequestDelegate?
     
+    public enum NotificationParameter {
+        public static let cohort = "cohort"
+    }
+    
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
 
@@ -244,6 +248,9 @@ public class EmailManager {
     }
     
     public func signOut() {
+        // Retrieve the cohort before it gets removed from storage, so that it can be passed as a notification parameter.
+        let currentCohortValue = try? storage.getCohort()
+
         do {
             try storage.deleteAuthenticationState()
         } catch {
@@ -253,8 +260,14 @@ public class EmailManager {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
         }
+        
+        var notificationParameters: [String: String] = [:]
+        
+        if let currentCohortValue = currentCohortValue {
+            notificationParameters[NotificationParameter.cohort] = currentCohortValue
+        }
 
-        NotificationCenter.default.post(name: .emailDidSignOut, object: self)
+        NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
     }
 
     public func emailAddressFor(_ alias: String) -> String {
@@ -354,7 +367,14 @@ extension EmailManager: AutofillEmailDelegate {
     
     public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         storeToken(token, username: username, cohort: cohort)
-        NotificationCenter.default.post(name: .emailDidSignIn, object: self)
+        
+        var notificationParameters: [String: String] = [:]
+        
+        if let cohort = cohort {
+            notificationParameters[NotificationParameter.cohort] = cohort
+        }
+
+        NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
 }
 

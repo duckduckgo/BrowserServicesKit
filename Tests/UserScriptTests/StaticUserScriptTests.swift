@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Foundation
 import XCTest
 import WebKit
 @testable import UserScript
@@ -40,7 +41,7 @@ class StaticUserScriptTests: XCTestCase {
         let src = "var val = 'Test';\n"
         let us = TestStaticUserScript()
         let script = us.makeWKUserScript()
-        XCTAssertEqual(script.source, UserScriptTestHelper.getScriptOutput(src))
+        XCTAssertTrue(script.source.contains(src))
         XCTAssertEqual(script.injectionTime, .atDocumentEnd)
         XCTAssertEqual(script.isForMainFrameOnly, false)
     }

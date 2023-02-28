@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Foundation
 import WebKit
 import CryptoKit
 
@@ -31,6 +32,20 @@ public protocol UserScript: WKScriptMessageHandler {
 
     func makeWKUserScript() -> WKUserScript
 
+}
+
+public protocol InteractiveUserScript: UserScript {
+    var scriptDidLoadMessageName: DidLoadMessageName { get }
+}
+
+public struct DidLoadMessageName: RawRepresentable {
+    public let rawValue: String = { "did_load_" + UUID().uuidString.replacingOccurrences(of: "-", with: "_") }()
+    public init() {}
+    public init?(rawValue: String) { nil }
+
+    public static func == (lhs: String, rhs: DidLoadMessageName) -> Bool {
+        return lhs == rhs.rawValue
+    }
 }
 
 extension UserScript {
@@ -72,10 +87,12 @@ extension UserScript {
     }
 
     static func makeWKUserScript(source: String, injectionTime: WKUserScriptInjectionTime,
-                                 forMainFrameOnly: Bool,
+                                 forMainFrameOnly: Bool, didLoadMessageName: DidLoadMessageName?,
                                  requiresRunInPageContentWorld: Bool = false) -> WKUserScript {
         let hash = SHA256.hash(data: Data(source.utf8)).hashValue
 
+        // send didLoad message when the script was added
+        let scriptDidLoad = didLoadMessageName.map { "webkit.messageHandlers.\($0.rawValue).postMessage({})" } ?? ""
         // This prevents the script being executed twice which appears to be a WKWebKit issue for about:blank frames when the location changes
         let sourceOut = """
         (() => {
@@ -83,6 +100,7 @@ extension UserScript {
             \(source)
             window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
             window.navigator._duckduckgoloader_.push('\(hash)')
+            \(scriptDidLoad)
         })()
         """
 
@@ -98,6 +116,7 @@ extension UserScript {
         return Self.makeWKUserScript(source: source,
                                      injectionTime: injectionTime,
                                      forMainFrameOnly: forMainFrameOnly,
+                                     didLoadMessageName: (self as? InteractiveUserScript)?.scriptDidLoadMessageName,
                                      requiresRunInPageContentWorld: requiresRunInPageContentWorld)
     }
 

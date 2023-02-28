@@ -19,6 +19,8 @@
 
 import XCTest
 import TrackerRadarKit
+import Common
+import ContentBlocking
 @testable import BrowserServicesKit
 import Common
 

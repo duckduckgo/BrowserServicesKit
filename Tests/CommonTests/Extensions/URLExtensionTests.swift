@@ -20,6 +20,8 @@ import XCTest
 @testable import Common
 
 // swiftlint:disable line_length
+// swiftlint:disable type_body_length
+
 final class URLExtensionTests: XCTestCase {
 
     func test_external_urls_are_valid() {
@@ -297,6 +299,25 @@ final class URLExtensionTests: XCTestCase {
         let expected = URL(string: "http://test.com?firstParam=firstValue&firstParam=newValue")!
         let actual = url.appendingParameter(name: "firstParam", value: "newValue")
         XCTAssertEqual(actual, expected)
+    }
+
+    func testMatchesComparator() {
+        XCTAssertTrue("youtube.com".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("youtube.com".url!.matches("http://youtube.com/".url!))
+        XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com/".url!))
+        XCTAssertTrue("http://youtube.com/".url!.matches("youtube.com".url!))
+        XCTAssertTrue("http://youtube.com".url!.matches("youtube.com/".url!))
+        XCTAssertTrue("https://youtube.com/".url!.matches("https://youtube.com".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com#link#1".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com#link#1".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com/#link#1".url!))
+        XCTAssertTrue("https://youtube.com#link#1".url!.matches("https://youtube.com/#link#1".url!))
+
+        XCTAssertFalse("youtube.com".url!.matches("https://youtube.com".url!))
+        XCTAssertFalse("youtube.com/".url!.matches("https://youtube.com".url!))
+        XCTAssertFalse("youtube.com/#link#1".url!.matches("https://youtube.com#link#2".url!))
+        XCTAssertFalse("youtube.com/#link#1".url!.matches("https://youtube.com#link".url!))
     }
 
 }

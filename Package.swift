@@ -13,17 +13,24 @@ let package = Package(
     products: [
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
-        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "DDGSync", targets: ["DDGSync"]),
+        .library(name: "Persistence", targets: ["Persistence"]),
+        .library(name: "Bookmarks", targets: ["Bookmarks"]),
+        .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
-        .library(name: "DDGSync", targets: ["DDGSync"])
+        .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
+        .library(name: "Navigation", targets: ["Navigation"]),
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("5.3.1")),
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("1.2.1")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.3.0")),
+        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("2.0.0")),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.2.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.2.0"))
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.4.1")),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
+        .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
     ],
     targets: [
         .target(
@@ -31,11 +38,13 @@ let package = Package(
             dependencies: [
                 "Autofill",
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
+                "Persistence",
                 "GRDB",
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
+                "Common",
                 "UserScript",
-                "Common"
+                "ContentBlocking"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -45,6 +54,22 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]),
         .target(
+            name: "Persistence",
+            dependencies: [
+                "Common"
+            ]
+        ),
+        .target(
+            name: "Bookmarks",
+            dependencies: [
+                "Persistence",
+                "Common"
+            ],
+            resources: [
+                .process("BookmarksModel.xcdatamodeld")
+            ]
+        ),
+        .target(
             name: "BloomFilterWrapper",
             dependencies: [
                 "BloomFilter"
@@ -53,10 +78,7 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
-            ]),
-        .target(
-            name: "UserScript"
-        ),
+            ]),    
         .target(
             name: "Crashes"
         ),
@@ -88,9 +110,40 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "ContentBlocking",
+            dependencies: [
+                "TrackerRadarKit"
+            ]),
+        .target(
+            name: "Navigation",
+            dependencies: [
+                "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug)),
+                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
+                .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS])),
+                .define("_IS_REDIRECT_ENABLED", .when(platforms: [.macOS])),
+                .define("_MAIN_FRAME_NAVIGATION_ENABLED", .when(platforms: [.macOS])),
+                .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
+            ]),
+        .target(
+            name: "UserScript"
+            ),
+        .target(
+            name: "PrivacyDashboard",
+            dependencies: [
+                "Common",
+                "TrackerRadarKit",
+                "UserScript",
+                "ContentBlocking",
+                .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
+            ],
+            path: "Sources/PrivacyDashboard"
+            ),
         
         // MARK: - Test targets
-        
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -98,7 +151,8 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources")
-            ]),
+            ]
+        ),
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
@@ -115,13 +169,29 @@ let package = Package(
                 "Common"
             ]),
         .testTarget(
+            name: "NavigationTests",
+            dependencies: [
+                "Navigation",
+                .product(name: "Swifter", package: "swifter")
+            ],
+            swiftSettings: [
+                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
+            ]),
+        .testTarget(
             name: "UserScriptTests",
             dependencies: [
                 "UserScript"
             ],
             resources: [
                 .process("testUserScript.js")
-            ])
+            ]
+        ),
+        .testTarget(
+            name: "PersistenceTests",
+            dependencies: [
+                "Persistence"
+            ]
+        )
     ],
     cxxLanguageStandard: .cxx11
 )

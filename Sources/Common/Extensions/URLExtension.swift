@@ -20,6 +20,19 @@ import Foundation
 
 extension URL {
 
+    public static let empty = (NSURL(string: "") ?? NSURL()) as URL
+
+    public var isEmpty: Bool {
+        absoluteString.isEmpty
+    }
+
+    public func matches(_ other: URL) -> Bool {
+        let string1 = self.absoluteString
+        let string2 = other.absoluteString
+        return string1.droppingHashedSuffix().dropping(suffix: "/").appending(string1.hashedSuffix ?? "")
+            == string2.droppingHashedSuffix().dropping(suffix: "/").appending(string2.hashedSuffix ?? "")
+    }
+
     // URL without the scheme and the '/' suffix of the path
     // For finding duplicate URLs
     public var naked: URL? {
@@ -52,6 +65,17 @@ extension URL {
         fragment == nil &&
         user == nil &&
         password == nil
+    }
+
+    public var securityOrigin: SecurityOrigin {
+        SecurityOrigin(protocol: self.scheme ?? "",
+                       host: self.host ?? "",
+                       port: self.port ?? 0)
+    }
+    
+    public func isPart(ofDomain domain: String) -> Bool {
+        guard let host = host else { return false }
+        return host == domain || host.hasSuffix(".\(domain)")
     }
 
     public struct NavigationalScheme: RawRepresentable, Hashable {

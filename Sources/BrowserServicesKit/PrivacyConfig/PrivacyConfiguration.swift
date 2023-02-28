@@ -47,17 +47,17 @@ public protocol PrivacyConfiguration {
     /// Check the protection status of given domain.
     ///
     /// Returns true if all below is true:
-    ///  - Site is not user unprotected.
-    ///  - Site is not in temp list.
-    ///  - Site is not in an exception list for content blocking feature.
+    ///  - Domain is not user unprotected.
+    ///  - Domain is not in temp list.
+    ///  - Domain is not in an exception list for content blocking feature.
     func isFeature(_ feature: PrivacyFeature, enabledForDomain: String?) -> Bool
 
     /// Check the protection status of given domain.
     ///
     /// Returns true if all below is true:
-    ///  - Site is not user unprotected.
-    ///  - Site is not in temp list.
-    ///  - Site is not in an exception list for content blocking feature.
+    ///  - Domain is not user unprotected.
+    ///  - Domain is not in temp list.
+    ///  - Domain is not in an exception list for content blocking feature.
     func isProtected(domain: String?) -> Bool
 
     /// Check if given domain is locally unprotected.
@@ -106,4 +106,5 @@ public enum PrivacyFeature: String {
     case customUserAgent
     case referrer
     case adClickAttribution
+    case windowsWaitlist
 }

@@ -83,7 +83,11 @@ extension Score {
     }
 
     init(bookmark: Bookmark, query: Query, queryTokens: [Query]? = nil) {
-        self.init(title: bookmark.title, url: bookmark.url, visitCount: 0, query: query, queryTokens: queryTokens)
+        guard let urlObject = URL(string: bookmark.url) else {
+            self = 0
+            return
+        }
+        self.init(title: bookmark.title, url: urlObject, visitCount: 0, query: query, queryTokens: queryTokens)
     }
 
     init(historyEntry: HistoryEntry, query: Query, queryTokens: [Query]? = nil) {

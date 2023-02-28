@@ -8,9 +8,7 @@ line_length:
 
 identifier_name:
   min_length: 1
-  max_length:
-    warning: 40
-    error: 60
+  max_length: 1000
 
 type_name:
   min_length: 3
