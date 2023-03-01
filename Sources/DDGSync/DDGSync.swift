@@ -34,7 +34,9 @@ public class DDGSync: DDGSyncing {
     }
 
     @Published public private(set) var isAuthenticated: Bool
-    public private(set) lazy var isAuthenticatedPublisher: AnyPublisher<Bool, Never> = $isAuthenticated.eraseToAnyPublisher()
+    public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
+        $isAuthenticated.eraseToAnyPublisher()
+    }
 
     public var recoveryCode: Data? {
         guard let account = try? dependencies.secureStore.account(),
@@ -69,7 +71,6 @@ public class DDGSync: DDGSyncing {
         self.persistence = persistence
         self.dependencies = dependencies
         self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
-        isAuthenticatedPublisher = $isAuthenticated.eraseToAnyPublisher()
     }
     
     public func createAccount(deviceName: String) async throws {
@@ -79,7 +80,7 @@ public class DDGSync: DDGSyncing {
 
         let account = try await dependencies.account.createAccount(deviceName: deviceName)
         try dependencies.secureStore.persistAccount(account)
-        isAuthenticated = account.token != nil
+        updateIsAuthenticated()
     }
 
     public func login(recoveryKey: Data, deviceName: String) async throws {
@@ -89,6 +90,7 @@ public class DDGSync: DDGSyncing {
 
         let result = try await dependencies.account.login(recoveryKey: recoveryKey, deviceName: deviceName)
         try dependencies.secureStore.persistAccount(result.account)
+        updateIsAuthenticated()
     }
 
     public func sender() throws -> UpdatesSending {
@@ -104,7 +106,23 @@ public class DDGSync: DDGSyncing {
         try await dependencies.createUpdatesFetcher(persistence).fetch()
     }
     
-    public func disconnect() throws {
+    public func disconnect() async throws {
+        guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
+            throw SyncError.accountNotFound
+        }
+        try await disconnect(deviceId: deviceId)
+    }
+
+    public func disconnect(deviceId: String) async throws {
+        guard let token = try dependencies.secureStore.account()?.token else {
+            throw SyncError.noToken
+        }
+        try await dependencies.account.logout(deviceId: deviceId, token: token)
         try dependencies.secureStore.removeAccount()
+        updateIsAuthenticated()
+    }
+
+    private func updateIsAuthenticated() {
+        isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
     }
 }

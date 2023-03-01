@@ -115,6 +115,36 @@ struct AccountManager: AccountManaging {
                 devices: result.devices.map { RegisteredDevice(id: $0.device_id, name: $0.device_name) })
     }
 
+    func logout(deviceId: String, token: String) async throws {
+        let params = LogoutDevice.Parameters(device_id: deviceId)
+
+        guard let paramJson = try? JSONEncoder().encode(params) else {
+            fatalError()
+        }
+
+        var request = api.createRequest(url: endpoints.logoutDevice, method: .POST)
+        request.setBody(body: paramJson, withContentType: "application/json")
+        request.addHeader("Authorization", value: "Bearer \(token)")
+
+        let result = try await request.execute()
+        guard (200 ..< 300).contains(result.response.statusCode) else {
+            throw SyncError.unexpectedStatusCode(result.response.statusCode)
+        }
+
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
+        }
+
+        print(String(data: body, encoding: .utf8) ?? "invalid result.data")
+        guard let result = try? JSONDecoder().decode(LogoutDevice.Result.self, from: body) else {
+            throw SyncError.unableToDecodeResponse("Failed to decode login result")
+        }
+
+        guard result.device_id == deviceId else {
+            throw SyncError.unexpectedResponseBody
+        }
+    }
+
     // Not using CodingKeys to keep it simple
     // swiftlint:disable identifier_name
     struct Signup {
@@ -156,6 +186,17 @@ struct AccountManager: AccountManaging {
             let device_name: String
         }
 
+    }
+
+    struct LogoutDevice {
+
+        struct Result: Decodable {
+            let device_id: String
+        }
+
+        struct Parameters: Encodable {
+            let device_id: String
+        }
     }
     // swiftlint:enable identifier_name
 

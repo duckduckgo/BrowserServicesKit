@@ -80,10 +80,16 @@ public protocol DDGSyncing {
     func fetchEverything() async throws
 
     /**
-     Disconnect this client from the sync service.  Removes all local info, but leaves in places bookmarks, etc.
+     Disconnect this client from the sync service. Removes all local info, but leaves in places bookmarks, etc.
      */
-    func disconnect() throws
-    
+    func disconnect() async throws
+
+    /**
+     Disconnect the specified device from the sync service.
+
+     @param deviceId ID of the device to be disconnected.
+    */
+    func disconnect(deviceId: String) async throws
 }
 
 public protocol UpdatesSending {

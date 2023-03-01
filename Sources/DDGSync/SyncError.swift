@@ -28,6 +28,7 @@ public enum SyncError: Error {
 
     case noResponseBody
     case unexpectedStatusCode(Int)
+    case unexpectedResponseBody
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
     case accountRemoved
