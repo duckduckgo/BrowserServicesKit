@@ -33,9 +33,8 @@ public class DDGSync: DDGSyncing {
         
     }
 
-    public var isAuthenticated: Bool {
-        (try? dependencies.secureStore.account()?.token) != nil
-    }
+    @Published public private(set) var isAuthenticated: Bool
+    public private(set) lazy var isAuthenticatedPublisher: AnyPublisher<Bool, Never> = $isAuthenticated.eraseToAnyPublisher()
 
     public var recoveryCode: Data? {
         guard let account = try? dependencies.secureStore.account(),
@@ -69,6 +68,8 @@ public class DDGSync: DDGSyncing {
     init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
         self.persistence = persistence
         self.dependencies = dependencies
+        self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
+        isAuthenticatedPublisher = $isAuthenticated.eraseToAnyPublisher()
     }
     
     public func createAccount(deviceName: String) async throws {
@@ -78,6 +79,7 @@ public class DDGSync: DDGSyncing {
 
         let account = try await dependencies.account.createAccount(deviceName: deviceName)
         try dependencies.secureStore.persistAccount(account)
+        isAuthenticated = account.token != nil
     }
 
     public func login(recoveryKey: Data, deviceName: String) async throws {

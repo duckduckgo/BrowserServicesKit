@@ -28,6 +28,11 @@ public protocol DDGSyncing {
     var isAuthenticated: Bool { get }
 
     /**
+     This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
+     */
+    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
+
+    /**
      The recovery code for this client.
      */
     var recoveryCode: Data? { get }
