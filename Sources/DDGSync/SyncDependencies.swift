@@ -45,11 +45,16 @@ public protocol AccountManaging {
 public struct SyncAccount {
 
     public let deviceId: String
+    public let deviceName: String
     public let userId: String
     public let primaryKey: Data
     public let secretKey: Data
     public let token: String?
 
+    public var recoveryCode: Data? {
+        guard let userIdData = userId.data(using: .utf8) else { return nil }
+        return primaryKey + userIdData
+    }
 }
 
 public struct RegisteredDevice: Codable {

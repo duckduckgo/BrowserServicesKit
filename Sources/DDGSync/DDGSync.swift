@@ -38,10 +38,8 @@ public class DDGSync: DDGSyncing {
         $isAuthenticated.eraseToAnyPublisher()
     }
 
-    public var recoveryCode: Data? {
-        guard let account = try? dependencies.secureStore.account(),
-            let userIdData = account.userId.data(using: .utf8) else { return nil }
-        return account.primaryKey + userIdData
+    public var account: SyncAccount? {
+        try? dependencies.secureStore.account()
     }
 
     let persistence: LocalDataPersisting

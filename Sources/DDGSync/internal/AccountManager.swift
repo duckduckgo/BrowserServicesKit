@@ -63,6 +63,7 @@ struct AccountManager: AccountManaging {
         }
 
         return SyncAccount(deviceId: deviceId,
+                           deviceName: deviceName,
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
@@ -108,6 +109,7 @@ struct AccountManager: AccountManaging {
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
         return (account: SyncAccount(deviceId: deviceId,
+                                     deviceName: deviceName,
                                      userId: recoveryInfo.userId,
                                      primaryKey: recoveryInfo.primaryKey,
                                      secretKey: secretKey,

@@ -33,9 +33,9 @@ public protocol DDGSyncing {
     var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
 
     /**
-     The recovery code for this client.
+     The currently logged in sync account. Returns nil if client is not authenticated
      */
-    var recoveryCode: Data? { get }
+    var account: SyncAccount? { get }
 
     /**
      Creates an account.
