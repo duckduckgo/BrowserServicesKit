@@ -49,7 +49,7 @@ jobs:
       run: brew install xcbeautify
 
     - name: Run tests
-      run: swift test | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
+      run: set -o pipefail && swift test | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
     - name: Publish Unit Tests Report
       uses: mikepenz/action-junit-report@v3
@@ -57,3 +57,4 @@ jobs:
       with:
         check_name: Test Report
         report_paths: tests.xml
+        require_tests: true
