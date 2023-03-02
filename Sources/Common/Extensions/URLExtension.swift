@@ -91,28 +91,54 @@ extension URL {
         public static let blob = NavigationalScheme(rawValue: "blob")
         public static let about = NavigationalScheme(rawValue: "about")
 
+        public static let mailto = NavigationalScheme(rawValue: "mailto")
+
         public init(rawValue: String) {
             self.rawValue = rawValue
         }
 
         public func separated() -> String {
-            self.rawValue + Self.separator
+            if case .mailto = self {
+                return self.rawValue + ":"
+            }
+            return self.rawValue + Self.separator
         }
 
         public static var navigationalSchemes: [NavigationalScheme] {
             return [.http, .https, .ftp, .file, .data, .blob, .about]
         }
 
+        public static var schemesWithRemovableBasicAuth: [NavigationalScheme] {
+            return [.http, .https, .ftp, .file]
+        }
+        
         public static var hypertextSchemes: [NavigationalScheme] {
             return [.http, .https]
         }
+
+        public static var punycodeEncodableSchemes: [NavigationalScheme] {
+            return [.http, .https, .ftp, .mailto]
+        }
+
+        public var defaultPort: Int? {
+            switch self {
+            case .http: return 80
+            case .https: return 443
+            case .ftp: return 23
+            default: return nil
+            }
+        }
+    }
+
+    public var navigationalScheme: NavigationalScheme? {
+        self.scheme.map(NavigationalScheme.init(rawValue:))
     }
 
     public var isValid: Bool {
-        guard let scheme = scheme.map(NavigationalScheme.init) else { return false }
+        guard let navigationalScheme else { return false }
 
-        if NavigationalScheme.hypertextSchemes.contains(scheme) {
-           return host?.isValidHost == true && user == nil
+        if NavigationalScheme.hypertextSchemes.contains(navigationalScheme) {
+           return host?.isValidHost == true
         }
 
         // This effectively allows file:// and External App Scheme URLs to be entered by user
@@ -133,7 +159,8 @@ extension URL {
 
         if let url = URL(string: s) {
             // if URL has domain:port or user:password@domain mistakengly interpreted as a scheme
-            if let urlWithScheme = URL(string: NavigationalScheme.http.separated() + s),
+            if url.navigationalScheme != .mailto,
+               let urlWithScheme = URL(string: NavigationalScheme.http.separated() + s),
                urlWithScheme.port != nil || urlWithScheme.user != nil {
                 // could be a local domain but user needs to use the protocol to specify that
                 // make exception for "localhost"
@@ -164,22 +191,21 @@ extension URL {
         var s = punycodeEncodedString
         let scheme: String
 
-        if s.hasPrefix(URL.NavigationalScheme.http.separated()) {
-            scheme = URL.NavigationalScheme.http.separated()
-        } else if s.hasPrefix(URL.NavigationalScheme.https.separated()) {
-            scheme = URL.NavigationalScheme.https.separated()
+        let supportedSchemes = NavigationalScheme.punycodeEncodableSchemes
+        if let navigationalScheme = supportedSchemes.first(where: { s.hasPrefix($0.separated()) }) {
+            scheme = navigationalScheme.separated()
+            s = s.dropping(prefix: scheme)
         } else if !s.contains(".") {
             return nil
         } else if s.hasPrefix("#") {
             return nil
         } else {
             scheme = URL.NavigationalScheme.http.separated()
-            s = scheme + s
         }
 
-        guard let (urlPart, query) = Self.fixupAndSplitURLString(s) else { return nil }
+        guard let (authData, urlPart, query) = Self.fixupAndSplitURLString(s) else { return nil }
 
-        let componentsWithoutQuery = urlPart.split(separator: "/").dropFirst().map(String.init)
+        let componentsWithoutQuery = urlPart.split(separator: "/").map(String.init)
         guard !componentsWithoutQuery.isEmpty else {
             return nil
         }
@@ -192,15 +218,19 @@ extension URL {
             .joined(separator: "/")
 
         let hostPathSeparator = !encodedPath.isEmpty || urlPart.hasSuffix("/") ? "/" : ""
-        let url = scheme + host + hostPathSeparator + encodedPath + query
+        let url = scheme + (authData != nil ? String(authData!) + "@" : "") + host + hostPathSeparator + encodedPath + query
 
         self.init(string: url)
     }
 
-    private static func fixupAndSplitURLString(_ s: String) -> (urlPart: String.SubSequence, query: String)? {
-        let urlAndHash = s.split(separator: "#", maxSplits: 1)
-        guard !urlAndHash.isEmpty else { return nil }
-        let urlAndQuery = urlAndHash[0].split(separator: "?", maxSplits: 1)
+    private static func fixupAndSplitURLString(_ s: String) -> (authData: String.SubSequence?, domainAndPath: String.SubSequence, query: String)? {
+        let urlAndFragment = s.split(separator: "#", maxSplits: 1)
+        guard !urlAndFragment.isEmpty else { return nil }
+
+        let authDataAndUrl = urlAndFragment[0].split(separator: "@", maxSplits: 1)
+        guard !authDataAndUrl.isEmpty else { return nil }
+
+        let urlAndQuery = authDataAndUrl.last!.split(separator: "?", maxSplits: 1)
         guard !urlAndQuery.isEmpty, !urlAndQuery[0].contains(" ") else {
             return nil
         }
@@ -223,16 +253,18 @@ extension URL {
             } catch {
                 return nil
             }
-        } else if urlAndHash[0].hasSuffix("?") {
+        } else if urlAndFragment[0].hasSuffix("?") {
             query = "?"
         }
-        if urlAndHash.count > 1 {
-            query += "#" + urlAndHash[1].percentEncoded(withAllowedCharacters: .urlQueryStringAllowed)
+        if urlAndFragment.count > 1 {
+            query += "#" + urlAndFragment[1].percentEncoded(withAllowedCharacters: .urlQueryStringAllowed)
         } else if s.hasSuffix("#") {
             query += "#"
         }
 
-        return (urlAndQuery[0], query)
+        return (authData: authDataAndUrl.count > 1 && !authDataAndUrl[0].isEmpty ? authDataAndUrl[0] : nil,
+                domainAndPath: urlAndQuery[0],
+                query: query)
     }
     
     public func replacing(host: String?) -> URL? {
@@ -330,6 +362,36 @@ extension URL {
         components.percentEncodedQueryItems = percentEncodedQueryItems
 
         return components.url ?? self
+    }
+
+    public var basicAuthCredential: URLCredential? {
+        guard let navigationalScheme,
+              NavigationalScheme.schemesWithRemovableBasicAuth.contains(navigationalScheme),
+              let user = self.user?.removingPercentEncoding else { return nil }
+
+        return URLCredential(user: user, password: self.password?.removingPercentEncoding ?? "", persistence: .forSession)
+    }
+
+    public func removingBasicAuthCredential() -> URL {
+        guard let navigationalScheme,
+              NavigationalScheme.schemesWithRemovableBasicAuth.contains(navigationalScheme),
+              var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+
+        components.user = nil
+        components.password = nil
+
+        return components.url ?? self
+    }
+
+    public var basicAuthProtectionSpace: URLProtectionSpace? {
+        guard let host, let scheme else {
+            return nil
+        }
+        return URLProtectionSpace(host: host, port: port ?? navigationalScheme?.defaultPort ?? 0, protocol: scheme, realm: nil, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
+    }
+
+    public func matches(_ protectionSpace: URLProtectionSpace) -> Bool {
+        return host == protectionSpace.host && (port ?? navigationalScheme?.defaultPort) == protectionSpace.port && scheme == protectionSpace.protocol
     }
 
 }
