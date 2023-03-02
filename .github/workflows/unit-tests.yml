@@ -44,13 +44,12 @@ jobs:
     - name: Select Xcode
       run: sudo xcode-select -s /Applications/Xcode_14.1.app/Contents/Developer
 
+    - name: Install xcbeautify
+      continue-on-error: true
+      run: brew install xcbeautify
+
     - name: Run tests
-      # BSK does not support running tests in parallel, but the flag is required
-      # to make XUnit output work. Making it parallel with 1 worker then.
-      # https://stackoverflow.com/a/70040836
-      run: |
-        swift test --parallel --num-workers=1 \
-          --xunit-output tests.xml
+      run: swift test | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
     - name: Publish Unit Tests Report
       uses: mikepenz/action-junit-report@v3
