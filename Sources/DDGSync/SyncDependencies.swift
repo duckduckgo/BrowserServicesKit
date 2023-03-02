@@ -51,9 +51,10 @@ public struct SyncAccount {
     public let secretKey: Data
     public let token: String?
 
-    public var recoveryCode: Data? {
+    public var recoveryCode: String? {
         guard let userIdData = userId.data(using: .utf8) else { return nil }
-        return primaryKey + userIdData
+        let recoveryCodeData = primaryKey + userIdData
+        return recoveryCodeData.base64EncodedString()
     }
 }
 

@@ -81,12 +81,15 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
-    public func login(recoveryKey: Data, deviceName: String) async throws {
+    public func login(recoveryKey: String, deviceName: String) async throws {
+        guard let recoveryKeyData = Data(base64Encoded: recoveryKey) else {
+            throw SyncError.invalidRecoveryKey
+        }
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
-        let result = try await dependencies.account.login(recoveryKey: recoveryKey, deviceName: deviceName)
+        let result = try await dependencies.account.login(recoveryKey: recoveryKeyData, deviceName: deviceName)
         try dependencies.secureStore.persistAccount(result.account)
         updateIsAuthenticated()
     }

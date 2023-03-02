@@ -25,6 +25,7 @@ public enum SyncError: Error {
     case failedToCreateAccountKeys(_ message: String)
     case accountNotFound
     case accountAlreadyExists
+    case invalidRecoveryKey
 
     case noResponseBody
     case unexpectedStatusCode(Int)
