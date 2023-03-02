@@ -454,7 +454,7 @@ final class URLExtensionTests: XCTestCase {
 
     func testMatchesProtectionSpace() {
         XCTAssertTrue("youtube.com".url!.matches(URLProtectionSpace(host: "youtube.com", port: 80, protocol: "http", realm: "realm", authenticationMethod: "basic")))
-        XCTAssertTrue("https://youtube.com".url!.matches(URLProtectionSpace(host: "youtube.com", port: 80, protocol: "http", realm: "realm", authenticationMethod: "basic")))
+        XCTAssertTrue("http://youtube.com".url!.matches(URLProtectionSpace(host: "youtube.com", port: 80, protocol: "http", realm: "realm", authenticationMethod: "basic")))
         XCTAssertTrue("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "https", realm: "realm", authenticationMethod: "basic")))
 
         XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 1234, protocol: "https", realm: "realm", authenticationMethod: "basic")))
