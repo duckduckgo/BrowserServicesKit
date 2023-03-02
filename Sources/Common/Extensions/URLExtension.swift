@@ -364,6 +364,8 @@ extension URL {
         return components.url ?? self
     }
 
+    // MARK: Basic Auth username/password
+
     public var basicAuthCredential: URLCredential? {
         guard let navigationalScheme,
               NavigationalScheme.schemesWithRemovableBasicAuth.contains(navigationalScheme),
