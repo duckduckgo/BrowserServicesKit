@@ -36,7 +36,8 @@ public final class HTTPSUpgrade {
         self.store = store
         self.privacyManager = privacyManager
     }
-    
+
+    @MainActor
     public func upgrade(url: URL) async -> Result<URL, HTTPSUpgradeError> {
         guard url.isHttp,
               let host = url.host,
