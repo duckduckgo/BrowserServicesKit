@@ -107,6 +107,7 @@ public struct AccountCreationKeys {
 public protocol Crypting {
 
     func encryptAndBase64Encode(_ value: String) throws -> String
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
 
     func base64DecodeAndDecrypt(_ value: String) throws -> String
 
@@ -117,6 +118,12 @@ public protocol Crypting {
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data
 
+}
+
+extension Crypting {
+    func encryptAndBase64Encode(_ value: String) throws -> String {
+        try encryptAndBase64Encode(value, using: nil)
+    }
 }
 
 extension SyncAccount: Codable { // TODO does this make codable part public?

@@ -108,13 +108,20 @@ struct AccountManager: AccountManaging {
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
-        return (account: SyncAccount(deviceId: deviceId,
-                                     deviceName: deviceName,
-                                     userId: recoveryInfo.userId,
-                                     primaryKey: recoveryInfo.primaryKey,
-                                     secretKey: secretKey,
-                                     token: token),
-                devices: result.devices.map { RegisteredDevice(id: $0.device_id, name: $0.device_name) })
+        return (
+            account: SyncAccount(deviceId: deviceId,
+                                 deviceName: deviceName,
+                                 userId: recoveryInfo.userId,
+                                 primaryKey: recoveryInfo.primaryKey,
+                                 secretKey: secretKey,
+                                 token: token),
+            devices: result.devices.map {
+                RegisteredDevice(
+                    id: $0.device_id,
+                    name: $0.device_name
+                )
+            }
+        )
     }
 
     func logout(deviceId: String, token: String) async throws {

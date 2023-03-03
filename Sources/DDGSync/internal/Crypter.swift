@@ -23,16 +23,19 @@ struct Crypter: Crypting {
 
     let secureStore: SecureStoring
 
-    func encryptAndBase64Encode(_ value: String) throws -> String {
-        guard let account = try secureStore.account() else {
-            throw SyncError.accountNotFound
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String {
+        var encryptionKey: [UInt8] = secretKey?.safeBytes ?? []
+        if encryptionKey.isEmpty {
+            guard let account = try secureStore.account() else {
+                throw SyncError.accountNotFound
+            }
+            encryptionKey = account.secretKey.safeBytes
         }
 
         var rawBytes = Array(value.utf8)
         var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
-        var secretKey = account.secretKey.safeBytes
 
-        let result = ddgSyncEncrypt(&encryptedBytes, &rawBytes, UInt64(rawBytes.count), &secretKey)
+        let result = ddgSyncEncrypt(&encryptedBytes, &rawBytes, UInt64(rawBytes.count), &encryptionKey)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToEncryptValue("ddgSyncEncrypt failed: \(result)")
         }
