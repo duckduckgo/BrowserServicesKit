@@ -65,6 +65,15 @@
         }
       },
       {
+        "package": "DDGSyncCrypto",
+        "repositoryURL": "https://github.com/duckduckgo/sync_crypto",
+        "state": {
+          "branch": "dominik/spm",
+          "revision": "1555212cfd7822d536c277cd89cba4244fc75b85",
+          "version": null
+        }
+      },
+      {
         "package": "TrackerRadarKit",
         "repositoryURL": "https://github.com/duckduckgo/TrackerRadarKit",
         "state": {
