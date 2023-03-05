@@ -18,6 +18,7 @@
 //
 
 import XCTest
+import Common
 @testable import BrowserServicesKit
 
 // swiftlint:disable line_length

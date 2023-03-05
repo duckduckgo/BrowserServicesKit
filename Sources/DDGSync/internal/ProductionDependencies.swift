@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import BrowserServicesKit
+import Common
 
 struct ProductionDependencies: SyncDependencies {
 

@@ -23,7 +23,6 @@ extension FileManager {
     
     public func applicationSupportDirectoryForComponent(named name: String) -> URL {
 #if os(macOS)
-        // Note that if we move the macos browser to the app store, we should really use the alternative method
         let sandboxPathComponent = "Containers/\(Bundle.main.bundleIdentifier!)/Data/Library/Application Support/"
         let libraryURL = urls(for: .libraryDirectory, in: .userDomainMask).first!
         let dir = libraryURL.appendingPathComponent(sandboxPathComponent)

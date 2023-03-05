@@ -18,7 +18,6 @@
 //
 
 import Foundation
-import Common
 
 public struct AppVersion {
 
@@ -65,7 +64,7 @@ public struct AppVersion {
         return "\(name) \(versionAndBuildNumber)"
     }
 
-    func osVersion() -> String {
+    public func osVersion() -> String {
         let os = ProcessInfo().operatingSystemVersion
         return "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }

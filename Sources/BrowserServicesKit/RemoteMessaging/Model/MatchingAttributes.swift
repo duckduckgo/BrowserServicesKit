@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Common
 
 // swiftlint:disable file_length
 

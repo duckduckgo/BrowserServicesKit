@@ -18,7 +18,7 @@
 
 import Foundation
 import DDGSyncCrypto
-import BrowserServicesKit
+//import BrowserServicesKit
 
 struct AccountManager: AccountManaging {
 
