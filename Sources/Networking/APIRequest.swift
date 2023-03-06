@@ -53,12 +53,13 @@ public struct APIRequest {
     @discardableResult
     public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
         os_log("Requesting %s", log: log, type: .debug, request.url?.absoluteString ?? "")
-        let task = urlSession.dataTask(with: request) { (data, response, error) in
+        let task = urlSession.dataTask(with: request) { (data, urlResponse, error) in
             if let error = error {
                 completion(nil, .urlSession(error))
             } else {
                 do {
-                    let response = try self.validateAndUnwrap(data: data, response: response)
+                    guard let urlResponse = urlResponse else { throw APIRequest.Error.invalidResponse }
+                    let response = try self.validateAndUnwrap(data: data, response: urlResponse)
                     completion(response, nil)
                 } catch {
                     completion(nil, error as? APIRequest.Error ?? .urlSession(error))
@@ -69,8 +70,8 @@ public struct APIRequest {
         return task
     }
     
-    private func validateAndUnwrap(data: Data?, response: URLResponse?) throws -> APIResponse {
-        let httpResponse = try getHTTPResponse(from: response)
+    private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
+        let httpResponse = try response.asHTTPURLResponse()
 
         os_log("Request for %s completed with response code: %s and headers %s",
                log: log,
@@ -80,28 +81,21 @@ public struct APIRequest {
                String(describing: httpResponse.allHeaderFields))
         
         var data = data
-        if requirements.contains(.allow304), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
+        if requirements.contains(.allowHTTPNotModified), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
             data = nil // avoid returning empty data
         } else {
             try httpResponse.assertSuccessfulStatusCode()
             let data = data ?? Data()
-            if requirements.contains(.nonEmptyData), data.isEmpty {
+            if requirements.contains(.requireNonEmptyData), data.isEmpty {
                 throw APIRequest.Error.emptyData
             }
         }
         
-        if requirements.contains(.etag), httpResponse.etag == nil {
+        if requirements.contains(.requireETagHeader), httpResponse.etag == nil {
             throw APIRequest.Error.missingEtagInResponse
         }
         
         return (data, httpResponse)
-    }
-    
-    private func getHTTPResponse(from response: URLResponse?) throws -> HTTPURLResponse {
-        guard let httpResponse = response?.asHTTPURLResponse else {
-            throw APIRequest.Error.invalidResponse
-        }
-        return httpResponse
     }
 
     public func fetch() async throws -> APIResponse {

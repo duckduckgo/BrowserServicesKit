@@ -20,7 +20,12 @@
 import Foundation
 
 extension URLResponse {
-    
-    var asHTTPURLResponse: HTTPURLResponse? { self as? HTTPURLResponse }
+        
+    func asHTTPURLResponse() throws -> HTTPURLResponse {
+        guard let httpResponse = self as? HTTPURLResponse else {
+            throw APIRequest.Error.invalidResponse
+        }
+        return httpResponse
+    }
     
 }

@@ -68,7 +68,7 @@ final class APIRequestTests: XCTestCase {
     func testWhenThereIsNoDataInResponseButItIsRequiredThenEmptyDataErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
-        let request = APIRequest(configuration: configuration, requirements: [.nonEmptyData], urlSession: mockURLSession)
+        let request = APIRequest(configuration: configuration, requirements: [.requireNonEmptyData], urlSession: mockURLSession)
         do {
             _ = try await request.fetch()
             XCTFail("Expected an error to be thrown")
@@ -98,7 +98,7 @@ final class APIRequestTests: XCTestCase {
     func testWhenEtagIsMissingInResponseButItIsRequiredThenMissingEtagErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.okNoEtag, self.privacyConfigurationData) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
-        let request = APIRequest(configuration: configuration, requirements: [.etag], urlSession: mockURLSession)
+        let request = APIRequest(configuration: configuration, requirements: [.requireETagHeader], urlSession: mockURLSession)
         do {
             _ = try await request.fetch()
             XCTFail("Expected an error to be thrown")
@@ -143,7 +143,7 @@ final class APIRequestTests: XCTestCase {
     func testWhenNotModifiedResponseButItIsAllowedThenResponseWithNilDataIsReturned() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
-        let request = APIRequest(configuration: configuration, requirements: .allow304, urlSession: mockURLSession)
+        let request = APIRequest(configuration: configuration, requirements: .allowHTTPNotModified, urlSession: mockURLSession)
         do {
             let (data, response) = try await request.fetch()
             XCTAssertNil(data)
