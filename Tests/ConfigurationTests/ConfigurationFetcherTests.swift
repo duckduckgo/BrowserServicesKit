@@ -29,7 +29,7 @@ final class ConfigurationFetcherTests: XCTestCase {
     }
     
     override class func setUp() {
-        APIRequest.APIHeaders.setUserAgent("")
+        APIRequest.Headers.setUserAgent("")
         Configuration.setURLProvider(MockConfigurationURLProvider())
     }
     

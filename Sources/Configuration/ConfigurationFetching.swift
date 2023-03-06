@@ -33,7 +33,7 @@ typealias ConfigurationFetchResult = (etag: String, data: Data?)
 
 public final class ConfigurationFetcher: ConfigurationFetching {
     
-    enum Error: Swift.Error {
+    public enum Error: Swift.Error {
         
         case apiRequest(APIRequest.Error)
         case invalidPayload

@@ -28,7 +28,7 @@ final class APIRequestTests: XCTestCase {
     }
         
     override class func setUp() {
-        APIRequest.APIHeaders.setUserAgent("")
+        APIRequest.Headers.setUserAgent("")
     }
     
     private var mockURLSession: URLSession {
