@@ -49,7 +49,7 @@ public struct APIRequest {
         }
     }
 
-    @available(*, deprecated, message: "This method is deprecated. Please use the 'fetch()' async method instead.")
+    /// This method is deprecated. Please use the 'fetch()' async method instead.
     @discardableResult
     public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
         os_log("Requesting %s", log: log, type: .debug, request.url?.absoluteString ?? "")

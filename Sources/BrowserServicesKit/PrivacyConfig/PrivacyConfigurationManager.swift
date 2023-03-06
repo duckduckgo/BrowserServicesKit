@@ -33,7 +33,7 @@ public protocol PrivacyConfigurationManaging: AnyObject {
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
 
-    func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
+    @discardableResult func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
 
 public class PrivacyConfigurationManager: PrivacyConfigurationManaging {

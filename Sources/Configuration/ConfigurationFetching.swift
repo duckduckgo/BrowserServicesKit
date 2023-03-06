@@ -20,6 +20,7 @@
 import Foundation
 import Common
 import Networking
+import os.log
 
 protocol ConfigurationFetching {
     
@@ -52,19 +53,22 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private var store: ConfigurationStoring
-    private let urlSession: URLSession
     private let validator: ConfigurationValidating
+    private let urlSession: URLSession
+    private let log: OSLog
     
-    public convenience init(store: ConfigurationStoring, urlSession: URLSession = .shared) {
-        self.init(store: store, validator: ConfigurationValidator())
+    public convenience init(store: ConfigurationStoring, urlSession: URLSession = .shared, log: OSLog = .disabled) {
+        self.init(store: store, validator: ConfigurationValidator(), log: log)
     }
     
     init(store: ConfigurationStoring,
          validator: ConfigurationValidating = ConfigurationValidator(),
-         urlSession: URLSession = .shared) {
+         urlSession: URLSession = .shared,
+         log: OSLog = .disabled) {
         self.store = store
         self.validator = validator
         self.urlSession = urlSession
+        self.log = log
     }
     
     /**
@@ -154,7 +158,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
         let configuration = APIRequest.Configuration(url: url, headers: APIRequest.Headers().default(with: etag))
-        let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession, log: .disabled)
+        let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession, log: log)
         let (data, response) = try await request.fetch()
         return (response.etag!, data)
     }
