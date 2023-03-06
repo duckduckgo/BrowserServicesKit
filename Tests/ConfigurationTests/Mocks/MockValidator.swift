@@ -22,10 +22,10 @@ import Foundation
 
 final class MockValidator: ConfigurationValidating {
 
-    var throwError = false
+    var shouldThrowErrorPerConfiguration: [Configuration: Bool] = [:]
 
-    func validate(_ data: Data, for: Configuration) throws {
-        if throwError {
+    func validate(_ data: Data, for configuration: Configuration) throws {
+        if shouldThrowErrorPerConfiguration[configuration] ?? false {
             throw ConfigurationFetcher.Error.invalidPayload
         }
     }

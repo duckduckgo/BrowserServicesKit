@@ -19,11 +19,12 @@
 
 import Foundation
 import Common
-import API
+import Networking
 
 protocol ConfigurationFetching {
     
-    func fetch(_ configurations: [Configuration], onDidStore: (() throws -> Void)?) async throws
+    func fetch(any configurations: [Configuration]) async throws
+    func fetch(all configurations: [Configuration]) async throws
 
 }
 
@@ -35,6 +36,18 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         
         case apiRequest(APIRequest.Error)
         case invalidPayload
+        case aggregated(errors: [Configuration: Swift.Error])
+        
+    }
+    
+    actor AggregatedError {
+        
+        var errors: [Configuration: Swift.Error] = [:]
+        func set(error: Swift.Error, for configuration: Configuration) {
+            errors[configuration] = error
+        }
+        
+        var isEmpty: Bool { errors.isEmpty }
         
     }
     
@@ -61,14 +74,59 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         - configurations: An array of `Configuration` enums that need to be downloaded and stored.
 
      - Throws:
-        If any configuration fails to fetch or validate, a corresponding error is thrown.
+        If any configuration fails to fetch or validate, an `Error` of type `.aggregated` is thrown.
+        The `.aggregated` case of the `Error` enum contains a dictionary of type `[Configuration: Error]`
+        that associates each failed configuration with its corresponding error.
 
      - Important:
-        This function uses a throwing task group to download and validate the configurations in parallel. If any of the tasks in the group throws an error, the group is cancelled and the function rethrows the error. So, if any configuration fails to fetch or validate, none of the configurations will be stored.
+        If any task fails, the error is recorded but the group continues processing the remaining tasks.
+        The task group is not cancelled automatically when a task throws an error.
+     */
 
-        The `onDidStore` closure will be called after all the configurations are successfully stored.
+    private var aggregatedError = AggregatedError()
+    public func fetch(any configurations: [Configuration]) async throws {
+        await withTaskGroup(of: Void.self) { group in
+            for configuration in configurations {
+                group.addTask { [self] in
+                    do {
+                        print("configuration fetch: \(configuration)")
+                        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration))
+                        print("configuration after fetch: \(configuration)")
+                        if let data = fetchResult.data {
+                            try validator.validate(data, for: configuration)
+                        }
+                        print("configuration store: \(configuration)")
+                        try store(fetchResult, for: configuration)
+                    } catch {
+                        print("configuration throw: \(configuration): \(error)")
+                        await aggregatedError.set(error: error, for: configuration)
+                    }
+                }
+            }
+            await group.waitForAll()
+        }
+        
+        if await !aggregatedError.isEmpty {
+            throw await Error.aggregated(errors: aggregatedError.errors)
+        }
+    }
+    
+    /**
+     Downloads and stores the configurations provided in parallel using a throwing task group.
+     This function throws an error if any of the configurations fail to fetch or validate.
+
+     - Parameters:
+       - configurations: An array of `Configuration` enums that need to be downloaded and stored.
+
+     - Throws:
+       An error of type `Error` is thrown if any configuration fails to fetch or validate.
+
+     - Important:
+       This function uses a throwing task group to download and validate the configurations in parallel.
+       If any of the tasks in the group throws an error, the group is cancelled and the function rethrows the error.
+       So, if any configuration fails to fetch or validate, none of the configurations will be stored.
     */
-    public func fetch(_ configurations: [Configuration], onDidStore: (() throws -> Void)? = nil) async throws {
+    public func fetch(all configurations: [Configuration]) async throws {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             configurations.forEach { configuration in
                 group.addTask {
@@ -88,7 +146,6 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             for (configuration, fetchResult) in fetchResults {
                 try self.store(fetchResult, for: configuration)
             }
-            try onDidStore?()
         }
     }
     
@@ -100,7 +157,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
-        let configuration = APIRequest.Configuration(url: url, headers: APIHeaders().defaultHeaders(with: etag))
+        let configuration = APIRequest.Configuration(url: url, headers: APIRequest.APIHeaders().defaultHeaders(with: etag))
         let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession)
         let (data, response) = try await request.fetch()
         return (response.etag!, data)

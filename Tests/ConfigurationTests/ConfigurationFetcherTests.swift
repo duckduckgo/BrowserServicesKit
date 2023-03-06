@@ -19,7 +19,7 @@
 
 import XCTest
 @testable import Configuration
-@testable import API
+@testable import Networking
 @testable import TestUtils
 
 final class ConfigurationFetcherTests: XCTestCase {
@@ -29,7 +29,7 @@ final class ConfigurationFetcherTests: XCTestCase {
     }
     
     override class func setUp() {
-        APIHeaders.setUserAgent("")
+        APIRequest.APIHeaders.setUserAgent("")
         Configuration.setURLProvider(MockConfigurationURLProvider())
     }
     
@@ -42,7 +42,191 @@ final class ConfigurationFetcherTests: XCTestCase {
                                     urlSession: URLSession(configuration: testConfiguration))
     }
     
-    func testWhenOneAssetFailsToFetchThenOtherIsNotStored() async {
+    let privacyConfigurationData = Data("Privacy Config".utf8)
+    
+    // Tests for fetch(any: [Configuration])
+    
+    func testFetchAnyWhenOneAssetFailsToFetchThenOtherIsStoredAndAggregatedErrorIsThrown() async {
+        MockURLProtocol.requestHandler = { request in
+            if let url = request.url, url == Configuration.privacyConfiguration.url {
+                return (HTTPURLResponse.internalServerError, nil)
+            } else {
+                return (HTTPURLResponse.ok, Data("TDS".utf8))
+            }
+        }
+        let store = MockStore()
+        let fetcher = makeConfigurationFetcher(store: store)
+        do {
+            try await fetcher.fetch(any: [.privacyConfiguration, .trackerDataSet])
+            XCTFail("Expected an error to be thrown")
+        } catch {
+            guard let fetcherError = error as? ConfigurationFetcher.Error,
+                  case let .aggregated(errors: errors) = fetcherError else {
+                XCTFail("Unexpected error thrown: \(error).")
+                return
+            }
+            XCTAssertNotNil(errors[.privacyConfiguration])
+        }
+        XCTAssertNil(store.loadData(for: .privacyConfiguration))
+        XCTAssertNotNil(store.loadData(for: .trackerDataSet))
+    }
+    
+    func testFetchAnyWhenOneAssetFailsToValidateThenOtherIsStoredAndAggregatedErrorIsThrown() async {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let validatorMock = MockValidator()
+        validatorMock.shouldThrowErrorPerConfiguration[.privacyConfiguration] = true
+        validatorMock.shouldThrowErrorPerConfiguration[.trackerDataSet] = false
+    
+        let store = MockStore()
+        let fetcher = makeConfigurationFetcher(store: store, validator: validatorMock)
+        do {
+            try await fetcher.fetch(any: [.privacyConfiguration, .trackerDataSet])
+            XCTFail("Expected an error to be thrown")
+        } catch {
+            guard let fetcherError = error as? ConfigurationFetcher.Error,
+                  case let .aggregated(errors) = fetcherError else {
+                XCTFail("Unexpected error thrown: \(error).")
+                return
+            }
+            XCTAssertNotNil(errors[.privacyConfiguration])
+        }
+        
+        XCTAssertNil(store.loadData(for: .privacyConfiguration))
+        XCTAssertNotNil(store.loadData(for: .trackerDataSet))
+    }
+    
+    func testFetchAnyWhenEtagAndDataAreStoredThenResponseIsStored() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let oldEtag = UUID().uuidString
+        let oldData = Data()
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (oldEtag, oldData)
+
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertEqual(store.loadData(for: .privacyConfiguration), self.privacyConfigurationData)
+        XCTAssertEqual(store.loadEtag(for: .privacyConfiguration), HTTPURLResponse.testEtag)
+    }
+    
+    func testFetchAnyWhenNoEtagIsStoredThenResponseIsStored() async throws {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let store = MockStore()
+        let fetcher = makeConfigurationFetcher(store: store)
+        try await fetcher.fetch(any: [.privacyConfiguration])
+        XCTAssertEqual(store.loadData(for: .privacyConfiguration), self.privacyConfigurationData)
+        XCTAssertEqual(store.loadEtag(for: .privacyConfiguration), HTTPURLResponse.testEtag)
+    }
+    
+    func testFetchAnyWhenEtagIsStoredButStoreHasNoDataThenResponseIsStored() async throws {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (HTTPURLResponse.testEtag, nil)
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertNotNil(store.loadData(for: .privacyConfiguration))
+    }
+    
+    func testFetchAnyWhenStoringDataFailsThenEtagIsNotStored() async {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let store = MockStore()
+        store.defaultSaveData = { _, _ in throw MockError.someError }
+
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+
+        XCTAssertNil(store.loadData(for: .privacyConfiguration))
+        XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
+    }
+    
+    func testFetchAnyWhenStoringEtagFailsThenEtagIsNotStored() async {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let store = MockStore()
+        store.defaultSaveEtag = { _, _ in throw MockError.someError }
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
+    }
+    
+    func testFetchAnyWhenResponseIsNotModifiedThenNoDataStored() async {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, nil) }
+        let store = MockStore()
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
+        XCTAssertNil(store.loadData(for: .privacyConfiguration))
+    }
+    
+    func testFetchAnyWhenEtagAndDataStoredThenEtagAddedToRequest() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
+        let etag = UUID().uuidString
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (etag, Data())
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+    }
+    
+    func testFetchAnyWhenNoEtagStoredThenNoEtagAddedToRequest() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (nil, Data())
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
+    }
+    
+    func testFetchAnyWhenNoDataStoredThenNoEtagAddedToRequest() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
+        let etag = UUID().uuidString
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (etag, nil)
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
+    }
+    
+    func testFetchAnyWhenEtagProvidedThenItIsAddedToRequest() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
+        let etag = UUID().uuidString
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (etag, Data())
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+    }
+    
+    func testFetchAnyWhenEmbeddedEtagAndExternalEtagProvidedThenExternalAddedToRequest() async {
+        MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
+        let etag = UUID().uuidString
+        let embeddedEtag = UUID().uuidString
+        let store = MockStore()
+        store.configToStoredEtagAndData[.privacyConfiguration] = (etag, Data())
+        store.configToEmbeddedEtag[.privacyConfiguration] = embeddedEtag
+        
+        let fetcher = makeConfigurationFetcher(store: store)
+        try? await fetcher.fetch(any: [.privacyConfiguration])
+        
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+    }
+    
+    // Tests for fetch(all: [Configuration])
+    
+    func testFetchAllWhenOneAssetFailsToFetchThenOtherIsNotStoredAndErrorIsThrown() async {
         MockURLProtocol.requestHandler = { request in
             if let url = request.url, url == Configuration.bloomFilterBinary.url {
                 return (HTTPURLResponse.internalServerError, nil)
@@ -53,34 +237,43 @@ final class ConfigurationFetcherTests: XCTestCase {
         let store = MockStore()
         let fetcher = makeConfigurationFetcher(store: store)
         do {
-            try await fetcher.fetch([.bloomFilterBinary, .bloomFilterSpec])
-            XCTFail("Expected an error to be thrown")
-        } catch {}
-        XCTAssertNil(store.loadData(for: .bloomFilterBinary))
-        XCTAssertNil(store.loadData(for: .bloomFilterSpec))
-    }
-    
-    let privacyConfigurationData = Data("Privacy Config".utf8)
-    
-    func testWhenValidateDataFailsThenErrorIsThrown() async {
-        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
-        let validatorMock = MockValidator()
-        validatorMock.throwError = true
-    
-        let fetcher = makeConfigurationFetcher(validator: validatorMock)
-        do {
-            try await fetcher.fetch([.privacyConfiguration])
+            try await fetcher.fetch(all: [.bloomFilterBinary, .bloomFilterSpec])
             XCTFail("Expected an error to be thrown")
         } catch {
-            guard let fetcherError = error as? ConfigurationFetcher.Error,
-                  case .invalidPayload = fetcherError else {
+            guard let apiRequestError = error as? APIRequest.Error,
+                  case .invalidStatusCode(500) = apiRequestError else {
                 XCTFail("Unexpected error thrown: \(error).")
                 return
             }
         }
+        XCTAssertNil(store.loadData(for: .bloomFilterBinary))
+        XCTAssertNil(store.loadData(for: .bloomFilterSpec))
     }
     
-    func testWhenEtagAndDataAreStoredThenResponseIsStored() async {
+    func testFetchAllWhenOneAssetFailsToValidateThenOtherIsNotStoredAndErrorIsThrown() async {
+        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
+        let validatorMock = MockValidator()
+        validatorMock.shouldThrowErrorPerConfiguration[.privacyConfiguration] = true
+        validatorMock.shouldThrowErrorPerConfiguration[.trackerDataSet] = false
+    
+        let store = MockStore()
+        let fetcher = makeConfigurationFetcher(store: store, validator: validatorMock)
+        do {
+            try await fetcher.fetch(all: [.privacyConfiguration, .trackerDataSet])
+            XCTFail("Expected an error to be thrown")
+        } catch {
+            guard let fetcherError = error as? ConfigurationFetcher.Error,
+                  case .invalidPayload = fetcherError
+            else {
+                XCTFail("Unexpected error thrown: \(error).")
+                return
+            }
+        }
+        XCTAssertNil(store.loadData(for: .privacyConfiguration))
+        XCTAssertNil(store.loadData(for: .trackerDataSet))
+    }
+    
+    func testFetchAllWhenEtagAndDataAreStoredThenResponseIsStored() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, self.privacyConfigurationData) }
         let oldEtag = UUID().uuidString
         let oldData = Data()
@@ -88,114 +281,114 @@ final class ConfigurationFetcherTests: XCTestCase {
         store.configToStoredEtagAndData[.privacyConfiguration] = (oldEtag, oldData)
 
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
         XCTAssertEqual(store.loadData(for: .privacyConfiguration), self.privacyConfigurationData)
         XCTAssertEqual(store.loadEtag(for: .privacyConfiguration), HTTPURLResponse.testEtag)
     }
     
-    func testWhenNoEtagIsStoredThenResponseIsStored() async throws {
+    func testFetchAllWhenNoEtagIsStoredThenResponseIsStored() async throws {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
         let store = MockStore()
         let fetcher = makeConfigurationFetcher(store: store)
-        try await fetcher.fetch([.privacyConfiguration])
+        try await fetcher.fetch(all: [.privacyConfiguration])
         XCTAssertEqual(store.loadData(for: .privacyConfiguration), self.privacyConfigurationData)
         XCTAssertEqual(store.loadEtag(for: .privacyConfiguration), HTTPURLResponse.testEtag)
     }
     
-    func testWhenEtagIsStoredButStoreHasNoDataThenResponseIsStored() async throws {
+    func testFetchAllWhenEtagIsStoredButStoreHasNoDataThenResponseIsStored() async throws {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
         let store = MockStore()
         store.configToStoredEtagAndData[.privacyConfiguration] = (HTTPURLResponse.testEtag, nil)
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try await fetcher.fetch([.privacyConfiguration])
+        try await fetcher.fetch(all: [.privacyConfiguration])
         
         XCTAssertNotNil(store.loadData(for: .privacyConfiguration))
     }
     
-    func testWhenStoringDataFailsThenEtagIsNotStored() async {
+    func testFetchAllWhenStoringDataFailsThenEtagIsNotStored() async {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
         let store = MockStore()
         store.defaultSaveData = { _, _ in throw MockError.someError }
 
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
 
         XCTAssertNil(store.loadData(for: .privacyConfiguration))
         XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
     }
     
-    func testWhenStoringEtagFailsThenEtagIsNotStored() async {
+    func testFetchAllWhenStoringEtagFailsThenEtagIsNotStored() async {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, self.privacyConfigurationData) }
         let store = MockStore()
         store.defaultSaveEtag = { _, _ in throw MockError.someError }
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
         XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
     }
     
-    func testWhenResponseIsNotModifiedThenNoDataStored() async {
+    func testFetchAllWhenResponseIsNotModifiedThenNoDataStored() async {
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, nil) }
         let store = MockStore()
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
         XCTAssertNil(store.loadEtag(for: .privacyConfiguration))
         XCTAssertNil(store.loadData(for: .privacyConfiguration))
     }
     
-    func testWhenEtagAndDataStoredThenEtagAddedToRequest() async {
+    func testFetchAllWhenEtagAndDataStoredThenEtagAddedToRequest() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let etag = UUID().uuidString
         let store = MockStore()
         store.configToStoredEtagAndData[.privacyConfiguration] = (etag, Data())
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
     }
     
-    func testWhenNoEtagStoredThenNoEtagAddedToRequest() async {
+    func testFetchAllWhenNoEtagStoredThenNoEtagAddedToRequest() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let store = MockStore()
         store.configToStoredEtagAndData[.privacyConfiguration] = (nil, Data())
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
-        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch))
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
     }
     
-    func testWhenNoDataStoredThenNoEtagAddedToRequest() async {
+    func testFetchAllWhenNoDataStoredThenNoEtagAddedToRequest() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let etag = UUID().uuidString
         let store = MockStore()
         store.configToStoredEtagAndData[.privacyConfiguration] = (etag, nil)
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
-        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch))
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
     }
     
-    func testWhenEtagProvidedThenItIsAddedToRequest() async {
+    func testFetchAllWhenEtagProvidedThenItIsAddedToRequest() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let etag = UUID().uuidString
         let store = MockStore()
         store.configToStoredEtagAndData[.privacyConfiguration] = (etag, Data())
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
     }
     
-    func testWhenEmbeddedEtagAndExternalEtagProvidedThenExternalAddedToRequest() async {
+    func testFetchAllWhenEmbeddedEtagAndExternalEtagProvidedThenExternalAddedToRequest() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let etag = UUID().uuidString
         let embeddedEtag = UUID().uuidString
@@ -204,9 +397,9 @@ final class ConfigurationFetcherTests: XCTestCase {
         store.configToEmbeddedEtag[.privacyConfiguration] = embeddedEtag
         
         let fetcher = makeConfigurationFetcher(store: store)
-        try? await fetcher.fetch([.privacyConfiguration])
+        try? await fetcher.fetch(all: [.privacyConfiguration])
         
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
     }
     
 }

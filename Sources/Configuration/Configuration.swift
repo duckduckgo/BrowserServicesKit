@@ -19,7 +19,7 @@
 
 import Foundation
 
-public protocol ConfigurationURLProvider {
+public protocol ConfigurationURLProviding {
     
     func url(for configuration: Configuration) -> URL
     
@@ -35,8 +35,8 @@ public enum Configuration: CaseIterable {
     case trackerDataSet
     case FBConfig
     
-    private static var urlProvider: ConfigurationURLProvider?
-    public static func setURLProvider(_ urlProvider: ConfigurationURLProvider) {
+    private static var urlProvider: ConfigurationURLProviding?
+    public static func setURLProvider(_ urlProvider: ConfigurationURLProviding) {
         self.urlProvider = urlProvider
     }
     

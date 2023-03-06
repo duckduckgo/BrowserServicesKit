@@ -20,8 +20,25 @@
 import Foundation
 import Configuration
 
-struct MockConfigurationURLProvider: ConfigurationURLProvider {
+struct MockConfigurationURLProvider: ConfigurationURLProviding {
     
-    func url(for configuration: Configuration) -> URL { URL(string: "www.test.com")! }
+    func url(for configuration: Configuration) -> URL {
+        switch configuration {
+        case .bloomFilterBinary:
+            return URL(string: "a")!
+        case .bloomFilterSpec:
+            return URL(string: "b")!
+        case .bloomFilterExcludedDomains:
+            return URL(string: "c")!
+        case .privacyConfiguration:
+            return URL(string: "d")!
+        case .surrogates:
+            return URL(string: "e")!
+        case .trackerDataSet:
+            return URL(string: "f")!
+        case .FBConfig:
+            return URL(string: "g")!
+        }
+    }
     
 }

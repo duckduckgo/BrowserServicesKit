@@ -20,7 +20,7 @@ let package = Package(
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "Configuration", targets: ["Configuration"]),
-        .library(name: "API", targets: ["API"]),
+        .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
     ],
     dependencies: [
@@ -128,19 +128,19 @@ let package = Package(
         .target(
             name: "Configuration",
             dependencies: [
-                "API",
+                "Networking",
                 "BrowserServicesKit",
                 "Common"
             ]),
         .target(
-            name: "API",
+            name: "Networking",
             dependencies: [
                 "Common"
             ]),
         .target(
             name: "TestUtils",
             dependencies: [
-                "API"
+                "Networking"
             ]),
         
         // MARK: - Test targets
@@ -159,7 +159,7 @@ let package = Package(
                 "Common"
             ]),
         .testTarget(
-            name: "APITests",
+            name: "NetworkingTests",
             dependencies: [
                 "TestUtils"
             ]),

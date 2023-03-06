@@ -18,7 +18,7 @@
 //
 
 import XCTest
-@testable import API
+@testable import Networking
 @testable import TestUtils
 
 final class APIRequestTests: XCTestCase {
@@ -28,7 +28,7 @@ final class APIRequestTests: XCTestCase {
     }
         
     override class func setUp() {
-        APIHeaders.setUserAgent("")
+        APIRequest.APIHeaders.setUserAgent("")
     }
     
     private var mockURLSession: URLSession {

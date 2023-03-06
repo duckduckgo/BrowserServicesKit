@@ -25,7 +25,7 @@ public extension HTTPURLResponse {
     enum Constants {
         
         static let weakEtagPrefix = "W/"
-        static let successfulStatusCodes = Array(200..<300)
+        static let successfulStatusCodes = 200..<300
         static let notModifiedStatusCode = 304
         
     }
@@ -47,14 +47,14 @@ public extension HTTPURLResponse {
         }
     }
     
-    func etag(shouldDropWeakPrefix: Bool) -> String? {
-        let etag = value(forHTTPHeaderField: HTTPHeaderField.etag)
-        if shouldDropWeakPrefix {
+    func etag(droppingWeakPrefix: Bool) -> String? {
+        let etag = value(forHTTPHeaderField: APIRequest.HTTPHeaderField.etag)
+        if droppingWeakPrefix {
             return etag?.dropping(prefix: HTTPURLResponse.Constants.weakEtagPrefix)
         }
         return etag
     }
     
-    var etag: String? { etag(shouldDropWeakPrefix: true) }
+    var etag: String? { etag(droppingWeakPrefix: true) }
     
 }

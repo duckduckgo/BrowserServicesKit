@@ -18,7 +18,7 @@
 //
 
 import Foundation
-@testable import API
+@testable import Networking
 
 extension HTTPURLResponse {
     
@@ -28,7 +28,7 @@ extension HTTPURLResponse {
     static let ok = HTTPURLResponse(url: testUrl,
                                     statusCode: 200,
                                     httpVersion: nil,
-                                    headerFields: [HTTPHeaderField.etag: testEtag])!
+                                    headerFields: [APIRequest.HTTPHeaderField.etag: testEtag])!
     
     static let okNoEtag = HTTPURLResponse(url: testUrl,
                                           statusCode: 200,
@@ -38,7 +38,7 @@ extension HTTPURLResponse {
     static let notModified = HTTPURLResponse(url: testUrl,
                                              statusCode: 304,
                                              httpVersion: nil,
-                                             headerFields: [HTTPHeaderField.etag: testEtag])!
+                                             headerFields: [APIRequest.HTTPHeaderField.etag: testEtag])!
     
     static let internalServerError = HTTPURLResponse(url: testUrl,
                                                      statusCode: 500,

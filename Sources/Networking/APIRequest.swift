@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import os.log
 
 public typealias APIResponse = (data: Data?, response: HTTPURLResponse)
 public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
@@ -25,20 +26,33 @@ public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Voi
 public struct APIRequest {
     
     private let request: URLRequest
-    private let urlSession: URLSession
     private let requirements: APIResponseRequirements
+    private let urlSession: URLSession
+    private let log: OSLog
     
     public init<QueryParams: Collection>(configuration: APIRequest.Configuration<QueryParams>,
                                          requirements: APIResponseRequirements = [],
-                                         urlSession: URLSession = .shared) {
+                                         urlSession: URLSession = .shared,
+                                         log: OSLog = .disabled) {
         self.request = configuration.request
         self.requirements = requirements
         self.urlSession = urlSession
+        self.log = log
+        
+        assertUserAgentIsPresent()
+    }
+    
+    private func assertUserAgentIsPresent() {
+        guard request.allHTTPHeaderFields?[HTTPHeaderField.userAgent] != nil else {
+            assertionFailure("A user agent must be included in the request's HTTP header fields.")
+            return
+        }
     }
 
     @available(*, deprecated, message: "This method is deprecated. Please use the 'fetch()' async method instead.")
     @discardableResult
     public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
+        os_log("Requesting %s", log: log, type: .debug, request.url?.absoluteString ?? "")
         let task = urlSession.dataTask(with: request) { (data, response, error) in
             if let error = error {
                 completion(nil, .urlSession(error))
@@ -57,10 +71,17 @@ public struct APIRequest {
     
     private func validateAndUnwrap(data: Data?, response: URLResponse?) throws -> APIResponse {
         let httpResponse = try getHTTPResponse(from: response)
+
+        os_log("Request for %s completed with response code: %s and headers %s",
+               log: log,
+               type: .debug,
+               request.url?.absoluteString ?? "",
+               String(describing: httpResponse.statusCode),
+               String(describing: httpResponse.allHeaderFields))
         
         var data = data
         if requirements.contains(.allow304), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
-            data = nil // Avoid returning empty data
+            data = nil // avoid returning empty data
         } else {
             try httpResponse.assertSuccessfulStatusCode()
             let data = data ?? Data()
@@ -84,6 +105,7 @@ public struct APIRequest {
     }
 
     public func fetch() async throws -> APIResponse {
+        os_log("Requesting %s", log: log, type: .debug, request.url?.absoluteString ?? "")
         let (data, response) = try await fetch(for: request)
         return try validateAndUnwrap(data: data, response: response)
     }

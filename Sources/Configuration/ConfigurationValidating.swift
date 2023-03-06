@@ -22,7 +22,7 @@ import TrackerRadarKit
 
 protocol ConfigurationValidating {
     
-    func validate(_ data: Data, for: Configuration) throws
+    func validate(_ data: Data, for configuration: Configuration) throws
     
 }
 
