@@ -89,16 +89,12 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             for configuration in configurations {
                 group.addTask { [self] in
                     do {
-                        print("configuration fetch: \(configuration)")
                         let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration))
-                        print("configuration after fetch: \(configuration)")
                         if let data = fetchResult.data {
                             try validator.validate(data, for: configuration)
                         }
-                        print("configuration store: \(configuration)")
                         try store(fetchResult, for: configuration)
                     } catch {
-                        print("configuration throw: \(configuration): \(error)")
                         await aggregatedError.set(error: error, for: configuration)
                     }
                 }
@@ -157,8 +153,8 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
-        let configuration = APIRequest.Configuration(url: url, headers: APIRequest.APIHeaders().defaultHeaders(with: etag))
-        let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession)
+        let configuration = APIRequest.Configuration(url: url, headers: APIRequest.Headers().default(with: etag))
+        let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession, log: .disabled)
         let (data, response) = try await request.fetch()
         return (response.etag!, data)
     }

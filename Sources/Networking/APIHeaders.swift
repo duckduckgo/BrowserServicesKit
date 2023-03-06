@@ -23,7 +23,7 @@ public extension APIRequest {
     
     typealias HTTPHeaders = [String: String]
     
-    struct APIHeaders {
+    struct Headers {
         
         public typealias UserAgent = String
         private static var userAgent: UserAgent?
@@ -36,7 +36,7 @@ public extension APIRequest {
             self.userAgent = userAgent
         }
         
-        public var defaultHeaders: HTTPHeaders {
+        public var `default`: HTTPHeaders {
             let acceptEncoding = "gzip;q=1.0, compress;q=0.5"
             let languages = Locale.preferredLanguages.prefix(6)
             let acceptLanguage = languages.enumerated().map { index, language in
@@ -52,11 +52,11 @@ public extension APIRequest {
             ]
         }
         
-        public func defaultHeaders(with etag: String?) -> HTTPHeaders {
+        public func `default`(with etag: String?) -> HTTPHeaders {
             guard let etag = etag else {
-                return defaultHeaders
+                return `default`
             }
-            return defaultHeaders.merging([HTTPHeaderField.ifNoneMatch: etag]) { (_, new) in new }
+            return `default`.merging([HTTPHeaderField.ifNoneMatch: etag]) { (_, new) in new }
         }
         
     }

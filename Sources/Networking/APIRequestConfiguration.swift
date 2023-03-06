@@ -37,7 +37,7 @@ extension APIRequest {
                     method: HTTPMethod = .get,
                     queryParameters: QueryParams = [],
                     allowedQueryReservedCharacters: CharacterSet? = nil,
-                    headers: HTTPHeaders = APIHeaders().defaultHeaders,
+                    headers: HTTPHeaders = APIRequest.Headers().default,
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
                     attribution: URLRequestAttribution? = nil) {
