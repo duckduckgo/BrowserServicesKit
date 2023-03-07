@@ -31,17 +31,8 @@ extension Bundle {
 
     }
 
-    public var releaseVersionNumber: String? {
-        return infoDictionary?[Key.versionNumber] as? String
-    }
-    
-    public var displayName: String? {
-        object(forInfoDictionaryKey: Key.displayName) as? String ??
-        object(forInfoDictionaryKey: Key.name) as? String
-    }
-
-    public var name: String? {
-        object(forInfoDictionaryKey: Keys.name) as? String
-    }
+    public var releaseVersionNumber: String? { infoDictionary?[Key.versionNumber] as? String }
+    public var displayName: String? { object(forInfoDictionaryKey: Key.displayName) as? String ?? name }
+    public var name: String? { object(forInfoDictionaryKey: Key.name) as? String }
 
 }

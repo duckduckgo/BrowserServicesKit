@@ -40,7 +40,7 @@ extension APIRequest {
                     headers: HTTPHeaders = APIRequest.Headers().default,
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
-                    attribution: URLRequestAttribution? = nil) {
+                    attribution: URLRequestAttribution? = .developer) {
             self.url = url
             self.method = method
             self.queryParameters = queryParameters
