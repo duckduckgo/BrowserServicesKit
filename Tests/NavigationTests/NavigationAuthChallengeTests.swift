@@ -105,11 +105,11 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
         }
         responder(at: 2).onDidReceiveAuthenticationChallenge = { _, _ in .next }
 
-        var frameHandle: String!
+        var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
-                frameHandle = navAction.targetFrame?.identity.handle
-                XCTAssertNotEqual(frameHandle, WKFrameInfo.defaultMainFrameHandle)
+                frameID = navAction.targetFrame?.handle.frameID
+                XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
             }
             return .next
         }
@@ -144,7 +144,7 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
             .response(.resp(urls.local3, data.html.count, nil, .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
 
@@ -157,7 +157,7 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameHandle, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, nil, .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])

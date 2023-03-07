@@ -16,12 +16,14 @@
 //  limitations under the License.
 //
 
-import WebKit
+import Common
 import os.log
+import WebKit
 
 public extension WKFrameInfo {
 
-    internal static var defaultMainFrameHandle = "4"
+    internal static var defaultMainFrameHandle: UInt64 = 4
+    internal static var defaultNonMainFrameHandle: UInt64 = 9
 
     // prevent exception if private API keys go missing
     override func value(forUndefinedKey key: String) -> Any? {
@@ -29,12 +31,12 @@ public extension WKFrameInfo {
         return nil
     }
 
-    @nonobjc var handle: String {
-#if DEBUG
-        String(describing: (self.value(forKey: "handle") as? NSObject)!.value(forKey: "frameID")!)
-#else
-        self.isMainFrame ? Self.defaultMainFrameHandle : "iframe"
-#endif
+    @nonobjc var handle: FrameHandle {
+        guard let handle = self.value(forKey: "handle") as? FrameHandle else {
+            assertionFailure("WKFrameInfo.handle is missing")
+            return self.isMainFrame ? (webView?.mainFrameHandle ?? .fallbackMainFrameHandle) : .fallbackNonMainFrameHandle
+        }
+        return handle
     }
 
     /// Safe Optional `request: URLRequest` getter:
@@ -57,46 +59,15 @@ public extension WKFrameInfo {
         ignoredRequestUsageSymbols.insert(callingSymbol())
     }()
 
-    // get symbol from stack trace for a caller of a calling method
-    static private func callingSymbol() -> String {
-        let stackTrace = Thread.callStackSymbols
-        // find `callingSymbol` itself or dispatch_once_callout
-        var callingSymbolIdx = stackTrace.firstIndex(where: { $0.contains("_dispatch_once_callout") })
-            ?? stackTrace.firstIndex(where: { $0.contains("callingSymbol") })!
-        // procedure calling `callingSymbol`
-        callingSymbolIdx += 1
-
-        var symbolName: String
-        repeat {
-            // caller for the procedure
-            callingSymbolIdx += 1
-            symbolName = String(stackTrace[callingSymbolIdx].split(separator: " ")[3])
-        } while stackTrace[callingSymbolIdx - 1].contains(symbolName.dropping(suffix: "To")) // skip objc wrappers
-
-        return symbolName
-    }
-
     @objc dynamic private func swizzledRequest() -> URLRequest? {
         func fileLine(file: StaticString = #file, line: Int = #line) -> String {
             return "\(("\(file)" as NSString).lastPathComponent):\(line + 1)"
         }
 
         // don‘t break twice
-        if Self.ignoredRequestUsageSymbols.insert(Self.callingSymbol()).inserted {
-            os_log("""
-
-
-            ------------------------------------------------------------------------------------------------------
-                BREAK at %s:
-            ------------------------------------------------------------------------------------------------------
-                Don‘t use `WKFrameInfo.request` as it has incorrect nullability
-                Use `WKFrameInfo.safeRequest` instead
-
-                Hit Continue (^⌘Y) to continue program execution
-            ------------------------------------------------------------------------------------------------------
-
-            """, type: .debug, fileLine())
-            raise(SIGINT)
+        if Self.ignoredRequestUsageSymbols.insert(callingSymbol()).inserted {
+            breakByRaisingSigInt("Don‘t use `WKFrameInfo.request` as it has incorrect nullability\n" +
+                                 "Use `WKFrameInfo.safeRequest` instead")
         }
         
         return self.swizzledRequest() // call the original
@@ -107,4 +78,3 @@ public extension WKFrameInfo {
 #endif
 
 }
-

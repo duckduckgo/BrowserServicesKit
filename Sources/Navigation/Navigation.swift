@@ -21,6 +21,7 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
+// swiftlint:disable file_length
 @MainActor
 public final class Navigation {
 
@@ -396,15 +397,5 @@ extension Navigation: CustomDebugStringConvertible {
 extension NavigationIdentity: CustomStringConvertible {
     public var description: String {
         "WKNavigation: " + (value?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "nil")
-    }
-}
-
-extension RedirectType: CustomStringConvertible {
-    public var description: String {
-        switch self {
-        case .client(delay: let delay): return "client" + (delay > 0 ? "(delay: \(delay))" : "")
-        case .server: return "server"
-        case .developer: return "developer"
-        }
     }
 }

@@ -1,7 +1,7 @@
 //
-//  BookmarkMock.swift
+//  WKWebViewExtension.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,13 +16,17 @@
 //  limitations under the License.
 //
 
-import Foundation
-@testable import BrowserServicesKit
+import WebKit
 
-struct BookmarkMock: Bookmark {
+extension WKWebView {
 
-    var url: String
-    var title: String
-    var isFavorite: Bool
+    private static let mainFrameKey = "mainFrame"
+    var mainFrameHandle: FrameHandle {
+        guard self.responds(to: NSSelectorFromString("_" + Self.mainFrameKey))
+                || self.responds(to: NSSelectorFromString(Self.mainFrameKey)) else {
+            return .fallbackMainFrameHandle
+        }
+        return value(forKey: Self.mainFrameKey) as? FrameHandle ?? .fallbackMainFrameHandle
+    }
 
 }

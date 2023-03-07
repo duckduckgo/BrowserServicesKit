@@ -20,65 +20,38 @@ import Common
 import Foundation
 import WebKit
 
+// swiftlint:disable line_length
 public struct FrameInfo: Equatable {
 
-    public let identity: FrameIdentity
+    public weak var webView: WKWebView?
+    public let handle: FrameHandle
+
+    public let isMainFrame: Bool
     public let url: URL
     public let securityOrigin: SecurityOrigin
 
-    public init(frameIdentity: FrameIdentity, url: URL, securityOrigin: SecurityOrigin) {
-        self.identity = frameIdentity
+    public init(webView: WKWebView?, handle: FrameHandle, isMainFrame: Bool, url: URL, securityOrigin: SecurityOrigin) {
+        self.webView = webView
+        self.handle = handle
+        self.isMainFrame = isMainFrame
         self.url = url
         self.securityOrigin = securityOrigin
     }
 
     public init(frame: WKFrameInfo) {
-        self.init(frameIdentity: FrameIdentity(frame), url: frame.safeRequest?.url ?? .empty, securityOrigin: SecurityOrigin(frame.securityOrigin))
+        self.init(webView: frame.webView, handle: frame.handle, isMainFrame: frame.isMainFrame, url: frame.safeRequest?.url ?? .empty, securityOrigin: SecurityOrigin(frame.securityOrigin))
     }
 
     public static func mainFrame(for webView: WKWebView) -> FrameInfo {
-        FrameInfo(frameIdentity: .mainFrameIdentity(for: webView),
+        FrameInfo(webView: webView,
+                  handle: webView.mainFrameHandle,
+                  isMainFrame: true,
                   url: webView.url ?? .empty,
                   securityOrigin: webView.url?.securityOrigin ?? .empty)
     }
 
     public static func == (lhs: FrameInfo, rhs: FrameInfo) -> Bool {
-        return lhs.identity == rhs.identity && lhs.url.matches(rhs.url) && lhs.securityOrigin == rhs.securityOrigin
-    }
-
-}
-
-extension FrameInfo {
-    public var isMainFrame: Bool {
-        identity.isMainFrame
-    }
-}
-
-public typealias WebViewIdentity = NSValue
-public struct FrameIdentity: Hashable {
-
-    public let webView: WebViewIdentity?
-    public var handle: String
-    public let isMainFrame: Bool
-
-    public init(handle: String, webViewIdentity: WebViewIdentity?, isMainFrame: Bool) {
-        self.handle = handle
-        self.webView = webViewIdentity
-        self.isMainFrame = isMainFrame
-    }
-
-    public init(_ frame: WKFrameInfo) {
-        self.init(handle: frame.handle,
-                  webViewIdentity: frame.webView.map(WebViewIdentity.init(nonretainedObject:)),
-                  isMainFrame: frame.isMainFrame)
-    }
-
-    public static func mainFrameIdentity(for webView: WKWebView) -> FrameIdentity {
-        self.init(handle: WKFrameInfo.defaultMainFrameHandle, webViewIdentity: WebViewIdentity(nonretainedObject: webView), isMainFrame: true)
-    }
-
-    public static func == (lhs: FrameIdentity, rhs: FrameIdentity) -> Bool {
-        return lhs.handle == rhs.handle && lhs.webView == rhs.webView && lhs.isMainFrame == rhs.isMainFrame
+        return lhs.handle == rhs.handle && lhs.webView == rhs.webView && lhs.isMainFrame == rhs.isMainFrame && lhs.url.matches(rhs.url) && lhs.securityOrigin == rhs.securityOrigin
     }
 
 }
@@ -91,11 +64,7 @@ extension SecurityOrigin {
 
 extension FrameInfo: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<Frame \(identity.debugDescription); current url: \(url.absoluteString.isEmpty ? "empty" : url.absoluteString)>"
-    }
-}
-extension FrameIdentity: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        "\(webView?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "<nil>")_\(handle)\(isMainFrame ? ": Main" : "")"
+        let webViewPtr = webView.map(NSValue.init(nonretainedObject:))?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "<nil>"
+        return "<Frame \(webViewPtr)_\(handle.debugDescription) \(isMainFrame ? ": Main" : ""); current url: \(url.absoluteString.isEmpty ? "empty" : url.absoluteString)>"
     }
 }

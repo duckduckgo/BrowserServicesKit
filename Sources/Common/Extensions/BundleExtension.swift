@@ -26,11 +26,11 @@ extension Bundle {
         static let name = kCFBundleNameKey as String
         static let identifier = kCFBundleIdentifierKey as String
         static let buildNumber = kCFBundleVersionKey as String
-        static let versionNumber = "CFBundleShortVersionString"
+		static let versionNumber = "CFBundleShortVersionString"
         static let displayName = "CFBundleDisplayName"
-        
+
     }
-    
+
     public var releaseVersionNumber: String? {
         return infoDictionary?[Key.versionNumber] as? String
     }
@@ -39,5 +39,9 @@ extension Bundle {
         object(forInfoDictionaryKey: Key.displayName) as? String ??
         object(forInfoDictionaryKey: Key.name) as? String
     }
-    
+
+    public var name: String? {
+        object(forInfoDictionaryKey: Keys.name) as? String
+    }
+
 }
