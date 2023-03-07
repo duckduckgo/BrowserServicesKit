@@ -70,6 +70,14 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         self.urlSession = urlSession
         self.log = log
     }
+
+    public func fetch(_ configuration: Configuration) async throws {
+        let fetchResult = try await self.fetch(from: configuration.url, withEtag: self.etag(for: configuration))
+        if let data = fetchResult.data {
+            try self.validator.validate(data, for: configuration)
+        }
+        try self.store(fetchResult, for: configuration)
+    }
     
     /**
      Downloads and stores the configurations provided in parallel.

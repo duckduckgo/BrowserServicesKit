@@ -25,7 +25,7 @@ public protocol ConfigurationURLProviding {
     
 }
 
-public enum Configuration: CaseIterable, Sendable {
+public enum Configuration: String, CaseIterable, Sendable {
     
     case bloomFilterBinary
     case bloomFilterSpec
