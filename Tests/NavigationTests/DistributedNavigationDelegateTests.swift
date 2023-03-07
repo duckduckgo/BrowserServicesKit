@@ -731,9 +731,6 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         }
         waitForExpectations(timeout: 5)
 
-        if case .didFail = responder(at: 0).history[5] {
-            responder(at: 0).history.insert(responder(at: 0).history.remove(at: 5), at: 6)
-        }
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.testScheme), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
