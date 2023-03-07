@@ -23,8 +23,8 @@ import Networking
 import os.log
 
 protocol ConfigurationFetching {
-    
-    func fetch(any configurations: [Configuration]) async throws
+
+    func fetch(_ configuration: Configuration) async throws
     func fetch(all configurations: [Configuration]) async throws
 
 }
@@ -37,21 +37,9 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         
         case apiRequest(APIRequest.Error)
         case invalidPayload
-        case aggregated(errors: [Configuration: Swift.Error])
-        
+
     }
-    
-    actor AggregatedError {
-        
-        var errors: [Configuration: Swift.Error] = [:]
-        func set(error: Swift.Error, for configuration: Configuration) {
-            errors[configuration] = error
-        }
-        
-        var isEmpty: Bool { errors.isEmpty }
-        
-    }
-    
+
     private var store: ConfigurationStoring
     private let validator: ConfigurationValidating
     private let urlSession: URLSession
@@ -71,52 +59,22 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         self.log = log
     }
 
-    public func fetch(_ configuration: Configuration) async throws {
-        let fetchResult = try await self.fetch(from: configuration.url, withEtag: self.etag(for: configuration))
-        if let data = fetchResult.data {
-            try self.validator.validate(data, for: configuration)
-        }
-        try self.store(fetchResult, for: configuration)
-    }
-    
     /**
-     Downloads and stores the configurations provided in parallel.
+    Downloads and stores a single configuration specified by the Configuration enum provided in the configuration parameter.
+    This function throws an error if the configuration fails to fetch or validate.
 
-     - Parameters:
-        - configurations: An array of `Configuration` enums that need to be downloaded and stored.
+    - Parameters:
+      - configuration: A Configuration enum that needs to be downloaded and stored.
 
-     - Throws:
-        If any configuration fails to fetch or validate, an `Error` of type `.aggregated` is thrown.
-        The `.aggregated` case of the `Error` enum contains a dictionary of type `[Configuration: Error]`
-        that associates each failed configuration with its corresponding error.
-
-     - Important:
-        If any task fails, the error is recorded but the group continues processing the remaining tasks.
-        The task group is not cancelled automatically when a task throws an error.
-     */
-
-    private var aggregatedError = AggregatedError()
-    public func fetch(any configurations: [Configuration]) async throws {
-        await withTaskGroup(of: Void.self) { group in
-            for configuration in configurations {
-                group.addTask { [self] in
-                    do {
-                        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration))
-                        if let data = fetchResult.data {
-                            try validator.validate(data, for: configuration)
-                        }
-                        try store(fetchResult, for: configuration)
-                    } catch {
-                        await aggregatedError.set(error: error, for: configuration)
-                    }
-                }
-            }
-            await group.waitForAll()
+    - Throws:
+      An error of type Error is thrown if the configuration fails to fetch or validate.
+    */
+    public func fetch(_ configuration: Configuration) async throws {
+        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration))
+        if let data = fetchResult.data {
+            try validator.validate(data, for: configuration)
         }
-        
-        if await !aggregatedError.isEmpty {
-            throw await Error.aggregated(errors: aggregatedError.errors)
-        }
+        try store(fetchResult, for: configuration)
     }
     
     /**

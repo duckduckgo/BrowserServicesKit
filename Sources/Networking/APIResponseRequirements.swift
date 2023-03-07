@@ -30,8 +30,8 @@ public struct APIResponseRequirements: OptionSet {
     public static let requireNonEmptyData = APIResponseRequirements(rawValue: 1 << 0)
     /// The API response must include an ETag header.
     public static let requireETagHeader = APIResponseRequirements(rawValue: 1 << 1)
-    /// Allows HTTP Not Modified responses.
-    /// Setting this overrides requireNonEmptyData since urlSession will actually return empty data.
+    /// Allows HTTP 304 (Not Modified) response status code.
+    /// When this is set, requireNonEmptyData is not honored, since URLSession returns empty data on HTTP 304.
     public static let allowHTTPNotModified = APIResponseRequirements(rawValue: 1 << 2)
     
     public static let `default`: APIResponseRequirements = [.requireNonEmptyData, .requireETagHeader]

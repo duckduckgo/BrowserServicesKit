@@ -35,7 +35,7 @@ extension URLSession {
     private static let mainThreadCallback = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
     private static let mainThreadCallbackEphemeral = URLSession(configuration: .ephemeral, delegate: nil, delegateQueue: OperationQueue.main)
 
-    public static func makeSession(useMainThreadCallbackQueue: Bool = false, ephemeral: Bool = true) -> URLSession {
+    public static func session(useMainThreadCallbackQueue: Bool = false, ephemeral: Bool = true) -> URLSession {
         if useMainThreadCallbackQueue {
             return ephemeral ? mainThreadCallbackEphemeral : mainThreadCallback
         } else {
