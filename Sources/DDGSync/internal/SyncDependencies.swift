@@ -128,3 +128,23 @@ extension Crypting {
 extension SyncAccount: Codable { // TODO does this make codable part public?
     
 }
+
+enum HTTPRequestMethod: String {
+    case GET
+    case POST
+    case PATCH
+    case DELETE
+}
+
+struct HTTPResult {
+    let data: Data?
+    let response: HTTPURLResponse
+}
+
+protocol HTTPRequesting {
+    func execute() async throws -> HTTPResult
+}
+
+protocol RemoteAPIRequestCreating {
+    func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting
+}

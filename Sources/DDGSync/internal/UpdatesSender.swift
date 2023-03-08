@@ -149,6 +149,7 @@ struct UpdatesSender: UpdatesSending {
             url: url,
             method: .PATCH,
             headers: ["Authorization": "Bearer \(authorization)"],
+            parameters: [:],
             body: json,
             contentType: "application/json"
         )

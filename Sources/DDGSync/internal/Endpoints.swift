@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct Endpoints {
+struct Endpoints {
 
     let signup: URL
     let login: URL

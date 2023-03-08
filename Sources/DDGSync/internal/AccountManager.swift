@@ -45,7 +45,14 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createRequest(url: endpoints.signup, method: .POST, body: paramJson, contentType: "application/json")
+        let request = api.createRequest(
+            url: endpoints.signup,
+            method: .POST,
+            headers: [:],
+            parameters: [:],
+            body: paramJson,
+            contentType: "application/json"
+        )
 
         let result = try await request.execute()
 
@@ -78,7 +85,14 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createRequest(url: endpoints.login, method: .POST, body: paramJson, contentType: "application/json")
+        let request = api.createRequest(
+            url: endpoints.login,
+            method: .POST,
+            headers: [:],
+            parameters: [:],
+            body: paramJson,
+            contentType: "application/json"
+        )
 
         let result = try await request.execute()
 
@@ -126,6 +140,7 @@ struct AccountManager: AccountManaging {
             url: endpoints.logoutDevice,
             method: .POST,
             headers: ["Authorization": "Bearer \(token)"],
+            parameters: [:],
             body: paramJson,
             contentType: "application/json"
         )

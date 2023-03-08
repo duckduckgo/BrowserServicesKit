@@ -61,7 +61,14 @@ struct UpdatesFetcher: UpdatesFetching {
         }
 
         let headers: HTTPHeaders = ["Authorization": "bearer \(authorization)"]
-        let request = dependencies.api.createRequest(url: url, method: .GET, parameters: parameters, headers: headers)
+        let request = dependencies.api.createRequest(
+            url: url,
+            method: .GET,
+            headers: headers,
+            parameters: parameters,
+            body: nil,
+            contentType: nil
+        )
 
         let result = try await request.execute()
 
