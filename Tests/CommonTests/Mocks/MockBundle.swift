@@ -1,8 +1,8 @@
 //
-//  AppVersionProvider.swift
+//  MockBundle.swift
 //  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,11 +18,17 @@
 //
 
 import Foundation
-import Common
+@testable import Common
 
-open class AppVersionProvider {
-    
-    open func appVersion() -> String? { Bundle.main.releaseVersionNumber }
-    public init() { }
+final class MockBundle: InfoBundle {
 
+    private var mockEntries = [String: Any]()
+
+    func object(forInfoDictionaryKey key: String) -> Any? {
+        return mockEntries[key]
+    }
+
+    func add(name: String, value: Any) {
+        mockEntries[name] = value
+    }
 }

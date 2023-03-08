@@ -20,8 +20,10 @@ let package = Package(
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
+        .library(name: "Configuration", targets: ["Configuration"]),
+        .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
-        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
     ],
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.3.0")),
@@ -78,7 +80,7 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
-            ]),    
+            ]),
         .target(
             name: "Crashes"
         ),
@@ -130,7 +132,7 @@ let package = Package(
             ]),
         .target(
             name: "UserScript"
-            ),
+        ),
         .target(
             name: "PrivacyDashboard",
             dependencies: [
@@ -141,7 +143,24 @@ let package = Package(
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard"
-            ),
+        ),
+        .target(
+            name: "Configuration",
+            dependencies: [
+                "Networking",
+                "BrowserServicesKit",
+                "Common"
+            ]),
+        .target(
+            name: "Networking",
+            dependencies: [
+                "Common"
+            ]),
+        .target(
+            name: "TestUtils",
+            dependencies: [
+                "Networking"
+            ]),
         
         // MARK: - Test targets
         .testTarget(
@@ -169,6 +188,11 @@ let package = Package(
                 "Common"
             ]),
         .testTarget(
+            name: "NetworkingTests",
+            dependencies: [
+                "TestUtils"
+            ]),
+        .testTarget(
             name: "NavigationTests",
             dependencies: [
                 "Navigation",
@@ -189,7 +213,15 @@ let package = Package(
         .testTarget(
             name: "PersistenceTests",
             dependencies: [
-                "Persistence"
+                "Persistence",
+                "TrackerRadarKit"
+            ]
+        ),
+        .testTarget(
+            name: "ConfigurationTests",
+            dependencies: [
+                "Configuration",
+                "TestUtils"
             ]
         )
     ],

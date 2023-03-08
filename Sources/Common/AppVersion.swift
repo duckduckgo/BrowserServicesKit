@@ -18,16 +18,8 @@
 //
 
 import Foundation
-import Common
 
 public struct AppVersion {
-
-    public struct Keys {
-        static let name = kCFBundleNameKey as String
-        static let identifier = kCFBundleIdentifierKey as String
-        static let buildNumber = kCFBundleVersionKey as String
-        static let versionNumber = "CFBundleShortVersionString"
-    }
 
     public static let shared = AppVersion()
     
@@ -38,11 +30,11 @@ public struct AppVersion {
     }
 
     public var name: String {
-        return bundle.object(forInfoDictionaryKey: Keys.name) as? String ?? ""
+        return bundle.object(forInfoDictionaryKey: Bundle.Key.name) as? String ?? ""
     }
 
     public var identifier: String {
-        return bundle.object(forInfoDictionaryKey: Keys.identifier) as? String ?? ""
+        return bundle.object(forInfoDictionaryKey: Bundle.Key.identifier) as? String ?? ""
     }
     
     public var majorVersionNumber: String {
@@ -50,11 +42,11 @@ public struct AppVersion {
     }
 
     public var versionNumber: String {
-        return bundle.object(forInfoDictionaryKey: Keys.versionNumber) as? String ?? ""
+        return bundle.object(forInfoDictionaryKey: Bundle.Key.versionNumber) as? String ?? ""
     }
 
     public var buildNumber: String {
-        return bundle.object(forInfoDictionaryKey: Keys.buildNumber) as? String ?? ""
+        return bundle.object(forInfoDictionaryKey: Bundle.Key.buildNumber) as? String ?? ""
     }
     
     public var versionAndBuildNumber: String {
@@ -65,8 +57,9 @@ public struct AppVersion {
         return "\(name) \(versionAndBuildNumber)"
     }
 
-    func osVersion() -> String {
+    public var osVersion: String {
         let os = ProcessInfo().operatingSystemVersion
         return "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }
+    
 }
