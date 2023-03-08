@@ -322,7 +322,7 @@ final class URLExtensionTests: XCTestCase {
 
 }
 
-private extension String {
+extension String {
     var url: URL? {
         return URL(trimmedAddressBarString: self)
     }
