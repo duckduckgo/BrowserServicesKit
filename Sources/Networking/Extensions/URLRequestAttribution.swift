@@ -1,8 +1,8 @@
 //
-//  AppVersionProvider.swift
+//  URLRequestAttribution.swift
 //  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -20,9 +20,22 @@
 import Foundation
 import Common
 
-open class AppVersionProvider {
+public enum URLRequestAttribution {
     
-    open func appVersion() -> String? { Bundle.main.releaseVersionNumber }
-    public init() { }
-
+    case unattributed
+    case developer
+    case user
+    
+    @available(iOS 15.0, macOS 12.0, *)
+    public var urlRequestAttribution: URLRequest.Attribution? {
+        switch self {
+        case .developer:
+            return .developer
+        case .user:
+            return .user
+        case .unattributed:
+            return nil
+        }
+    }
+    
 }
