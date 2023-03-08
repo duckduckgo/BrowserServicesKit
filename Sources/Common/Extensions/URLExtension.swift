@@ -268,10 +268,10 @@ extension URL {
     }
 
     // MARK: - Parameters
-
-    public func appendingParameters<C: Collection>(_ parameters: C, allowedReservedCharacters: CharacterSet? = nil) -> URL
-    where C.Element == (key: String, value: String) {
-
+    
+    public func appendingParameters<QueryParams: Collection>(_ parameters: QueryParams, allowedReservedCharacters: CharacterSet? = nil) -> URL
+    where QueryParams.Element == (key: String, value: String) {
+        
         return parameters.reduce(self) { partialResult, parameter in
             partialResult.appendingParameter(
                 name: parameter.key,

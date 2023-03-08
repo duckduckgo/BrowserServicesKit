@@ -66,7 +66,7 @@ struct LocaleMatchingAttribute: MatchingAttribute, Equatable {
 
 struct OSMatchingAttribute: MatchingAttribute, Equatable {
     var min: String = MatchingAttributeDefaults.stringDefaultValue
-    var max: String = AppVersion.shared.osVersion()
+    var max: String = AppVersion.shared.osVersion
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
 
@@ -88,7 +88,7 @@ struct OSMatchingAttribute: MatchingAttribute, Equatable {
     }
 
     init(min: String = MatchingAttributeDefaults.stringDefaultValue,
-         max: String = AppVersion.shared.osVersion(),
+         max: String = AppVersion.shared.osVersion,
          value: String = MatchingAttributeDefaults.stringDefaultValue,
          fallback: Bool?) {
         self.min = min
