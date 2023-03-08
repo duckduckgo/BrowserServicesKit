@@ -88,8 +88,7 @@ struct UpdatesSender: UpdatesSending {
         let updates = prepareUpdates()
         let syncUrl = dependencies.endpoints.syncPatch
     
-        let encoder = JSONEncoder()
-        let jsonData = try encoder.encode(updates)
+        let jsonData = try JSONEncoder.snakeCaseKeys.encode(updates)
 
         switch try await send(jsonData, withAuthorization: token, toUrl: syncUrl) {
         case .success(let updates):
@@ -121,20 +120,20 @@ struct UpdatesSender: UpdatesSending {
     
     private func prepareUpdates() -> Updates {
         if var updates = loadPreviouslyFailedUpdates() {
-            updates.bookmarks.modified_since = persistence.bookmarksLastModified
+            updates.bookmarks.modifiedSince = persistence.bookmarksLastModified
             updates.bookmarks.updates += self.bookmarks
             return updates
         }
-        return Updates(bookmarks: BookmarkUpdates(modified_since: persistence.bookmarksLastModified, updates: bookmarks))
+        return Updates(bookmarks: BookmarkUpdates(modifiedSince: persistence.bookmarksLastModified, updates: bookmarks))
     }
   
     private func loadPreviouslyFailedUpdates() -> Updates? {
         guard let data = try? Data(contentsOf: offlineUpdatesFile) else { return nil }
-        return try? JSONDecoder().decode(Updates.self, from: data)
+        return try? JSONDecoder.snakeCaseKeys.decode(Updates.self, from: data)
     }
     
     private func saveForLater(_ updates: Updates) throws {
-        try JSONEncoder().encode(updates).write(to: offlineUpdatesFile, options: .atomic)
+        try JSONEncoder.snakeCaseKeys.encode(updates).write(to: offlineUpdatesFile, options: .atomic)
     }
     
     private func removeOfflineFile() throws {
@@ -168,14 +167,11 @@ struct UpdatesSender: UpdatesSending {
         
     }
     
-    // Not using CodingKeys to keep it simple
-    // swiftlint:disable identifier_name
     struct BookmarkUpdates: Codable {
         
-        var modified_since: String?
+        var modifiedSince: String?
         var updates: [BookmarkUpdate]
         
     }
-    // swiftlint:enable identifier_name
 
 }

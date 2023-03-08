@@ -32,7 +32,7 @@ struct SecureStorage: SecureStoring {
     ]
     
     func persistAccount(_ account: SyncAccount) throws {
-        let data = try JSONEncoder().encode(account)
+        let data = try JSONEncoder.snakeCaseKeys.encode(account)
         
         var query = Self.defaultQuery
         query[kSecUseDataProtectionKeychain] = true
@@ -58,7 +58,7 @@ struct SecureStorage: SecureStoring {
         }
         
         if let data = item as? Data {
-            return try JSONDecoder().decode(SyncAccount.self, from: data)
+            return try JSONDecoder.snakeCaseKeys.decode(SyncAccount.self, from: data)
         }
         
         return nil

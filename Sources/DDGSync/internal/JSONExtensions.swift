@@ -1,7 +1,8 @@
 //
-//  SecureStorageStub.swift
+//  JSONExtensions.swift
+//  DuckDuckGo
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,22 +18,19 @@
 //
 
 import Foundation
-@testable import DDGSync
 
-class SecureStorageStub: SecureStoring {
-    
-    var theAccount: SyncAccount?
-    
-    func persistAccount(_ account: SyncAccount) throws {
-        theAccount = account
-    }
+extension JSONDecoder {
+    static var snakeCaseKeys: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }()
+}
 
-    func account() throws -> SyncAccount? {
-        return theAccount
-    }
-
-    func removeAccount() throws {
-        theAccount = nil
-    }
-    
+extension JSONEncoder {
+    static var snakeCaseKeys: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        return encoder
+    }()
 }

@@ -35,13 +35,15 @@ struct AccountManager: AccountManaging {
         let hashedPassword = Data(accountKeys.passwordHash).base64EncodedString()
         let protectedEncyrptionKey = Data(accountKeys.protectedSecretKey).base64EncodedString()
 
-        let params = Signup.Parameters(user_id: userId,
-                                hashed_password: hashedPassword,
-                                protected_encryption_key: protectedEncyrptionKey,
-                                device_id: deviceId,
-                                device_name: deviceName)
+        let params = Signup.Parameters(
+            userId: userId,
+            hashedPassword: hashedPassword,
+            protectedEncryptionKey: protectedEncyrptionKey,
+            deviceId: deviceId,
+            deviceName: deviceName
+        )
 
-        guard let paramJson = try? JSONEncoder().encode(params) else {
+        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
             fatalError()
         }
 
@@ -60,7 +62,7 @@ struct AccountManager: AccountManaging {
             throw SyncError.noResponseBody
         }
 
-        guard let result = try? JSONDecoder().decode(Signup.Result.self, from: body) else {
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(Signup.Result.self, from: body) else {
             throw SyncError.unableToDecodeResponse("Failed to decode signup result")
         }
 
@@ -76,12 +78,14 @@ struct AccountManager: AccountManaging {
         let deviceId = UUID().uuidString
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
 
-        let params = Login.Parameters(user_id: recoveryInfo.userId,
-                                      hashed_password: recoveryInfo.passwordHash.base64EncodedString(),
-                                      device_id: deviceId,
-                                      device_name: deviceName)
+        let params = Login.Parameters(
+            userId: recoveryInfo.userId,
+            hashedPassword: recoveryInfo.passwordHash.base64EncodedString(),
+            deviceId: deviceId,
+            deviceName: deviceName
+        )
 
-        guard let paramJson = try? JSONEncoder().encode(params) else {
+        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
             fatalError()
         }
 
@@ -101,11 +105,11 @@ struct AccountManager: AccountManaging {
         }
 
         print(String(data: body, encoding: .utf8) ?? "invalid result.data")
-        guard let result = try? JSONDecoder().decode(Login.Result.self, from: body) else {
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(Login.Result.self, from: body) else {
             throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
 
-        guard let protectedSecretKey = Data(base64Encoded: result.protected_encryption_key) else {
+        guard let protectedSecretKey = Data(base64Encoded: result.protectedEncryptionKey) else {
             throw SyncError.invalidDataInResponse("protected_key missing from response")
         }
 
@@ -114,25 +118,27 @@ struct AccountManager: AccountManaging {
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
         return (
-            account: SyncAccount(deviceId: deviceId,
-                                 deviceName: deviceName,
-                                 userId: recoveryInfo.userId,
-                                 primaryKey: recoveryInfo.primaryKey,
-                                 secretKey: secretKey,
-                                 token: token),
+            account: SyncAccount(
+                deviceId: deviceId,
+                deviceName: deviceName,
+                userId: recoveryInfo.userId,
+                primaryKey: recoveryInfo.primaryKey,
+                secretKey: secretKey,
+                token: token
+            ),
             devices: result.devices.map {
                 RegisteredDevice(
-                    id: $0.device_id,
-                    name: $0.device_name
+                    id: $0.deviceId,
+                    name: $0.deviceName
                 )
             }
         )
     }
 
     func logout(deviceId: String, token: String) async throws {
-        let params = LogoutDevice.Parameters(device_id: deviceId)
+        let params = LogoutDevice.Parameters(deviceId: deviceId)
 
-        guard let paramJson = try? JSONEncoder().encode(params) else {
+        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
             fatalError()
         }
 
@@ -152,32 +158,30 @@ struct AccountManager: AccountManaging {
         }
 
         print(String(data: body, encoding: .utf8) ?? "invalid result.data")
-        guard let result = try? JSONDecoder().decode(LogoutDevice.Result.self, from: body) else {
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(LogoutDevice.Result.self, from: body) else {
             throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
 
-        guard result.device_id == deviceId else {
+        guard result.deviceId == deviceId else {
             throw SyncError.unexpectedResponseBody
         }
     }
 
-    // Not using CodingKeys to keep it simple
-    // swiftlint:disable identifier_name
     struct Signup {
         struct Result: Decodable {
 
-            let user_id: String
+            let userId: String
             let token: String
  
         }
 
         struct Parameters: Encodable {
 
-            let user_id: String
-            let hashed_password: String
-            let protected_encryption_key: String
-            let device_id: String
-            let device_name: String
+            let userId: String
+            let hashedPassword: String
+            let protectedEncryptionKey: String
+            let deviceId: String
+            let deviceName: String
 
         }
     }
@@ -187,19 +191,19 @@ struct AccountManager: AccountManaging {
         struct Result: Decodable {
             let devices: [Device]
             let token: String
-            let protected_encryption_key: String
+            let protectedEncryptionKey: String
         }
 
         struct Device: Decodable {
-            let device_id: String
-            let device_name: String
+            let deviceId: String
+            let deviceName: String
         }
         
         struct Parameters: Encodable {
-            let user_id: String
-            let hashed_password: String
-            let device_id: String
-            let device_name: String
+            let userId: String
+            let hashedPassword: String
+            let deviceId: String
+            let deviceName: String
         }
 
     }
@@ -207,13 +211,11 @@ struct AccountManager: AccountManaging {
     struct LogoutDevice {
 
         struct Result: Decodable {
-            let device_id: String
+            let deviceId: String
         }
 
         struct Parameters: Encodable {
-            let device_id: String
+            let deviceId: String
         }
     }
-    // swiftlint:enable identifier_name
-
 }

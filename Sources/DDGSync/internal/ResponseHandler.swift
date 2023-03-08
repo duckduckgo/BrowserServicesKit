@@ -26,8 +26,7 @@ struct ResponseHandler: ResponseHandling {
     func handleUpdates(_ data: Data) async throws {
         guard !data.isEmpty else { throw SyncError.unableToDecodeResponse("Data is empty") }
         
-        let decoder = JSONDecoder()
-        let deltas = try decoder.decode(SyncDelta.self, from: data)
+        let deltas = try JSONDecoder.snakeCaseKeys.decode(SyncDelta.self, from: data)
         
         var syncEvents = [SyncEvent]()
         

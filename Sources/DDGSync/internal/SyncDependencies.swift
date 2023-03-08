@@ -32,7 +32,7 @@ protocol SyncDependencies {
 
 }
 
-public protocol AccountManaging {
+protocol AccountManaging {
 
     func createAccount(deviceName: String) async throws -> SyncAccount
 
@@ -41,66 +41,18 @@ public protocol AccountManaging {
 
 }
 
-public struct SyncAccount {
-
-    public let deviceId: String
-    public let deviceName: String
-    public let userId: String
-    public let primaryKey: Data
-    public let secretKey: Data
-    public let token: String?
-
-    public var recoveryCode: String? {
-        guard let userIdData = userId.data(using: .utf8) else { return nil }
-        let recoveryCodeData = primaryKey + userIdData
-        return recoveryCodeData.base64EncodedString()
-    }
-}
-
-public struct RegisteredDevice: Codable {
-    
-    public let id: String
-    public let name: String
-
-}
-
-public protocol SecureStoring {
-
+protocol SecureStoring {
     func persistAccount(_ account: SyncAccount) throws
-
     func account() throws -> SyncAccount?
-
     func removeAccount() throws
 }
 
-public protocol ResponseHandling {
-
+protocol ResponseHandling {
     func handleUpdates(_ data: Data) async throws
-
 }
 
-public protocol UpdatesFetching {
-
+protocol UpdatesFetching {
     func fetch() async throws
-
-}
-
-public struct ExtractedLoginInfo {
-
-    public let userId: String
-    public let primaryKey: Data
-    public let passwordHash: Data
-    public let stretchedPrimaryKey: Data
-
-}
-
-public struct AccountCreationKeys {
-    
-    public let primaryKey: Data
-    public let secretKey: Data
-    public let protectedSecretKey: Data
-    public let passwordHash: Data
-
 }
 
 public protocol Crypting {
@@ -123,10 +75,6 @@ extension Crypting {
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try encryptAndBase64Encode(value, using: nil)
     }
-}
-
-extension SyncAccount: Codable { // TODO does this make codable part public?
-    
 }
 
 enum HTTPRequestMethod: String {
