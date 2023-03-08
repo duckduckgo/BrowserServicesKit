@@ -46,8 +46,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: endpoints.signup, method: .POST)
-        request.setBody(body: paramJson, withContentType: "application/json")
+        let request = api.createRequest(url: endpoints.signup, method: .POST, body: paramJson, contentType: "application/json")
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
@@ -83,8 +82,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: endpoints.login, method: .POST)
-        request.setBody(body: paramJson, withContentType: "application/json")
+        let request = api.createRequest(url: endpoints.login, method: .POST, body: paramJson, contentType: "application/json")
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
@@ -131,9 +129,13 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        var request = api.createRequest(url: endpoints.logoutDevice, method: .POST)
-        request.setBody(body: paramJson, withContentType: "application/json")
-        request.addHeader("Authorization", value: "Bearer \(token)")
+        let request = api.createRequest(
+            url: endpoints.logoutDevice,
+            method: .POST,
+            headers: ["Authorization": "Bearer \(token)"],
+            body: paramJson,
+            contentType: "application/json"
+        )
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {

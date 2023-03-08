@@ -17,7 +17,7 @@
 //
 
 import Foundation
-//import BrowserServicesKit
+import Networking
 
 struct UpdatesFetcher: UpdatesFetching {
 
@@ -52,19 +52,16 @@ struct UpdatesFetcher: UpdatesFetching {
         // A comma separated list of types
         let url = syncUrl.appendingPathComponent("bookmarks")
 
-        var request = dependencies.api.createRequest(url: url, method: .GET)
-        request.addHeader("Authorization", value: "bearer \(authorization)")
+        var parameters: [String: String] = [:]
 
         // The since parameter should be an array of each lasted updated timestamp, but don't pass anything if any of the types are missing.
-        if let bookmarksUpdatedSince = persistence.bookmarksLastModified,
-           !bookmarksUpdatedSince.isEmpty {
-            
-            let since = [
-                bookmarksUpdatedSince
-            ]
-            request.addParameter("since", value: since.joined(separator: ","))
-            
+        if let bookmarksUpdatedSince = persistence.bookmarksLastModified, !bookmarksUpdatedSince.isEmpty {
+            let since = [bookmarksUpdatedSince]
+            parameters["since"] = since.joined(separator: ",")
         }
+
+        let headers: HTTPHeaders = ["Authorization": "bearer \(authorization)"]
+        let request = dependencies.api.createRequest(url: url, method: .GET, parameters: parameters, headers: headers)
 
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {

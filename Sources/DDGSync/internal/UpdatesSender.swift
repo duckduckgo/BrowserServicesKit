@@ -17,7 +17,6 @@
 //
 
 import Foundation
-//import BrowserServicesKit
 
 struct UpdatesSender: UpdatesSending {
 
@@ -146,9 +145,13 @@ struct UpdatesSender: UpdatesSending {
     
     private func send(_ json: Data, withAuthorization authorization: String, toUrl url: URL) async throws -> Result<Data, Error> {
         
-        var request = dependencies.api.createRequest(url: url, method: .PATCH)
-        request.addHeader("Authorization", value: "bearer \(authorization)")
-        request.setBody(body: json, withContentType: "application/json")
+        let request = dependencies.api.createRequest(
+            url: url,
+            method: .PATCH,
+            headers: ["Authorization": "Bearer \(authorization)"],
+            body: json,
+            contentType: "application/json"
+        )
         let result = try await request.execute()
         guard (200 ..< 300).contains(result.response.statusCode) else {
             throw SyncError.unexpectedStatusCode(result.response.statusCode)

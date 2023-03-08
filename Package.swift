@@ -89,7 +89,8 @@ let package = Package(
             name: "DDGSync",
             dependencies: [
                 "Common",
-                .product(name: "DDGSyncCrypto", package: "sync_crypto")
+                .product(name: "DDGSyncCrypto", package: "sync_crypto"),
+                "Networking"
             ]
         ),
         .target(
