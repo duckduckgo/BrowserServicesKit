@@ -153,9 +153,6 @@ struct UpdatesSender: UpdatesSending {
             contentType: "application/json"
         )
         let result = try await request.execute()
-        guard (200 ..< 300).contains(result.response.statusCode) else {
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
-        }
 
         guard let data = result.data else {
             throw SyncError.noResponseBody

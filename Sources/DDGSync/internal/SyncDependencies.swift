@@ -17,9 +17,8 @@
 //
 
 import Foundation
-//import BrowserServicesKit
 
-public protocol SyncDependencies {
+protocol SyncDependencies {
 
     var endpoints: Endpoints { get }
     var account: AccountManaging { get }

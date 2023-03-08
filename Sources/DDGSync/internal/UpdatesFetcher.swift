@@ -64,9 +64,6 @@ struct UpdatesFetcher: UpdatesFetching {
         let request = dependencies.api.createRequest(url: url, method: .GET, parameters: parameters, headers: headers)
 
         let result = try await request.execute()
-        guard (200 ..< 300).contains(result.response.statusCode) else {
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
-        }
 
         guard let data = result.data else {
             throw SyncError.noResponseBody

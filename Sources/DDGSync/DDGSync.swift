@@ -18,19 +18,16 @@
 
 import Foundation
 import Combine
-
 import DDGSyncCrypto
 
 public class DDGSync: DDGSyncing {
 
     enum Constants {
-        
 #if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
 #else
         public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
 #endif
-        
     }
 
     @Published public private(set) var isAuthenticated: Bool
@@ -42,35 +39,12 @@ public class DDGSync: DDGSyncing {
         try? dependencies.secureStore.account()
     }
 
-    let persistence: LocalDataPersisting
-    let dependencies: SyncDependencies
-
     /// This is the constructor intended for use by app clients.
     public convenience init(persistence: LocalDataPersisting) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence)
         self.init(persistence: persistence, dependencies: dependencies)
     }
 
-    /// TODO delete this - only intended for use by the CLI during dev
-    public convenience init(persistence: LocalDataPersisting,
-                            fileStorageUrl: URL,
-                            baseUrl: URL,
-                            secureStore: SecureStoring) {
-        
-        let dependencies = ProductionDependencies(fileStorageUrl: fileStorageUrl,
-                                                  baseUrl: baseUrl,
-                                                  persistence: persistence,
-                                                  secureStore: secureStore)
-        
-        self.init(persistence: persistence, dependencies: dependencies)
-    }
-
-    init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
-        self.persistence = persistence
-        self.dependencies = dependencies
-        self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
-    }
-    
     public func createAccount(deviceName: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
@@ -121,6 +95,17 @@ public class DDGSync: DDGSyncing {
         try await dependencies.account.logout(deviceId: deviceId, token: token)
         try dependencies.secureStore.removeAccount()
         updateIsAuthenticated()
+    }
+
+    // MARK: -
+
+    let persistence: LocalDataPersisting
+    let dependencies: SyncDependencies
+
+    init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
+        self.persistence = persistence
+        self.dependencies = dependencies
+        self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
     }
 
     private func updateIsAuthenticated() {

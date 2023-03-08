@@ -19,7 +19,7 @@
 import Foundation
 import Networking
 
-public protocol RemoteAPIRequestCreating {
+protocol RemoteAPIRequestCreating {
 
     func createRequest(url: URL, method: HTTPRequestMethod) -> HTTPRequesting
 
@@ -40,7 +40,7 @@ public protocol RemoteAPIRequestCreating {
 
 }
 
-public extension RemoteAPIRequestCreating {
+extension RemoteAPIRequestCreating {
     func createRequest(url: URL, method: HTTPRequestMethod) -> HTTPRequesting {
         createRequest(url: url, method: method, parameters: [:], headers: [:], body: nil, contentType: nil)
     }
@@ -59,7 +59,7 @@ public extension RemoteAPIRequestCreating {
     }
 }
 
-public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
+struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
     public init() { }
 
@@ -84,19 +84,15 @@ public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
     }
 }
 
-public enum HTTPRequestMethod: String {
-
+enum HTTPRequestMethod: String {
     case GET
     case POST
     case PATCH
     case DELETE
-
 }
 
-public protocol HTTPRequesting {
-
+protocol HTTPRequesting {
     func execute() async throws -> HTTPResult
-
 }
 
 extension APIRequest.HTTPMethod {
@@ -116,15 +112,18 @@ extension APIRequest.HTTPMethod {
 
 extension APIRequest: HTTPRequesting {
 
-    public func execute() async throws -> HTTPResult {
-        let (data, response) = try await fetch()
-        return .init(data: data, response: response)
+    func execute() async throws -> HTTPResult {
+        do {
+            let (data, response) = try await fetch()
+            return .init(data: data, response: response)
+        } catch APIRequest.Error.invalidStatusCode(let code) {
+            throw SyncError.unexpectedStatusCode(code)
+        }
     }
 }
 
-public struct HTTPResult {
+struct HTTPResult {
 
-    public let data: Data?
-    public let response: HTTPURLResponse
-
+    let data: Data?
+    let response: HTTPURLResponse
 }

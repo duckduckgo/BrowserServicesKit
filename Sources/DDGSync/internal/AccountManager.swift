@@ -18,7 +18,6 @@
 
 import Foundation
 import DDGSyncCrypto
-//import BrowserServicesKit
 
 struct AccountManager: AccountManaging {
 
@@ -49,9 +48,6 @@ struct AccountManager: AccountManaging {
         let request = api.createRequest(url: endpoints.signup, method: .POST, body: paramJson, contentType: "application/json")
 
         let result = try await request.execute()
-        guard (200 ..< 300).contains(result.response.statusCode) else {
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
-        }
 
         guard let body = result.data else {
             throw SyncError.noResponseBody
@@ -85,9 +81,6 @@ struct AccountManager: AccountManaging {
         let request = api.createRequest(url: endpoints.login, method: .POST, body: paramJson, contentType: "application/json")
 
         let result = try await request.execute()
-        guard (200 ..< 300).contains(result.response.statusCode) else {
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
-        }
 
         guard let body = result.data else {
             throw SyncError.noResponseBody
@@ -138,9 +131,6 @@ struct AccountManager: AccountManaging {
         )
 
         let result = try await request.execute()
-        guard (200 ..< 300).contains(result.response.statusCode) else {
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
-        }
 
         guard let body = result.data else {
             throw SyncError.noResponseBody
