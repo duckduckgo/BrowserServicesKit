@@ -43,9 +43,13 @@ struct Crypter: Crypting {
         return Data(encryptedBytes).base64EncodedString()
     }
 
-    func base64DecodeAndDecrypt(_ value: String) throws -> String {
-        guard let account = try secureStore.account() else {
-            throw SyncError.accountNotFound
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String {
+        var decryptionKey: [UInt8] = secretKey?.safeBytes ?? []
+        if decryptionKey.isEmpty {
+            guard let account = try secureStore.account() else {
+                throw SyncError.accountNotFound
+            }
+            decryptionKey = account.secretKey.safeBytes
         }
 
         guard let data = Data(base64Encoded: value) else {
@@ -54,9 +58,8 @@ struct Crypter: Crypting {
 
         var encryptedBytes = data.safeBytes
         var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
-        var secretKey = account.secretKey.safeBytes
 
-        let result = ddgSyncDecrypt(&rawBytes, &encryptedBytes, UInt64(encryptedBytes.count), &secretKey)
+        let result = ddgSyncDecrypt(&rawBytes, &encryptedBytes, UInt64(encryptedBytes.count), &decryptionKey)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToDecryptValue("ddgSyncDecrypt failed: \(result)")
         }
@@ -99,7 +102,7 @@ struct Crypter: Crypting {
 
         recoveryKey.copyBytes(to: &primaryKeyBytes, from: 0 ..< primaryKeySize)
         recoveryKey.copyBytes(to: &userIdBytes, from: primaryKeySize ..< recoveryKey.count)
-             
+
         guard let userId = String(data: Data(userIdBytes), encoding: .utf8) else {
             throw SyncError.failedToCreateAccountKeys("failed to get userId from recovery key")
         }
@@ -122,7 +125,7 @@ struct Crypter: Crypting {
         var secretKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
         var protectedSecretKeyBytes = protectedSecretKey.safeBytes
         assert(protectedSecretKey.count == DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE.rawValue)
-        
+
         var stretchedPrimaryKeyBytes = stretchedPrimaryKey.safeBytes
         assert(stretchedPrimaryKeyBytes.count == DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue)
 
@@ -130,7 +133,7 @@ struct Crypter: Crypting {
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToCreateAccountKeys("ddgSyncDecrypt failed: \(result)")
         }
-        
+
         return Data(secretKeyBytes)
     }
 

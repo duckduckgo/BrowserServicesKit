@@ -25,12 +25,14 @@ struct AccountManager: AccountManaging {
     let api: RemoteAPIRequestCreating
     let crypter: Crypting
 
-    func createAccount(deviceName: String) async throws -> SyncAccount {
+    func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount {
         let deviceId = UUID().uuidString
         let userId = UUID().uuidString
         let password = UUID().uuidString
 
         let accountKeys = try crypter.createAccountCreationKeys(userId: userId, password: password)
+        let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: accountKeys.primaryKey)
+        let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: accountKeys.primaryKey)
 
         let hashedPassword = Data(accountKeys.passwordHash).base64EncodedString()
         let protectedEncyrptionKey = Data(accountKeys.protectedSecretKey).base64EncodedString()
@@ -40,7 +42,8 @@ struct AccountManager: AccountManaging {
             hashedPassword: hashedPassword,
             protectedEncryptionKey: protectedEncyrptionKey,
             deviceId: deviceId,
-            deviceName: deviceName
+            deviceName: encryptedDeviceName,
+            deviceType: encryptedDeviceType
         )
 
         guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
@@ -68,21 +71,25 @@ struct AccountManager: AccountManaging {
 
         return SyncAccount(deviceId: deviceId,
                            deviceName: deviceName,
+                           deviceType: deviceType,
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
                            token: result.token)
     }
 
-    func login(recoveryKey: Data, deviceName: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+    func login(recoveryKey: Data, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
         let deviceId = UUID().uuidString
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
+        let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: recoveryInfo.primaryKey)
+        let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: recoveryInfo.primaryKey)
 
         let params = Login.Parameters(
             userId: recoveryInfo.userId,
             hashedPassword: recoveryInfo.passwordHash.base64EncodedString(),
             deviceId: deviceId,
-            deviceName: deviceName
+            deviceName: encryptedDeviceName,
+            deviceType: encryptedDeviceType
         )
 
         guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
@@ -117,10 +124,11 @@ struct AccountManager: AccountManaging {
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
-        return (
+        return try (
             account: SyncAccount(
                 deviceId: deviceId,
                 deviceName: deviceName,
+                deviceType: deviceType,
                 userId: recoveryInfo.userId,
                 primaryKey: recoveryInfo.primaryKey,
                 secretKey: secretKey,
@@ -129,7 +137,8 @@ struct AccountManager: AccountManaging {
             devices: result.devices.map {
                 RegisteredDevice(
                     id: $0.deviceId,
-                    name: $0.deviceName
+                    name: try crypter.base64DecodeAndDecrypt($0.deviceName, using: recoveryInfo.primaryKey),
+                    type: try crypter.base64DecodeAndDecrypt($0.deviceType, using: recoveryInfo.primaryKey)
                 )
             }
         )
@@ -180,6 +189,7 @@ struct AccountManager: AccountManaging {
             let protectedEncryptionKey: String
             let deviceId: String
             let deviceName: String
+            let deviceType: String
         }
     }
 
@@ -194,6 +204,7 @@ struct AccountManager: AccountManaging {
         struct Device: Decodable {
             let deviceId: String
             let deviceName: String
+            let deviceType: String
         }
         
         struct Parameters: Encodable {
@@ -201,6 +212,7 @@ struct AccountManager: AccountManaging {
             let hashedPassword: String
             let deviceId: String
             let deviceName: String
+            let deviceType: String
         }
 
     }

@@ -45,17 +45,17 @@ public class DDGSync: DDGSyncing {
         self.init(persistence: persistence, dependencies: dependencies)
     }
 
-    public func createAccount(deviceName: String) async throws {
+    public func createAccount(deviceName: String, deviceType: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
-        let account = try await dependencies.account.createAccount(deviceName: deviceName)
+        let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(account)
         updateIsAuthenticated()
     }
 
-    public func login(recoveryKey: String, deviceName: String) async throws {
+    public func login(recoveryKey: String, deviceName: String, deviceType: String) async throws {
         guard let recoveryKeyData = Data(base64Encoded: recoveryKey) else {
             throw SyncError.invalidRecoveryKey
         }
@@ -63,7 +63,7 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountAlreadyExists
         }
 
-        let result = try await dependencies.account.login(recoveryKey: recoveryKeyData, deviceName: deviceName)
+        let result = try await dependencies.account.login(recoveryKey: recoveryKeyData, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
         updateIsAuthenticated()
     }

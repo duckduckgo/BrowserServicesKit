@@ -22,6 +22,7 @@ import Foundation
 public struct SyncAccount: Codable {
     public let deviceId: String
     public let deviceName: String
+    public let deviceType: String
     public let userId: String
     public let primaryKey: Data
     public let secretKey: Data
@@ -37,6 +38,7 @@ public struct SyncAccount: Codable {
 public struct RegisteredDevice: Codable {
     public let id: String
     public let name: String
+    public let type: String
 }
 
 public struct AccountCreationKeys {

@@ -43,7 +43,7 @@ struct ResponseHandler: ResponseHandling {
         try await persistence.persistEvents(syncEvents)
 
         // Only save this after things have been persisted
-        if let bookmarksLastModified = deltas.bookmarks?.last_modified, !bookmarksLastModified.isEmpty {
+        if let bookmarksLastModified = deltas.bookmarks?.lastModified, !bookmarksLastModified.isEmpty {
             persistence.updateBookmarksLastModified(bookmarksLastModified)
         }
     }
@@ -80,19 +80,12 @@ struct ResponseHandler: ResponseHandling {
     }
     
     struct SyncDelta: Decodable {
-        
         var bookmarks: BookmarkDeltas?
-        
     }
 
-    // Not using CodingKeys to keep it simple
-    // swiftlint:disable identifier_name
     struct BookmarkDeltas: Decodable {
-        
-        var last_modified: String?
+        var lastModified: String?
         var entries: [BookmarkUpdate]
-        
     }
-    // swiftlint:enable identifier_name
 
 }

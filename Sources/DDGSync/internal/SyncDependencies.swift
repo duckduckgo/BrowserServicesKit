@@ -34,9 +34,9 @@ protocol SyncDependencies {
 
 protocol AccountManaging {
 
-    func createAccount(deviceName: String) async throws -> SyncAccount
+    func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount
 
-    func login(recoveryKey: Data, deviceName: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
+    func login(recoveryKey: Data, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
     func logout(deviceId: String, token: String) async throws
 
 }
@@ -61,6 +61,7 @@ public protocol Crypting {
     func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
 
     func base64DecodeAndDecrypt(_ value: String) throws -> String
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
 
     func createAccountCreationKeys(userId: String, password: String) throws ->
         AccountCreationKeys
@@ -74,6 +75,10 @@ public protocol Crypting {
 extension Crypting {
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try encryptAndBase64Encode(value, using: nil)
+    }
+
+    func base64DecodeAndDecrypt(_ value: String) throws -> String {
+        try base64DecodeAndDecrypt(value, using: nil)
     }
 }
 
