@@ -413,7 +413,11 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation wkNavigation: WKNavigation?) {
         let navigation: Navigation
-        if let expectedNavigation = navigationExpectedToStart, wkNavigation != nil || expectedNavigation.navigationAction.navigationType == .sessionRestoration {
+        if let expectedNavigation = navigationExpectedToStart,
+           wkNavigation != nil
+            || expectedNavigation.navigationAction.navigationType == .sessionRestoration
+            || expectedNavigation.navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about {
+
             // regular flow: start .expected navigation
             navigation = expectedNavigation
         } else if webView.url?.isEmpty == false {
