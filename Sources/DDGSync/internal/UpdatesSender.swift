@@ -162,16 +162,12 @@ struct UpdatesSender: UpdatesSending {
     }
 
     struct Updates: Codable {
-
         var bookmarks: BookmarkUpdates
-        
     }
     
     struct BookmarkUpdates: Codable {
-        
         var modifiedSince: String?
         var updates: [BookmarkUpdate]
-        
     }
 
 }

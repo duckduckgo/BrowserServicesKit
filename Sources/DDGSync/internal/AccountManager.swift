@@ -168,21 +168,18 @@ struct AccountManager: AccountManaging {
     }
 
     struct Signup {
-        struct Result: Decodable {
 
+        struct Result: Decodable {
             let userId: String
             let token: String
- 
         }
 
         struct Parameters: Encodable {
-
             let userId: String
             let hashedPassword: String
             let protectedEncryptionKey: String
             let deviceId: String
             let deviceName: String
-
         }
     }
 

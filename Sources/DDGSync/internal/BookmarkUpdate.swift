@@ -32,18 +32,13 @@ struct BookmarkUpdate: Codable {
     let deleted: String?
     
     struct Page: Codable {
-        
         let url: String?
-
     }
     
     struct Favorite: Codable {
-        
         let next: String?
-        
     }
     
     struct Folder: Codable {
     }
-
 }
