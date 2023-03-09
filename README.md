@@ -19,19 +19,6 @@ Run `git submodule update --init --recursive`
 1. Build the `BrowserServicesKit` scheme by opening the Swift package in Xcode
 2. Run `swift build -c release` to build a release binary
 
-
-## DDG Sync
-
-Shared code for DuckDuckGo's private Sync service for Apple platforms is included in this library.  It depends on libsodium and exports a C-wrapper that encapsulates logic for creating secure messages to the sync server.  As such it includes libsodium as a framework.  
-
-### Updating libsodium
-
-* Update the submodule to the required version 
-* Build the framework using the apple-xcframework script under dist-build
-* Replace the existing framework with the one that was built
-* remove the libsodium-apple folder that gets created
-* commit all changes 
-
 ## Testing
 
 Run `swift test` on the project root folder. Please note that running the tests on Xcode will not work.
