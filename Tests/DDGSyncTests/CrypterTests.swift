@@ -59,10 +59,11 @@ class CrypterTests: XCTestCase {
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         try storage.persistAccount(SyncAccount(deviceId: "deviceId",
                                                deviceName: "deviceName",
-                                                   userId: "userId",
-                                                   primaryKey: primaryKey,
-                                                   secretKey: secretKey,
-                                                   token: "token"))
+                                               deviceType: "deviceType",
+                                               userId: "userId",
+                                               primaryKey: primaryKey,
+                                               secretKey: secretKey,
+                                               token: "token"))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
         let crypter = Crypter(secureStore: storage)
@@ -76,10 +77,11 @@ class CrypterTests: XCTestCase {
         let secretKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
         try storage.persistAccount(SyncAccount(deviceId: "deviceId",
                                                deviceName: "deviceName",
-                                                   userId: "userId",
-                                                   primaryKey: primaryKey,
-                                                   secretKey: secretKey,
-                                                   token: "token"))
+                                               deviceType: "deviceType",
+                                               userId: "userId",
+                                               primaryKey: primaryKey,
+                                               secretKey: secretKey,
+                                               token: "token"))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
         let crypter = Crypter(secureStore: storage)
