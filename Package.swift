@@ -109,6 +109,8 @@ let package = Package(
                 .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS])),
                 .define("_IS_REDIRECT_ENABLED", .when(platforms: [.macOS])),
                 .define("_MAIN_FRAME_NAVIGATION_ENABLED", .when(platforms: [.macOS])),
+                .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
+                .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
@@ -169,8 +171,13 @@ let package = Package(
                 "Navigation",
                 .product(name: "Swifter", package: "swifter")
             ],
+            resources: [
+                .copy("Resources")
+            ],
             swiftSettings: [
                 .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
+                .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
+                .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
             ]),
         .testTarget(
             name: "UserScriptTests",

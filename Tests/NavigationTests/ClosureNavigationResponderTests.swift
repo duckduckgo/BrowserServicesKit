@@ -69,7 +69,7 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
                 guard navigationActionCounter == 2 else { return .next }
                 eNavAction.fulfill()
                 return .allow
-            }  willStart: { _ in
+            } willStart: { _ in
                 eWillStart.fulfill()
             } didStart: { _ in
                 eDidStart.fulfill()

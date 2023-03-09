@@ -123,6 +123,7 @@ extension WKNavigationAction: WebViewNavigationAction {
         }
     }
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     /// returns navigation distance from current BackForwardList item for back/forward navigations
     /// -1-based, negative for back navigations; 1-based, positive for forward navigations
     public func getDistance(from historyItemIdentity: HistoryItemIdentity?) -> Int? {
@@ -142,6 +143,7 @@ extension WKNavigationAction: WebViewNavigationAction {
         }
         return nil
     }
+#endif
 
     public var isSameDocumentNavigation: Bool {
         guard let currentURL = targetFrame?.safeRequest?.url?.absoluteString,

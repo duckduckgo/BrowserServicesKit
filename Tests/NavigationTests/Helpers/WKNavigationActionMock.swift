@@ -84,9 +84,11 @@ class WKFrameInfoMock: NSObject {
 
     @objc weak var webView: WKWebView?
 
+#if _FRAME_HANDLE_ENABLED
     @objc var handle: FrameHandle {
         isMainFrame ? .fallbackMainFrameHandle : .fallbackNonMainFrameHandle
     }
+#endif
 
     init(isMainFrame: Bool, request: URLRequest, securityOrigin: WKSecurityOrigin, webView: WKWebView?) {
         self.isMainFrame = isMainFrame
