@@ -28,7 +28,7 @@ public protocol FeatureFlagger {
     func isFeatureOn(_ feature: Feature) -> Bool
 }
 
-public protocol FeatureFlaggerInternalUserDecider {
+public protocol InternalUserDecider {
     
     var isInternalUser: Bool { get }
     
@@ -70,7 +70,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
     }
 }
 
-extension DefaultFeatureFlagger: FeatureFlaggerInternalUserDecider {
+extension DefaultFeatureFlagger: InternalUserDecider {
     
     public var isInternalUser: Bool {
         return didVerifyInternalUser
