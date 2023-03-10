@@ -424,6 +424,12 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             assertionFailure("session restoration happening without NavigationAction")
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
             navigation.navigationActionReceived(.sessionRestoreNavigation(webView: webView, mainFrameNavigation: navigation))
+            navigation.willStart()
+        } else if let wkNavigation {
+            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
+            let navigationAction = NavigationAction(request: URLRequest(url: .empty), navigationType: .other, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
+            navigation.navigationActionReceived(navigationAction)
+            navigation.willStart()
         } else {
             return
         }
