@@ -39,6 +39,8 @@ public protocol PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 
+    func isEnabled(subfeature: String, for feature: PrivacyFeature) -> Bool
+
     /// Domains for which given PrivacyFeature is disabled.
     ///
     /// Use `isTempUnprotected(domain:)` to check if a feature is disabled for the given domain.
