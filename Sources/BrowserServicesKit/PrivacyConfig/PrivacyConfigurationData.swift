@@ -33,6 +33,7 @@ public struct PrivacyConfigurationData {
 
     public struct State {
         static public let disabled = "disabled"
+        static public let `internal` = "internal"
         static public let enabled = "enabled"
     }
 

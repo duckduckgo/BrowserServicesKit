@@ -117,12 +117,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         if let fetchedData = fetchedConfigData {
             return AppPrivacyConfiguration(data: fetchedData.data,
                                            identifier: fetchedData.etag,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: DefaultFeatureFlagger())
         }
 
         return AppPrivacyConfiguration(data: embeddedConfigData.data,
                                        identifier: embeddedConfigData.etag,
-                                       localProtection: localProtection)
+                                       localProtection: localProtection,
+                                       internalUserDecider: DefaultFeatureFlagger())
     }
     
     public var currentConfig: Data {
