@@ -19,15 +19,6 @@
 
 import Foundation
 
-public enum Feature: String {
-    case debugMenu
-    case autofill
-}
-
-public protocol FeatureFlagger {
-    func isFeatureOn(_ feature: Feature) -> Bool
-}
-
 public protocol InternalUserDecider {
     
     var isInternalUser: Bool { get }
@@ -40,26 +31,18 @@ public protocol InternalUserStore {
     var didVerifyInternalUser: Bool { get set }
 }
 
-public class DefaultInternalUserDecider: FeatureFlagger {
+public class DefaultInternalUserDecider: InternalUserDecider {
     private let userDefaults = UserDefaults()
+    private static let didVerifyInternalUserKey = "com.duckduckgo.browserServicesKit.featureFlaggingDidVerifyInternalUser"
+    private static let internalUserVerificationURLHost = "use-login.duckduckgo.com"
     
     public init() {
     }
-    
-    public func isFeatureOn(_ feature: Feature) -> Bool {
-        switch feature {
-        case .debugMenu:
-            return isInternalUser
-        case .autofill:
-            if isInternalUser {
-                return true
-            } else {
-                return false
-            }
-        }
+
+    public var isInternalUser: Bool {
+        return didVerifyInternalUser
     }
 
-    private static let didVerifyInternalUserKey = "com.duckduckgo.browserServicesKit.featureFlaggingDidVerifyInternalUser"
     private var didVerifyInternalUser: Bool {
         get {
             return userDefaults.bool(forKey: Self.didVerifyInternalUserKey)
@@ -68,16 +51,7 @@ public class DefaultInternalUserDecider: FeatureFlagger {
             userDefaults.set(newValue, forKey: Self.didVerifyInternalUserKey)
         }
     }
-}
 
-extension DefaultInternalUserDecider: InternalUserDecider {
-    
-    public var isInternalUser: Bool {
-        return didVerifyInternalUser
-    }
-    
-    private static let internalUserVerificationURLHost = "use-login.duckduckgo.com"
-    
     @discardableResult
     public func markUserAsInternalIfNeeded(forUrl url: URL?, response: HTTPURLResponse?) -> Bool {
         if isInternalUser { // If we're already an internal user, we don't need to do anything
