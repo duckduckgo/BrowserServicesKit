@@ -80,6 +80,17 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         
         return satisfiesMinVersion(feature: feature, versionProvider: versionProvider)
                 && feature.state == PrivacyConfigurationData.State.enabled
+
+    public func isEnabled(subfeature: String, for feature: PrivacyFeature) -> Bool {
+        let subfeatures = subfeatures(for: feature)
+        switch subfeatures[subfeature]?.state {
+        case PrivacyConfigurationData.State.enabled: return true
+        default: return false
+        }
+    }
+
+    private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
+        return data.features[feature.rawValue]?.features ?? [:]
     }
     
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {
