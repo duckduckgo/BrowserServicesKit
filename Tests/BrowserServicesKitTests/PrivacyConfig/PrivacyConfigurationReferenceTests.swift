@@ -43,7 +43,7 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
             let privacyConfiguration = AppPrivacyConfiguration(data: privacyConfigurationData,
                                                                identifier: UUID().uuidString,
                                                                localProtection: MockDomainsProtectionStore(),
-                                                               internalUserDecider: DefaultFeatureFlagger())
+                                                               internalUserDecider: DefaultInternalUserDecider())
             for test in testConfig.tests {
                 if test.exceptPlatforms.contains(.macosBrowser) || test.exceptPlatforms.contains(.iosBrowser) {
                     os_log("Skipping test %@", test.name)

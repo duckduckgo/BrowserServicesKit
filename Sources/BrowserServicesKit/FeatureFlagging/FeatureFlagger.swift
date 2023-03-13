@@ -40,7 +40,7 @@ public protocol InternalUserStore {
     var didVerifyInternalUser: Bool { get set }
 }
 
-public class DefaultFeatureFlagger: FeatureFlagger {
+public class DefaultInternalUserDecider: FeatureFlagger {
     private let userDefaults = UserDefaults()
     
     public init() {
@@ -70,7 +70,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
     }
 }
 
-extension DefaultFeatureFlagger: InternalUserDecider {
+extension DefaultInternalUserDecider: InternalUserDecider {
     
     public var isInternalUser: Bool {
         return didVerifyInternalUser
@@ -95,7 +95,7 @@ extension DefaultFeatureFlagger: InternalUserDecider {
         if let statusCode = statusCode,
            statusCode == 200,
            let url = url,
-           url.host == DefaultFeatureFlagger.internalUserVerificationURLHost {
+           url.host == DefaultInternalUserDecider.internalUserVerificationURLHost {
             
             return true
         }

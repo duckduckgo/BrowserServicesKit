@@ -188,7 +188,7 @@ final class WebKitTestHelper {
         return AppPrivacyConfiguration(data: privacyData,
                                        identifier: "",
                                        localProtection: localProtection,
-                                       internalUserDecider: DefaultFeatureFlagger())
+                                       internalUserDecider: DefaultInternalUserDecider())
     }
 
     static func prepareContentBlockingRules(trackerData: TrackerData,

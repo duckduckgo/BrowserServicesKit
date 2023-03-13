@@ -118,13 +118,13 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
             return AppPrivacyConfiguration(data: fetchedData.data,
                                            identifier: fetchedData.etag,
                                            localProtection: localProtection,
-                                           internalUserDecider: DefaultFeatureFlagger())
+                                           internalUserDecider: DefaultInternalUserDecider())
         }
 
         return AppPrivacyConfiguration(data: embeddedConfigData.data,
                                        identifier: embeddedConfigData.etag,
                                        localProtection: localProtection,
-                                       internalUserDecider: DefaultFeatureFlagger())
+                                       internalUserDecider: DefaultInternalUserDecider())
     }
     
     public var currentConfig: Data {

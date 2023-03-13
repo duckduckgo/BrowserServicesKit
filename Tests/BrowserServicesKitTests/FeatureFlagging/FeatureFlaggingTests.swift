@@ -20,32 +20,32 @@
 import XCTest
 @testable import BrowserServicesKit
 
-class DefaultFeatureFlaggerTests: XCTestCase {
+class DefaultInternalUserDeciderTests: XCTestCase {
     
     let correctURL = URL(string: "http://use-login.duckduckgo.com")!
     let correctStatusCode = 200
     
     func testShouldMarkUserAsInternalWhenURLAndStatusCodeCorrectThenReturnsTrue() {
-        let featureFlagger = DefaultFeatureFlagger()
+        let featureFlagger = DefaultInternalUserDecider()
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: correctURL, statusCode: correctStatusCode)
         XCTAssertTrue(result)
     }
 
     func testShouldMarkUserAsInternalWhenURLIsCorrectAndStatusCodeisIncorrectThenReturnsFalse() {
-        let featureFlagger = DefaultFeatureFlagger()
+        let featureFlagger = DefaultInternalUserDecider()
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: correctURL, statusCode: 300)
         XCTAssertFalse(result)
     }
 
     func testShouldMarkUserAsInternalWhenURLIsIncorrectButSubdomainIsCorrectAndStatusCodeIsCorrectThenReturnsFalse() {
-        let featureFlagger = DefaultFeatureFlagger()
+        let featureFlagger = DefaultInternalUserDecider()
         let url = URL(string: "login.fishtown.com")!
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: url, statusCode: correctStatusCode)
         XCTAssertFalse(result)
     }
 
     func testShouldMarkUserAsInternalWhenURLIsIncorrectButdomainIsCorrectAndStatusCodeIsCorrectThenReturnsFalse() {
-        let featureFlagger = DefaultFeatureFlagger()
+        let featureFlagger = DefaultInternalUserDecider()
         let url = URL(string: "sso.duckduckgo.com")!
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: url, statusCode: correctStatusCode)
         XCTAssertFalse(result)
