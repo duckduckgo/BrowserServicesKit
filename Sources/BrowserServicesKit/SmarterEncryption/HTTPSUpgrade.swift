@@ -21,7 +21,13 @@ import Foundation
 import os.log
 import BloomFilterWrapper
 
-public struct HTTPSUpgradeError: Error {}
+public enum HTTPSUpgradeError: Error {
+    case badUrl
+    case nonHttp
+    case domainExcluded
+    case featureDisabled
+    case nonUpgradable
+}
 
 public final class HTTPSUpgrade {
     
@@ -38,19 +44,17 @@ public final class HTTPSUpgrade {
     }
     
     public func upgrade(url: URL) async -> Result<URL, HTTPSUpgradeError> {
-        guard url.isHttp,
-              let host = url.host,
-              !shouldExcludeDomain(host),
-              isFeatureEnabled(forHost: host, privacyConfig: privacyConfig) else {
-                  return .failure(.init())
-        }
+        guard url.isHttp else { return .failure(.nonHttp) }
+        guard let host = url.host else { return .failure(.badUrl) }
+        guard !shouldExcludeDomain(host) else { return .failure(.domainExcluded) }
+        guard isFeatureEnabled(forHost: host, privacyConfig: privacyConfig) else { return .failure(.featureDisabled) }
         
         waitForAnyReloadsToComplete()
         let isUpgradable = isInUpgradeList(host: host)
         if isUpgradable, let upgradedUrl = url.toHttps() {
             return .success(upgradedUrl)
         }
-        return .failure(.init())
+        return .failure(.nonUpgradable)
     }
     
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
