@@ -18,7 +18,6 @@
 //
 
 import XCTest
-import AppKit
 import BrowserServicesKit
 import os.log
 import WebKit
@@ -141,10 +140,7 @@ final class GPCReferenceTests: XCTestCase {
         })
         
         let javascriptToEvaluate = "Navigator.prototype.globalPrivacyControl"
-        
-        let gpcEnabled = GPCRequestFactory().isGPCEnabled(url: URL(string:test.siteURL)!, config: privacyManager.privacyConfig)
-        XCTAssertTrue(gpcEnabled == test.expectGPCAPI)
-        
+                
         navigationDelegateMock.onDidFinishNavigation = {
             
             webView.evaluateJavaScript(javascriptToEvaluate, completionHandler: { result, err in

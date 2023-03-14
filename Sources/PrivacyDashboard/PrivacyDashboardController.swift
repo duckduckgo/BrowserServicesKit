@@ -21,10 +21,15 @@ import WebKit
 import Combine
 import PrivacyDashboardResources
 
+public enum PrivacyDashboardOpenSettingsTarget: String {
+    case general
+    case cookiePopupManagement = "cpm"
+}
+
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
-    
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch isEnabled: Bool)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
 
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
@@ -36,7 +41,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetPermission permissionName: String, to state: PermissionAuthorizationState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, setPermission permissionName: String, paused: Bool)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: String)
 #endif
     
 }
@@ -224,9 +228,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings target: String) {
-#if os(macOS)
-        delegate?.privacyDashboardController(self, didRequestOpenSettings: target)
-#endif
+        let settingsTarget = PrivacyDashboardOpenSettingsTarget(rawValue: target) ?? .general
+        delegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo isProtected: Bool) {

@@ -60,6 +60,28 @@ public extension String {
     func droppingWwwPrefix() -> String {
         self.dropping(prefix: "www.")
     }
+
+    var hashedSuffixRange: PartialRangeFrom<String.Index>? {
+        if let idx = self.firstIndex(of: "#") {
+            return idx...
+        } else if self.hasPrefix("about:"),
+                  let range = self.range(of: "%23") {
+            return range.lowerBound...
+        }
+        return nil
+    }
+
+    var hashedSuffix: String? {
+        hashedSuffixRange.map { range in String(self[range]) }
+    }
+
+    func droppingHashedSuffix() -> String {
+        if let range = self.hashedSuffixRange {
+            guard range.lowerBound > self.startIndex else { return "" }
+            return String(self[..<range.lowerBound])
+        }
+        return self
+    }
     
     func autofillNormalized() -> String {
         let autofillCharacterSet = CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters).union(.symbols)
@@ -95,6 +117,14 @@ public extension String {
             return false
         }
         return matches(regex)
+    }
+
+    func replacing(_ regex: NSRegularExpression, with replacement: String) -> String {
+        regex.stringByReplacingMatches(in: self, range: NSRange(location: 0, length: utf16.count), withTemplate: replacement)
+    }
+
+    func replacing(regex pattern: String, with replacement: String) -> String {
+        self.replacing(regex(pattern), with: replacement)
     }
 
 }

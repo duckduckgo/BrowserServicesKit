@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -11,22 +11,29 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
+        // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
-        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"])
+        .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
+        .library(name: "Configuration", targets: ["Configuration"]),
+        .library(name: "Networking", targets: ["Networking"]),
+        .library(name: "Navigation", targets: ["Navigation"]),
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.2.0")),
+        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.3.0")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("2.0.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.1.1")),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.2.1")),
+        .package(url: "https://github.com/duckduckgo/sync_crypto", .exact("0.0.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.4.1")),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0"))
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
+        .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
     ],
     targets: [
         .target(
@@ -74,9 +81,17 @@ let package = Package(
             name: "BloomFilter",
             resources: [
                 .process("CMakeLists.txt")
-            ]),    
+            ]),
         .target(
             name: "Crashes"
+        ),
+        .target(
+            name: "DDGSync",
+            dependencies: [
+                "Common",
+                .product(name: "DDGSyncCrypto", package: "sync_crypto"),
+                "Networking"
+            ]
         ),
         .target(
             name: "Common",
@@ -88,15 +103,29 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ]),
+            ]
+        ),
         .target(
             name: "ContentBlocking",
             dependencies: [
                 "TrackerRadarKit"
             ]),
         .target(
+            name: "Navigation",
+            dependencies: [
+                "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug)),
+                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
+                .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS])),
+                .define("_IS_REDIRECT_ENABLED", .when(platforms: [.macOS])),
+                .define("_MAIN_FRAME_NAVIGATION_ENABLED", .when(platforms: [.macOS])),
+                .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
+            ]),
+        .target(
             name: "UserScript"
-            ),
+        ),
         .target(
             name: "PrivacyDashboard",
             dependencies: [
@@ -107,10 +136,26 @@ let package = Package(
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard"
-            ),
+        ),
+        .target(
+            name: "Configuration",
+            dependencies: [
+                "Networking",
+                "BrowserServicesKit",
+                "Common"
+            ]),
+        .target(
+            name: "Networking",
+            dependencies: [
+                "Common"
+            ]),
+        .target(
+            name: "TestUtils",
+            dependencies: [
+                "Networking"
+            ]),
         
         // MARK: - Test targets
-        
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -121,9 +166,33 @@ let package = Package(
             ]
         ),
         .testTarget(
+            name: "DDGSyncTests",
+            dependencies: [
+                "DDGSync"
+            ]),
+        .testTarget(
+            name: "DDGSyncCryptoTests",
+            dependencies: [
+                .product(name: "DDGSyncCrypto", package: "sync_crypto")
+            ]),
+        .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
+            ]),
+        .testTarget(
+            name: "NetworkingTests",
+            dependencies: [
+                "TestUtils"
+            ]),
+        .testTarget(
+            name: "NavigationTests",
+            dependencies: [
+                "Navigation",
+                .product(name: "Swifter", package: "swifter")
+            ],
+            swiftSettings: [
+                .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
             ]),
         .testTarget(
             name: "UserScriptTests",
@@ -137,7 +206,15 @@ let package = Package(
         .testTarget(
             name: "PersistenceTests",
             dependencies: [
-                "Persistence"
+                "Persistence",
+                "TrackerRadarKit"
+            ]
+        ),
+        .testTarget(
+            name: "ConfigurationTests",
+            dependencies: [
+                "Configuration",
+                "TestUtils"
             ]
         )
     ],

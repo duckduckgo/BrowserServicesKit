@@ -20,7 +20,7 @@ import Foundation
 
 public protocol Bookmark {
 
-    var url: URL { get }
+    var url: String { get }
     var title: String { get }
     var isFavorite: Bool { get }
 

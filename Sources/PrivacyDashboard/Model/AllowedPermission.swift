@@ -33,7 +33,7 @@ public struct AllowedPermission: Codable {
                 permission: String,
                 used: Bool,
                 paused: Bool,
-                options: [[String : String]] = []) {
+                options: [[String: String]] = []) {
         self.key = key
         self.icon = icon
         self.title = title

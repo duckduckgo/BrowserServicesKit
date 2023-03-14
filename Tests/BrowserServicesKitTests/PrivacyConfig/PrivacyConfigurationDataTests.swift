@@ -25,11 +25,9 @@ class PrivacyConfigurationDataTests: XCTestCase {
 
     private var data = JsonTestDataLoader()
 
-    func testJSONParsing() {
+    func testJSONParsing() throws {
         let jsonData = data.fromJsonFile("Resources/privacy-config-example.json")
-        let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-
-        let configData = PrivacyConfigurationData(json: json!)
+        let configData = try PrivacyConfigurationData(data: jsonData)
 
         XCTAssertEqual(configData.unprotectedTemporary.count, 1)
         XCTAssertEqual(configData.unprotectedTemporary.first?.domain, "example.com")
@@ -37,6 +35,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         let duckPlayerFeature = configData.features["duckPlayer"]
         XCTAssertNotNil(duckPlayerFeature)
         XCTAssertEqual(duckPlayerFeature?.state, "enabled")
+
+        let windowsWaitlistFeature = configData.features["windowsWaitlist"]
+        XCTAssertNotNil(windowsWaitlistFeature)
+        XCTAssertEqual(windowsWaitlistFeature?.state, "enabled")
 
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
@@ -77,6 +79,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         let duckPlayerFeature = configData.features["duckPlayer"]
         XCTAssertNotNil(duckPlayerFeature)
         XCTAssertEqual(duckPlayerFeature?.state, "enabled")
+
+        let windowsWaitlistFeature = configData.features["windowsWaitlist"]
+        XCTAssertNotNil(windowsWaitlistFeature)
+        XCTAssertEqual(windowsWaitlistFeature?.state, "enabled")
 
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)

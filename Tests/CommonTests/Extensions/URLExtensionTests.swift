@@ -20,6 +20,8 @@ import XCTest
 @testable import Common
 
 // swiftlint:disable line_length
+// swiftlint:disable type_body_length
+
 final class URLExtensionTests: XCTestCase {
 
     func test_external_urls_are_valid() {
@@ -29,10 +31,53 @@ final class URLExtensionTests: XCTestCase {
     }
 
     func test_navigational_urls_are_valid() {
-        XCTAssertTrue("http://example.com".url!.isValid)
-        XCTAssertTrue("https://example.com".url!.isValid)
-        XCTAssertTrue("http://localhost".url!.isValid)
-        XCTAssertTrue("http://localdomain".url!.isValid)
+        struct TestItem {
+            let rawValue: String
+            let line: UInt
+            init(_ rawValue: String, line: UInt = #line) {
+                self.rawValue = rawValue
+                self.line = line
+            }
+            var url: URL? {
+                rawValue.decodedURL
+            }
+        }
+        let urls: [TestItem] = [
+            .init("http://example.com"),
+            .init("https://example.com"),
+            .init("http://localhost"),
+            .init("http://localdomain"),
+            .init("https://dax%40duck.com:123%3A456A@www.duckduckgo.com/test.php?test=S&info=test#fragment"),
+            .init("user@somehost.local:9091/index.html"),
+            .init("user:@something.local:9100"),
+            .init("user:%20@localhost:5000"),
+            .init("user:passwOrd@localhost:5000"),
+            .init("user%40local:pa%24%24s@localhost:5000"),
+            .init("mailto:test@example.com"),
+            .init("192.168.1.1"),
+            .init("http://192.168.1.1"),
+            .init("http://sheep%2B:P%40%24swrd@192.168.1.1"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1/"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1:8900/"),
+            .init("sheep%2B:P%40%24swrd@💩.la?arg=b#1"),
+            .init("sheep%2B:P%40%24swrd@xn--ls8h.la/?arg=b#1"),
+            .init("https://sheep%2B:P%40%24swrd@💩.la"),
+            .init("data:text/vnd-example+xyz;foo=bar;base64,R0lGODdh"),
+        ]
+        for item in urls {
+            XCTAssertTrue(item.url!.isValid, item.rawValue, line: item.line)
+        }
+    }
+
+    func test_non_valid_urls() {
+        let urls = [
+            "about:user:pass@blank",
+            "data:user:pass@text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
+        ]
+        for item in urls {
+            XCTAssertNil(item.url)
+        }
     }
 
     func test_when_no_scheme_in_string_url_has_scheme() {
@@ -55,6 +100,78 @@ final class URLExtensionTests: XCTestCase {
         let rootUrl = url.root!
         XCTAssertEqual(rootUrl, URL(string: "https://www.duckduckgo.com/")!)
         XCTAssert(rootUrl.isRoot)
+    }
+
+    func testBasicAuthCredential() {
+        struct TestItem {
+            let url: String
+            let user: String?
+            let password: String?
+            let line: UInt
+            init(_ url: String, _ user: String?, _ password: String?, line: UInt = #line) {
+                self.url = url
+                self.user = user
+                self.password = password
+                self.line = line
+            }
+        }
+        let urls: [TestItem] = [
+            .init("https://dax%40duck.com:123%3A456A@www.duckduckgo.com/test.php?test=S&info=test#fragment", "dax@duck.com", "123:456A"),
+            .init("user@somehost.local:9091/index.html", "user", ""),
+            .init("user:@something.local:9100", "user", ""),
+            .init("user:%20@localhost:5000", "user", " "),
+            .init("user:passwOrd@localhost:5000", "user", "passwOrd"),
+            .init("user%40local:pa%24%24@localhost:5000", "user@local", "pa$$"),
+            .init("mailto:test@example.com", nil, nil),
+            .init("sheep%2B:P%40%24swrd@💩.la", "sheep+", "P@$swrd"),
+            .init("sheep%2B:P%40%24swrd@xn--ls8h.la/", "sheep+", "P@$swrd"),
+            .init("https://sheep%2B:P%40%24swrd@💩.la", "sheep+", "P@$swrd"),
+            .init("http://sheep%2B:P%40%24swrd@192.168.1.1", "sheep+", "P@$swrd"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1", "sheep+", "P@$swrd"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1/", "sheep+", "P@$swrd"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1:8900/", "sheep+", "P@$swrd"),
+        ]
+
+        for item in urls {
+            let credential = item.url.decodedURL!.basicAuthCredential
+            XCTAssertEqual(credential?.user, item.user, item.url, line: item.line)
+            XCTAssertEqual(credential?.password, item.password, item.url, line: item.line)
+        }
+    }
+
+    func testURLRemovingBasicAuthCredential() {
+        struct TestItem {
+            let url: String
+            let removingCredential: String
+            let line: UInt
+            init(_ url: String, _ removingCredential: String, line: UInt = #line) {
+                self.url = url
+                self.removingCredential = removingCredential
+                self.line = line
+            }
+        }
+        let urls: [TestItem] = [
+            .init("https://dax%40duck.com:123%3A456A@www.duckduckgo.com/test.php?test=S&info=test#fragment", "https://www.duckduckgo.com/test.php?test=S&info=test#fragment"),
+            .init("user@somehost.local:9091/index.html", "http://somehost.local:9091/index.html"),
+            .init("user:@something.local:9100", "http://something.local:9100"),
+            .init("user:%20@localhost:5000", "http://localhost:5000"),
+            .init("user:passwOrd@localhost:5000", "http://localhost:5000"),
+            .init("user%40local:pa%24%24s@localhost:5000", "http://localhost:5000"),
+            .init("mailto:test@example.com", "mailto:test@example.com"),
+            .init("sheep%2B:P%40%24swrd@💩.la", "http://xn--ls8h.la"),
+            .init("sheep%2B:P%40%24swrd@xn--ls8h.la/", "http://xn--ls8h.la/"),
+            .init("https://sheep%2B:P%40%24swrd@💩.la", "https://xn--ls8h.la"),
+            .init("http://sheep%2B:P%40%24swrd@192.168.1.1", "http://192.168.1.1"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1", "http://192.168.1.1"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1/", "http://192.168.1.1/"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1:8900", "http://192.168.1.1:8900"),
+            .init("sheep%2B:P%40%24swrd@192.168.1.1:8900/", "http://192.168.1.1:8900/"),
+        ]
+
+        for item in urls {
+            let filtered = item.url.decodedURL!.removingBasicAuthCredential()
+            XCTAssertEqual(filtered.absoluteString, item.removingCredential, line: item.line)
+        }
     }
 
     func testIsRoot() {
@@ -132,39 +249,56 @@ final class URLExtensionTests: XCTestCase {
     }
 
     func testAddressBarURLParsing() {
-        let addresses = [
-            "user@somehost.local:9091/index.html",
-            "something.local:9100",
-            "user@localhost:5000",
-            "user:password@localhost:5000",
-            "localhost",
-            "localhost:5000",
-            "sms://+44123123123",
-            "mailto:test@example.com",
-            "https://",
-            "http://duckduckgo.com",
-            "https://duckduckgo.com",
-            "https://duckduckgo.com/",
-            "duckduckgo.com",
-            "duckduckgo.com/html?q=search",
-            "www.duckduckgo.com",
-            "https://www.duckduckgo.com/html?q=search",
-            "https://www.duckduckgo.com/html/?q=search",
-            "ftp://www.duckduckgo.com",
-            "file:///users/user/Documents/afile"
+        struct TestItem {
+            let stringValue: String
+            let expectedValue: String
+            let line: UInt
+            init(_ rawValue: String, _ expectedValue: String? = nil, line: UInt = #line) {
+                self.stringValue = rawValue
+                self.expectedValue = expectedValue ?? rawValue
+                self.line = line
+            }
+            var url: URL? {
+                stringValue.decodedURL
+            }
+        }
+
+        let addresses: [TestItem] = [
+            .init("user@somehost.local:9091/index.html"),
+            .init("something.local:9100"),
+            .init("user@localhost:5000"),
+            .init("user:password@localhost:5000"),
+            .init("localhost"),
+            .init("localhost:5000"),
+            .init("sms://+44123123123"),
+            .init("mailto:test@example.com"),
+            .init("mailto:u%24ser@💩.la?arg=b#1", "mailto:u%24ser@xn--ls8h.la?arg=b%231"),
+            .init("62.12.14.111"),
+            .init("https://"),
+            .init("http://duckduckgo.com"),
+            .init("https://duckduckgo.com"),
+            .init("https://duckduckgo.com/"),
+            .init("duckduckgo.com"),
+            .init("duckduckgo.com/html?q=search"),
+            .init("www.duckduckgo.com"),
+            .init("https://www.duckduckgo.com/html?q=search"),
+            .init("https://www.duckduckgo.com/html/?q=search"),
+            .init("ftp://www.duckduckgo.com"),
+            .init("file:///users/user/Documents/afile"),
         ]
 
-        for address in addresses {
+        for item in addresses {
+            let address = item.stringValue
             let url = URL(trimmedAddressBarString: address)
-            var expectedString = address
-            let expectedScheme = address.split(separator: "/").first.flatMap {
+            var expectedString = item.expectedValue
+            let expectedScheme = address.hasPrefix("mailto:") ? "mailto" : (address.split(separator: "/").first.flatMap {
                 $0.hasSuffix(":") ? String($0).dropping(suffix: ":") : nil
-            }?.lowercased() ?? "http"
+            }?.lowercased() ?? "http")
             if !address.hasPrefix(expectedScheme) {
                 expectedString = expectedScheme + "://" + address
             }
-            XCTAssertEqual(url?.scheme, expectedScheme)
-            XCTAssertEqual(url?.absoluteString, expectedString)
+            XCTAssertEqual(url?.scheme, expectedScheme, line: item.line)
+            XCTAssertEqual(url?.absoluteString, expectedString, line: item.line)
         }
     }
 
@@ -299,9 +433,38 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(actual, expected)
     }
 
+    func testMatchesComparator() {
+        XCTAssertTrue("youtube.com".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com".url!))
+        XCTAssertTrue("youtube.com".url!.matches("http://youtube.com/".url!))
+        XCTAssertTrue("youtube.com/".url!.matches("http://youtube.com/".url!))
+        XCTAssertTrue("http://youtube.com/".url!.matches("youtube.com".url!))
+        XCTAssertTrue("http://youtube.com".url!.matches("youtube.com/".url!))
+        XCTAssertTrue("https://youtube.com/".url!.matches("https://youtube.com".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com#link#1".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com#link#1".url!))
+        XCTAssertTrue("https://youtube.com/#link#1".url!.matches("https://youtube.com/#link#1".url!))
+        XCTAssertTrue("https://youtube.com#link#1".url!.matches("https://youtube.com/#link#1".url!))
+
+        XCTAssertFalse("youtube.com".url!.matches("https://youtube.com".url!))
+        XCTAssertFalse("youtube.com/".url!.matches("https://youtube.com".url!))
+        XCTAssertFalse("youtube.com/#link#1".url!.matches("https://youtube.com#link#2".url!))
+        XCTAssertFalse("youtube.com/#link#1".url!.matches("https://youtube.com#link".url!))
+    }
+
+    func testMatchesProtectionSpace() {
+        XCTAssertTrue("youtube.com".url!.matches(URLProtectionSpace(host: "youtube.com", port: 80, protocol: "http", realm: "realm", authenticationMethod: "basic")))
+        XCTAssertTrue("http://youtube.com".url!.matches(URLProtectionSpace(host: "youtube.com", port: 80, protocol: "http", realm: "realm", authenticationMethod: "basic")))
+        XCTAssertTrue("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "https", realm: "realm", authenticationMethod: "basic")))
+
+        XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 1234, protocol: "https", realm: "realm", authenticationMethod: "basic")))
+        XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "http", realm: "realm", authenticationMethod: "basic")))
+        XCTAssertFalse("https://www.youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "https", realm: "realm", authenticationMethod: "basic")))
+    }
+
 }
 
-private extension String {
+extension String {
     var url: URL? {
         return URL(trimmedAddressBarString: self)
     }

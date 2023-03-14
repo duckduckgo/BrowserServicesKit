@@ -20,8 +20,9 @@
 import Foundation
 
 public protocol InfoBundle {
+    
     func object(forInfoDictionaryKey key: String) -> Any?
+    
 }
 
-extension Bundle: InfoBundle {
-}
+extension Bundle: InfoBundle { }

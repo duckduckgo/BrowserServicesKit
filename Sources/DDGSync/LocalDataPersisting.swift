@@ -1,6 +1,5 @@
 //
-//  UserScriptTestHelper.swift
-//  DuckDuckGo
+//  LocalDataPersisting.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,20 +17,12 @@
 //
 
 import Foundation
-import CryptoKit
 
-struct UserScriptTestHelper {
+public protocol LocalDataPersisting {
+
+    var bookmarksLastModified: String? { get }
+    func updateBookmarksLastModified(_ lastModified: String?)
     
-    static func getScriptOutput (_ src: String) -> String {
-        let hash = SHA256.hash(data: Data(src.utf8)).hashValue
+    func persistEvents(_ events: [SyncEvent]) async throws
 
-        return """
-        (() => {
-            if (window.navigator._duckduckgoloader_ && window.navigator._duckduckgoloader_.includes('\(hash)')) {return}
-            \(src)
-            window.navigator._duckduckgoloader_ = window.navigator._duckduckgoloader_ || [];
-            window.navigator._duckduckgoloader_.push('\(hash)')
-        })()
-        """
-    }
 }

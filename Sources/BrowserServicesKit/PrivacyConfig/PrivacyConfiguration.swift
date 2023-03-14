@@ -106,4 +106,5 @@ public enum PrivacyFeature: String {
     case customUserAgent
     case referrer
     case adClickAttribution
+    case windowsWaitlist
 }

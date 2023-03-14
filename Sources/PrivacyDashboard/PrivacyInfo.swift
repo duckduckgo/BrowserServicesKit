@@ -46,10 +46,6 @@ public final class PrivacyInfo {
     public var domain: String? {
         return url.host
     }
-
-    public var isMajorTrackerNetwork: Bool {
-        return parentEntity?.prevalence ?? 0 >= TrackerInfo.Constants.majorNetworkPrevalence
-    }
     
     public func isFor(_ url: URL?) -> Bool {
         return self.url.host == url?.host
