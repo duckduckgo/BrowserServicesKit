@@ -31,14 +31,12 @@ public enum HTTPSUpgradeError: Error {
     case noBloomFilter
 }
 
-public final class HTTPSUpgrade {
+public actor HTTPSUpgrade {
 
-    @MainActor
     private var dataReloadTask: Task<BloomFilterWrapper?, Never>?
     private let store: HTTPSUpgradeStore
     private let privacyManager: PrivacyConfigurationManaging
 
-    @MainActor
     private var bloomFilter: BloomFilterWrapper?
 
     public init(store: HTTPSUpgradeStore,
@@ -54,7 +52,7 @@ public final class HTTPSUpgrade {
         guard shouldExcludeDomain(host) == false else { return .failure(.domainExcluded) }
         guard isFeatureEnabled(forHost: host, privacyConfig: privacyConfig) else { return .failure(.featureDisabled) }
 
-        switch await self.isDomainInUpgradeList(host) {
+        switch await self.isHostInUpgradeList(host) {
         case .success(true):
             guard let upgradedUrl = url.toHttps() else { return .failure(.badUrl) }
             return .success(upgradedUrl)
@@ -67,24 +65,21 @@ public final class HTTPSUpgrade {
         }
     }
 
+    private nonisolated var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
 
-    private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
+    private nonisolated func shouldExcludeDomain(_ host: String) -> Bool { store.hasExcludedDomain(host) }
 
-    private func shouldExcludeDomain(_ host: String) -> Bool { store.hasExcludedDomain(host) }
-
-    private func isFeatureEnabled(forHost host: String, privacyConfig: PrivacyConfiguration) -> Bool {
+    private nonisolated func isFeatureEnabled(forHost host: String, privacyConfig: PrivacyConfiguration) -> Bool {
         privacyConfig.isFeature(.httpsUpgrade, enabledForDomain: host)
     }
 
     @MainActor
-    private func isDomainInUpgradeList(_ host: String) async -> Result<Bool, HTTPSUpgradeError> {
+    private func isHostInUpgradeList(_ host: String) async -> Result<Bool, HTTPSUpgradeError> {
         let bloomFilter: BloomFilterWrapper
-        if let bf = self.bloomFilter {
+        if let bf = await self.bloomFilter {
             bloomFilter = bf
-        } else if let dataReloadTask {
-            guard let bf = await dataReloadTask.value else {
-                return .failure(.noBloomFilter)
-            }
+        } else if let dataReloadTask = await self.dataReloadTask {
+            guard let bf = await dataReloadTask.value else { return .failure(.noBloomFilter) }
             bloomFilter = bf
         } else {
             return .failure(.bloomFilterTaskNotSet)
@@ -94,13 +89,12 @@ public final class HTTPSUpgrade {
         return .success(result)
     }
 
-    public func loadDataAsync() {
+    nonisolated public func loadDataAsync() {
         Task {
             await self.loadData()
         }
     }
 
-    @MainActor
     public func loadData() async {
         guard dataReloadTask == nil else {
             os_log("Reload already in progress", type: .debug)
@@ -114,4 +108,3 @@ public final class HTTPSUpgrade {
     }
 
 }
-
