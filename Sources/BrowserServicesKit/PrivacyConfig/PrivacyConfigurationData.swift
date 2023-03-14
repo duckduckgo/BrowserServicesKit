@@ -112,14 +112,13 @@ public struct PrivacyConfigurationData {
                 case minSupportedVersion
             }
             public let state: FeatureState
-            public let minSupportedVersion: FeatureSupportedVersion
+            public let minSupportedVersion: FeatureSupportedVersion?
             public init?(json: [String: Any]) {
-                guard let state = json[CodingKeys.state.rawValue] as? String,
-                      let minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String else {
-                          return nil
+                guard let state = json[CodingKeys.state.rawValue] as? String else {
+                    return nil
                 }
                 self.state = state
-                self.minSupportedVersion = minSupportedVersion
+                self.minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String
             }
         }
 
