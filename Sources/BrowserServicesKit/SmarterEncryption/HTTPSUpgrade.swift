@@ -26,7 +26,7 @@ public enum HTTPSUpgradeError: Error {
     case nonHttp
     case domainExcluded
     case featureDisabled
-    case nonUpgradable
+    case nonUpgradable(HTTPSBloomFilterSpecification?)
     case bloomFilterTaskNotSet
     case noBloomFilter
 }
@@ -58,7 +58,7 @@ public actor HTTPSUpgrade {
             return .success(upgradedUrl)
 
         case .success(false):
-            return .failure(.nonUpgradable)
+            return .failure(.nonUpgradable(store.bloomFilterSpecification))
 
         case .failure(let error):
             return .failure(error)
