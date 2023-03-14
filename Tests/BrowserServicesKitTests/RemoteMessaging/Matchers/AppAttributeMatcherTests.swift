@@ -18,6 +18,7 @@
 //
 
 import XCTest
+import Common
 import Foundation
 @testable import BrowserServicesKit
 @testable import Common

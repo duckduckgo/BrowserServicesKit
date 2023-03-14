@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -11,8 +11,10 @@ let package = Package(
         .macOS("10.15")
     ],
     products: [
+        // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
         .library(name: "UserScript", targets: ["UserScript"]),
@@ -27,6 +29,7 @@ let package = Package(
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.3.0")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("2.0.0")),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.2.1")),
+        .package(url: "https://github.com/duckduckgo/sync_crypto", .exact("0.0.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.4.1")),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
@@ -83,6 +86,14 @@ let package = Package(
             name: "Crashes"
         ),
         .target(
+            name: "DDGSync",
+            dependencies: [
+                "Common",
+                .product(name: "DDGSyncCrypto", package: "sync_crypto"),
+                "Networking"
+            ]
+        ),
+        .target(
             name: "Common",
             dependencies: [
                 .product(name: "Punnycode", package: "Punycode")
@@ -92,7 +103,8 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ]),
+            ]
+        ),
         .target(
             name: "ContentBlocking",
             dependencies: [
@@ -153,6 +165,16 @@ let package = Package(
                 .copy("Resources")
             ]
         ),
+        .testTarget(
+            name: "DDGSyncTests",
+            dependencies: [
+                "DDGSync"
+            ]),
+        .testTarget(
+            name: "DDGSyncCryptoTests",
+            dependencies: [
+                .product(name: "DDGSyncCrypto", package: "sync_crypto")
+            ]),
         .testTarget(
             name: "CommonTests",
             dependencies: [

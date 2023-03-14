@@ -20,7 +20,7 @@
 import Foundation
 
 extension Bundle {
-    
+
     enum Key {
         
         static let name = kCFBundleNameKey as String
@@ -34,5 +34,4 @@ extension Bundle {
     public var releaseVersionNumber: String? { infoDictionary?[Key.versionNumber] as? String }
     public var displayName: String? { object(forInfoDictionaryKey: Key.displayName) as? String ?? name }
     public var name: String? { object(forInfoDictionaryKey: Key.name) as? String }
-
 }

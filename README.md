@@ -19,7 +19,6 @@ Run `git submodule update --init --recursive`
 1. Build the `BrowserServicesKit` scheme by opening the Swift package in Xcode
 2. Run `swift build -c release` to build a release binary
 
-
 ## Testing
 
 Run `swift test` on the project root folder. Please note that running the tests on Xcode will not work.
