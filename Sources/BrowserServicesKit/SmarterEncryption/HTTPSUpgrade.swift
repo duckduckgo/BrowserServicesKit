@@ -27,68 +27,91 @@ public enum HTTPSUpgradeError: Error {
     case domainExcluded
     case featureDisabled
     case nonUpgradable
+    case bloomFilterTaskNotSet
+    case noBloomFilter
 }
 
 public final class HTTPSUpgrade {
-    
-    private let dataReloadLock = NSLock()
+
+    @MainActor
+    private var dataReloadTask: Task<BloomFilterWrapper?, Never>?
     private let store: HTTPSUpgradeStore
     private let privacyManager: PrivacyConfigurationManaging
-   
+
+    @MainActor
     private var bloomFilter: BloomFilterWrapper?
-    
+
     public init(store: HTTPSUpgradeStore,
                 privacyManager: PrivacyConfigurationManaging) {
         self.store = store
         self.privacyManager = privacyManager
     }
-    
+
+    @MainActor
     public func upgrade(url: URL) async -> Result<URL, HTTPSUpgradeError> {
         guard url.isHttp else { return .failure(.nonHttp) }
         guard let host = url.host else { return .failure(.badUrl) }
-        guard !shouldExcludeDomain(host) else { return .failure(.domainExcluded) }
+        guard shouldExcludeDomain(host) == false else { return .failure(.domainExcluded) }
         guard isFeatureEnabled(forHost: host, privacyConfig: privacyConfig) else { return .failure(.featureDisabled) }
-        
-        waitForAnyReloadsToComplete()
-        let isUpgradable = isInUpgradeList(host: host)
-        if isUpgradable, let upgradedUrl = url.toHttps() {
+
+        switch await self.isDomainInUpgradeList(host) {
+        case .success(true):
+            guard let upgradedUrl = url.toHttps() else { return .failure(.badUrl) }
             return .success(upgradedUrl)
+
+        case .success(false):
+            return .failure(.nonUpgradable)
+
+        case .failure(let error):
+            return .failure(error)
         }
-        return .failure(.nonUpgradable)
     }
-    
+
+
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
-    
+
     private func shouldExcludeDomain(_ host: String) -> Bool { store.hasExcludedDomain(host) }
-    
+
     private func isFeatureEnabled(forHost host: String, privacyConfig: PrivacyConfiguration) -> Bool {
         privacyConfig.isFeature(.httpsUpgrade, enabledForDomain: host)
     }
-    
-    private func waitForAnyReloadsToComplete() {
-        // wait for lock (by locking and unlocking) before continuing
-        dataReloadLock.lock()
-        dataReloadLock.unlock()
+
+    @MainActor
+    private func isDomainInUpgradeList(_ host: String) async -> Result<Bool, HTTPSUpgradeError> {
+        let bloomFilter: BloomFilterWrapper
+        if let bf = self.bloomFilter {
+            bloomFilter = bf
+        } else if let dataReloadTask {
+            guard let bf = await dataReloadTask.value else {
+                return .failure(.noBloomFilter)
+            }
+            bloomFilter = bf
+        } else {
+            return .failure(.bloomFilterTaskNotSet)
+        }
+
+        let result = bloomFilter.contains(host)
+        return .success(result)
     }
-    
-    private func isInUpgradeList(host: String) -> Bool {
-        guard let bloomFilter = bloomFilter else { return false }
-        return bloomFilter.contains(host)
-    }
-    
+
     public func loadDataAsync() {
-        DispatchQueue.global(qos: .background).async {
-            self.loadData()
+        Task {
+            await self.loadData()
         }
     }
-    
-    public func loadData() {
-        if !dataReloadLock.try() {
+
+    @MainActor
+    public func loadData() async {
+        guard dataReloadTask == nil else {
             os_log("Reload already in progress", type: .debug)
             return
         }
-        bloomFilter = store.bloomFilter
-        dataReloadLock.unlock()
+        dataReloadTask = Task.detached { [store] in
+            return store.bloomFilter
+        }
+        self.bloomFilter = await dataReloadTask!.value
+        self.dataReloadTask = nil
     }
-    
+
 }
+
