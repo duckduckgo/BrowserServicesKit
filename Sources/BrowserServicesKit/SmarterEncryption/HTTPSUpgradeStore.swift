@@ -22,7 +22,7 @@ public protocol HTTPSUpgradeStore {
     
     // MARK: - Bloom filter
     
-    var bloomFilter: BloomFilterWrapper? { get }
+    var bloomFilter: (BloomFilterWrapper, HTTPSBloomFilterSpecification)? { get }
     var bloomFilterSpecification: HTTPSBloomFilterSpecification? { get }
     
     // MARK: - Excluded domains

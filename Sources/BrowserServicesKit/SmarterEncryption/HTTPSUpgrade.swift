@@ -33,11 +33,11 @@ public enum HTTPSUpgradeError: Error {
 
 public actor HTTPSUpgrade {
 
-    private var dataReloadTask: Task<BloomFilterWrapper?, Never>?
+    private var dataReloadTask: Task<(BloomFilterWrapper, HTTPSBloomFilterSpecification)?, Never>?
     private let store: HTTPSUpgradeStore
     private let privacyManager: PrivacyConfigurationManaging
 
-    private var bloomFilter: BloomFilterWrapper?
+    private var bloomFilter: (BloomFilterWrapper, HTTPSBloomFilterSpecification)?
 
     public init(store: HTTPSUpgradeStore,
                 privacyManager: PrivacyConfigurationManaging) {
@@ -58,6 +58,7 @@ public actor HTTPSUpgrade {
             return .success(upgradedUrl)
 
         case .success(false):
+            assertionFailure("unexp")
             return .failure(.nonUpgradable(store.bloomFilterSpecification))
 
         case .failure(let error):
@@ -76,17 +77,22 @@ public actor HTTPSUpgrade {
     @MainActor
     private func isHostInUpgradeList(_ host: String) async -> Result<Bool, HTTPSUpgradeError> {
         let bloomFilter: BloomFilterWrapper
+        let spec: HTTPSBloomFilterSpecification
         if let bf = await self.bloomFilter {
-            bloomFilter = bf
+            bloomFilter = bf.0
+            spec = bf.1
         } else if let dataReloadTask = await self.dataReloadTask {
             guard let bf = await dataReloadTask.value else { return .failure(.noBloomFilter) }
-            bloomFilter = bf
+            bloomFilter = bf.0
+            spec = bf.1
         } else {
             return .failure(.bloomFilterTaskNotSet)
         }
 
-        let result = bloomFilter.contains(host)
-        return .success(result)
+        if bloomFilter.contains(host) {
+            return .success(true)
+        }
+        return .failure(.nonUpgradable(spec))
     }
 
     nonisolated public func loadDataAsync() {
