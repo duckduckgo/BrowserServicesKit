@@ -33,5 +33,5 @@ struct HTTPSUpgradeStoreMock: HTTPSUpgradeStore {
     func hasExcludedDomain(_ domain: String) -> Bool {
         excludedDomains.contains(domain)
     }
-    
+
 }
