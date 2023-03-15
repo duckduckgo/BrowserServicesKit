@@ -80,7 +80,7 @@ public class AdClickAttributionLogic {
     public func applyInheritedAttribution(state: State?) {
         guard let state = state else { return }
         
-        if case .noAttribution = state {} else {
+        if case .noAttribution = self.state {} else {
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnInheritedAttribution)
         }
         
