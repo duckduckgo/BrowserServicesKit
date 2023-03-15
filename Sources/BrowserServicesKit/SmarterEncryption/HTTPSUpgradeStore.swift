@@ -19,14 +19,13 @@
 import BloomFilterWrapper
 
 public protocol HTTPSUpgradeStore {
-    
+
     // MARK: - Bloom filter
-    
-    var bloomFilter: (BloomFilterWrapper, HTTPSBloomFilterSpecification)? { get }
-    var bloomFilterSpecification: HTTPSBloomFilterSpecification? { get }
-    
+
+    func loadBloomFilter() -> (wrapper: BloomFilterWrapper, specification: HTTPSBloomFilterSpecification)?
+
     // MARK: - Excluded domains
-    
+
     func hasExcludedDomain(_ domain: String) -> Bool
-    
+
 }

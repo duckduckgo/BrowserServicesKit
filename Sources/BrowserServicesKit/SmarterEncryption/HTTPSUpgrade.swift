@@ -33,11 +33,26 @@ public enum HTTPSUpgradeError: Error {
 
 public actor HTTPSUpgrade {
 
-    private var dataReloadTask: Task<(BloomFilterWrapper, HTTPSBloomFilterSpecification)?, Never>?
+    private struct BloomFilter {
+        private let wrapper: BloomFilterWrapper
+        let specification: HTTPSBloomFilterSpecification
+
+        init(wrapper: BloomFilterWrapper, specification: HTTPSBloomFilterSpecification) {
+            self.wrapper = wrapper
+            self.specification = specification
+        }
+
+        @MainActor
+        func containsHost(_ host: String) -> Bool {
+            wrapper.contains(host)
+        }
+    }
+
+    private var dataReloadTask: Task<BloomFilter?, Never>?
     private let store: HTTPSUpgradeStore
     private let privacyManager: PrivacyConfigurationManaging
 
-    private var bloomFilter: (BloomFilterWrapper, HTTPSBloomFilterSpecification)?
+    private var bloomFilter: BloomFilter?
 
     public init(store: HTTPSUpgradeStore,
                 privacyManager: PrivacyConfigurationManaging) {
@@ -52,14 +67,12 @@ public actor HTTPSUpgrade {
         guard shouldExcludeDomain(host) == false else { return .failure(.domainExcluded) }
         guard isFeatureEnabled(forHost: host, privacyConfig: privacyConfig) else { return .failure(.featureDisabled) }
 
-        switch await self.isHostInUpgradeList(host) {
-        case .success(true):
+        switch await self.getBloomFilter() {
+        case .success(let bloomFilter):
+            guard bloomFilter.containsHost(host) else { return .failure(.nonUpgradable(bloomFilter.specification)) }
             guard let upgradedUrl = url.toHttps() else { return .failure(.badUrl) }
-            return .success(upgradedUrl)
 
-        case .success(false):
-            assertionFailure("unexp")
-            return .failure(.nonUpgradable(store.bloomFilterSpecification))
+            return .success(upgradedUrl)
 
         case .failure(let error):
             return .failure(error)
@@ -74,25 +87,18 @@ public actor HTTPSUpgrade {
         privacyConfig.isFeature(.httpsUpgrade, enabledForDomain: host)
     }
 
-    @MainActor
-    private func isHostInUpgradeList(_ host: String) async -> Result<Bool, HTTPSUpgradeError> {
-        let bloomFilter: BloomFilterWrapper
-        let spec: HTTPSBloomFilterSpecification
-        if let bf = await self.bloomFilter {
-            bloomFilter = bf.0
-            spec = bf.1
-        } else if let dataReloadTask = await self.dataReloadTask {
-            guard let bf = await dataReloadTask.value else { return .failure(.noBloomFilter) }
-            bloomFilter = bf.0
-            spec = bf.1
+    private func getBloomFilter() async -> Result<BloomFilter, HTTPSUpgradeError> {
+        let result: BloomFilter
+        if let bloomFilter {
+            result = bloomFilter
+        } else if let dataReloadTask {
+            guard let bloomFilter = await dataReloadTask.value else { return .failure(.noBloomFilter) }
+            result = bloomFilter
         } else {
             return .failure(.bloomFilterTaskNotSet)
         }
 
-        if bloomFilter.contains(host) {
-            return .success(true)
-        }
-        return .failure(.nonUpgradable(spec))
+        return .success(result)
     }
 
     nonisolated public func loadDataAsync() {
@@ -102,12 +108,12 @@ public actor HTTPSUpgrade {
     }
 
     public func loadData() async {
-        guard dataReloadTask == nil else {
+        if let dataReloadTask {
             os_log("Reload already in progress", type: .debug)
-            return
+            _=await dataReloadTask.value
         }
         dataReloadTask = Task.detached { [store] in
-            return store.bloomFilter
+            return store.loadBloomFilter().map { BloomFilter(wrapper: $0.wrapper, specification: $0.specification) }
         }
         self.bloomFilter = await dataReloadTask!.value
         self.dataReloadTask = nil
