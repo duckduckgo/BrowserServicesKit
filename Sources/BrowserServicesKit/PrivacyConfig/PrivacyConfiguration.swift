@@ -91,22 +91,3 @@ public extension PrivacyConfiguration {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
 }
-
-public enum PrivacyFeature: String {
-    case contentBlocking
-    case duckPlayer
-    case fingerprintingTemporaryStorage
-    case fingerprintingBattery
-    case fingerprintingScreenSize
-    case gpc
-    case httpsUpgrade = "https"
-    case autoconsent
-    case clickToPlay
-    case autofill
-    case ampLinks
-    case trackingParameters
-    case customUserAgent
-    case referrer
-    case adClickAttribution
-    case windowsWaitlist
-}

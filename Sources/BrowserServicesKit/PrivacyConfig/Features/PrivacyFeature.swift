@@ -1,0 +1,68 @@
+//
+//  PrivacyFeature.swift
+//  DuckDuckGo
+//
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+
+public enum PrivacyFeature: String {
+    case contentBlocking
+    case duckPlayer
+    case fingerprintingTemporaryStorage
+    case fingerprintingBattery
+    case fingerprintingScreenSize
+    case gpc
+    case httpsUpgrade = "https"
+    case autoconsent
+    case clickToPlay
+    case autofill
+    case ampLinks
+    case trackingParameters
+    case customUserAgent
+    case referrer
+    case adClickAttribution
+    case windowsWaitlist
+    case newThing
+    case otherNewThing
+
+    var canEnableRemotely: Bool {
+        switch self {
+        case
+                .contentBlocking,
+                .duckPlayer,
+                .fingerprintingTemporaryStorage,
+                .fingerprintingBattery,
+                .fingerprintingScreenSize,
+                .gpc,
+                .httpsUpgrade,
+                .autoconsent,
+                .clickToPlay,
+                .autofill,
+                .ampLinks,
+                .trackingParameters,
+                .customUserAgent,
+                .referrer,
+                .adClickAttribution,
+                .windowsWaitlist:
+            return true
+        case
+                .newThing,
+                .otherNewThing:
+            return false
+        }
+    }
+}
