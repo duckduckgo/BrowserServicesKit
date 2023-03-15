@@ -368,9 +368,9 @@ extension DistributedNavigationDelegateTestsBase {
 
     // MARK: FrameInfo mocking
 
-    func main(_ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+    func main(webView webViewArg: WKWebView? = nil, _ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         withWebView { webView in
-            FrameInfo(webView: webView, handle: webView.mainFrameHandle, isMainFrame: true, url: current, securityOrigin: secOrigin ?? current.securityOrigin)
+            FrameInfo(webView: webViewArg ?? webView, handle: webViewArg?.mainFrameHandle ?? webView.mainFrameHandle, isMainFrame: true, url: current, securityOrigin: secOrigin ?? current.securityOrigin)
         }
     }
 
@@ -386,10 +386,20 @@ extension DistributedNavigationDelegateTestsBase {
     // Event sequence checking
     func assertHistory(ofResponderAt responderIdx: Int, equalsTo rhs: [TestsNavigationEvent], file: StaticString = #file, line: UInt = #line, useEventLine: Bool = true) {
         let lhs = responder(at: responderIdx).history
+        var rhs = rhs
         var lastEventLine = line
         for idx in 0..<max(lhs.count, rhs.count) {
             let event1 = lhs.indices.contains(idx) ? lhs[idx] : nil
-            let event2 = rhs.indices.contains(idx) ? rhs[idx] : nil
+            var idx2: Int! = (event1 != nil ? rhs.firstIndex(where: { event2 in compare("", event1, event2) == nil }) : nil)
+            if let idx2 {
+                // events are equal
+                rhs.remove(at: idx2)
+                continue
+            } else {
+                idx2 = idx
+            }
+
+            let event2 = rhs.indices.contains(idx2) ? rhs.remove(at: idx2) : nil
             let line = useEventLine ? (event2?.line ?? lastEventLine) : line
             lastEventLine = line
 

@@ -413,13 +413,25 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation wkNavigation: WKNavigation?) {
         let navigation: Navigation
-        if let expectedNavigation = navigationExpectedToStart, wkNavigation != nil || expectedNavigation.navigationAction.navigationType == .sessionRestoration {
+        if let expectedNavigation = navigationExpectedToStart,
+           wkNavigation != nil
+            || expectedNavigation.navigationAction.navigationType == .sessionRestoration
+            || expectedNavigation.navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about {
+
             // regular flow: start .expected navigation
             navigation = expectedNavigation
-        } else {
+        } else if webView.url?.isEmpty == false {
             assertionFailure("session restoration happening without NavigationAction")
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
             navigation.navigationActionReceived(.sessionRestoreNavigation(webView: webView, mainFrameNavigation: navigation))
+            navigation.willStart()
+        } else if let wkNavigation {
+            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
+            let navigationAction = NavigationAction(request: URLRequest(url: .empty), navigationType: .other, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
+            navigation.navigationActionReceived(navigationAction)
+            navigation.willStart()
+        } else {
+            return
         }
 
         navigation.started(wkNavigation)
@@ -696,7 +708,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, didCommit wkNavigation: WKNavigation?) {
         guard let navigation = wkNavigation?.navigation ?? startedNavigation else {
-            assertionFailure("Unexpected didCommitNavigation")
+            assert(wkNavigation == nil, "Unexpected didCommitNavigation without preceding didStart")
             return
         }
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)

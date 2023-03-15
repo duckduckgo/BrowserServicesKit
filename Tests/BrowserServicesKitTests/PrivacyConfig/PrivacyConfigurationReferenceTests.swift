@@ -38,8 +38,7 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
             let path = "\(Resource.configRootPath)/\(testConfig.referenceConfig)"
             
             let configData = dataLoader.fromJsonFile(path)
-            let configJSON = try JSONSerialization.jsonObject(with: configData, options: []) as! [String: Any]
-            let privacyConfigurationData = PrivacyConfigurationData(json: configJSON)
+            let privacyConfigurationData = try PrivacyConfigurationData(data: configData)
             
             let privacyConfiguration = AppPrivacyConfiguration(data: privacyConfigurationData,
                                                                identifier: UUID().uuidString,

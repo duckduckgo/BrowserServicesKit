@@ -18,8 +18,10 @@
 //
 
 import XCTest
+import Common
 import Foundation
 @testable import BrowserServicesKit
+@testable import Common
 
 // swiftlint:disable line_length
 class DeviceAttributeMatcherTests: XCTestCase {
@@ -38,7 +40,7 @@ class DeviceAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenDeviceDoesNotMatchLocaleThenReturnFail() throws {
-        XCTAssertEqual(DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion(), locale: "will-not-match").evaluate(matchingAttribute: LocaleMatchingAttribute(value: ["en-US"], fallback: false)),
+        XCTAssertEqual(DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "will-not-match").evaluate(matchingAttribute: LocaleMatchingAttribute(value: ["en-US"], fallback: false)),
                        .fail)
     }
 
@@ -48,7 +50,7 @@ class DeviceAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenDeviceSameAsOsApiLevelThenReturnMatch() throws {
-        XCTAssertEqual(DeviceAttributeMatcher().evaluate(matchingAttribute: OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)),
+        XCTAssertEqual(DeviceAttributeMatcher().evaluate(matchingAttribute: OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)),
                        .match)
     }
 

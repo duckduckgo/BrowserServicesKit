@@ -65,6 +65,15 @@
         }
       },
       {
+        "package": "DDGSyncCrypto",
+        "repositoryURL": "https://github.com/duckduckgo/sync_crypto",
+        "state": {
+          "branch": null,
+          "revision": "df751674ee842d129c50a183668b033d02c2980d",
+          "version": "0.0.1"
+        }
+      },
+      {
         "package": "TrackerRadarKit",
         "repositoryURL": "https://github.com/duckduckgo/TrackerRadarKit",
         "state": {

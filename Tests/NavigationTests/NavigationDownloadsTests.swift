@@ -236,33 +236,6 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         }
         waitForExpectations(timeout: 5)
 
-        // sort download events by url and event order
-        responder(at: 0).history
-            .replaceSubrange(5...13, with: responder(at: 0)
-                .history[5...13]
-                .sorted {
-                    func eventAndUrlIdx(from event: TestsNavigationEvent) -> (event: Int, idx: Int) {
-                        switch event {
-                        case .navigationAction(let navAction, _, _):
-                            return (0, Int(String(navAction.navigationAction.url.string.last!))!)
-                        case .navActionWillBecomeDownload(let navAction, _):
-                            return (1, Int(String(navAction.navigationAction.url.string.last!))!)
-                        case .navActionBecameDownload(let navAction, _, _):
-                            return (2, Int(String(navAction.navigationAction.url.string.last!))!)
-                        default:
-                            XCTFail("unexpected \(event)")
-                            return (0, 0)
-                        }
-                    }
-                    let lhs = eventAndUrlIdx(from: $0)
-                    let rhs = eventAndUrlIdx(from: $1)
-                    if lhs.idx == rhs.idx {
-                        return lhs.event < rhs.event
-                    } else {
-                        return lhs.idx < rhs.idx
-                    }
-                })
-
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
@@ -322,33 +295,6 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
-
-        // sort download events by url and event order
-        responder(at: 0).history
-            .replaceSubrange(8...16, with: responder(at: 0)
-                .history[8...16]
-                .sorted {
-                    func eventAndUrlIdx(from event: TestsNavigationEvent) -> (event: Int, idx: Int) {
-                        switch event {
-                        case .navigationResponse(.response(let response, _), _):
-                            return (0, Int(String(response.response.url.string.last!))!)
-                        case .navResponseWillBecomeDownload(let idx, _):
-                            return (1, idx + 1)
-                        case .navResponseBecameDownload(_, let url, _):
-                            return (2, Int(String(url.string.last!))!)
-                        default:
-                            XCTFail("unexpected \(event)")
-                            return (0, 0)
-                        }
-                    }
-                    let lhs = eventAndUrlIdx(from: $0)
-                    let rhs = eventAndUrlIdx(from: $1)
-                    if lhs.idx == rhs.idx {
-                        return lhs.event < rhs.event
-                    } else {
-                        return lhs.idx < rhs.idx
-                    }
-                })
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
