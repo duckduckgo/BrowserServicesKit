@@ -2,7 +2,7 @@
 //  PrivacyFeature.swift
 //  DuckDuckGo
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 
 import Foundation
 
-public enum PrivacyFeature: String {
+public enum PrivacyFeature: String, Feature {
     case contentBlocking
     case duckPlayer
     case fingerprintingTemporaryStorage
@@ -36,33 +36,25 @@ public enum PrivacyFeature: String {
     case referrer
     case adClickAttribution
     case windowsWaitlist
-    case newThing
-    case otherNewThing
+}
 
-    var canEnableRemotely: Bool {
-        switch self {
-        case
-                .contentBlocking,
-                .duckPlayer,
-                .fingerprintingTemporaryStorage,
-                .fingerprintingBattery,
-                .fingerprintingScreenSize,
-                .gpc,
-                .httpsUpgrade,
-                .autoconsent,
-                .clickToPlay,
-                .autofill,
-                .ampLinks,
-                .trackingParameters,
-                .customUserAgent,
-                .referrer,
-                .adClickAttribution,
-                .windowsWaitlist:
-            return true
-        case
-                .newThing,
-                .otherNewThing:
-            return false
-        }
+public protocol Feature {
+    var key: String { get }
+}
+
+public protocol NestedFeature: Feature {
+    associatedtype SubFeatureType: Feature, RawRepresentable
+    static var parent: PrivacyFeature { get }
+}
+
+extension NestedFeature {
+    public var key: String {
+        Self.parent.key
+    }
+}
+
+extension Feature where Self: RawRepresentable, Self.RawValue == String {
+    public var key: String {
+        return rawValue
     }
 }
