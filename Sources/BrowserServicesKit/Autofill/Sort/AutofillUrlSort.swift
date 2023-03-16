@@ -21,7 +21,7 @@ import Foundation
 import Common
 
 public protocol AutofillUrlSort {
-    func firstCharForGrouping(_ account: SecureVaultModels.WebsiteAccount, tld: TLD) -> String?
+    func firstCharacterForGrouping(_ account: SecureVaultModels.WebsiteAccount, tld: TLD) -> String?
     func compareAccountsForSortingAutofill(lhs: SecureVaultModels.WebsiteAccount,
                                            rhs: SecureVaultModels.WebsiteAccount,
                                            tld: TLD) -> ComparisonResult
@@ -33,7 +33,7 @@ public struct AutofillDomainNameUrlSort: AutofillUrlSort {
 
     public init() {}
 
-    public func firstCharForGrouping(_ account: SecureVaultModels.WebsiteAccount, tld: TLD) -> String? {
+    public func firstCharacterForGrouping(_ account: SecureVaultModels.WebsiteAccount, tld: TLD) -> String? {
         if let firstChar = account.title?.first {
             return String(firstChar)
         } else {

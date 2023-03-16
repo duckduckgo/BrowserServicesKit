@@ -21,7 +21,7 @@ import Foundation
 import Common
 
 public protocol AutofillUrlMatcher {
-    func cleanRawUrl(_ rawUrl: String) -> String
+    func normalizeUrlForWeb(_ url: String) -> String
     func isMatchingForAutofill(currentSite: String, savedSite: String, tld: TLD) -> Bool
     func normalizeSchemeForAutofill(_ rawUrl: String) -> URLComponents?
 }
@@ -30,11 +30,11 @@ public struct AutofillDomainNameUrlMatcher: AutofillUrlMatcher {
 
     public init() {}
 
-    public func cleanRawUrl(_ rawUrl: String) -> String {
-        let trimmedUrl = rawUrl.trimmingWhitespace()
+    public func normalizeUrlForWeb(_ url: String) -> String {
+        let trimmedUrl = url.trimmingWhitespace()
 
         guard let urlComponents = normalizeSchemeForAutofill(trimmedUrl), let host = urlComponents.host else {
-            return rawUrl
+            return url
         }
 
         if let port = urlComponents.port {

@@ -32,7 +32,7 @@ public struct AccountMatches {
 }
 
 public protocol AutofillAccountMatcher {
-    func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches
+    func findMatchesSortedByLastUpdated(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches
 }
 
 public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
@@ -45,11 +45,13 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         self.tld = tld
     }
 
-    public func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches {
+    public func findMatchesSortedByLastUpdated(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches {
         let matches = buildMatches(accounts: accounts, for: url)
         return sort(matches: matches)
     }
 
+    /// Builds a list of accounts that are perfect matches for the given url
+    /// and a dictionary of groups of accounts with the same subdomain that are partial matches for the given url.
     private func buildMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches {
         var perfectMatches = [SecureVaultModels.WebsiteAccount]()
         var partialMatches = [String: [SecureVaultModels.WebsiteAccount]]()

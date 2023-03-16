@@ -119,7 +119,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let identities = try vault.identities()
             let cards = try vault.creditCards()
 
-            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches, completion: { [weak self] accounts, error in
+            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
@@ -127,7 +127,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 } else {
                     completionHandler(accounts, identities, cards, self.credentialsProvider)
                 }
-            })
+            }
         } catch {
             os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
             completionHandler([], [], [], credentialsProvider)
@@ -175,8 +175,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
             getAccounts(for: domain, from: vault,
                         or: passwordManager,
-                        withPartialMatches: includePartialAccountMatches,
-                        completion: { [weak self] accounts, error in
+                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
@@ -184,7 +183,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 } else {
                     completionHandler(accounts, self.credentialsProvider)
                 }
-            })
+            }
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
             completionHandler([], credentialsProvider)
@@ -203,8 +202,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             getAccounts(for: domain,
                         from: vault,
                         or: passwordManager,
-                        withPartialMatches: includePartialAccountMatches,
-                        completion: { [weak self] accounts, error in
+                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
@@ -242,7 +240,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         }
                     }
                 }
-            })
+            }
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
             completionHandler(nil, credentialsProvider, .none)
