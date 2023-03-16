@@ -345,7 +345,7 @@ private func dataConst(forLength length: Int64, in dataSource: Any) -> String {
     for child in m.children where (child.value as? Data)?.count == Int(length) {
         return "data." + child.label! + ".count"
     }
-    fatalError("Data const with length \(length) not found in \(dataSource)")
+    return "Data const with length \(length) not found in \(dataSource)"
 }
 
 var defaultHeaders = [
@@ -386,7 +386,7 @@ extension URLResponse {
 
         return """
         urlresp(
-            \(urlConst(for: self.url!, in: context.urls)!),
+            \(urlConst(for: self.url!, in: context.urls) ?? "\(self.url!) not registered in URLs"),
             \((self as? HTTPURLResponse)?.statusCode != 200 ? "status: " + ((self as? HTTPURLResponse).map { String($0.statusCode) } ?? "nil") + "," : "")
             \(mimeType != "text/html" ? "mime: \"\(mimeType ?? "nil")\"," : "")
             \(expectedContentLength != -1 ? "\(dataConst(forLength: expectedContentLength, in: context.dataSource))" + (textEncodingName != nil ? "," : "") : "")
@@ -437,8 +437,14 @@ extension NavigationAction: TestComparable {
         ?? compare_tc("targetFrame", lhs.targetFrame, rhs.targetFrame)
         ?? compare("shouldDownload", lhs.shouldDownload, rhs.shouldDownload)
         ?? compare_tc("request", lhs.request, rhs.request)
-        ?? compare("fromHistoryItemIdentity", lhs.fromHistoryItemIdentity, rhs.fromHistoryItemIdentity)
         ?? compare("redirectHistory", lhs.redirectHistory, rhs.redirectHistory)
+        ?? {
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+            compare("fromHistoryItemIdentity", lhs.fromHistoryItemIdentity, rhs.fromHistoryItemIdentity)
+#else
+            nil
+#endif
+        }()
     }
 
 }
@@ -585,15 +591,25 @@ extension NavigationAction {
         @unknown default:
             fatalError()
         }
+#if _FRAME_HANDLE_ENABLED
+        let sourceFrameEnc = targetFrame == sourceFrame  ? "" : "targ: " + (targetFrame?.encoded(context) ?? "nil") + ","
+#else
+        let sourceFrameEnc = " ,"
+#endif
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        let fromHistoryItemIdentityEnc = fromHistoryItemIdentity != nil ? "from: " + fromHistoryItemIdentity!.encoded(context) + "," : ""
+#else
+        let fromHistoryItemIdentityEnc = " ,"
+#endif
         return """
         NavAction(
-            req(\(urlConst(for: url, in: context.urls)!)\(headers)),
+            req(\(urlConst(for: url, in: context.urls) ?? "\(url) not registered in URLs")\(headers)),
             \(navigationType.encoded(context)),
-            \(fromHistoryItemIdentity != nil ? "from: " + fromHistoryItemIdentity!.encoded(context) + "," : "")
+            \(fromHistoryItemIdentityEnc)
             \(redirectHistory != nil ? "redirects: [\(redirectHistory!.map { $0.encoded(context) }.joined(separator: ", "))]," : "")
             \(isUserInitiated)
             src: \(sourceFrame.encoded(context)),
-            \(targetFrame == sourceFrame  ? "" : "targ: " + (targetFrame?.encoded(context) ?? "nil") + ",")
+            \(sourceFrameEnc)
             \(shouldDownload ? ".shouldDownload," : "")
         """.trimmingWhitespace().dropping(suffix: ",") +
         ")"
@@ -606,7 +622,12 @@ extension FrameInfo {
         if self.isMainFrame {
             return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)! + (secOrigin.isEmpty ? "" : ", "))  + secOrigin + ")"
         } else {
-            return "frame(\(handle.frameID), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
+#if _FRAME_HANDLE_ENABLED
+            let frameID = handle.frameID
+#else
+            let frameID = ""
+#endif
+            return "frame(\(frameID), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
         }
     }
 }
@@ -639,7 +660,11 @@ extension NavigationType {
 
     static var form = NavigationType.formSubmitted
     static var formRe = NavigationType.formResubmitted
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     static func backForw(_ dist: Int) -> NavigationType { .backForward(distance: dist) }
+#else
+    static func backForw(_ dist: Int) -> NavigationType { .backForward }
+#endif
     static var restore = NavigationType.sessionRestoration
 
     func encoded(_ context: EncodingContext) -> String {
@@ -655,8 +680,13 @@ extension NavigationType {
             return ".form"
         case .formResubmitted:
             return ".formRe"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         case .backForward(distance: let distance):
             return ".backForw(\(distance))"
+#else
+        case .backForward:
+            return ".backForw"
+#endif
         case .reload:
             return ".reload"
         case .redirect(.server):
@@ -1000,3 +1030,24 @@ extension URLResponse {
         return URLResponse(url: request.url!, mimeType: mimeType, expectedContentLength: expectedLength, textEncodingName: encoding)
     }
 }
+
+
+#if !_FRAME_HANDLE_ENABLED
+
+struct FrameHandle: Equatable {
+    init(rawValue: UInt64? = nil) {}
+}
+
+extension WKWebView {
+    var mainFrameHandle: FrameHandle { FrameHandle() }
+}
+
+extension FrameInfo {
+    var handle: FrameHandle { FrameHandle() }
+
+    init(webView: WKWebView?, handle: FrameHandle?, isMainFrame: Bool, url: URL, securityOrigin: SecurityOrigin) {
+        self.init(webView: webView, isMainFrame: isMainFrame, url: url, securityOrigin: securityOrigin)
+    }
+}
+
+#endif

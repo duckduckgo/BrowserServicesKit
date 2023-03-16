@@ -90,6 +90,7 @@ public protocol NavigationResponder {
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?)
 
     // MARK: - Private
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     @MainActor
     func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?)
 
@@ -104,6 +105,7 @@ public protocol NavigationResponder {
 
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error)
+#endif
 
     /// Return true to disable stop on decidePolicyForNavigationAction taking longer than 4 secoinds
     @MainActor
@@ -140,8 +142,6 @@ public extension NavigationResponder {
 
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {}
 
-    @MainActor
-    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {}
 
     @MainActor
     func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval) {}
@@ -149,11 +149,16 @@ public extension NavigationResponder {
     @MainActor
     func webViewDidCancelClientRedirect(currentNavigation: Navigation?) {}
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+    @MainActor
+    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {}
+
     @MainActor
     func didFinishLoad(with request: URLRequest, in frame: WKFrameInfo) {}
 
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error) {}
+#endif
 
     var shouldDisableLongDecisionMakingChecks: Bool { false }
 

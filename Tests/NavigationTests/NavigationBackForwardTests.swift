@@ -234,8 +234,10 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
+#if _FRAME_HANDLE_ENABLED
                 frameID = navAction.targetFrame?.handle.frameID
                 XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -314,10 +316,12 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
         var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+#if _FRAME_HANDLE_ENABLED
             if navAction.url.path == urls.local3.path {
                 frameID = navAction.targetFrame?.handle.frameID
                 XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
             }
+#endif
             return .next
         }
 
