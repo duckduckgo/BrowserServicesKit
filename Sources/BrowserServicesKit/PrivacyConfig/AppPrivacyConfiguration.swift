@@ -83,9 +83,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
-        guard let feature = data.features[featureKey.rawValue] else { return false }
 
         let satisfiesMinVersion = satisfiesMinVersion(feature: feature, versionProvider: versionProvider)
+        guard let feature = data.features[featureKey.key] else { return false }
         switch feature.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
         case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
@@ -93,17 +93,18 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    public func isEnabled(subfeature: String, for feature: PrivacyFeature) -> Bool {
-        let subfeatures = subfeatures(for: feature)
-        switch subfeatures[subfeature]?.state {
+    public func isSubfeatureEnabled<F: NestedFeature, SF>(for feature: F.Type, _ subfeature: SF, versionProvider: AppVersionProvider) -> Bool where F.SubFeatureType == SF {
+        let subfeatures = subfeatures(for: feature.parent.key)
+        let subfeatureData = subfeatures[subfeature.key]
+        switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled: return true
         case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser
         default: return false
         }
     }
 
-    private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
-        return data.features[feature.rawValue]?.features ?? [:]
+    private func subfeatures(for featureKey: String) -> PrivacyConfigurationData.PrivacyFeature.Features {
+        return data.features[featureKey]?.features ?? [:]
     }
     
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {
