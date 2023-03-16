@@ -58,9 +58,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return versionString.split(separator: ".").map { Int($0) ?? 0 }
     }
     
-    func satisfiesMinVersion(feature: PrivacyConfigurationData.PrivacyFeature,
+    func satisfiesMinVersion(_ version: String?,
                              versionProvider: AppVersionProvider) -> Bool {
-        if let minSupportedVersion = feature.minSupportedVersion,
+        if let minSupportedVersion = version,
            let appVersion = versionProvider.appVersion() {
             let minVersion = parse(versionString: minSupportedVersion)
             let currentVersion = parse(versionString: appVersion)
@@ -83,9 +83,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
-
-        let satisfiesMinVersion = satisfiesMinVersion(feature: feature, versionProvider: versionProvider)
         guard let feature = data.features[featureKey.key] else { return false }
+        let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
         switch feature.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
         case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
@@ -96,9 +95,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isSubfeatureEnabled<F: NestedFeature, SF>(for feature: F.Type, _ subfeature: SF, versionProvider: AppVersionProvider) -> Bool where F.SubFeatureType == SF {
         let subfeatures = subfeatures(for: feature.parent.key)
         let subfeatureData = subfeatures[subfeature.key]
+        let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
         switch subfeatureData?.state {
-        case PrivacyConfigurationData.State.enabled: return true
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser
+        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
         default: return false
         }
     }
