@@ -307,11 +307,22 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             case .cancel:
                 decisionHandler(.cancel, wkPreferences)
 
+                if mainFrameNavigation?.isCurrent != true {
+                    self.didCancelNavigationAction(navigationAction, withRedirectNavigations: nil)
+                }
+
             case .redirect(_, let redirect):
                 assert(navigationAction.isForMainFrame)
 
                 decisionHandler(.cancel, wkPreferences)
-                redirect(webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation))
+                var expectedNavigations = [ExpectedNavigation]()
+                withUnsafeMutablePointer(to: &expectedNavigations) { expectedNavigationsPtr in
+                    let navigator = webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation, expectedNavigations: expectedNavigationsPtr)
+                    redirect(navigator)
+                }
+                if mainFrameNavigation?.isCurrent != true {
+                    didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
+                }
 
             case .download:
                 self.willStartDownload(with: navigationAction, in: webView)
@@ -356,6 +367,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
             responder.navigationAction(navigationAction, willBecomeDownloadIn: webView)
+        }
+    }
+
+    @MainActor
+    private func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?) {
+        let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
+        for responder in responders {
+            responder.didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
         }
     }
 

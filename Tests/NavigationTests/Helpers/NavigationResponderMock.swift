@@ -27,6 +27,7 @@ import Common
 
 enum TestsNavigationEvent: TestComparable {
     case navigationAction(NavAction, NavigationPreferences = .default, line: UInt = #line)
+    case didCancel(NavAction, expected: Int? = nil, line: UInt = #line)
     case navActionWillBecomeDownload(NavAction, line: UInt = #line)
     case navActionBecameDownload(NavAction, String, line: UInt = #line)
     case willStart(Nav, line: UInt = #line)
@@ -226,6 +227,12 @@ class NavigationResponderMock: NavigationResponder {
             return.next
         }
         return await onNavigationAction(navigationAction, &preferences)
+    }
+
+    var onDidCancelNavigationAction: (@MainActor (NavigationAction, [ExpectedNavigation]?) -> Void)?
+    func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?) {
+        let event = append(.didCancel(NavAction(navigationAction), expected: expectedNavigations?.count))
+        onDidCancelNavigationAction?(navigationAction, expectedNavigations) ?? defaultHandler(event)
     }
 
     var onNavActionWillBecomeDownload: (@MainActor (NavigationAction) -> Void)?
