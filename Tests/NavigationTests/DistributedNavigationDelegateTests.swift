@@ -304,9 +304,11 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             if navAction.url.path == urls.local2.path {
                 XCTAssertTrue(navAction.isTargetingNewWindow)
                 newFrameIdentity = navAction.targetFrame?.handle
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
-                XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
+                XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
             }
             return .next
         }
@@ -801,6 +803,38 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         ])
     }
 
+    func testReloadFromOrigin() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        server.middleware = [{ [data] request in
+            return .ok(.html(data.html.string()!))
+        }]
+        try server.start(8084)
+
+        var eDidFinish = expectation(description: "didFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        responder(at: 0).clear()
+        eDidFinish = expectation(description: "didReload")
+        withWebView { webView in
+            _=webView.reloadFromOrigin()
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local, defaultHeaders + ["Upgrade-Insecure-Requests": "1"], cachePolicy: .reloadIgnoringLocalCacheData), .reload, from: history[1], src: main(urls.local)),
+            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+            .didStart( Nav(action: navAct(2), .started)),
+            .response(Nav(action: navAct(2), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
+            .didCommit(Nav(action: navAct(2), .responseReceived, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(2), .finished, resp: resp(0), .committed))
+        ])
+    }
+
     func testJSReload() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
@@ -973,6 +1007,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     // MARK: - Simulated requests
 
+    @MainActor
     func testSimulatedRequest() {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
@@ -980,12 +1015,36 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
         withWebView { webView in
-            _=webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+                .loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+
         }
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.https), .other, src: main()),
+            .navigationAction(req(urls.https), .custom(.init(rawValue: "custom")), src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .didCommit(Nav(action: navAct(1), .started, .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, .committed))
+        ])
+    }
+
+    @MainActor
+    func testSimulatedRequestWithData() {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+
+        withWebView { webView in
+            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+                .loadSimulatedRequest(req(urls.https), response: URLResponse(url: urls.https, mimeType: "text/html", expectedContentLength: data.html.count, textEncodingName: "UTF-8"), responseData: data.html, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+        }
+        waitForExpectations(timeout: 5)
+
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.https), .custom(.init(rawValue: "custom")), src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didCommit(Nav(action: navAct(1), .started, .committed)),
@@ -1137,6 +1196,119 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local1, status: nil, data.empty.count))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+        ])
+    }
+
+    @MainActor
+    func testLoadHTMLString() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { nav in
+            XCTAssertEqual(nav.state, .finished)
+            eDidFinish.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+                .loadHTMLString(data.html.string()!, baseURL: urls.local1, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+        }
+        waitForExpectations(timeout: 5)
+
+        XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local1), .custom(.init(rawValue: "custom")), src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .didCommit(Nav(action: navAct(1), .started, .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, .committed))
+        ])
+    }
+
+    @MainActor
+    func testLoadHTMLData() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { nav in
+            XCTAssertEqual(nav.state, .finished)
+            eDidFinish.fulfill()
+        }
+
+        withWebView { webView in
+            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+                .load(data.html, mimeType: "text/html", characterEncodingName: "UTF-8", baseURL: urls.local1, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+        }
+        waitForExpectations(timeout: 5)
+
+        XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(urls.local1), .custom(.init(rawValue: "custom")), src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .didCommit(Nav(action: navAct(1), .started, .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, .committed))
+        ])
+    }
+
+    // MARK: - Local file requests
+
+
+//    #selector(loadSimulatedRequest(_:response:responseData:)): #selector(navigation_loadSimulatedRequest(_:response:responseData:)),
+
+    @MainActor
+    func testFileURLNavigation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { nav in
+            XCTAssertEqual(nav.state, .finished)
+            eDidFinish.fulfill()
+        }
+
+        let url = Bundle.module.url(forResource: "Resources/test", withExtension: "html")!
+        withWebView { webView in
+            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+                .loadFileURL(url, allowingReadAccessTo: url, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+        }
+        waitForExpectations(timeout: 5)
+
+        XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(url, [:]), .custom(.init(rawValue: "custom")), src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(url, status: nil, try Data(contentsOf: url).count))),
+            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
+        ])
+    }
+
+    @MainActor
+    func testFileRequestNavigation() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+
+        let eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { nav in
+            XCTAssertEqual(nav.state, .finished)
+            eDidFinish.fulfill()
+        }
+
+        let url = Bundle.module.url(forResource: "Resources/test", withExtension: "html")!
+        withWebView { webView in
+            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+                .loadFileRequest(URLRequest(url: url), allowingReadAccessTo: url, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+        }
+        waitForExpectations(timeout: 5)
+
+        XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(req(url, [:]), .custom(.init(rawValue: "custom")), src: main()),
+            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+            .didStart(Nav(action: navAct(1), .started)),
+            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(url, status: nil, try Data(contentsOf: url).count))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
         ])
