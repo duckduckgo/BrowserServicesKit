@@ -30,7 +30,7 @@ public enum FeatureFlagSource {
 }
 
 public protocol FeatureFlagger {
-    func isFeatureOn<F>(_ feature: F) -> Bool where F: FeatureFlagSourceProviding
+    func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider: F) -> Bool
  }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
@@ -42,8 +42,8 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         self.privacyConfig = privacyConfig
     }
 
-    public func isFeatureOn<F>(_ feature: F) -> Bool where F: FeatureFlagSourceProviding {
-        switch feature.source {
+    public func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider provider: F) -> Bool {
+        switch provider.source {
         case .disabled:
             return false
         case .internalOnly:
