@@ -38,6 +38,17 @@ public enum PrivacyFeature: String, Feature {
     case windowsWaitlist
 }
 
+public struct AutofillFeature: NestedFeature {
+    public typealias SubFeatureType = Subfeature
+    public static let parent: PrivacyFeature = .autofill
+
+    public enum Subfeature: String, Feature {
+        case emailProtection
+        case credentialsAutofill
+        case credentialsSaving
+    }
+}
+
 public protocol Feature {
     var key: String { get }
 }
