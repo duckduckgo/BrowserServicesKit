@@ -22,7 +22,8 @@ import Foundation
 open class EventMapping<Event> {
     public typealias Mapping = (_ event: Event,
                                 _ error: Error?,
-                                _ params: [String: String]?, _ onComplete: @escaping (Error?) -> Void) -> Void
+                                _ params: [String: String]?,
+                                _ onComplete: @escaping (Error?) -> Void) -> Void
 
     private let eventMapper: Mapping
 

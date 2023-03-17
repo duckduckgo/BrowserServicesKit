@@ -103,9 +103,12 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1), .other, src: main()),
+            .didCancel(navAct(1))
         ])
         assertHistory(ofResponderAt: 1, equalsToHistoryOfResponderAt: 0)
-        assertHistory(ofResponderAt: 2, equalsTo: [])
+        assertHistory(ofResponderAt: 2, equalsTo: [
+            .didCancel(navAct(1))
+        ])
     }
     
     func testWhenResponderCancelsNavigationResponse_followingRespondersNotCalled() throws {
@@ -765,7 +768,8 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .link, from: history[1], .userInitiated, src: main(urls.local), targ: nil))
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .link, from: history[1], .userInitiated, src: main(urls.local), targ: nil)),
+            .didCancel(navAct(2))
         ])
     }
 
@@ -1483,6 +1487,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .navigationAction(req(urls.local2), .other, src: main()),
+            .didCancel(navAct(2))
         ])
     }
 
@@ -1605,6 +1610,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .navigationAction(req(urls.local2), .other, src: main()),
+            .didCancel(navAct(2))
         ])
     }
 

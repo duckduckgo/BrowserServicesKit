@@ -57,6 +57,8 @@ extension TestsNavigationEvent {
                 } else {
                     return ".navigationAction(" + arg.navigationAction.encoded(context).dropping(prefix: ".init") + ")"
                 }
+            case .didCancel(let arg, expected: let arg2, line: _):
+                return ".didCancel(\(arg.navigationAction.encoded(context))\(arg2 != nil ? ", expected: \(arg2!)" : ""))"
             case .navActionWillBecomeDownload(let arg, line: _):
                 return ".navActionWillBecomeDownload(\(arg.navigationAction.encoded(context)))"
             case .navActionBecameDownload(let arg, let arg2, line: _):

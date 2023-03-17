@@ -27,6 +27,11 @@ public struct ClosureNavigationResponder: NavigationResponder {
         await self.decidePolicy?(navigationAction, &preferences)
     }
 
+    let didCancelNavigationAction: ((_ navigationAction: NavigationAction, _ expectedNavigations: [ExpectedNavigation]?) -> Void)?
+    public func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?) {
+        didCancelNavigationAction?(navigationAction, expectedNavigations)
+    }
+
     let willStart: ((_ navigation: Navigation) -> Void)?
     public func willStart(_ navigation: Navigation) {
         willStart?(navigation)
@@ -90,6 +95,7 @@ public struct ClosureNavigationResponder: NavigationResponder {
     }
 
     public init(decidePolicy: ((_: NavigationAction, _: inout NavigationPreferences) async -> NavigationActionPolicy?)? = nil,
+                didCancel: ((_ navigationAction: NavigationAction, _ expectedNavigations: [ExpectedNavigation]?) -> Void)? = nil,
                 willStart: ((_: Navigation) -> Void)? = nil,
                 didStart: ((_: Navigation) -> Void)? = nil,
                 authenticationChallenge: ((_: URLAuthenticationChallenge, Navigation?) async -> AuthChallengeDisposition?)? = nil,
@@ -104,6 +110,7 @@ public struct ClosureNavigationResponder: NavigationResponder {
                 navigationResponseDidBecomeDownload: ((NavigationResponse, WebKitDownload) -> Void)? = nil,
                 webContentProcessDidTerminate: ((WKProcessTerminationReason?) -> Void)? = nil) {
         self.decidePolicy = decidePolicy
+        self.didCancelNavigationAction = didCancel
         self.willStart = willStart
         self.didStart = didStart
         self.authenticationChallenge = authenticationChallenge
