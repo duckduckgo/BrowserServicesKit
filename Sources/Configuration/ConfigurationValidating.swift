@@ -19,6 +19,7 @@
 import Foundation
 import BrowserServicesKit
 import TrackerRadarKit
+import Common
 
 protocol ConfigurationValidating {
     
@@ -28,9 +29,15 @@ protocol ConfigurationValidating {
 
 public struct ConfigurationValidator: ConfigurationValidating {
 
-    func validate(_ data: Data, for location: Configuration) throws {
+    private let eventMapping: EventMapping<ConfigurationDebugEvents>?
+
+    init(eventMapping: EventMapping<ConfigurationDebugEvents>? = nil) {
+        self.eventMapping = eventMapping
+    }
+
+    func validate(_ data: Data, for configuration: Configuration) throws {
         do {
-            switch location {
+            switch configuration {
             case .privacyConfiguration:
                 try validatePrivacyConfiguration(with: data)
             case .trackerDataSet:
@@ -39,6 +46,7 @@ public struct ConfigurationValidator: ConfigurationValidating {
                 break
             }
         } catch {
+            eventMapping?.fire(.invalidPayload(configuration), error: error)
             throw ConfigurationFetcher.Error.invalidPayload
         }
     }

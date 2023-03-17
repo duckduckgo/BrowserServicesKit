@@ -44,13 +44,17 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     private let validator: ConfigurationValidating
     private let urlSession: URLSession
     private let log: OSLog
-    
-    public convenience init(store: ConfigurationStoring, urlSession: URLSession = .shared, log: OSLog = .disabled) {
-        self.init(store: store, validator: ConfigurationValidator(), log: log)
+
+    public convenience init(store: ConfigurationStoring,
+                            urlSession: URLSession = .shared,
+                            log: OSLog = .disabled,
+                            eventMapping: EventMapping<ConfigurationDebugEvents>? = nil) {
+        let validator = ConfigurationValidator(eventMapping: eventMapping)
+        self.init(store: store, validator: validator, log: log)
     }
     
     init(store: ConfigurationStoring,
-         validator: ConfigurationValidating = ConfigurationValidator(),
+         validator: ConfigurationValidating,
          urlSession: URLSession = .shared,
          log: OSLog = .disabled) {
         self.store = store
