@@ -30,6 +30,12 @@ public protocol NavigationResponder {
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy?
 
+    /// Called when NavigationAction did not turn into a Navigation (received .cancel or .redirect)
+    /// won‘t be called for cancelled server-redirect NavigationActions, `navigationDidFail` will be called instead
+    /// won‘t be called for NavigationAction turned into downloads, `navigationAction(_:willBecomeDownloadIn:)` will be called instead
+    @MainActor
+    func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?)
+
     // MARK: Navigation
 
     /// Called only for Main Frame Navigation Actions when all of the Responders returned `.next` or one of the Responders returned `.allow`  for `decidePolicy(for:navigationAction)` query
@@ -118,6 +124,8 @@ public protocol NavigationResponder {
 public extension NavigationResponder {
 
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? { .next }
+
+    func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?) {}
 
     func willStart(_ navigation: Navigation) {}
     func didStart(_ navigation: Navigation) {}
