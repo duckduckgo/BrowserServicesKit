@@ -76,7 +76,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
-        guard let feature = data.features[featureKey.key] else { return false }
+        guard let feature = data.features[featureKey.rawValue] else { return false }
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
         switch feature.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
@@ -84,9 +84,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    public func isSubfeatureEnabled<F: NestedFeature, SF>(for feature: F.Type, _ subfeature: SF, versionProvider: AppVersionProvider) -> Bool where F.SubFeatureType == SF {
-        let subfeatures = subfeatures(for: feature.parent.key)
-        let subfeatureData = subfeatures[subfeature.key]
+    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool {
+        let subfeatures = subfeatures(for: subfeature.parent)
+        let subfeatureData = subfeatures[subfeature.rawValue]
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
         switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
@@ -94,8 +94,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    private func subfeatures(for featureKey: String) -> PrivacyConfigurationData.PrivacyFeature.Features {
-        return data.features[featureKey]?.features ?? [:]
+    private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
+        return data.features[feature.rawValue]?.features ?? [:]
     }
     
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {

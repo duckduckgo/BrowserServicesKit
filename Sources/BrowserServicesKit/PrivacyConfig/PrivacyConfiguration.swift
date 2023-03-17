@@ -39,7 +39,7 @@ public protocol PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 
-    func isSubfeatureEnabled<F: NestedFeature, SF>(for feature: F.Type, _ subfeature: SF, versionProvider: AppVersionProvider) -> Bool where F.SubFeatureType == SF
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -91,7 +91,7 @@ public extension PrivacyConfiguration {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
 
-    func isSubfeatureEnabled<F: NestedFeature, SF>(for feature: F.Type, _ subfeature: SF) -> Bool where F.SubFeatureType == SF {
-        return isSubfeatureEnabled(for: feature, subfeature, versionProvider: AppVersionProvider())
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
+        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
     }
 }

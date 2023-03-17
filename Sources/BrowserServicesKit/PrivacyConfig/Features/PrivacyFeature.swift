@@ -19,7 +19,7 @@
 
 import Foundation
 
-public enum PrivacyFeature: String, Feature {
+public enum PrivacyFeature: String {
     case contentBlocking
     case duckPlayer
     case fingerprintingTemporaryStorage
@@ -38,34 +38,16 @@ public enum PrivacyFeature: String, Feature {
     case windowsWaitlist
 }
 
-public struct AutofillFeature: NestedFeature {
-    public typealias SubFeatureType = Subfeature
-    public static let parent: PrivacyFeature = .autofill
+public protocol PrivacySubfeature: RawRepresentable where RawValue == String {
+    var parent: PrivacyFeature { get }
+}
 
-    public enum Subfeature: String, Feature {
-        case emailProtection
-        case credentialsAutofill
-        case credentialsSaving
+public enum AutofillSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .autofill
     }
-}
 
-public protocol Feature {
-    var key: String { get }
-}
-
-public protocol NestedFeature: Feature {
-    associatedtype SubFeatureType: Feature, RawRepresentable
-    static var parent: PrivacyFeature { get }
-}
-
-extension NestedFeature {
-    public var key: String {
-        Self.parent.key
-    }
-}
-
-extension Feature where Self: RawRepresentable, Self.RawValue == String {
-    public var key: String {
-        return rawValue
-    }
+    case emailProtection
+    case credentialsAutofill
+    case credentialsSaving
 }
