@@ -27,28 +27,24 @@ public protocol InternalUserDecider {
     func markUserAsInternalIfNeeded(forUrl url: URL?, response: HTTPURLResponse?) -> Bool
 }
 
-public protocol InternalUserStore {
-    var didVerifyInternalUser: Bool { get set }
+public protocol InternalUserStoring {
+    var isInternalUser: Bool { get set }
 }
 
 public class DefaultInternalUserDecider: InternalUserDecider {
-    private let userDefaults = UserDefaults()
-    private static let didVerifyInternalUserKey = "com.duckduckgo.browserServicesKit.featureFlaggingDidVerifyInternalUser"
+    var store: InternalUserStoring
     private static let internalUserVerificationURLHost = "use-login.duckduckgo.com"
     
-    public init() {
+    public init(store: InternalUserStoring) {
+        self.store = store
     }
 
-    public var isInternalUser: Bool {
-        return didVerifyInternalUser
-    }
-
-    private var didVerifyInternalUser: Bool {
+    public private(set) var isInternalUser: Bool {
         get {
-            return userDefaults.bool(forKey: Self.didVerifyInternalUserKey)
+            store.isInternalUser
         }
         set {
-            userDefaults.set(newValue, forKey: Self.didVerifyInternalUserKey)
+            store.isInternalUser = newValue
         }
     }
 
@@ -59,7 +55,7 @@ public class DefaultInternalUserDecider: InternalUserDecider {
         }
         
         if shouldMarkUserAsInternal(forUrl: url, statusCode: response?.statusCode) {
-            didVerifyInternalUser = true
+            isInternalUser = true
             return true
         }
         return false
