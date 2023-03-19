@@ -2,12 +2,21 @@
   "object": {
     "pins": [
       {
+        "package": "BloomFilter",
+        "repositoryURL": "https://github.com/jaceklyp/bloom_cpp",
+        "state": {
+          "branch": "develop",
+          "revision": "4f8c23e90d2da1fabaf6372bb7bff1ee201be6b5",
+          "version": null
+        }
+      },
+      {
         "package": "ContentScopeScripts",
         "repositoryURL": "https://github.com/duckduckgo/content-scope-scripts",
         "state": {
           "branch": null,
-          "revision": "ed10de3485f454ca59259266a0b3942bd21b43db",
-          "version": "3.4.1"
+          "revision": "801b7f23476f797c6eaa72b070e6c80abb82801a",
+          "version": "4.4.4"
         }
       },
       {

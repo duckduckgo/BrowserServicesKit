@@ -34,6 +34,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("4.4.4")),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
         .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
+        .package(url: "https://github.com/jaceklyp/bloom_cpp", .branch("develop")),
     ],
     targets: [
         .target(
@@ -75,12 +76,7 @@ let package = Package(
         .target(
             name: "BloomFilterWrapper",
             dependencies: [
-                "BloomFilter"
-            ]),
-        .target(
-            name: "BloomFilter",
-            resources: [
-                .process("CMakeLists.txt")
+                .product(name: "BloomFilter", package: "bloom_cpp")
             ]),
         .target(
             name: "Crashes"
@@ -224,6 +220,5 @@ let package = Package(
                 "TestUtils"
             ]
         )
-    ],
-    cxxLanguageStandard: .cxx11
+    ]
 )
