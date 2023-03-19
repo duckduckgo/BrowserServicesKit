@@ -26,8 +26,13 @@ public protocol FeatureFlagSourceProviding {
 public enum FeatureFlagSource {
     case disabled
     case internalOnly
-    case remoteDevelopment((PrivacyConfiguration) -> Bool)
-    case remoteReleasable((PrivacyConfiguration) -> Bool)
+    case remoteDevelopment(PrivacyConfigFeatureLevel)
+    case remoteReleasable(PrivacyConfigFeatureLevel)
+}
+
+public enum PrivacyConfigFeatureLevel {
+    case feature(PrivacyFeature)
+    case subfeature(any PrivacySubfeature)
 }
 
 public protocol FeatureFlagger {
@@ -49,13 +54,22 @@ public class DefaultFeatureFlagger: FeatureFlagger {
             return false
         case .internalOnly:
             return internalUserDecider.isInternalUser
-        case .remoteDevelopment(let configHandler):
+        case .remoteDevelopment(let featureType):
             guard internalUserDecider.isInternalUser else {
                 return false
             }
-            fallthrough
-        case .remoteReleasable(let configHandler):
-            return configHandler(privacyConfig)
+            return isEnabled(featureType)
+        case .remoteReleasable(let featureType):
+            return isEnabled(featureType)
+        }
+    }
+
+    private func isEnabled(_ featureType: PrivacyConfigFeatureLevel) -> Bool {
+        switch featureType {
+        case .feature(let feature):
+            return privacyConfig.isEnabled(featureKey: feature)
+        case .subfeature(let subfeature):
+            return privacyConfig.isSubfeatureEnabled(subfeature)
         }
     }
 }
