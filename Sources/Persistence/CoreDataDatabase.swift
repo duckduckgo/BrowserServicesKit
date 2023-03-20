@@ -125,19 +125,26 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
 }
 
 extension NSManagedObjectContext {
-    
+
+    public func insertObject<A: NSManagedObject>() -> A {
+        guard let obj = NSEntityDescription.insertNewObject(forEntityName: A.entity().name!, into: self) as? A else {
+            fatalError("Wrong object type \(A.entity().name!)")
+        }
+        return obj
+    }
+
     public func deleteAll(entities: [NSManagedObject] = []) {
         for entity in entities {
             delete(entity)
         }
     }
-    
+
     public func deleteAll<T: NSManagedObject>(matching request: NSFetchRequest<T>) {
-            if let result = try? fetch(request) {
-                deleteAll(entities: result)
-            }
+        if let result = try? fetch(request) {
+            deleteAll(entities: result)
+        }
     }
-    
+
     public func deleteAll(entityDescriptions: [NSEntityDescription] = []) {
         for entityDescription in entityDescriptions {
             let request = NSFetchRequest<NSManagedObject>()
@@ -146,4 +153,5 @@ extension NSManagedObjectContext {
             deleteAll(matching: request)
         }
     }
+
 }
