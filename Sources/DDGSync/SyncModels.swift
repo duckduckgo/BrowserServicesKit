@@ -29,9 +29,13 @@ public struct SyncAccount: Codable {
     public let token: String?
 
     public var recoveryCode: String? {
-        guard let userIdData = userId.data(using: .utf8) else { return nil }
-        let recoveryCodeData = primaryKey + userIdData
-        return recoveryCodeData.base64EncodedString()
+        do {
+            let json = try CodeJSON(recovery: .init(user_id: userId, primary_key: primaryKey)).toJSON()
+            return json.base64EncodedString()
+        } catch {
+            assertionFailure(error.localizedDescription)
+            return nil
+        }
     }
 }
 

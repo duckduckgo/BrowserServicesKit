@@ -91,29 +91,23 @@ struct Crypter: Crypting {
         )
     }
 
-    func extractLoginInfo(recoveryKey: Data) throws -> ExtractedLoginInfo {
+    func extractLoginInfo(recoveryKey: RecoveryKey) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
-        guard recoveryKey.count > primaryKeySize else { throw SyncError.failedToCreateAccountKeys("Recovery key is not valid") }
+        // guard recoveryKey.count > primaryKeySize else { throw SyncError.failedToCreateAccountKeys("Recovery key is not valid") }
         
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
-        var userIdBytes = [UInt8](repeating: 0, count: recoveryKey.count - primaryKeySize)
         var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
         var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
 
-        recoveryKey.copyBytes(to: &primaryKeyBytes, from: 0 ..< primaryKeySize)
-        recoveryKey.copyBytes(to: &userIdBytes, from: primaryKeySize ..< recoveryKey.count)
+        // TODO copy the primary key
 
-        guard let userId = String(data: Data(userIdBytes), encoding: .utf8) else {
-            throw SyncError.failedToCreateAccountKeys("failed to get userId from recovery key")
-        }
-        
         let result = ddgSyncPrepareForLogin(&passwordHashBytes, &strechedPrimaryKeyBytes, &primaryKeyBytes)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToCreateAccountKeys("ddgSyncPrepareForLogin failed: \(result)")
         }
         
         return ExtractedLoginInfo(
-            userId: userId,
+            userId: recoveryKey.user_id,
             primaryKey: Data(primaryKeyBytes),
             passwordHash: Data(passwordHashBytes),
             stretchedPrimaryKey: Data(strechedPrimaryKeyBytes)
@@ -147,4 +141,14 @@ extension Data {
         return bytes
     }
 
+}
+
+public struct RecoveryKey: Codable {
+    var user_id: String
+    var primary_key: Data
+}
+
+public struct ConnectCode: Codable {
+    var device_id: String
+    var secret_key: Data
 }
