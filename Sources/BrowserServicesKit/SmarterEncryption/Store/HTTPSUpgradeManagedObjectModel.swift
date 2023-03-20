@@ -23,8 +23,8 @@ extension HTTPSUpgrade {
 
     public static let managedObjectModel: NSManagedObjectModel = {
         let excludedDomainEntity = NSEntityDescription()
-        excludedDomainEntity.name = HTTPSExcludedDomain.className()
-        excludedDomainEntity.managedObjectClassName = HTTPSExcludedDomain.className()
+        excludedDomainEntity.name = NSStringFromClass(HTTPSExcludedDomain.self)
+        excludedDomainEntity.managedObjectClassName = NSStringFromClass(HTTPSExcludedDomain.self)
 
         let excludedDomainAttribute = NSAttributeDescription()
         excludedDomainAttribute.name = #keyPath(HTTPSExcludedDomain.domain)
@@ -39,8 +39,8 @@ extension HTTPSUpgrade {
         excludedDomainEntity.indexes = [excludedDomainIndexDescription]
 
         let storedBloomFilterSpecificationEntity = NSEntityDescription()
-        storedBloomFilterSpecificationEntity.name = HTTPSStoredBloomFilterSpecification.className()
-        storedBloomFilterSpecificationEntity.managedObjectClassName = HTTPSStoredBloomFilterSpecification.className()
+        storedBloomFilterSpecificationEntity.name = NSStringFromClass(HTTPSStoredBloomFilterSpecification.self)
+        storedBloomFilterSpecificationEntity.managedObjectClassName = NSStringFromClass(HTTPSStoredBloomFilterSpecification.self)
 
         let specBitCountAttribute = NSAttributeDescription()
         specBitCountAttribute.name = #keyPath(HTTPSStoredBloomFilterSpecification.bitCount)
