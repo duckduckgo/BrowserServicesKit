@@ -18,10 +18,12 @@
 //
 
 import Foundation
+import Combine
 
 public protocol InternalUserDecider {
     
     var isInternalUser: Bool { get }
+    var isInternalUserPublisher: AnyPublisher<Bool, Never> { get }
     
     @discardableResult
     func markUserAsInternalIfNeeded(forUrl url: URL?, response: HTTPURLResponse?) -> Bool
@@ -34,9 +36,11 @@ public protocol InternalUserStoring {
 public class DefaultInternalUserDecider: InternalUserDecider {
     var store: InternalUserStoring
     private static let internalUserVerificationURLHost = "use-login.duckduckgo.com"
+    private let isInternalUserSubject: CurrentValueSubject<Bool, Never>
     
     public init(store: InternalUserStoring) {
         self.store = store
+        isInternalUserSubject = CurrentValueSubject(store.isInternalUser)
     }
 
     public private(set) var isInternalUser: Bool {
@@ -46,6 +50,10 @@ public class DefaultInternalUserDecider: InternalUserDecider {
         set {
             store.isInternalUser = newValue
         }
+    }
+
+    public var isInternalUserPublisher: AnyPublisher<Bool, Never> {
+        isInternalUserSubject.eraseToAnyPublisher()
     }
 
     @discardableResult
