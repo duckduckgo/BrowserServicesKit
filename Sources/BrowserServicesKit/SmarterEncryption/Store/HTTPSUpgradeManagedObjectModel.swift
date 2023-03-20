@@ -18,10 +18,16 @@
 //
 
 import CoreData
-
+import Persistence
 extension HTTPSUpgrade {
 
     public static let managedObjectModel: NSManagedObjectModel = {
+        // not working in `swift test`
+        if let managedObjectModel = CoreDataDatabase.loadModel(from: .module, named: "HTTPSUpgrade") {
+            return managedObjectModel
+        }
+
+        // create model manually
         let excludedDomainEntity = NSEntityDescription()
         excludedDomainEntity.name = NSStringFromClass(HTTPSExcludedDomain.self)
         excludedDomainEntity.managedObjectClassName = NSStringFromClass(HTTPSExcludedDomain.self)
