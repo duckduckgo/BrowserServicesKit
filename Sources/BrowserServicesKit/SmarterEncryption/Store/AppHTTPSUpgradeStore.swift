@@ -59,8 +59,6 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
 
     public static var bundle: Bundle { .module }
 
-    public static let managedObjectModel: NSManagedObjectModel = CoreDataDatabase.loadModel(from: bundle, named: "HTTPSUpgrade")!
-
     public init(database: CoreDataDatabase, bloomFilterDataURL: URL, embeddedResources: EmbeddedBloomFilterResources, errorEvents: EventMapping<ErrorEvents>?) {
         self.bloomFilterDataURL = bloomFilterDataURL
         self.embeddedResources = embeddedResources

@@ -38,7 +38,7 @@ final class AppHTTPSUpgradeStoreTests: XCTestCase {
 
         location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         bloomFilterUrl = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        database = CoreDataDatabase(name: className, containerLocation: location, model: AppHTTPSUpgradeStore.managedObjectModel)
+        database = CoreDataDatabase(name: className, containerLocation: location, model: HTTPSUpgrade.managedObjectModel)
         database.loadStore { _, error in
             if let e = error {
                 XCTFail("Could not load store: \(e.localizedDescription)")
