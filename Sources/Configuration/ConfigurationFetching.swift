@@ -74,7 +74,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
       An error of type Error is thrown if the configuration fails to fetch or validate.
     */
     public func fetch(_ configuration: Configuration) async throws {
-        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration))
+        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: .default)
         if let data = fetchResult.data {
             try validator.validate(data, for: configuration)
         }
@@ -100,7 +100,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         try await withThrowingTaskGroup(of: (Configuration, ConfigurationFetchResult).self) { group in
             configurations.forEach { configuration in
                 group.addTask {
-                    let fetchResult = try await self.fetch(from: configuration.url, withEtag: self.etag(for: configuration))
+                    let fetchResult = try await self.fetch(from: configuration.url, withEtag: self.etag(for: configuration), requirements: .all)
                     if let data = fetchResult.data {
                         try self.validator.validate(data, for: configuration)
                     }
@@ -126,9 +126,11 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         return store.loadEmbeddedEtag(for: configuration)
     }
     
-    private func fetch(from url: URL, withEtag etag: String?) async throws -> ConfigurationFetchResult {
-        let configuration = APIRequest.Configuration(url: url, headers: APIRequest.Headers().default(with: etag))
-        let request = APIRequest(configuration: configuration, requirements: [.all], urlSession: urlSession, log: log)
+    private func fetch(from url: URL, withEtag etag: String?, requirements: APIResponseRequirements) async throws -> ConfigurationFetchResult {
+        let configuration = APIRequest.Configuration(url: url,
+                                                     headers: APIRequest.Headers().default(with: etag),
+                                                     cachePolicy: .reloadIgnoringLocalCacheData)
+        let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession, log: log)
         let (data, response) = try await request.fetch()
         return (response.etag!, data)
     }
