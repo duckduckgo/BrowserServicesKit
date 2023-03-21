@@ -32,6 +32,7 @@ extension APIRequest {
         let body: Data?
         let timeoutInterval: TimeInterval
         let attribution: URLRequestAttribution?
+        let cachePolicy: URLRequest.CachePolicy?
         
         public init(url: URL,
                     method: HTTPMethod = .get,
@@ -40,7 +41,8 @@ extension APIRequest {
                     headers: HTTPHeaders = APIRequest.Headers().default,
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
-                    attribution: URLRequestAttribution? = .developer) {
+                    attribution: URLRequestAttribution? = .developer,
+                    cachePolicy: URLRequest.CachePolicy? = nil) {
             self.url = url
             self.method = method
             self.queryParameters = queryParameters
@@ -49,6 +51,7 @@ extension APIRequest {
             self.body = body
             self.timeoutInterval = timeoutInterval
             self.attribution = attribution
+            self.cachePolicy = cachePolicy
         }
         
         var request: URLRequest {
@@ -57,6 +60,9 @@ extension APIRequest {
             request.allHTTPHeaderFields = headers
             request.httpMethod = method.rawValue
             request.httpBody = body
+            if let cachePolicy = cachePolicy {
+                request.cachePolicy = cachePolicy
+            }
             if #available(iOS 15.0, macOS 12.0, *) {
                 if let attribution = attribution?.urlRequestAttribution {
                     request.attribution = attribution

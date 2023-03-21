@@ -127,7 +127,9 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     }
     
     private func fetch(from url: URL, withEtag etag: String?, requirements: APIResponseRequirements) async throws -> ConfigurationFetchResult {
-        let configuration = APIRequest.Configuration(url: url, headers: APIRequest.Headers().default(with: etag))
+        let configuration = APIRequest.Configuration(url: url,
+                                                     headers: APIRequest.Headers().default(with: etag),
+                                                     cachePolicy: .reloadIgnoringLocalCacheData)
         let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession, log: log)
         let (data, response) = try await request.fetch()
         return (response.etag!, data)
