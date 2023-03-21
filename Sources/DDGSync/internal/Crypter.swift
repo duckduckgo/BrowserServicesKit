@@ -93,13 +93,12 @@ struct Crypter: Crypting {
 
     func extractLoginInfo(recoveryKey: RecoveryKey) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
-        // guard recoveryKey.count > primaryKeySize else { throw SyncError.failedToCreateAccountKeys("Recovery key is not valid") }
         
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
         var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
         var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
 
-        // TODO copy the primary key
+        primaryKeyBytes = recoveryKey.primary_key.safeBytes
 
         let result = ddgSyncPrepareForLogin(&passwordHashBytes, &strechedPrimaryKeyBytes, &primaryKeyBytes)
         guard DDGSYNCCRYPTO_OK == result else {
