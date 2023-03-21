@@ -85,7 +85,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool {
-        guard isEnabled(featureKey: subfeature.parent) else {
+        guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
             return false
         }
         let subfeatures = subfeatures(for: subfeature.parent)

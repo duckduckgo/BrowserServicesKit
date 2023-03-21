@@ -52,6 +52,14 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual((exampleFeature?.settings["stringValue"] as? String), "value")
         XCTAssertEqual((exampleFeature?.settings["numericalValue"] as? Int), 1)
 
+        if let subfeatures = exampleFeature?.features {
+            XCTAssertEqual(subfeatures["disabledSubfeature"]?.state, "disabled")
+            XCTAssertEqual(subfeatures["minSupportedSubfeature"]?.minSupportedVersion, "1.36.0")
+            XCTAssertEqual(subfeatures["enabledSubfeature"]?.state, "enabled")
+        } else {
+            XCTFail("Could not parse subfeatures")
+        }
+
         let allowlist = configData.trackerAllowlist
         XCTAssertEqual(allowlist.state, "enabled")
         let rulesMap = allowlist.entries.reduce(into: [String: [String]]()) { partialResult, entry in
@@ -62,6 +70,19 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual(rulesMap["example.com/tracker.js"], ["test.com"])
         XCTAssertEqual(rulesMap["example2.com/path/"], ["<all>"])
         XCTAssertEqual(rulesMap["example2.com/resource.json"], ["<all>"])
+
+/*
+ "disabledSubfeature": {
+     "state": "disabled"
+ },
+ "minSupportedSubfeature": {
+     "state": "enabled",
+     "minSupportedVersion": "1.36.0"
+ },
+ "enabledSubfeature": {
+     "state": "enabled"
+ }
+ */
     }
 
     func testJSONWithoutAllowlistParsing() {
