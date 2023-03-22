@@ -150,13 +150,13 @@ final public class UserContentController: WKUserContentController {
     }
 
     func addHandlerNoContentWorld(_ userScript: UserScript) {
-        for messageName in userScript.messageNamesIncludingDidLoad {
+        for messageName in userScript.messageNames {
             add(userScript, name: messageName)
         }
     }
 
     func addHandler(_ userScript: UserScript) {
-        for messageName in userScript.messageNamesIncludingDidLoad {
+        for messageName in userScript.messageNames {
             if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
                 if let handlerWithReply = userScript as? WKScriptMessageHandlerWithReply {
@@ -171,7 +171,7 @@ final public class UserContentController: WKUserContentController {
     }
 
     func removeHandler(_ userScript: UserScript) {
-        userScript.messageNamesIncludingDidLoad.forEach {
+        userScript.messageNames.forEach {
             if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
                 removeScriptMessageHandler(forName: $0, contentWorld: contentWorld)
@@ -181,12 +181,6 @@ final public class UserContentController: WKUserContentController {
         }
     }
 
-}
-
-extension UserScript {
-    var messageNamesIncludingDidLoad: [String] {
-        self.messageNames + ((self as? InteractiveUserScript).map { [$0.scriptDidLoadMessageName.rawValue] } ?? [])
-    }
 }
 
 public extension UserContentController {

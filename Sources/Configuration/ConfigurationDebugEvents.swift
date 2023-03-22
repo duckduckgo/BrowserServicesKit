@@ -1,7 +1,7 @@
 //
-//  HTTPSUpgradeStore.swift
+//  ConfigurationDebugEvents.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,16 +16,10 @@
 //  limitations under the License.
 //
 
-import BloomFilterWrapper
+import Foundation
 
-public protocol HTTPSUpgradeStore {
+public enum ConfigurationDebugEvents {
 
-    // MARK: - Bloom filter
-
-    func loadBloomFilter() -> (wrapper: BloomFilterWrapper, specification: HTTPSBloomFilterSpecification)?
-
-    // MARK: - Excluded domains
-
-    func hasExcludedDomain(_ domain: String) -> Bool
+    case invalidPayload(Configuration)
 
 }

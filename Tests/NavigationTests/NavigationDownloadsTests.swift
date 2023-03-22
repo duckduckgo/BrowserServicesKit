@@ -79,8 +79,10 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if navAction.url.path == urls.local3.path {
+#if _FRAME_HANDLE_ENABLED
                 frameID = navAction.targetFrame?.handle.frameID
                 XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
                 return .download
             }
             return .next
@@ -178,10 +180,12 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
 
         var frameID: UInt64!
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
+#if _FRAME_HANDLE_ENABLED
             if navAction.url.path == urls.local1.path {
                 frameID = navAction.targetFrame?.handle.frameID
                 XCTAssertNotEqual(frameID, WKFrameInfo.defaultMainFrameHandle)
             }
+#endif
             return .next
         }
         responder(at: 0).onNavigationResponse = { _ in
@@ -220,8 +224,10 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameIDs = [String: UInt64]()
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             guard navAction.url.matches(urls.local) else {
+#if _FRAME_HANDLE_ENABLED
                 frameIDs[navAction.url.path] = navAction.targetFrame?.handle.frameID
                 XCTAssertNotEqual(navAction.targetFrame?.handle.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
                 return .download
             }
             return .next
@@ -243,15 +249,15 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWith3iFrames.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local2.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local2.path], .empty, secOrigin: urls.local.securityOrigin))),
             .navActionWillBecomeDownload(navAct(2)),
             .navActionBecameDownload(navAct(2), urls.local2),
 
-            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local3.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local3.path], .empty, secOrigin: urls.local.securityOrigin))),
             .navActionWillBecomeDownload(navAct(3)),
             .navActionBecameDownload(navAct(3), urls.local3),
 
-            .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local4.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local4.path], .empty, secOrigin: urls.local.securityOrigin))),
             .navActionWillBecomeDownload(navAct(4)),
             .navActionBecameDownload(navAct(4), urls.local4),
 
@@ -274,8 +280,10 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
         var frameIDs = [String: UInt64]()
         responder(at: 0).onNavigationAction = { [urls] navAction, _ in
             if !navAction.url.matches(urls.local) {
+#if _FRAME_HANDLE_ENABLED
                 frameIDs[navAction.url.path] = navAction.targetFrame?.handle.frameID
                 XCTAssertNotEqual(navAction.targetFrame?.handle.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .allow
         }
@@ -303,9 +311,9 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWith3iFrames.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local2.path]!, .empty, secOrigin: urls.local.securityOrigin))),
-            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local3.path]!, .empty, secOrigin: urls.local.securityOrigin))),
-            .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local4.path]!, .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local2.path], .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local3.path], .empty, secOrigin: urls.local.securityOrigin))),
+            .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameIDs[urls.local4.path], .empty, secOrigin: urls.local.securityOrigin))),
 
             .response(.resp(urls.local2, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .navResponseWillBecomeDownload(1),

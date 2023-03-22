@@ -21,13 +21,17 @@
 @testable import BloomFilterWrapper
 
 struct HTTPSUpgradeStoreMock: HTTPSUpgradeStore {
-    
+
     var bloomFilter: BloomFilterWrapper?
     var bloomFilterSpecification: HTTPSBloomFilterSpecification?
-    
+    func loadBloomFilter() -> (wrapper: BloomFilterWrapper, specification: BrowserServicesKit.HTTPSBloomFilterSpecification)? {
+        guard let bloomFilter, let bloomFilterSpecification else { return nil }
+        return (bloomFilter, bloomFilterSpecification)
+    }
+
     var excludedDomains: [String]
     func hasExcludedDomain(_ domain: String) -> Bool {
         excludedDomains.contains(domain)
     }
-    
+
 }

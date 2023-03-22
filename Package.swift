@@ -31,7 +31,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.2.1")),
         .package(url: "https://github.com/duckduckgo/sync_crypto", .exact("0.0.1")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.4.1")),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("4.4.4")),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
         .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
     ],
@@ -121,6 +121,8 @@ let package = Package(
                 .define("WILLPERFORMCLIENTREDIRECT_ENABLED", .when(platforms: [.macOS])),
                 .define("_IS_REDIRECT_ENABLED", .when(platforms: [.macOS])),
                 .define("_MAIN_FRAME_NAVIGATION_ENABLED", .when(platforms: [.macOS])),
+                .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
+                .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
@@ -191,8 +193,13 @@ let package = Package(
                 "Navigation",
                 .product(name: "Swifter", package: "swifter")
             ],
+            resources: [
+                .copy("Resources")
+            ],
             swiftSettings: [
                 .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
+                .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
+                .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
             ]),
         .testTarget(
             name: "UserScriptTests",
