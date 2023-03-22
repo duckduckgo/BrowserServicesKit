@@ -36,7 +36,7 @@ protocol AccountManaging {
 
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount
 
-    func login(code: Data, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
     func logout(deviceId: String, token: String) async throws
 
 }
@@ -66,7 +66,7 @@ public protocol Crypting {
     func createAccountCreationKeys(userId: String, password: String) throws ->
         AccountCreationKeys
 
-    func extractLoginInfo(recoveryKey: RecoveryKey) throws -> ExtractedLoginInfo
+    func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data
 

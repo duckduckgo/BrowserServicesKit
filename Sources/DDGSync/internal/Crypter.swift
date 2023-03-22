@@ -91,14 +91,14 @@ struct Crypter: Crypting {
         )
     }
 
-    func extractLoginInfo(recoveryKey: RecoveryKey) throws -> ExtractedLoginInfo {
+    func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
         
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
         var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
         var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
 
-        primaryKeyBytes = recoveryKey.primary_key.safeBytes
+        primaryKeyBytes = recoveryKey.primaryKey.safeBytes
 
         let result = ddgSyncPrepareForLogin(&passwordHashBytes, &strechedPrimaryKeyBytes, &primaryKeyBytes)
         guard DDGSYNCCRYPTO_OK == result else {
@@ -106,7 +106,7 @@ struct Crypter: Crypting {
         }
         
         return ExtractedLoginInfo(
-            userId: recoveryKey.user_id,
+            userId: recoveryKey.userId,
             primaryKey: Data(primaryKeyBytes),
             passwordHash: Data(passwordHashBytes),
             stretchedPrimaryKey: Data(strechedPrimaryKeyBytes)
@@ -140,14 +140,4 @@ extension Data {
         return bytes
     }
 
-}
-
-public struct RecoveryKey: Codable {
-    var user_id: String
-    var primary_key: Data
-}
-
-public struct ConnectCode: Codable {
-    var device_id: String
-    var secret_key: Data
 }

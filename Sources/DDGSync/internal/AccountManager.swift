@@ -78,14 +78,8 @@ struct AccountManager: AccountManaging {
                            token: result.token)
     }
 
-    // TODO recoveryKey should be JSON
-    func login(code: Data, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
         let deviceId = UUID().uuidString
-
-        let json = try CodeJSON.decode(code)
-        guard let recoveryKey = json.recovery else {
-            throw SyncError.invalidRecoveryKey
-        }
 
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
         let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: recoveryInfo.primaryKey)
@@ -234,19 +228,4 @@ struct AccountManager: AccountManaging {
             let deviceId: String
         }
     }
-}
-
-struct CodeJSON: Codable {
-
-    var recovery: RecoveryKey?
-    var connect: ConnectCode?
-
-    static func decode(_ data: Data) throws -> CodeJSON {
-        return try JSONDecoder().decode(self, from: data)
-    }
-
-    func toJSON() throws -> Data {
-        return try JSONEncoder().encode(self)
-    }
-
 }
