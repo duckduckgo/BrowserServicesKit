@@ -19,6 +19,7 @@
 
 import Foundation
 
+/// Features whose `rawValue` should be the key to access their corresponding `PrivacyConfigurationData.PrivacyFeature` object
 public enum PrivacyFeature: String {
     case contentBlocking
     case duckPlayer
@@ -38,9 +39,14 @@ public enum PrivacyFeature: String {
     case windowsWaitlist
 }
 
+/// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
+/// The `rawValue` should be the key to access their corresponding `PrivacyConfigurationData.PrivacyFeature.Feature` object
+/// `parent` corresponds to the top level feature under which these subfeatures can be accessed
 public protocol PrivacySubfeature: RawRepresentable where RawValue == String {
     var parent: PrivacyFeature { get }
 }
+
+// MARK: Subfeature definitions
 
 public enum AutofillSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature {
