@@ -57,4 +57,5 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case credentialsAutofill
     case credentialsSaving
     case inlineIconCredentials
+    case accessCredentialManagement
 }
