@@ -70,19 +70,6 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual(rulesMap["example.com/tracker.js"], ["test.com"])
         XCTAssertEqual(rulesMap["example2.com/path/"], ["<all>"])
         XCTAssertEqual(rulesMap["example2.com/resource.json"], ["<all>"])
-
-/*
- "disabledSubfeature": {
-     "state": "disabled"
- },
- "minSupportedSubfeature": {
-     "state": "enabled",
-     "minSupportedVersion": "1.36.0"
- },
- "enabledSubfeature": {
-     "state": "enabled"
- }
- */
     }
 
     func testJSONWithoutAllowlistParsing() {
