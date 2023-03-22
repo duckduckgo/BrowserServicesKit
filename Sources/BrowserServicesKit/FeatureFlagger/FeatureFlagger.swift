@@ -19,23 +19,12 @@
 
 import Foundation
 
-public protocol FeatureFlagSourceProviding {
-    var source: FeatureFlagSource { get }
-}
-
-public enum FeatureFlagSource {
-    case disabled
-    case internalOnly
-    case remoteDevelopment(PrivacyConfigFeatureLevel)
-    case remoteReleasable(PrivacyConfigFeatureLevel)
-}
-
-public enum PrivacyConfigFeatureLevel {
-    case feature(PrivacyFeature)
-    case subfeature(any PrivacySubfeature)
-}
-
 public protocol FeatureFlagger {
+
+/// Called from app features to determine whether a given feature is enabled.
+///
+/// `forProvider: F` takes a FeatureFlag type defined by the respective app which defines from what source it should be toggled
+/// see `FeatureFlagSourceProviding` comments below for more details
     func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider: F) -> Bool
  }
 
@@ -72,4 +61,55 @@ public class DefaultFeatureFlagger: FeatureFlagger {
             return privacyConfig.isSubfeatureEnabled(subfeature)
         }
     }
+}
+
+
+/// To be implemented by the FeatureFlag enum type in the respective app. The source corresponds to
+/// where the final value should come from.
+///
+/// Example:
+//
+// public enum FeatureFlag: FeatureFlagSourceProviding {
+//    case sync
+//    case autofill
+//    case cookieConsent
+//    case duckPlayer
+//
+//    var source: FeatureFlagSource {
+//        case .sync:
+//            return .disabled
+//        case .cookieConsent:
+//            return .internalOnly
+//        case .credentialsAutofill:
+//            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
+//        case .duckPlayer:
+//            return .remoteReleasable(.feature(.duckPlayer))
+//    }
+// }
+
+
+public protocol FeatureFlagSourceProviding {
+    var source: FeatureFlagSource { get }
+}
+
+public enum FeatureFlagSource {
+    /// Completely disabled in all configurations
+    case disabled
+
+    /// Enabled for internal users only. Cannot be toggled remotely
+    case internalOnly
+
+    /// Toggled remotely using PrivacyConfiguration but only for internal users. Otherwise, disabled.
+    case remoteDevelopment(PrivacyConfigFeatureLevel)
+
+    /// Toggled remotely using PrivacyConfiguration for all users
+    case remoteReleasable(PrivacyConfigFeatureLevel)
+}
+
+public enum PrivacyConfigFeatureLevel {
+    /// Corresponds to a given top-level privacy config feature
+    case feature(PrivacyFeature)
+
+    /// Corresponds to a given subfeature of a privacy config feature
+    case subfeature(any PrivacySubfeature)
 }
