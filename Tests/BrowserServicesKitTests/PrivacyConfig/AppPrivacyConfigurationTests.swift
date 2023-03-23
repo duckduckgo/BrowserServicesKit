@@ -371,6 +371,37 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
     }
 
+    let exampleInternalConfig =
+    """
+    {
+        "features": {
+            "gpc": {
+                "state": "internal",
+                "exceptions": []
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingFeatureState_WhenInternal_ThenValidStateIsReturned() {
+
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleInternalConfig, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertTrue(config.isEnabled(featureKey: .gpc))
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertFalse(config.isEnabled(featureKey: .gpc))
+    }
+
     let exampleSubfeaturesConfig =
     """
     {
@@ -388,6 +419,9 @@ class AppPrivacyConfigurationTests: XCTestCase {
                     },
                     "inlineIconCredentials": {
                         "state": "enabled"
+                    },
+                    "accessCredentialManagement": {
+                        "state": "internal"
                     }
                 },
             }
@@ -408,6 +442,23 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials))
+    }
+
+    func testWhenCheckingSubfeatureState_WhenInternalUser_ThenValidStateIsReturnedForInternalFeatures() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeaturesConfig, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement))
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement))
     }
 
     func testWhenCheckingSubfeatureState_MinSupportedVersionCheckReturnsCorrectly() {
@@ -498,4 +549,5 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
     }
+
 }

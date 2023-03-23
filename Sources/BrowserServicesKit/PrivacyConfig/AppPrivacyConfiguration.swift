@@ -80,9 +80,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
         guard let feature = data.features[featureKey.rawValue] else { return false }
+
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
         switch feature.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
         default: return false
         }
     }
@@ -96,6 +98,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
         switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
         default: return false
         }
     }
