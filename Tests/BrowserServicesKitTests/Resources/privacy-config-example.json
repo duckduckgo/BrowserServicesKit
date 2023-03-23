@@ -164,11 +164,17 @@
                 },
                 "enabledSubfeature": {
                     "state": "enabled"
+                },
+                "internalSubfeature": {
+                    "state": "internal"
                 }
             }
         },
         "windowsWaitlist": {
             "state": "enabled"
+        },
+        "internalFeature": {
+            "state": "internal"
         }
     },
     "unprotectedTemporary": [
