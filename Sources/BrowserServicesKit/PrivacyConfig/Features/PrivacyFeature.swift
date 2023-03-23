@@ -53,7 +53,6 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
         .autofill
     }
 
-    case emailProtection
     case credentialsAutofill
     case credentialsSaving
     case inlineIconCredentials
