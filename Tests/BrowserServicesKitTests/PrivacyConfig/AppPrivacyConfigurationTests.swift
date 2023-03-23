@@ -550,4 +550,84 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
     }
 
+    func exampleTrackerAllowlistConfig(with state: String) -> Data {
+        return
+            """
+            {
+                "features": {
+                    "trackerAllowlist": {
+                        "state": "\(state)",
+                        "settings": {
+                            "allowlistedTrackers": {
+                                "3lift.com": {
+                                    "rules": [
+                                        {
+                                            "rule": "tlx.3lift.com/header/auction",
+                                            "domains": [
+                                                "aternos.org"
+                                            ],
+                                            "reason": "https://github.com/duckduckgo/privacy-configuration/issues/328"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "unprotectedTemporary": []
+            }
+            """.data(using: .utf8)!
+    }
+
+    func testTrackerAllowlistIsAlwaysEmptyWhenDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "disabled"), etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+    }
+
+    func testTrackerAllowlistIsEmptyForNonInternalUsersWhenInternal() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "internal"), etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+    }
+
+    func testTrackerAllowlistIsNeverEmptyWhenEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "enabled"), etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+    }
+
 }

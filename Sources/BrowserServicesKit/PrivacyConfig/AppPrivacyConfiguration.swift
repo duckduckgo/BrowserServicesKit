@@ -47,7 +47,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData {
-        return data.trackerAllowlist.state == PrivacyConfigurationData.State.enabled ? data.trackerAllowlist.entries : [:]
+        switch data.trackerAllowlist.state {
+        case PrivacyConfigurationData.State.enabled: return data.trackerAllowlist.entries
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser ? data.trackerAllowlist.entries : [:]
+        default: return [:]
+        }
     }
     
     func parse(versionString: String) -> [Int] {
