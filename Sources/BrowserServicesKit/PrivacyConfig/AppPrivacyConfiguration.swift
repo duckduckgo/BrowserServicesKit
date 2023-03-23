@@ -26,13 +26,16 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     
     private let data: PrivacyConfigurationData
     private let locallyUnprotected: DomainsProtectionStore
+    private let internalUserDecider: InternalUserDecider
 
     public init(data: PrivacyConfigurationData,
                 identifier: String,
-                localProtection: DomainsProtectionStore) {
+                localProtection: DomainsProtectionStore,
+                internalUserDecider: InternalUserDecider) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
+        self.internalUserDecider = internalUserDecider
     }
 
     public var userUnprotectedDomains: [String] {

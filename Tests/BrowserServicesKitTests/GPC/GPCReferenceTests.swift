@@ -45,7 +45,8 @@ final class GPCReferenceTests: XCTestCase {
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: DefaultInternalUserDecider())
     }
     
     func testGPCHeader() throws {

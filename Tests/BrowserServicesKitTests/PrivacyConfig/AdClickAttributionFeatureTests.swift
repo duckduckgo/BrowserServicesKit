@@ -75,7 +75,8 @@ class AdClickAttributionFeatureTests: XCTestCase {
         let config = PrivacyConfigurationManager(fetchedETag: nil,
                                                  fetchedData: nil,
                                                  embeddedDataProvider: dataProvider,
-                                                 localProtection: MockDomainsProtectionStore())
+                                                 localProtection: MockDomainsProtectionStore(),
+                                                 internalUserDecider: DefaultInternalUserDecider())
         
         let feature = AdClickAttributionFeature(with: config)
         
