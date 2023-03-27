@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "ed10de3485f454ca59259266a0b3942bd21b43db",
-        "version" : "3.4.1"
+        "revision" : "801b7f23476f797c6eaa72b070e6c80abb82801a",
+        "version" : "4.4.4"
       }
     },
     {
@@ -115,6 +115,15 @@
       "state" : {
         "revision" : "4d0f62f561458cbe1f732171e625f03195151b60",
         "version" : "7.0.1"
+      }
+    },
+    {
+      "identity" : "sync_crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/duckduckgo/sync_crypto",
+      "state" : {
+        "revision" : "df751674ee842d129c50a183668b033d02c2980d",
+        "version" : "0.0.1"
       }
     },
     {

@@ -33,7 +33,7 @@ public protocol PrivacyConfigurationManaging: AnyObject {
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
 
-    func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
+    @discardableResult func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
 
 public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
@@ -85,8 +85,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 data = embedded
             } else {
                 let jsonData = embeddedDataProvider.embeddedData
-                let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-                let configData = PrivacyConfigurationData(json: json!)
+                let configData = try! PrivacyConfigurationData(data: jsonData)
                 _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData
             }
@@ -145,12 +144,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
             
             do {
                 // This might fail if the downloaded data is corrupt or format has changed unexpectedly
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                    let configData = PrivacyConfigurationData(json: json)
-                    fetchedConfigData = (data, configData, etag)
-                } else {
-                    throw ParsingError.dataMismatch
-                }
+                let configData = try PrivacyConfigurationData(data: data)
+                fetchedConfigData = (data, configData, etag)
             } catch {
                 errorReporting?.fire(.privacyConfigurationParseFailed, error: error)
                 fetchedConfigData = nil

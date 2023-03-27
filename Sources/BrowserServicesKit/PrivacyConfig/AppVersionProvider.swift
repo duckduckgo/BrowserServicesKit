@@ -21,11 +21,8 @@ import Foundation
 import Common
 
 open class AppVersionProvider {
-    open func appVersion() -> String? {
-        return Bundle.main.releaseVersionNumber
-    }
     
-    public init() {
-        
-    }
+    open func appVersion() -> String? { Bundle.main.releaseVersionNumber }
+    public init() { }
+
 }

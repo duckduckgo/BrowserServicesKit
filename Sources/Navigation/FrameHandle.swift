@@ -18,6 +18,7 @@
 
 import WebKit
 
+#if _FRAME_HANDLE_ENABLED
 public struct FrameHandle: Hashable, _ObjectiveCBridgeable {
     private let rawValue: Any
 
@@ -95,3 +96,4 @@ extension FrameHandle: CustomDebugStringConvertible {
         "\(frameID)"
     }
 }
+#endif

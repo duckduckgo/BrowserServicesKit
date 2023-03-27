@@ -84,9 +84,11 @@ class WKFrameInfoMock: NSObject {
 
     @objc weak var webView: WKWebView?
 
+#if _FRAME_HANDLE_ENABLED
     @objc var handle: FrameHandle {
         isMainFrame ? .fallbackMainFrameHandle : .fallbackNonMainFrameHandle
     }
+#endif
 
     init(isMainFrame: Bool, request: URLRequest, securityOrigin: WKSecurityOrigin, webView: WKWebView?) {
         self.isMainFrame = isMainFrame
@@ -119,7 +121,7 @@ extension WKFrameInfo {
     internal func setURL(_ url: URL) {
         self._protocol = url.scheme ?? ""
         self._host = url.host ?? ""
-        self._port = url.port ?? (url.scheme != nil ? (url.scheme == "https" ? 443 : 80) : 0)
+        self._port = url.port ?? url.navigationalScheme?.defaultPort ?? 0
     }
 
     class func new(url: URL) -> WKSecurityOriginMock {

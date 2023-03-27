@@ -65,6 +65,7 @@ public final class DistributedNavigationDelegate: NSObject {
         self.currentNavigation = currentNavigation
     }
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     /// last BackForwardList item committed into WebView
     @Published public private(set) var currentHistoryItemIdentity: HistoryItemIdentity?
     private func updateCurrentHistoryItemIdentity(_ currentItem: WKBackForwardListItem?) {
@@ -74,10 +75,17 @@ public final class DistributedNavigationDelegate: NSObject {
 
         currentHistoryItemIdentity = identity
     }
+#else
+    private var currentHistoryItemIdentity: HistoryItemIdentity? { nil }
+#endif
 
     public init(logger: OSLog) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.logger = logger
+
+#if !_MAIN_FRAME_NAVIGATION_ENABLED
+        _=WKWebView.swizzleLoadMethodOnce
+#endif
     }
 
     /** set responder chain for Navigation Events with defined ownership and nullability:
@@ -176,13 +184,27 @@ private extension DistributedNavigationDelegate {
         // only handled for main-frame navigations:
         // get WKNavigation associated with the WKNavigationAction
         // it is not `current` yet, unless it‘s a server-redirect
+#if _MAIN_FRAME_NAVIGATION_ENABLED
         let wkNavigation = wkNavigationAction.mainFrameNavigation
+#else
+        let wkNavigation = webView.expectedMainFrameNavigation(for: wkNavigationAction)
+#endif
         let navigation: Navigation = {
             if let navigation = wkNavigation?.navigation,
                // same-document NavigationActions have a previous WKNavigation mainFrameNavigation
                !wkNavigationAction.isSameDocumentNavigation {
                 // it‘s a server-redirect or a developer-initiated navigation, so the WKNavigation already has an associated Navigation object
                 return navigation
+
+            // server-redirected navigation continues with the same WKNavigation identity
+            } else if let startedNavigation,
+                      case .started = startedNavigation.state,
+                      // redirect Navigation Action should always have sourceFrame set:
+                      // https://github.com/WebKit/WebKit/blob/c39358705b79ccf2da3b76a8be6334e7e3dfcfa6/Source/WebKit/UIProcess/WebPageProxy.cpp#L5675
+                      wkNavigationAction.safeSourceFrame != nil,
+                      wkNavigationAction.isRedirect != false {
+
+                return startedNavigation
             }
             return Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: false)
         }()
@@ -194,19 +216,12 @@ private extension DistributedNavigationDelegate {
         // custom NavigationType for navigations with developer-set NavigationType
         var navigationType: NavigationType? = navigation.state.expectedNavigationType
         var redirectHistory: [NavigationAction]?
-        if let startedNavigation,
-           // server-redirected navigation continues with the same WKNavigation identity
-           startedNavigation === navigation || navigation.identity == .expected,
-           case .started = startedNavigation.state,
-           // redirect Navigation Action should always have sourceFrame set:
-           // https://github.com/WebKit/WebKit/blob/c39358705b79ccf2da3b76a8be6334e7e3dfcfa6/Source/WebKit/UIProcess/WebPageProxy.cpp#L5675
-           wkNavigationAction.safeSourceFrame != nil,
-           wkNavigationAction.isRedirect != false {
 
+        // server redirect received
+        if startedNavigation === navigation {
             assert(navigationType == nil)
-            // server redirect received
             navigationType = .redirect(.server)
-            redirectHistory = startedNavigation.navigationActions
+            redirectHistory = navigation.navigationActions
 
         // client redirect
         } else if let startedNavigation,
@@ -254,11 +269,11 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         if (navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about
             && (webView.backForwardList.currentItem == nil || navigationAction.navigationType == .sessionRestoration))
             // same-document navigations do the same
-            || wkNavigationAction.isSameDocumentNavigation {
+            || wkNavigationAction.isSameDocumentNavigation && navigationAction.navigationType != .redirect(.server) {
 
             // allow them right away
             decisionHandler(.allow, wkPreferences)
-            if let mainFrameNavigation {
+            if let mainFrameNavigation, !mainFrameNavigation.isCurrent {
                 self.willStart(mainFrameNavigation)
             }
             return
@@ -292,11 +307,22 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             case .cancel:
                 decisionHandler(.cancel, wkPreferences)
 
+                if mainFrameNavigation?.isCurrent != true {
+                    self.didCancelNavigationAction(navigationAction, withRedirectNavigations: nil)
+                }
+
             case .redirect(_, let redirect):
                 assert(navigationAction.isForMainFrame)
 
                 decisionHandler(.cancel, wkPreferences)
-                redirect(webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation))
+                var expectedNavigations = [ExpectedNavigation]()
+                withUnsafeMutablePointer(to: &expectedNavigations) { expectedNavigationsPtr in
+                    let navigator = webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation, expectedNavigations: expectedNavigationsPtr)
+                    redirect(navigator)
+                }
+                if mainFrameNavigation?.isCurrent != true {
+                    didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
+                }
 
             case .download:
                 self.willStartDownload(with: navigationAction, in: webView)
@@ -341,6 +367,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
             responder.navigationAction(navigationAction, willBecomeDownloadIn: webView)
+        }
+    }
+
+    @MainActor
+    private func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?) {
+        let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
+        for responder in responders {
+            responder.didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
         }
     }
 
@@ -395,31 +429,27 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     // MARK: Navigation
 
     @MainActor
-    @objc(_webView:navigation:didSameDocumentNavigation:)
-    public func webView(_ webView: WKWebView, wkNavigation: WKNavigation?, didSameDocumentNavigation navigationType: Int) {
-        os_log("didSameDocumentNavigation %s: %d", log: logger, type: .default, wkNavigation.debugDescription, navigationType)
-
-        // currentHistoryItemIdentity should only change for completed navigation, not while in progress
-        let navigationType = WKSameDocumentNavigationType(rawValue: navigationType)
-        if case .anchorNavigation = navigationType {
-            updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
-        }
-
-        for responder in responders {
-            responder.navigation(wkNavigation?.navigation, didSameDocumentNavigationOf: navigationType)
-        }
-    }
-
-    @MainActor
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation wkNavigation: WKNavigation?) {
         let navigation: Navigation
-        if let expectedNavigation = navigationExpectedToStart, wkNavigation != nil || expectedNavigation.navigationAction.navigationType == .sessionRestoration {
+        if let expectedNavigation = navigationExpectedToStart,
+           wkNavigation != nil
+            || expectedNavigation.navigationAction.navigationType == .sessionRestoration
+            || expectedNavigation.navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about {
+
             // regular flow: start .expected navigation
             navigation = expectedNavigation
-        } else {
+        } else if webView.url?.isEmpty == false {
             assertionFailure("session restoration happening without NavigationAction")
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
             navigation.navigationActionReceived(.sessionRestoreNavigation(webView: webView, mainFrameNavigation: navigation))
+            navigation.willStart()
+        } else if let wkNavigation {
+            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
+            let navigationAction = NavigationAction(request: URLRequest(url: .empty), navigationType: .other, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
+            navigation.navigationActionReceived(navigationAction)
+            navigation.willStart()
+        } else {
+            return
         }
 
         navigation.started(wkNavigation)
@@ -605,7 +635,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             return
         }
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+#endif
         navigation.didFinish(wkNavigation)
         os_log("didFinish: %s", log: logger, type: .default, navigation.debugDescription)
 
@@ -642,7 +674,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             return
         }
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+#endif
 
         if navigation.isCurrent && !isProvisional {
             navigation.didResignCurrent()
@@ -660,6 +694,23 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 return
             }
             self.startedNavigation = nil
+        }
+    }
+
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+    @MainActor
+    @objc(_webView:navigation:didSameDocumentNavigation:)
+    public func webView(_ webView: WKWebView, wkNavigation: WKNavigation?, didSameDocumentNavigation navigationType: Int) {
+        os_log("didSameDocumentNavigation %s: %d", log: logger, type: .default, wkNavigation.debugDescription, navigationType)
+
+        // currentHistoryItemIdentity should only change for completed navigation, not while in progress
+        let navigationType = WKSameDocumentNavigationType(rawValue: navigationType)
+        if case .anchorNavigation = navigationType {
+            updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+        }
+
+        for responder in responders {
+            responder.navigation(wkNavigation?.navigation, didSameDocumentNavigationOf: navigationType)
         }
     }
 
@@ -682,6 +733,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             responder.didFailProvisionalLoad(with: request, in: frame, with: error)
         }
     }
+#endif
 
     // MARK: Downloads
 
@@ -696,10 +748,12 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, didCommit wkNavigation: WKNavigation?) {
         guard let navigation = wkNavigation?.navigation ?? startedNavigation else {
-            assertionFailure("Unexpected didCommitNavigation")
+            assert(wkNavigation == nil, "Unexpected didCommitNavigation without preceding didStart")
             return
         }
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+#endif
         navigation.committed(wkNavigation)
         os_log("didCommit: %s", log: logger, type: .default, navigation.debugDescription)
 

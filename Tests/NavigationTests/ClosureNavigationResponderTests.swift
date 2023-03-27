@@ -69,7 +69,7 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
                 guard navigationActionCounter == 2 else { return .next }
                 eNavAction.fulfill()
                 return .allow
-            }  willStart: { _ in
+            } willStart: { _ in
                 eWillStart.fulfill()
             } didStart: { _ in
                 eDidStart.fulfill()
@@ -85,6 +85,105 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
                 eDidCommit.fulfill()
             } navigationDidFinish: { _ in
                 eNavigationDidFinish.fulfill()
+            } navigationDidFail: { _, _ in
+                XCTFail("unexpected didFail")
+            } navigationActionWillBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationActionWillBecomeDownload")
+            } navigationActionDidBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationActionWillBecomeDownload")
+            } navigationResponseWillBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationResponseWillBecomeDownload")
+            } navigationResponseDidBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationResponseWillBecomeDownload")
+            }
+
+        waitForExpectations(timeout: 5)
+    }
+
+    @MainActor
+    func testWhenNavigationActionCancelled_didCancelIsCalled() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+
+        let navigator = withWebView { Navigator(webView: $0, distributedNavigationDelegate: navigationDelegate, currentNavigation: nil) }
+
+        try server.start(8084)
+        let eNavAction = expectation(description: "navigationAction")
+        let eDidCancel = expectation(description: "didCancel")
+        navigator.load(req(urls.local))?
+            .overrideResponders { _, _ in
+                eNavAction.fulfill()
+                return .cancel
+            } didCancel: { _, expected in
+                XCTAssertNil(expected)
+                eDidCancel.fulfill()
+            } willStart: { _ in
+                XCTFail("unexpected willStart")
+            } didStart: { _ in
+                XCTFail("unexpected didStart")
+            } authenticationChallenge: { _, _ in
+                XCTFail("unexpected authenticationChallenge")
+                return .next
+            } redirected: { _, _ in
+                XCTFail("unexpected redirected")
+            } navigationResponse: { _ in
+                XCTFail("unexpected navigationResponse")
+                return .next
+            } didCommit: { _ in
+                XCTFail("unexpected didCommit")
+            } navigationDidFinish: { _ in
+                XCTFail("unexpected didFinish")
+            } navigationDidFail: { _, _ in
+                XCTFail("unexpected didFail")
+            } navigationActionWillBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationActionWillBecomeDownload")
+            } navigationActionDidBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationActionWillBecomeDownload")
+            } navigationResponseWillBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationResponseWillBecomeDownload")
+            } navigationResponseDidBecomeDownload: { _, _ in
+                XCTFail("unexpected navigationResponseWillBecomeDownload")
+            }
+
+        waitForExpectations(timeout: 5)
+    }
+
+    @MainActor
+    func testWhenNavigationActionRedirected_didCancelIsCalled() throws {
+        navigationDelegate.setResponders(.strong(NavigationResponderMock()))
+
+        let navigator = withWebView { Navigator(webView: $0, distributedNavigationDelegate: navigationDelegate, currentNavigation: nil) }
+
+        try server.start(8084)
+        let eNavAction = expectation(description: "navigationAction")
+        let eDidCancel = expectation(description: "didCancel")
+
+        navigator.load(req(urls.local))?
+            .overrideResponders { [urls] navAction, _ in
+                eNavAction.fulfill()
+
+                return .redirect(navAction.mainFrameTarget!) { navigator in
+                    navigator.load(req(urls.local2))?.overrideResponders { _, _ in .cancel }
+                    navigator.load(req(urls.local3))?.overrideResponders { _, _ in .cancel }
+                }
+            } didCancel: { _, expected in
+                XCTAssertEqual(expected?.count, 2)
+                eDidCancel.fulfill()
+            } willStart: { _ in
+                XCTFail("unexpected willStart")
+            } didStart: { _ in
+                XCTFail("unexpected didStart")
+            } authenticationChallenge: { _, _ in
+                XCTFail("unexpected authenticationChallenge")
+                return .next
+            } redirected: { _, _ in
+                XCTFail("unexpected redirected")
+            } navigationResponse: { _ in
+                XCTFail("unexpected navigationResponse")
+                return .next
+            } didCommit: { _ in
+                XCTFail("unexpected didCommit")
+            } navigationDidFinish: { _ in
+                XCTFail("unexpected didFinish")
             } navigationDidFail: { _, _ in
                 XCTFail("unexpected didFail")
             } navigationActionWillBecomeDownload: { _, _ in
@@ -196,7 +295,7 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
                 .appendResponder { _, _ in
                     XCTFail("unexpected navigationAction")
                     return .cancel
-                }  willStart: { _ in
+                } willStart: { _ in
                     eWillStart.fulfill()
                 } didStart: { _ in
                     eDidStart.fulfill()

@@ -827,6 +827,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
+            .didCancel(navAct(1), expected: 1),
 
             .navigationAction(NavAction(req(urls.https), .custom(.init(rawValue: "redir")), src: main())),
             .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
@@ -866,6 +867,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
+            .didCancel(navAct(1), expected: 1),
 
             .willStart(Nav(action: NavAction(req(urls.aboutBlank), .redirect(.developer), src: main()), redirects: [navAct(1)], .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
@@ -913,6 +915,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
+            .didCancel(navAct(1), expected: 1),
 
             .navigationAction(NavAction(req(urls.local2), .redirect(.developer), src: main())),
             .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
@@ -962,6 +965,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         })
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, src: main())),
+            .didCancel(navAct(1), expected: 2),
 
             // .navigationAction(NavAction(req(urls.local2), .redirect(.developer), src: main())),
             // .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
@@ -1034,7 +1038,8 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, from: history[2], src: main(urls.local2))),
-
+            .didCancel(navAct(3), expected: 2),
+            
             // .navigationAction(NavAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .redirect(.developer), from: history[2], src: main(urls.local2))),
             // .willStart(Nav(action: navAct(4), redirects: [navAct(3)], .approved, isCurrent: false)),
             // .didFail(Nav(action: NavAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .redirect(.developer), from: history[2], src: main(urls.local2)), redirects: [navAct(3)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
@@ -1192,6 +1197,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
             .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didCancel(navAct(2)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
         ])
     }
@@ -1237,6 +1243,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
             .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client(delay: 1.0)), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
+            .didCancel(navAct(2)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
         ])
     }
