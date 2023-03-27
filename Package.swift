@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.6
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -24,11 +24,12 @@ let package = Package(
     dependencies: [
         .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.3.0")),
         .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("2.0.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.2.1")),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .branch("sam/update-argument-parser-version")),
         .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("3.4.1")),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
         .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
+        .package(url: "https://github.com/realm/SwiftLint.git", .exact("0.51.0")),
     ],
     targets: [
         .target(
@@ -50,6 +51,9 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]),
         .target(
             name: "Persistence",
