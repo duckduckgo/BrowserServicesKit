@@ -51,9 +51,28 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
     }
     
     public static func loadModel(from bundle: Bundle, named name: String) -> NSManagedObjectModel? {
-        guard let url = bundle.url(forResource: name, withExtension: "momd") else { return nil }
+        let momdUrl = bundle.url(forResource: name, withExtension: "momd") ??
+            bundle.resourceURL!.appendingPathComponent(name + ".momd")
+#if DEBUG
+        // when running tests using `swift test` xcdatamodeld is not compiled to momd for some reason
+        // this is a workaround to compile it in runtime
+        if !FileManager.default.fileExists(atPath: momdUrl.path),
+           let xcDataModelUrl = bundle.url(forResource: name, withExtension: "xcdatamodeld"),
+           let sdkRoot = ProcessInfo().environment["SDKROOT"],
+           let contentsDeveloperRange = sdkRoot.range(of: "/Contents/Developer") {
+
+            let compileDataModel = Process()
+            let momc = "\(sdkRoot[..<contentsDeveloperRange.upperBound])/usr/bin/momc"
+            compileDataModel.executableURL = URL(fileURLWithPath: momc)
+            compileDataModel.arguments = [xcDataModelUrl.path,
+                                          xcDataModelUrl.deletingLastPathComponent().appendingPathComponent(name + ".momd").path]
+            try? compileDataModel.run()
+            compileDataModel.waitUntilExit()
+        }
+#endif
+        guard FileManager.default.fileExists(atPath: momdUrl.path) else { return nil }
         
-        return NSManagedObjectModel(contentsOf: url)
+        return NSManagedObjectModel(contentsOf: momdUrl)
     }
     
     public init(name: String,
