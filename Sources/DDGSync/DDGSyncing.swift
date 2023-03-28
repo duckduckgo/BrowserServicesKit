@@ -58,6 +58,9 @@ public protocol DDGSyncing {
      */
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws
 
+    /// Returns a device id and temporary secret key ready for display then polls the end point for a recovery key.
+    func remoteConnect() throws -> RemoteConnecting
+
     /**
     Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
      */
@@ -154,4 +157,12 @@ public struct SavedSiteFolder: Codable {
         self.parent = parent
     }
 
+}
+
+public protocol RemoteConnecting {
+
+    var code: String { get }
+
+    func connect() async throws
+    
 }

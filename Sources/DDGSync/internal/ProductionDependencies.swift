@@ -53,6 +53,39 @@ struct ProductionDependencies: SyncDependencies {
         responseHandler = ResponseHandler(persistence: persistence, crypter: crypter)
     }
 
+    func createRemoteConnector() -> RemoteConnecting {
+        
+        // TODO move this somewhere else
+        struct RemoteConnector: RemoteConnecting {
+
+            let code: String = "device id + temp secret key as base64 encoded json"
+
+            func connect() async throws {
+                // TODO create device id
+
+                // TODO create temporary secret key
+
+                // TODO call end the point
+
+                while true {
+                    // If the UI closes it should cancel the task
+                    try Task.checkCancellation()
+
+                    // TODO poll the endpoint
+
+                    // TODO parse the recovery key if available
+
+                    // TODO login using the recovery key
+
+                    // Wait for 5 seconds before polling again
+                    try await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+                }
+            }
+        }
+
+        return RemoteConnector()
+    }
+
     func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending {
         return UpdatesSender(fileStorageUrl: fileStorageUrl, persistence: persistence, dependencies: self)
     }

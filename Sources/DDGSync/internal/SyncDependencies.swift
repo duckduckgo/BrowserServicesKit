@@ -27,6 +27,7 @@ protocol SyncDependencies {
     var responseHandler: ResponseHandling { get }
     var crypter: Crypting { get }
 
+    func createRemoteConnector() -> RemoteConnecting
     func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
 
@@ -37,6 +38,7 @@ protocol AccountManaging {
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
+
     func logout(deviceId: String, token: String) async throws
 
 }
