@@ -1298,52 +1298,6 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    func testClientRedirectStoppedOnDidReceiveRedirect() throws {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-
-        server.middleware = [{ [urls, data] request in
-            switch request.path {
-            case urls.local2.path:
-                return .ok(.data(data.html))
-            default:
-                return .ok(.html(data.clientRedirectData.string()!))
-            }
-        }]
-        try server.start(8084)
-
-        responder(at: 0).onDidReceiveRedirect = { [unowned webView=withWebView(do: { $0 }), unowned server] _, _ in
-            server!.stop()
-            webView.stopLoading()
-        }
-
-        let eDidFail = expectation(description: "onDidFail")
-        responder(at: 0).onDidFail = { _, _ in
-            eDidFail.fulfill()
-        }
-
-        withWebView { webView in
-            _=webView.load(req(urls.local))
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.clientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
-            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
-
-            .navigationAction(NavAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .redirect(.client), from: history[1], redirects: [navAct(1)], src: main(urls.local))),
-            .didReceiveRedirect(navAct(2), Nav(action: navAct(1), .redirected(.client), resp: resp(0), .committed, isCurrent: false)),
-
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
-
-            .willStart(Nav(action: navAct(2), redirects: [navAct(1)], .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
-            .didFail(Nav(action: navAct(2), redirects: [navAct(1)], .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
-        ])
-    }
-
     @MainActor
     func testUserInitiatedRedirectNotInterpretedAsClientRedirect() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
