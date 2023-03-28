@@ -149,7 +149,24 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     }
     
     // MARK: - Read
-    
+
+    public func countBookmarksForDomain(_ domain: String) -> Int {
+        let count = countBookmarksForDomain(domain, inFolder: fetchRootBookmarksFolder())
+        return count
+    }
+
+    private func countBookmarksForDomain(_ domain: String, inFolder folder: BookmarkEntity) -> Int {
+        var count = 0
+        folder.childrenArray.forEach { child in
+            if child.isFolder {
+                count += countBookmarksForDomain(domain, inFolder: child)
+            } else if child.urlObject?.isPart(ofDomain: domain) == true {
+                count += 1
+            }
+        }
+        return count
+    }
+
     public var totalBookmarksCount: Int {
         let countRequest = BookmarkEntity.fetchRequest()
         countRequest.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
@@ -157,7 +174,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         return (try? context.count(for: countRequest)) ?? 0
     }
 
-    public func fetchRootBookmarksFolder() -> BookmarkEntity {
+    private func fetchRootBookmarksFolder() -> BookmarkEntity {
         return BookmarkUtils.fetchRootFolder(context)!
     }
 
