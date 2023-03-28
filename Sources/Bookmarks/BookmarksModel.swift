@@ -43,6 +43,8 @@ public protocol BookmarkListInteracting: BookmarkStoring {
     func moveBookmark(_ bookmark: BookmarkEntity,
                       fromIndex: Int,
                       toIndex: Int)
+
+    func countBookmarksForDomain(_ domain: String) -> Int 
 }
 
 public protocol FavoritesListInteracting: BookmarkStoring {
