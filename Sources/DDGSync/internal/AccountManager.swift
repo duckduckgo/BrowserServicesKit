@@ -78,8 +78,9 @@ struct AccountManager: AccountManaging {
                            token: result.token)
     }
 
-    func login(recoveryKey: Data, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
         let deviceId = UUID().uuidString
+
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
         let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: recoveryInfo.primaryKey)
         let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: recoveryInfo.primaryKey)
