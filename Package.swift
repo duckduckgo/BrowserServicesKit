@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -26,23 +26,23 @@ let package = Package(
         .library(name: "Navigation", targets: ["Navigation"]),
     ],
     dependencies: [
-        .package(name: "Autofill", url: "https://github.com/duckduckgo/duckduckgo-autofill.git", .exact("6.4.1")),
-        .package(name: "GRDB", url: "https://github.com/duckduckgo/GRDB.swift.git", .exact("2.0.0")),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", .exact("1.2.1")),
-        .package(url: "https://github.com/duckduckgo/sync_crypto", .exact("0.0.1")),
-        .package(name: "Punycode", url: "https://github.com/gumob/PunycodeSwift.git", .exact("2.1.0")),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", .exact("4.4.4")),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", .exact("1.4.0")),
-        .package(url: "https://github.com/httpswift/swifter.git", .exact("1.5.0")),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.4.1"),
+        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.0.0"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
+        .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.0.1"),
+        .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.4.4"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
+        .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
     ],
     targets: [
         .target(
             name: "BrowserServicesKit",
             dependencies: [
-                "Autofill",
+                .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                "GRDB",
+                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
@@ -96,7 +96,7 @@ let package = Package(
         .target(
             name: "Common",
             dependencies: [
-                .product(name: "Punnycode", package: "Punycode")
+                .product(name: "Punnycode", package: "PunycodeSwift")
             ],
             resources: [
                 .process("TLD/tlds.json")
