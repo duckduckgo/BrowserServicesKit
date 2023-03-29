@@ -59,13 +59,12 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         if !FileManager.default.fileExists(atPath: momdUrl.path),
            let xcDataModelUrl = bundle.url(forResource: name, withExtension: "xcdatamodeld"),
            let sdkRoot = ProcessInfo().environment["SDKROOT"],
-           let contentsDeveloperRange = sdkRoot.range(of: "/Contents/Developer") {
+           let developerDir = sdkRoot.range(of: "/Contents/Developer").map({ sdkRoot[..<$0.upperBound] }) {
 
             let compileDataModel = Process()
-            let momc = "\(sdkRoot[..<contentsDeveloperRange.upperBound])/usr/bin/momc"
+            let momc = "\(developerDir)/usr/bin/momc"
             compileDataModel.executableURL = URL(fileURLWithPath: momc)
-            compileDataModel.arguments = [xcDataModelUrl.path,
-                                          xcDataModelUrl.deletingLastPathComponent().appendingPathComponent(name + ".momd").path]
+            compileDataModel.arguments = [xcDataModelUrl.path, momdUrl.path]
             try? compileDataModel.run()
             compileDataModel.waitUntilExit()
         }
