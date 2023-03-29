@@ -60,7 +60,7 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountAlreadyExists
         }
 
-        let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
+        let result = try await dependencies.account.login(recoveryKey, deviceId: nil, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
         updateIsAuthenticated()
     }

@@ -28,7 +28,11 @@ struct RemoteConnector: RemoteConnecting {
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
 
-    init(account: AccountManaging, crypter: Crypting, api: RemoteAPIRequestCreating, endpoints: Endpoints, connectInfo: ConnectInfo) throws {
+    init(account: AccountManaging,
+         crypter: Crypting,
+         api: RemoteAPIRequestCreating,
+         endpoints: Endpoints,
+         connectInfo: ConnectInfo) throws {
         self.account = account
         self.crypter = crypter
         self.api = api
@@ -45,7 +49,10 @@ struct RemoteConnector: RemoteConnecting {
             if let encryptedRecoveryKey = try await fetchEncryptedRecoveryKey() {
                 let recoveryKey = try decryptEncryptedRecoveryKey(encryptedRecoveryKey)
                 print(#function, recoveryKey)
-                let result = try await account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
+                let result = try await account.login(recoveryKey,
+                                                     deviceId: connectInfo.deviceID,
+                                                     deviceName: deviceName,
+                                                     deviceType: deviceType)
                 return result
             }
 

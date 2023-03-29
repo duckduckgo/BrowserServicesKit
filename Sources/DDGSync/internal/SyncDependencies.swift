@@ -39,7 +39,7 @@ protocol AccountManaging {
 
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount
 
-    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceId: String?, deviceName: String, deviceType: String) async throws -> LoginResult
 
     func logout(deviceId: String, token: String) async throws
 
