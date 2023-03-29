@@ -1,0 +1,81 @@
+name: Create Platform PRs
+
+on:
+  workflow_dispatch:
+    inputs:
+      ios-branch:
+        description: "iOS Branch"
+        required: true
+        type: string
+      macos-branch:
+        description: "macOS Branch"
+        required: true
+        type: string
+      asana-task-url:
+        description: "Asana Task URL"
+        required: true
+        type: string
+      pr-title:
+        description: "Pull Request Title"
+        required: true
+        type: string
+
+jobs:
+
+  ios-pr:
+    name: Create iOS Pull Request
+    uses: ./.github/workflows/create-pr.yml
+    with:
+      repo: duckduckgo/iOS
+      branch: ${{ github.event.inputs.ios-branch }}
+      pr-title: ${{ github.event.inputs.pr-title }}
+      asana-task-url: ${{ github.event.inputs.asana-task-url }}
+    secrets:
+      github-token: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+
+  macos-pr:
+    name: Create macOS Pull Request
+    uses: ./.github/workflows/create-pr.yml
+    with:
+      repo: duckduckgo/macos-browser
+      branch: ${{ github.event.inputs.macos-branch }}
+      pr-title: ${{ github.event.inputs.pr-title }}
+      asana-task-url: ${{ github.event.inputs.asana-task-url }}
+    secrets:
+      github-token: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+
+  bsk-pr:
+    needs: [ios-pr, macos-pr]
+    
+    name: Create BSK Pull Request
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Create BSK PR Body
+      id: create-body
+      env:
+        GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+      run: |
+        pr_body_path=$(mktemp)
+        template="$(curl $(gh api https://api.github.com/repos/duckduckgo/BrowserServicesKit/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
+        sed <<< "$template" \
+          -e 's~\(Task.*URL:.*\)~\1${{ github.event.inputs.asana-task-url }}~' \
+          -e 's~\(iOS PR:.*\)~\1${{ needs.ios-pr.outputs.url }}~' \
+          -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~' \
+          > "$pr_body_path"
+        echo "pr_body_path=${pr_body_path}" >> $GITHUB_OUTPUT
+    
+    - name: Create BSK PR
+      id: create-pr
+      env:
+        GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+      run: |
+        url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
+          --title "${{ github.event.inputs.pr-title }}" \
+          --body-file "${{ steps.create-body.outputs.pr_body_path }}" \
+          --assignee "${{ github.actor }}" \
+          --draft \
+          --head "${{ github.ref }}")"
+        echo "BSK PR: ${url}" >> $GITHUB_STEP_SUMMARY
+        echo "iOS PR: ${{ needs.ios-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+        echo "macOS PR: ${{ needs.macos-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
