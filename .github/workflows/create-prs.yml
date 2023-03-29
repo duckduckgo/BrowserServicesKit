@@ -73,9 +73,9 @@ jobs:
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/macos-browser/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
         body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
         EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "pr_body<<$EOF" >> $GITHUB_ENV
-        echo "${body}" >> $GITHUB_ENV
-        echo "$EOF" >> $GITHUB_ENV
+        echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
+        echo "${body}" >> $GITHUB_OUTPUT
+        echo "$EOF" >> $GITHUB_OUTPUT
     
     - name: Create macOS PR
       id: create-pr
@@ -88,7 +88,7 @@ jobs:
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ github.env.pr_body }}")"
+          <<< "${{ steps.create-body.outputs.pr_body }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   bsk-pr:
@@ -99,6 +99,7 @@ jobs:
 
     steps:
     - name: Create BSK PR Body
+      id: create-body
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
@@ -108,11 +109,12 @@ jobs:
           -e 's~\(iOS PR:.*\)~\1${{ needs.ios-pr.outputs.url }}~' \
           -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~')"
         EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "pr_body<<$EOF" >> $GITHUB_ENV
-        echo "${body}" >> $GITHUB_ENV
-        echo "$EOF" >> $GITHUB_ENV
+        echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
+        echo "${body}" >> $GITHUB_OUTPUT
+        echo "$EOF" >> $GITHUB_OUTPUT
     
     - name: Create BSK PR
+      id: create-pr
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
@@ -122,5 +124,5 @@ jobs:
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ github.env.pr_body }}")"
+          <<< "${{ steps.create-body.outputs.pr_body }}")"
         echo "BSK PR: ${url}\niOS PR: ${{ needs.ios-pr.outputs.url }}\nmacOS PR: ${{ needs.macos-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
