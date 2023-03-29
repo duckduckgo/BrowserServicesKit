@@ -46,10 +46,11 @@ jobs:
       run: |
         url="$(gh pr create --repo duckduckgo/iOS \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body "${{ github.env.pr_body }}" \
+          --body-file - \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}")"
+          --head "${{ github.event.inputs.ios-branch }}" \
+          < "${{ github.env.pr_body }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   macos-pr:
@@ -77,10 +78,11 @@ jobs:
       run: |
         url=$(gh pr create --repo duckduckgo/macos-browser \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body "${{ github.env.pr_body }}" \
+          --body-file - \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}")"
+          --head "${{ github.event.inputs.ios-branch }}" \
+          < "${{ github.env.pr_body }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   bsk-pr:
@@ -107,8 +109,9 @@ jobs:
       run: |
         url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body "${{ github.env.pr_body }}" \
+          --body-file - \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}")"
+          --head "${{ github.event.inputs.ios-branch }}"
+          < "${{ github.env.pr_body }}")"
         echo "BSK PR: ${url}\niOS PR: ${{ needs.ios-pr.outputs.url }}\nmacOS PR: ${{ needs.macos-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
