@@ -112,14 +112,16 @@ jobs:
       env:
         ASANA_ACCESS_TOKEN: ${{ secrets.ASANA_ACCESS_TOKEN }}
       run: |
+        comment="${{ needs.bsk-pr.outputs.urls }}"
+
         curl --silent --request POST \
           --url https://app.asana.com/api/1.0/tasks/${{ steps.get-task-id.outputs.task_id }}/stories \
           --header "Accept: application/json" \
           --header "Authorization: Bearer ${{ env.ASANA_ACCESS_TOKEN }}" \
           --header "Content-Type: application/json" \
-          --data '
+          --data "
           {
             "data": {
-              "text": "${{ needs.bsk-pr.outputs.urls }}"
+              "text": "${comment//$'\n'/\\n}"
             }
-          }'
+          }"
