@@ -1,6 +1,9 @@
 name: Create Platform PRs
 
 on:
+  push:
+    branches: [ dominik/pr-automation ]
+
   workflow_dispatch:
     inputs:
       ios-branch:
