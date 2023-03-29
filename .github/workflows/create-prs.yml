@@ -38,9 +38,10 @@ jobs:
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/iOS/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
         body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
         EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "pr_body=<<$EOF" >> $GITHUB_ENV
-        echo "${body}" >> $GITHUB_ENV
-        echo "$EOF" >> $GITHUB_ENV
+        echo "pr_body=${body}" >> $GITHUB_OUTPUT
+        #echo "pr_body=<<$EOF" >> $GITHUB_ENV
+        #echo "${body}" >> $GITHUB_ENV
+        #echo "$EOF" >> $GITHUB_ENV
     
     - name: Create iOS PR
       id: create-pr
@@ -53,7 +54,7 @@ jobs:
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ github.env.pr_body_base64 }}")"
+          <<< "${{ steps.create-body.outputs.pr_body }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   macos-pr:
@@ -88,7 +89,7 @@ jobs:
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ github.env.pr_body_base64 }}")"
+          <<< "${{ github.env.pr_body }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   bsk-pr:
@@ -122,5 +123,5 @@ jobs:
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ github.env.pr_body_base64 }}")"
+          <<< "${{ github.env.pr_body }}")"
         echo "BSK PR: ${url}\niOS PR: ${{ needs.ios-pr.outputs.url }}\nmacOS PR: ${{ needs.macos-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
