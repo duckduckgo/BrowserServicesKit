@@ -77,7 +77,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
-        url=$(gh pr create --repo duckduckgo/macos-browser \
+        url="$(gh pr create --repo duckduckgo/macos-browser \
           --title "${{ github.event.inputs.pr-title }}" \
           --body-file "${{ steps.create-body.outputs.pr_body_path }}" \
           --assignee "${{ github.actor }}" \
