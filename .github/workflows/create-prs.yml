@@ -36,21 +36,22 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/iOS/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
-        body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
-        echo "pr_body=\"${body}\"" >> $GITHUB_ENV
+        body_base64="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~' | base64)"
+        echo "pr_body_base64=${body_base64}" >> $GITHUB_ENV
     
     - name: Create iOS PR
       id: create-pr
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        body="$(base64 -d <<< ${{ github.env.pr_body_base64 }})"
         url="$(gh pr create --repo duckduckgo/iOS \
           --title "${{ github.event.inputs.pr-title }}" \
           --body-file - \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          < "${{ github.env.pr_body }}")"
+          <<< "$body")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   macos-pr:
@@ -68,21 +69,22 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/macos-browser/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
-        body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
-        echo "pr_body=\"${body}\"" >> $GITHUB_ENV
+        body_base64="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~' | base64)"
+        echo "pr_body_base64=${body_base64}" >> $GITHUB_ENV
     
     - name: Create macOS PR
       id: create-pr
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        body="$(base64 -d <<< ${{ github.env.pr_body_base64 }})"
         url=$(gh pr create --repo duckduckgo/macos-browser \
           --title "${{ github.event.inputs.pr-title }}" \
           --body-file - \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}" \
-          < "${{ github.env.pr_body }}")"
+          <<< "$body")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   bsk-pr:
@@ -97,21 +99,23 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/BrowserServicesKit/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
-        body="$(sed <<< "$template" \
+        body_base64="$(sed <<< "$template" \
           -e 's~\(Task.*URL:.*\)~\1${{ github.event.inputs.asana-task-url }}~' \
           -e 's~\(iOS PR:.*\)~\1${{ needs.ios-pr.outputs.url }}~' \
-          -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~')"
-        echo "pr_body=\"${body}\"" >> $GITHUB_ENV
+          -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~' \
+          | base64)"
+        echo "pr_body_base64=${body_base64}" >> $GITHUB_ENV
     
     - name: Create BSK PR
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        body="$(base64 -d <<< ${{ github.env.pr_body_base64 }})"
         url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
           --title "${{ github.event.inputs.pr-title }}" \
           --body-file - \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}"
-          < "${{ github.env.pr_body }}")"
+          --head "${{ github.event.inputs.ios-branch }}" \
+          <<< "$body")"
         echo "BSK PR: ${url}\niOS PR: ${{ needs.ios-pr.outputs.url }}\nmacOS PR: ${{ needs.macos-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
