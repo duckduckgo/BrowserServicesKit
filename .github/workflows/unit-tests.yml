@@ -43,7 +43,7 @@ jobs:
 
     - name: Set cache key hash
       run: |
-         has_only_tags=$(jq '[ .object.pins[].state | has("version") ] | all' Package.resolved)
+         has_only_tags=$(jq '[ .pins[].state | has("version") ] | all' Package.resolved)
          if [[ "$has_only_tags" == "true" ]]; then
            echo "cache_key_hash=${{ hashFiles('Package.resolved') }}" >> $GITHUB_ENV
          else
