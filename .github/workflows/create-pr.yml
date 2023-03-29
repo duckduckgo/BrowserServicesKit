@@ -22,6 +22,10 @@ on:
     secrets:
       github-token:
         required: true
+    outputs:
+      url:
+        description: "Pull Request URL"
+        value: ${{ jobs.create-pr.outputs.url }}
 
 jobs:
   create-pr:
