@@ -1,9 +1,6 @@
 name: Create Platform PRs
 
 on:
-  push:
-    branches: [ dominik/pr-automation ]
-
   workflow_dispatch:
     inputs:
       ios-branch:
@@ -49,7 +46,7 @@ jobs:
       run: |
         url="$(gh pr create --repo duckduckgo/iOS \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body "${{ env.pr_body }}" \
+          --body "${{ github.env.pr_body }}" \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}")"
@@ -80,7 +77,7 @@ jobs:
       run: |
         url=$(gh pr create --repo duckduckgo/macos-browser \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body "${{ env.pr_body }}" \
+          --body "${{ github.env.pr_body }}" \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}")"
@@ -110,7 +107,7 @@ jobs:
       run: |
         url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body "${{ env.pr_body }}" \
+          --body "${{ github.env.pr_body }}" \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}")"
