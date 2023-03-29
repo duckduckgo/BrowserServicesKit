@@ -51,7 +51,8 @@ let package = Package(
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
-                .process("ContentBlocking/UserScripts/surrogates.js")
+                .process("ContentBlocking/UserScripts/surrogates.js"),
+                .process("SmarterEncryption/Store/HTTPSUpgrade.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))

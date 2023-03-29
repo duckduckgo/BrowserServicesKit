@@ -1,7 +1,8 @@
 //
-//  HTTPSUpgradeStore.swift
+//  EmbeddedBloomFilterResources.swift
+//  DuckDuckGo
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +17,18 @@
 //  limitations under the License.
 //
 
-import BloomFilterWrapper
+import Foundation
 
-public protocol HTTPSUpgradeStore {
+public struct EmbeddedBloomFilterResources {
 
-    // MARK: - Bloom filter
+    let bloomSpecification: URL
+    let bloomFilter: URL
+    let excludedDomains: URL
 
-    func loadBloomFilter() -> BloomFilter?
-    func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws
-    
-    // MARK: - Excluded domains
-
-    func hasExcludedDomain(_ domain: String) -> Bool
-    func persistExcludedDomains(_ domains: [String]) throws
+    public init(bloomSpecification: URL, bloomFilter: URL, excludedDomains: URL) {
+        self.bloomSpecification = bloomSpecification
+        self.bloomFilter = bloomFilter
+        self.excludedDomains = excludedDomains
+    }
 
 }
