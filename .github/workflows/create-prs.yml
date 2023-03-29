@@ -47,13 +47,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        pr_body_path=$(mktemp)
+        echo "${{ steps.create-body.outputs.pr_body }}" > "$pr_body_path"
         url="$(gh pr create --repo duckduckgo/iOS \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body-file - \
+          --body-file "$pr_body_path" \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ steps.create-body.outputs.pr_body }}")"
+          --head "${{ github.event.inputs.ios-branch }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   macos-pr:
@@ -82,13 +83,14 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        pr_body_path=$(mktemp)
+        echo "${{ steps.create-body.outputs.pr_body }}" > "$pr_body_path"
         url=$(gh pr create --repo duckduckgo/macos-browser \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body-file - \
+          --body-file "$pr_body_path" \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ steps.create-body.outputs.pr_body }}")"
+          --head "${{ github.event.inputs.ios-branch }}")"
         echo "url=${url}" >> $GITHUB_OUTPUT
 
   bsk-pr:
@@ -118,11 +120,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        pr_body_path=$(mktemp)
+        echo "${{ steps.create-body.outputs.pr_body }}" > "$pr_body_path"
         url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body-file - \
+          --body-file "$pr_body_path" \
           --assignee "${{ github.actor }}" \
           --draft \
-          --head "${{ github.event.inputs.ios-branch }}" \
-          <<< "${{ steps.create-body.outputs.pr_body }}")"
+          --head "${{ github.event.inputs.ios-branch }}")"
         echo "BSK PR: ${url}\niOS PR: ${{ needs.ios-pr.outputs.url }}\nmacOS PR: ${{ needs.macos-pr.outputs.url }}" >> $GITHUB_STEP_SUMMARY
