@@ -23,6 +23,7 @@ struct Endpoints {
     let signup: URL
     let login: URL
     let logoutDevice: URL
+    let connect: URL
 
     /// Optionally has the data type(s) appended to it, e.g. `sync/bookmarks`, `sync/type1,type2,type3`
     let syncGet: URL
@@ -33,6 +34,8 @@ struct Endpoints {
         signup = baseUrl.appendingPathComponent("sync/signup")
         login = baseUrl.appendingPathComponent("sync/login")
         logoutDevice = baseUrl.appendingPathComponent("sync/logout-device")
+        connect = baseUrl.appendingPathExtension("sync/connect")
+
         syncGet = baseUrl.appendingPathComponent("sync")
         syncPatch = baseUrl.appendingPathComponent("sync/data")
     }

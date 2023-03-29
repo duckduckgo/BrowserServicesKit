@@ -163,6 +163,6 @@ public protocol RemoteConnecting {
 
     var code: String { get }
 
-    func connect() async throws
+    func connect(deviceName: String, deviceType: String) async throws -> LoginResult
     
 }

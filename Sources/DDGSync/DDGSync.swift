@@ -69,8 +69,8 @@ public class DDGSync: DDGSyncing {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
-
-        return dependencies.createRemoteConnector()
+        let info = try dependencies.crypter.prepareForConnect()
+        return try dependencies.createRemoteConnector(info)
     }
 
     public func sender() throws -> UpdatesSending {

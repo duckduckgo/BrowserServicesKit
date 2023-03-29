@@ -18,6 +18,7 @@
 
 import Foundation
 import DDGSyncCrypto
+import Clibsodium
 
 struct Crypter: Crypting {
 
@@ -128,6 +129,32 @@ struct Crypter: Crypting {
         }
 
         return Data(secretKeyBytes)
+    }
+
+    func prepareForConnect() throws -> ConnectInfo {
+        var publicKeyBytes = [UInt8](repeating: 0, count:  Int(DDGSYNCCRYPTO_PUBLIC_KEY_SIZE.rawValue))
+        var privateKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIVATE_KEY_SIZE.rawValue))
+        let result = ddgSyncPrepareForConnect(&publicKeyBytes, &privateKeyBytes)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToPrepareForConnect("ddgSyncPrepareForConnect failed: \(result)")
+        }
+        return ConnectInfo(deviceID: UUID().uuidString,
+                           publicKey: Data(publicKeyBytes),
+                           privateKey: Data(privateKeyBytes))
+    }
+
+    func sealOpen(encryptedData: Data, publicKey: Data, privateKey: Data) throws -> Data {
+        var encryptedBytes = encryptedData.safeBytes
+        var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
+
+        var publicKeyBytes = publicKey.safeBytes
+        var privateKeyBytes = privateKey.safeBytes
+
+        let result = ddgSyncSealOpen(&encryptedBytes, UInt64(encryptedBytes.count), &publicKeyBytes, &privateKeyBytes, &rawBytes)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToOpenSealedBox("ddgSyncSealOpen failed: \(result)")
+        }
+        return Data(rawBytes)
     }
 
 }

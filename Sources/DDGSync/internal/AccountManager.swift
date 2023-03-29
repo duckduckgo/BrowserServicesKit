@@ -78,7 +78,7 @@ struct AccountManager: AccountManaging {
                            token: result.token)
     }
 
-    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
         let deviceId = UUID().uuidString
 
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
@@ -125,7 +125,7 @@ struct AccountManager: AccountManaging {
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
-        return try (
+        return LoginResult(
             account: SyncAccount(
                 deviceId: deviceId,
                 deviceName: deviceName,
@@ -135,7 +135,7 @@ struct AccountManager: AccountManaging {
                 secretKey: secretKey,
                 token: token
             ),
-            devices: result.devices.map {
+            devices: try result.devices.map {
                 RegisteredDevice(
                     id: $0.deviceId,
                     name: try crypter.base64DecodeAndDecrypt($0.deviceName, using: recoveryInfo.primaryKey),
