@@ -35,23 +35,19 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        pr_body_path=$(mktemp)
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/iOS/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
-        body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
-        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
-        echo "${body}" >> $GITHUB_OUTPUT
-        echo "$EOF" >> $GITHUB_OUTPUT
+        sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~' > "$pr_body_path"
+        echo "pr_body_path=${pr_body_path}" >> $GITHUB_OUTPUT
     
     - name: Create iOS PR
       id: create-pr
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
-        pr_body_path=$(mktemp)
-        echo "${{ steps.create-body.outputs.pr_body }}" > "$pr_body_path"
         url="$(gh pr create --repo duckduckgo/iOS \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body-file "$pr_body_path" \
+          --body-file "${{ steps.create-body.outputs.pr_body_path }}" \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}")"
@@ -71,23 +67,19 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        pr_body_path=$(mktemp)
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/macos-browser/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
-        body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
-        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
-        echo "${body}" >> $GITHUB_OUTPUT
-        echo "$EOF" >> $GITHUB_OUTPUT
+        sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~' > "$pr_body_path"
+        echo "pr_body_path=${pr_body_path}" >> $GITHUB_OUTPUT
     
     - name: Create macOS PR
       id: create-pr
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
-        pr_body_path=$(mktemp)
-        echo "${{ steps.create-body.outputs.pr_body }}" > "$pr_body_path"
         url=$(gh pr create --repo duckduckgo/macos-browser \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body-file "$pr_body_path" \
+          --body-file "${{ steps.create-body.outputs.pr_body_path }}" \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}")"
@@ -105,26 +97,23 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
+        pr_body_path=$(mktemp)
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/BrowserServicesKit/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
         body="$(sed <<< "$template" \
           -e 's~\(Task.*URL:.*\)~\1${{ github.event.inputs.asana-task-url }}~' \
           -e 's~\(iOS PR:.*\)~\1${{ needs.ios-pr.outputs.url }}~' \
-          -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~')"
-        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-        echo "pr_body<<$EOF" >> $GITHUB_OUTPUT
-        echo "${body}" >> $GITHUB_OUTPUT
-        echo "$EOF" >> $GITHUB_OUTPUT
+          -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~')" \
+          > "$pr_body_path"
+        echo "pr_body_path=${pr_body_path}" >> $GITHUB_OUTPUT
     
     - name: Create BSK PR
       id: create-pr
       env:
         GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
       run: |
-        pr_body_path=$(mktemp)
-        echo "${{ steps.create-body.outputs.pr_body }}" > "$pr_body_path"
         url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
           --title "${{ github.event.inputs.pr-title }}" \
-          --body-file "$pr_body_path" \
+          --body-file "${{ steps.create-body.outputs.pr_body_path }}" \
           --assignee "${{ github.actor }}" \
           --draft \
           --head "${{ github.event.inputs.ios-branch }}")"
