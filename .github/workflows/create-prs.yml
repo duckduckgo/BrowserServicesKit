@@ -37,6 +37,7 @@ jobs:
       run: |
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/iOS/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
         body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
         echo "pr_body=<<$EOF" >> $GITHUB_ENV
         echo "${body}" >> $GITHUB_ENV
         echo "$EOF" >> $GITHUB_ENV
@@ -71,6 +72,7 @@ jobs:
       run: |
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/macos-browser/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
         body="$(sed <<< "$template" 's~\(Task.*URL:.*\)~\1 ${{ github.event.inputs.asana-task-url }}~')"
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
         echo "pr_body=<<$EOF" >> $GITHUB_ENV
         echo "${body}" >> $GITHUB_ENV
         echo "$EOF" >> $GITHUB_ENV
@@ -105,6 +107,7 @@ jobs:
           -e 's~\(Task.*URL:.*\)~\1${{ github.event.inputs.asana-task-url }}~' \
           -e 's~\(iOS PR:.*\)~\1${{ needs.ios-pr.outputs.url }}~' \
           -e 's~\(macOS PR:.*\)~\1${{ needs.macos-pr.outputs.url }}~')"
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
         echo "pr_body=<<$EOF" >> $GITHUB_ENV
         echo "${body}" >> $GITHUB_ENV
         echo "$EOF" >> $GITHUB_ENV
