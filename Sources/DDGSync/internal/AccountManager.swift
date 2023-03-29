@@ -93,9 +93,7 @@ struct AccountManager: AccountManaging {
             deviceType: encryptedDeviceType
         )
 
-        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
-            fatalError()
-        }
+        let paramJson = try JSONEncoder.snakeCaseKeys.encode(params)
 
         let request = api.createRequest(
             url: endpoints.login,

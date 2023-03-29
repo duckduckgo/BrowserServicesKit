@@ -18,7 +18,6 @@
 
 import Foundation
 import DDGSyncCrypto
-import Clibsodium
 
 struct Crypter: Crypting {
 
@@ -133,24 +132,35 @@ struct Crypter: Crypting {
 
     func prepareForConnect() throws -> ConnectInfo {
         var publicKeyBytes = [UInt8](repeating: 0, count:  Int(DDGSYNCCRYPTO_PUBLIC_KEY_SIZE.rawValue))
-        var privateKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIVATE_KEY_SIZE.rawValue))
-        let result = ddgSyncPrepareForConnect(&publicKeyBytes, &privateKeyBytes)
+        var secretKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIVATE_KEY_SIZE.rawValue))
+        let result = ddgSyncPrepareForConnect(&publicKeyBytes, &secretKeyBytes)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToPrepareForConnect("ddgSyncPrepareForConnect failed: \(result)")
         }
         return ConnectInfo(deviceID: UUID().uuidString,
                            publicKey: Data(publicKeyBytes),
-                           privateKey: Data(privateKeyBytes))
+                           secretKey: Data(secretKeyBytes))
     }
 
-    func sealOpen(encryptedData: Data, publicKey: Data, privateKey: Data) throws -> Data {
+    func seal(_ data: Data, secretKey: Data) throws -> Data {
+        var rawBytes = data.safeBytes
+        var secretKeyBytes = secretKey.safeBytes
+        var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_SEAL_EXTRA_BYTES_SIZE.rawValue))
+        let result = ddgSyncSeal(&encryptedBytes, &secretKeyBytes, &rawBytes, UInt64(rawBytes.count))
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToSealData("ddgSyncSeal failed: \(result)")
+        }
+        return Data(encryptedBytes)
+    }
+
+    func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data {
         var encryptedBytes = encryptedData.safeBytes
-        var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
+        var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_SEAL_EXTRA_BYTES_SIZE.rawValue))
 
         var publicKeyBytes = publicKey.safeBytes
-        var privateKeyBytes = privateKey.safeBytes
+        var secretKeyBytes = secretKey.safeBytes
 
-        let result = ddgSyncSealOpen(&encryptedBytes, UInt64(encryptedBytes.count), &publicKeyBytes, &privateKeyBytes, &rawBytes)
+        let result = ddgSyncSealOpen(&encryptedBytes, UInt64(encryptedBytes.count), &publicKeyBytes, &secretKeyBytes, &rawBytes)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToOpenSealedBox("ddgSyncSealOpen failed: \(result)")
         }

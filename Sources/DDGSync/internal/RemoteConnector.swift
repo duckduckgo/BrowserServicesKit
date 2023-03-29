@@ -44,7 +44,9 @@ struct RemoteConnector: RemoteConnecting {
 
             if let encryptedRecoveryKey = try await fetchEncryptedRecoveryKey() {
                 let recoveryKey = try decryptEncryptedRecoveryKey(encryptedRecoveryKey)
-                return try await account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
+                print(#function, recoveryKey)
+                let result = try await account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
+                return result
             }
 
             // Wait for 5 seconds before polling again
@@ -53,7 +55,10 @@ struct RemoteConnector: RemoteConnecting {
     }
 
     private func decryptEncryptedRecoveryKey(_ encryptedRecoveryKey: Data) throws -> SyncCode.RecoveryKey {
-        return .init(userId: "", primaryKey: Data())
+        let recoveryKey = try crypter.unseal(encryptedData: encryptedRecoveryKey,
+                                             publicKey: connectInfo.publicKey,
+                                             secretKey: connectInfo.secretKey)
+        return try JSONDecoder.snakeCaseKeys.decode(SyncCode.RecoveryKey.self, from: recoveryKey)
     }
 
     private func fetchEncryptedRecoveryKey() async throws -> Data? {
@@ -70,7 +75,17 @@ struct RemoteConnector: RemoteConnecting {
             guard let data = result.data else {
                 throw SyncError.invalidDataInResponse("No body in successful GET on /connect")
             }
-            return data
+
+            let encryptedRecoveryKeyString = try JSONDecoder
+                .snakeCaseKeys
+                .decode(ConnectResult.self, from: data)
+                .encryptedRecoveryKey
+
+            guard let encrypted = encryptedRecoveryKeyString.data(using: .utf8) else {
+                throw SyncError.invalidDataInResponse("unable to convert result string to data")
+            }
+
+            return Data(base64Encoded: encrypted)
         } catch SyncError.unexpectedStatusCode(let statusCode) {
             if statusCode == 404 {
                 return nil
@@ -79,11 +94,8 @@ struct RemoteConnector: RemoteConnecting {
         }
     }
 
-    struct ConnectPostRequest: Codable {
-
-        let deviceId: String
-        let encryptedRecoveryKey: Data
-
+    struct ConnectResult: Decodable {
+        let encryptedRecoveryKey: String
     }
 
 }

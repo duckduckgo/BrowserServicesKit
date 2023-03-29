@@ -28,6 +28,8 @@ protocol SyncDependencies {
     var crypter: Crypting { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
+    func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
+
     func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
 
@@ -64,6 +66,9 @@ public protocol Crypting {
 
     func base64DecodeAndDecrypt(_ value: String) throws -> String
     func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
+
+    func seal(_ data: Data, secretKey: Data) throws -> Data
+    func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data
 
     func createAccountCreationKeys(userId: String, password: String) throws ->
         AccountCreationKeys
@@ -104,4 +109,10 @@ protocol HTTPRequesting {
 
 protocol RemoteAPIRequestCreating {
     func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting
+}
+
+protocol RecoveryKeyTransmitting {
+
+    func send(_ code: SyncCode.ConnectCode) async throws
+
 }

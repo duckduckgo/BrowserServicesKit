@@ -63,7 +63,7 @@ public struct ExtractedLoginInfo {
 public struct ConnectInfo {
     public let deviceID: String
     public let publicKey: Data
-    public let privateKey: Data
+    public let secretKey: Data
 }
 
 public struct LoginResult: Sendable {

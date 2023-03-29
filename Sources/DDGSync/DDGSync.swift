@@ -73,6 +73,14 @@ public class DDGSync: DDGSyncing {
         return try dependencies.createRemoteConnector(info)
     }
 
+    public func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws {
+        guard try dependencies.secureStore.account() != nil else {
+            throw SyncError.accountNotFound
+        }
+
+        try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
+    }
+
     public func sender() throws -> UpdatesSending {
         return try dependencies.createUpdatesSender(persistence)
     }

@@ -65,4 +65,8 @@ struct ProductionDependencies: SyncDependencies {
         return UpdatesFetcher(persistence: persistence, dependencies: self)
     }
 
+    func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
+        return RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
+    }
+
 }

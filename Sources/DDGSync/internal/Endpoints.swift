@@ -34,7 +34,7 @@ struct Endpoints {
         signup = baseUrl.appendingPathComponent("sync/signup")
         login = baseUrl.appendingPathComponent("sync/login")
         logoutDevice = baseUrl.appendingPathComponent("sync/logout-device")
-        connect = baseUrl.appendingPathExtension("sync/connect")
+        connect = baseUrl.appendingPathComponent("sync/connect")
 
         syncGet = baseUrl.appendingPathComponent("sync")
         syncPatch = baseUrl.appendingPathComponent("sync/data")
