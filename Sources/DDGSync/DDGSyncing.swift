@@ -56,7 +56,7 @@ public protocol DDGSyncing {
     /**
      Logs in to an existing account using a recovery key.
      */
-    func login(recoveryKey: String, deviceName: String, deviceType: String) async throws
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws
 
     /**
     Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
