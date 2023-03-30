@@ -170,6 +170,6 @@ public protocol RemoteConnecting {
 
     var code: String { get }
 
-    func connect(deviceName: String, deviceType: String) async throws -> LoginResult
+    func fetchRecoveryKey() async throws -> SyncCode.RecoveryKey?
     
 }

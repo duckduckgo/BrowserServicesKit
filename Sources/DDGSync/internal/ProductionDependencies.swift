@@ -54,7 +54,7 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {
-        return try RemoteConnector(account: account, crypter: crypter, api: api, endpoints: endpoints, connectInfo: info)
+        return try RemoteConnector(account: account, crypter: crypter, api: api, endpoints: endpoints, storage: secureStore, connectInfo: info)
     }
 
     func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending {

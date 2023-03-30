@@ -27,38 +27,29 @@ struct RemoteConnector: RemoteConnecting {
     let crypter: Crypting
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
+    let storage: SecureStoring
 
     init(account: AccountManaging,
          crypter: Crypting,
          api: RemoteAPIRequestCreating,
          endpoints: Endpoints,
+         storage: SecureStoring,
          connectInfo: ConnectInfo) throws {
         self.account = account
         self.crypter = crypter
         self.api = api
         self.endpoints = endpoints
+        self.storage = storage
         self.connectInfo = connectInfo
         self.code = try connectInfo.toCode()
     }
 
-    func connect(deviceName: String, deviceType: String) async throws -> LoginResult {
-        while true {
-            // If the UI closes it should cancel the task
-            try Task.checkCancellation()
-
-            if let encryptedRecoveryKey = try await fetchEncryptedRecoveryKey() {
-                let recoveryKey = try decryptEncryptedRecoveryKey(encryptedRecoveryKey)
-                print(#function, recoveryKey)
-                let result = try await account.login(recoveryKey,
-                                                     deviceId: connectInfo.deviceID,
-                                                     deviceName: deviceName,
-                                                     deviceType: deviceType)
-                return result
-            }
-
-            // Wait for 5 seconds before polling again
-            try await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+    func fetchRecoveryKey() async throws -> SyncCode.RecoveryKey? {
+        if let encryptedRecoveryKey = try await fetchEncryptedRecoveryKey() {
+            let recoveryKey = try decryptEncryptedRecoveryKey(encryptedRecoveryKey)
+            return recoveryKey
         }
+        return nil
     }
 
     private func decryptEncryptedRecoveryKey(_ encryptedRecoveryKey: Data) throws -> SyncCode.RecoveryKey {

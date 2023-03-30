@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import os
 
 struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
 
@@ -36,8 +37,12 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
         }
 
         let recoveryKey = try JSONEncoder.snakeCaseKeys.encode(
-            SyncCode.RecoveryKey(userId: account.deviceId, primaryKey: account.primaryKey)
+            SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey)
         )
+
+        os_log("***brindy*** %{public}s", String(data: recoveryKey, encoding: .utf8)!)
+
+        print()
         let encryptedRecoveryKey = try crypter.seal(recoveryKey, secretKey: code.secretKey)
 
         let body = try JSONEncoder.snakeCaseKeys.encode(
