@@ -1,7 +1,8 @@
 //
-//  HTTPSUpgradeStore.swift
+//  HTTPSExcludedDomain.swift
+//  DuckDuckGo
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +17,20 @@
 //  limitations under the License.
 //
 
-import BloomFilterWrapper
+import Foundation
+import CoreData
 
-public protocol HTTPSUpgradeStore {
-
-    // MARK: - Bloom filter
-
-    func loadBloomFilter() -> BloomFilter?
-    func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws
+@objc(HTTPSExcludedDomain)
+public class HTTPSExcludedDomain: NSManagedObject {
     
-    // MARK: - Excluded domains
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<HTTPSExcludedDomain> {
+        return NSFetchRequest<HTTPSExcludedDomain>(entityName: "HTTPSExcludedDomain")
+    }
 
-    func hasExcludedDomain(_ domain: String) -> Bool
-    func persistExcludedDomains(_ domains: [String]) throws
+    @NSManaged public var domain: String?
+
+}
+
+extension HTTPSExcludedDomain : Identifiable {
 
 }
