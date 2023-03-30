@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct HTTPSBloomFilterSpecification: Equatable, Decodable {
+public struct HTTPSBloomFilterSpecification: Equatable, Decodable, Sendable {
    
     public let bitCount: Int
     public let errorRate: Double
@@ -31,5 +31,14 @@ public struct HTTPSBloomFilterSpecification: Equatable, Decodable {
         self.totalEntries = totalEntries
         self.sha256 = sha256
     }
-    
+
+    static func copy(storedSpecification specification: HTTPSStoredBloomFilterSpecification?) -> HTTPSBloomFilterSpecification? {
+        guard let specification = specification,
+              let sha256 = specification.sha256 else { return nil }
+        return HTTPSBloomFilterSpecification(bitCount: Int(specification.bitCount),
+                                             errorRate: specification.errorRate,
+                                             totalEntries: Int(specification.totalEntries),
+                                             sha256: sha256)
+    }
+
 }

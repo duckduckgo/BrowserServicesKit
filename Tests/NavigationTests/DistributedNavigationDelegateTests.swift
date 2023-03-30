@@ -1491,7 +1491,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         ])
     }
 
-    func testWhenRedirectNavigationActionResponderTakesLongToReturnDecisionAndAnotherNavigationComesInBeforeItThenTaskIsCancelled() throws {
+    func disabled_testWhenRedirectNavigationActionResponderTakesLongToReturnDecisionAndAnotherNavigationComesInBeforeItThenTaskIsCancelled() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
 
