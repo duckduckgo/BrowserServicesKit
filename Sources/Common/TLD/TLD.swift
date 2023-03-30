@@ -89,5 +89,13 @@ public class TLD {
         guard let host = URL(string: escapedStringURL)?.host else { return nil }
         return eTLDplus1(host)
     }
-    
+
+    public func extractSubdomain(from host: String?) -> String? {
+        guard let host = host, let eTLDPlus1 = eTLDplus1(host) else {
+            return nil
+        }
+
+        let subdomain = host.replacingOccurrences(of: eTLDPlus1, with: "").dropping(suffix: ".")
+        return subdomain.isEmpty ? nil : subdomain
+    }
 }
