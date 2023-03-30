@@ -40,9 +40,6 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
             SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey)
         )
 
-        os_log("***brindy*** %{public}s", String(data: recoveryKey, encoding: .utf8)!)
-
-        print()
         let encryptedRecoveryKey = try crypter.seal(recoveryKey, secretKey: code.secretKey)
 
         let body = try JSONEncoder.snakeCaseKeys.encode(
