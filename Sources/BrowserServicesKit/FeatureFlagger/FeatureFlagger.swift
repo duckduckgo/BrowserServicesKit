@@ -26,7 +26,7 @@ public protocol FeatureFlagger {
 /// `forProvider: F` takes a FeatureFlag type defined by the respective app which defines from what source it should be toggled
 /// see `FeatureFlagSourceProviding` comments below for more details
     func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider: F) -> Bool
- }
+}
 
 public class DefaultFeatureFlagger: FeatureFlagger {
     private let internalUserDecider: InternalUserDecider
