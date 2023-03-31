@@ -66,11 +66,6 @@ public struct ConnectInfo {
     public let secretKey: Data
 }
 
-public struct LoginResult: Sendable {
-    let account: SyncAccount
-    let devices: [RegisteredDevice]
-}
-
 public struct SyncCode: Codable {
 
     public enum Base64Error: Error {

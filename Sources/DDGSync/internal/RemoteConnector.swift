@@ -23,23 +23,17 @@ struct RemoteConnector: RemoteConnecting {
     let code: String
     let connectInfo: ConnectInfo
 
-    let account: AccountManaging
     let crypter: Crypting
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
-    let storage: SecureStoring
 
-    init(account: AccountManaging,
-         crypter: Crypting,
+    init(crypter: Crypting,
          api: RemoteAPIRequestCreating,
          endpoints: Endpoints,
-         storage: SecureStoring,
          connectInfo: ConnectInfo) throws {
-        self.account = account
         self.crypter = crypter
         self.api = api
         self.endpoints = endpoints
-        self.storage = storage
         self.connectInfo = connectInfo
         self.code = try connectInfo.toCode()
     }

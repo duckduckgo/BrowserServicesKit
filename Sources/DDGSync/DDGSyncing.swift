@@ -59,7 +59,7 @@ public protocol DDGSyncing {
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws
 
     /**
-    Returns a device id and temporary secret key ready for display then polls the end point for a recovery key.
+    Returns a device id and temporary secret key ready for display and allows callers attempt to fetch the transmitted recovery key.
      */
     func remoteConnect() throws -> RemoteConnecting
 
