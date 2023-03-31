@@ -65,6 +65,22 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
+    public func remoteConnect() throws -> RemoteConnecting {
+        guard try dependencies.secureStore.account() == nil else {
+            throw SyncError.accountAlreadyExists
+        }
+        let info = try dependencies.crypter.prepareForConnect()
+        return try dependencies.createRemoteConnector(info)
+    }
+
+    public func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws {
+        guard try dependencies.secureStore.account() != nil else {
+            throw SyncError.accountNotFound
+        }
+
+        try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
+    }
+
     public func sender() throws -> UpdatesSending {
         return try dependencies.createUpdatesSender(persistence)
     }
