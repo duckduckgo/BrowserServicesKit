@@ -49,10 +49,12 @@ public struct AdClickAttributionRulesSplitter {
         
         let splitTDS = rulesList.trackerData != nil ? split(tds: rulesList.trackerData!) : nil
         let splitFallbackTDS = split(tds: rulesList.fallbackTrackerData)
-        return (ContentBlockerRulesList(name: rulesList.name, trackerData: splitTDS?.0,
+        return (ContentBlockerRulesList(name: rulesList.name,
+                                        trackerData: splitTDS?.0,
                                         fallbackTrackerData: splitFallbackTDS.0),
                 ContentBlockerRulesList(name: Self.blockingAttributionRuleListName(forListNamed: rulesList.name),
-                                        trackerData: splitTDS?.1, fallbackTrackerData: splitFallbackTDS.1))
+                                        trackerData: splitTDS?.1,
+                                        fallbackTrackerData: splitFallbackTDS.1))
     }
     
     private func split(tds: TrackerDataManager.DataSet) -> (TrackerDataManager.DataSet, TrackerDataManager.DataSet) {

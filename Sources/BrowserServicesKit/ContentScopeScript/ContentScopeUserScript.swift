@@ -21,22 +21,58 @@ import WebKit
 import Combine
 import ContentScopeScripts
 import UserScript
+import os.log
 
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
     public let debug: Bool = false
     public let sessionKey: String
     public let platform = ContentScopePlatform()
-    public let features: [String: ContentScopeFeature]
+    public let features: [String: ClickToLoad]
 
     public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
         self.sessionKey = sessionKey
+
+        let clickToLoad = ClickToLoad(
+            exceptions: [],
+            settings: ClickToLoad.Settings(
+                facebookInc: ClickToLoad.Settings.Rule(ruleActions: ["block-ctl-fb"], state: "enabled"),
+                youtube: ClickToLoad.Settings.Rule(ruleActions: ["block-ctl-yt"], state: "disabled")
+            ),
+            state: "enabled",
+            hash: "be4a32a8303eb523dbc0efe89deaa34d"
+        )
+
+
         features = [
-            "autofill": ContentScopeFeature(featureToggles: featureToggles)
+//            "autofill": ContentScopeFeature(featureToggles: featureToggles),
+            "clickToLoad": clickToLoad
         ]
     }
 }
+
+public struct ClickToLoad: Encodable {
+    struct Settings: Encodable {
+        struct Rule: Encodable {
+            let ruleActions: [String]
+            let state: String
+        }
+        let facebookInc: Rule
+        let youtube: Rule
+
+        private enum CodingKeys: String, CodingKey {
+            case facebookInc = "Facebook, Inc."
+            case youtube = "Youtube"
+        }
+    }
+
+    let exceptions: [String]
+    let settings: Settings
+    let state: String
+    let hash: String
+}
+
 public struct ContentScopeFeature: Encodable {
     
     public let settings: [String: ContentScopeFeatureToggles]
@@ -107,8 +143,11 @@ public struct ContentScopePlatform: Encodable {
     #endif
 }
 
-public final class ContentScopeUserScript: NSObject, UserScript {
-    public let messageNames: [String] = []
+public final class ContentScopeUserScript: NSObject, UserScript, WKScriptMessageHandlerWithReply {
+
+    public weak var webView: WKWebView?
+
+    public let messageNames: [String] = ["getClickToLoadState", "unblockClickToLoadContent"]
 
     public init(_ privacyConfigManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) {
         source = ContentScopeUserScript.generateSource(privacyConfigManager, properties: properties)
@@ -133,6 +172,38 @@ public final class ContentScopeUserScript: NSObject, UserScript {
     }
 
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
+    }
+
+    @MainActor
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
+        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
+        if message.name == "getClickToLoadState" {
+//            let js = "window.postMessage({ ruleAction: block });"
+//            let js = """
+//                window.clickToLoadMessageCallback(\("{ \"devMode\": true, \"youtubePreviewsEnabled\": false }"));
+//            """
+            let js = "console.log(typeof window.clickToLoadMessageCallback)"
+            evaluate(js: js)
+        } else if message.name == "" {
+            let js = "window.clickToLoadMessageCallback(\("{ devMode: true, youtubePreviewsEnabled: false }"))"
+            evaluate(js: js)
+        }
+
+        return (nil, nil)
+    }
+
+    public func displayClickToLoadPlaceholders() {
+        let js = "window.displayClickToLoadPlaceholders({ \"ruleAction\": [\"block\"] });"
+        evaluate(js: js)
+    }
+
+    private func evaluate(js: String) {
+        guard let webView else {
+            assertionFailure("WebView not set")
+            return
+        }
+        webView.evaluateJavaScript(js, in: nil, in: WKContentWorld.defaultClient)
     }
 
     public let source: String
