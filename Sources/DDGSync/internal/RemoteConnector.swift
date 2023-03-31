@@ -18,7 +18,7 @@
 
 import Foundation
 
-struct RemoteConnector: RemoteConnecting {
+class RemoteConnector: RemoteConnecting {
     
     let code: String
     let connectInfo: ConnectInfo
@@ -26,6 +26,8 @@ struct RemoteConnector: RemoteConnecting {
     let crypter: Crypting
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
+
+    var isPolling = false
 
     init(crypter: Crypting,
          api: RemoteAPIRequestCreating,
@@ -38,7 +40,27 @@ struct RemoteConnector: RemoteConnecting {
         self.code = try connectInfo.toCode()
     }
 
-    func fetchRecoveryKey() async throws -> SyncCode.RecoveryKey? {
+    func pollForRecoveryKey() async throws -> SyncCode.RecoveryKey? {
+        assert(!isPolling, "connector is already polling")
+
+        isPolling = true
+        while isPolling {
+            if let key = try await fetchRecoveryKey() {
+                return key
+            }
+
+            if isPolling {
+                try await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+            }
+        }
+        return nil
+    }
+
+    func stopPolling() {
+        isPolling = false
+    }
+
+    private func fetchRecoveryKey() async throws -> SyncCode.RecoveryKey? {
         if let encryptedRecoveryKey = try await fetchEncryptedRecoveryKey() {
             let recoveryKey = try decryptEncryptedRecoveryKey(encryptedRecoveryKey)
             return recoveryKey

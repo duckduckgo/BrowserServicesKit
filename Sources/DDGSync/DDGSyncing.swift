@@ -170,6 +170,8 @@ public protocol RemoteConnecting {
 
     var code: String { get }
 
-    func fetchRecoveryKey() async throws -> SyncCode.RecoveryKey?
-    
+    func pollForRecoveryKey() async throws -> SyncCode.RecoveryKey?
+
+    func stopPolling()
+
 }
