@@ -74,7 +74,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
       An error of type Error is thrown if the configuration fails to fetch or validate.
     */
     public func fetch(_ configuration: Configuration) async throws {
-        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: .default)
+        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: .all)
         if let data = fetchResult.data {
             try validator.validate(data, for: configuration)
         }
