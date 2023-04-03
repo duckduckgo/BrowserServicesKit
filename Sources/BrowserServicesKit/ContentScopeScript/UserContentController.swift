@@ -74,6 +74,7 @@ final public class UserContentController: WKUserContentController {
     private var localRuleLists = [String: WKContentRuleList]()
 
     private var cancellable: AnyCancellable?
+    private let scriptMessageHandler = PermanentScriptMessageHandler()
 
     public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
     where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
@@ -144,11 +145,6 @@ final public class UserContentController: WKUserContentController {
         userScripts.scripts.forEach(self.addUserScript)
     }
 
-    public override func removeAllUserScripts() {
-        super.removeAllUserScripts()
-        self.contentBlockingAssets?.userScripts.userScripts.forEach(self.removeHandler)
-    }
-
     func addHandlerNoContentWorld(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
             add(userScript, name: messageName)
@@ -157,26 +153,23 @@ final public class UserContentController: WKUserContentController {
 
     func addHandler(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
+            assert(scriptMessageHandler.messageHandler(for: messageName) == nil || type(of: scriptMessageHandler.messageHandler(for: messageName)!) == type(of: userScript),
+                   "\(scriptMessageHandler.messageHandler(for: messageName)!) already registered for message \(messageName)")
+
+            defer {
+                scriptMessageHandler.register(userScript, for: messageName)
+            }
+            guard !scriptMessageHandler.isMessageHandlerRegistered(for: messageName) else { continue }
+
             if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
-                if let handlerWithReply = userScript as? WKScriptMessageHandlerWithReply {
-                    addScriptMessageHandler(handlerWithReply, contentWorld: contentWorld, name: messageName)
+                if userScript is WKScriptMessageHandlerWithReply {
+                    addScriptMessageHandler(scriptMessageHandler, contentWorld: contentWorld, name: messageName)
                 } else {
-                    add(userScript, contentWorld: contentWorld, name: messageName)
+                    add(scriptMessageHandler, contentWorld: contentWorld, name: messageName)
                 }
             } else {
-                add(userScript, name: messageName)
-            }
-        }
-    }
-
-    func removeHandler(_ userScript: UserScript) {
-        userScript.messageNames.forEach {
-            if #available(macOS 11.0, iOS 14.0, *) {
-                let contentWorld: WKContentWorld = userScript.getContentWorld()
-                removeScriptMessageHandler(forName: $0, contentWorld: contentWorld)
-            } else {
-                removeScriptMessageHandler(forName: $0)
+                add(scriptMessageHandler, name: messageName)
             }
         }
     }
@@ -203,6 +196,54 @@ public extension UserContentController {
                 }
             }
         } as Void
+    }
+
+}
+
+/// Script Message Handler only added once per UserScriptController for all the Message Names (to avoid race conditions for re-added User Scripts)
+private class PermanentScriptMessageHandler: NSObject, WKScriptMessageHandler, WKScriptMessageHandlerWithReply {
+
+    private struct WeakScriptMessageHandlerBox {
+        weak var handler: WKScriptMessageHandler?
+    }
+    private var registeredMessageHandlers = [String: WeakScriptMessageHandlerBox]()
+
+    func isMessageHandlerRegistered(for messageName: String) -> Bool {
+        return self.registeredMessageHandlers[messageName] != nil
+    }
+
+    func messageHandler(for messageName: String) -> WKScriptMessageHandler? {
+        return self.registeredMessageHandlers[messageName]?.handler
+    }
+
+    func register(_ handler: WKScriptMessageHandler, for messageName: String) {
+        self.registeredMessageHandlers[messageName] = .init(handler: handler)
+    }
+
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let box = self.registeredMessageHandlers[message.messageName] else {
+            assertionFailure("no registered message handler for \(message.messageName)")
+            return
+        }
+        guard let handler = box.handler else {
+            assertionFailure("handler for \(message.messageName) has been unregistered")
+            return
+        }
+        handler.userContentController(userContentController, didReceive: message)
+    }
+
+    @available(macOS 11.0, iOS 14.0, *)
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping (Any?, String?) -> Void) {
+        guard let box = self.registeredMessageHandlers[message.messageName] else {
+            assertionFailure("no registered message handler for \(message.messageName)")
+            return
+        }
+        guard let handler = box.handler else {
+            assertionFailure("handler for \(message.messageName) has been unregistered")
+            return
+        }
+        assert(handler is WKScriptMessageHandlerWithReply)
+        (handler as? WKScriptMessageHandlerWithReply)?.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
     }
 
 }

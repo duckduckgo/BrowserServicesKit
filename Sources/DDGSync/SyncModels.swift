@@ -19,7 +19,7 @@
 
 import Foundation
 
-public struct SyncAccount: Codable {
+public struct SyncAccount: Codable, Sendable {
     public let deviceId: String
     public let deviceName: String
     public let deviceType: String
@@ -40,7 +40,7 @@ public struct SyncAccount: Codable {
     }
 }
 
-public struct RegisteredDevice: Codable {
+public struct RegisteredDevice: Codable, Sendable {
     public let id: String
     public let name: String
     public let type: String
@@ -58,6 +58,12 @@ public struct ExtractedLoginInfo {
     public let primaryKey: Data
     public let passwordHash: Data
     public let stretchedPrimaryKey: Data
+}
+
+public struct ConnectInfo {
+    public let deviceID: String
+    public let publicKey: Data
+    public let secretKey: Data
 }
 
 public struct SyncCode: Codable {
