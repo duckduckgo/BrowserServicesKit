@@ -81,19 +81,6 @@ public class DDGSync: DDGSyncing {
         try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
     }
 
-    public func sender() throws -> UpdatesSending {
-        return try dependencies.createUpdatesSender(persistence)
-    }
-
-    public func fetchLatest() async throws {
-        try await dependencies.createUpdatesFetcher(persistence).fetch()
-    }
-
-    public func fetchEverything() async throws {
-        persistence.updateBookmarksLastModified(nil)
-        try await dependencies.createUpdatesFetcher(persistence).fetch()
-    }
-    
     public func disconnect() async throws {
         guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
             throw SyncError.accountNotFound

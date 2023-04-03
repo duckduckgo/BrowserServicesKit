@@ -26,7 +26,6 @@ struct ProductionDependencies: SyncDependencies {
     let account: AccountManaging
     let api: RemoteAPIRequestCreating
     let secureStore: SecureStoring
-    let responseHandler: ResponseHandling
     let crypter: Crypting
 
     private let persistence: LocalDataPersisting
@@ -50,19 +49,10 @@ struct ProductionDependencies: SyncDependencies {
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
-        responseHandler = ResponseHandler(persistence: persistence, crypter: crypter)
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {
         return try RemoteConnector(crypter: crypter, api: api, endpoints: endpoints, connectInfo: info)
-    }
-
-    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending {
-        return UpdatesSender(fileStorageUrl: fileStorageUrl, persistence: persistence, dependencies: self)
-    }
-
-    func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching {
-        return UpdatesFetcher(persistence: persistence, dependencies: self)
     }
 
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {

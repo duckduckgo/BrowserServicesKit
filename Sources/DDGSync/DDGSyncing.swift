@@ -69,21 +69,6 @@ public protocol DDGSyncing {
     func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws
 
     /**
-    Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
-     */
-    func sender() throws -> UpdatesSending
-
-    /**
-    Call this to call the server and get latest updated.
-     */
-    func fetchLatest() async throws
-
-    /**
-     Call this to fetch everything again.
-    */
-    func fetchEverything() async throws
-
-    /**
      Disconnect this client from the sync service. Removes all local info, but leaves in places bookmarks, etc.
      */
     func disconnect() async throws
@@ -94,76 +79,6 @@ public protocol DDGSyncing {
      @param deviceId ID of the device to be disconnected.
     */
     func disconnect(deviceId: String) async throws
-}
-
-public protocol UpdatesSending {
-
-    func persistingBookmark(_ bookmark: SavedSiteItem) throws -> UpdatesSending
-    func persistingBookmarkFolder(_ folder: SavedSiteFolder) throws -> UpdatesSending
-    func deletingBookmark(_ bookmark: SavedSiteItem) throws -> UpdatesSending
-    func deletingBookmarkFolder(_ folder: SavedSiteFolder) throws -> UpdatesSending
-
-    func send() async throws
-
-}
-
-public enum SyncEvent {
-
-    case bookmarkUpdated(SavedSiteItem)
-    case bookmarkFolderUpdated(SavedSiteFolder)
-    case bookmarkDeleted(id: String)
-
-}
-
-public struct SavedSiteItem: Codable {
-
-    public let id: String
-
-    public let title: String
-    public let url: String
-
-    public let isFavorite: Bool
-    public let nextFavorite: String?
-
-    public let nextItem: String?
-    public let parent: String?
-
-    public init(id: String,
-                title: String,
-                url: String,
-                isFavorite: Bool,
-                nextFavorite: String?,
-                nextItem: String?,
-                parent: String?) {
-
-        self.id = id
-        self.title = title
-        self.url = url
-        self.isFavorite = isFavorite
-        self.nextFavorite = nextFavorite
-        self.nextItem = nextItem
-        self.parent = parent
-
-    }
-
-}
-
-public struct SavedSiteFolder: Codable {
-
-    public let id: String
-
-    public let title: String
-
-    public let nextItem: String?
-    public let parent: String?
-
-    public init(id: String, title: String, nextItem: String?, parent: String?) {
-        self.id = id
-        self.title = title
-        self.nextItem = nextItem
-        self.parent = parent
-    }
-
 }
 
 public protocol RemoteConnecting {

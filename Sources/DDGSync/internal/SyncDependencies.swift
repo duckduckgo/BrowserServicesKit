@@ -24,15 +24,10 @@ protocol SyncDependencies {
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
-    var responseHandler: ResponseHandling { get }
     var crypter: Crypting { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
-
-    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
-    func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
-
 }
 
 protocol AccountManaging {
@@ -49,14 +44,6 @@ protocol SecureStoring {
     func persistAccount(_ account: SyncAccount) throws
     func account() throws -> SyncAccount?
     func removeAccount() throws
-}
-
-protocol ResponseHandling {
-    func handleUpdates(_ data: Data) async throws
-}
-
-protocol UpdatesFetching {
-    func fetch() async throws
 }
 
 public protocol Crypting {
