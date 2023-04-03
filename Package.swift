@@ -26,10 +26,10 @@ let package = Package(
         .library(name: "Navigation", targets: ["Navigation"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.4.1"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.4.3"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.0.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
-        .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.0.1"),
+        .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.4.4"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
@@ -51,7 +51,8 @@ let package = Package(
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
-                .process("ContentBlocking/UserScripts/surrogates.js")
+                .process("ContentBlocking/UserScripts/surrogates.js"),
+                .process("SmarterEncryption/Store/HTTPSUpgrade.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))

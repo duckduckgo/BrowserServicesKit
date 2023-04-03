@@ -27,6 +27,9 @@ protocol SyncDependencies {
     var responseHandler: ResponseHandling { get }
     var crypter: Crypting { get }
 
+    func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
+    func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
+
     func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
 
@@ -36,7 +39,8 @@ protocol AccountManaging {
 
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount
 
-    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice])
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult
+
     func logout(deviceId: String, token: String) async throws
 
 }
@@ -63,12 +67,17 @@ public protocol Crypting {
     func base64DecodeAndDecrypt(_ value: String) throws -> String
     func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
 
+    func seal(_ data: Data, secretKey: Data) throws -> Data
+    func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data
+
     func createAccountCreationKeys(userId: String, password: String) throws ->
         AccountCreationKeys
 
     func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo
 
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data
+
+    func prepareForConnect() throws -> ConnectInfo
 
 }
 
@@ -100,4 +109,10 @@ protocol HTTPRequesting {
 
 protocol RemoteAPIRequestCreating {
     func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting
+}
+
+protocol RecoveryKeyTransmitting {
+
+    func send(_ code: SyncCode.ConnectCode) async throws
+
 }

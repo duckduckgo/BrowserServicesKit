@@ -1,7 +1,7 @@
 //
-//  HTTPSUpgradeStore.swift
+//  LoginResult.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +16,9 @@
 //  limitations under the License.
 //
 
-import BloomFilterWrapper
+import Foundation
 
-public protocol HTTPSUpgradeStore {
-
-    // MARK: - Bloom filter
-
-    func loadBloomFilter() -> BloomFilter?
-    func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws
-    
-    // MARK: - Excluded domains
-
-    func hasExcludedDomain(_ domain: String) -> Bool
-    func persistExcludedDomains(_ domains: [String]) throws
-
+struct LoginResult: Sendable {
+   let account: SyncAccount
+   let devices: [RegisteredDevice]
 }

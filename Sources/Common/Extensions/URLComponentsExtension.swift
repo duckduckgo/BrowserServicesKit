@@ -1,7 +1,7 @@
 //
-//  HTTPSUpgradeStore.swift
+//  URLComponentsExtension.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +16,17 @@
 //  limitations under the License.
 //
 
-import BloomFilterWrapper
+import Foundation
 
-public protocol HTTPSUpgradeStore {
+extension URLComponents {
 
-    // MARK: - Bloom filter
+    public func eTLDplus1(tld: TLD) -> String? {
+        return tld.eTLDplus1(self.host?.lowercased())
+    }
 
-    func loadBloomFilter() -> BloomFilter?
-    func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws
-    
-    // MARK: - Excluded domains
+    public func subdomain(tld: TLD) -> String? {
+        return tld.extractSubdomain(from: self.host?.lowercased())
+    }
 
-    func hasExcludedDomain(_ domain: String) -> Bool
-    func persistExcludedDomains(_ domains: [String]) throws
 
 }
