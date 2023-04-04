@@ -19,6 +19,10 @@ on:
         description: "Pull Request Title"
         required: true
         type: string
+      token:
+        description: "PRs Author's GitHub token"
+        required: true
+        type: string
 
 jobs:
 
@@ -31,7 +35,7 @@ jobs:
       pr-title: ${{ github.event.inputs.pr-title }}
       asana-task-url: ${{ github.event.inputs.asana-task-url }}
     secrets:
-      github-token: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+      github-token: ${{ github.event.inputs.token }}
 
   macos-pr:
     name: Create macOS Pull Request
@@ -42,7 +46,7 @@ jobs:
       pr-title: ${{ github.event.inputs.pr-title }}
       asana-task-url: ${{ github.event.inputs.asana-task-url }}
     secrets:
-      github-token: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+      github-token: ${{ github.event.inputs.token }}
 
   bsk-pr:
     needs: [ios-pr, macos-pr]
@@ -57,7 +61,7 @@ jobs:
     - name: Create BSK PR Body
       id: create-body
       env:
-        GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.event.inputs.token }}
       run: |
         pr_body_path=$(mktemp)
         template="$(curl $(gh api https://api.github.com/repos/duckduckgo/BrowserServicesKit/contents/.github/PULL_REQUEST_TEMPLATE.md --jq .download_url))"
@@ -71,7 +75,7 @@ jobs:
     - name: Create BSK PR
       id: create-pr
       env:
-        GITHUB_TOKEN: ${{ secrets.DAXMOBILE_GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.event.inputs.token }}
       run: |
         url="$(gh pr create --repo duckduckgo/BrowserServicesKit \
           --title "${{ github.event.inputs.pr-title }}" \

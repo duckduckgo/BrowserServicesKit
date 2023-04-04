@@ -131,7 +131,8 @@ create_prs() {
 		-f ios-branch="$ios_branch" \
 		-f macos-branch="$macos_branch" \
 		-f asana-task-url="$asana_task_url" \
-		-f pr-title="$pr_title"
+		-f pr-title="$pr_title" \
+		-f token="$(gh auth token)"
 }
 
 main() {
