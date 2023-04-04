@@ -88,6 +88,12 @@ public class SecureVaultManager {
 
     private let tld: TLD?
 
+    public lazy var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? = {
+        guard let tld = tld else { return nil }
+        return AutofillWebsiteAccountMatcher(autofillUrlMatcher: AutofillDomainNameUrlMatcher(),
+                                             tld: tld)
+    }()
+
     public init(vault: SecureVault? = nil,
                 passwordManager: PasswordManager? = nil,
                 includePartialAccountMatches: Bool = false,

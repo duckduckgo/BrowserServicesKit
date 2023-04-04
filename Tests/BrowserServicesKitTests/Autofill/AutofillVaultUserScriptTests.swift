@@ -560,6 +560,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     var lastUsername: String?
     var lastPassword: String?
     var lastSubtype: AutofillUserScript.GetAutofillDataSubType?
+    var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher?
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         lastDomain = domain

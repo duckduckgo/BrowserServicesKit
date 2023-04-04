@@ -31,6 +31,8 @@ public enum RequestVaultCredentialsAction: String, Codable {
 
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
+    var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? { get }
+
     func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
         [SecureVaultModels.WebsiteAccount],
         [SecureVaultModels.Identity],
@@ -451,10 +453,16 @@ extension AutofillUserScript {
             if credentialsProvider.locked {
                 credentials = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]
             } else {
-                credentials = accounts.compactMap {
-                    guard let id = $0.id else { return nil }
-                    return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                guard let autofillWebsiteAccountMatcher = self.vaultDelegate?.autofillWebsiteAccountMatcher else {
+                    credentials = accounts.compactMap {
+                        guard let id = $0.id else { return nil }
+                        return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                    }
+                    return
                 }
+
+                let accountMatches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: domain)
+                credentials = self.buildCredentialObjectsFromAccountMatches(accountMatches, credentialsProvider: credentialsProvider)
             }
 
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
@@ -472,7 +480,23 @@ extension AutofillUserScript {
         }
 
     }
-     
+
+    private func buildCredentialObjectsFromAccountMatches(_ accountMatches: AccountMatches, credentialsProvider: SecureVaultModels.CredentialsProvider) -> [CredentialObject] {
+        var credentials: [CredentialObject] = []
+        credentials.append(contentsOf: accountMatches.perfectMatches.compactMap {
+            guard let id = $0.id else { return nil }
+            return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue, origin: CredentialObject.CredentialOrigin(url: $0.domain, partialMatch: false))
+        })
+        for key in accountMatches.partialMatches.keys.sorted() {
+            guard let partialMatch = accountMatches.partialMatches[key] else { continue }
+            credentials.append(contentsOf: partialMatch.compactMap {
+                guard let id = $0.id else { return nil }
+                return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue, origin: CredentialObject.CredentialOrigin(url:$0.domain, partialMatch: true))
+            })
+        }
+        return credentials
+    }
+
     func pmStoreData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)
