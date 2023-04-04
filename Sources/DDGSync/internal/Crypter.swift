@@ -91,29 +91,22 @@ struct Crypter: Crypting {
         )
     }
 
-    func extractLoginInfo(recoveryKey: Data) throws -> ExtractedLoginInfo {
+    func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
-        guard recoveryKey.count > primaryKeySize else { throw SyncError.failedToCreateAccountKeys("Recovery key is not valid") }
         
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
-        var userIdBytes = [UInt8](repeating: 0, count: recoveryKey.count - primaryKeySize)
         var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
         var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
 
-        recoveryKey.copyBytes(to: &primaryKeyBytes, from: 0 ..< primaryKeySize)
-        recoveryKey.copyBytes(to: &userIdBytes, from: primaryKeySize ..< recoveryKey.count)
+        primaryKeyBytes = recoveryKey.primaryKey.safeBytes
 
-        guard let userId = String(data: Data(userIdBytes), encoding: .utf8) else {
-            throw SyncError.failedToCreateAccountKeys("failed to get userId from recovery key")
-        }
-        
         let result = ddgSyncPrepareForLogin(&passwordHashBytes, &strechedPrimaryKeyBytes, &primaryKeyBytes)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToCreateAccountKeys("ddgSyncPrepareForLogin failed: \(result)")
         }
         
         return ExtractedLoginInfo(
-            userId: userId,
+            userId: recoveryKey.userId,
             primaryKey: Data(primaryKeyBytes),
             passwordHash: Data(passwordHashBytes),
             stretchedPrimaryKey: Data(strechedPrimaryKeyBytes)
@@ -135,6 +128,43 @@ struct Crypter: Crypting {
         }
 
         return Data(secretKeyBytes)
+    }
+
+    func prepareForConnect() throws -> ConnectInfo {
+        var publicKeyBytes = [UInt8](repeating: 0, count:  Int(DDGSYNCCRYPTO_PUBLIC_KEY_SIZE.rawValue))
+        var secretKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_PRIVATE_KEY_SIZE.rawValue))
+        let result = ddgSyncPrepareForConnect(&publicKeyBytes, &secretKeyBytes)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToPrepareForConnect("ddgSyncPrepareForConnect failed: \(result)")
+        }
+        return ConnectInfo(deviceID: UUID().uuidString,
+                           publicKey: Data(publicKeyBytes),
+                           secretKey: Data(secretKeyBytes))
+    }
+
+    func seal(_ data: Data, secretKey: Data) throws -> Data {
+        var rawBytes = data.safeBytes
+        var secretKeyBytes = secretKey.safeBytes
+        var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_SEAL_EXTRA_BYTES_SIZE.rawValue))
+        let result = ddgSyncSeal(&encryptedBytes, &secretKeyBytes, &rawBytes, UInt64(rawBytes.count))
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToSealData("ddgSyncSeal failed: \(result)")
+        }
+        return Data(encryptedBytes)
+    }
+
+    func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data {
+        var encryptedBytes = encryptedData.safeBytes
+        var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_SEAL_EXTRA_BYTES_SIZE.rawValue))
+
+        var publicKeyBytes = publicKey.safeBytes
+        var secretKeyBytes = secretKey.safeBytes
+
+        let result = ddgSyncSealOpen(&encryptedBytes, UInt64(encryptedBytes.count), &publicKeyBytes, &secretKeyBytes, &rawBytes)
+        guard DDGSYNCCRYPTO_OK == result else {
+            throw SyncError.failedToOpenSealedBox("ddgSyncSealOpen failed: \(result)")
+        }
+        return Data(rawBytes)
     }
 
 }

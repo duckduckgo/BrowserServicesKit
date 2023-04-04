@@ -1,4 +1,4 @@
-// swift-tools-version:5.6
+// swift-tools-version:5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -26,7 +26,7 @@ let package = Package(
         .library(name: "Navigation", targets: ["Navigation"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.3.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.4.3"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.0.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", branch: "sam/update-argument-parser-version"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.0.1"),
@@ -40,10 +40,10 @@ let package = Package(
         .target(
             name: "BrowserServicesKit",
             dependencies: [
-                "Autofill",
+                .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                "GRDB",
+                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
@@ -52,7 +52,8 @@ let package = Package(
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
-                .process("ContentBlocking/UserScripts/surrogates.js")
+                .process("ContentBlocking/UserScripts/surrogates.js"),
+                .process("SmarterEncryption/Store/HTTPSUpgrade.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -100,7 +101,7 @@ let package = Package(
         .target(
             name: "Common",
             dependencies: [
-                .product(name: "Punnycode", package: "Punycode")
+                .product(name: "Punnycode", package: "PunycodeSwift")
             ],
             resources: [
                 .process("TLD/tlds.json")

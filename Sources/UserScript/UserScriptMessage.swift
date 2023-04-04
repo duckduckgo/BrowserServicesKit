@@ -37,7 +37,11 @@ extension WKScriptMessage: UserScriptMessage {
     }
     
     public var messageHost: String {
-        return frameInfo.securityOrigin.host
+        return "\(frameInfo.securityOrigin.host)\(messagePort)"
+    }
+
+    public var messagePort: String {
+        return frameInfo.securityOrigin.port == 0 ? "" : ":\(frameInfo.securityOrigin.port)"
     }
 
     public var isMainFrame: Bool {

@@ -55,17 +55,30 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
-    public func login(recoveryKey: String, deviceName: String, deviceType: String) async throws {
-        guard let recoveryKeyData = Data(base64Encoded: recoveryKey) else {
-            throw SyncError.invalidRecoveryKey
-        }
+    public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
-        let result = try await dependencies.account.login(recoveryKey: recoveryKeyData, deviceName: deviceName, deviceType: deviceType)
+        let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
         updateIsAuthenticated()
+    }
+
+    public func remoteConnect() throws -> RemoteConnecting {
+        guard try dependencies.secureStore.account() == nil else {
+            throw SyncError.accountAlreadyExists
+        }
+        let info = try dependencies.crypter.prepareForConnect()
+        return try dependencies.createRemoteConnector(info)
+    }
+
+    public func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws {
+        guard try dependencies.secureStore.account() != nil else {
+            throw SyncError.accountNotFound
+        }
+
+        try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
     }
 
     public func sender() throws -> UpdatesSending {
@@ -92,8 +105,8 @@ public class DDGSync: DDGSyncing {
         guard let token = try dependencies.secureStore.account()?.token else {
             throw SyncError.noToken
         }
-        try await dependencies.account.logout(deviceId: deviceId, token: token)
         try dependencies.secureStore.removeAccount()
+        try await dependencies.account.logout(deviceId: deviceId, token: token)
         updateIsAuthenticated()
     }
 

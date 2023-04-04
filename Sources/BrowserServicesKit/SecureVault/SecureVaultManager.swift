@@ -20,6 +20,7 @@
 import Foundation
 import Combine
 import os
+import Common
 
 public enum AutofillType {
     case password
@@ -82,10 +83,19 @@ public class SecureVaultManager {
     // Third party password manager
     private let passwordManager: PasswordManager?
 
+    // This property can be removed once all platforms will search for partial account matches as the default expected behaviour.
+    private let includePartialAccountMatches: Bool
+
+    private let tld: TLD?
+
     public init(vault: SecureVault? = nil,
-                passwordManager: PasswordManager? = nil) {
+                passwordManager: PasswordManager? = nil,
+                includePartialAccountMatches: Bool = false,
+                tld: TLD? = nil) {
         self.vault = vault
         self.passwordManager = passwordManager
+        self.includePartialAccountMatches = includePartialAccountMatches
+        self.tld = tld
     }
 
 }
@@ -109,7 +119,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let identities = try vault.identities()
             let cards = try vault.creditCards()
 
-            getAccounts(for: domain, from: vault, or: passwordManager) { [weak self] accounts, error in
+            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
@@ -163,7 +173,9 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
-            getAccounts(for: domain, from: vault, or: passwordManager) { [weak self] accounts, error in
+            getAccounts(for: domain, from: vault,
+                        or: passwordManager,
+                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
@@ -187,7 +199,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         do {
             let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
 
-            getAccounts(for: domain, from: vault, or: passwordManager) { [weak self] accounts, error in
+            getAccounts(for: domain,
+                        from: vault,
+                        or: passwordManager,
+                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
@@ -526,16 +541,29 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
 
     private func getAccounts(for domain: String,
-                     from vault: SecureVault,
-                     or passwordManager: PasswordManager?,
-                     completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> Void) {
+                             from vault: SecureVault,
+                             or passwordManager: PasswordManager?,
+                             withPartialMatches: Bool = false,
+                             completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> ()) {
         if let passwordManager = passwordManager,
            passwordManager.isEnabled {
             passwordManager.accountsFor(domain: domain, completion: completion)
         } else {
             do {
-                let accounts = try vault.accountsFor(domain: domain)
-                completion(accounts, nil)
+                if withPartialMatches {
+                    guard let currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain),
+                          let tld = tld,
+                          let eTLDplus1 = currentUrlComponents.eTLDplus1(tld: tld)
+                    else {
+                        completion([], nil)
+                        return
+                    }
+                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                    completion(accounts, nil)
+                } else {
+                    let accounts = try vault.accountsFor(domain: domain)
+                    completion(accounts, nil)
+                }
             } catch {
                 completion([], error)
             }
