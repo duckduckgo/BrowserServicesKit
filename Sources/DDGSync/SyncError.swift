@@ -36,6 +36,9 @@ public enum SyncError: Error {
 
     case failedToEncryptValue(_ message: String)
     case failedToDecryptValue(_ message: String)
+    case failedToPrepareForConnect(_ message: String)
+    case failedToOpenSealedBox(_ message: String)
+    case failedToSealData(_ message: String)
 
     case failedToWriteSecureStore(status: OSStatus)
     case failedToReadSecureStore(status: OSStatus)

@@ -78,8 +78,9 @@ struct AccountManager: AccountManaging {
                            token: result.token)
     }
 
-    func login(recoveryKey: Data, deviceName: String, deviceType: String) async throws -> (account: SyncAccount, devices: [RegisteredDevice]) {
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
         let deviceId = UUID().uuidString
+
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
         let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: recoveryInfo.primaryKey)
         let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: recoveryInfo.primaryKey)
@@ -92,9 +93,7 @@ struct AccountManager: AccountManaging {
             deviceType: encryptedDeviceType
         )
 
-        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
-            fatalError()
-        }
+        let paramJson = try JSONEncoder.snakeCaseKeys.encode(params)
 
         let request = api.createRequest(
             url: endpoints.login,
@@ -124,9 +123,9 @@ struct AccountManager: AccountManaging {
 
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
 
-        return try (
+        return LoginResult(
             account: SyncAccount(
-                deviceId: deviceId,
+                deviceId: params.deviceId,
                 deviceName: deviceName,
                 deviceType: deviceType,
                 userId: recoveryInfo.userId,
@@ -134,7 +133,7 @@ struct AccountManager: AccountManaging {
                 secretKey: secretKey,
                 token: token
             ),
-            devices: result.devices.map {
+            devices: try result.devices.map {
                 RegisteredDevice(
                     id: $0.deviceId,
                     name: try crypter.base64DecodeAndDecrypt($0.deviceName, using: recoveryInfo.primaryKey),

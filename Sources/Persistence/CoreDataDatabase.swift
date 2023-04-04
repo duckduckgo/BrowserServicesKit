@@ -51,9 +51,27 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
     }
     
     public static func loadModel(from bundle: Bundle, named name: String) -> NSManagedObjectModel? {
-        guard let url = bundle.url(forResource: name, withExtension: "momd") else { return nil }
+        let momdUrl = bundle.url(forResource: name, withExtension: "momd") ??
+            bundle.resourceURL!.appendingPathComponent(name + ".momd")
+#if DEBUG && os(macOS)
+        // when running tests using `swift test` xcdatamodeld is not compiled to momd for some reason
+        // this is a workaround to compile it in runtime
+        if !FileManager.default.fileExists(atPath: momdUrl.path),
+           let xcDataModelUrl = bundle.url(forResource: name, withExtension: "xcdatamodeld"),
+           let sdkRoot = ProcessInfo().environment["SDKROOT"],
+           let developerDir = sdkRoot.range(of: "/Contents/Developer").map({ sdkRoot[..<$0.upperBound] }) {
+
+            let compileDataModel = Process()
+            let momc = "\(developerDir)/usr/bin/momc"
+            compileDataModel.executableURL = URL(fileURLWithPath: momc)
+            compileDataModel.arguments = [xcDataModelUrl.path, momdUrl.path]
+            try? compileDataModel.run()
+            compileDataModel.waitUntilExit()
+        }
+#endif
+        guard FileManager.default.fileExists(atPath: momdUrl.path) else { return nil }
         
-        return NSManagedObjectModel(contentsOf: url)
+        return NSManagedObjectModel(contentsOf: momdUrl)
     }
     
     public init(name: String,
@@ -131,19 +149,26 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
 }
 
 extension NSManagedObjectContext {
-    
+
+    public func insertObject<A: NSManagedObject>() -> A {
+        guard let obj = NSEntityDescription.insertNewObject(forEntityName: A.entity().name!, into: self) as? A else {
+            fatalError("Wrong object type \(A.entity().name!)")
+        }
+        return obj
+    }
+
     public func deleteAll(entities: [NSManagedObject] = []) {
         for entity in entities {
             delete(entity)
         }
     }
-    
+
     public func deleteAll<T: NSManagedObject>(matching request: NSFetchRequest<T>) {
-            if let result = try? fetch(request) {
-                deleteAll(entities: result)
-            }
+        if let result = try? fetch(request) {
+            deleteAll(entities: result)
+        }
     }
-    
+
     public func deleteAll(entityDescriptions: [NSEntityDescription] = []) {
         for entityDescription in entityDescriptions {
             let request = NSFetchRequest<NSManagedObject>()
@@ -152,4 +177,5 @@ extension NSManagedObjectContext {
             deleteAll(matching: request)
         }
     }
+
 }

@@ -24,14 +24,22 @@ struct HTTPSUpgradeStoreMock: HTTPSUpgradeStore {
 
     var bloomFilter: BloomFilterWrapper?
     var bloomFilterSpecification: HTTPSBloomFilterSpecification?
-    func loadBloomFilter() -> (wrapper: BloomFilterWrapper, specification: BrowserServicesKit.HTTPSBloomFilterSpecification)? {
+    func loadBloomFilter() -> BloomFilter? {
         guard let bloomFilter, let bloomFilterSpecification else { return nil }
-        return (bloomFilter, bloomFilterSpecification)
+        return .init(wrapper: bloomFilter, specification: bloomFilterSpecification)
     }
 
     var excludedDomains: [String]
     func hasExcludedDomain(_ domain: String) -> Bool {
         excludedDomains.contains(domain)
+    }
+
+    func persistBloomFilter(specification: BrowserServicesKit.HTTPSBloomFilterSpecification, data: Data) throws {
+        fatalError()
+    }
+
+    func persistExcludedDomains(_ domains: [String]) throws {
+        fatalError()
     }
 
 }
