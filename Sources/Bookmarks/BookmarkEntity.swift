@@ -55,7 +55,10 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged fileprivate(set) public var favoriteFolder: BookmarkEntity?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
-    
+
+    @NSManaged public var isPendingDeletion: Bool
+    @NSManaged public var modifiedAt: Date?
+
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: BookmarkEntity.entity(in: moc),
                   insertInto: moc)
@@ -66,6 +69,16 @@ public class BookmarkEntity: NSManagedObject {
         
         uuid = UUID().uuidString
         isFavorite = false
+    }
+
+    public override func willSave() {
+        let changedKeys = changedValues().keys
+        guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
+            return
+        }
+        if modifiedAt == nil {
+            modifiedAt = Date()
+        }
     }
 
     public override func validateForInsert() throws {
@@ -88,7 +101,8 @@ public class BookmarkEntity: NSManagedObject {
     }
     
     public var childrenArray: [BookmarkEntity] {
-        children?.array as? [BookmarkEntity] ?? []
+        let children = children?.array as? [BookmarkEntity] ?? []
+        return children.filter { $0.isPendingDeletion == false }
     }
 
     public static func makeFolder(title: String,

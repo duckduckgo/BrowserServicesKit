@@ -62,7 +62,7 @@ public struct BookmarkUtils {
                                      predicate: NSPredicate = NSPredicate(value: true),
                                      context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        let urlPredicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.url), url.absoluteString)
+        let urlPredicate = NSPredicate(format: "%K == %@ AND %K == NO", #keyPath(BookmarkEntity.url), url.absoluteString, #keyPath(BookmarkEntity.isPendingDeletion))
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [urlPredicate, predicate])
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1

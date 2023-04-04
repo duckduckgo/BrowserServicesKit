@@ -29,7 +29,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     let context: NSManagedObjectContext
     
     public var bookmarks = [BookmarkEntity]()
-    
+
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
     
@@ -122,6 +122,19 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         bookmarks = parentFolder.childrenArray
     }
 
+    public func softDeleteBookmark(_ bookmark: BookmarkEntity) {
+        guard let parentFolder = bookmark.parent else {
+            errorEvents?.fire(.missingParent(.bookmark))
+            return
+        }
+
+        bookmark.isPendingDeletion = true
+
+        save()
+
+        bookmarks = parentFolder.childrenArray
+    }
+
     public func deleteBookmark(_ bookmark: BookmarkEntity) {
         guard let parentFolder = bookmark.parent else {
             errorEvents?.fire(.missingParent(.bookmark))
@@ -169,7 +182,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public var totalBookmarksCount: Int {
         let countRequest = BookmarkEntity.fetchRequest()
-        countRequest.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
+        countRequest.predicate = NSPredicate(format: "%K == false && %K == NO", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.isPendingDeletion))
         
         return (try? context.count(for: countRequest)) ?? 0
     }
