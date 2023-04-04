@@ -79,6 +79,8 @@ public protocol DDGSyncing {
      @param deviceId ID of the device to be disconnected.
     */
     func disconnect(deviceId: String) async throws
+
+    var syncEngine: SyncEngineProtocol { get }
 }
 
 public protocol RemoteConnecting {
