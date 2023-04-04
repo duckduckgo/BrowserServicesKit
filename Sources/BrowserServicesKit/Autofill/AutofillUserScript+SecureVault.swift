@@ -158,6 +158,19 @@ extension AutofillUserScript {
         let id: String
         let username: String
         let credentialsProvider: String?
+        let origin: CredentialOrigin?
+
+        struct CredentialOrigin: Codable {
+            let url: String
+            let partialMatch: Bool
+        }
+
+        init(id: String, username: String, credentialsProvider: String?, origin: CredentialOrigin? = nil) {
+            self.id = id
+            self.username = username
+            self.credentialsProvider = credentialsProvider
+            self.origin = origin
+        }
     }
     
     // MARK: - Requests
