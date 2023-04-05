@@ -23,7 +23,7 @@ struct AccountManager: AccountManaging {
 
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
-    let crypter: Crypting
+    let crypter: CryptingInternal
 
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount {
         let deviceId = UUID().uuidString

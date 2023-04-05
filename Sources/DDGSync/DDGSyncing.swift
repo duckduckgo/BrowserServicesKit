@@ -80,8 +80,20 @@ public protocol DDGSyncing {
     */
     func disconnect(deviceId: String) async throws
 
+    var syncCrypter: Crypting { get }
+
     var syncEngine: SyncEngineProtocol { get }
 }
+
+
+public protocol Crypting {
+
+    func encryptAndBase64Encode(_ value: String) throws -> String
+
+    func base64DecodeAndDecrypt(_ value: String) throws -> String
+
+}
+
 
 public protocol RemoteConnecting {
 

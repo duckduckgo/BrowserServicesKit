@@ -25,7 +25,7 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
     let storage: SecureStoring
-    let crypter: Crypting
+    let crypter: CryptingInternal
 
     func send(_ code: SyncCode.ConnectCode) async throws {
         guard let account = try storage.account() else {

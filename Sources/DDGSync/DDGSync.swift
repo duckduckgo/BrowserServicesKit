@@ -98,6 +98,9 @@ public class DDGSync: DDGSyncing {
     }
 
     public let syncEngine: SyncEngineProtocol
+    public var syncCrypter: Crypting {
+        dependencies.crypter
+    }
 
     // MARK: -
 

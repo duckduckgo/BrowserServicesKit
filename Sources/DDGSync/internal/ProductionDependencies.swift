@@ -26,7 +26,7 @@ struct ProductionDependencies: SyncDependencies {
     let account: AccountManaging
     let api: RemoteAPIRequestCreating
     let secureStore: SecureStoring
-    let crypter: Crypting
+    let crypter: CryptingInternal
 
     private let persistence: LocalDataPersisting
 

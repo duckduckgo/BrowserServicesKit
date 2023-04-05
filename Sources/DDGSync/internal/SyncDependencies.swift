@@ -24,7 +24,7 @@ protocol SyncDependencies {
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
-    var crypter: Crypting { get }
+    var crypter: CryptingInternal { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
@@ -46,12 +46,9 @@ protocol SecureStoring {
     func removeAccount() throws
 }
 
-public protocol Crypting {
+protocol CryptingInternal: Crypting {
 
-    func encryptAndBase64Encode(_ value: String) throws -> String
     func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String
     func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
 
     func seal(_ data: Data, secretKey: Data) throws -> Data
@@ -68,7 +65,7 @@ public protocol Crypting {
 
 }
 
-extension Crypting {
+extension CryptingInternal {
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try encryptAndBase64Encode(value, using: nil)
     }
