@@ -23,7 +23,8 @@ import Combine
 /**
  * Describes a data model that is supported by Sync.
  */
-public protocol Syncable: Codable {
+public protocol Syncable: Codable, Equatable {
+    var id: String { get }
     var lastModified: Date? { get set }
     var deleted: String? { get set }
 }
@@ -72,7 +73,7 @@ public protocol SyncDataProviding {
      *
      * If `timestamp` is nil, include all objects.
      */
-    func changes(for feature: SyncFeature, since timestamp: String?) async -> [Syncable]
+    func changes(for feature: SyncFeature, since timestamp: String?) async -> [any Syncable]
 }
 
 /**
@@ -103,7 +104,7 @@ public protocol SyncEngineProtocol {
  * Can be queried by client apps to retrieve changes.
  */
 public protocol SyncResultProviding {
-    func changes(for feature: SyncFeature) -> [Syncable]
+    func changes(for feature: SyncFeature) -> [any Syncable]
 
     /// If we make SyncMetadataProviding internal, then this can be internal too.
     func lastSyncTimestamp(for feature: SyncFeature) -> String?
@@ -173,7 +174,7 @@ struct SyncDataProvider: SyncDataProviding {
         self.metadataProvider = metadataProvider
     }
 
-    func changes(for feature: SyncFeature, since timestamp: String?) async -> [Syncable] {
+    func changes(for feature: SyncFeature, since timestamp: String?) async -> [any Syncable] {
         []
     }
 }
@@ -192,16 +193,18 @@ struct SyncResultProvider: SyncResultProviding {
         timestamps[feature]
     }
 
-    func changes(for feature: SyncFeature) -> [Syncable] {
-        var changedObjects = sent[feature] ?? []
-        if let updated = received[feature] {
-            changedObjects.append(contentsOf: updated)
-        }
+    func changes(for feature: SyncFeature) -> [any Syncable] {
+        var changedObjects = received[feature] ?? []
+        let receivedObjectsIDs = Set(changedObjects.map(\.id))
+
+        let sentObjects: [any Syncable] = (sent[feature] ?? []).filter { !receivedObjectsIDs.contains($0.id) }
+        changedObjects.append(contentsOf: sentObjects)
+
         return changedObjects
     }
 
-    var sent: [SyncFeature: [Syncable]] = [:]
-    var received: [SyncFeature: [Syncable]] = [:]
+    var sent: [SyncFeature: [any Syncable]] = [:]
+    var received: [SyncFeature: [any Syncable]] = [:]
     var timestamps: [SyncFeature: String] = [:]
 }
 
