@@ -32,6 +32,7 @@ public enum RequestVaultCredentialsAction: String, Codable {
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
     var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? { get }
+    var tld: TLD? { get }
 
     func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
         [SecureVaultModels.WebsiteAccount],
@@ -540,7 +541,8 @@ extension AutofillUserScript {
             guard let credential = credentials,
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8),
-                  credential.account.domain.droppingWwwPrefix() == requestingDomain.droppingWwwPrefix() else {
+                  let tld = self.vaultDelegate?.tld,
+                  self.autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: requestingDomain, savedSite: credential.account.domain, tld: tld) else {
                 replyHandler("{}")
                 return
             }

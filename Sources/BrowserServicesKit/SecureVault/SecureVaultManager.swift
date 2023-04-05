@@ -86,7 +86,7 @@ public class SecureVaultManager {
     // This property can be removed once all platforms will search for partial account matches as the default expected behaviour.
     private let includePartialAccountMatches: Bool
 
-    private let tld: TLD?
+    public let tld: TLD?
 
     public lazy var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? = {
         guard let tld = tld else { return nil }
