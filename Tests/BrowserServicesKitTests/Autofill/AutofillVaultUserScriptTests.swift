@@ -22,6 +22,7 @@ import Foundation
 import XCTest
 import WebKit
 import UserScript
+import Common
 @testable import BrowserServicesKit
 
 // swiftlint:disable type_body_length
@@ -561,6 +562,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     var lastPassword: String?
     var lastSubtype: AutofillUserScript.GetAutofillDataSubType?
     var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher?
+    var tld: TLD?
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         lastDomain = domain
