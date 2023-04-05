@@ -39,6 +39,8 @@ public protocol PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool
+
     /// Domains for which given PrivacyFeature is disabled.
     ///
     /// Use `isTempUnprotected(domain:)` to check if a feature is disabled for the given domain.
@@ -88,23 +90,8 @@ public extension PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature) -> Bool {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
-}
 
-public enum PrivacyFeature: String {
-    case contentBlocking
-    case duckPlayer
-    case fingerprintingTemporaryStorage
-    case fingerprintingBattery
-    case fingerprintingScreenSize
-    case gpc
-    case httpsUpgrade = "https"
-    case autoconsent
-    case clickToPlay
-    case autofill
-    case ampLinks
-    case trackingParameters
-    case customUserAgent
-    case referrer
-    case adClickAttribution
-    case windowsWaitlist
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
+        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
+    }
 }

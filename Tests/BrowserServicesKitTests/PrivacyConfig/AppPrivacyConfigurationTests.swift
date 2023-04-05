@@ -361,4 +361,128 @@ class AppPrivacyConfigurationTests: XCTestCase {
         appVersion = MockAppVersionProvider(appVersion: "7.65.1.0")
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
     }
+
+    let exampleSubfeaturesConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsAutofill": {
+                        "state": "disabled"
+                    },
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "minSupportedVersion": "1.36.0"
+                    },
+                    "inlineIconCredentials": {
+                        "state": "enabled"
+                    }
+                },
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureState_ThenValidStateIsReturned() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeaturesConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        let config = manager.privacyConfig
+
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials))
+    }
+
+    func testWhenCheckingSubfeatureState_MinSupportedVersionCheckReturnsCorrectly() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeaturesConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        let config = manager.privacyConfig
+
+        let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider))
+        let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
+        let futureVersionProvider = MockAppVersionProvider(appVersion: "2.16.0")
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: futureVersionProvider))
+    }
+
+    let exampleDisabledFeatureStateOverridingSubfeatureConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "disabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsAutofill": {
+                        "state": "enabled"
+                    }
+                },
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureState_DisabledParentFeatureStateOverridesSubfeature() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleDisabledFeatureStateOverridingSubfeatureConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        let config = manager.privacyConfig
+
+        XCTAssertFalse(config.isEnabled(featureKey: .autofill))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill))
+    }
+
+    let exampleDisabledFeatureMinVersionOverridingSubfeatureConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "minSupportedVersion": "1.36.0",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "minSupportedVersion": "1.35.0"
+                    }
+                },
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureState_DisabledParentFeatureVersionOverridesSubfeature() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleDisabledFeatureMinVersionOverridingSubfeatureConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore())
+
+        let config = manager.privacyConfig
+
+        let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
+        XCTAssertFalse(config.isEnabled(featureKey: .autofill, versionProvider: oldVersionProvider))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider))
+
+        let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
+        XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
+    }
 }
