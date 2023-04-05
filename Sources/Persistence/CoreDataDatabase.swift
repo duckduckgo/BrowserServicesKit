@@ -78,7 +78,7 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
                 containerLocation: URL,
                 model: NSManagedObjectModel,
                 readOnly: Bool = false,
-                enablePersistentHistoryTracking: Bool = false) {
+                options: [String: NSObject] = [:]) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
         self.containerLocation = containerLocation
@@ -87,9 +87,8 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         description.type = NSSQLiteStoreType
         description.isReadOnly = readOnly
 
-        if enablePersistentHistoryTracking {
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+        for (key, value) in options {
+            description.setOption(value, forKey: key)
         }
         
         self.container.persistentStoreDescriptions = [description]
