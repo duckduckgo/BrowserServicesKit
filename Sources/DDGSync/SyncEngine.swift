@@ -21,19 +21,21 @@ import Foundation
 import Combine
 
 /**
+ * Defines sync feature, i.e. type of synced data.
+ */
+public struct SyncFeature {
+    var name: String
+}
+
+/**
  * Describes a data model that is supported by Sync.
+ *
+ * Any data model that is passed to Sync Engine is supposed to be encrypted as needed.
  */
 public protocol Syncable: Codable, Equatable {
     var id: String { get }
     var lastModified: Date? { get set }
     var deleted: String? { get set }
-}
-
-/**
- * Defines sync feature, i.e. type of synced data.
- */
-public struct SyncFeature: Hashable {
-    var name: String
 }
 
 /**
@@ -62,29 +64,26 @@ protocol SyncSchedulingInternal: SyncScheduling {
  */
 public protocol SyncDataProviding {
     /**
-     * Features that are currently supported by the client app.
+     * Feature that is supported by this provider.
      *
      * This is passed to `GET /{types_csv}`.
      */
-    var supportedFeatures: [SyncFeature] { get }
+    var feature: SyncFeature { get }
 
-    /// Can possibly be internal. See `SyncMetadataProviding`.
-    var metadataProvider: SyncMetadataProviding { get }
+    /**
+     * Time of last successful sync of a given feature.
+     *
+     * Note that it's a String as this is the server timestamp and should not be treated as date
+     * and as such used in comparing timestamps. It's merely an identifier of last sync.
+     */
+    var lastSyncTimestamp: String? { get set }
 
     /**
      * Client apps should implement this function and return data to be synced for `feature` based on `timestamp`.
      *
      * If `timestamp` is nil, include all objects.
      */
-    func changes(for feature: SyncFeature, since timestamp: String?) async throws -> [any Syncable]
-}
-
-/**
- * Describes data source for sync metadata.
- */
-public protocol SyncMetadataProviding {
-    func lastSyncTimestamp(for feature: SyncFeature) -> String?
-    func setLastSyncTimestamp(_ timestamp: String, for model: SyncFeature)
+    func changes(since timestamp: String?) async throws -> [any Syncable]
 }
 
 /**
@@ -94,9 +93,9 @@ public protocol SyncEngineProtocol {
     /// Used for scheduling sync
     var scheduler: SyncScheduling { get }
     /// Used for passing data to sync
-    var dataProvider: SyncDataProviding { get }
+    var dataProviders: [SyncDataProviding] { get }
     /// Used for reading sync data
-    var resultsPublisher: AnyPublisher<SyncResultProviding, Never> { get }
+    var resultsPublisher: AnyPublisher<[SyncResultProviding], Never> { get }
 }
 
 /**
@@ -105,19 +104,18 @@ public protocol SyncEngineProtocol {
  * Can be queried by client apps to retrieve changes.
  */
 public protocol SyncResultProviding {
-    func changes(for feature: SyncFeature) -> [any Syncable]
-
-    /// If we make SyncMetadataProviding internal, then this can be internal too.
-    func lastSyncTimestamp(for feature: SyncFeature) -> String?
+    var feature: SyncFeature { get }
+    var changes: [any Syncable] { get }
+    var lastSyncTimestamp: String? { get }
 }
 
 /**
  * Internal interface for sync engine.
  */
 protocol SyncWorkerProtocol {
-    var dataProvider: SyncDataProviding { get }
+    var dataProviders: [SyncDataProviding] { get }
 
-    func sync() async throws -> SyncResultProviding
+    func sync() async throws -> [SyncResultProviding]
 }
 
 // MARK: - Example Implementation
@@ -165,61 +163,57 @@ class SyncScheduler: SyncSchedulingInternal {
 }
 
 struct SyncDataProvider: SyncDataProviding {
-    var supportedFeatures: [SyncFeature] {
-        [.init(name: "bookmarks")]
+    let feature: SyncFeature = .init(name: "bookmarks")
+
+    var lastSyncTimestamp: String? {
+        get {
+            // TODO fetch from database
+            return nil
+        }
+        set {
+            // TODO store in database
+        }
     }
 
-    let metadataProvider: SyncMetadataProviding
-
-    init(metadataProvider: SyncMetadataProviding) {
-        self.metadataProvider = metadataProvider
-    }
-
-    func changes(for feature: SyncFeature, since timestamp: String?) async -> [any Syncable] {
+    func changes(since timestamp: String?) async throws -> [any Syncable] {
         []
     }
 }
 
-struct SyncMetadataProvider: SyncMetadataProviding {
-    func lastSyncTimestamp(for feature: SyncFeature) -> String? {
-        nil
-    }
-
-    func setLastSyncTimestamp(_ timestamp: String, for model: SyncFeature) {
-    }
-}
-
 struct SyncResultProvider: SyncResultProviding {
-    func lastSyncTimestamp(for feature: SyncFeature) -> String? {
-        timestamps[feature]
-    }
+    let feature: SyncFeature
 
-    func changes(for feature: SyncFeature) -> [any Syncable] {
-        var changedObjects = received[feature] ?? []
-        let receivedObjectsIDs = Set(changedObjects.map(\.id))
+    var lastSyncTimestamp: String?
 
-        let sentObjects: [any Syncable] = (sent[feature] ?? []).filter { !receivedObjectsIDs.contains($0.id) }
+    var changes: [any Syncable] {
+        let receivedObjectsIDs = Set(received.map(\.id))
+        var changedObjects = received
+
+        let sentObjects: [any Syncable] = sent.filter { !receivedObjectsIDs.contains($0.id) }
         changedObjects.append(contentsOf: sentObjects)
 
         return changedObjects
     }
 
-    var sent: [SyncFeature: [any Syncable]] = [:]
-    var received: [SyncFeature: [any Syncable]] = [:]
-    var timestamps: [SyncFeature: String] = [:]
+    var sent: [any Syncable] = []
+    var received: [any Syncable] = []
 }
 
 class SyncEngine: SyncEngineProtocol {
 
+    let scheduler: SyncScheduling
+    let dataProviders: [SyncDataProviding]
+    let resultsPublisher: AnyPublisher<[SyncResultProviding], Never>
+
     init(
-        dataProvider: SyncDataProviding,
+        dataProviders: [SyncDataProviding],
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints,
         scheduler: SyncSchedulingInternal = SyncScheduler()
     ) {
         self.scheduler = scheduler
-        self.dataProvider = dataProvider
-        self.worker = SyncWorker(dataProvider: dataProvider, api: api, endpoints: endpoints)
+        self.dataProviders = dataProviders
+        self.worker = SyncWorker(dataProviders: dataProviders, api: api, endpoints: endpoints)
 
         resultsPublisher = resultsSubject.eraseToAnyPublisher()
 
@@ -230,12 +224,8 @@ class SyncEngine: SyncEngineProtocol {
             .store(in: &cancellables)
     }
 
-    let scheduler: SyncScheduling
-    let dataProvider: SyncDataProviding
-    let resultsPublisher: AnyPublisher<SyncResultProviding, Never>
-
     private let worker: SyncWorkerProtocol
-    private let resultsSubject = PassthroughSubject<SyncResultProviding, Never>()
+    private let resultsSubject = PassthroughSubject<[SyncResultProviding], Never>()
 
     private func performSync() {
         Task {
@@ -249,41 +239,41 @@ class SyncEngine: SyncEngineProtocol {
 
 actor SyncWorker: SyncWorkerProtocol {
 
-    let dataProvider: SyncDataProviding
+    let dataProviders: [SyncDataProviding]
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
 
     init(
-        dataProvider: SyncDataProviding,
+        dataProviders: [SyncDataProviding],
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
-        self.dataProvider = dataProvider
+        self.dataProviders = dataProviders
         self.endpoints = endpoints
         self.api = api
     }
 
-    func sync() async throws -> SyncResultProviding {
-        var result = SyncResultProvider()
+    func sync() async throws -> [SyncResultProviding] {
 
-        result.sent = try await withThrowingTaskGroup(of: [SyncFeature: [any Syncable]].self) { group in
-            var sent = [SyncFeature: [any Syncable]]()
+        // Collect last sync timestamp and changes per feature
+        let results: [SyncResultProvider] = try await withThrowingTaskGroup(of: [SyncResultProvider].self) { group in
+            var results = [SyncResultProvider]()
 
-            for feature in dataProvider.supportedFeatures {
-                let localChanges = try await dataProvider.changes(for: feature, since: dataProvider.metadataProvider.lastSyncTimestamp(for: feature))
-                sent[feature] = localChanges
+            for dataProvider in dataProviders {
+                let localChanges = try await dataProvider.changes(since: dataProvider.lastSyncTimestamp)
+                let resultProvider = SyncResultProvider(feature: dataProvider.feature, sent: localChanges)
+                results.append(resultProvider)
             }
-            return sent
+            return results
         }
 
         // TODO
         // * enumerate dataProvider.supportedFeatures:
-        //   * collect last sync timestamp and changes per feature
         //   * if there are changes, use PATCH, otherwise use GET
         // * send request
         // * read response
         // * update result
 
-        return result
+        return results
     }
 }

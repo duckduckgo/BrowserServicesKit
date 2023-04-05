@@ -40,9 +40,9 @@ public class DDGSync: DDGSyncing {
     }
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(persistence: LocalDataPersisting, dataProvider: SyncDataProviding) {
+    public convenience init(persistence: LocalDataPersisting, dataProviders: [SyncDataProviding]) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence)
-        self.init(persistence: persistence, dataProvider: dataProvider, dependencies: dependencies)
+        self.init(persistence: persistence, dataProviders: dataProviders, dependencies: dependencies)
     }
 
     public func createAccount(deviceName: String, deviceType: String) async throws {
@@ -107,10 +107,10 @@ public class DDGSync: DDGSyncing {
     let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
 
-    init(persistence: LocalDataPersisting, dataProvider: SyncDataProviding, dependencies: SyncDependencies) {
+    init(persistence: LocalDataPersisting, dataProviders: [SyncDataProviding], dependencies: SyncDependencies) {
         self.persistence = persistence
         self.dependencies = dependencies
-        self.syncEngine = SyncEngine(dataProvider: dataProvider, api: dependencies.api, endpoints: dependencies.endpoints)
+        self.syncEngine = SyncEngine(dataProviders: dataProviders, api: dependencies.api, endpoints: dependencies.endpoints)
         self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
     }
 
