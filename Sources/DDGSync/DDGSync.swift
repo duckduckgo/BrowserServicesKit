@@ -110,7 +110,7 @@ public class DDGSync: DDGSyncing {
     init(persistence: LocalDataPersisting, dataProvider: SyncDataProviding, dependencies: SyncDependencies) {
         self.persistence = persistence
         self.dependencies = dependencies
-        self.syncEngine = SyncEngine(dataProvider: dataProvider, crypter: dependencies.crypter, api: dependencies.api, endpoints: dependencies.endpoints)
+        self.syncEngine = SyncEngine(dataProvider: dataProvider, api: dependencies.api, endpoints: dependencies.endpoints)
         self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
     }
 

@@ -30,10 +30,10 @@ public protocol Syncable: Codable, Equatable {
 }
 
 /**
- * Contains features supported by Sync.
+ * Defines sync feature, i.e. type of synced data.
  */
-public enum SyncFeature: Hashable {
-    case bookmarks, emailProtection, settings, autofill
+public struct SyncFeature: Hashable {
+    var name: String
 }
 
 /**
@@ -49,8 +49,11 @@ public protocol SyncScheduling {
     func notifyAppLifecycleEvent()
     /// This should be called from externally scheduled background jobs that trigger sync periodically.
     func requestSyncImmediately()
+}
 
+protocol SyncSchedulingInternal: SyncScheduling {
     /// This is "internal" to BSK (for the Sync Engine to hook up to scheduler). May be extracted into a separate internal protocol.
+    /// Publishes events to notify Sync Engine about
     var startSyncPublisher: AnyPublisher<Void, Never> { get }
 }
 
@@ -73,13 +76,11 @@ public protocol SyncDataProviding {
      *
      * If `timestamp` is nil, include all objects.
      */
-    func changes(for feature: SyncFeature, since timestamp: String?) async -> [any Syncable]
+    func changes(for feature: SyncFeature, since timestamp: String?) async throws -> [any Syncable]
 }
 
 /**
  * Describes data source for sync metadata.
- *
- * This perhaps may be fully internal? Given that we keep sync metadata database entirely in BSK.
  */
 public protocol SyncMetadataProviding {
     func lastSyncTimestamp(for feature: SyncFeature) -> String?
@@ -121,7 +122,7 @@ protocol SyncWorkerProtocol {
 
 // MARK: - Example Implementation
 
-class SyncScheduler: SyncScheduling {
+class SyncScheduler: SyncSchedulingInternal {
     func notifyDataChanged() {
         syncTriggerSubject.send()
     }
@@ -165,7 +166,7 @@ class SyncScheduler: SyncScheduling {
 
 struct SyncDataProvider: SyncDataProviding {
     var supportedFeatures: [SyncFeature] {
-        [.bookmarks]
+        [.init(name: "bookmarks")]
     }
 
     let metadataProvider: SyncMetadataProviding
@@ -212,14 +213,13 @@ class SyncEngine: SyncEngineProtocol {
 
     init(
         dataProvider: SyncDataProviding,
-        crypter: Crypting,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints,
-        scheduler: SyncScheduling = SyncScheduler()
+        scheduler: SyncSchedulingInternal = SyncScheduler()
     ) {
         self.scheduler = scheduler
         self.dataProvider = dataProvider
-        self.worker = SyncWorker(dataProvider: dataProvider, crypter: crypter, api: api, endpoints: endpoints)
+        self.worker = SyncWorker(dataProvider: dataProvider, api: api, endpoints: endpoints)
 
         resultsPublisher = resultsSubject.eraseToAnyPublisher()
 
@@ -250,18 +250,15 @@ class SyncEngine: SyncEngineProtocol {
 actor SyncWorker: SyncWorkerProtocol {
 
     let dataProvider: SyncDataProviding
-    let crypter: Crypting
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
 
     init(
         dataProvider: SyncDataProviding,
-        crypter: Crypting,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
         self.dataProvider = dataProvider
-        self.crypter = crypter
         self.endpoints = endpoints
         self.api = api
     }
@@ -269,9 +266,14 @@ actor SyncWorker: SyncWorkerProtocol {
     func sync() async throws -> SyncResultProviding {
         var result = SyncResultProvider()
 
-        for feature in dataProvider.supportedFeatures {
-            let localChanges = await dataProvider.changes(for: feature, since: dataProvider.metadataProvider.lastSyncTimestamp(for: feature))
-            result.sent[feature] = localChanges
+        result.sent = try await withThrowingTaskGroup(of: [SyncFeature: [any Syncable]].self) { group in
+            var sent = [SyncFeature: [any Syncable]]()
+
+            for feature in dataProvider.supportedFeatures {
+                let localChanges = try await dataProvider.changes(for: feature, since: dataProvider.metadataProvider.lastSyncTimestamp(for: feature))
+                sent[feature] = localChanges
+            }
+            return sent
         }
 
         // TODO
