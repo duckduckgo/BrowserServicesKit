@@ -65,6 +65,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
         ]
     }
 
+    let tld = TLD()
+
     @available(macOS 11, iOS 14, *)
     func testWhenAccountsForDomainRequested_ThenDelegateCalled() {
         class GetAccountsDelegate: MockSecureVaultDelegate {
@@ -123,6 +125,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         hostProvider = MockHostProvider(host: "domain1.com")
 
         let delegate = GetCredentialsDelegate()
+        delegate.tld = tld
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
@@ -171,6 +174,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         hostProvider = MockHostProvider(host: "domain1.com")
 
         let delegate = GetCredentialsDelegate()
+        delegate.tld = tld
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
@@ -216,6 +220,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         hostProvider = MockHostProvider(host: "www.domain1.com")
         
         let delegate = GetCredentialsDelegate()
+        delegate.tld = tld
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
