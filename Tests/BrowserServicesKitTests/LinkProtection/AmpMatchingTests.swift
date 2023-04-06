@@ -73,7 +73,8 @@ final class AmpMatchingTests: XCTestCase {
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: DefaultInternalUserDecider())
     }
     
     private var contentBlockingManager: ContentBlockerRulesManager {
