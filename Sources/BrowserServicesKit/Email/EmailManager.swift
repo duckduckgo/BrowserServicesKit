@@ -92,8 +92,7 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       headers: [String: String],
                       parameters: [String: String]?,
                       httpBody: Data?,
-                      timeoutInterval: TimeInterval,
-                      completion: @escaping (Data?, Error?) -> Void)
+                      timeoutInterval: TimeInterval) async -> Result<Data, Error>
 
     func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError)
     
@@ -469,29 +468,39 @@ private extension EmailManager {
     }
 
     func fetchAlias(timeoutInterval: TimeInterval = 60.0, completionHandler: AliasCompletion? = nil) {
-        guard isSignedIn else {
+        guard isSignedIn,
+              let requestDelegate else {
             completionHandler?(nil, .signedOut)
             return
         }
         
-        requestDelegate?.emailManager(self,
-                                      requested: aliasAPIURL,
-                                      method: "POST",
-                                      headers: emailHeaders,
-                                      parameters: [:],
-                                      httpBody: nil,
-                                      timeoutInterval: timeoutInterval) { data, error in
-            guard let data = data, error == nil else {
-                completionHandler?(nil, .noDataError)
-                return
-            }
-            do {
-                let decoder = JSONDecoder()
-                let alias = try decoder.decode(EmailAliasResponse.self, from: data).address
+        Task.detached { [aliasAPIURL, emailHeaders] in
+            let result: Result<String, AliasRequestError> = await requestDelegate.emailManager(self,
+                                                                                                requested: aliasAPIURL,
+                                                                                                method: "POST",
+                                                                                                headers: emailHeaders,
+                                                                                                parameters: [:],
+                                                                                                httpBody: nil,
+                                                                                                timeoutInterval: timeoutInterval)
+                .mapError { _ in
+                    .noDataError
+                }
+                .flatMap { data in
+                    do {
+                        return .success(try JSONDecoder().decode(EmailAliasResponse.self, from: data).address)
+                    } catch {
+                        return .failure(.invalidResponse)
+                    }
+                }
+
+            await MainActor.run {
                 NotificationCenter.default.post(name: .emailDidGenerateAlias, object: self)
-                completionHandler?(alias, nil)
-            } catch {
-                completionHandler?(nil, .invalidResponse)
+                switch result {
+                case .success(let alias):
+                    completionHandler?(alias, nil)
+                case .failure(let error):
+                    completionHandler?(nil, error)
+                }
             }
         }
     }

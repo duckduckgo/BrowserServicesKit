@@ -381,17 +381,10 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     var waitlistTimestamp: Int = 1
     
     // swiftlint:disable function_parameter_count
-    func emailManager(_ emailManager: EmailManager,
-                      requested url: URL,
-                      method: String,
-                      headers: [String: String],
-                      parameters: [String: String]?,
-                      httpBody: Data?,
-                      timeoutInterval: TimeInterval,
-                      completion: @escaping (Data?, Error?) -> Void) {
+    func emailManager(_ emailManager: EmailManager, requested url: URL, method: String, headers: [String: String], parameters: [String: String]?, httpBody: Data?, timeoutInterval: TimeInterval) async -> Result<Data, Error> {
         switch url.absoluteString {
-        case EmailUrls.Url.emailAlias: processMockAliasRequest(completion)
-        default: assertionFailure("\(#file): Unsupported URL passed to mock request delegate: \(url)")
+        case EmailUrls.Url.emailAlias: return processMockAliasRequest()
+        default: fatalError("\(#file): Unsupported URL passed to mock request delegate: \(url)")
         }
     }
     // swiftlint:enable function_parameter_count
@@ -404,16 +397,16 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
         keychainAccessError = error
     }
 
-    private func processMockAliasRequest(_ completion: @escaping (Data?, Error?) -> Void) {
+    private func processMockAliasRequest() -> Result<Data, Error> {
         events.append(.aliasRequestMade)
 
         if mockAliases.first != nil {
             let alias = mockAliases.removeFirst()
             let jsonString = "{\"address\":\"\(alias)\"}"
             let data = jsonString.data(using: .utf8)!
-            completion(data, nil)
+            return .success(data)
         } else {
-            completion(nil, AliasRequestError.noDataError)
+            return .failure(AliasRequestError.noDataError)
         }
     }
     
