@@ -122,7 +122,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let logger: OSLog
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
 
     // Public only for tests
     public var sourceManagers = [String: ContentBlockerRulesSourceManager]()
@@ -139,13 +142,13 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 lastCompiledRulesStore: LastCompiledRulesStore? = nil,
                 cache: ContentBlockerRulesCaching? = nil,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                logger: OSLog = .disabled) {
+                log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.rulesSource = rulesSource
         self.exceptionsSource = exceptionsSource
         self.lastCompiledRulesStore = lastCompiledRulesStore
         self.cache = cache
         self.errorReporting = errorReporting
-        self.logger = logger
+        self.getLog = log
 
         workQueue.async {
             _ = self.updateCompilationState(token: "")
@@ -204,7 +207,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
     /// Returns true if the compilation should be executed immediately
     private func updateCompilationState(token: CompletionToken) -> Bool {
-        os_log("Requesting compilation...", log: logger, type: .default)
+        os_log("Requesting compilation...", log: log, type: .default)
         lock.lock()
         guard case .idle = state else {
             if case .recompiling(let tokens) = state {
@@ -272,10 +275,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 manager.rulesList = rulesList
                 sourceManager = manager
             } else {
+                let log = self.log
                 sourceManager = ContentBlockerRulesSourceManager(rulesList: rulesList,
                                                                  exceptionsSource: self.exceptionsSource,
                                                                  errorReporting: self.errorReporting,
-                                                                 log: logger)
+                                                                 log: log)
                 self.sourceManagers[rulesList.name] = sourceManager
             }
             return CompilationTask(workQueue: workQueue, rulesList: rulesList, sourceManager: sourceManager)
@@ -331,7 +335,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         let newRules: [Rules] = currentTasks.compactMap { task in
             guard let result = task.result, let rules = Rules(task: task) else {
-                os_log("Failed to complete task %{public}s ", log: self.logger, type: .error, task.rulesList.name)
+                os_log("Failed to complete task %{public}s ", log: self.log, type: .error, task.rulesList.name)
                 return nil
             }
 
