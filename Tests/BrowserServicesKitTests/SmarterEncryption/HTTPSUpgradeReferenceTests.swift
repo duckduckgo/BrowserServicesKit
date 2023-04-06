@@ -80,7 +80,8 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: DefaultInternalUserDecider())
     }
     
     private lazy var httpsUpgradesTestSuite: HTTPSUpgradesRefTests = {

@@ -33,11 +33,11 @@ class MockEmbeddedDataProvider: EmbeddedDataProvider {
 
 class MockAppVersionProvider: AppVersionProvider {
     var mockedVersion: String
-    
+
     override func appVersion() -> String {
         return mockedVersion
     }
-    
+
     init(appVersion: String) {
         self.mockedVersion = appVersion
     }
@@ -87,7 +87,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertEqual(manager.reload(etag: nil, data: nil), PrivacyConfigurationManager.ReloadResult.embedded)
@@ -111,7 +112,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: downloadedConfigETag,
                                                   fetchedData: downloadedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertEqual(manager.fetchedConfigData?.etag, downloadedConfigETag)
@@ -133,7 +135,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -157,7 +160,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -184,7 +188,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -214,7 +219,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: mockProtectionStore)
+                                                  localProtection: mockProtectionStore,
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -226,7 +232,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         config.userDisabledProtection(forDomain: "enabled2.com")
         XCTAssertTrue(config.isUserUnprotected(domain: "enabled2.com"))
     }
-    
+
     func testWhenRequestingUnprotectedSites_ThenTheyAreConsistentlyOrdered() {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: embeddedConfigETag)
 
@@ -235,16 +241,17 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: corruptedConfigETag,
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: mockProtectionStore)
+                                                  localProtection: mockProtectionStore,
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
 
         let config = manager.privacyConfig
-        
+
         mockProtectionStore.unprotectedDomains = ["first.com", "second.com"]
         XCTAssertEqual(config.userUnprotectedDomains, ["first.com", "second.com"])
-        
+
         mockProtectionStore.unprotectedDomains = ["second.com", "first.com"]
         XCTAssertEqual(config.userUnprotectedDomains, ["first.com", "second.com"])
     }
@@ -271,7 +278,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         ]
     }
     """.data(using: .utf8)!
-    
+
     func testWhenCheckingFeatureState_ThenValidStateIsReturned() {
 
         let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleConfig, etag: "test")
@@ -282,7 +289,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: mockProtectionStore)
+                                                  localProtection: mockProtectionStore,
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -295,7 +303,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "example.com"))
         XCTAssertFalse(config.isFeature(.gpc, enabledForDomain: "unp.com"))
     }
-    
+
     let exampleVersionConfig =
     """
     {
@@ -328,38 +336,70 @@ class AppPrivacyConfigurationTests: XCTestCase {
         ]
     }
     """.data(using: .utf8)!
-    
+
     func testMinSupportedVersionCheckReturnsCorrectly() {
         var appVersion = MockAppVersionProvider(appVersion: "0.22.2")
-        
+
         let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleVersionConfig, etag: "test")
         let mockProtectionStore = MockDomainsProtectionStore()
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: mockProtectionStore)
+                                                  localProtection: mockProtectionStore,
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         let config = manager.privacyConfig
-        
+
         XCTAssertTrue(config.isEnabled(featureKey: .gpc, versionProvider: appVersion))
         XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
-        
+
         appVersion = MockAppVersionProvider(appVersion: "0.22.3")
         XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
         appVersion = MockAppVersionProvider(appVersion: "1.0.0")
         XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
         appVersion = MockAppVersionProvider(appVersion: "1.0.0.0")
         XCTAssertTrue(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
-        
+
         // Test invalid version format
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
-        
+
         // Test unsupported version
         appVersion = MockAppVersionProvider(appVersion: "0.22.0")
         XCTAssertFalse(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
         appVersion = MockAppVersionProvider(appVersion: "7.65.1.0")
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
+    }
+
+    let exampleInternalConfig =
+    """
+    {
+        "features": {
+            "gpc": {
+                "state": "internal",
+                "exceptions": []
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingFeatureState_WhenInternal_ThenValidStateIsReturned() {
+
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleInternalConfig, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertTrue(config.isEnabled(featureKey: .gpc))
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertFalse(config.isEnabled(featureKey: .gpc))
     }
 
     let exampleSubfeaturesConfig =
@@ -379,6 +419,9 @@ class AppPrivacyConfigurationTests: XCTestCase {
                     },
                     "inlineIconCredentials": {
                         "state": "enabled"
+                    },
+                    "accessCredentialManagement": {
+                        "state": "internal"
                     }
                 },
             }
@@ -392,7 +435,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         let config = manager.privacyConfig
 
@@ -400,12 +444,30 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials))
     }
 
+    func testWhenCheckingSubfeatureState_WhenInternalUser_ThenValidStateIsReturnedForInternalFeatures() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeaturesConfig, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement))
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement))
+    }
+
     func testWhenCheckingSubfeatureState_MinSupportedVersionCheckReturnsCorrectly() {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeaturesConfig, etag: "test")
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         let config = manager.privacyConfig
 
@@ -440,7 +502,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         let config = manager.privacyConfig
 
@@ -473,7 +536,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
 
         let config = manager.privacyConfig
 
@@ -485,4 +549,85 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
     }
+
+    func exampleTrackerAllowlistConfig(with state: String) -> Data {
+        return
+            """
+            {
+                "features": {
+                    "trackerAllowlist": {
+                        "state": "\(state)",
+                        "settings": {
+                            "allowlistedTrackers": {
+                                "3lift.com": {
+                                    "rules": [
+                                        {
+                                            "rule": "tlx.3lift.com/header/auction",
+                                            "domains": [
+                                                "aternos.org"
+                                            ],
+                                            "reason": "https://github.com/duckduckgo/privacy-configuration/issues/328"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                "unprotectedTemporary": []
+            }
+            """.data(using: .utf8)!
+    }
+
+    func testTrackerAllowlistIsAlwaysEmptyWhenDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "disabled"), etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+    }
+
+    func testTrackerAllowlistIsEmptyForNonInternalUsersWhenInternal() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "internal"), etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+    }
+
+    func testTrackerAllowlistIsNeverEmptyWhenEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "enabled"), etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+        let config = manager.privacyConfig
+
+        mockInternalUserStore.isInternalUser = true
+        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+        mockInternalUserStore.isInternalUser = false
+        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+    }
+
 }
