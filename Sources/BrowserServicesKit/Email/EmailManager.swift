@@ -92,7 +92,7 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       headers: [String: String],
                       parameters: [String: String]?,
                       httpBody: Data?,
-                      timeoutInterval: TimeInterval) async -> Result<Data, Error>
+                      timeoutInterval: TimeInterval) async throws -> Data
 
     func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError)
     
@@ -475,23 +475,23 @@ private extension EmailManager {
         }
         
         Task.detached { [aliasAPIURL, emailHeaders] in
-            let result: Result<String, AliasRequestError> = await requestDelegate.emailManager(self,
-                                                                                                requested: aliasAPIURL,
-                                                                                                method: "POST",
-                                                                                                headers: emailHeaders,
-                                                                                                parameters: [:],
-                                                                                                httpBody: nil,
-                                                                                                timeoutInterval: timeoutInterval)
-                .mapError { _ in
-                    .noDataError
+            let result: Result<String, AliasRequestError>
+            do {
+                let data = try await requestDelegate.emailManager(self,
+                                                                  requested: aliasAPIURL,
+                                                                  method: "POST",
+                                                                  headers: emailHeaders,
+                                                                  parameters: [:],
+                                                                  httpBody: nil,
+                                                                  timeoutInterval: timeoutInterval)
+                do {
+                    result = .success(try JSONDecoder().decode(EmailAliasResponse.self, from: data).address)
+                } catch {
+                    result = .failure(.invalidResponse)
                 }
-                .flatMap { data in
-                    do {
-                        return .success(try JSONDecoder().decode(EmailAliasResponse.self, from: data).address)
-                    } catch {
-                        return .failure(.invalidResponse)
-                    }
-                }
+            } catch {
+                result = .failure(.noDataError)
+            }
 
             await MainActor.run {
                 NotificationCenter.default.post(name: .emailDidGenerateAlias, object: self)
