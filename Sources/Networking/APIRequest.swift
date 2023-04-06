@@ -28,16 +28,19 @@ public struct APIRequest {
     private let request: URLRequest
     private let requirements: APIResponseRequirements
     private let urlSession: URLSession
-    private let log: OSLog
-    
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
+
     public init<QueryParams: Collection>(configuration: APIRequest.Configuration<QueryParams>,
                                          requirements: APIResponseRequirements = [],
                                          urlSession: URLSession = .shared,
-                                         log: OSLog = .disabled) {
+                                         log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.request = configuration.request
         self.requirements = requirements
         self.urlSession = urlSession
-        self.log = log
+        self.getLog = log
         
         assertUserAgentIsPresent()
     }

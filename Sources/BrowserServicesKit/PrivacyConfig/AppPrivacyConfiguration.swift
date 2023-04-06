@@ -26,13 +26,16 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     
     private let data: PrivacyConfigurationData
     private let locallyUnprotected: DomainsProtectionStore
+    private let internalUserDecider: InternalUserDecider
 
     public init(data: PrivacyConfigurationData,
                 identifier: String,
-                localProtection: DomainsProtectionStore) {
+                localProtection: DomainsProtectionStore,
+                internalUserDecider: InternalUserDecider) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
+        self.internalUserDecider = internalUserDecider
     }
 
     public var userUnprotectedDomains: [String] {
@@ -44,7 +47,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData {
-        return data.trackerAllowlist.state == PrivacyConfigurationData.State.enabled ? data.trackerAllowlist.entries : [:]
+        switch data.trackerAllowlist.state {
+        case PrivacyConfigurationData.State.enabled: return data.trackerAllowlist.entries
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser ? data.trackerAllowlist.entries : [:]
+        default: return [:]
+        }
     }
     
     func parse(versionString: String) -> [Int] {
@@ -77,9 +84,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
         guard let feature = data.features[featureKey.rawValue] else { return false }
+
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
         switch feature.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
         default: return false
         }
     }
@@ -93,6 +102,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
         switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
         default: return false
         }
     }

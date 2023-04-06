@@ -27,7 +27,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", revision: "72dfe9cdf98a34b9625d3ddd805f78cf78055bd6"),
-        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.0"),
+        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
