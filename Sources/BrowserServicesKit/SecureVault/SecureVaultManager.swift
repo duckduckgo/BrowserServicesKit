@@ -54,6 +54,8 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     // swiftlint:disable:next identifier_name
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
 
+    func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String)
+
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel)
 
 }
@@ -141,7 +143,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
 
     public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
-        // no-op at this point
+        delegate?.secureVaultManager(self, didRequestPasswordManagerForDomain: domain)
     }
     
     /// Receives each of the types of data that the Autofill script has detected, and determines whether the user should be prompted to save them.
