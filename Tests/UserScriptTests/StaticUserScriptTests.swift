@@ -37,10 +37,11 @@ class StaticUserScriptTests: XCTestCase {
         }
     }
 
-    func testWhenStaticWKUserScriptCreatedValuesInitializedCorrectly() {
+    @MainActor
+    func testWhenStaticWKUserScriptCreatedValuesInitializedCorrectly() async {
         let src = "var val = 'Test';\n"
         let us = TestStaticUserScript()
-        let script = us.makeWKUserScript()
+        let script = await us.makeWKUserScript().wkUserScript
         XCTAssertTrue(script.source.contains(src))
         XCTAssertEqual(script.injectionTime, .atDocumentEnd)
         XCTAssertEqual(script.isForMainFrameOnly, false)
