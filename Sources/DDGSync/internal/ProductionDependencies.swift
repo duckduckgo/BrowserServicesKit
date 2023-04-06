@@ -32,7 +32,7 @@ struct ProductionDependencies: SyncDependencies {
 
     private let persistence: LocalDataPersisting
 
-    init(baseUrl: URL, persistence: LocalDataPersisting, dataProviders: [SyncDataProviding]) {
+    init(baseUrl: URL, persistence: LocalDataPersisting, dataProviders: [any SyncDataProviding]) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
@@ -41,7 +41,7 @@ struct ProductionDependencies: SyncDependencies {
                   secureStore: SecureStorage())
     }
     
-    init(fileStorageUrl: URL, baseUrl: URL, persistence: LocalDataPersisting, dataProviders: [SyncDataProviding], secureStore: SecureStoring) {
+    init(fileStorageUrl: URL, baseUrl: URL, persistence: LocalDataPersisting, dataProviders: [any SyncDataProviding], secureStore: SecureStoring) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(baseUrl: baseUrl)
         self.persistence = persistence

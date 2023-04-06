@@ -40,7 +40,7 @@ public class DDGSync: DDGSyncing {
     }
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(persistence: LocalDataPersisting, dataProviders: [SyncDataProviding]) {
+    public convenience init(persistence: LocalDataPersisting, dataProviders: [any SyncDataProviding]) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence, dataProviders: dataProviders)
         self.init(persistence: persistence, dataProviders: dataProviders, dependencies: dependencies)
     }
@@ -112,7 +112,7 @@ public class DDGSync: DDGSyncing {
     let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
 
-    init(persistence: LocalDataPersisting, dataProviders: [SyncDataProviding], dependencies: SyncDependencies) {
+    init(persistence: LocalDataPersisting, dataProviders: [any SyncDataProviding], dependencies: SyncDependencies) {
         self.persistence = persistence
         self.dependencies = dependencies
         self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil

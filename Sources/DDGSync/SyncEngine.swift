@@ -23,7 +23,7 @@ import Combine
 /**
  * Defines sync feature, i.e. type of synced data.
  */
-public struct SyncFeature {
+public struct SyncFeature: Hashable {
     var name: String
 }
 
@@ -63,6 +63,8 @@ protocol SyncSchedulingInternal: SyncScheduling {
  * Describes data source for objects to be synced with the server.
  */
 public protocol SyncDataProviding {
+    associatedtype SyncableModel: Syncable
+
     /**
      * Feature that is supported by this provider.
      *
@@ -83,7 +85,31 @@ public protocol SyncDataProviding {
      *
      * If `timestamp` is nil, include all objects.
      */
-    func changes(since timestamp: String?) async throws -> [any Syncable]
+    func changes(since timestamp: String?) async throws -> [SyncableModel]
+}
+
+/**
+ * Example Syncable model implementation
+ */
+public struct SyncableBookmark: Syncable {
+    public var id: String
+    public var lastModified: Date?
+    public var deleted: String?
+}
+
+/**
+ * Example Syncable model data provider implementation
+ */
+public struct SyncableBookmarkProvider: SyncDataProviding {
+    public typealias SyncableModel = SyncableBookmark
+
+    public let feature: SyncFeature = .init(name: "bookmarks")
+
+    public var lastSyncTimestamp: String?
+
+    public func changes(since timestamp: String?) async throws -> [SyncableBookmark] {
+        [SyncableBookmark(id: "1", lastModified: nil, deleted: nil)]
+    }
 }
 
 /**
@@ -99,7 +125,7 @@ public protocol SyncResultsPublishing {
  */
 protocol SyncEngineProtocol: SyncResultsPublishing {
     /// Used for passing data to sync
-    var dataProviders: [SyncDataProviding] { get }
+    var dataProviders: [any SyncDataProviding] { get }
     /// Called to start sync
     func startSync()
 }
@@ -119,7 +145,7 @@ public protocol SyncResultProviding {
  * Internal interface for sync engine.
  */
 protocol SyncWorkerProtocol {
-    var dataProviders: [SyncDataProviding] { get }
+    var dataProviders: [SyncFeature: any SyncDataProviding] { get }
 
     func sync() async throws -> [SyncResultProviding]
 }
@@ -169,6 +195,8 @@ class SyncScheduler: SyncSchedulingInternal {
 }
 
 struct SyncDataProvider: SyncDataProviding {
+    typealias SyncableModel = SyncableBookmark
+
     let feature: SyncFeature = .init(name: "bookmarks")
 
     var lastSyncTimestamp: String? {
@@ -181,7 +209,7 @@ struct SyncDataProvider: SyncDataProviding {
         }
     }
 
-    func changes(since timestamp: String?) async throws -> [any Syncable] {
+    func changes(since timestamp: String?) async throws -> [SyncableBookmark] {
         []
     }
 }
@@ -207,11 +235,11 @@ struct SyncResultProvider: SyncResultProviding {
 
 class SyncEngine: SyncEngineProtocol {
 
-    let dataProviders: [SyncDataProviding]
+    let dataProviders: [any SyncDataProviding]
     let results: AnyPublisher<[SyncResultProviding], Never>
 
     init(
-        dataProviders: [SyncDataProviding],
+        dataProviders: [any SyncDataProviding],
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
@@ -236,16 +264,20 @@ class SyncEngine: SyncEngineProtocol {
 
 actor SyncWorker: SyncWorkerProtocol {
 
-    let dataProviders: [SyncDataProviding]
+    let dataProviders: [SyncFeature: any SyncDataProviding]
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
 
     init(
-        dataProviders: [SyncDataProviding],
+        dataProviders: [any SyncDataProviding],
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
-        self.dataProviders = dataProviders
+        var providersDictionary = [SyncFeature: any SyncDataProviding]()
+        for provider in dataProviders {
+            providersDictionary[provider.feature] = provider
+        }
+        self.dataProviders = providersDictionary
         self.endpoints = endpoints
         self.api = api
     }
@@ -256,7 +288,7 @@ actor SyncWorker: SyncWorkerProtocol {
         let results: [SyncResultProvider] = try await withThrowingTaskGroup(of: [SyncResultProvider].self) { group in
             var results = [SyncResultProvider]()
 
-            for dataProvider in dataProviders {
+            for dataProvider in dataProviders.values {
                 let localChanges = try await dataProvider.changes(since: dataProvider.lastSyncTimestamp)
                 let resultProvider = SyncResultProvider(feature: dataProvider.feature, sent: localChanges)
                 results.append(resultProvider)
