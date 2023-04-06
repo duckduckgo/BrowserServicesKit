@@ -554,6 +554,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
     enum CallbackType {
+        case didRequestCreditCardsManagerForDomain
+        case didRequestIdentitiesManagerForDomain
         case didRequestPasswordManagerForDomain
         case didRequestStoreDataForDomain
         case didRequestAccountsForDomain
@@ -568,6 +570,16 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     var lastSubtype: AutofillUserScript.GetAutofillDataSubType?
     var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher?
     var tld: TLD?
+
+    public func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String) {
+        lastDomain = domain
+        receivedCallbacks.append(.didRequestCreditCardsManagerForDomain)
+    }
+
+    public func autofillUserScript(_: AutofillUserScript, didRequestIdentitiesManagerForDomain domain: String) {
+        lastDomain = domain
+        receivedCallbacks.append(.didRequestIdentitiesManagerForDomain)
+    }
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         lastDomain = domain

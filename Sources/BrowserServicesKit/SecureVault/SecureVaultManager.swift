@@ -54,6 +54,10 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     // swiftlint:disable:next identifier_name
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
 
+    func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String)
+
+    func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String)
+
     func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String)
 
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel)
@@ -142,10 +146,18 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
+    public func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String) {
+        delegate?.secureVaultManager(self, didRequestCreditCardsManagerForDomain: domain)
+    }
+    
+    public func autofillUserScript(_: AutofillUserScript, didRequestIdentitiesManagerForDomain domain: String) {
+        delegate?.secureVaultManager(self, didRequestIdentitiesManagerForDomain: domain)
+    }
+
     public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         delegate?.secureVaultManager(self, didRequestPasswordManagerForDomain: domain)
     }
-    
+
     /// Receives each of the types of data that the Autofill script has detected, and determines whether the user should be prompted to save them.
     /// This involves checking each proposed object to determine whether it already exists in the store.
     /// Currently, only one new type of data is presented to the user, but that decision is handled client-side so that it's easier to adapt in the future when multiple types are presented at once.

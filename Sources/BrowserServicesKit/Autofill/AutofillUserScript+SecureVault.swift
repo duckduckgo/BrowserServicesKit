@@ -41,6 +41,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
         SecureVaultModels.CredentialsProvider
     ) -> Void)
 
+    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestIdentitiesManagerForDomain domain: String)
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
@@ -635,12 +637,12 @@ extension AutofillUserScript {
     // MARK: Open Management Views
 
     func pmOpenManageCreditCards(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestCreditCardsManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
     func pmOpenManageIdentities(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestIdentitiesManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 

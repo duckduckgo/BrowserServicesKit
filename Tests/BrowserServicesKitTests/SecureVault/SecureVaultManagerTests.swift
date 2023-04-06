@@ -362,6 +362,10 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
         return true
     }
 
+    func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String) {}
+
+    func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String) {}
+
     func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String) {}
     
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel) {}
