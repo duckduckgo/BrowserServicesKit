@@ -90,12 +90,18 @@ public protocol SyncDataProviding {
  * Public interface for sync engine.
  */
 public protocol SyncEngineProtocol {
-    /// Used for scheduling sync
-    var scheduler: SyncScheduling { get }
     /// Used for passing data to sync
     var dataProviders: [SyncDataProviding] { get }
     /// Used for reading sync data
     var resultsPublisher: AnyPublisher<[SyncResultProviding], Never> { get }
+}
+
+/**
+ * Internal interface for sync engine.
+ */
+protocol SyncEngineProtocolInternal: SyncEngineProtocol {
+    /// Called to start sync
+    func startSync()
 }
 
 /**
@@ -199,40 +205,31 @@ struct SyncResultProvider: SyncResultProviding {
     var received: [any Syncable] = []
 }
 
-class SyncEngine: SyncEngineProtocol {
+class SyncEngine: SyncEngineProtocolInternal {
 
-    let scheduler: SyncScheduling
     let dataProviders: [SyncDataProviding]
     let resultsPublisher: AnyPublisher<[SyncResultProviding], Never>
 
     init(
         dataProviders: [SyncDataProviding],
         api: RemoteAPIRequestCreating,
-        endpoints: Endpoints,
-        scheduler: SyncSchedulingInternal = SyncScheduler()
+        endpoints: Endpoints
     ) {
-        self.scheduler = scheduler
         self.dataProviders = dataProviders
         self.worker = SyncWorker(dataProviders: dataProviders, api: api, endpoints: endpoints)
 
         resultsPublisher = resultsSubject.eraseToAnyPublisher()
-
-        scheduler.startSyncPublisher
-            .sink { [weak self] _ in
-                self?.performSync()
-            }
-            .store(in: &cancellables)
     }
 
-    private let worker: SyncWorkerProtocol
-    private let resultsSubject = PassthroughSubject<[SyncResultProviding], Never>()
-
-    private func performSync() {
+    func startSync() {
         Task {
             let results = try await worker.sync()
             resultsSubject.send(results)
         }
     }
+
+    private let worker: SyncWorkerProtocol
+    private let resultsSubject = PassthroughSubject<[SyncResultProviding], Never>()
 
     private var cancellables: Set<AnyCancellable> = []
 }

@@ -41,7 +41,7 @@ public class DDGSync: DDGSyncing {
 
     /// This is the constructor intended for use by app clients.
     public convenience init(persistence: LocalDataPersisting, dataProviders: [SyncDataProviding]) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence)
+        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence, dataProviders: dataProviders)
         self.init(persistence: persistence, dataProviders: dataProviders, dependencies: dependencies)
     }
 
@@ -97,7 +97,12 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
-    public let syncEngine: SyncEngineProtocol
+    public var syncScheduler: SyncScheduling {
+        dependencies.scheduler
+    }
+    public var syncEngine: SyncEngineProtocol {
+        dependencies.engine
+    }
     public var syncCrypter: Crypting {
         dependencies.crypter
     }
@@ -110,11 +115,17 @@ public class DDGSync: DDGSyncing {
     init(persistence: LocalDataPersisting, dataProviders: [SyncDataProviding], dependencies: SyncDependencies) {
         self.persistence = persistence
         self.dependencies = dependencies
-        self.syncEngine = SyncEngine(dataProviders: dataProviders, api: dependencies.api, endpoints: dependencies.endpoints)
         self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
+
+        startSyncCancellable = dependencies.scheduler.startSyncPublisher
+            .sink { [weak self] in
+                self?.dependencies.engine.startSync()
+            }
     }
 
     private func updateIsAuthenticated() {
         isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
     }
+
+    private var startSyncCancellable: AnyCancellable?
 }
