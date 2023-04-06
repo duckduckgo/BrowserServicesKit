@@ -80,9 +80,11 @@ public protocol DDGSyncing {
     */
     func disconnect(deviceId: String) async throws
 
-    var syncCrypter: Crypting { get }
+    var scheduler: SyncScheduling { get }
 
-    var syncEngine: SyncEngineProtocol { get }
+    var crypter: Crypting { get }
+
+    var resultsPublisher: SyncResultsPublishing { get }
 }
 
 

@@ -28,7 +28,7 @@ struct ProductionDependencies: SyncDependencies {
     let secureStore: SecureStoring
     let crypter: CryptingInternal
     let scheduler: SyncSchedulingInternal
-    let engine: SyncEngineProtocolInternal
+    let engine: SyncEngineProtocol
 
     private let persistence: LocalDataPersisting
 

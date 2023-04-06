@@ -87,25 +87,25 @@ public protocol SyncDataProviding {
 }
 
 /**
- * Public interface for sync engine.
+ * Public interface for sync results publisher.
  */
-public protocol SyncEngineProtocol {
-    /// Used for passing data to sync
-    var dataProviders: [SyncDataProviding] { get }
-    /// Used for reading sync data
-    var resultsPublisher: AnyPublisher<[SyncResultProviding], Never> { get }
+public protocol SyncResultsPublishing {
+    /// Used for receiving sync data
+    var results: AnyPublisher<[SyncResultProviding], Never> { get }
 }
 
 /**
  * Internal interface for sync engine.
  */
-protocol SyncEngineProtocolInternal: SyncEngineProtocol {
+protocol SyncEngineProtocol: SyncResultsPublishing {
+    /// Used for passing data to sync
+    var dataProviders: [SyncDataProviding] { get }
     /// Called to start sync
     func startSync()
 }
 
 /**
- * Data returned by sync engine's resultsPublisher.
+ * Data returned by sync engine's results publisher.
  *
  * Can be queried by client apps to retrieve changes.
  */
@@ -205,10 +205,10 @@ struct SyncResultProvider: SyncResultProviding {
     var received: [any Syncable] = []
 }
 
-class SyncEngine: SyncEngineProtocolInternal {
+class SyncEngine: SyncEngineProtocol {
 
     let dataProviders: [SyncDataProviding]
-    let resultsPublisher: AnyPublisher<[SyncResultProviding], Never>
+    let results: AnyPublisher<[SyncResultProviding], Never>
 
     init(
         dataProviders: [SyncDataProviding],
@@ -218,7 +218,7 @@ class SyncEngine: SyncEngineProtocolInternal {
         self.dataProviders = dataProviders
         self.worker = SyncWorker(dataProviders: dataProviders, api: api, endpoints: endpoints)
 
-        resultsPublisher = resultsSubject.eraseToAnyPublisher()
+        results = resultsSubject.eraseToAnyPublisher()
     }
 
     func startSync() {

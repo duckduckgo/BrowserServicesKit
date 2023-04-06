@@ -97,13 +97,13 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
-    public var syncScheduler: SyncScheduling {
+    public var scheduler: SyncScheduling {
         dependencies.scheduler
     }
-    public var syncEngine: SyncEngineProtocol {
+    public var resultsPublisher: SyncResultsPublishing {
         dependencies.engine
     }
-    public var syncCrypter: Crypting {
+    public var crypter: Crypting {
         dependencies.crypter
     }
 
