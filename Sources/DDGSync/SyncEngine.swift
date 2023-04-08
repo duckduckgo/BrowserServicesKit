@@ -32,10 +32,11 @@ public struct SyncFeature: Hashable {
  *
  * Any data model that is passed to Sync Engine is supposed to be encrypted as needed.
  */
-public protocol Syncable: Codable, Equatable {
+public protocol Syncable: Equatable {
     var id: String { get }
     var lastModified: Date? { get set }
     var deleted: String? { get set }
+    var payload: [String: Any] { get set }
 }
 
 /**
@@ -63,8 +64,6 @@ protocol SyncSchedulingInternal: SyncScheduling {
  * Describes data source for objects to be synced with the server.
  */
 public protocol SyncDataProviding {
-    associatedtype SyncableModel: Syncable
-
     /**
      * Feature that is supported by this provider.
      *
@@ -85,7 +84,7 @@ public protocol SyncDataProviding {
      *
      * If `timestamp` is nil, include all objects.
      */
-    func changes(since timestamp: String?) async throws -> [SyncableModel]
+    func changes(since timestamp: String?) async throws -> [any Syncable]
 }
 
 /**
@@ -95,20 +94,23 @@ public struct SyncableBookmark: Syncable {
     public var id: String
     public var lastModified: Date?
     public var deleted: String?
+    public var payload: [String : Any]
+
+    public static func == (lhs: SyncableBookmark, rhs: SyncableBookmark) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 /**
  * Example Syncable model data provider implementation
  */
 public struct SyncableBookmarkProvider: SyncDataProviding {
-    public typealias SyncableModel = SyncableBookmark
-
     public let feature: SyncFeature = .init(name: "bookmarks")
 
     public var lastSyncTimestamp: String?
 
-    public func changes(since timestamp: String?) async throws -> [SyncableBookmark] {
-        [SyncableBookmark(id: "1", lastModified: nil, deleted: nil)]
+    public func changes(since timestamp: String?) async throws -> [any Syncable] {
+        [SyncableBookmark(id: "1", lastModified: nil, deleted: nil, payload: [:])]
     }
 }
 
@@ -117,7 +119,7 @@ public struct SyncableBookmarkProvider: SyncDataProviding {
  */
 public protocol SyncResultsPublishing {
     /// Used for receiving sync data
-    var results: AnyPublisher<[SyncResultProviding], Never> { get }
+    var results: AnyPublisher<[any SyncResultProviding], Never> { get }
 }
 
 /**
@@ -137,8 +139,17 @@ protocol SyncEngineProtocol: SyncResultsPublishing {
  */
 public protocol SyncResultProviding {
     var feature: SyncFeature { get }
-    var changes: [any Syncable] { get }
-    var lastSyncTimestamp: String? { get }
+    var sent: [any Syncable] { get }
+    var received: [any Syncable] { get set }
+    var lastSyncTimestamp: String? { get set }
+}
+
+public struct SyncedBookmarkProvider: SyncResultProviding {
+
+    public let feature: SyncFeature = .init(name: "bookmarks")
+    public let sent: [any Syncable]
+    public var received: [any Syncable] = []
+    public var lastSyncTimestamp: String?
 }
 
 /**
@@ -147,7 +158,7 @@ public protocol SyncResultProviding {
 protocol SyncWorkerProtocol {
     var dataProviders: [SyncFeature: any SyncDataProviding] { get }
 
-    func sync() async throws -> [SyncResultProviding]
+    func sync() async throws -> [any SyncResultProviding]
 }
 
 // MARK: - Example Implementation
@@ -194,40 +205,31 @@ class SyncScheduler: SyncSchedulingInternal {
     }
 }
 
-struct SyncDataProvider: SyncDataProviding {
-    typealias SyncableModel = SyncableBookmark
+// struct SyncDataProvider: SyncDataProviding {
+//     typealias SyncableModel = SyncableBookmark
+//     typealias ResultsProvider = SyncResultProvider
 
-    let feature: SyncFeature = .init(name: "bookmarks")
+//     let feature: SyncFeature = .init(name: "bookmarks")
 
-    var lastSyncTimestamp: String? {
-        get {
-            // TODO fetch from database
-            return nil
-        }
-        set {
-            // TODO store in database
-        }
-    }
+//     var lastSyncTimestamp: String? {
+//         get {
+//             // TODO fetch from database
+//             return nil
+//         }
+//         set {
+//             // TODO store in database
+//         }
+//     }
 
-    func changes(since timestamp: String?) async throws -> [SyncableBookmark] {
-        []
-    }
-}
+//     func changes(since timestamp: String?) async throws -> [SyncableBookmark] {
+//         []
+//     }
+// }
 
 struct SyncResultProvider: SyncResultProviding {
     let feature: SyncFeature
 
     var lastSyncTimestamp: String?
-
-    var changes: [any Syncable] {
-        let receivedObjectsIDs = Set(received.map(\.id))
-        var changedObjects = received
-
-        let sentObjects: [any Syncable] = sent.filter { !receivedObjectsIDs.contains($0.id) }
-        changedObjects.append(contentsOf: sentObjects)
-
-        return changedObjects
-    }
 
     var sent: [any Syncable] = []
     var received: [any Syncable] = []
@@ -236,7 +238,7 @@ struct SyncResultProvider: SyncResultProviding {
 class SyncEngine: SyncEngineProtocol {
 
     let dataProviders: [any SyncDataProviding]
-    let results: AnyPublisher<[SyncResultProviding], Never>
+    let results: AnyPublisher<[any SyncResultProviding], Never>
 
     init(
         dataProviders: [any SyncDataProviding],
@@ -257,7 +259,7 @@ class SyncEngine: SyncEngineProtocol {
     }
 
     private let worker: SyncWorkerProtocol
-    private let resultsSubject = PassthroughSubject<[SyncResultProviding], Never>()
+    private let resultsSubject = PassthroughSubject<[any SyncResultProviding], Never>()
 
     private var cancellables: Set<AnyCancellable> = []
 }
@@ -282,13 +284,13 @@ actor SyncWorker: SyncWorkerProtocol {
         self.api = api
     }
 
-    func sync() async throws -> [SyncResultProviding] {
+    func sync() async throws -> [any SyncResultProviding] {
 
         // Collect last sync timestamp and changes per feature
-        let results: [SyncResultProvider] = try await withThrowingTaskGroup(of: [SyncResultProvider].self) { group in
-            var results = [SyncResultProvider]()
+        let results: [any SyncResultProviding] = try await withThrowingTaskGroup(of: [any SyncResultProviding].self) { group in
+            var results = [any SyncResultProviding]()
 
-            for dataProvider in dataProviders.values {
+            for dataProvider in self.dataProviders.values {
                 let localChanges = try await dataProvider.changes(since: dataProvider.lastSyncTimestamp)
                 let resultProvider = SyncResultProvider(feature: dataProvider.feature, sent: localChanges)
                 results.append(resultProvider)
@@ -296,6 +298,27 @@ actor SyncWorker: SyncWorkerProtocol {
             return results
         }
 
+        let hasChangesToSync = results.contains(where: { !$0.sent.isEmpty })
+        let requestURL: URL = hasChangesToSync ? endpoints.syncPatch : endpoints.syncGet
+
+        let body: Data? = try {
+            guard hasChangesToSync else {
+                return nil
+            }
+            var json = [String: Any]()
+            for result in results {
+                let modelPayload: [String: Any?] = [
+                    "updates": result.sent.map(\.payload),
+                    "modified_since": result.lastSyncTimestamp
+                ]
+                json[result.feature.name] = modelPayload
+            }
+
+            return try JSONSerialization.data(withJSONObject: json, options: [])
+        }()
+
+        //
+        
         // TODO
         // * enumerate dataProvider.supportedFeatures:
         //   * if there are changes, use PATCH, otherwise use GET
