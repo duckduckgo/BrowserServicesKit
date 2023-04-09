@@ -1,0 +1,16 @@
+name: Add PR link to Asana task
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aitorvs/github-asana-action@0.1.0
+        with:
+          asana-pat: ${{ secrets.ASANA_ACCESS_TOKEN }}
+          trigger-phrase: "Task/Issue URL:"
+          action: 'add-comment'
+          is-pinned: true
