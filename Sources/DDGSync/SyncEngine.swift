@@ -91,6 +91,7 @@ public protocol SyncDataProviding {
     func changes(since timestamp: String?) async throws -> [SyncableModel]
 
     func encode(_ syncables: [any Syncable], to encoder: Encoder) throws
+    static func decode(from decoder: Decoder) throws -> ([SyncableModel], String)
 }
 
 /**
@@ -207,6 +208,22 @@ struct SyncDataProvider: SyncDataProviding {
             try container.encode(bookmarks)
         }
     }
+
+    static func decode(from decoder: Decoder) throws -> ([SyncableBookmark], String) {
+
+        struct Temp: Decodable {
+            let lastModified: String
+            let entries: [SyncableBookmark]
+
+            enum CodingKeys: String, CodingKey {
+                case lastModified, entries
+            }
+        }
+
+        let container = try decoder.container(keyedBy: AnyCodingKey.self)
+        let temp = try container.decode(Temp.self, forKey: AnyCodingKey(stringValue: "bookmarks"))
+        return (temp.entries, temp.lastModified)
+    }
 }
 
 struct SyncResultProvider: SyncResultProviding {
@@ -301,6 +318,10 @@ actor SyncWorker: SyncWorkerProtocol {
 
         let result = try await request.execute()
 
+        guard let data = result.data else {
+            throw SyncError.noResponseBody
+        }
+
         // TODO
         // * enumerate dataProvider.supportedFeatures:
         //   * if there are changes, use PATCH, otherwise use GET
@@ -352,5 +373,14 @@ struct AnyCodingKey: CodingKey {
 
     init?(intValue: Int) {
         nil
+    }
+}
+
+struct FeatureResponsePayload<S: SyncDataProviding>: Decodable {
+    let entries: [S.SyncableModel]
+    let lastModified: String
+
+    init(from decoder: Decoder) throws {
+        (entries, lastModified) = try S.decode(from: decoder)
     }
 }
