@@ -21,67 +21,6 @@ import Foundation
 import Combine
 
 /**
- * Defines sync feature, i.e. type of synced data.
- */
-public struct Feature: Hashable {
-    var name: String
-}
-
-/**
- * Describes a data model that is supported by Sync.
- *
- * Any data model that is passed to Sync Engine is supposed to be encrypted as needed.
- */
-public struct Syncable {
-    public var payload: [String: Any]
-
-    public init(jsonObject: [String: Any]) {
-        payload = jsonObject
-    }
-}
-
-/**
- * Describes data source for objects to be synced with the server.
- */
-public protocol DataProviding {
-    /**
-     * Feature that is supported by this provider.
-     *
-     * This is passed to `GET /{types_csv}`.
-     */
-    var feature: Feature { get }
-
-    /**
-     * Time of last successful sync of a given feature.
-     *
-     * Note that it's a String as this is the server timestamp and should not be treated as date
-     * and as such used in comparing timestamps. It's merely an identifier of last sync.
-     */
-    var lastSyncTimestamp: String? { get }
-
-    /**
-     * Client apps should implement this function and return data to be synced for `feature` based on `timestamp`.
-     *
-     * If `timestamp` is nil, include all objects.
-     */
-    func changes(since timestamp: String?) async throws -> [Syncable]
-}
-
-/**
- * Data returned by sync engine's results publisher.
- *
- * Can be queried by client apps to retrieve changes.
- */
-public protocol ResultsProviding {
-    var feature: Feature { get }
-    var sent: [Syncable] { get }
-    var received: [Syncable] { get }
-    var lastSyncTimestamp: String? { get }
-}
-
-// MARK: - Internal
-
-/**
  * Internal interface for sync schedulers.
  */
 protocol SchedulingInternal: Scheduling {
