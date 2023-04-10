@@ -27,10 +27,10 @@ struct ProductionDependencies: SyncDependencies {
     let api: RemoteAPIRequestCreating
     let secureStore: SecureStoring
     let crypter: CryptingInternal
-    let scheduler: SyncSchedulingInternal
-    let engine: SyncEngineProtocol
+    let scheduler: SchedulingInternal
+    let engine: EngineProtocol
 
-    init(baseUrl: URL, dataProviders: [SyncDataProviding]) {
+    init(baseUrl: URL, dataProviders: [DataProviding]) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
@@ -38,7 +38,7 @@ struct ProductionDependencies: SyncDependencies {
                   secureStore: SecureStorage())
     }
     
-    init(fileStorageUrl: URL, baseUrl: URL, dataProviders: [SyncDataProviding], secureStore: SecureStoring) {
+    init(fileStorageUrl: URL, baseUrl: URL, dataProviders: [DataProviding], secureStore: SecureStoring) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(baseUrl: baseUrl)
         self.secureStore = secureStore
@@ -48,7 +48,7 @@ struct ProductionDependencies: SyncDependencies {
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
-        engine = SyncEngine(dataProviders: dataProviders, api: api, endpoints: endpoints)
+        engine = Engine(dataProviders: dataProviders, api: api, endpoints: endpoints)
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {

@@ -80,11 +80,11 @@ public protocol DDGSyncing {
     */
     func disconnect(deviceId: String) async throws
 
-    var scheduler: SyncScheduling { get }
+    var scheduler: Scheduling { get }
 
     var crypter: Crypting { get }
 
-    var resultsPublisher: SyncResultsPublishing { get }
+    var resultsPublisher: ResultsPublishing { get }
 }
 
 
@@ -105,4 +105,27 @@ public protocol RemoteConnecting {
 
     func stopPolling()
 
+}
+
+/**
+ * Describes Sync scheduler.
+ *
+ * Client apps can call scheduler API directly to notify about events
+ * that should trigger sync.
+ */
+public protocol Scheduling {
+    /// This should be called whenever any syncable object changes.
+    func notifyDataChanged()
+    /// This should be called on application launch and when the app becomes active.
+    func notifyAppLifecycleEvent()
+    /// This should be called from externally scheduled background jobs that trigger sync periodically.
+    func requestSyncImmediately()
+}
+
+/**
+ * Public interface for sync results publisher.
+ */
+public protocol ResultsPublishing {
+    /// Used for receiving sync data
+    var results: AnyPublisher<[ResultProviding], Never> { get }
 }

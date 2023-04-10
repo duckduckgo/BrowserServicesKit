@@ -25,8 +25,8 @@ protocol SyncDependencies {
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
-    var scheduler: SyncSchedulingInternal { get }
-    var engine: SyncEngineProtocol { get }
+    var scheduler: SchedulingInternal { get }
+    var engine: EngineProtocol { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting

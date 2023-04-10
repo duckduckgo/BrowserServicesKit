@@ -1,5 +1,5 @@
 //
-//  SyncEngine.swift
+//  Engine.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -23,7 +23,7 @@ import Combine
 /**
  * Defines sync feature, i.e. type of synced data.
  */
-public struct SyncFeature: Hashable {
+public struct Feature: Hashable {
     var name: String
 }
 
@@ -41,36 +41,15 @@ public struct Syncable {
 }
 
 /**
- * Describes Sync scheduler.
- *
- * Client apps can call scheduler API directly to notify about events
- * that should trigger sync.
- */
-public protocol SyncScheduling {
-    /// This should be called whenever any syncable object changes.
-    func notifyDataChanged()
-    /// This should be called on application launch and when the app becomes active.
-    func notifyAppLifecycleEvent()
-    /// This should be called from externally scheduled background jobs that trigger sync periodically.
-    func requestSyncImmediately()
-}
-
-protocol SyncSchedulingInternal: SyncScheduling {
-    /// This is "internal" to BSK (for the Sync Engine to hook up to scheduler). May be extracted into a separate internal protocol.
-    /// Publishes events to notify Sync Engine about
-    var startSyncPublisher: AnyPublisher<Void, Never> { get }
-}
-
-/**
  * Describes data source for objects to be synced with the server.
  */
-public protocol SyncDataProviding {
+public protocol DataProviding {
     /**
      * Feature that is supported by this provider.
      *
      * This is passed to `GET /{types_csv}`.
      */
-    var feature: SyncFeature { get }
+    var feature: Feature { get }
 
     /**
      * Time of last successful sync of a given feature.
@@ -89,60 +68,49 @@ public protocol SyncDataProviding {
 }
 
 /**
- * Example Syncable model data provider implementation
- */
-public struct SyncableBookmarkProvider: SyncDataProviding {
-    public let feature: SyncFeature = .init(name: "bookmarks")
-
-    public var lastSyncTimestamp: String?
-
-    public func changes(since timestamp: String?) async throws -> [Syncable] {
-        [Syncable(jsonObject: [:])]
-    }
-}
-
-/**
- * Public interface for sync results publisher.
- */
-public protocol SyncResultsPublishing {
-    /// Used for receiving sync data
-    var results: AnyPublisher<[SyncResultProviding], Never> { get }
-}
-
-/**
- * Internal interface for sync engine.
- */
-protocol SyncEngineProtocol: SyncResultsPublishing {
-    /// Used for passing data to sync
-    var dataProviders: [SyncDataProviding] { get }
-    /// Called to start sync
-    func startSync()
-}
-
-/**
  * Data returned by sync engine's results publisher.
  *
  * Can be queried by client apps to retrieve changes.
  */
-public protocol SyncResultProviding {
-    var feature: SyncFeature { get }
+public protocol ResultProviding {
+    var feature: Feature { get }
     var sent: [Syncable] { get }
     var received: [Syncable] { get set }
     var lastSyncTimestamp: String? { get set }
 }
 
+// MARK: - Internal
+
+/**
+ * Internal interface for sync schedulers.
+ */
+protocol SchedulingInternal: Scheduling {
+    /// Publishes events to notify Sync Engine that sync operation should be started.
+    var startSyncPublisher: AnyPublisher<Void, Never> { get }
+}
+
 /**
  * Internal interface for sync engine.
  */
-protocol SyncWorkerProtocol {
-    var dataProviders: [SyncFeature: SyncDataProviding] { get }
+protocol EngineProtocol: ResultsPublishing {
+    /// Used for passing data to sync
+    var dataProviders: [DataProviding] { get }
+    /// Called to start sync
+    func startSync()
+}
 
-    func sync() async throws -> [SyncResultProviding]
+/**
+ * Internal interface for sync worker.
+ */
+protocol WorkerProtocol {
+    var dataProviders: [Feature: DataProviding] { get }
+
+    func sync() async throws -> [ResultProviding]
 }
 
 // MARK: - Example Implementation
 
-class SyncScheduler: SyncSchedulingInternal {
+class SyncScheduler: SchedulingInternal {
     func notifyDataChanged() {
         syncTriggerSubject.send()
     }
@@ -183,8 +151,8 @@ class SyncScheduler: SyncSchedulingInternal {
     }
 }
 
-struct SyncResultProvider: SyncResultProviding {
-    let feature: SyncFeature
+struct ResultProvider: ResultProviding {
+    let feature: Feature
 
     var lastSyncTimestamp: String?
 
@@ -192,18 +160,18 @@ struct SyncResultProvider: SyncResultProviding {
     var received: [Syncable] = []
 }
 
-class SyncEngine: SyncEngineProtocol {
+class Engine: EngineProtocol {
 
-    let dataProviders: [SyncDataProviding]
-    let results: AnyPublisher<[SyncResultProviding], Never>
+    let dataProviders: [DataProviding]
+    let results: AnyPublisher<[ResultProviding], Never>
 
     init(
-        dataProviders: [SyncDataProviding],
+        dataProviders: [DataProviding],
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
         self.dataProviders = dataProviders
-        self.worker = SyncWorker(dataProviders: dataProviders, api: api, endpoints: endpoints)
+        self.worker = Worker(dataProviders: dataProviders, api: api, endpoints: endpoints)
 
         results = resultsSubject.eraseToAnyPublisher()
     }
@@ -215,22 +183,22 @@ class SyncEngine: SyncEngineProtocol {
         }
     }
 
-    private let worker: SyncWorkerProtocol
-    private let resultsSubject = PassthroughSubject<[SyncResultProviding], Never>()
+    private let worker: WorkerProtocol
+    private let resultsSubject = PassthroughSubject<[ResultProviding], Never>()
 }
 
-actor SyncWorker: SyncWorkerProtocol {
+actor Worker: WorkerProtocol {
 
-    let dataProviders: [SyncFeature: SyncDataProviding]
+    let dataProviders: [Feature: DataProviding]
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
 
     init(
-        dataProviders: [SyncDataProviding],
+        dataProviders: [DataProviding],
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
-        var providersDictionary = [SyncFeature: SyncDataProviding]()
+        var providersDictionary = [Feature: DataProviding]()
         for provider in dataProviders {
             providersDictionary[provider.feature] = provider
         }
@@ -239,15 +207,15 @@ actor SyncWorker: SyncWorkerProtocol {
         self.api = api
     }
 
-    func sync() async throws -> [SyncResultProviding] {
+    func sync() async throws -> [ResultProviding] {
 
         // Collect last sync timestamp and changes per feature
-        var results = try await withThrowingTaskGroup(of: [SyncFeature: SyncResultProviding].self) { group in
-            var results: [SyncFeature: SyncResultProviding] = [:]
+        var results = try await withThrowingTaskGroup(of: [Feature: ResultProviding].self) { group in
+            var results: [Feature: ResultProviding] = [:]
 
             for dataProvider in self.dataProviders.values {
                 let localChanges = try await dataProvider.changes(since: dataProvider.lastSyncTimestamp)
-                let resultProvider = SyncResultProvider(feature: dataProvider.feature, sent: localChanges)
+                let resultProvider = ResultProvider(feature: dataProvider.feature, sent: localChanges)
                 results[dataProvider.feature] = resultProvider
             }
             return results
@@ -281,7 +249,7 @@ actor SyncWorker: SyncWorkerProtocol {
         return try await request.execute()
     }
 
-    private func executePatchRequest(with results: [SyncFeature: SyncResultProviding]) async throws -> HTTPResult {
+    private func executePatchRequest(with results: [Feature: ResultProviding]) async throws -> HTTPResult {
         var json = [String: Any]()
         for (feature, result) in results {
             let modelPayload: [String: Any?] = [

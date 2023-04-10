@@ -40,7 +40,7 @@ public class DDGSync: DDGSyncing {
     }
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(dataProviders: [SyncDataProviding]) {
+    public convenience init(dataProviders: [DataProviding]) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, dataProviders: dataProviders)
         self.init(dependencies: dependencies)
     }
@@ -97,10 +97,10 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
-    public var scheduler: SyncScheduling {
+    public var scheduler: Scheduling {
         dependencies.scheduler
     }
-    public var resultsPublisher: SyncResultsPublishing {
+    public var resultsPublisher: ResultsPublishing {
         dependencies.engine
     }
     public var crypter: Crypting {
