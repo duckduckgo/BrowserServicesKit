@@ -30,21 +30,17 @@ struct ProductionDependencies: SyncDependencies {
     let scheduler: SyncSchedulingInternal
     let engine: SyncEngineProtocol
 
-    private let persistence: LocalDataPersisting
-
-    init(baseUrl: URL, persistence: LocalDataPersisting, dataProviders: [any SyncDataProviding]) {
+    init(baseUrl: URL, dataProviders: [SyncDataProviding]) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
-                  persistence: persistence,
                   dataProviders: dataProviders,
                   secureStore: SecureStorage())
     }
     
-    init(fileStorageUrl: URL, baseUrl: URL, persistence: LocalDataPersisting, dataProviders: [any SyncDataProviding], secureStore: SecureStoring) {
+    init(fileStorageUrl: URL, baseUrl: URL, dataProviders: [SyncDataProviding], secureStore: SecureStoring) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(baseUrl: baseUrl)
-        self.persistence = persistence
         self.secureStore = secureStore
 
         api = RemoteAPIRequestCreator()
