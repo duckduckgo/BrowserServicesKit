@@ -57,7 +57,7 @@ public protocol DataProviding {
      * Note that it's a String as this is the server timestamp and should not be treated as date
      * and as such used in comparing timestamps. It's merely an identifier of last sync.
      */
-    var lastSyncTimestamp: String? { get set }
+    var lastSyncTimestamp: String? { get }
 
     /**
      * Client apps should implement this function and return data to be synced for `feature` based on `timestamp`.
@@ -72,11 +72,11 @@ public protocol DataProviding {
  *
  * Can be queried by client apps to retrieve changes.
  */
-public protocol ResultProviding {
+public protocol ResultsProviding {
     var feature: Feature { get }
     var sent: [Syncable] { get }
-    var received: [Syncable] { get set }
-    var lastSyncTimestamp: String? { get set }
+    var received: [Syncable] { get }
+    var lastSyncTimestamp: String? { get }
 }
 
 // MARK: - Internal
@@ -105,7 +105,7 @@ protocol EngineProtocol: ResultsPublishing {
 protocol WorkerProtocol {
     var dataProviders: [Feature: DataProviding] { get }
 
-    func sync() async throws -> [ResultProviding]
+    func sync() async throws -> [ResultsProviding]
 }
 
 // MARK: - Example Implementation
@@ -151,7 +151,7 @@ class SyncScheduler: SchedulingInternal {
     }
 }
 
-struct ResultProvider: ResultProviding {
+struct ResultsProvider: ResultsProviding {
     let feature: Feature
 
     var lastSyncTimestamp: String?
@@ -163,7 +163,7 @@ struct ResultProvider: ResultProviding {
 class Engine: EngineProtocol {
 
     let dataProviders: [DataProviding]
-    let results: AnyPublisher<[ResultProviding], Never>
+    let results: AnyPublisher<[ResultsProviding], Never>
 
     init(
         dataProviders: [DataProviding],
@@ -184,7 +184,7 @@ class Engine: EngineProtocol {
     }
 
     private let worker: WorkerProtocol
-    private let resultsSubject = PassthroughSubject<[ResultProviding], Never>()
+    private let resultsSubject = PassthroughSubject<[ResultsProviding], Never>()
 }
 
 actor Worker: WorkerProtocol {
@@ -207,15 +207,15 @@ actor Worker: WorkerProtocol {
         self.api = api
     }
 
-    func sync() async throws -> [ResultProviding] {
+    func sync() async throws -> [ResultsProviding] {
 
         // Collect last sync timestamp and changes per feature
-        var results = try await withThrowingTaskGroup(of: [Feature: ResultProviding].self) { group in
-            var results: [Feature: ResultProviding] = [:]
+        var results = try await withThrowingTaskGroup(of: [Feature: ResultsProvider].self) { group in
+            var results: [Feature: ResultsProvider] = [:]
 
             for dataProvider in self.dataProviders.values {
                 let localChanges = try await dataProvider.changes(since: dataProvider.lastSyncTimestamp)
-                let resultProvider = ResultProvider(feature: dataProvider.feature, sent: localChanges)
+                let resultProvider = ResultsProvider(feature: dataProvider.feature, sent: localChanges)
                 results[dataProvider.feature] = resultProvider
             }
             return results
@@ -249,7 +249,7 @@ actor Worker: WorkerProtocol {
         return try await request.execute()
     }
 
-    private func executePatchRequest(with results: [Feature: ResultProviding]) async throws -> HTTPResult {
+    private func executePatchRequest(with results: [Feature: ResultsProviding]) async throws -> HTTPResult {
         var json = [String: Any]()
         for (feature, result) in results {
             let modelPayload: [String: Any?] = [

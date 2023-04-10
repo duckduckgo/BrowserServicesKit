@@ -127,5 +127,5 @@ public protocol Scheduling {
  */
 public protocol ResultsPublishing {
     /// Used for receiving sync data
-    var results: AnyPublisher<[ResultProviding], Never> { get }
+    var results: AnyPublisher<[ResultsProviding], Never> { get }
 }
