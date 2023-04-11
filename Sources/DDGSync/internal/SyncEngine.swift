@@ -162,7 +162,8 @@ actor Worker: WorkerProtocol {
 
         let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
 
-        let result: HTTPResult = hasLocalChanges ? try await executePatchRequest(with: results) : try await executeGetRequest()
+        let request: HTTPRequesting = hasLocalChanges ? try makePatchRequest(with: results) : try makeGetRequest(for: Array(dataProviders.keys))
+        let result: HTTPResult = try await request.execute()
 
         guard let data = result.data else {
             throw SyncError.noResponseBody
@@ -183,12 +184,12 @@ actor Worker: WorkerProtocol {
         return Array(results.values)
     }
 
-    private func executeGetRequest() async throws -> HTTPResult {
-        let request = api.createRequest(url: endpoints.syncGet, method: .GET, headers: [:], parameters: [:], body: nil, contentType: nil)
-        return try await request.execute()
+    private func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting {
+        let url = try endpoints.syncGet(features: features.map(\.name))
+        return api.createRequest(url: url, method: .GET, headers: [:], parameters: [:], body: nil, contentType: nil)
     }
 
-    private func executePatchRequest(with results: [Feature: ResultsProviding]) async throws -> HTTPResult {
+    private func makePatchRequest(with results: [Feature: ResultsProviding]) throws -> HTTPRequesting {
         var json = [String: Any]()
         for (feature, result) in results {
             let modelPayload: [String: Any?] = [
@@ -199,7 +200,6 @@ actor Worker: WorkerProtocol {
         }
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
-        let request = api.createRequest(url: endpoints.syncPatch, method: .PATCH, headers: [:], parameters: [:], body: body, contentType: "application/json")
-        return try await request.execute()
+        return api.createRequest(url: endpoints.syncPatch, method: .PATCH, headers: [:], parameters: [:], body: body, contentType: "application/json")
     }
 }

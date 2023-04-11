@@ -25,10 +25,17 @@ struct Endpoints {
     let logoutDevice: URL
     let connect: URL
 
-    /// Optionally has the data type(s) appended to it, e.g. `sync/bookmarks`, `sync/type1,type2,type3`
-    let syncGet: URL
+    /// Constructs sync GET URL for specific data type(s), e.g. `sync/type1,type2,type3`
+    func syncGet(features: [String]) throws -> URL {
+        guard !features.isEmpty else {
+            throw SyncError.noFeaturesSpecified
+        }
+        return syncGetBase.appendingPathComponent(features.joined(separator: ","))
+    }
     
     let syncPatch: URL
+
+    private let syncGetBase: URL
     
     init(baseUrl: URL) {
         signup = baseUrl.appendingPathComponent("sync/signup")
@@ -36,7 +43,7 @@ struct Endpoints {
         logoutDevice = baseUrl.appendingPathComponent("sync/logout-device")
         connect = baseUrl.appendingPathComponent("sync/connect")
 
-        syncGet = baseUrl.appendingPathComponent("sync")
+        syncGetBase = baseUrl.appendingPathComponent("sync")
         syncPatch = baseUrl.appendingPathComponent("sync/data")
     }
     
