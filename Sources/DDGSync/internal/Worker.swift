@@ -77,6 +77,15 @@ actor Worker: WorkerProtocol {
         let request: HTTPRequesting = hasLocalChanges ? try makePatchRequest(with: results) : try makeGetRequest(for: Array(dataProviders.keys))
         let result: HTTPResult = try await request.execute()
 
+        switch result.response.statusCode {
+        case 204, 304:
+            return Array(results.values)
+        case 200:
+            break
+        default:
+            throw SyncError.unexpectedStatusCode(result.response.statusCode)
+        }
+
         guard let data = result.data else {
             throw SyncError.noResponseBody
         }

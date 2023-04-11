@@ -74,7 +74,6 @@ class WorkerTests: XCTestCase {
 
         apiMock = RemoteAPIRequestCreatingMock()
         request = HTTPRequestingMock()
-        request.error = .noResponseBody
         apiMock.request = request
         endpoints = Endpoints(baseUrl: URL(string: "https://example.com")!)
     }
@@ -83,6 +82,7 @@ class WorkerTests: XCTestCase {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         let worker = Worker(dataProviders: [dataProvider], api: apiMock, endpoints: endpoints)
 
+        request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
             try await worker.sync()
         }
@@ -97,10 +97,117 @@ class WorkerTests: XCTestCase {
         }
         let worker = Worker(dataProviders: [dataProvider], api: apiMock, endpoints: endpoints)
 
+        request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
             try await worker.sync()
         }
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
+    }
+
+    func testThatMultipleDataProvidersGetSerializedIntoRequestPayload() async throws {
+        var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dataProvider1.lastSyncTimestamp = "1234"
+        dataProvider1.changes = { _ in
+            [
+                Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+                Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
+            ]
+        }
+        var dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
+        dataProvider2.lastSyncTimestamp = "5678"
+        dataProvider2.changes = { _ in
+            [
+                Syncable(jsonObject: ["key": "setting-a", "value": "value-a"]),
+                Syncable(jsonObject: ["key": "setting-b", "value": "value-b"])
+            ]
+        }
+        var dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
+        dataProvider3.lastSyncTimestamp = "9012"
+        dataProvider3.changes = { _ in
+            [
+                Syncable(jsonObject: ["id": "1", "login": "login1", "password": "password1", "url": "https://example.com"]),
+                Syncable(jsonObject: ["id": "2", "login": "login2", "password": "password2", "url": "https://example.com"])
+            ]
+        }
+
+        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], api: apiMock, endpoints: endpoints)
+
+        request.error = .noResponseBody
+        await assertThrowsError(SyncError.noResponseBody) {
+            try await worker.sync()
+        }
+
+        let body = try XCTUnwrap(apiMock.createRequestCallArgs[0].body)
+        XCTAssertEqual(
+            try JSONDecoder.snakeCaseKeys.decode(MultiProviderRequestPayload.self, from: body), 
+            MultiProviderRequestPayload(
+                bookmarks: .init(updates: [
+                    .init(id: "1", name: "bookmark1", url: "https://example.com"),
+                    .init(id: "2", name: "bookmark2", url: "https://example.com")
+                ],
+                modifiedSince: "1234"),
+                settings: .init(updates: [
+                    .init(key: "setting-a", value: "value-a"),
+                    .init(key: "setting-b", value: "value-b")
+                ], modifiedSince: "5678"),
+                autofill: .init(updates: [
+                    .init(id: "1", login: "login1", password: "password1", url: "https://example.com"),
+                    .init(id: "2", login: "login2", password: "password2", url: "https://example.com")
+                ], modifiedSince: "9012")
+            )
+        )
+    }
+
+    func testThatSentModelsAreEchoedInResults() async throws {
+        let objectsToSync = [
+            Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+            Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
+        ]
+        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.changes = { _ in objectsToSync } 
+
+        let worker = Worker(dataProviders: [dataProvider], api: apiMock, endpoints: endpoints)
+
+        request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
+
+        let results = try await worker.sync()
+
+        XCTAssertTrue(try results[0].sent.isJSONRepresentationEquivalent(to: objectsToSync))
+    }
+}
+
+private extension Array where Element == Syncable {
+    func isJSONRepresentationEquivalent(to other: [Element]) throws -> Bool {
+        let thisData = try JSONSerialization.data(withJSONObject: map(\.payload))
+        let otherData = try JSONSerialization.data(withJSONObject: other.map(\.payload))
+        return thisData == otherData
+    }
+}
+
+private struct MultiProviderRequestPayload: Decodable, Equatable {
+    let bookmarks: FeaturePayload<Bookmark>
+    let settings: FeaturePayload<Setting>
+    let autofill: FeaturePayload<Autofill>
+
+    struct FeaturePayload<Model: Decodable & Equatable>: Decodable, Equatable {
+        let updates: [Model]
+        let modifiedSince: String
+    }
+    struct Bookmark: Decodable, Equatable {
+        let id: String
+        let name: String
+        let url: String
+    }
+    struct Setting: Decodable, Equatable {
+        let key: String
+        let value: String
+    }
+    struct Autofill: Decodable, Equatable {
+        let id: String
+        let login: String
+        let password: String
+        let url: String
     }
 }
