@@ -1,5 +1,5 @@
 //
-//  Engine.swift
+//  Worker.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -21,73 +21,12 @@ import Foundation
 import Combine
 
 /**
- * Internal interface for sync schedulers.
- */
-protocol SchedulingInternal: Scheduling {
-    /// Publishes events to notify Sync Engine that sync operation should be started.
-    var startSyncPublisher: AnyPublisher<Void, Never> { get }
-}
-
-/**
- * Internal interface for sync engine.
- */
-protocol EngineProtocol: ResultsPublishing {
-    /// Used for passing data to sync
-    var dataProviders: [DataProviding] { get }
-    /// Called to start sync
-    func startSync()
-}
-
-/**
  * Internal interface for sync worker.
  */
 protocol WorkerProtocol {
     var dataProviders: [Feature: DataProviding] { get }
 
     func sync() async throws -> [ResultsProviding]
-}
-
-// MARK: - Example Implementation
-
-class SyncScheduler: SchedulingInternal {
-    func notifyDataChanged() {
-        syncTriggerSubject.send()
-    }
-
-    func notifyAppLifecycleEvent() {
-        appLifecycleEventSubject.send()
-    }
-
-    func requestSyncImmediately() {
-        syncTriggerSubject.send()
-    }
-
-    let startSyncPublisher: AnyPublisher<Void, Never>
-
-    init() {
-        let throttledAppLifecycleEvents = appLifecycleEventSubject
-            .throttle(for: .seconds(Const.appLifecycleEventsDebounceInterval), scheduler: DispatchQueue.main, latest: true)
-
-        let throttledSyncTriggerEvents = syncTriggerSubject
-            .throttle(for: .seconds(Const.immediateSyncDebounceInterval), scheduler: DispatchQueue.main, latest: true)
-
-        startSyncPublisher = startSyncSubject.eraseToAnyPublisher()
-
-        startSyncCancellable = Publishers.Merge(throttledAppLifecycleEvents, throttledSyncTriggerEvents)
-            .sink(receiveValue: { [weak self] _ in
-                self?.startSyncSubject.send()
-            })
-    }
-
-    private let appLifecycleEventSubject: PassthroughSubject<Void, Never> = .init()
-    private let syncTriggerSubject: PassthroughSubject<Void, Never> = .init()
-    private let startSyncSubject: PassthroughSubject<Void, Never> = .init()
-    private var startSyncCancellable: AnyCancellable?
-
-    enum Const {
-        static let immediateSyncDebounceInterval = 1
-        static let appLifecycleEventsDebounceInterval = 600
-    }
 }
 
 struct ResultsProvider: ResultsProviding {
@@ -97,33 +36,6 @@ struct ResultsProvider: ResultsProviding {
 
     var sent: [Syncable] = []
     var received: [Syncable] = []
-}
-
-class Engine: EngineProtocol {
-
-    let dataProviders: [DataProviding]
-    let results: AnyPublisher<[ResultsProviding], Never>
-
-    init(
-        dataProviders: [DataProviding],
-        api: RemoteAPIRequestCreating,
-        endpoints: Endpoints
-    ) {
-        self.dataProviders = dataProviders
-        self.worker = Worker(dataProviders: dataProviders, api: api, endpoints: endpoints)
-
-        results = resultsSubject.eraseToAnyPublisher()
-    }
-
-    func startSync() {
-        Task {
-            let results = try await worker.sync()
-            resultsSubject.send(results)
-        }
-    }
-
-    private let worker: WorkerProtocol
-    private let resultsSubject = PassthroughSubject<[ResultsProviding], Never>()
 }
 
 actor Worker: WorkerProtocol {

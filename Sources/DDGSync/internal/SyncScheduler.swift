@@ -1,0 +1,70 @@
+//
+//  SyncScheduler.swift
+//  DuckDuckGo
+//
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+import Combine
+
+/**
+ * Internal interface for sync schedulers.
+ */
+protocol SchedulingInternal: Scheduling {
+    /// Publishes events to notify Sync Engine that sync operation should be started.
+    var startSyncPublisher: AnyPublisher<Void, Never> { get }
+}
+
+class SyncScheduler: SchedulingInternal {
+    func notifyDataChanged() {
+        syncTriggerSubject.send()
+    }
+
+    func notifyAppLifecycleEvent() {
+        appLifecycleEventSubject.send()
+    }
+
+    func requestSyncImmediately() {
+        syncTriggerSubject.send()
+    }
+
+    let startSyncPublisher: AnyPublisher<Void, Never>
+
+    init() {
+        let throttledAppLifecycleEvents = appLifecycleEventSubject
+            .throttle(for: .seconds(Const.appLifecycleEventsDebounceInterval), scheduler: DispatchQueue.main, latest: true)
+
+        let throttledSyncTriggerEvents = syncTriggerSubject
+            .throttle(for: .seconds(Const.immediateSyncDebounceInterval), scheduler: DispatchQueue.main, latest: true)
+
+        startSyncPublisher = startSyncSubject.eraseToAnyPublisher()
+
+        startSyncCancellable = Publishers.Merge(throttledAppLifecycleEvents, throttledSyncTriggerEvents)
+            .sink(receiveValue: { [weak self] _ in
+                self?.startSyncSubject.send()
+            })
+    }
+
+    private let appLifecycleEventSubject: PassthroughSubject<Void, Never> = .init()
+    private let syncTriggerSubject: PassthroughSubject<Void, Never> = .init()
+    private let startSyncSubject: PassthroughSubject<Void, Never> = .init()
+    private var startSyncCancellable: AnyCancellable?
+
+    enum Const {
+        static let immediateSyncDebounceInterval = 1
+        static let appLifecycleEventsDebounceInterval = 600
+    }
+}
