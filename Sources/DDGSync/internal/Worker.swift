@@ -41,11 +41,13 @@ struct ResultsProvider: ResultsProviding {
 actor Worker: WorkerProtocol {
 
     let dataProviders: [Feature: DataProviding]
+    let storage: SecureStoring
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
 
     init(
         dataProviders: [DataProviding],
+        storage: SecureStoring,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
@@ -54,6 +56,7 @@ actor Worker: WorkerProtocol {
             providersDictionary[provider.feature] = provider
         }
         self.dataProviders = providersDictionary
+        self.storage = storage
         self.endpoints = endpoints
         self.api = api
     }
@@ -78,36 +81,41 @@ actor Worker: WorkerProtocol {
         let result: HTTPResult = try await request.execute()
 
         switch result.response.statusCode {
+        case 200:
+            guard let data = result.data else {
+                throw SyncError.noResponseBody
+            }
+            try decodeResponse(with: data, into: &results)
+            fallthrough
         case 204, 304:
             return Array(results.values)
-        case 200:
-            break
         default:
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }
+    }
 
-        guard let data = result.data else {
-            throw SyncError.noResponseBody
+    private func getToken() throws -> String {
+        guard let account = try storage.account() else {
+            throw SyncError.accountNotFound
         }
 
-        guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-            throw SyncError.unexpectedResponseBody
+        guard let token = try storage.account()?.token else {
+            throw SyncError.noToken
         }
 
-        for feature in results.keys {
-            guard let featurePayload = jsonObject[feature.name] as? [String: Any] else {
-                throw SyncError.unexpectedResponseBody
-            }
-            results[feature]?.lastSyncTimestamp = featurePayload["last_modified"] as? String
-            results[feature]?.received = featurePayload["entries"] as! [Syncable]
-        }
-
-        return Array(results.values)
+        return token
     }
 
     private func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting {
         let url = try endpoints.syncGet(features: features.map(\.name))
-        return api.createRequest(url: url, method: .GET, headers: [:], parameters: [:], body: nil, contentType: nil)
+        return api.createRequest(
+            url: url,
+            method: .GET,
+            headers: ["Authorization": "Bearer \(try getToken())"],
+            parameters: [:],
+            body: nil,
+            contentType: nil
+        )
     }
 
     private func makePatchRequest(with results: [Feature: ResultsProviding]) throws -> HTTPRequesting {
@@ -121,6 +129,30 @@ actor Worker: WorkerProtocol {
         }
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
-        return api.createRequest(url: endpoints.syncPatch, method: .PATCH, headers: [:], parameters: [:], body: body, contentType: "application/json")
+        return api.createRequest(
+            url: endpoints.syncPatch,
+            method: .PATCH,
+            headers: ["Authorization": "Bearer \(try getToken())"],
+            parameters: [:],
+            body: body,
+            contentType: "application/json"
+        )
+    }
+
+    private func decodeResponse(with data: Data, into results: inout [Feature: ResultsProvider]) throws {
+        guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            throw SyncError.unexpectedResponseBody
+        }
+
+        for feature in results.keys {
+            guard let featurePayload = jsonObject[feature.name] as? [String: Any],
+                let lastModified = featurePayload["last_modified"] as? String,
+                let entries = featurePayload["entries"] as? [[String: Any]]
+            else {
+                throw SyncError.unexpectedResponseBody
+            }
+            results[feature]?.lastSyncTimestamp = lastModified
+            results[feature]?.received = entries.map(Syncable.init(jsonObject:))
+        }
     }
 }

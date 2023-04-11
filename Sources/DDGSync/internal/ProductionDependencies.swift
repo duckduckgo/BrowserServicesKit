@@ -48,7 +48,7 @@ struct ProductionDependencies: SyncDependencies {
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
-        engine = Engine(dataProviders: dataProviders, api: api, endpoints: endpoints)
+        engine = Engine(dataProviders: dataProviders, storage: secureStore, api: api, endpoints: endpoints)
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {

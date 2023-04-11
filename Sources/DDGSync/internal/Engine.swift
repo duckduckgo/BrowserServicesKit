@@ -37,11 +37,12 @@ class Engine: EngineProtocol {
 
     init(
         dataProviders: [DataProviding],
+        storage: SecureStoring,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
         self.dataProviders = dataProviders
-        self.worker = Worker(dataProviders: dataProviders, api: api, endpoints: endpoints)
+        self.worker = Worker(dataProviders: dataProviders, storage: storage, api: api, endpoints: endpoints)
 
         results = resultsSubject.eraseToAnyPublisher()
     }

@@ -68,6 +68,7 @@ class WorkerTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
+    var storage: SecureStorageStub!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -76,11 +77,23 @@ class WorkerTests: XCTestCase {
         request = HTTPRequestingMock()
         apiMock.request = request
         endpoints = Endpoints(baseUrl: URL(string: "https://example.com")!)
+        storage = SecureStorageStub()
+        try storage.persistAccount(
+            SyncAccount(
+                deviceId: "deviceId",
+                deviceName: "deviceName",
+                deviceType: "deviceType",
+                userId: "userId",
+                primaryKey: "primaryKey".data(using: .utf8)!,
+                secretKey: "secretKey".data(using: .utf8)!,
+                token: "token"
+            )
+        )
     }
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        let worker = Worker(dataProviders: [dataProvider], api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider], storage: storage, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
@@ -95,7 +108,7 @@ class WorkerTests: XCTestCase {
         dataProvider.changes = { _ in
             return [Syncable(jsonObject: [:])]
         }
-        let worker = Worker(dataProviders: [dataProvider], api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider], storage: storage, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
@@ -131,7 +144,7 @@ class WorkerTests: XCTestCase {
             ]
         }
 
-        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
@@ -168,7 +181,7 @@ class WorkerTests: XCTestCase {
         dataProvider.lastSyncTimestamp = "1234"
         dataProvider.changes = { _ in objectsToSync } 
 
-        let worker = Worker(dataProviders: [dataProvider], api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider], storage: storage, api: apiMock, endpoints: endpoints)
 
         request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
