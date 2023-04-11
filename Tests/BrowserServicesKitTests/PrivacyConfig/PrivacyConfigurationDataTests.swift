@@ -56,6 +56,7 @@ class PrivacyConfigurationDataTests: XCTestCase {
             XCTAssertEqual(subfeatures["disabledSubfeature"]?.state, "disabled")
             XCTAssertEqual(subfeatures["minSupportedSubfeature"]?.minSupportedVersion, "1.36.0")
             XCTAssertEqual(subfeatures["enabledSubfeature"]?.state, "enabled")
+            XCTAssertEqual(subfeatures["internalSubfeature"]?.state, "internal")
         } else {
             XCTFail("Could not parse subfeatures")
         }
@@ -108,5 +109,4 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual(allowlist.state, "disabled")
         XCTAssertEqual(allowlist.entries.count, 0)
     }
-
 }

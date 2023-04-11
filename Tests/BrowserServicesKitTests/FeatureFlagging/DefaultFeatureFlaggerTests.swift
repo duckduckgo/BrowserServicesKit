@@ -116,7 +116,8 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore())
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                 internalUserDecider: DefaultInternalUserDecider())
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
         return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfig: manager.privacyConfig)
     }
