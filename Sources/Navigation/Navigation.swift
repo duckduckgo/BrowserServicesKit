@@ -46,6 +46,7 @@ public final class Navigation {
     public var redirectHistory: [NavigationAction] {
         Array(navigationActions.dropLast())
     }
+    /// contains NavigationResponse if it was received during navigation
     public private(set) var navigationResponse: NavigationResponse?
 
     init(identity: NavigationIdentity, responders: ResponderChain, state: NavigationState, redirectHistory: [NavigationAction]? = nil, isCurrent: Bool, isCommitted: Bool = false) {
@@ -57,15 +58,18 @@ public final class Navigation {
         self.isCurrent = isCurrent
     }
 
+    /// latest NavigationAction request
     public var request: URLRequest {
         guard !navigationActions.isEmpty else { return URLRequest(url: .empty) }
         return navigationAction.request
     }
 
+    /// latest NavigationAction request URL
     public var url: URL {
         request.url ?? .empty
     }
 
+    /// decidePolicyFor(navigationAction..) approved with .allow
     public var isApproved: Bool {
         switch state {
         case .expected, .navigationActionReceived:
@@ -76,6 +80,7 @@ public final class Navigation {
         }
     }
 
+    /// is Finished or Failed
     public var isCompleted: Bool {
         return state.isFinished || state.isFailed
     }
@@ -210,9 +215,13 @@ extension Navigation {
             self.state = .navigationActionReceived
 
         case .started:
+            // receiving another NavigationAction when already started means server redirect
             willPerformServerRedirect(with: navigationAction)
 
-        case .navigationActionReceived, .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
+        case .navigationActionReceived:
+            // already received
+            break
+        case .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
     }
