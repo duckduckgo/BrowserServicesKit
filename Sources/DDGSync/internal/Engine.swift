@@ -42,7 +42,8 @@ class Engine: EngineProtocol {
         endpoints: Endpoints
     ) {
         self.dataProviders = dataProviders
-        self.worker = Worker(dataProviders: dataProviders, storage: storage, api: api, endpoints: endpoints)
+        let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
+        self.worker = Worker(dataProviders: dataProviders, requestMaker: requestMaker)
 
         results = resultsSubject.eraseToAnyPublisher()
     }

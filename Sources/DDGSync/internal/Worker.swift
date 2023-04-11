@@ -31,34 +31,25 @@ protocol WorkerProtocol {
 
 struct ResultsProvider: ResultsProviding {
     let feature: Feature
+    let previousSyncTimestamp: String?
+    let sent: [Syncable]
 
     var lastSyncTimestamp: String?
-
-    var sent: [Syncable] = []
     var received: [Syncable] = []
 }
 
 actor Worker: WorkerProtocol {
 
     let dataProviders: [Feature: DataProviding]
-    let storage: SecureStoring
-    let endpoints: Endpoints
-    let api: RemoteAPIRequestCreating
+    let requestMaker: SyncRequestMaking
 
-    init(
-        dataProviders: [DataProviding],
-        storage: SecureStoring,
-        api: RemoteAPIRequestCreating,
-        endpoints: Endpoints
-    ) {
+    init(dataProviders: [DataProviding], requestMaker: SyncRequestMaking) {
         var providersDictionary = [Feature: DataProviding]()
         for provider in dataProviders {
             providersDictionary[provider.feature] = provider
         }
         self.dataProviders = providersDictionary
-        self.storage = storage
-        self.endpoints = endpoints
-        self.api = api
+        self.requestMaker = requestMaker
     }
 
     func sync() async throws -> [ResultsProviding] {
@@ -68,16 +59,16 @@ actor Worker: WorkerProtocol {
             var results: [Feature: ResultsProvider] = [:]
 
             for dataProvider in self.dataProviders.values {
-                let localChanges = try await dataProvider.changes(since: dataProvider.lastSyncTimestamp)
-                let resultProvider = ResultsProvider(feature: dataProvider.feature, sent: localChanges)
+                let previousSyncTimestamp = dataProvider.lastSyncTimestamp
+                let localChanges = try await dataProvider.changes(since: previousSyncTimestamp)
+                let resultProvider = ResultsProvider(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
                 results[dataProvider.feature] = resultProvider
             }
             return results
         }
 
         let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
-
-        let request: HTTPRequesting = hasLocalChanges ? try makePatchRequest(with: results) : try makeGetRequest(for: Array(dataProviders.keys))
+        let request: HTTPRequesting = hasLocalChanges ? try requestMaker.makePatchRequest(with: results) : try requestMaker.makeGetRequest(for: Array(dataProviders.keys))
         let result: HTTPResult = try await request.execute()
 
         switch result.response.statusCode {
@@ -92,51 +83,6 @@ actor Worker: WorkerProtocol {
         default:
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }
-    }
-
-    private func getToken() throws -> String {
-        guard let account = try storage.account() else {
-            throw SyncError.accountNotFound
-        }
-
-        guard let token = try storage.account()?.token else {
-            throw SyncError.noToken
-        }
-
-        return token
-    }
-
-    private func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting {
-        let url = try endpoints.syncGet(features: features.map(\.name))
-        return api.createRequest(
-            url: url,
-            method: .GET,
-            headers: ["Authorization": "Bearer \(try getToken())"],
-            parameters: [:],
-            body: nil,
-            contentType: nil
-        )
-    }
-
-    private func makePatchRequest(with results: [Feature: ResultsProviding]) throws -> HTTPRequesting {
-        var json = [String: Any]()
-        for (feature, result) in results {
-            let modelPayload: [String: Any?] = [
-                "updates": result.sent.map(\.payload),
-                "modified_since": dataProviders[feature]?.lastSyncTimestamp
-            ]
-            json[feature.name] = modelPayload
-        }
-
-        let body = try JSONSerialization.data(withJSONObject: json, options: [])
-        return api.createRequest(
-            url: endpoints.syncPatch,
-            method: .PATCH,
-            headers: ["Authorization": "Bearer \(try getToken())"],
-            parameters: [:],
-            body: body,
-            contentType: "application/json"
-        )
     }
 
     private func decodeResponse(with data: Data, into results: inout [Feature: ResultsProvider]) throws {

@@ -69,6 +69,7 @@ class WorkerTests: XCTestCase {
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
     var storage: SecureStorageStub!
+    var requestMaker: SyncRequestMaking!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -89,11 +90,13 @@ class WorkerTests: XCTestCase {
                 token: "token"
             )
         )
+
+        requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
     }
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        let worker = Worker(dataProviders: [dataProvider], storage: storage, api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
@@ -108,7 +111,7 @@ class WorkerTests: XCTestCase {
         dataProvider.changes = { _ in
             return [Syncable(jsonObject: [:])]
         }
-        let worker = Worker(dataProviders: [dataProvider], storage: storage, api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
@@ -144,7 +147,7 @@ class WorkerTests: XCTestCase {
             ]
         }
 
-        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], requestMaker: requestMaker)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
@@ -181,7 +184,7 @@ class WorkerTests: XCTestCase {
         dataProvider.lastSyncTimestamp = "1234"
         dataProvider.changes = { _ in objectsToSync } 
 
-        let worker = Worker(dataProviders: [dataProvider], storage: storage, api: apiMock, endpoints: endpoints)
+        let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
 
         request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
