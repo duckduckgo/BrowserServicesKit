@@ -218,10 +218,7 @@ extension Navigation {
             // receiving another NavigationAction when already started means server redirect
             willPerformServerRedirect(with: navigationAction)
 
-        case .navigationActionReceived:
-            // already received
-            break
-        case .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
+        case .navigationActionReceived, .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
             assertionFailure("unexpected state \(self.state)")
         }
     }

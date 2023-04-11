@@ -261,7 +261,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) { // swiftlint:disable:this function_body_length
 
-        // new navigation or an ongoing navigation?
+        // new navigation or an ongoing navigation (for a server-redirect)?
         let navigation = navigation(for: wkNavigationAction, in: webView)
         // extract WKNavigationAction mapped to NavigationAction from the Navigation or make new for non-main-frame Navigation Actions
         let navigationAction = navigation?.navigationAction
@@ -271,11 +271,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         // only for MainFrame navigations: get currently ongoing (started) MainFrame Navigation
         // or Navigation object associated with the NavigationAction (weak)
+        // it will be different from the Navigation we got above for same-document navigations
         let mainFrameNavigation = withExtendedLifetime(navigation) {
             navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation : nil
         }
         // ensure the NavigationAction is added to the Navigation
-        mainFrameNavigation?.navigationActionReceived(navigationAction)
+        if let mainFrameNavigation, mainFrameNavigation.navigationActions.isEmpty {
+            mainFrameNavigation.navigationActionReceived(navigationAction)
+        }
 
         assert(navigationAction.mainFrameNavigation != nil || !navigationAction.isForMainFrame)
         os_log("decidePolicyFor: %s", log: log, type: .default, navigationAction.debugDescription)
