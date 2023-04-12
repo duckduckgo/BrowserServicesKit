@@ -20,6 +20,8 @@
 import Foundation
 import os
 
+public typealias OSLog = os.OSLog
+
 extension OSLog {
 
     public static var userScripts: OSLog {
@@ -48,3 +50,98 @@ struct Logging {
     fileprivate static let remoteMessagingLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Remote Messaging")
 
 }
+
+// swiftlint:disable line_length
+
+// MARK : - message first
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType) {
+    os.os_log(message, log: log, type: type)
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog) {
+    os.os_log(message, log: log, type: .default)
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg, _ arg5: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
+}
+
+@inlinable
+public func os_log(message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
+    guard log != .disabled else { return }
+    os_log("%s", log: log, type: type, message())
+}
+
+// MARK : - type first
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString) {
+    os.os_log(message, log: log, type: type)
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg, _ arg5: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, message: @autoclosure () -> String) {
+    guard log != .disabled else { return }
+    os_log("%s", log: log, type: type, message())
+}
+
+// swiftlint:enable line_length

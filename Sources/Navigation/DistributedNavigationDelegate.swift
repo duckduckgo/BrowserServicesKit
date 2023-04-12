@@ -19,7 +19,6 @@
 import Combine
 import Common
 import Foundation
-import os.log
 import WebKit
 
 // swiftlint:disable file_length

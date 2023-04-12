@@ -16,9 +16,9 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import GRDB
-import os.log
 
 protocol SecureVaultDatabaseProvider {
 
