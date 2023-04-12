@@ -24,31 +24,66 @@ public typealias OSLog = os.OSLog
 
 extension OSLog {
 
-    public static var userScripts: OSLog {
-        Logging.userScriptsEnabled ? Logging.userScriptsLog : .disabled
-    }
-    
-    public static var passwordManager: OSLog {
-        Logging.passwordManagerEnabled ? Logging.passwordManagerLog : .disabled
+    public enum Categories: String, CaseIterable {
+        case userScripts = "User Scripts"
+        case passwordManager = "Password Manager"
+        case remoteMessaging = "Remote Messaging"
     }
 
-    public static var remoteMessaging: OSLog {
-        Logging.remoteMessagingEnabled ? Logging.remoteMessagingLog : .disabled
+#if DEBUG
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // To activate Logging Categories for DEBUG add categories here:
+    static var debugCategories: Set<Categories> = [ /* .userScripts, */ ]
+#endif
+
+    @OSLogWrapper(.userScripts)     public static var userScripts
+    @OSLogWrapper(.passwordManager) public static var passwordManager
+    @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
+
+    static var enabledLoggingCategories = Set<String>()
+
+    static let isRunningInDebugEnvironment: Bool = {
+        ProcessInfo().environment[ProcessInfo.Constants.osActivityMode] == ProcessInfo.Constants.debug
+            || ProcessInfo().environment[ProcessInfo.Constants.osActivityDtMode] == ProcessInfo.Constants.yes
+    }()
+
+    static let subsystem = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
+
+    @propertyWrapper
+    public struct OSLogWrapper {
+
+        public let category: String
+
+        public var wrappedValue: OSLog {
+            var isEnabled = OSLog.enabledLoggingCategories.contains(category)
+#if CI
+            isEnabled = true
+#elseif DEBUG
+            isEnabled = isEnabled || Categories(rawValue: category).map(OSLog.debugCategories.contains) == true
+#endif
+
+            return isEnabled ? OSLog(subsystem: OSLog.subsystem, category: category) : .disabled
+        }
+
     }
 
 }
 
-struct Logging {
+public extension OSLog.OSLogWrapper {
 
-    fileprivate static let userScriptsEnabled = false
-    fileprivate static let userScriptsLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "User Scripts")
-    
-    fileprivate static let passwordManagerEnabled = false
-    fileprivate static let passwordManagerLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Password Manager")
+    init(_ category: OSLog.Categories) {
+        self.category = category.rawValue
+    }
 
-    fileprivate static let remoteMessagingEnabled = false
-    fileprivate static let remoteMessagingLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Remote Messaging")
+}
 
+extension ProcessInfo {
+    enum Constants {
+        static let osActivityMode = "OS_ACTIVITY_MODE"
+        static let osActivityDtMode = "OS_ACTIVITY_DT_MODE"
+        static let debug = "debug"
+        static let yes = "YES"
+    }
 }
 
 // swiftlint:disable line_length
