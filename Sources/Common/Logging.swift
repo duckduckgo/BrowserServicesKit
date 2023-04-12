@@ -104,8 +104,18 @@ public func os_log(message: @autoclosure () -> String, log: OSLog = .default, ty
 // MARK : - type first
 
 @inlinable
-public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString) {
+public func os_log(_ type: OSLogType, log: OSLog = .default, _ message: StaticString) {
     os.os_log(message, log: log, type: type)
+}
+
+@inlinable
+public func os_log(log: OSLog, _ message: StaticString) {
+    os.os_log(message, log: log, type: .default)
+}
+
+@inlinable
+public func os_log(_ message: StaticString) {
+    os.os_log(message, log: .default, type: .default)
 }
 
 @inlinable
