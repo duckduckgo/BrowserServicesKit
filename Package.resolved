@@ -122,8 +122,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/sync_crypto",
       "state" : {
-        "revision" : "df751674ee842d129c50a183668b033d02c2980d",
-        "version" : "0.0.1"
+        "revision" : "2ab6ab6f0f96b259c14c2de3fc948935fc16ac78",
+        "version" : "0.2.0"
       }
     },
     {
@@ -131,8 +131,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/TrackerRadarKit",
       "state" : {
-        "branch" : "sam/update-argument-parser-version",
-        "revision" : "6ff8089b3028892c49399373504e3d9db8fdc5fd"
+        "revision" : "ee8adbd80611c8ce5bff827d66bf031a32f6fdf5"
       }
     },
     {
