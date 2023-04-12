@@ -40,7 +40,7 @@ extension OSLog {
     @OSLogWrapper(.passwordManager) public static var passwordManager
     @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
 
-    static var enabledLoggingCategories = Set<String>()
+    public static var enabledLoggingCategories = Set<String>()
 
     static let isRunningInDebugEnvironment: Bool = {
         ProcessInfo().environment[ProcessInfo.Constants.osActivityMode] == ProcessInfo.Constants.debug
