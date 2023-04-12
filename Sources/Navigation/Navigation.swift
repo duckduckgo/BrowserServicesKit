@@ -399,7 +399,7 @@ final class WKNavigationLifetimeTracker: NSObject {
 
 extension Navigation: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationAction.navigationType)>"
+        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")>"
     }
 }
 
