@@ -54,6 +54,10 @@ extension OSLog {
 
         public let category: String
 
+        public init(rawValue: String) {
+            self.category = rawValue
+        }
+
         public var wrappedValue: OSLog {
             var isEnabled = OSLog.enabledLoggingCategories.contains(category)
 #if CI
@@ -72,7 +76,7 @@ extension OSLog {
 public extension OSLog.OSLogWrapper {
 
     init(_ category: OSLog.Categories) {
-        self.category = category.rawValue
+        self.init(rawValue: category.rawValue)
     }
 
 }
