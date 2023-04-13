@@ -69,4 +69,11 @@ public struct BookmarkUtils {
         
         return try? context.fetch(request).first
     }
+
+    public static func fetchBookmarksPendingDeletion(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == YES", #keyPath(BookmarkEntity.isPendingDeletion))
+
+        return (try? context.fetch(request)) ?? []
+    }
 }
