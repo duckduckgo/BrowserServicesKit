@@ -128,7 +128,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             return
         }
 
-        bookmark.isPendingDeletion = true
+        bookmark.markPendingDeletion()
 
         save()
 

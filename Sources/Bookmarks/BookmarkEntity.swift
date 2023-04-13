@@ -56,7 +56,7 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
 
-    @NSManaged public var isPendingDeletion: Bool
+    @NSManaged public fileprivate(set) var isPendingDeletion: Bool
     @NSManaged public var modifiedAt: Date?
 
     public convenience init(context moc: NSManagedObjectContext) {
@@ -156,6 +156,19 @@ public class BookmarkEntity: NSManagedObject {
     public func removeFromFavorites() {
         isFavorite = false
         favoriteFolder = nil
+    }
+
+    public func markPendingDeletion() {
+        var queue: [BookmarkEntity] = [self]
+
+        while !queue.isEmpty {
+            let currentObject = queue.removeFirst()
+            currentObject.isPendingDeletion = true
+
+            if currentObject.isFolder {
+                queue.append(contentsOf: currentObject.childrenArray)
+            }
+        }
     }
 }
 
