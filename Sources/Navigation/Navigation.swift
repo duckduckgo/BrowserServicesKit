@@ -94,7 +94,7 @@ public protocol NavigationProtocol: AnyObject {
 extension Navigation: NavigationProtocol {}
 
 @MainActor
-public extension NavigationProtocol {
+public extension NavigationProtocol { // Navigation or ExpectedNavigation
 
     /** override responder chain for Navigation Events with defined ownership and nullability:
      ```
