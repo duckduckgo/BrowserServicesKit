@@ -3,11 +3,11 @@
     <entity name="BookmarkEntity" representedClassName="BookmarkEntity" syncable="YES">
         <attribute name="isFavorite" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isFolder" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="isPendingDeletion" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isPendingDeletion" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" versionHashModifier="3"/>
         <attribute name="modifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="title" optional="YES" attributeType="String"/>
-        <attribute name="url" optional="YES" attributeType="String" versionHashModifier="2"/>
-        <attribute name="uuid" attributeType="String" versionHashModifier="2"/>
+        <attribute name="url" optional="YES" attributeType="String" versionHashModifier="3"/>
+        <attribute name="uuid" attributeType="String" versionHashModifier="3"/>
         <relationship name="children" optional="YES" toMany="YES" deletionRule="Cascade" ordered="YES" destinationEntity="BookmarkEntity" inverseName="parent" inverseEntity="BookmarkEntity"/>
         <relationship name="favoriteFolder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="favorites" inverseEntity="BookmarkEntity"/>
         <relationship name="favorites" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="BookmarkEntity" inverseName="favoriteFolder" inverseEntity="BookmarkEntity"/>
