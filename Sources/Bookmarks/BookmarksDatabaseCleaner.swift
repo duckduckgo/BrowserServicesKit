@@ -24,9 +24,9 @@ import Combine
 
 public final class BookmarkDatabaseCleaner {
 
-    public init(bookmarkDatabase: CoreDataDatabase, errorHandler: @escaping (Error) -> Void) {
-        self.context = bookmarkDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        self.errorHandler = errorHandler
+    public init(bookmarkDatabase: CoreDataDatabase, saveErrorHandler: @escaping (Error) -> Void) {
+        self.database = bookmarkDatabase
+        self.saveErrorHandler = saveErrorHandler
 
         cleanupCancellable = triggerSubject
             .receive(on: workQueue)
@@ -38,7 +38,6 @@ public final class BookmarkDatabaseCleaner {
     public func scheduleRegularCleaning() {
         scheduleCleanupCancellable?.cancel()
         scheduleCleanupCancellable = Timer.publish(every: Const.cleanupInterval, on: .main, in: .default)
-            .receive(on: workQueue)
             .sink { [weak self] _ in
                 self?.triggerSubject.send()
             }
@@ -49,8 +48,10 @@ public final class BookmarkDatabaseCleaner {
     }
 
     private func removeBookmarksPendingDeletion() {
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
         context.performAndWait {
-            let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(self.context)
+            let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(context)
 
             for bookmark in bookmarksPendingDeletion {
                 context.delete(bookmark)
@@ -59,7 +60,7 @@ public final class BookmarkDatabaseCleaner {
             do {
                 try context.save()
             } catch {
-                errorHandler(error)
+                saveErrorHandler(error)
             }
         }
     }
@@ -68,9 +69,9 @@ public final class BookmarkDatabaseCleaner {
         static let cleanupInterval: TimeInterval = 24 * 3600
     }
 
-    private let errorHandler: (Error) -> Void
+    private let saveErrorHandler: (Error) -> Void
 
-    private let context: NSManagedObjectContext
+    private let database: CoreDataDatabase
     private let triggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "BookmarkDatabaseCleaner queue", qos: .userInitiated)
 
