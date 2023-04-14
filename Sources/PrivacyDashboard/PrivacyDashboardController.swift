@@ -45,6 +45,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     
 }
 
+@MainActor
 public final class PrivacyDashboardController: NSObject {
     
     public weak var delegate: PrivacyDashboardControllerDelegate?
@@ -103,7 +104,7 @@ public final class PrivacyDashboardController: NSObject {
         
         privacyDashboardScript.delegate = self
         
-        webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScript())
+        webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScriptSync())
     
         privacyDashboardScript.messageNames.forEach { messageName in
             webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
