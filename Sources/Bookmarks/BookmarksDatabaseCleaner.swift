@@ -24,29 +24,56 @@ import Combine
 
 public final class BookmarkDatabaseCleaner {
 
-    public init(bookmarkDatabase: CoreDataDatabase) {
+    public init(bookmarkDatabase: CoreDataDatabase, errorHandler: @escaping (Error) -> Void) {
         self.context = bookmarkDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        self.errorHandler = errorHandler
+
+        cleanupCancellable = triggerSubject
+            .receive(on: workQueue)
+            .sink { [weak self] _ in
+                self?.removeBookmarksPendingDeletion()
+            }
     }
 
-    public func removeBookmarksPendingDeletion() async throws {
+    public func scheduleRegularCleaning() {
+        scheduleCleanupCancellable?.cancel()
+        scheduleCleanupCancellable = Timer.publish(every: Const.cleanupInterval, on: .main, in: .default)
+            .receive(on: workQueue)
+            .sink { [weak self] _ in
+                self?.triggerSubject.send()
+            }
+    }
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            context.performAndWait {
-                do {
-                    let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(self.context)
+    public func cleanUpDatabaseNow() {
+        triggerSubject.send()
+    }
 
-                    for bookmark in bookmarksPendingDeletion {
-                        context.delete(bookmark)
-                    }
+    private func removeBookmarksPendingDeletion() {
+        context.performAndWait {
+            let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(self.context)
 
-                    try context.save()
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+            for bookmark in bookmarksPendingDeletion {
+                context.delete(bookmark)
+            }
+
+            do {
+                try context.save()
+            } catch {
+                errorHandler(error)
             }
         }
     }
 
+    private enum Const {
+        static let cleanupInterval: TimeInterval = 24 * 3600
+    }
+
+    private let errorHandler: (Error) -> Void
+
     private let context: NSManagedObjectContext
+    private let triggerSubject = PassthroughSubject<Void, Never>()
+    private let workQueue = DispatchQueue(label: "BookmarkDatabaseCleaner queue", qos: .userInitiated)
+
+    private var cleanupCancellable: AnyCancellable?
+    private var scheduleCleanupCancellable: AnyCancellable?
 }
