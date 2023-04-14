@@ -18,15 +18,20 @@
 //
 
 import Foundation
+import Combine
+import Common
 import CoreData
 import Persistence
-import Combine
+
+public struct BookmarksCleanupError: Error {
+    public let coreDataError: Error
+}
 
 public final class BookmarkDatabaseCleaner {
 
-    public init(bookmarkDatabase: CoreDataDatabase, saveErrorHandler: @escaping (Error) -> Void) {
+    public init(bookmarkDatabase: CoreDataDatabase, errorEvents: EventMapping<BookmarksCleanupError>?) {
         self.database = bookmarkDatabase
-        self.saveErrorHandler = saveErrorHandler
+        self.errorEvents = errorEvents
 
         cleanupCancellable = triggerSubject
             .receive(on: workQueue)
@@ -36,11 +41,15 @@ public final class BookmarkDatabaseCleaner {
     }
 
     public func scheduleRegularCleaning() {
-        scheduleCleanupCancellable?.cancel()
+        cancelCleaningSchedule()
         scheduleCleanupCancellable = Timer.publish(every: Const.cleanupInterval, on: .main, in: .default)
             .sink { [weak self] _ in
                 self?.triggerSubject.send()
             }
+    }
+
+    public func cancelCleaningSchedule() {
+        scheduleCleanupCancellable?.cancel()
     }
 
     public func cleanUpDatabaseNow() {
@@ -60,7 +69,7 @@ public final class BookmarkDatabaseCleaner {
             do {
                 try context.save()
             } catch {
-                saveErrorHandler(error)
+                errorEvents?.fire(.init(coreDataError: error))
             }
         }
     }
@@ -69,8 +78,7 @@ public final class BookmarkDatabaseCleaner {
         static let cleanupInterval: TimeInterval = 24 * 3600
     }
 
-    private let saveErrorHandler: (Error) -> Void
-
+    private let errorEvents: EventMapping<BookmarksCleanupError>?
     private let database: CoreDataDatabase
     private let triggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "BookmarkDatabaseCleaner queue", qos: .userInitiated)
