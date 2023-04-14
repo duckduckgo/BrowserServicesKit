@@ -19,7 +19,6 @@
 import Foundation
 import CoreData
 import Common
-import OSLog
 
 public protocol ManagedObjectContextFactory {
     
