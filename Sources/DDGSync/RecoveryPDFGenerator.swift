@@ -22,25 +22,40 @@ import Foundation
 import AppKit
 #elseif os(iOS)
 import UIKit
-#else
-#error("Unsupported OS")
 #endif
+
+protocol PDFGeneratorHelping {
+
+    associatedtype XFont
+    associatedtype XColor
+
+    var qrCodeYOffset: Int { get }
+    var textCodeYOffset: Int { get }
+    var textCodeFont: XFont { get }
+    var textCodeColor: XColor { get }
+
+    func pushGraphicsContext(_ context: CGContext)
+    func popGraphicsContext()
+    func flipContextIfNeeded(_ context: CGContext, boxHeight: CGFloat)
+    func drawTemplate(_ imageData: Data, in rect: CGRect)
+
+}
 
 public struct RecoveryPDFGenerator {
 
     static let qrCodeSize = 175
 
-#if os(macOS)
-    typealias PDFFont = NSFont
-    typealias PDFImage = NSImage
-    typealias PDFColor = NSColor
-#elseif os(iOS)
-    typealias PDFFont = UIFont
-    typealias PDFImage = UIImage
-    typealias PDFColor = UIColor
-#endif
+    let helper: any PDFGeneratorHelping
 
-    public static func generate(_ code: String) -> Data {
+    init(helper: any PDFGeneratorHelping) {
+        self.helper = helper
+    }
+
+    public init() {
+        self.init(helper: Helper())
+    }
+
+    public func generate(_ code: String) -> Data {
         let data = NSMutableData()
 
         let templateURL = Bundle.module.url(forResource: "SyncPDFTemplate", withExtension: "png")!
@@ -49,85 +64,56 @@ public struct RecoveryPDFGenerator {
         }
 
         var mediaBox = CGRect(x: 0, y: 0, width: 612, height: 792)
-        let context = CGContext(consumer: CGDataConsumer(data: data)!, mediaBox: &mediaBox, nil)
+        let context = CGContext(consumer: CGDataConsumer(data: data)!, mediaBox: &mediaBox, nil)!
 
-        #if os(macOS)
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = .init(cgContext: context!, flipped: false)
-        #elseif os(iOS)
-        UIGraphicsPushContext(context!)
-        #endif
+        helper.pushGraphicsContext(context)
+        defer {
+            helper.popGraphicsContext()
+        }
 
-        context!.beginPDFPage(nil)
+        // Prepare the PDF for drawing to
+        context.beginPDFPage(nil)
+        helper.flipContextIfNeeded(context, boxHeight: mediaBox.size.height)
 
-        #if os(iOS)
-        let flipVertical: CGAffineTransform = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: mediaBox.size.height)
-        context!.concatenate(flipVertical)
-        #endif
-
-        let image = PDFImage(data: templateData)
-        image?.draw(in: CGRect(x: 0, y: 0, width: 612, height: 792))
+        // Draw the template image
+        helper.drawTemplate(templateData, in: CGRect(x: 0, y: 0, width: 612, height: 792))
 
         // Draw the text
-
-        #if os(macOS)
-        let textY = -480
-        #elseif os(iOS)
-        let textY = 280
-        #endif
-
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineHeightMultiple = 1.55
-        code.draw(in: CGRect(x: 290, y: textY, width: 264, height: 1000), withAttributes: [
-                .font: PDFFont.monospacedSystemFont(ofSize: 13, weight: .regular),
-                .foregroundColor: PDFColor.black,
+        code.draw(in: CGRect(x: 290, y: helper.textCodeYOffset, width: 264, height: 1000), withAttributes: [
+                .font: helper.textCodeFont,
+                .foregroundColor: helper.textCodeColor,
                 .paragraphStyle: paragraphStyle,
                 .kern: 2
             ])
 
-        // Draw the qrcode
-        #if os(macOS)
-        let qrCodeY = 335
-        #elseif os(iOS)
-        let qrCodeY = 280
-        #endif
-
-        qrcode(code, size: qrCodeSize)
-            .draw(in: CGRect(x: 75, y: qrCodeY, width: qrCodeSize, height: qrCodeSize))
+        // Draw the QRCode
+        let cgImage = qrcode(code, size: Self.qrCodeSize)
+        context.draw(cgImage, in: CGRect(x: 75, y: helper.qrCodeYOffset, width: Self.qrCodeSize, height: Self.qrCodeSize))
 
         // Flush the data to the PDF file
-        context!.endPDFPage()
-        context?.closePDF()
-
-        #if os(macOS)
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = .init(cgContext: context!, flipped: false)
-        #elseif os(iOS)
-        UIGraphicsPopContext()
-        #endif
+        context.endPDFPage()
+        context.closePDF()
 
         return data as Data
     }
 
-    static func qrcode(_ text: String, size: Int) -> PDFImage {
-        var qrImage = PDFImage()
-
+    func qrcode(_ text: String, size: Int) -> CGImage {
         let data = Data(text.utf8)
         let qrCodeFilter: CIFilter = CIFilter.init(name: "CIQRCodeGenerator")!
         qrCodeFilter.setValue(data, forKey: "inputMessage")
         qrCodeFilter.setValue("H", forKey: "inputCorrectionLevel")
 
         guard let naturalSize = qrCodeFilter.outputImage?.extent.width else {
-            assertionFailure("Failed to generate qr code")
-            return qrImage
+            fatalError()
         }
 
         let scale = CGFloat(size) / naturalSize
 
         let transform = CGAffineTransform(scaleX: scale, y: scale)
         guard let outputImage = qrCodeFilter.outputImage?.transformed(by: transform) else {
-            assertionFailure("transformation failed")
-            return qrImage
+            fatalError()
         }
 
         let colorParameters: [String: Any] = [
@@ -136,15 +122,70 @@ public struct RecoveryPDFGenerator {
         ]
         let coloredImage = outputImage.applyingFilter("CIFalseColor", parameters: colorParameters)
 
-        if let image = CIContext().createCGImage(coloredImage, from: outputImage.extent) {
-            #if os(macOS)
-                qrImage = PDFImage(cgImage: image, size: CGSize(width: size, height: size))
-            #elseif os(iOS)
-                qrImage = PDFImage(cgImage: image)
-            #endif
+        guard let image = CIContext().createCGImage(coloredImage, from: outputImage.extent) else {
+            fatalError()
         }
-
-        return qrImage
+        return image
     }
 
 }
+
+#if os(macOS)
+
+fileprivate struct Helper: PDFGeneratorHelping {
+
+    let qrCodeYOffset: Int = 335
+    let textCodeYOffset: Int = -480
+    let textCodeFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+    var textCodeColor = NSColor.black
+
+    func pushGraphicsContext(_ context: CGContext) {
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = .init(cgContext: context, flipped: false)
+    }
+
+    func popGraphicsContext() {
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    func drawTemplate(_ imageData: Data, in rect: CGRect) {
+        NSImage(data: imageData)?.draw(in: rect)
+    }
+
+    func flipContextIfNeeded(_ context: CGContext, boxHeight: CGFloat) {
+        // no-op
+    }
+
+}
+
+#endif
+
+#if os(iOS)
+
+fileprivate struct Helper: PDFGeneratorHelping {
+
+    let qrCodeYOffset: Int = 280
+    let textCodeYOffset: Int = 280
+    let textCodeFont = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+    var textCodeColor = UIColor.black
+
+    func pushGraphicsContext(_ context: CGContext) {
+        UIGraphicsPushContext(context)
+    }
+
+    func popGraphicsContext() {
+        UIGraphicsPopContext()
+    }
+
+    func flipContextIfNeeded(_ context: CGContext, boxHeight: CGFloat) {
+        let flipVertical: CGAffineTransform = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: boxHeight)
+        context.concatenate(flipVertical)
+    }
+
+    func drawTemplate(_ imageData: Data, in rect: CGRect) {
+        UIImage(data: imageData)?.draw(in: rect)
+    }
+
+}
+
+#endif
