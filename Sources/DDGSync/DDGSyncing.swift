@@ -146,7 +146,11 @@ public protocol ResultsProviding {
  * Defines sync feature, i.e. type of synced data.
  */
 public struct Feature: Hashable {
-    var name: String
+    public var name: String
+
+    public init(name: String) {
+        self.name = name
+    }
 }
 
 /**
