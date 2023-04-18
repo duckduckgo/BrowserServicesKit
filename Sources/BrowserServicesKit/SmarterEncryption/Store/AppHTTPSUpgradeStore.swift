@@ -153,7 +153,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
         context.performAndWait {
             deleteBloomFilterSpecification()
 
-            let storedEntity: HTTPSStoredBloomFilterSpecification = context.insertObject()
+            let storedEntity = HTTPSStoredBloomFilterSpecification(context: context)
             storedEntity.bitCount = Int64(specification.bitCount)
             storedEntity.totalEntries = Int64(specification.totalEntries)
             storedEntity.errorRate = specification.errorRate
@@ -196,7 +196,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
             deleteExcludedDomains()
 
             for domain in domains {
-                let storedDomain: HTTPSExcludedDomain = context.insertObject()
+                let storedDomain = HTTPSExcludedDomain(context: context)
                 storedDomain.domain = domain.lowercased()
             }
             do {
