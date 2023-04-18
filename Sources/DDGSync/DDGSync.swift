@@ -22,7 +22,7 @@ import DDGSyncCrypto
 
 public class DDGSync: DDGSyncing {
 
-    public let bundle = Bundle.module
+    public static let bundle = Bundle.module
 
     enum Constants {
 #if DEBUG
