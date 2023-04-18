@@ -22,6 +22,8 @@ import DDGSyncCrypto
 
 public class DDGSync: DDGSyncing {
 
+    public let bundle = Bundle.module
+
     enum Constants {
 #if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
