@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import os
+import os.log
 
 public struct DecodableHelper {
     public static func decode<Input: Any, Target: Decodable>(from input: Input) -> Target? {

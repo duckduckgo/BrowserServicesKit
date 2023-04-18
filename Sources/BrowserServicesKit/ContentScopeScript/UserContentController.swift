@@ -21,6 +21,7 @@ import Combine
 import UserScript
 
 public protocol UserContentControllerDelegate: AnyObject {
+    @MainActor
     func userContentController(_ userContentController: UserContentController,
                                didInstallContentRuleLists contentRuleLists: [String: WKContentRuleList],
                                userScripts: UserScriptsProvider,
@@ -33,9 +34,10 @@ public protocol UserContentControllerNewContent {
 
     var rulesUpdate: ContentBlockerRulesManager.UpdateEvent { get }
     var sourceProvider: SourceProvider { get }
-    var makeUserScripts: (SourceProvider) -> UserScripts { get }
+    var makeUserScripts: @MainActor (SourceProvider) -> UserScripts { get }
 }
 
+@MainActor
 final public class UserContentController: WKUserContentController {
     public let privacyConfigurationManager: PrivacyConfigurationManaging
     public weak var delegate: UserContentControllerDelegate?
@@ -43,14 +45,18 @@ final public class UserContentController: WKUserContentController {
     public struct ContentBlockingAssets {
         public let globalRuleLists: [String: WKContentRuleList]
         public let userScripts: UserScriptsProvider
+        public let wkUserScripts: [WKUserScript]
         public let updateEvent: ContentBlockerRulesManager.UpdateEvent
 
-        public init<Content: UserContentControllerNewContent>(content: Content) {
+        public init<Content: UserContentControllerNewContent>(content: Content) async {
             self.globalRuleLists = content.rulesUpdate.rules.reduce(into: [:]) { result, rules in
                 result[rules.name] = rules.rulesList
             }
-            self.userScripts = content.makeUserScripts(content.sourceProvider)
+            let userScripts = await content.makeUserScripts(content.sourceProvider)
+            self.userScripts = userScripts
             self.updateEvent = content.rulesUpdate
+
+            self.wkUserScripts = await userScripts.loadWKUserScripts()
         }
     }
 
@@ -62,7 +68,7 @@ final public class UserContentController: WKUserContentController {
         didSet {
             guard let contentBlockingAssets = contentBlockingAssets else { return }
             self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
-            self.installUserScripts(contentBlockingAssets.userScripts)
+            self.installUserScripts(contentBlockingAssets.wkUserScripts, handlers: contentBlockingAssets.userScripts.userScripts)
 
             delegate?.userContentController(self,
                                             didInstallContentRuleLists: contentBlockingAssets.globalRuleLists,
@@ -82,9 +88,11 @@ final public class UserContentController: WKUserContentController {
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
 
-        cancellable = assetsPublisher.receive(on: DispatchQueue.main)
-            .map(ContentBlockingAssets.init)
-            .assign(to: \.contentBlockingAssets, onWeaklyHeld: self)
+        cancellable = assetsPublisher.sink { [weak self] content in
+            Task {
+                self?.contentBlockingAssets = await ContentBlockingAssets(content: content)
+            }
+        }
 
 #if DEBUG
         // make sure delegate for UserScripts is set shortly after init
@@ -140,15 +148,9 @@ final public class UserContentController: WKUserContentController {
         super.removeAllContentRuleLists()
     }
 
-    private func installUserScripts(_ userScripts: UserScriptsProvider) {
-        userScripts.userScripts.forEach(self.addHandler)
-        userScripts.scripts.forEach(self.addUserScript)
-    }
-
-    func addHandlerNoContentWorld(_ userScript: UserScript) {
-        for messageName in userScript.messageNames {
-            add(userScript, name: messageName)
-        }
+    private func installUserScripts(_ wkUserScripts: [WKUserScript], handlers: [UserScript]) {
+        handlers.forEach { self.addHandler($0) }
+        wkUserScripts.forEach(self.addUserScript)
     }
 
     func addHandler(_ userScript: UserScript) {
@@ -182,7 +184,6 @@ public extension UserContentController {
         contentBlockingAssets != nil
     }
 
-    @MainActor
     func awaitContentBlockingAssetsInstalled() async {
         guard !contentBlockingAssetsInstalled else { return }
 

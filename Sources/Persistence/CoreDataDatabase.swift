@@ -19,7 +19,6 @@
 import Foundation
 import CoreData
 import Common
-import OSLog
 
 public protocol ManagedObjectContextFactory {
     
@@ -77,7 +76,8 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
     public init(name: String,
                 containerLocation: URL,
                 model: NSManagedObjectModel,
-                readOnly: Bool = false) {
+                readOnly: Bool = false,
+                options: [String: NSObject] = [:]) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
         self.containerLocation = containerLocation
@@ -85,6 +85,10 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         let description = NSPersistentStoreDescription(url: containerLocation.appendingPathComponent("\(name).sqlite"))
         description.type = NSSQLiteStoreType
         description.isReadOnly = readOnly
+
+        for (key, value) in options {
+            description.setOption(value, forKey: key)
+        }
         
         self.container.persistentStoreDescriptions = [description]
     }
