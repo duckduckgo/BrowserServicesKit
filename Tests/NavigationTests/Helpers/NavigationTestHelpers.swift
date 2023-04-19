@@ -350,10 +350,42 @@ private func dataConst(forLength length: Int64, in dataSource: Any) -> String {
     return "Data const with length \(length) not found in \(dataSource)"
 }
 
-var defaultHeaders = [
-    "User-Agent": WKWebView().value(forKey: "userAgent") as! String,
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-]
+var defaultHeaders: [String: String] = {
+    let webView = WKWebView()
+    class DefaultHeadersRetreiverNavigationDelegate: NSObject, WKNavigationDelegate {
+        var headers: [String: String]?
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            self.headers = navigationAction.request.allHTTPHeaderFields
+            decisionHandler(.cancel)
+        }
+    }
+
+    let delegate = DefaultHeadersRetreiverNavigationDelegate()
+    webView.navigationDelegate = delegate
+    webView.load(URLRequest(url: URL(string: "https://duckduckgo.com")!))
+    while delegate.headers == nil {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+    }
+
+    return delegate.headers!
+}()
+
+extension [String: String] {
+
+    static let allowsExtraKeysKey = "_allowsExtraKeysKey"
+
+    var allowingExtraKeys: [String: String] {
+        var result = self
+        result[Self.allowsExtraKeysKey] = "1"
+        return result
+    }
+
+    var allowsExtraKeys: Bool {
+        self[Self.allowsExtraKeysKey] == "1"
+    }
+
+}
 
 func req(_ string: String, _ headers: [String: String]? = defaultHeaders, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy) -> URLRequest {
     req(URL(string: string)!, headers, cachePolicy: cachePolicy)
@@ -480,20 +512,39 @@ extension [NavigationAction]?: TestComparable {
 
 extension URLRequest: TestComparable {
 
-    private func prettifiedHeaders() -> [String: String] {
-        var headers = (allHTTPHeaderFields ?? [:])
-        if let lang = headers["Accept-Language"] {
-            headers["Accept-Language"] = lang.replacing(regex: "^\\S\\S-\\S\\S,\\s?\\S\\S", with: "en-XX,en")
-        }
-        return headers
-    }
-
     static func difference(between lhs: URLRequest, and rhs: URLRequest) -> String? {
         compare("url", lhs.url ?? .empty, rhs.url ?? .empty) { $0.matches($1) }
         ?? compare("httpMethod", lhs.httpMethod, rhs.httpMethod)
-        ?? compare("allHTTPHeaderFields", lhs.prettifiedHeaders(), rhs.prettifiedHeaders())
+        ?? compare("allHTTPHeaderFields", Headers(lhs.allHTTPHeaderFields), Headers(rhs.allHTTPHeaderFields))
         ?? compare("cachePolicy", lhs.cachePolicy, rhs.cachePolicy)
         ?? compare("timeoutInterval", lhs.timeoutInterval, rhs.timeoutInterval)
+    }
+
+}
+
+struct Headers: TestComparable {
+
+    let dict: [String: String]
+
+    init(_ dict: [String: String]?) {
+        self.dict = dict ?? [:]
+    }
+
+    static func difference(between lhs: Headers, and rhs: Headers) -> String? {
+        var result = ""
+        let lhs = lhs.dict
+        let rhs = rhs.dict
+        for key in Set(lhs.keys).union(rhs.keys) where key != [String: String].allowsExtraKeysKey {
+            let value1 = lhs[key]
+            let value2 = rhs[key]
+            if let diff = compare(key, value1, value2) {
+                if value1 == nil && lhs.allowsExtraKeys { continue }
+                if value2 == nil && rhs.allowsExtraKeys { continue }
+
+                result += (result.isEmpty ? "" : ",\n") + diff
+            }
+        }
+        return result.isEmpty ? nil : result
     }
 
 }

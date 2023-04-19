@@ -17,9 +17,9 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import WebKit
-import os.log
 import TrackerRadarKit
 
 extension ContentBlockerRulesManager {

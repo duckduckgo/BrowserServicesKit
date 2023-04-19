@@ -21,7 +21,6 @@ import BloomFilterWrapper
 import Common
 import Foundation
 import CoreData
-import os.log
 import Persistence
 
 public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
