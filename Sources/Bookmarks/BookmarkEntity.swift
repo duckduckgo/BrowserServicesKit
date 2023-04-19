@@ -163,6 +163,9 @@ public class BookmarkEntity: NSManagedObject {
 
         while !queue.isEmpty {
             let currentObject = queue.removeFirst()
+
+            currentObject.url = nil
+            currentObject.title = nil
             currentObject.isPendingDeletion = true
 
             if currentObject.isFolder {
