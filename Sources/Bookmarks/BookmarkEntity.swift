@@ -33,7 +33,6 @@ public class BookmarkEntity: NSManagedObject {
         case mustExistInsideRootFolder
         case folderStructureHasCycle
         case folderHasURL
-        case bookmarkRequiresURL
         case invalidFavoritesFolder
         case invalidFavoritesStatus
     }
@@ -178,7 +177,6 @@ extension BookmarkEntity {
 
     func validate() throws {
         try validateThatEntitiesExistInsideTheRootFolder()
-        try validateBookmarkURLRequirement()
         try validateThatFoldersDoNotHaveURLs()
         try validateThatFolderHierarchyHasNoCycles()
         try validateFavoritesStatus()
@@ -189,12 +187,6 @@ extension BookmarkEntity {
         if parent == nil,
            Constants.favoritesFolderID != uuid && Constants.rootFolderID != uuid {
             throw Error.mustExistInsideRootFolder
-        }
-    }
-
-    func validateBookmarkURLRequirement() throws {
-        if !isFolder, url == nil {
-            throw Error.bookmarkRequiresURL
         }
     }
 

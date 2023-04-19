@@ -29,9 +29,14 @@ public struct BookmarksCleanupError: Error {
 
 public final class BookmarkDatabaseCleaner {
 
-    public init(bookmarkDatabase: CoreDataDatabase, errorEvents: EventMapping<BookmarksCleanupError>?) {
+    public init(
+        bookmarkDatabase: CoreDataDatabase,
+        errorEvents: EventMapping<BookmarksCleanupError>?,
+        fetchBookmarksPendingDeletion: @escaping (NSManagedObjectContext) -> [BookmarkEntity] = BookmarkUtils.fetchBookmarksPendingDeletion
+    ) {
         self.database = bookmarkDatabase
         self.errorEvents = errorEvents
+        self.fetchBookmarksPendingDeletion = fetchBookmarksPendingDeletion
 
         cleanupCancellable = triggerSubject
             .receive(on: workQueue)
@@ -56,20 +61,34 @@ public final class BookmarkDatabaseCleaner {
         triggerSubject.send()
     }
 
-    private func removeBookmarksPendingDeletion() {
+    func removeBookmarksPendingDeletion() {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {
-            let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(context)
+            var saveError: Error?
 
-            for bookmark in bookmarksPendingDeletion {
-                context.delete(bookmark)
+            while true {
+                let bookmarksPendingDeletion = fetchBookmarksPendingDeletion(context)
+
+                for bookmark in bookmarksPendingDeletion {
+                    context.delete(bookmark)
+                }
+
+                do {
+                    try context.save()
+                    break
+                } catch {
+                    if (error as NSError).code == NSManagedObjectMergeError {
+                        context.reset()
+                    } else {
+                        saveError = error
+                        break
+                    }
+                }
             }
 
-            do {
-                try context.save()
-            } catch {
-                errorEvents?.fire(.init(coreDataError: error))
+            if let saveError {
+                errorEvents?.fire(.init(coreDataError: saveError))
             }
         }
     }
@@ -85,4 +104,5 @@ public final class BookmarkDatabaseCleaner {
 
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
+    private let fetchBookmarksPendingDeletion: (NSManagedObjectContext) -> [BookmarkEntity]
 }
