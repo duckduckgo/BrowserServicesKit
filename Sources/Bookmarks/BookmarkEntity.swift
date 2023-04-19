@@ -76,9 +76,7 @@ public class BookmarkEntity: NSManagedObject {
         guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
             return
         }
-        if modifiedAt == nil {
-            modifiedAt = Date()
-        }
+        modifiedAt = Date()
     }
 
     public override func validateForInsert() throws {

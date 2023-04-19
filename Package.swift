@@ -163,6 +163,11 @@ let package = Package(
         
         // MARK: - Test targets
         .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks"
+            ]),
+        .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
                 "BrowserServicesKit"
