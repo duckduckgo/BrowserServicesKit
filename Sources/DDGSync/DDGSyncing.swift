@@ -94,6 +94,9 @@ public protocol DDGSyncing {
      @param deviceId ID of the device to be disconnected.
     */
     func disconnect(deviceId: String) async throws
+
+    func fetchDevices() async throws -> [RegisteredDevice]
+
 }
 
 public protocol UpdatesSending {

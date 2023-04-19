@@ -43,6 +43,8 @@ protocol AccountManaging {
 
     func logout(deviceId: String, token: String) async throws
 
+    func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice]
+
 }
 
 protocol SecureStoring {

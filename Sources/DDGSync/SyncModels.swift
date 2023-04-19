@@ -41,9 +41,18 @@ public struct SyncAccount: Codable, Sendable {
 }
 
 public struct RegisteredDevice: Codable, Sendable {
+
     public let id: String
     public let name: String
     public let type: String
+
+    // Remove this when the server change is made to remove the device_ prefix
+    enum CodingKeys: String, CodingKey {
+        case id = "deviceId"
+        case name = "deviceName"
+        case type = "deviceType"
+    }
+
 }
 
 public struct AccountCreationKeys {

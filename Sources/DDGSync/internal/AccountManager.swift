@@ -50,14 +50,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createRequest(
-            url: endpoints.signup,
-            method: .POST,
-            headers: [:],
-            parameters: [:],
-            body: paramJson,
-            contentType: "application/json"
-        )
+        let request = api.createUnauthenticatedJSONRequest(url: endpoints.signup, method: .POST, json: paramJson)
 
         let result = try await request.execute()
 
@@ -95,14 +88,7 @@ struct AccountManager: AccountManaging {
 
         let paramJson = try JSONEncoder.snakeCaseKeys.encode(params)
 
-        let request = api.createRequest(
-            url: endpoints.login,
-            method: .POST,
-            headers: [:],
-            parameters: [:],
-            body: paramJson,
-            contentType: "application/json"
-        )
+        let request = api.createUnauthenticatedJSONRequest(url: endpoints.login, method: .POST, json: paramJson)
 
         let result = try await request.execute()
 
@@ -110,7 +96,6 @@ struct AccountManager: AccountManaging {
             throw SyncError.noResponseBody
         }
 
-        print(String(data: body, encoding: .utf8) ?? "invalid result.data")
         guard let result = try? JSONDecoder.snakeCaseKeys.decode(Login.Result.self, from: body) else {
             throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
@@ -135,9 +120,9 @@ struct AccountManager: AccountManaging {
             ),
             devices: try result.devices.map {
                 RegisteredDevice(
-                    id: $0.deviceId,
-                    name: try crypter.base64DecodeAndDecrypt($0.deviceName, using: recoveryInfo.primaryKey),
-                    type: try crypter.base64DecodeAndDecrypt($0.deviceType, using: recoveryInfo.primaryKey)
+                    id: $0.id,
+                    name: try crypter.base64DecodeAndDecrypt($0.name, using: recoveryInfo.primaryKey),
+                    type: try crypter.base64DecodeAndDecrypt($0.type, using: recoveryInfo.primaryKey)
                 )
             }
         )
@@ -150,14 +135,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createRequest(
-            url: endpoints.logoutDevice,
-            method: .POST,
-            headers: ["Authorization": "Bearer \(token)"],
-            parameters: [:],
-            body: paramJson,
-            contentType: "application/json"
-        )
+        let request = api.createAuthenticatedJSONRequest(url: endpoints.logoutDevice, method: .POST, authToken: token, json: paramJson)
 
         let result = try await request.execute()
 
@@ -165,7 +143,6 @@ struct AccountManager: AccountManaging {
             throw SyncError.noResponseBody
         }
 
-        print(String(data: body, encoding: .utf8) ?? "invalid result.data")
         guard let result = try? JSONDecoder.snakeCaseKeys.decode(LogoutDevice.Result.self, from: body) else {
             throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
@@ -173,6 +150,30 @@ struct AccountManager: AccountManaging {
         guard result.deviceId == deviceId else {
             throw SyncError.unexpectedResponseBody
         }
+    }
+
+    func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice] {
+        guard let token = account.token else {
+            throw SyncError.noToken
+        }
+
+        let url = endpoints.syncGet.appendingPathComponent("devices")
+        let request = api.createAuthenticatedGetRequest(url: url, authToken: token)
+        let result = try await request.execute()
+
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
+        }
+
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(FetchDevicesResult.self, from: body) else {
+            throw SyncError.unableToDecodeResponse("Failed to decode devices")
+        }
+
+        return try result.devices?.entries.map {
+            RegisteredDevice(id: $0.id,
+                             name: try crypter.base64DecodeAndDecrypt($0.name, using: account.primaryKey),
+                             type: try crypter.base64DecodeAndDecrypt($0.type, using: account.primaryKey))
+        } ?? []
     }
 
     struct Signup {
@@ -195,17 +196,11 @@ struct AccountManager: AccountManaging {
     struct Login {
 
         struct Result: Decodable {
-            let devices: [Device]
+            let devices: [RegisteredDevice]
             let token: String
             let protectedEncryptionKey: String
         }
 
-        struct Device: Decodable {
-            let deviceId: String
-            let deviceName: String
-            let deviceType: String
-        }
-        
         struct Parameters: Encodable {
             let userId: String
             let hashedPassword: String
@@ -225,5 +220,14 @@ struct AccountManager: AccountManaging {
         struct Parameters: Encodable {
             let deviceId: String
         }
+    }
+
+    struct FetchDevicesResult: Decodable {
+        struct DeviceWrapper: Decodable {
+            var lastModified: String?
+            var entries: [RegisteredDevice]
+        }
+
+        var devices: DeviceWrapper?
     }
 }
