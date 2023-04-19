@@ -146,19 +146,6 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         bookmarks = parentFolder.childrenArray
     }
 
-    public func deleteBookmark(_ bookmark: BookmarkEntity) {
-        guard let parentFolder = bookmark.parent else {
-            errorEvents?.fire(.missingParent(.bookmark))
-            return
-        }
-
-        context.delete(bookmark)
-
-        save()
-
-        bookmarks = parentFolder.childrenArray
-    }
-
     private func refresh() {
         bookmarks = fetchBookmarksInFolder(currentFolder)
     }

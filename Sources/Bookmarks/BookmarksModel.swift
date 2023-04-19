@@ -40,8 +40,6 @@ public protocol BookmarkListInteracting: BookmarkStoring {
 
     func softDeleteBookmark(_ bookmark: BookmarkEntity)
 
-    func deleteBookmark(_ bookmark: BookmarkEntity)
-
     func moveBookmark(_ bookmark: BookmarkEntity,
                       fromIndex: Int,
                       toIndex: Int)
