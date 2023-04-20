@@ -110,6 +110,14 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
+    public func fetchDevices() async throws -> [RegisteredDevice] {
+        guard let account = try dependencies.secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        return try await dependencies.account.fetchDevicesForAccount(account)
+    }
+
     // MARK: -
 
     let persistence: LocalDataPersisting
