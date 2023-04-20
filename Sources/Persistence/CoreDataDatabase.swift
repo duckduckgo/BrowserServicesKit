@@ -148,13 +148,6 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
 
 extension NSManagedObjectContext {
 
-    public func insertObject<A: NSManagedObject>() -> A {
-        guard let obj = NSEntityDescription.insertNewObject(forEntityName: A.entity().name!, into: self) as? A else {
-            fatalError("Wrong object type \(A.entity().name!)")
-        }
-        return obj
-    }
-
     public func deleteAll(entities: [NSManagedObject] = []) {
         for entity in entities {
             delete(entity)

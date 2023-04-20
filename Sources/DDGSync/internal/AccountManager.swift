@@ -197,6 +197,30 @@ struct AccountManager: AccountManaging {
 
     }
 
+    func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice] {
+        guard let token = account.token else {
+            throw SyncError.noToken
+        }
+
+        let url = endpoints.syncGet.appendingPathComponent("devices")
+        let request = api.createAuthenticatedGetRequest(url: url, authToken: token)
+        let result = try await request.execute()
+
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
+        }
+
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(FetchDevicesResult.self, from: body) else {
+            throw SyncError.unableToDecodeResponse("Failed to decode devices")
+        }
+
+        return try result.devices?.entries.map {
+            RegisteredDevice(id: $0.id,
+                             name: try crypter.base64DecodeAndDecrypt($0.name, using: account.primaryKey),
+                             type: try crypter.base64DecodeAndDecrypt($0.type, using: account.primaryKey))
+        } ?? []
+    }
+
     struct Signup {
 
         struct Result: Decodable {
