@@ -40,6 +40,7 @@ protocol AccountManaging {
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult
+    func refreshToken(_ account: SyncAccount, deviceName: String) async throws -> LoginResult
 
     func logout(deviceId: String, token: String) async throws
 

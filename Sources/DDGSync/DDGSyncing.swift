@@ -95,8 +95,16 @@ public protocol DDGSyncing {
     */
     func disconnect(deviceId: String) async throws
 
+    /**
+     Fetch the devices associated with thtis account.
+     */
     func fetchDevices() async throws -> [RegisteredDevice]
 
+    /**
+    Updated the device name.
+     */
+    func updateDeviceName(_ name: String) async throws -> [RegisteredDevice]
+    
 }
 
 public protocol UpdatesSending {
