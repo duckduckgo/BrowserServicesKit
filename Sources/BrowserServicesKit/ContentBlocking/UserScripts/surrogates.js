@@ -563,7 +563,7 @@
             }
         });
         [...document.querySelectorAll('link')].filter((el) => hasNotSeen(el.href)).forEach((el) => {
-            if (shouldBlock(el.href, 'el.rel', el)) {
+            if (shouldBlock(el.href, el.rel, el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         });
