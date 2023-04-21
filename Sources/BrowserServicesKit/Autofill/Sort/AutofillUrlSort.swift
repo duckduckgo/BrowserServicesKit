@@ -35,16 +35,17 @@ public struct AutofillDomainNameUrlSort: AutofillUrlSort {
 
     public func firstCharacterForGrouping(_ account: SecureVaultModels.WebsiteAccount, tld: TLD) -> String? {
         if let firstChar = account.title?.first {
-            return String(firstChar)
+            return String(firstChar).lowercased()
         } else {
             guard let urlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(account.domain),
-                  let eTLDPlus1 = urlComponents.eTLDplus1(tld: tld),
-                  let firstChar = eTLDPlus1.first
+                  /// eTLDplus1 is nil if the domain is exact match to a domain in tlds.json in which case we default to host
+                  let host = urlComponents.eTLDplus1(tld: tld) ?? urlComponents.host,
+                  let firstChar = host.first
             else {
                 return nil
             }
 
-            return String(firstChar)
+            return String(firstChar).lowercased()
         }
     }
 

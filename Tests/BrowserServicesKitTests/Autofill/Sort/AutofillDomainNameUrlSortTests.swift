@@ -26,6 +26,48 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
     private let autofillDomainNameUrlSort = AutofillDomainNameUrlSort()
     private let tld = TLD()
 
+    func testWhenTitleIsSetAndDomainIsMissingThenReturnsFirstCharacterOfTitle() {
+        let account1 = websiteAccountFor(domain: "", title: "Xyz")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "x")
+    }
+
+    func testWhenTitleAndDomainAreSetThenReturnsFirstCharacterOfTitle() {
+        let account1 = websiteAccountFor(domain: "example.com", title: "Xyz")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "x")
+    }
+
+    func testWhenDomainIsExactMatchToTldsListItemThenReturnsFirstCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "github.io")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "g")
+    }
+
+    func testWhenDomainIsPartialMatchToTldsListItemThenReturnsFirstCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "mysite.github.io")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "m")
+    }
+
+    func testWhenDomainIsNotInTldsListThenReturnsFirstCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "example.com")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "e")
+    }
+
+    func testWhenDomainIsNotInTldsListAndSubdomainIsSetThenFirstReturnsCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "sub.example.com")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "e")
+    }
+
+    func testWhenDomainIsInvalidThenFirstReturnsCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "xyz")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "x")
+    }
+
     func testWhenComparingTitlesCaseIsIgnored() {
         let account1 = websiteAccountFor(domain: "C.COM")
         let account2 = websiteAccountFor(domain: "b.com")
