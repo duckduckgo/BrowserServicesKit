@@ -21,7 +21,6 @@ import BloomFilterWrapper
 import Common
 import Foundation
 import CoreData
-import os.log
 import Persistence
 
 public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
@@ -59,11 +58,17 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
 
     public static var bundle: Bundle { .module }
 
-    public init(database: CoreDataDatabase, bloomFilterDataURL: URL, embeddedResources: EmbeddedBloomFilterResources, errorEvents: EventMapping<ErrorEvents>?) {
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
+
+    public init(database: CoreDataDatabase, bloomFilterDataURL: URL, embeddedResources: EmbeddedBloomFilterResources, errorEvents: EventMapping<ErrorEvents>?, log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.bloomFilterDataURL = bloomFilterDataURL
         self.embeddedResources = embeddedResources
         self.errorEvents = errorEvents
         self.context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "HTTPSUpgrade")
+        self.getLog = log
     }
 
     var storedBloomFilterDataHash: String? {
@@ -89,6 +94,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
         assert(specification == loadStoredBloomFilterSpecification())
         assert(specification.sha256 == storedBloomFilterDataHash)
 
+        os_log("Loading data from %s SHA: %s", log: log, bloomFilterDataURL.path, specification.sha256)
         let wrapper = BloomFilterWrapper(fromPath: bloomFilterDataURL.path,
                                          withBitCount: Int32(specification.bitCount),
                                          andTotalItems: Int32(specification.totalEntries))
@@ -114,7 +120,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
     }
 
     private func loadAndPersistEmbeddedData() throws -> EmbeddedBloomData {
-        os_log("Loading embedded https data")
+        os_log("Loading embedded https data", log: log)
         let specificationData = try Data(contentsOf: embeddedResources.bloomSpecification)
         let specification = try JSONDecoder().decode(HTTPSBloomFilterSpecification.self, from: specificationData)
         let bloomData = try Data(contentsOf: embeddedResources.bloomFilter)
@@ -129,6 +135,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
 
     public func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws {
         guard data.sha256 == specification.sha256 else { throw Error.specMismatch }
+        os_log("Persisting data SHA: %s", log: log, specification.sha256)
         try persistBloomFilter(data: data)
         try persistBloomFilterSpecification(specification)
     }
@@ -146,7 +153,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
         context.performAndWait {
             deleteBloomFilterSpecification()
 
-            let storedEntity: HTTPSStoredBloomFilterSpecification = context.insertObject()
+            let storedEntity = HTTPSStoredBloomFilterSpecification(context: context)
             storedEntity.bitCount = Int64(specification.bitCount)
             storedEntity.totalEntries = Int64(specification.totalEntries)
             storedEntity.errorRate = specification.errorRate
@@ -182,12 +189,14 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
     }
 
     public func persistExcludedDomains(_ domains: [String]) throws {
+        os_log("Persisting excluded domains: %s", log: log, type: .debug, domains.debugDescription)
+
         var saveError: Swift.Error?
         context.performAndWait {
             deleteExcludedDomains()
 
             for domain in domains {
-                let storedDomain: HTTPSExcludedDomain = context.insertObject()
+                let storedDomain = HTTPSExcludedDomain(context: context)
                 storedDomain.domain = domain.lowercased()
             }
             do {
@@ -210,6 +219,8 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
     }
 
     func reset() {
+        os_log("Resetting", log: log)
+
         deleteBloomFilterSpecification()
         deleteBloomFilter()
         deleteExcludedDomains()

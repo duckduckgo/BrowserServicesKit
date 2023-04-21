@@ -53,10 +53,7 @@ class AdClickAttributionRulesProviderTests: XCTestCase {
     var fakeNewRules: ContentBlockerRulesManager.Rules!
     
     var provider: AdClickAttributionRulesProvider!
-    
-    public let log: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "Test",
-                                  category: "DDG Test")
-    
+
     override func setUp() async throws {
         try? await super.setUp()
         
@@ -83,7 +80,7 @@ class AdClickAttributionRulesProviderTests: XCTestCase {
                                                                         tempListEtag: "updatedEtag",
                                                                         allowListEtag: nil,
                                                                         unprotectedSitesHash: nil)
-        
+        let log: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "Test", category: "DDG Test")
         provider = AdClickAttributionRulesProvider(config: feature,
                                                    compiledRulesSource: compiledRulesSource,
                                                    exceptionsSource: exceptionsSource,

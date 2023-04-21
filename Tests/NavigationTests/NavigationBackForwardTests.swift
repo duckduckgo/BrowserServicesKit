@@ -86,14 +86,14 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed)),
 
             // #2 -> #1 back
-            .navigationAction(req(urls.local, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[2], src: main(urls.local1)),
+            .navigationAction(req(urls.local, defaultHeaders.allowingExtraKeys), .backForw(-1), from: history[2], src: main(urls.local1)),
             .willStart(Nav(action: navAct(3), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), .started)),
             .didCommit(Nav(action: navAct(3), .started, .committed)),
             .didFinish(Nav(action: navAct(3), .finished, .committed)),
 
             // #1 -> #2 forward
-            .navigationAction(req(urls.local1, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(1), from: history[1], src: main(urls.local)),
+            .navigationAction(req(urls.local1, defaultHeaders.allowingExtraKeys), .backForw(1), from: history[1], src: main(urls.local)),
             .willStart(Nav(action: navAct(4), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(4), .started)),
             .didCommit(Nav(action: navAct(4), .started, .committed)),
@@ -153,14 +153,14 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .didFinish(Nav(action: navAct(2), .finished, resp: resp(1), .committed)),
 
             // #2 -> #1 back
-            .navigationAction(req(urls.local, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[2], src: main(urls.local1)),
+            .navigationAction(req(urls.local, defaultHeaders.allowingExtraKeys), .backForw(-1), from: history[2], src: main(urls.local1)),
             .willStart(Nav(action: navAct(3), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(3), .started)),
             .didCommit(Nav(action: navAct(3), .started, .committed)),
             .didFinish(Nav(action: navAct(3), .finished, .committed)),
 
             // #1 -> #2 forward
-            .navigationAction(req(urls.local1, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(1), from: history[1], src: main(urls.local)),
+            .navigationAction(req(urls.local1, defaultHeaders.allowingExtraKeys), .backForw(1), from: history[1], src: main(urls.local)),
             .willStart(Nav(action: navAct(4), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(4), .started)),
             .didCommit(Nav(action: navAct(4), .started, .committed)),
@@ -209,7 +209,7 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .didCommit(Nav(action: navAct(6), .responseReceived, resp: resp(1), .committed)),
             .didFinish(Nav(action: navAct(6), .finished, resp: resp(1), .committed)),
 
-            .navigationAction(req(urls.local4, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(3), from: history[2], src: main(urls.local1)),
+            .navigationAction(req(urls.local4, defaultHeaders.allowingExtraKeys), .backForw(3), from: history[2], src: main(urls.local1)),
             .willStart(Nav(action: navAct(7), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(7), .started)),
             .didCommit(Nav(action: navAct(7), .started, .committed)),
@@ -519,9 +519,9 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
 
             // history items replaced due to WebKit bug
             // #7 go back to URL#
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[6], src: main(urls.local)), .approved, isCurrent: false)),
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders.allowingExtraKeys), .backForw(-1), from: history[6], src: main(urls.local)), .approved, isCurrent: false)),
             // #8 go back to URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Upgrade-Insecure-Requests": "1"]), .backForw(-1), from: history[7], src: main(urls.localHashed)), .approved, isCurrent: false))
+            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders.allowingExtraKeys), .backForw(-1), from: history[7], src: main(urls.localHashed)), .approved, isCurrent: false))
         ])
     }
 

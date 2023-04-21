@@ -148,7 +148,7 @@ class NavigationDownloadsTests: DistributedNavigationDelegateTestsBase {
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
-            .navigationAction(req(urls.local2, defaultHeaders + ["Accept-Encoding": "gzip, deflate", "Accept-Language": "en-XX,en;q=0.9", "Upgrade-Insecure-Requests": "1"]), .redirect(.server), redirects: [navAct(1)], src: main()),
+            .navigationAction(req(urls.local2, defaultHeaders.allowingExtraKeys), .redirect(.server), redirects: [navAct(1)], src: main()),
             .didReceiveRedirect(Nav(action: navAct(2), redirects: [navAct(1)], .started)),
             .response(Nav(action: navAct(2), redirects: [navAct(1)], .responseReceived, resp: .resp(urls.local2, mime: "application/zip", data.html.count, headers: .default + ["Content-Type": "application/zip"], nil, .cantShow))),
             .navResponseWillBecomeDownload(0),

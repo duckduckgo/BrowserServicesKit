@@ -19,7 +19,6 @@
 
 import Foundation
 import TrackerRadarKit
-import os
 import Common
 
 public protocol AdClickAttributionRulesProviding {
@@ -59,20 +58,23 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
     
     private let workQueue = DispatchQueue(label: "AdAttribution compilation queue",
                                           qos: .userInitiated)
-    private let log: OSLog
-    
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
+
     public init(config: AdClickAttributing,
                 compiledRulesSource: CompiledRuleListsSource,
                 exceptionsSource: ContentBlockerRulesExceptionsSource,
                 errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
                 compilationErrorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                log: OSLog = .disabled) {
+                log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.attributionConfig = config
         self.compiledRulesSource = compiledRulesSource
         self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
         self.compilationErrorReporting = compilationErrorReporting
-        self.log = log
+        self.getLog = log
     }
     
     public var globalAttributionRules: ContentBlockerRulesManager.Rules? {
@@ -134,10 +136,12 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         let attributedRulesList = ContentBlockerRulesList(name: Constants.attributedTempRuleListName,
                                                           trackerData: nil,
                                                           fallbackTrackerData: attributedDataSet)
-        
+
+        let log = self.log
         let sourceManager = ContentBlockerRulesSourceManager(rulesList: attributedRulesList,
                                                              exceptionsSource: exceptionsSource,
-                                                             errorReporting: compilationErrorReporting)
+                                                             errorReporting: compilationErrorReporting,
+                                                             log: log)
         
         let compilationTask = ContentBlockerRulesManager.CompilationTask(workQueue: workQueue,
                                                                          rulesList: attributedRulesList,

@@ -53,6 +53,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let lock = NSLock()
     private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
+    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
+    private let internalUserDecider: InternalUserDecider
     
     private let updatesSubject = PassthroughSubject<Void, Never>()
     public var updatesPublisher: AnyPublisher<Void, Never> {
@@ -99,16 +101,16 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         }
     }
 
-    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-
     public init(fetchedETag: String?,
                 fetchedData: Data?,
                 embeddedDataProvider: EmbeddedDataProvider,
                 localProtection: DomainsProtectionStore,
-                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+                internalUserDecider: InternalUserDecider) {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
+        self.internalUserDecider = internalUserDecider
 
         reload(etag: fetchedETag, data: fetchedData)
     }
@@ -117,12 +119,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         if let fetchedData = fetchedConfigData {
             return AppPrivacyConfiguration(data: fetchedData.data,
                                            identifier: fetchedData.etag,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: internalUserDecider)
         }
 
         return AppPrivacyConfiguration(data: embeddedConfigData.data,
                                        identifier: embeddedConfigData.etag,
-                                       localProtection: localProtection)
+                                       localProtection: localProtection,
+                                       internalUserDecider: internalUserDecider)
     }
     
     public var currentConfig: Data {
