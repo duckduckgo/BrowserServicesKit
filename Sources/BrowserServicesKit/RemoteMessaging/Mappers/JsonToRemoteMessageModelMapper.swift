@@ -17,8 +17,8 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
-import os.log
 
 // swiftlint:disable cyclomatic_complexity
 private enum AttributesKey: String, CaseIterable {

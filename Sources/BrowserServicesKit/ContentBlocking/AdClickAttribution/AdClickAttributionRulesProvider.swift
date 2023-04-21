@@ -19,7 +19,6 @@
 
 import Foundation
 import TrackerRadarKit
-import os
 import Common
 
 public protocol AdClickAttributionRulesProviding {

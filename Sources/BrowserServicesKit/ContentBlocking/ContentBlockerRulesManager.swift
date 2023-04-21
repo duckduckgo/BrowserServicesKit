@@ -19,7 +19,6 @@
 
 import Foundation
 import WebKit
-import os.log
 import TrackerRadarKit
 import Combine
 import Common

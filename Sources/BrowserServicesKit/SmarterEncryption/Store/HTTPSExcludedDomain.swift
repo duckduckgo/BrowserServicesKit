@@ -27,6 +27,15 @@ public class HTTPSExcludedDomain: NSManagedObject {
         return NSFetchRequest<HTTPSExcludedDomain>(entityName: "HTTPSExcludedDomain")
     }
 
+    public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
+        return NSEntityDescription.entity(forEntityName: "HTTPSExcludedDomain", in: context)!
+    }
+
+    public convenience init(context moc: NSManagedObjectContext) {
+        self.init(entity: Self.entity(in: moc),
+                  insertInto: moc)
+    }
+
     @NSManaged public var domain: String?
 
 }

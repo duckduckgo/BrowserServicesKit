@@ -19,7 +19,6 @@
 
 import Foundation
 import Combine
-import os
 import Common
 
 public enum AutofillType {

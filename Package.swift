@@ -92,6 +92,9 @@ let package = Package(
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
                 "Networking"
+            ],
+            resources: [
+                .process("SyncPDFTemplate.png")
             ]
         ),
         .target(

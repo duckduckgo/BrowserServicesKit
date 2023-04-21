@@ -43,7 +43,7 @@ public enum NavigationType: Equatable {
 
     case other
 
-    /// developer-defined, set using `DistributedNavigationDelegate.setExpectedNavigationType(_:matching:)`
+    /// developer-defined, set using `WebView.navigator().load(..., withExpectedNavigationType: .custom(.someType))`
     case custom(CustomNavigationType)
 
     public init(_ navigationAction: WebViewNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?) {

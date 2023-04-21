@@ -17,8 +17,8 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
-import os.log
 
 public typealias APIResponse = (data: Data?, response: HTTPURLResponse)
 public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
@@ -76,11 +76,11 @@ public struct APIRequest {
     private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
         let httpResponse = try response.asHTTPURLResponse()
 
-        os_log("Request for %s completed with response code: %s and headers %s",
+        os_log("Request for %s completed with response code: %d and headers %s",
                log: log,
                type: .debug,
                request.url?.absoluteString ?? "",
-               String(describing: httpResponse.statusCode),
+               httpResponse.statusCode,
                String(describing: httpResponse.allHeaderFields))
         
         var data = data

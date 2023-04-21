@@ -19,7 +19,6 @@
 import Combine
 import Common
 import Foundation
-import os.log
 import WebKit
 
 // swiftlint:disable file_length
@@ -179,6 +178,9 @@ private extension DistributedNavigationDelegate {
         })
     }
 
+    /// Instantiates a new Navigation object for a NavigationAction
+    /// or returns an ExpectedNavigation instance for navigations initiated using Navigator
+    /// or returns ongoing Navigation for server redirects
     /// Maps `WKNavigationAction` to `NavigationAction` according to an active server redirect or an expected NavigationType
     @MainActor
     func navigation(for wkNavigationAction: WKNavigationAction, in webView: WKWebView) -> Navigation? {
@@ -258,14 +260,25 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) { // swiftlint:disable:this function_body_length
 
+        // new navigation or an ongoing navigation (for a server-redirect)?
         let navigation = navigation(for: wkNavigationAction, in: webView)
+        // extract WKNavigationAction mapped to NavigationAction from the Navigation or make new for non-main-frame Navigation Actions
         let navigationAction = navigation?.navigationAction
             ?? NavigationAction(webView: webView, navigationAction: wkNavigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, mainFrameNavigation: startedNavigation)
+        // associate NavigationAction with WKNavigationAction object
         wkNavigationAction.navigationAction = navigationAction
 
+        // only for MainFrame navigations: get currently ongoing (started) MainFrame Navigation
+        // or Navigation object associated with the NavigationAction (weak)
+        // it will be different from the Navigation we got above for same-document navigations
         let mainFrameNavigation = withExtendedLifetime(navigation) {
             navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation : nil
         }
+        // ensure the NavigationAction is added to the Navigation
+        if let mainFrameNavigation, mainFrameNavigation.navigationActions.isEmpty {
+            mainFrameNavigation.navigationActionReceived(navigationAction)
+        }
+
         assert(navigationAction.mainFrameNavigation != nil || !navigationAction.isForMainFrame)
         os_log("decidePolicyFor: %s", log: log, type: .default, navigationAction.debugDescription)
 
@@ -284,12 +297,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         var preferences = NavigationPreferences(userAgent: webView.customUserAgent, preferences: wkPreferences)
+        // pass async decision making to Navigation.navigationResponders (or the delegate navigationResponders for non-main-frame navigations)
         let task = makeAsyncDecision(with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
+            // get to next responder until we get non-nil (.next == nil) decision
             guard let decision = await responder.decidePolicy(for: navigationAction, preferences: &preferences) else { return .next }
             os_log("%s: %s decision: %s", log: self.log, type: .default, navigationAction.debugDescription, "\(type(of: responder))", decision.debugDescription)
-
+            // pass non-nil decision to `completion:`
             return decision
 
         } completion: { @MainActor [self] (decision: NavigationActionPolicy?) in
@@ -320,10 +335,12 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
                 decisionHandler(.cancel, wkPreferences)
                 var expectedNavigations = [ExpectedNavigation]()
+                // run the `redirect` closure with a Navigator wrapper collecting all the ExpectedNavigations produced
                 withUnsafeMutablePointer(to: &expectedNavigations) { expectedNavigationsPtr in
                     let navigator = webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation, expectedNavigations: expectedNavigationsPtr)
                     redirect(navigator)
                 }
+                // ignore already started Navigations (they will receive didFail)
                 if mainFrameNavigation?.isCurrent != true {
                     didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
                 }
@@ -335,7 +352,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // don‘t release the original WKNavigationAction until the end
             withExtendedLifetime(wkNavigationAction) {}
 
-        } cancellation: {
+        } /* Task */ cancellation: {
             dispatchPrecondition(condition: .onQueue(.main))
 
             os_log("Task cancelled for %s", log: self.log, type: .default, navigationAction.debugDescription)
