@@ -138,13 +138,15 @@ public class TrackerResolver {
                                             trackerUrlString: String,
                                             resourceType: String,
                                             pageUrlString: String) -> (KnownTracker.Rule, TrackerResolver.RuleAction)? {
-        guard let host = URL(string: pageUrlString)?.host else { return nil }
-        var ruleIndex = 0
-        while let rule = tracker.ruleMatchingUrl(trackerUrlString, startingFrom: ruleIndex) {
-            if let action = rule.action(type: resourceType, host: host) {
-                return (rule, action)
+        guard let host = URL(string: pageUrlString)?.host,
+              let rules = tracker.rules else {
+            return nil
+        }
+        for rule in rules {
+            guard rule.isMatchingUrl(trackerUrlString), let action = rule.action(type: resourceType, host: host) else {
+                continue
             }
-            ruleIndex = tracker.rules!.firstIndex(of: rule)! + 1
+            return (rule, action)
         }
         return nil
     }
@@ -195,28 +197,15 @@ public class TrackerResolver {
 
 }
 
-fileprivate extension KnownTracker {
-
-    func ruleMatchingUrl(_ urlString: String, startingFrom offset: Int = 0) -> KnownTracker.Rule? {
-        guard let rules = rules else { return nil }
-        let range = NSRange(location: 0, length: urlString.utf16.count)
-        for index in offset..<rules.count {
-            let rule = rules[index]
-            guard let pattern = rule.rule,
-                  let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
-                continue
-            }
-
-            if regex.firstMatch(in: urlString, options: [], range: range) != nil {
-                return rule
-            }
-        }
-        return nil
-    }
-
-}
-
 fileprivate extension KnownTracker.Rule {
+
+    func isMatchingUrl(_ urlString: String) -> Bool {
+        guard let pattern = rule, let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return false
+        }
+        let range = NSRange(location: 0, length: urlString.utf16.count)
+        return regex.firstMatch(in: urlString, options: [], range: range) != nil
+    }
     
     func action(type: String, host: String) -> TrackerResolver.RuleAction? {
         // If there is a rule its default action is always block
