@@ -74,7 +74,6 @@ public struct AutofillDomainNameUrlSort: AutofillUrlSort {
                              field2: rhsUrlComponents?.subdomain(tld: tld))
     }
 
-
     private func compareFields(field1: String?, field2: String?) -> ComparisonResult {
         if let field1 = field1, field1.isEmpty, let field2 = field2, field2.isEmpty {
             return .orderedSame
@@ -88,9 +87,9 @@ public struct AutofillDomainNameUrlSort: AutofillUrlSort {
     }
 
     private func bestPrimarySortField(title: String?,
-                              rawDomain: String?,
-                              eTLDplus1: String?,
-                              identicalTitles: Bool) -> String? {
+                                      rawDomain: String?,
+                                      eTLDplus1: String?,
+                                      identicalTitles: Bool) -> String? {
         if !(title ?? "").isEmpty && !identicalTitles {
             return title
         } else if !(eTLDplus1 ?? "").isEmpty {
