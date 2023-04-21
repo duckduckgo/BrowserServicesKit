@@ -173,7 +173,9 @@ extension AutofillUserScript {
             self.id = id
             self.username = username
             self.credentialsProvider = credentialsProvider
-            self.origin = origin
+            // Bitwarden does not include URLs with Creds, so remove any origin we might have
+            // https://app.asana.com/0/0/1204431865163371/
+            self.origin = credentialsProvider == SecureVaultModels.CredentialsProvider.Name.bitwarden.rawValue ? nil : origin
         }
     }
     
