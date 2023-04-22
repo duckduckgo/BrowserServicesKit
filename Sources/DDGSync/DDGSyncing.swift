@@ -85,6 +85,17 @@ public protocol DDGSyncing {
     var crypter: Crypting { get }
 
     var resultsPublisher: ResultsPublishing { get }
+
+    /**
+     Fetch the devices associated with thtis account.
+     */
+    func fetchDevices() async throws -> [RegisteredDevice]
+
+    /**
+    Updated the device name.
+     */
+    func updateDeviceName(_ name: String) async throws -> [RegisteredDevice]
+    
 }
 
 

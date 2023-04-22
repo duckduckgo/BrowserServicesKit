@@ -92,6 +92,9 @@ let package = Package(
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
                 "Networking"
+            ],
+            resources: [
+                .process("SyncPDFTemplate.png")
             ]
         ),
         .target(
@@ -159,6 +162,11 @@ let package = Package(
             ]),
         
         // MARK: - Test targets
+        .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks"
+            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [

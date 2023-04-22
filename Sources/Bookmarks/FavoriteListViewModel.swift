@@ -76,7 +76,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             return
         }
         
-        favorites = favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoritesFolder)
     }
 
     public func favorite(at index: Int) -> BookmarkEntity? {
@@ -98,7 +98,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
 
         save()
         
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoriteFolder)
     }
     
     public func moveFavorite(_ favorite: BookmarkEntity,
@@ -128,7 +128,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         
         save()
         
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoriteFolder)
     }
     
     private func save() {
@@ -140,4 +140,8 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         }
     }
 
+    private func readFavorites(with favoritesFolder: BookmarkEntity) {
+        favorites = (favoritesFolder.favorites?.array as? [BookmarkEntity] ?? [])
+            .filter { !$0.isPendingDeletion }
+    }
 }

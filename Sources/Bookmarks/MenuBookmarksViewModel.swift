@@ -129,7 +129,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     public func favorite(for url: URL) -> BookmarkEntity? {
         BookmarkUtils.fetchBookmark(for: url,
-                                    predicate: NSPredicate(format: "%K == true", #keyPath(BookmarkEntity.isFavorite)),
+                                    predicate: NSPredicate(format: "%K == true AND %K == NO", #keyPath(BookmarkEntity.isFavorite), #keyPath(BookmarkEntity.isPendingDeletion)),
                                     context: context)
     }
     

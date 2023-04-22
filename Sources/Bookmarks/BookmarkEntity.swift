@@ -33,7 +33,6 @@ public class BookmarkEntity: NSManagedObject {
         case mustExistInsideRootFolder
         case folderStructureHasCycle
         case folderHasURL
-        case bookmarkRequiresURL
         case invalidFavoritesFolder
         case invalidFavoritesStatus
     }
@@ -55,7 +54,10 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged fileprivate(set) public var favoriteFolder: BookmarkEntity?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
-    
+
+    @NSManaged public fileprivate(set) var isPendingDeletion: Bool
+    @NSManaged public var modifiedAt: Date?
+
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: BookmarkEntity.entity(in: moc),
                   insertInto: moc)
@@ -66,6 +68,14 @@ public class BookmarkEntity: NSManagedObject {
         
         uuid = UUID().uuidString
         isFavorite = false
+    }
+
+    public override func willSave() {
+        let changedKeys = changedValues().keys
+        guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
+            return
+        }
+        modifiedAt = Date()
     }
 
     public override func validateForInsert() throws {
@@ -88,7 +98,8 @@ public class BookmarkEntity: NSManagedObject {
     }
     
     public var childrenArray: [BookmarkEntity] {
-        children?.array as? [BookmarkEntity] ?? []
+        let children = children?.array as? [BookmarkEntity] ?? []
+        return children.filter { $0.isPendingDeletion == false }
     }
 
     public static func makeFolder(title: String,
@@ -143,6 +154,22 @@ public class BookmarkEntity: NSManagedObject {
         isFavorite = false
         favoriteFolder = nil
     }
+
+    public func markPendingDeletion() {
+        var queue: [BookmarkEntity] = [self]
+
+        while !queue.isEmpty {
+            let currentObject = queue.removeFirst()
+
+            currentObject.url = nil
+            currentObject.title = nil
+            currentObject.isPendingDeletion = true
+
+            if currentObject.isFolder {
+                queue.append(contentsOf: currentObject.childrenArray)
+            }
+        }
+    }
 }
 
 // MARK: Validation
@@ -150,7 +177,6 @@ extension BookmarkEntity {
 
     func validate() throws {
         try validateThatEntitiesExistInsideTheRootFolder()
-        try validateBookmarkURLRequirement()
         try validateThatFoldersDoNotHaveURLs()
         try validateThatFolderHierarchyHasNoCycles()
         try validateFavoritesStatus()
@@ -161,12 +187,6 @@ extension BookmarkEntity {
         if parent == nil,
            Constants.favoritesFolderID != uuid && Constants.rootFolderID != uuid {
             throw Error.mustExistInsideRootFolder
-        }
-    }
-
-    func validateBookmarkURLRequirement() throws {
-        if !isFolder, url == nil {
-            throw Error.bookmarkRequiresURL
         }
     }
 
