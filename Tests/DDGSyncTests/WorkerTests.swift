@@ -58,9 +58,14 @@ struct DataProvidingMock: DataProviding {
     var feature: Feature
     var lastSyncTimestamp: String?
     var changes: (String?) async throws -> [Syncable] = { _ in return [] }
-    
+    var handleSyncResult: ([Syncable], [Syncable], String?) async throws -> Void = { _,_,_  in }
+
     func changes(since timestamp: String?) async throws -> [Syncable] {
         return try await changes(timestamp)
+    }
+
+    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?) async throws {
+        try await handleSyncResult(sent, received, timestamp)
     }
 }
 
@@ -181,16 +186,20 @@ class WorkerTests: XCTestCase {
             Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
         ]
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        var sentModels: [Syncable] = []
         dataProvider.lastSyncTimestamp = "1234"
-        dataProvider.changes = { _ in objectsToSync } 
+        dataProvider.changes = { _ in objectsToSync }
+        dataProvider.handleSyncResult = { sent, _, _ in
+            sentModels = sent
+        }
 
         let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
 
         request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
-        let results = try await worker.sync()
+        try await worker.sync()
 
-        XCTAssertTrue(try results[0].sent.isJSONRepresentationEquivalent(to: objectsToSync))
+        XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
     }
 }
 

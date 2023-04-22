@@ -30,20 +30,19 @@ struct Endpoints {
         guard !features.isEmpty else {
             throw SyncError.noFeaturesSpecified
         }
-        return syncGetBase.appendingPathComponent(features.joined(separator: ","))
+        return syncGet.appendingPathComponent(features.joined(separator: ","))
     }
     
+    let syncGet: URL
     let syncPatch: URL
 
-    private let syncGetBase: URL
-    
     init(baseUrl: URL) {
         signup = baseUrl.appendingPathComponent("sync/signup")
         login = baseUrl.appendingPathComponent("sync/login")
         logoutDevice = baseUrl.appendingPathComponent("sync/logout-device")
         connect = baseUrl.appendingPathComponent("sync/connect")
 
-        syncGetBase = baseUrl.appendingPathComponent("sync")
+        syncGet = baseUrl.appendingPathComponent("sync")
         syncPatch = baseUrl.appendingPathComponent("sync/data")
     }
     

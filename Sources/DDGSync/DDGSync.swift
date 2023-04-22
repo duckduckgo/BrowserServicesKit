@@ -102,9 +102,7 @@ public class DDGSync: DDGSyncing {
     public var scheduler: Scheduling {
         dependencies.scheduler
     }
-    public var resultsPublisher: ResultsPublishing {
-        dependencies.engine
-    }
+
     public var crypter: Crypting {
         dependencies.crypter
     }

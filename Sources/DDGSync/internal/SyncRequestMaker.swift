@@ -21,7 +21,7 @@ import Foundation
 
 protocol SyncRequestMaking {
     func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting
-    func makePatchRequest(with results: [Feature: ResultsProvider]) throws -> HTTPRequesting
+    func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting
 }
 
 struct SyncRequestMaker: SyncRequestMaking {
@@ -42,7 +42,7 @@ struct SyncRequestMaker: SyncRequestMaking {
         )
     } 
 
-    func makePatchRequest(with results: [Feature: ResultsProvider]) throws -> HTTPRequesting {
+    func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
         var json = [String: Any]()
         for (feature, result) in results {
             let modelPayload: [String: Any?] = [

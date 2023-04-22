@@ -84,8 +84,6 @@ public protocol DDGSyncing {
 
     var crypter: Crypting { get }
 
-    var resultsPublisher: ResultsPublishing { get }
-
     /**
      Fetch the devices associated with thtis account.
      */
@@ -131,14 +129,6 @@ public protocol Scheduling {
     func notifyAppLifecycleEvent()
     /// This should be called from externally scheduled background jobs that trigger sync periodically.
     func requestSyncImmediately()
-}
-
-/**
- * Public interface for sync results publisher.
- */
-public protocol ResultsPublishing {
-    /// Used for receiving sync data
-    var results: AnyPublisher<[ResultsProviding], Never> { get }
 }
 
 /**
@@ -202,4 +192,11 @@ public protocol DataProviding {
      * If `timestamp` is nil, include all objects.
      */
     func changes(since timestamp: String?) async throws -> [Syncable]
+
+    /**
+     * Client apps should implement this function and return data to be synced for `feature` based on `timestamp`.
+     *
+     * If `timestamp` is nil, include all objects.
+     */
+    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?) async throws
 }

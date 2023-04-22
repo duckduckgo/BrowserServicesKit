@@ -23,7 +23,7 @@ import Combine
 /**
  * Internal interface for sync engine.
  */
-protocol EngineProtocol: ResultsPublishing {
+protocol EngineProtocol {
     /// Used for passing data to sync
     var dataProviders: [DataProviding] { get }
     /// Called to start sync
@@ -33,7 +33,6 @@ protocol EngineProtocol: ResultsPublishing {
 class Engine: EngineProtocol {
 
     let dataProviders: [DataProviding]
-    let results: AnyPublisher<[ResultsProviding], Never>
 
     init(
         dataProviders: [DataProviding],
@@ -44,17 +43,13 @@ class Engine: EngineProtocol {
         self.dataProviders = dataProviders
         let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         self.worker = Worker(dataProviders: dataProviders, requestMaker: requestMaker)
-
-        results = resultsSubject.eraseToAnyPublisher()
     }
 
     func startSync() {
         Task {
-            let results = try await worker.sync()
-            resultsSubject.send(results)
+            try await worker.sync()
         }
     }
 
     private let worker: WorkerProtocol
-    private let resultsSubject = PassthroughSubject<[ResultsProviding], Never>()
 }

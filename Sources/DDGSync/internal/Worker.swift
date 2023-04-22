@@ -26,10 +26,10 @@ import Combine
 protocol WorkerProtocol {
     var dataProviders: [Feature: DataProviding] { get }
 
-    func sync() async throws -> [ResultsProviding]
+    func sync() async throws
 }
 
-struct ResultsProvider: ResultsProviding {
+struct SyncResult {
     let feature: Feature
     let previousSyncTimestamp: String?
     let sent: [Syncable]
@@ -52,17 +52,17 @@ actor Worker: WorkerProtocol {
         self.requestMaker = requestMaker
     }
 
-    func sync() async throws -> [ResultsProviding] {
+    func sync() async throws {
 
         // Collect last sync timestamp and changes per feature
-        var results = try await withThrowingTaskGroup(of: [Feature: ResultsProvider].self) { group in
-            var results: [Feature: ResultsProvider] = [:]
+        var results = try await withThrowingTaskGroup(of: [Feature: SyncResult].self) { group in
+            var results: [Feature: SyncResult] = [:]
 
             for dataProvider in self.dataProviders.values {
                 let previousSyncTimestamp = dataProvider.lastSyncTimestamp
                 let localChanges = try await dataProvider.changes(since: previousSyncTimestamp)
-                let resultProvider = ResultsProvider(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
-                results[dataProvider.feature] = resultProvider
+                let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
+                results[dataProvider.feature] = result
             }
             return results
         }
@@ -79,13 +79,15 @@ actor Worker: WorkerProtocol {
             try decodeResponse(with: data, into: &results)
             fallthrough
         case 204, 304:
-            return Array(results.values)
+            for (feature, result) in results {
+                try await dataProviders[feature]?.handleSyncResult(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp)
+            }
         default:
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }
     }
 
-    private func decodeResponse(with data: Data, into results: inout [Feature: ResultsProvider]) throws {
+    private func decodeResponse(with data: Data, into results: inout [Feature: SyncResult]) throws {
         guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
             throw SyncError.unexpectedResponseBody
         }
