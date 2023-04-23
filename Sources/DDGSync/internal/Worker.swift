@@ -60,7 +60,12 @@ actor Worker: WorkerProtocol {
 
             for dataProvider in self.dataProviders.values {
                 let previousSyncTimestamp = dataProvider.lastSyncTimestamp
-                let localChanges = try await dataProvider.changes(since: previousSyncTimestamp)
+                let localChanges: [Syncable] = try await {
+                    if previousSyncTimestamp != nil {
+                        return try await dataProvider.fetchChangedObjects()
+                    }
+                    return try await dataProvider.fetchAllObjects()
+                }()
                 let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
                 results[dataProvider.feature] = result
             }

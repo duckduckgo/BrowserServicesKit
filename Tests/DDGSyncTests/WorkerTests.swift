@@ -57,11 +57,16 @@ struct DataProvidingMock: DataProviding {
 
     var feature: Feature
     var lastSyncTimestamp: String?
-    var changes: (String?) async throws -> [Syncable] = { _ in return [] }
+    var _fetchChangedObjects: () async throws -> [Syncable] = { return [] }
+    var _fetchAllObjects: () async throws -> [Syncable] = { return [] }
     var handleSyncResult: ([Syncable], [Syncable], String?) async throws -> Void = { _,_,_  in }
 
-    func changes(since timestamp: String?) async throws -> [Syncable] {
-        return try await changes(timestamp)
+    func fetchChangedObjects() async throws -> [Syncable] {
+        try await _fetchChangedObjects()
+    }
+
+    func fetchAllObjects() async throws -> [Syncable] {
+        try await _fetchAllObjects()
     }
 
     func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?) async throws {
@@ -113,8 +118,9 @@ class WorkerTests: XCTestCase {
 
     func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.changes = { _ in
-            return [Syncable(jsonObject: [:])]
+        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider._fetchChangedObjects = {
+            [Syncable(jsonObject: [:])]
         }
         let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
 
@@ -129,7 +135,7 @@ class WorkerTests: XCTestCase {
     func testThatMultipleDataProvidersGetSerializedIntoRequestPayload() async throws {
         var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
         dataProvider1.lastSyncTimestamp = "1234"
-        dataProvider1.changes = { _ in
+        dataProvider1._fetchChangedObjects = {
             [
                 Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
                 Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
@@ -137,7 +143,7 @@ class WorkerTests: XCTestCase {
         }
         var dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
         dataProvider2.lastSyncTimestamp = "5678"
-        dataProvider2.changes = { _ in
+        dataProvider2._fetchChangedObjects = {
             [
                 Syncable(jsonObject: ["key": "setting-a", "value": "value-a"]),
                 Syncable(jsonObject: ["key": "setting-b", "value": "value-b"])
@@ -145,7 +151,7 @@ class WorkerTests: XCTestCase {
         }
         var dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
         dataProvider3.lastSyncTimestamp = "9012"
-        dataProvider3.changes = { _ in
+        dataProvider3._fetchChangedObjects = {
             [
                 Syncable(jsonObject: ["id": "1", "login": "login1", "password": "password1", "url": "https://example.com"]),
                 Syncable(jsonObject: ["id": "2", "login": "login2", "password": "password2", "url": "https://example.com"])
@@ -188,7 +194,7 @@ class WorkerTests: XCTestCase {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         var sentModels: [Syncable] = []
         dataProvider.lastSyncTimestamp = "1234"
-        dataProvider.changes = { _ in objectsToSync }
+        dataProvider._fetchChangedObjects = { objectsToSync }
         dataProvider.handleSyncResult = { sent, _, _ in
             sentModels = sent
         }

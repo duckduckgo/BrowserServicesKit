@@ -182,21 +182,26 @@ public protocol DataProviding {
      * Time of last successful sync of a given feature.
      *
      * Note that it's a String as this is the server timestamp and should not be treated as date
-     * and as such used in comparing timestamps. It's merely an identifier of last sync.
+     * and as such used in comparing timestamps. It's merely an identifier of the last sync operation.
      */
     var lastSyncTimestamp: String? { get }
 
     /**
-     * Client apps should implement this function and return data to be synced for `feature` based on `timestamp`.
-     *
-     * If `timestamp` is nil, include all objects.
+     * Return objects that have changed since last sync.
      */
-    func changes(since timestamp: String?) async throws -> [Syncable]
+    func fetchChangedObjects() async throws -> [Syncable]
 
     /**
-     * Client apps should implement this function and return data to be synced for `feature` based on `timestamp`.
+     * Return all objects to be synced during initial sync operation.
+     */
+    func fetchAllObjects() async throws -> [Syncable]
+
+    /**
+     * Apply sync operation result.
      *
-     * If `timestamp` is nil, include all objects.
+     * - Parameter sent: Objects that were sent to the server.
+     * - Parameter received: Objects that were received from the server.
+     * - Parameter timestamp: Timestamp of the last sync operation.
      */
     func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?) async throws
 }
