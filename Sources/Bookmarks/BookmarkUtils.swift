@@ -76,4 +76,11 @@ public struct BookmarkUtils {
 
         return (try? context.fetch(request)) ?? []
     }
+
+    public static func fetchModifiedBookmarks(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K != nil", #keyPath(BookmarkEntity.modifiedAt))
+
+        return (try? context.fetch(request)) ?? []
+    }
 }
