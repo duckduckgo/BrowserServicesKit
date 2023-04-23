@@ -32,14 +32,7 @@ struct SyncRequestMaker: SyncRequestMaking {
 
     func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting {
         let url = try endpoints.syncGet(features: features.map(\.name))
-        return api.createRequest(
-            url: url,
-            method: .GET,
-            headers: ["Authorization": "Bearer \(try getToken())"],
-            parameters: [:],
-            body: nil,
-            contentType: nil
-        )
+        return api.createAuthenticatedGetRequest(url: url, authToken: try getToken())
     } 
 
     func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
@@ -53,14 +46,7 @@ struct SyncRequestMaker: SyncRequestMaking {
         }
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
-        return api.createRequest(
-            url: endpoints.syncPatch,
-            method: .PATCH,
-            headers: ["Authorization": "Bearer \(try getToken())"],
-            parameters: [:],
-            body: body,
-            contentType: "application/json"
-        )
+        return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
     }
 
     private func getToken() throws -> String {
