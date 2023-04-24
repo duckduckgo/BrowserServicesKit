@@ -102,6 +102,11 @@ public class BookmarkEntity: NSManagedObject {
         return children.filter { $0.isPendingDeletion == false }
     }
 
+    public var favoritesArray: [BookmarkEntity] {
+        let children = favorites?.array as? [BookmarkEntity] ?? []
+        return children.filter { $0.isPendingDeletion == false }
+    }
+
     public static func makeFolder(title: String,
                                   parent: BookmarkEntity,
                                   insertAtBeginning: Bool = false,
