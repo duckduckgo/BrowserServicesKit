@@ -91,7 +91,7 @@ final public class UserContentController: WKUserContentController {
         super.init()
 
         cancellable = assetsPublisher.sink { [weak self] content in
-            Task {
+            Task { [weak self] in
                 self?.contentBlockingAssets = await ContentBlockingAssets(content: content)
             }
         }
