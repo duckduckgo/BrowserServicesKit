@@ -69,6 +69,9 @@ public final class BookmarkDatabaseCleaner {
 
             while true {
                 let bookmarksPendingDeletion = fetchBookmarksPendingDeletion(context)
+                if bookmarksPendingDeletion.isEmpty {
+                    break
+                }
 
                 for bookmark in bookmarksPendingDeletion {
                     context.delete(bookmark)
