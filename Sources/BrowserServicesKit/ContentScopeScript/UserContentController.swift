@@ -18,6 +18,7 @@
 
 import WebKit
 import Combine
+import Common
 import UserScript
 
 public protocol UserContentControllerDelegate: AnyObject {
@@ -63,7 +64,8 @@ final public class UserContentController: WKUserContentController {
     @Published public private(set) var contentBlockingAssets: ContentBlockingAssets? {
         willSet {
             self.removeAllContentRuleLists()
-            self.removeAllUserScripts()
+            // only remove WKUserScripts, keep PermanentScriptMessageHandler registered handlers
+            super.removeAllUserScripts()
         }
         didSet {
             guard let contentBlockingAssets = contentBlockingAssets else { return }
@@ -153,6 +155,16 @@ final public class UserContentController: WKUserContentController {
         wkUserScripts.forEach(self.addUserScript)
     }
 
+    public override func removeAllUserScripts() {
+        super.removeAllUserScripts()
+        if #available(macOS 11.0, *) {
+            self.removeAllScriptMessageHandlers()
+        } else {
+            self.scriptMessageHandler.registeredMessageNames.forEach(self.removeScriptMessageHandler)
+        }
+        self.scriptMessageHandler.clear()
+    }
+
     func addHandler(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
             assert(scriptMessageHandler.messageHandler(for: messageName) == nil || type(of: scriptMessageHandler.messageHandler(for: messageName)!) == type(of: userScript),
@@ -208,6 +220,14 @@ private class PermanentScriptMessageHandler: NSObject, WKScriptMessageHandler, W
         weak var handler: WKScriptMessageHandler?
     }
     private var registeredMessageHandlers = [String: WeakScriptMessageHandlerBox]()
+
+    var registeredMessageNames: [String] {
+        Array(registeredMessageHandlers.keys)
+    }
+
+    func clear() {
+        self.registeredMessageHandlers.removeAll()
+    }
 
     func isMessageHandlerRegistered(for messageName: String) -> Bool {
         return self.registeredMessageHandlers[messageName] != nil
