@@ -28,6 +28,7 @@ struct SyncRequestMaker: SyncRequestMaking {
     let storage: SecureStoring
     let api: RemoteAPIRequestCreating 
     let endpoints: Endpoints
+    let dateFormatter = ISO8601DateFormatter()
 
 
     func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting {
@@ -44,6 +45,7 @@ struct SyncRequestMaker: SyncRequestMaking {
             ]
             json[feature.name] = modelPayload
         }
+        json["client_timestamp"] = dateFormatter.string(from: Date())
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
         return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
