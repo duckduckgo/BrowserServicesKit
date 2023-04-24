@@ -21,6 +21,7 @@ import Persistence
 import CoreData
 
 public protocol SyncMetadataStore {
+    func registerFeature(named name: String)
     func timestamp(forFeatureNamed name: String) -> String?
     func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String)
 }
@@ -33,6 +34,17 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
 
     public init(context: NSManagedObjectContext) {
         self.context = context
+    }
+
+    public func registerFeature(named name: String) {
+        context.performAndWait {
+            if SyncFeatureUtils.fetchFeature(with: name, in: context) != nil {
+                return
+            }
+
+            SyncFeatureEntity.makeFeature(with: name, in: context)
+            try? context.save()
+        }
     }
 
     public func timestamp(forFeatureNamed name: String) -> String? {

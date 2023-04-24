@@ -20,7 +20,7 @@
 import Foundation
 import CoreData
 
-@objc
+@objc(SyncFeatureEntity)
 public class SyncFeatureEntity: NSManagedObject {
 
     @nonobjc public class func fetchRequest() -> NSFetchRequest<SyncFeatureEntity> {
