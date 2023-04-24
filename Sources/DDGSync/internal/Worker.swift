@@ -26,7 +26,7 @@ import Combine
 protocol WorkerProtocol {
     var dataProviders: [Feature: DataProviding] { get }
 
-    func sync() async throws
+    func sync(initial: Bool) async throws
 }
 
 struct SyncResult {
@@ -52,22 +52,26 @@ actor Worker: WorkerProtocol {
         self.requestMaker = requestMaker
     }
 
-    func sync() async throws {
+    func sync(initial: Bool) async throws {
 
         // Collect last sync timestamp and changes per feature
         var results = try await withThrowingTaskGroup(of: [Feature: SyncResult].self) { group in
             var results: [Feature: SyncResult] = [:]
 
             for dataProvider in self.dataProviders.values {
-                let previousSyncTimestamp = dataProvider.lastSyncTimestamp
-                let localChanges: [Syncable] = try await {
-                    if previousSyncTimestamp != nil {
-                        return try await dataProvider.fetchChangedObjects()
-                    }
-                    return try await dataProvider.fetchAllObjects()
-                }()
-                let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
-                results[dataProvider.feature] = result
+                if initial {
+                    results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: nil, sent: [])
+                } else {
+                    let previousSyncTimestamp = dataProvider.lastSyncTimestamp
+                    let localChanges: [Syncable] = try await {
+                        if previousSyncTimestamp != nil {
+                            return try await dataProvider.fetchChangedObjects()
+                        }
+                        return try await dataProvider.fetchAllObjects()
+                    }()
+                    let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
+                    results[dataProvider.feature] = result
+                }
             }
             return results
         }

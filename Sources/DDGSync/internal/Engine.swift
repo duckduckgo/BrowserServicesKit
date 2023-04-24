@@ -28,11 +28,15 @@ protocol EngineProtocol {
     var dataProviders: [DataProviding] { get }
     /// Called to start sync
     func startSync()
+    /// Emits events when sync each operation ends
+    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }
 
 class Engine: EngineProtocol {
 
     let dataProviders: [DataProviding]
+    let storage: SecureStoring
+    let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
 
     init(
         dataProviders: [DataProviding],
@@ -41,15 +45,28 @@ class Engine: EngineProtocol {
         endpoints: Endpoints
     ) {
         self.dataProviders = dataProviders
+        self.storage = storage
         let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
-        self.worker = Worker(dataProviders: dataProviders, requestMaker: requestMaker)
+        worker = Worker(dataProviders: dataProviders, requestMaker: requestMaker)
+        syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
     }
 
     func startSync() {
         Task {
-            try await worker.sync()
+            do {
+                let syncState = (try? storage.account()?.state) ?? .active
+                try await worker.sync(initial: syncState != .active)
+                if syncState != .active, let account = try? storage.account()?.updatingState(.active) {
+                    try storage.persistAccount(account)
+                    syncDidFinishSubject.send(.success(()))
+                }
+            } catch {
+                print(error.localizedDescription)
+                syncDidFinishSubject.send(.failure(error))
+            }
         }
     }
 
     private let worker: WorkerProtocol
+    private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
 }

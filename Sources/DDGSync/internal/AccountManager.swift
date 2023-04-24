@@ -68,7 +68,8 @@ struct AccountManager: AccountManaging {
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
-                           token: result.token)
+                           token: result.token,
+                           state: .active)
     }
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
@@ -184,7 +185,8 @@ struct AccountManager: AccountManaging {
                 userId: info.userId,
                 primaryKey: info.primaryKey,
                 secretKey: secretKey,
-                token: token
+                token: token,
+                state: .addNewDevice
             ),
             devices: try result.devices.map {
                 RegisteredDevice(
@@ -255,14 +257,14 @@ struct AccountManager: AccountManaging {
 
 extension SyncAccount {
 
-    func updatingDeviceName(_ deviceName: String) -> SyncAccount {
+    func updatingState(_ state: SyncState) -> SyncAccount {
         SyncAccount(deviceId: self.deviceId,
-                    deviceName: deviceName,
+                    deviceName: self.deviceName,
                     deviceType: self.deviceType,
                     userId: self.userId,
                     primaryKey: self.primaryKey,
                     secretKey: self.secretKey,
-                    token: self.token)
+                    token: self.token,
+                    state: state)
     }
-
 }

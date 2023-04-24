@@ -32,9 +32,9 @@ public class DDGSync: DDGSyncing {
 #endif
     }
 
-    @Published public private(set) var isAuthenticated: Bool
-    public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
-        $isAuthenticated.eraseToAnyPublisher()
+    @Published public private(set) var state: SyncState
+    public var statePublisher: AnyPublisher<SyncState, Never> {
+        $state.eraseToAnyPublisher()
     }
 
     public var account: SyncAccount? {
@@ -54,7 +54,7 @@ public class DDGSync: DDGSyncing {
 
         let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(account)
-        updateIsAuthenticated()
+        updateState()
     }
 
     public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws {
@@ -64,7 +64,7 @@ public class DDGSync: DDGSyncing {
 
         let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
-        updateIsAuthenticated()
+        updateState()
     }
 
     public func remoteConnect() throws -> RemoteConnecting {
@@ -96,7 +96,7 @@ public class DDGSync: DDGSyncing {
         }
         try dependencies.secureStore.removeAccount()
         try await dependencies.account.logout(deviceId: deviceId, token: token)
-        updateIsAuthenticated()
+        updateState()
     }
 
     public var scheduler: Scheduling {
@@ -131,17 +131,30 @@ public class DDGSync: DDGSyncing {
 
     init(dependencies: SyncDependencies) {
         self.dependencies = dependencies
-        self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
+        self.state = (try? dependencies.secureStore.account()?.token) != nil ? .active : .inactive
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
                 self?.dependencies.engine.startSync()
             }
+
+        syncDidFinishCancellable = dependencies.engine.syncDidFinishPublisher
+            .sink { [weak self] result in
+                if case .success = result {
+                    self?.updateState()
+                }
+            }
     }
 
-    private func updateIsAuthenticated() {
-        isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
+    private func updateState() {
+        let previousState = state
+        state = (try? dependencies.secureStore.account()?.state) ?? .inactive
+
+        if previousState == .inactive && state != .inactive {
+            dependencies.engine.startSync()
+        }
     }
 
     private var startSyncCancellable: AnyCancellable?
+    private var syncDidFinishCancellable: AnyCancellable?
 }

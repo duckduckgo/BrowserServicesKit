@@ -20,17 +20,32 @@ import Foundation
 import DDGSyncCrypto
 import Combine
 
+public enum SyncState: String, Sendable, Codable {
+    /// Sync is not enabled.
+    case inactive
+    /// Sync is in progress of registering new account.
+    case setupNewAccount
+    /// Sync is in progress of adding a new device to an existing account.
+    case addNewDevice
+    /// User is logged in to sync.
+    case active
+}
+
 public protocol DDGSyncing {
 
     /**
+     Describes current state of sync.
+
      This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
      */
-    var isAuthenticated: Bool { get }
+    var state: SyncState { get }
 
     /**
+     Describes current state of sync.
+
      This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
      */
-    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
+    var statePublisher: AnyPublisher<SyncState, Never> { get }
 
     /**
      The currently logged in sync account. Returns nil if client is not authenticated
