@@ -152,6 +152,20 @@ public class DDGSync: DDGSyncing {
         return []
     }
 
+    public func deleteAccount() async throws {
+        guard let account = try dependencies.secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        do {
+            try await dependencies.account.deleteAccount(account)
+            try dependencies.secureStore.removeAccount()
+            updateIsAuthenticated()
+        } catch {
+            try handleUnauthenticated(error)
+        }
+    }
+
     // MARK: -
 
     let persistence: LocalDataPersisting
