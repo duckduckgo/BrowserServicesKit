@@ -151,7 +151,7 @@ public class DDGSync: DDGSyncing {
         state = (try? dependencies.secureStore.account()?.state) ?? .inactive
 
         if previousState == .inactive && state != .inactive {
-            dependencies.engine.startSync()
+            dependencies.engine.setUpAndStartFirstSync()
         }
     }
 

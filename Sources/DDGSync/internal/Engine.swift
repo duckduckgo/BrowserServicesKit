@@ -27,6 +27,8 @@ protocol EngineProtocol {
     /// Used for passing data to sync
     var dataProviders: [DataProviding] { get }
     /// Called to start sync
+    func setUpAndStartFirstSync()
+    /// Called to start sync
     func startSync()
     /// Emits events when sync each operation ends
     var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
@@ -49,6 +51,13 @@ class Engine: EngineProtocol {
         let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         worker = Worker(dataProviders: dataProviders, requestMaker: requestMaker)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
+    }
+
+    func setUpAndStartFirstSync() {
+        for dataProvider in dataProviders {
+            dataProvider.prepareForFirstSync()
+        }
+        startSync()
     }
 
     func startSync() {

@@ -202,6 +202,13 @@ public protocol DataProviding {
     var lastSyncTimestamp: String? { get }
 
     /**
+     * Prepare data models for first sync.
+     *
+     * This function is called before the initial sync is performed.
+     */
+    func prepareForFirstSync()
+
+    /**
      * Return objects that have changed since last sync.
      */
     func fetchChangedObjects() async throws -> [Syncable]
