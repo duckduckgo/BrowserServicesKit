@@ -224,10 +224,11 @@ class DefaultSecureVault: SecureVault {
         defer {
             lock.unlock()
         }
-
+        var creds = credentials
         do {
-            let encryptedPassword = try self.l2Encrypt(data: credentials.password)
-            return try self.providers.database.storeWebsiteCredentials(.init(account: credentials.account, password: encryptedPassword))
+            creds.account.pwdHash = try providers.crypto.hashData(creds.password)
+            let encryptedPassword = try self.l2Encrypt(data: creds.password)
+            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
@@ -390,7 +391,7 @@ class DefaultSecureVault: SecureVault {
         }
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }
-
+    
     private func l2Encrypt(data: Data) throws -> Data {
         let password = try passwordInUse()
         let l2Key = try l2KeyFrom(password: password)

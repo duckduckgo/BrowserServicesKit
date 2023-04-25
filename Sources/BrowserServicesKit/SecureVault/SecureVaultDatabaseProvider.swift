@@ -89,6 +89,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
         migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
@@ -640,6 +641,12 @@ extension DefaultDatabaseProvider {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.notes.name, .text)
         }
     }
+    
+    static func migrateV8(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.pwdHash.name, .text)            
+        }
+    }
 
 }
 
@@ -716,7 +723,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, username, domain, notes, created, lastUpdated
+        case id, title, username, domain, pwdHash, pwdSalt, notes, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -724,6 +731,8 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         title = row[Columns.title]
         username = row[Columns.username]
         domain = row[Columns.domain]
+        pwdHash = row[Columns.pwdHash]
+        pwdSalt = row[Columns.pwdSalt]
         notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
@@ -734,6 +743,8 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
+        container[Columns.pwdHash] = pwdHash
+        container[Columns.pwdSalt] = pwdSalt
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
