@@ -65,6 +65,10 @@ class SyncScheduler: SchedulingInternal {
 
     enum Const {
         static let immediateSyncDebounceInterval = 1
+        #if DEBUG
+        static let appLifecycleEventsDebounceInterval = 60
+        #else
         static let appLifecycleEventsDebounceInterval = 600
+        #endif
     }
 }

@@ -63,10 +63,10 @@ actor Worker: WorkerProtocol {
             var results: [Feature: SyncResult] = [:]
 
             for dataProvider in self.dataProviders.values {
+                let previousSyncTimestamp = dataProvider.lastSyncTimestamp
                 if fetchOnly {
-                    results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: nil, sent: [])
+                    results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: [])
                 } else {
-                    let previousSyncTimestamp = dataProvider.lastSyncTimestamp
                     let localChanges: [Syncable] = try await {
                         if previousSyncTimestamp != nil {
                             return try await dataProvider.fetchChangedObjects()
@@ -81,7 +81,7 @@ actor Worker: WorkerProtocol {
         }
 
         let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
-        let request: HTTPRequesting = hasLocalChanges ? try requestMaker.makePatchRequest(with: results) : try requestMaker.makeGetRequest(for: Array(dataProviders.keys))
+        let request: HTTPRequesting = hasLocalChanges ? try requestMaker.makePatchRequest(with: results) : try requestMaker.makeGetRequest(with: results)
         let result: HTTPResult = try await request.execute()
 
         if let data = result.data {

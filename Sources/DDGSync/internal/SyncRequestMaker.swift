@@ -20,7 +20,7 @@
 import Foundation
 
 protocol SyncRequestMaking {
-    func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting
+    func makeGetRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting
     func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting
 }
 
@@ -31,9 +31,10 @@ struct SyncRequestMaker: SyncRequestMaking {
     let dateFormatter = ISO8601DateFormatter()
 
 
-    func makeGetRequest(for features: [Feature]) throws -> HTTPRequesting {
-        let url = try endpoints.syncGet(features: features.map(\.name))
-        return api.createAuthenticatedGetRequest(url: url, authToken: try getToken())
+    func makeGetRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
+        let url = try endpoints.syncGet(features: results.keys.map(\.name))
+        let timestamps = results.values.map({ $0.previousSyncTimestamp ?? "0" }).lazy.joined(separator: ",")
+        return api.createAuthenticatedGetRequest(url: url, authToken: try getToken(), parameters: ["since": timestamps])
     } 
 
     func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
