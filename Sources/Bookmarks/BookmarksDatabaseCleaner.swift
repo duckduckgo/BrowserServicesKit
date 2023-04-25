@@ -70,6 +70,7 @@ public final class BookmarkDatabaseCleaner {
             while true {
                 let bookmarksPendingDeletion = fetchBookmarksPendingDeletion(context)
                 if bookmarksPendingDeletion.isEmpty {
+                    print("No bookmarks pending deletion")
                     break
                 }
 
@@ -79,6 +80,7 @@ public final class BookmarkDatabaseCleaner {
 
                 do {
                     try context.save()
+                    print("Successfully purged \(bookmarksPendingDeletion.count) bookmarks")
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {

@@ -25,11 +25,11 @@ public class DDGSync: DDGSyncing {
     public static let bundle = Bundle.module
 
     enum Constants {
-#if DEBUG
+//#if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-#else
-        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-#endif
+//#else
+//        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
+//#endif
     }
 
     @Published public private(set) var state: SyncState
