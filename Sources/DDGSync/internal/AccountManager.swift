@@ -69,7 +69,7 @@ struct AccountManager: AccountManaging {
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
                            token: result.token,
-                           state: .active)
+                           state: .setupNewAccount)
     }
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {

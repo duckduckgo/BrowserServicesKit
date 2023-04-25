@@ -53,6 +53,10 @@ actor Worker: WorkerProtocol {
     }
 
     func sync(initial: Bool) async throws {
+        print("Sync Operation Started. Initial: \(initial)")
+        defer {
+            print("Sync Operation Finished. Initial: \(initial)")
+        }
 
         // Collect last sync timestamp and changes per feature
         var results = try await withThrowingTaskGroup(of: [Feature: SyncResult].self) { group in
@@ -79,6 +83,10 @@ actor Worker: WorkerProtocol {
         let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
         let request: HTTPRequesting = hasLocalChanges ? try requestMaker.makePatchRequest(with: results) : try requestMaker.makeGetRequest(for: Array(dataProviders.keys))
         let result: HTTPResult = try await request.execute()
+
+        if let data = result.data {
+            print(String(data: data, encoding: .utf8)!)
+        }
 
         switch result.response.statusCode {
         case 200:

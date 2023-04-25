@@ -54,12 +54,19 @@ class Engine: EngineProtocol {
     func startSync() {
         Task {
             do {
-                let syncState = (try? storage.account()?.state) ?? .active
-                try await worker.sync(initial: syncState != .active)
-                if syncState != .active, let account = try? storage.account()?.updatingState(.active) {
+                let isInitialSync: Bool = try {
+                    let syncState = (try storage.account()?.state) ?? .active
+                    return syncState != .active
+                }()
+
+                try await worker.sync(initial: isInitialSync)
+
+                if isInitialSync, let account = try storage.account()?.updatingState(.active) {
                     try storage.persistAccount(account)
-                    syncDidFinishSubject.send(.success(()))
+                    try await worker.sync(initial: false)
                 }
+
+                syncDidFinishSubject.send(.success(()))
             } catch {
                 print(error.localizedDescription)
                 syncDidFinishSubject.send(.failure(error))
