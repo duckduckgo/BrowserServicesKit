@@ -723,7 +723,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, username, domain, pwdHash, pwdSalt, notes, created, lastUpdated
+        case id, title, username, domain, pwdHash, notes, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -732,7 +732,6 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         username = row[Columns.username]
         domain = row[Columns.domain]
         pwdHash = row[Columns.pwdHash]
-        pwdSalt = row[Columns.pwdSalt]
         notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
@@ -743,8 +742,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
-        container[Columns.pwdHash] = pwdHash
-        container[Columns.pwdSalt] = pwdSalt
+        container[Columns.pwdHash] = pwdHash        
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()

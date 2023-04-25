@@ -67,7 +67,7 @@ public struct SecureVaultModels {
             self.title = title
             self.username = username
             self.domain = domain
-            self.pwdHash = pwdHash            
+            self.pwdHash = pwdHash
             self.notes = notes
             self.created = created
             self.lastUpdated = lastUpdated
