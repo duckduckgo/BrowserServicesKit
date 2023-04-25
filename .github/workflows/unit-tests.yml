@@ -31,7 +31,7 @@ jobs:
 
     name: Run unit tests
 
-    runs-on: macos-12
+    runs-on: macos-13
     timeout-minutes: 30
 
     steps:
@@ -60,7 +60,7 @@ jobs:
           ${{ runner.os }}-spm-
 
     - name: Select Xcode
-      run: sudo xcode-select -s /Applications/Xcode_14.1.app/Contents/Developer
+      run: sudo xcode-select -s /Applications/Xcode_14.3.app/Contents/Developer
 
     - name: Install xcbeautify
       continue-on-error: true
