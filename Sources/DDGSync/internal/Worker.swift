@@ -26,7 +26,7 @@ import Combine
 protocol WorkerProtocol {
     var dataProviders: [Feature: DataProviding] { get }
 
-    func sync(initial: Bool) async throws
+    func sync(fetchOnly: Bool) async throws
 }
 
 struct SyncResult {
@@ -52,10 +52,10 @@ actor Worker: WorkerProtocol {
         self.requestMaker = requestMaker
     }
 
-    func sync(initial: Bool) async throws {
-        print("Sync Operation Started. Initial: \(initial)")
+    func sync(fetchOnly: Bool) async throws {
+        print("Sync Operation Started. Fetch-only: \(fetchOnly)")
         defer {
-            print("Sync Operation Finished. Initial: \(initial)")
+            print("Sync Operation Finished. Fetch-only: \(fetchOnly)")
         }
 
         // Collect last sync timestamp and changes per feature
@@ -63,7 +63,7 @@ actor Worker: WorkerProtocol {
             var results: [Feature: SyncResult] = [:]
 
             for dataProvider in self.dataProviders.values {
-                if initial {
+                if fetchOnly {
                     results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: nil, sent: [])
                 } else {
                     let previousSyncTimestamp = dataProvider.lastSyncTimestamp
@@ -85,7 +85,7 @@ actor Worker: WorkerProtocol {
         let result: HTTPResult = try await request.execute()
 
         if let data = result.data {
-            print(String(data: data, encoding: .utf8)!)
+            print("Response: \(String(data: data, encoding: .utf8)!)")
         }
 
         switch result.response.statusCode {

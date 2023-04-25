@@ -41,7 +41,7 @@ struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
         let configuration = APIRequest.Configuration(url: url, method: .init(method), queryParameters: parameters, headers: requestHeaders, body: body)
 
         if let body {
-            print(String(bytes: body, encoding: .utf8)!)
+            print("\(method) request: \(String(bytes: body, encoding: .utf8)!)")
         }
 
         return APIRequest(configuration: configuration)

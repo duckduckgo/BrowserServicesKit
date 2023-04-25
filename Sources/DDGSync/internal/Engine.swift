@@ -54,17 +54,19 @@ class Engine: EngineProtocol {
     func startSync() {
         Task {
             do {
-                let isInitialSync: Bool = try {
+                let needsReceiveBeforeSend: Bool = try {
                     let syncState = (try storage.account()?.state) ?? .active
-                    return syncState != .active
+                    return syncState == .addNewDevice
                 }()
 
-                try await worker.sync(initial: isInitialSync)
-
-                if isInitialSync, let account = try storage.account()?.updatingState(.active) {
-                    try storage.persistAccount(account)
-                    try await worker.sync(initial: false)
+                if needsReceiveBeforeSend {
+                    try await worker.sync(fetchOnly: needsReceiveBeforeSend)
+                    if let account = try storage.account()?.updatingState(.active) {
+                        try storage.persistAccount(account)
+                    }
                 }
+
+                try await worker.sync(fetchOnly: false)
 
                 syncDidFinishSubject.send(.success(()))
             } catch {
