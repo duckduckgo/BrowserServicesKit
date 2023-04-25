@@ -26,7 +26,7 @@ struct SecureStorage: SecureStoring {
     
     private static let defaultQuery: [AnyHashable: Any] = [
         kSecClass: kSecClassGenericPassword,
-        kSecAttrService: "com.duckduckgo.sync",
+        kSecAttrService: "\(Bundle.main.bundleIdentifier ?? "com.duckduckgo").sync",
         kSecAttrGeneric: encodedKey as Any,
         kSecAttrAccount: encodedKey as Any
     ]
