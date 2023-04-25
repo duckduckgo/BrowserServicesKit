@@ -120,12 +120,21 @@ final class SurrogatesReferenceTests: XCTestCase {
         }
         
         os_log("TEST: %s", test.name)
-        
+
         let requestURL = URL(string: test.requestURL.testSchemeNormalized)!
         let siteURL = URL(string: test.siteURL.testSchemeNormalized)!
-        
-        let resource = MockWebsite.EmbeddedResource(type: .script,
+
+        let resource: MockWebsite.EmbeddedResource
+        if test.requestType == "image" {
+            resource = MockWebsite.EmbeddedResource(type: .image,
                                                     url: requestURL)
+        } else if test.requestType == "script" {
+            resource = MockWebsite.EmbeddedResource(type: .script,
+                                                    url: requestURL)
+        } else {
+            XCTFail("Unknown request type: \(test.requestType) in test \(test.name)")
+            return
+        }
         
         mockWebsite = MockWebsite(resources: [resource])
         
@@ -135,7 +144,6 @@ final class SurrogatesReferenceTests: XCTestCase {
         }
         
         let request = URLRequest(url: siteURL)
-        
         WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
                                                           WKWebsiteDataTypeMemoryCache,
                                                           WKWebsiteDataTypeOfflineWebApplicationCache],
