@@ -99,15 +99,15 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountNotFound
         }
         try await disconnect(deviceId: deviceId)
+        try dependencies.secureStore.removeAccount()
+        updateIsAuthenticated()
     }
 
     public func disconnect(deviceId: String) async throws {
         guard let token = try dependencies.secureStore.account()?.token else {
             throw SyncError.noToken
         }
-        try dependencies.secureStore.removeAccount()
         try await dependencies.account.logout(deviceId: deviceId, token: token)
-        updateIsAuthenticated()
     }
 
     public func fetchDevices() async throws -> [RegisteredDevice] {
