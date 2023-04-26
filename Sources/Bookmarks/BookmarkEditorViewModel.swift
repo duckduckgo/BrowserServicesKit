@@ -132,6 +132,12 @@ public class BookmarkEditorViewModel: ObservableObject, BookmarkStoring {
         }
     }
 
+    public func reloadData() {
+        context.perform {
+            self.refresh()
+        }
+    }
+
     public func refresh() {
         guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
             errorEvents?.fire(.fetchingRootItemFailed(.edit))

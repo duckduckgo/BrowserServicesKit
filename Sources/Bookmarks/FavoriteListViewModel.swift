@@ -71,7 +71,13 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             }
         }
     }
-    
+
+    public func reloadData() {
+        context.performAndWait {
+            self.refresh()
+        }
+    }
+
     private func refresh() {
         guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
             errorEvents?.fire(.fetchingRootItemFailed(.favorites))

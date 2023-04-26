@@ -149,6 +149,12 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         bookmarks = parentFolder.childrenArray
     }
 
+    public func reloadData() {
+        context.performAndWait {
+            self.refresh()
+        }
+    }
+
     private func refresh() {
         bookmarks = fetchBookmarksInFolder(currentFolder)
     }

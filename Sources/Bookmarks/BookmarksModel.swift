@@ -26,6 +26,7 @@ public protocol BookmarkStoring {
 
     var localUpdates: AnyPublisher<Void, Never> { get }
 
+    func reloadData()
 }
 
 public protocol BookmarkListInteracting: BookmarkStoring {
@@ -46,7 +47,7 @@ public protocol BookmarkListInteracting: BookmarkStoring {
                       fromIndex: Int,
                       toIndex: Int)
 
-    func countBookmarksForDomain(_ domain: String) -> Int 
+    func countBookmarksForDomain(_ domain: String) -> Int
 }
 
 public protocol FavoritesListInteracting: BookmarkStoring {
@@ -60,7 +61,6 @@ public protocol FavoritesListInteracting: BookmarkStoring {
     func moveFavorite(_ favorite: BookmarkEntity,
                       fromIndex: Int,
                       toIndex: Int)
-
 }
 
 public protocol MenuBookmarksInteracting {
