@@ -22,22 +22,25 @@ import Foundation
 
 extension NSObject {
 
-    private static let deinitTrackersKey = UnsafeRawPointer(bitPattern: "deinitTrackersKey".hashValue)!
-    private var deinitTrackers: [AnyCancellable] {
-        get {
-            objc_getAssociatedObject(self, Self.deinitTrackersKey) as? [AnyCancellable] ?? []
-        }
-        set {
-            objc_setAssociatedObject(self, Self.deinitTrackersKey, newValue, .OBJC_ASSOCIATION_RETAIN)
-        }
-    }
-
+    /// Add an observer for the object deallocation even
+    /// be sure not to reference the object inside the callback as it would create a retain cycle
     public func onDeinit(_ onDeinit: @escaping () -> Void) {
         dispatchPrecondition(condition: .onQueue(.main))
-        self.deinitTrackers.append(AnyCancellable(onDeinit))
+        self.deinitObservers.append(AnyCancellable(onDeinit))
+    }
+    private static let deinitObserversKey = UnsafeRawPointer(bitPattern: "deinitObserversKey".hashValue)!
+    private var deinitObservers: [AnyCancellable] {
+        get {
+            objc_getAssociatedObject(self, Self.deinitObserversKey) as? [AnyCancellable] ?? []
+        }
+        set {
+            objc_setAssociatedObject(self, Self.deinitObserversKey, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
     }
 
 #if DEBUG
+    /// DEBUG-only runtime check for an expected object deallocation
+    /// will raise an assertionFailure if the object is not deallocated after the timeout
     public func assertObjectDeallocated(after timeout: TimeInterval = 0) {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in
