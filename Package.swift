@@ -95,6 +95,7 @@ let package = Package(
                 "Networking"
             ],
             resources: [
+                .process("SyncMetadata.xcdatamodeld"),
                 .process("SyncPDFTemplate.png")
             ]
         ),
