@@ -24,6 +24,7 @@ let package = Package(
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
+        .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.4.3"),
@@ -154,6 +155,13 @@ let package = Package(
             name: "Networking",
             dependencies: [
                 "Common"
+            ]),
+        .target(
+            name: "SyncDataProviders",
+            dependencies: [
+                "Bookmarks",
+                "DDGSync",
+                "Persistence"
             ]),
         .target(
             name: "TestUtils",

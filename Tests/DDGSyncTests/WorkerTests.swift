@@ -53,24 +53,43 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     }
 }
 
+struct CryptingMock: Crypting {
+
+    var _encryptAndBase64Encode: (String) throws -> String = { $0 }
+    var _base64DecodeAndDecrypt: (String) throws -> String = { $0 }
+
+    func encryptAndBase64Encode(_ value: String) throws -> String {
+        try _encryptAndBase64Encode(value)
+    }
+
+    func base64DecodeAndDecrypt(_ value: String) throws -> String {
+        try _base64DecodeAndDecrypt(value)
+    }
+}
+
 struct DataProvidingMock: DataProviding {
 
     var feature: Feature
     var lastSyncTimestamp: String?
-    var _fetchChangedObjects: () async throws -> [Syncable] = { return [] }
-    var _fetchAllObjects: () async throws -> [Syncable] = { return [] }
-    var handleSyncResult: ([Syncable], [Syncable], String?) async throws -> Void = { _,_,_  in }
+    var _prepareForFirstSync: () -> Void = {}
+    var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
+    var _fetchAllObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
+    var handleSyncResult: ([Syncable], [Syncable], String?, Crypting) async throws -> Void = { _,_,_,_ in }
 
-    func fetchChangedObjects() async throws -> [Syncable] {
-        try await _fetchChangedObjects()
+    func prepareForFirstSync() {
+        _prepareForFirstSync()
     }
 
-    func fetchAllObjects() async throws -> [Syncable] {
-        try await _fetchAllObjects()
+    func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+        try await _fetchChangedObjects(crypter)
     }
 
-    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?) async throws {
-        try await handleSyncResult(sent, received, timestamp)
+    func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+        try await _fetchAllObjects(crypter)
+    }
+
+    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
+        try await handleSyncResult(sent, received, timestamp, crypter)
     }
 }
 
@@ -79,6 +98,7 @@ class WorkerTests: XCTestCase {
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
     var storage: SecureStorageStub!
+    var crypter: CryptingMock!
     var requestMaker: SyncRequestMaking!
 
     override func setUpWithError() throws {
@@ -89,6 +109,7 @@ class WorkerTests: XCTestCase {
         apiMock.request = request
         endpoints = Endpoints(baseUrl: URL(string: "https://example.com")!)
         storage = SecureStorageStub()
+        crypter = CryptingMock()
         try storage.persistAccount(
             SyncAccount(
                 deviceId: "deviceId",
@@ -97,7 +118,8 @@ class WorkerTests: XCTestCase {
                 userId: "userId",
                 primaryKey: "primaryKey".data(using: .utf8)!,
                 secretKey: "secretKey".data(using: .utf8)!,
-                token: "token"
+                token: "token",
+                state: .active
             )
         )
 
@@ -106,11 +128,11 @@ class WorkerTests: XCTestCase {
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
+        let worker = Worker(dataProviders: [dataProvider], crypter: crypter, requestMaker: requestMaker)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
-            try await worker.sync()
+            try await worker.sync(fetchOnly: false)
         }
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .GET)
@@ -119,14 +141,14 @@ class WorkerTests: XCTestCase {
     func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         dataProvider.lastSyncTimestamp = "1234"
-        dataProvider._fetchChangedObjects = {
+        dataProvider._fetchChangedObjects = { _ in
             [Syncable(jsonObject: [:])]
         }
-        let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
+        let worker = Worker(dataProviders: [dataProvider], crypter: crypter, requestMaker: requestMaker)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
-            try await worker.sync()
+            try await worker.sync(fetchOnly: false)
         }
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
@@ -135,7 +157,7 @@ class WorkerTests: XCTestCase {
     func testThatMultipleDataProvidersGetSerializedIntoRequestPayload() async throws {
         var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
         dataProvider1.lastSyncTimestamp = "1234"
-        dataProvider1._fetchChangedObjects = {
+        dataProvider1._fetchChangedObjects = { _ in
             [
                 Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
                 Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
@@ -143,7 +165,7 @@ class WorkerTests: XCTestCase {
         }
         var dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
         dataProvider2.lastSyncTimestamp = "5678"
-        dataProvider2._fetchChangedObjects = {
+        dataProvider2._fetchChangedObjects = { _ in
             [
                 Syncable(jsonObject: ["key": "setting-a", "value": "value-a"]),
                 Syncable(jsonObject: ["key": "setting-b", "value": "value-b"])
@@ -151,18 +173,18 @@ class WorkerTests: XCTestCase {
         }
         var dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
         dataProvider3.lastSyncTimestamp = "9012"
-        dataProvider3._fetchChangedObjects = {
+        dataProvider3._fetchChangedObjects = { _ in
             [
                 Syncable(jsonObject: ["id": "1", "login": "login1", "password": "password1", "url": "https://example.com"]),
                 Syncable(jsonObject: ["id": "2", "login": "login2", "password": "password2", "url": "https://example.com"])
             ]
         }
 
-        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], requestMaker: requestMaker)
+        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], crypter: crypter, requestMaker: requestMaker)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
-            try await worker.sync()
+            try await worker.sync(fetchOnly: false)
         }
 
         let body = try XCTUnwrap(apiMock.createRequestCallArgs[0].body)
@@ -194,16 +216,16 @@ class WorkerTests: XCTestCase {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         var sentModels: [Syncable] = []
         dataProvider.lastSyncTimestamp = "1234"
-        dataProvider._fetchChangedObjects = { objectsToSync }
-        dataProvider.handleSyncResult = { sent, _, _ in
+        dataProvider._fetchChangedObjects = { _ in objectsToSync }
+        dataProvider.handleSyncResult = { sent, _, _, _ in
             sentModels = sent
         }
 
-        let worker = Worker(dataProviders: [dataProvider], requestMaker: requestMaker)
+        let worker = Worker(dataProviders: [dataProvider], crypter: crypter, requestMaker: requestMaker)
 
         request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
-        try await worker.sync()
+        try await worker.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
     }

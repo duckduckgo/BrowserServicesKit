@@ -64,7 +64,8 @@ class CrypterTests: XCTestCase {
                                                userId: "userId",
                                                primaryKey: primaryKey,
                                                secretKey: secretKey,
-                                               token: "token"))
+                                               token: "token",
+                                               state: .active))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
         let crypter = Crypter(secureStore: storage)
@@ -82,7 +83,8 @@ class CrypterTests: XCTestCase {
                                                userId: "userId",
                                                primaryKey: primaryKey,
                                                secretKey: secretKey,
-                                               token: "token"))
+                                               token: "token",
+                                               state: .active))
         let message = "😆 " + UUID().uuidString + " 🥴 " + UUID().uuidString
 
         let crypter = Crypter(secureStore: storage)
