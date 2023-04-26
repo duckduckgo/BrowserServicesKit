@@ -172,6 +172,8 @@ final public class UserContentController: WKUserContentController {
 
         self.scriptMessageHandler.clear()
         self.assetsPublisherCancellable = nil
+
+        self.removeAllContentRuleLists()
     }
 
     func addHandler(_ userScript: UserScript) {
