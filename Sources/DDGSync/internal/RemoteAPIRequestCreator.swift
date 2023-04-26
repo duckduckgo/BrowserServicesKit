@@ -44,7 +44,7 @@ struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
             print("\(method) request: \(String(bytes: body, encoding: .utf8)!)")
         }
 
-        return APIRequest(configuration: configuration, requirements: [.requireNonEmptyData, .allowHTTPNotModified])
+        return APIRequest(configuration: configuration, requirements: [.allowHTTPNotModified], log: .default)
     }
 }
 
