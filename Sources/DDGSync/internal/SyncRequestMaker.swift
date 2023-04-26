@@ -42,7 +42,7 @@ struct SyncRequestMaker: SyncRequestMaking {
         for (feature, result) in results {
             let modelPayload: [String: Any?] = [
                 "updates": result.sent.map(\.payload),
-                "modified_since": result.previousSyncTimestamp
+                "modified_since": result.previousSyncTimestamp ?? "0"
             ]
             json[feature.name] = modelPayload
         }
