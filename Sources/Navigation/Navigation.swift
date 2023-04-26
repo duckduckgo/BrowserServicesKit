@@ -21,7 +21,6 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
-// swiftlint:disable file_length
 @MainActor
 public final class Navigation {
 

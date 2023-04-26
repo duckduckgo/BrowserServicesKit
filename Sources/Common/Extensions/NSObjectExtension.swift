@@ -22,18 +22,45 @@ import Foundation
 
 extension NSObject {
 
+    final public class DeinitObserver: NSObject {
+        fileprivate var callback: (() -> Void)?
+
+        public init(_ callback: (() -> Void)? = nil) {
+            dispatchPrecondition(condition: .onQueue(.main))
+            self.callback = callback
+        }
+
+        public func disarm() {
+            dispatchPrecondition(condition: .onQueue(.main))
+            callback = nil
+        }
+
+        deinit {
+            callback?()
+        }
+    }
+
     /// Add an observer for the object deallocation even
     /// be sure not to reference the object inside the callback as it would create a retain cycle
-    public func onDeinit(_ onDeinit: @escaping () -> Void) {
+    @discardableResult
+    public func onDeinit(_ onDeinit: @escaping () -> Void) -> DeinitObserver {
         dispatchPrecondition(condition: .onQueue(.main))
-        self.deinitObservers.append(AnyCancellable(onDeinit))
+        if let deinitObserver = self as? DeinitObserver {
+            assert(deinitObserver.callback == nil)
+            deinitObserver.callback = onDeinit
+            return deinitObserver
+        }
+        return self.deinitObservers.insert(DeinitObserver(onDeinit)).memberAfterInsert
     }
+
     private static let deinitObserversKey = UnsafeRawPointer(bitPattern: "deinitObserversKey".hashValue)!
-    private var deinitObservers: [AnyCancellable] {
+    public var deinitObservers: Set<DeinitObserver> {
         get {
-            objc_getAssociatedObject(self, Self.deinitObserversKey) as? [AnyCancellable] ?? []
+            dispatchPrecondition(condition: .onQueue(.main))
+            return objc_getAssociatedObject(self, Self.deinitObserversKey) as? Set<DeinitObserver> ?? []
         }
         set {
+            dispatchPrecondition(condition: .onQueue(.main))
             objc_setAssociatedObject(self, Self.deinitObserversKey, newValue, .OBJC_ASSOCIATION_RETAIN)
         }
     }
