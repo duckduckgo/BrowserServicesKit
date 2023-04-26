@@ -186,7 +186,7 @@ public struct NavigationIdentity: Equatable {
 extension Navigation {
 
     func associate(with wkNavigation: WKNavigation?) {
-        guard let wkNavigation, wkNavigation.navigation == nil else { return }
+        guard let wkNavigation, wkNavigation.navigation !== self else { return }
 
         // ensure Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
         wkNavigation.onDeinit { [self] in
