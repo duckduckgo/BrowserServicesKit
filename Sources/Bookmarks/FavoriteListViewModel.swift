@@ -31,13 +31,16 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
 
     private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
+    private let localSubject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
-    
+    public var localUpdates: AnyPublisher<Void, Never>
+
     private let errorEvents: EventMapping<BookmarksModelError>?
 
     public init(bookmarksDatabase: CoreDataDatabase,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
+        self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
@@ -134,6 +137,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     private func save() {
         do {
             try context.save()
+            localSubject.send()
         } catch {
             context.rollback()
             errorEvents?.fire(.saveFailed(.favorites), error: error)

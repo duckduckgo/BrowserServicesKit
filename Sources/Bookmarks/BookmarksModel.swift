@@ -24,6 +24,8 @@ public protocol BookmarkStoring {
 
     var externalUpdates: AnyPublisher<Void, Never> { get }
 
+    var localUpdates: AnyPublisher<Void, Never> { get }
+
 }
 
 public protocol BookmarkListInteracting: BookmarkStoring {
