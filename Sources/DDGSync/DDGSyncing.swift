@@ -97,8 +97,6 @@ public protocol DDGSyncing {
 
     var scheduler: Scheduling { get }
 
-    var crypter: Crypting { get }
-
     /**
      Fetch the devices associated with thtis account.
      */
@@ -211,12 +209,12 @@ public protocol DataProviding {
     /**
      * Return objects that have changed since last sync.
      */
-    func fetchChangedObjects() async throws -> [Syncable]
+    func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable]
 
     /**
      * Return all objects to be synced during initial sync operation.
      */
-    func fetchAllObjects() async throws -> [Syncable]
+    func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable]
 
     /**
      * Apply sync operation result.
@@ -225,5 +223,5 @@ public protocol DataProviding {
      * - Parameter received: Objects that were received from the server.
      * - Parameter timestamp: Timestamp of the last sync operation.
      */
-    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?) async throws
+    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws
 }

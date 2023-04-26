@@ -103,10 +103,6 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
-    public var crypter: Crypting {
-        dependencies.crypter
-    }
-
     public func fetchDevices() async throws -> [RegisteredDevice] {
         guard let account = try dependencies.secureStore.account() else {
             throw SyncError.accountNotFound

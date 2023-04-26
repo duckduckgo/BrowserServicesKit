@@ -43,13 +43,14 @@ class Engine: EngineProtocol {
     init(
         dataProviders: [DataProviding],
         storage: SecureStoring,
+        crypter: Crypting,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
         self.dataProviders = dataProviders
         self.storage = storage
         let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
-        worker = Worker(dataProviders: dataProviders, requestMaker: requestMaker)
+        worker = Worker(dataProviders: dataProviders, crypter: crypter, requestMaker: requestMaker)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
     }
 

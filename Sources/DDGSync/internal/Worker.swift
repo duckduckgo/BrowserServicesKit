@@ -41,14 +41,16 @@ struct SyncResult {
 actor Worker: WorkerProtocol {
 
     let dataProviders: [Feature: DataProviding]
+    let crypter: Crypting
     let requestMaker: SyncRequestMaking
 
-    init(dataProviders: [DataProviding], requestMaker: SyncRequestMaking) {
+    init(dataProviders: [DataProviding], crypter: Crypting, requestMaker: SyncRequestMaking) {
         var providersDictionary = [Feature: DataProviding]()
         for provider in dataProviders {
             providersDictionary[provider.feature] = provider
         }
         self.dataProviders = providersDictionary
+        self.crypter = crypter
         self.requestMaker = requestMaker
     }
 
@@ -69,9 +71,9 @@ actor Worker: WorkerProtocol {
                 } else {
                     let localChanges: [Syncable] = try await {
                         if previousSyncTimestamp != nil {
-                            return try await dataProvider.fetchChangedObjects()
+                            return try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
                         }
-                        return try await dataProvider.fetchAllObjects()
+                        return try await dataProvider.fetchAllObjects(encryptedUsing: crypter)
                     }()
                     let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
                     results[dataProvider.feature] = result
@@ -97,7 +99,7 @@ actor Worker: WorkerProtocol {
             fallthrough
         case 204, 304:
             for (feature, result) in results {
-                try await dataProviders[feature]?.handleSyncResult(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp)
+                try await dataProviders[feature]?.handleSyncResult(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
             }
         default:
             throw SyncError.unexpectedStatusCode(result.response.statusCode)
