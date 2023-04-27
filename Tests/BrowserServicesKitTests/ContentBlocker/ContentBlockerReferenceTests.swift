@@ -131,8 +131,8 @@ class ContentBlockerReferenceTests: XCTestCase {
 
         os_log("TEST: %s", test.name)
 
-        let siteURL = URL(string: test.siteURL.replacingOccurrences(of: "https://", with: "test://"))!
-        let requestURL = URL(string: test.requestURL.replacingOccurrences(of: "https://", with: "test://"))!
+        let siteURL = URL(string: test.siteURL.appending("/index.html").testSchemeNormalized)!
+        let requestURL = URL(string: test.requestURL.testSchemeNormalized)!
 
         let resource: MockWebsite.EmbeddedResource
         if test.requestType == "image" {

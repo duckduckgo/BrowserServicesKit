@@ -26,13 +26,57 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
     private let autofillDomainNameUrlSort = AutofillDomainNameUrlSort()
     private let tld = TLD()
 
+    func testWhenTitleIsSetAndDomainIsMissingThenReturnsFirstCharacterOfTitle() {
+        let account1 = websiteAccountFor(domain: "", title: "Xyz")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "x")
+    }
+
+    func testWhenTitleAndDomainAreSetThenReturnsFirstCharacterOfTitle() {
+        let account1 = websiteAccountFor(domain: "example.com", title: "Xyz")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "x")
+    }
+
+    func testWhenDomainIsExactMatchToTldsListItemThenReturnsFirstCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "github.io")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "g")
+    }
+
+    func testWhenDomainIsPartialMatchToTldsListItemThenReturnsFirstCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "mysite.github.io")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "m")
+    }
+
+    func testWhenDomainIsNotInTldsListThenReturnsFirstCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "example.com")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "e")
+    }
+
+    func testWhenDomainIsNotInTldsListAndSubdomainIsSetThenFirstReturnsCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "sub.example.com")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "e")
+    }
+
+    func testWhenDomainIsInvalidThenFirstReturnsCharacterOfDomain() {
+        let account1 = websiteAccountFor(domain: "xyz")
+        let firstCharForGrouping = autofillDomainNameUrlSort.firstCharacterForGrouping(account1, tld: tld)
+        XCTAssertEqual(firstCharForGrouping, "x")
+    }
+
     func testWhenComparingTitlesCaseIsIgnored() {
         let account1 = websiteAccountFor(domain: "C.COM")
         let account2 = websiteAccountFor(domain: "b.com")
         let account3 = websiteAccountFor(domain: "A.Com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account3.domain, account2.domain, account1.domain])
     }
 
@@ -42,7 +86,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "a.example.Com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account3.domain, account2.domain, account1.domain])
     }
 
@@ -53,7 +99,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account4 = websiteAccountFor(title: "2")
 
         let accounts = [account1, account2, account3, account4]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.title }, ["1", "2", "A", "b"])
     }
 
@@ -63,7 +111,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(title: "A")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.title }, [nil, "A", "b"])
     }
 
@@ -73,7 +123,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "c.com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account1.domain, account3.domain])
     }
 
@@ -83,7 +135,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "c.com", title: "Example")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account1.domain, account3.domain])
     }
 
@@ -93,7 +147,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "c.com", title: "Hello World")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.title }, [account1.title, account3.title, account2.title])
     }
 
@@ -103,7 +159,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "www.c.com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account1.domain, account3.domain])
     }
 
@@ -113,7 +171,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "www.c.com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account1.domain, account3.domain])
     }
 
@@ -123,7 +183,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "c.com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account1.domain, account3.domain])
     }
 
@@ -133,7 +195,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "c.com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account1.domain, account3.domain])
     }
 
@@ -144,7 +208,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account4 = websiteAccountFor(domain: "d.com", title: "")
 
         let accounts = [account1, account2, account3, account4]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.title }, [account2.title, account4.title, account3.title, account1.title])
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account4.domain, account3.domain, account1.domain])
     }
@@ -155,7 +221,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "c.com", title: "elephants")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.title }, [account2.title, account1.title, account3.title])
     }
 
@@ -165,7 +233,9 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account3 = websiteAccountFor(domain: "accounts.example.com")
 
         let accounts = [account1, account2, account3]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account2.domain, account3.domain, account1.domain])
     }
 
@@ -177,10 +247,11 @@ final class AutofillDomainNameUrlSortTests: XCTestCase {
         let account5 = websiteAccountFor(domain: "accounts.google.com")
 
         let accounts = [account1, account2, account3, account4, account5]
-        let sortedAccounts = accounts.sorted(by: { autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending })
+        let sortedAccounts = accounts.sorted(by: {
+            autofillDomainNameUrlSort.compareAccountsForSortingAutofill(lhs: $0, rhs: $1, tld: tld) == .orderedAscending
+        })
         XCTAssertEqual(sortedAccounts.map { $0.domain }, [account3.domain, account1.domain, account2.domain, account5.domain, account4.domain])
     }
-
 
     func websiteAccountFor(domain: String = "", title: String? = "") -> SecureVaultModels.WebsiteAccount {
         return SecureVaultModels.WebsiteAccount(id: "1", title: title, username: "", domain: domain, created: Date(), lastUpdated: Date())
