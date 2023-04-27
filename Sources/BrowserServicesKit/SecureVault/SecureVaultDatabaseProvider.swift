@@ -148,19 +148,49 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
+        let table = SecureVaultModels.WebsiteAccount.databaseTableName
+        let username = SecureVaultModels.WebsiteAccount.Columns.username
+        let pwdHash = SecureVaultModels.WebsiteAccount.Columns.pwdHash
+        let lastUpdated = SecureVaultModels.WebsiteAccount.Columns.lastUpdated
+        let domain = SecureVaultModels.WebsiteAccount.Columns.domain
+        let tldLike = "%\(eTLDplus1)"
         return try db.read { db in
             if filterDuplicates {
+                /* This query combines the following two via UNION:
+                   - For each combination of 'username' and 'pwdHash' that appears more than once in the table, returns the row with the most recent 'lastUpdated' value.
+                   - For each combination of 'username' and 'pwdHash' that appears only once in the table, return the row the row.
+                */
                 let request = """
-                SELECT *
-                FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)
-                WHERE domain LIKE ?
-                GROUP BY account, pwdHash
-                HAVING COUNT(*) > 1
+                SELECT a.*
+                FROM \(table) a
+                JOIN (
+                    SELECT \(username), \(pwdHash), MAX(\(lastUpdated)) AS latest_updated
+                    FROM \(table)
+                    WHERE (\(username), \(pwdHash)) IN (
+                        SELECT \(username), \(pwdHash)
+                        FROM \(table)
+                        GROUP BY \(username), \(pwdHash)
+                        HAVING COUNT(*) > 1
+                    )
+                    GROUP BY \(username), \(pwdHash)
+                ) b ON a.\(username) = b.\(username) AND a.\(pwdHash) = b.\(pwdHash) AND a.\(lastUpdated) = b.latest_updated
+                WHERE \(domain) LIKE ?
+                UNION
+                SELECT a.*
+                FROM \(table) a
+                WHERE (a.\(username), a.\(pwdHash)) IN (
+                    SELECT \(username), \(pwdHash)
+                    FROM \(table)
+                    GROUP BY \(username), \(pwdHash)
+                    HAVING COUNT(*) = 1
+                )
+                AND \(domain) LIKE ?
                 """
-                return try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: ["%\(eTLDplus1)"])
+                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike, tldLike])                
+                return result
             } else {
                 return try SecureVaultModels.WebsiteAccount
-                    .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%\(eTLDplus1)"))
+                    .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(tldLike))
                     .fetchAll(db)
             }
         }
