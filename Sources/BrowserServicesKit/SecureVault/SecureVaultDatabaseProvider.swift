@@ -156,8 +156,8 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         return try db.read { db in
             if filterDuplicates {
                 /* This query combines the following two via UNION:
-                   - For each combination of 'username' and 'pwdHash' that appears more than once in the table, returns the row with the most recent 'lastUpdated' value.
-                   - For each combination of 'username' and 'pwdHash' that appears only once in the table, return the row the row.
+                    - The accounts must have a domain value that matches a specified pattern.
+                    - If there are accounts with the same signature value, only the row with the most recent `lastUpdated` value should be included.
                 */
                 let request = """
                 SELECT a.*
