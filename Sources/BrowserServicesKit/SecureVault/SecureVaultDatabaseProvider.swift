@@ -149,7 +149,6 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
         let table = SecureVaultModels.WebsiteAccount.databaseTableName
-        let username = SecureVaultModels.WebsiteAccount.Columns.username
         let signature = SecureVaultModels.WebsiteAccount.Columns.signature
         let lastUpdated = SecureVaultModels.WebsiteAccount.Columns.lastUpdated
         let domain = SecureVaultModels.WebsiteAccount.Columns.domain
@@ -163,30 +162,15 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 let request = """
                 SELECT a.*
                 FROM \(table) a
-                JOIN (
-                    SELECT \(username), \(signature), MAX(\(lastUpdated)) AS latest_updated
-                    FROM \(table)
-                    WHERE (\(username), \(signature)) IN (
-                        SELECT \(username), \(signature)
-                        FROM \(table)
-                        GROUP BY \(username), \(signature)
-                        HAVING COUNT(*) > 1
-                    )
-                    GROUP BY \(username), \(signature)
-                ) b ON a.\(username) = b.\(username) AND a.\(signature) = b.\(signature) AND a.\(lastUpdated) = b.latest_updated
-                UNION
-                SELECT a.*
-                FROM \(table) a
-                WHERE (a.\(username), a.\(signature)) IN (
-                    SELECT \(username), \(signature)
-                    FROM \(table)
-                    WHERE \(domain) LIKE ?
-                    GROUP BY \(username), \(signature)
-                    HAVING COUNT(*) = 1
-                )
-                AND a.\(domain) LIKE ?
+                LEFT JOIN (
+                  SELECT \(signature), MAX(\(lastUpdated)) AS max_lastUpdated
+                  FROM \(table)
+                  GROUP BY \(signature)
+                ) b ON a.\(signature) = b.\(signature) AND a.\(lastUpdated) = b.max_lastUpdated
+                WHERE b.\(signature) IS NOT NULL
+                AND \(domain) LIKE ?
                 """
-                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike, tldLike])
+                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike])
                 return result
             } else {
                 return try SecureVaultModels.WebsiteAccount
@@ -698,8 +682,6 @@ extension DefaultDatabaseProvider {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         
         while let accountRow = try accountRows.next() {
-            let accountId: Int = accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name]
-            
             let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
                                                            username: accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name],
                                                            domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
@@ -710,25 +692,24 @@ extension DefaultDatabaseProvider {
             let credentialRow = try Row.fetchOne(database, sql: """
                 SELECT * FROM \(SecureVaultModels.WebsiteCredentials.databaseTableName)
                 WHERE \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
-            """, arguments: [accountId])
+            """, arguments: [account.id])
 
             if let credentialRow = credentialRow {
-                    
-                let credentials = SecureVaultModels.WebsiteCredentials(account: account,
-                                                                       password: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name])
-                                
-                if (account.domain == "www.netflix.com") {
-                    print(credentials)
-                }
-                // Generate a new signature
-                guard let username = credentials.account.username.data(using: .utf8) else {
+                
+                var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
+                decryptedCredentials = .init(account: account,
+                                             password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name]))
+                                                              
+                
+                guard let username = decryptedCredentials?.account.username.data(using: .utf8),
+                      let password = decryptedCredentials?.password else {
                     continue
                 }
-                let hashData = username + credentials.password
+                let hashData = username + password
                 guard let hash = try MigrationUtility.generateHash(hashData) else {
                     continue
                 }
-                
+
                 // Update the accounts table with the new hash value
                 try database.execute(sql: """
                     UPDATE
@@ -737,7 +718,7 @@ extension DefaultDatabaseProvider {
                         \(SecureVaultModels.WebsiteAccount.Columns.signature.name) = ?
                     WHERE
                         \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
-                """, arguments: [hash, accountId])
+                """, arguments: [hash, account.id])
             }
         }
         
