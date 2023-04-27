@@ -111,7 +111,7 @@ private extension DistributedNavigationDelegate {
 #endif
 
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
-    func makeAsyncDecision<T>(boundToLifetimeOf webView: WKWebView, // swiftlint:disable:this function_body_length
+    func makeAsyncDecision<T>(boundToLifetimeOf webView: WKWebView,
                               with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
                               completion: @escaping @MainActor (T?) -> Void,
@@ -123,63 +123,37 @@ private extension DistributedNavigationDelegate {
 
         // TO DO: ideally the Task should be executed synchronously until the first await, check it later when custom Executors arrive to Swift
         let task = Task.detached { @MainActor [responders, weak webViewDeinitObserver] in
-            // remove WebView deallocation observer on the Task completion
-            defer {
-                webViewDeinitObserver?.disarm()
-            }
-
             await withTaskCancellationHandler {
-
-                var result: T?
                 for responder in responders {
+                    // in case of the Task cancellation completion handler will be called in `onCancel:`
                     guard !Task.isCancelled else { return }
-
 #if DEBUG
-                    let typeOfResponder = "\(type(of: responder))"
-                    var timeoutWorkItem: DispatchWorkItem?
-                    if !Self.sigIntRaisedForResponders.contains(typeOfResponder),
-                       // class-type responder will be queried for shouldDisableLongDecisionMakingChecks after delay
-                       (responder as? NavigationResponder & AnyObject) != nil
-                        // struct-type can‘t be mutated so it should have shouldDisableLongDecisionMakingChecks set permanently if its decisions take long
-                        || !responder.shouldDisableLongDecisionMakingChecks {
-
-                        let responder = responder as? NavigationResponder & AnyObject
-                        timeoutWorkItem = DispatchWorkItem { [weak responder] in
-                            guard responder?.shouldDisableLongDecisionMakingChecks != true else { return }
-                            Self.sigIntRaisedForResponders.insert(typeOfResponder)
-
-                            breakByRaisingSigInt("""
-                                Decision making is taking longer than expected
-                                This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder
-
-                                Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
-                                for known long decision making to disable this warning
-                            """)
-                        }
-                    }
-                    if let timeoutWorkItem {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
-                    }
-                    defer {
-                        timeoutWorkItem?.cancel()
-                    }
+                    let longDecisionMakingCheckCancellable = Self.checkLongDecisionMaking(for: responder)
+                    defer { longDecisionMakingCheckCancellable?.cancel() }
 #endif
 
+                    // complete if responder returns non-nil (non-`.next`) decision
                     if let decision = await decide(responder) {
-                        result = decision
-                        break
+                        guard !Task.isCancelled else { return }
+
+                        completion(decision)
+                        return
                     }
                 }
+                // default completion handler if none of responders returned non-nil result
                 guard !Task.isCancelled else { return }
-
-                completion(result)
+                completion(nil)
 
             } onCancel: {
                 DispatchQueue.main.async {
                     cancellation()
                 }
             }
+
+            // remove WebView deallocation observer on the Task completion
+            webViewDeinitObserver?.disarm()
         }
+
         // cancel the Task if WebView deallocates before it‘s finished
         webViewDeinitObserver.onDeinit {
             task.cancel()
@@ -195,6 +169,45 @@ private extension DistributedNavigationDelegate {
             completion(nil)
         })
     }
+
+#if DEBUG
+
+    /// DEBUG check raising SIGINT (break) if NavigationResponder decision making takes more than 4 seconds
+    /// the check won‘t be made if `responder.shouldDisableLongDecisionMakingChecks` returns `true`
+    @MainActor
+    static func checkLongDecisionMaking<Responder: NavigationResponder>(for responder: Responder) -> AnyCancellable? {
+        let typeOfResponder = String(describing: Responder.self)
+        var timeoutWorkItem: DispatchWorkItem?
+        if !Self.sigIntRaisedForResponders.contains(typeOfResponder),
+           // class-type responder will be queried for shouldDisableLongDecisionMakingChecks after delay
+           (responder as? NavigationResponder & AnyObject) != nil
+            // struct-type can‘t be mutated so it should have shouldDisableLongDecisionMakingChecks set permanently if its decisions take long
+            || !responder.shouldDisableLongDecisionMakingChecks {
+
+            let responder = responder as? NavigationResponder & AnyObject
+            timeoutWorkItem = DispatchWorkItem { [weak responder] in
+                guard responder?.shouldDisableLongDecisionMakingChecks != true else { return }
+                Self.sigIntRaisedForResponders.insert(typeOfResponder)
+
+                breakByRaisingSigInt("""
+                    Decision making is taking longer than expected
+                    This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder
+
+                    Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
+                    for known long decision making to disable this warning
+                """)
+            }
+        }
+        if let timeoutWorkItem {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
+            return AnyCancellable {
+                timeoutWorkItem.cancel()
+            }
+        }
+        return nil
+    }
+
+#endif
 
     /// Instantiates a new Navigation object for a NavigationAction
     /// or returns an ExpectedNavigation instance for navigations initiated using Navigator
