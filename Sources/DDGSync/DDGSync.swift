@@ -165,27 +165,41 @@ public class DDGSync: DDGSyncing {
 
     init(dependencies: SyncDependencies) {
         self.dependencies = dependencies
-        self.state = (try? dependencies.secureStore.account()?.token) != nil ? .active : .inactive
-
-        startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .sink { [weak self] in
-                self?.dependencies.engine.startSync()
-            }
-
-        syncDidFinishCancellable = dependencies.engine.syncDidFinishPublisher
-            .sink { [weak self] result in
-                if case .success = result {
-                    self?.updateState()
-                }
-            }
+        self.state = .inactive
+        updateState(initial: true)
     }
 
-    private func updateState() {
+    private func updateState(initial: Bool = false) {
         let previousState = state
         state = (try? dependencies.secureStore.account()?.state) ?? .inactive
 
         if previousState == .inactive && state != .inactive {
-            dependencies.engine.setUpAndStartFirstSync()
+            startSyncCancellable = dependencies.scheduler.startSyncPublisher
+                .sink { [weak self] in
+                    guard let self else {
+                        return
+                    }
+                    if self.state == .active {
+                        self.dependencies.engine.startSync()
+                    } else {
+                        self.dependencies.engine.setUpAndStartFirstSync()
+                    }
+                }
+
+            syncDidFinishCancellable = dependencies.engine.syncDidFinishPublisher
+                .sink { [weak self] result in
+                    if case .success = result {
+                        self?.updateState()
+                    }
+                }
+
+            if !initial {
+                dependencies.engine.setUpAndStartFirstSync()
+            }
+
+        } else if state == .inactive {
+            startSyncCancellable?.cancel()
+            syncDidFinishCancellable?.cancel()
         }
     }
 
