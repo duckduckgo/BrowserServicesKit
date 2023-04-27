@@ -130,7 +130,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let identities = try vault.identities()
             let cards = try vault.creditCards()
 
-            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches, filterDuplicates: true) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
