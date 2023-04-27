@@ -22,7 +22,7 @@ import CoreData
 import Persistence
 import Common
 
-public class BookmarkEditorViewModel: ObservableObject, BookmarkStoring {
+public class BookmarkEditorViewModel: ObservableObject {
 
     public struct Location {
 
@@ -39,9 +39,7 @@ public class BookmarkEditorViewModel: ObservableObject, BookmarkStoring {
 
     private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
-    private let localSubject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
-    public var localUpdates: AnyPublisher<Void, Never>
 
     private let errorEvents: EventMapping<BookmarksModelError>?
 
@@ -64,7 +62,6 @@ public class BookmarkEditorViewModel: ObservableObject, BookmarkStoring {
                 errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
-        localUpdates = localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
@@ -90,7 +87,6 @@ public class BookmarkEditorViewModel: ObservableObject, BookmarkStoring {
                 errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
-        localUpdates = localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
@@ -197,7 +193,6 @@ public class BookmarkEditorViewModel: ObservableObject, BookmarkStoring {
     public func save() {
         do {
             try context.save()
-            localSubject.send()
         } catch {
             errorEvents?.fire(.saveFailed(.edit), error: error)
         }
