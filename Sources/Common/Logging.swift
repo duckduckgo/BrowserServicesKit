@@ -91,8 +91,9 @@ extension ProcessInfo {
 }
 
 // swiftlint:disable line_length
+// swiftlint:disable function_parameter_count
 
-// MARK : - message first
+// MARK: - message first
 
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType) {
@@ -140,7 +141,7 @@ public func os_log(message: @autoclosure () -> String, log: OSLog = .default, ty
     os_log("%s", log: log, type: type, message())
 }
 
-// MARK : - type first
+// MARK: - type first
 
 @inlinable
 public func os_log(_ type: OSLogType, log: OSLog = .default, _ message: StaticString) {
@@ -194,3 +195,4 @@ public func os_log(_ type: OSLogType = .default, log: OSLog = .default, message:
 }
 
 // swiftlint:enable line_length
+// swiftlint:enable function_parameter_count
