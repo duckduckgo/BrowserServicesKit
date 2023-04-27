@@ -122,7 +122,7 @@ private extension DistributedNavigationDelegate {
         let webViewDeinitObserver = webView.deinitObservers.insert(NSObject.DeinitObserver()).memberAfterInsert
 
         // TO DO: ideally the Task should be executed synchronously until the first await, check it later when custom Executors arrive to Swift
-        let task = Task.detached { @MainActor [responders, weak webViewDeinitObserver] in
+        let task = Task.detached { @MainActor [responders, weak webView, weak webViewDeinitObserver] in
             await withTaskCancellationHandler {
                 for responder in responders {
                     // in case of the Task cancellation completion handler will be called in `onCancel:`
@@ -151,7 +151,10 @@ private extension DistributedNavigationDelegate {
             }
 
             // remove WebView deallocation observer on the Task completion
-            webViewDeinitObserver?.disarm()
+            if let webViewDeinitObserver {
+                webViewDeinitObserver.disarm()
+                webView?.deinitObservers.remove(webViewDeinitObserver)
+            }
         }
 
         // cancel the Task if WebView deallocates before it‘s finished
