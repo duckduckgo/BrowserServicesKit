@@ -46,20 +46,6 @@ public final class SyncBookmarksProvider: DataProviding {
         lastSyncTimestamp = nil
     }
 
-    public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        return await withCheckedContinuation { continuation in
-
-            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-            var syncableBookmarks: [Syncable] = []
-            context.performAndWait {
-                let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-                syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
-            }
-            continuation.resume(with: .success(syncableBookmarks))
-        }
-    }
-
     public func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         return await withCheckedContinuation { continuation in
             var syncableBookmarks: [Syncable] = []
@@ -75,6 +61,20 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
+    public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+        return await withCheckedContinuation { continuation in
+
+            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+            var syncableBookmarks: [Syncable] = []
+            context.performAndWait {
+                let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
+                syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
+            }
+            continuation.resume(with: .success(syncableBookmarks))
+        }
+    }
+
     public func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async {
         await withCheckedContinuation { continuation in
             var saveError: Error?
@@ -82,18 +82,9 @@ public final class SyncBookmarksProvider: DataProviding {
             let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
             context.performAndWait {
-                // clean up sent items
-                let identifiers = sent.compactMap(\.id)
-                let bookmarks = fetchBookmarks(with: identifiers, in: context)
-                bookmarks.forEach { $0.modifiedAt = nil }
-
-                let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(context)
-
-                for bookmark in bookmarksPendingDeletion {
-                    context.delete(bookmark)
-                }
-
+                cleanUpSentItems(sent, in: context)
                 processReceivedBookmarks(received, in: context, using: crypter)
+
                 let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
                 let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
 
@@ -113,6 +104,18 @@ public final class SyncBookmarksProvider: DataProviding {
             }
 
             continuation.resume()
+        }
+    }
+
+    func cleanUpSentItems(_ sent: [Syncable], in context: NSManagedObjectContext) {
+        let identifiers = sent.compactMap(\.id)
+        let bookmarks = fetchBookmarks(with: identifiers, in: context)
+        bookmarks.forEach { $0.modifiedAt = nil }
+
+        let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(context)
+
+        for bookmark in bookmarksPendingDeletion {
+            context.delete(bookmark)
         }
     }
 
