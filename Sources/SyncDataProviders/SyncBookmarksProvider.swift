@@ -35,6 +35,13 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) {
+        self.database = database
+        self.metadataStore = metadataStore
+        self.metadataStore.registerFeature(named: feature.name)
+        self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
+    }
+
     public func prepareForFirstSync() {
         lastSyncTimestamp = nil
     }
@@ -76,11 +83,8 @@ public final class SyncBookmarksProvider: DataProviding {
 
             context.performAndWait {
                 // clean up sent items
-
-                let identifiers = sent.compactMap { $0.payload["id"] as? String }
-                let request = BookmarkEntity.fetchRequest()
-                request.predicate = NSPredicate(format: "%K IN %@", #keyPath(BookmarkEntity.uuid), identifiers)
-                let bookmarks = (try? context.fetch(request)) ?? []
+                let identifiers = sent.compactMap(\.id)
+                let bookmarks = fetchBookmarks(with: identifiers, in: context)
                 bookmarks.forEach { $0.modifiedAt = nil }
 
                 let bookmarksPendingDeletion = BookmarkUtils.fetchBookmarksPendingDeletion(context)
@@ -114,11 +118,11 @@ public final class SyncBookmarksProvider: DataProviding {
 
     func processReceivedBookmarks(_ received: [Syncable], in context: NSManagedObjectContext, using crypter: Crypting) {
         let receivedIDs: Set<String> = received.reduce(into: .init()) { partialResult, syncable in
-            if let uuid = syncable.payload["id"] as? String {
+            if let uuid = syncable.id {
                 partialResult.insert(uuid)
             }
-            if let folder = syncable.payload["folder"] as? [String: Any], let children = folder["children"] as? [String] {
-                partialResult.formUnion(children)
+            if syncable.isFolder {
+                partialResult.formUnion(syncable.children)
             }
         }
         if receivedIDs.isEmpty {
@@ -128,25 +132,14 @@ public final class SyncBookmarksProvider: DataProviding {
             return
         }
 
-        // fetch all local bookmarks referenced in the payload
-        let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K IN %@", #keyPath(BookmarkEntity.uuid), receivedIDs)
-        request.returnsObjectsAsFaults = false
-        request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.children), #keyPath(BookmarkEntity.favorites)]
-
-        let bookmarks = (try? context.fetch(request)) ?? []
+        let bookmarks = fetchBookmarks(with: receivedIDs, in: context)
 
         // index local bookmarks by UUID
-        var existingByUUID: [String: BookmarkEntity] = bookmarks.reduce(into: .init()) { partialResult, bookmark in
-            guard let uuid = bookmark.uuid else {
-                return
-            }
-            partialResult[uuid] = bookmark
-        }
+        var existingByUUID = bookmarks.byUUID()
 
         // update existing local bookmarks data and store them in processedUUIDs
         let processedUUIDs: [String] = bookmarks.reduce(into: .init()) { partialResult, bookmark in
-            guard let syncable = received.first(where: { $0.payload["id"] as? String == bookmark.uuid }) else {
+            guard let syncable = received.first(where: { $0.id == bookmark.uuid }) else {
                 return
             }
             try? bookmark.update(with: syncable, in: context, using: crypter, existing: &existingByUUID)
@@ -156,32 +149,20 @@ public final class SyncBookmarksProvider: DataProviding {
         }
 
         // extract received favorites UUIDs
-        let favoritesUUIDs: [String] = {
-            guard let favoritesFolder = received.first(where: { $0.payload["id"] as? String == BookmarkEntity.Constants.favoritesFolderID }),
-                  let folderData = favoritesFolder.payload["folder"] as? [String: Any],
-                  let children = folderData["children"] as? [String]
-            else {
-                return []
-            }
-            return children
-        }()
-
-        var newBookmarks = [String: BookmarkEntity]()
+        let favoritesUUIDs: [String] = received.first(where: { $0.id == BookmarkEntity.Constants.favoritesFolderID })?.children ?? []
+        var insertedBookmarks = [String: BookmarkEntity]()
 
         // go through all received items and create new bookmarks as needed
         // filter out deleted objects from received items (they are already gone locally)
         let validReceivedItems: [Syncable] = received.filter { syncable in
-            guard let uuid = syncable.payload["id"] as? String, syncable.payload["deleted"] == nil else {
+            guard let uuid = syncable.id, !syncable.isDeleted else {
                 return false
             }
             if processedUUIDs.contains(uuid) {
                 return true
             }
 
-            let bookmark = BookmarkEntity(context: context)
-            bookmark.uuid = uuid
-            bookmark.isFolder = syncable.payload["folder"] != nil
-            newBookmarks[uuid] = bookmark
+            insertedBookmarks[uuid] = BookmarkEntity.make(withUUID: uuid, isFolder: syncable.isFolder, in: context)
             return true
         }
 
@@ -190,7 +171,7 @@ public final class SyncBookmarksProvider: DataProviding {
         if !favoritesUUIDs.isEmpty {
             favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites() }
             favoritesUUIDs.forEach { uuid in
-                if let newBookmark = newBookmarks[uuid] {
+                if let newBookmark = insertedBookmarks[uuid] {
                     newBookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 } else if let existingBookmark = existingByUUID[uuid] {
                     existingBookmark.addToFavorites(favoritesRoot: favoritesFolder)
@@ -203,18 +184,18 @@ public final class SyncBookmarksProvider: DataProviding {
 
         // go through all received items and populate new bookmarks
         for syncable in validReceivedItems {
-            guard let uuid = syncable.payload["id"] as? String, let bookmark = newBookmarks[uuid], let parentUUID = bookmarkToFolderMap[uuid] else {
+            guard let uuid = syncable.id, let bookmark = insertedBookmarks[uuid], let parentUUID = bookmarkToFolderMap[uuid] else {
                 continue
             }
-            bookmark.parent = newBookmarks[parentUUID] ?? existingByUUID[parentUUID]
+            bookmark.parent = insertedBookmarks[parentUUID] ?? existingByUUID[parentUUID]
             try? bookmark.update(with: syncable, in: context, using: crypter, existing: &existingByUUID)
         }
 
         for folderUUID in bookmarkToFolderMap.values {
-            if let folder = existingByUUID[folderUUID] ?? newBookmarks[folderUUID], let bookmarks = folderToBookmarksMap[folderUUID] {
+            if let folder = existingByUUID[folderUUID] ?? insertedBookmarks[folderUUID], let bookmarks = folderToBookmarksMap[folderUUID] {
                 folder.childrenArray.forEach { $0.parent = nil }
                 for bookmarkUUID in bookmarks {
-                    if let bookmark = newBookmarks[bookmarkUUID] ?? existingByUUID[bookmarkUUID] {
+                    if let bookmark = insertedBookmarks[bookmarkUUID] ?? existingByUUID[bookmarkUUID] {
                         folder.addToChildren(bookmark)
                     }
                 }
@@ -222,11 +203,14 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) {
-        self.database = database
-        self.metadataStore = metadataStore
-        self.metadataStore.registerFeature(named: feature.name)
-        self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
+    private func fetchBookmarks(with uuids: any Sequence & CVarArg, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        // fetch all local bookmarks referenced in the payload
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K IN %@", #keyPath(BookmarkEntity.uuid), uuids)
+        request.returnsObjectsAsFaults = false
+        request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.children), #keyPath(BookmarkEntity.favorites)]
+
+        return (try? context.fetch(request)) ?? []
     }
 
     private let database: CoreDataDatabase
@@ -235,6 +219,26 @@ public final class SyncBookmarksProvider: DataProviding {
 }
 
 extension Syncable {
+
+    var id: String? {
+        payload["id"] as? String
+    }
+
+    var isFolder: Bool {
+        payload["folder"] != nil
+    }
+
+    var children: [String] {
+        guard let folder = payload["folder"] as? [String: Any], let folderChildren = folder["children"] as? [String] else {
+            assertionFailure("Asking for children of a bookmark entity that is not a folder")
+            return []
+        }
+        return folderChildren
+    }
+
+    var isDeleted: Bool {
+        payload["deleted"] != nil
+    }
 
     init(bookmark: BookmarkEntity, encryptedWith crypter: Crypting) throws {
         var payload: [String: Any] = [:]
@@ -272,6 +276,13 @@ extension Syncable {
 
 extension BookmarkEntity {
 
+    static func make(withUUID uuid: String, isFolder: Bool, in context: NSManagedObjectContext) -> BookmarkEntity {
+        let bookmark = BookmarkEntity(context: context)
+        bookmark.uuid = uuid
+        bookmark.isFolder = isFolder
+        return bookmark
+    }
+
     func update(with syncable: Syncable, in context: NSManagedObjectContext, using crypter: Crypting, existing: inout [String: BookmarkEntity]) throws {
         let payload = syncable.payload
         guard payload["deleted"] == nil else {
@@ -294,18 +305,26 @@ extension BookmarkEntity {
     }
 }
 
+extension Array where Element == BookmarkEntity {
+
+    func byUUID() -> [String: BookmarkEntity] {
+        reduce(into: .init()) { partialResult, bookmark in
+            guard let uuid = bookmark.uuid else {
+                return
+            }
+            partialResult[uuid] = bookmark
+        }
+    }
+}
+
 extension Array where Element == Syncable {
 
     func mapParentFolders() -> [String: String] {
         var folders: [String: String] = [:]
 
         forEach { syncable in
-            if let folderUUID = syncable.payload["id"] as? String,
-               folderUUID != BookmarkEntity.Constants.favoritesFolderID,
-               let folder = syncable.payload["folder"] as? [String: Any],
-               let children = folder["children"] as? [String] {
-
-                children.forEach { child in
+            if let folderUUID = syncable.id, folderUUID != BookmarkEntity.Constants.favoritesFolderID {
+                syncable.children.forEach { child in
                     folders[child] = folderUUID
                 }
             }
@@ -318,12 +337,8 @@ extension Array where Element == Syncable {
         var children: [String: [String]] = [:]
 
         forEach { syncable in
-            if let folderUUID = syncable.payload["id"] as? String,
-               folderUUID != BookmarkEntity.Constants.favoritesFolderID,
-               let folder = syncable.payload["folder"] as? [String: Any],
-               let folderChildren = folder["children"] as? [String] {
-
-                children[folderUUID] = folderChildren
+            if let folderUUID = syncable.id, folderUUID != BookmarkEntity.Constants.favoritesFolderID {
+                children[folderUUID] = syncable.children
             }
         }
 

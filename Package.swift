@@ -241,6 +241,12 @@ let package = Package(
                 "Configuration",
                 "TestUtils"
             ]
+        ),
+        .testTarget(
+            name: "SyncDataProvidersTests",
+            dependencies: [
+                "SyncDataProviders"
+            ]
         )
     ],
     cxxLanguageStandard: .cxx11
