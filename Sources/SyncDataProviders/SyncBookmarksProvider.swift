@@ -233,7 +233,6 @@ extension Syncable {
 
     var children: [String] {
         guard let folder = payload["folder"] as? [String: Any], let folderChildren = folder["children"] as? [String] else {
-            assertionFailure("Asking for children of a bookmark entity that is not a folder")
             return []
         }
         return folderChildren

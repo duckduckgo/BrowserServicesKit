@@ -132,15 +132,77 @@ final class SyncBookmarksProviderTests: XCTestCase {
                 XCTFail("Failed to save context")
             }
 
-            let bookmarks = fetchAllNonRootBookmarks(in: context)
+            let bookmarks = fetchAllNonRootEntities(in: context)
 
             XCTAssertEqual(bookmarks.count, 3)
+
             XCTAssertEqual(bookmarks[0].title, "Bookmark 1")
             XCTAssertEqual(bookmarks[1].title, "Bookmark 4")
             XCTAssertEqual(bookmarks[2].title, "Bookmark 5")
+
             XCTAssertEqual(bookmarks[0].modifiedAt, nil)
             XCTAssertEqual(bookmarks[1].modifiedAt, nil)
             XCTAssertEqual(bookmarks[2].modifiedAt, nil)
+        }
+    }
+
+    func testThatReceivedBookmarksAreSavedToAnEmptyDatabase() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "3", "4"]),
+            .bookmark(id: "1"),
+            .bookmark(id: "2"),
+            .bookmark(id: "3"),
+            .folder(id: "4", children: ["5", "6"]),
+            .bookmark(id: "5"),
+            .bookmark(id: "6")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try? context.save()
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            let bookmarks = fetchAllNonRootEntities(in: context)
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)
+            XCTAssertEqual(rootFolder?.childrenArray.map(\.uuid), ["1", "2", "3", "4"])
+
+            XCTAssertEqual(bookmarks.count, 6)
+
+            XCTAssertEqual(bookmarks[0].title, "1")
+            XCTAssertEqual(bookmarks[1].title, "2")
+            XCTAssertEqual(bookmarks[2].title, "3")
+            XCTAssertEqual(bookmarks[3].title, "4")
+            XCTAssertTrue(bookmarks[3].isFolder)
+
+            XCTAssertEqual(bookmarks[4].parent?.objectID, bookmarks[3].objectID)
+            XCTAssertEqual(bookmarks[5].parent?.objectID, bookmarks[3].objectID)
+            XCTAssertEqual(bookmarks[4].title, "5")
+            XCTAssertEqual(bookmarks[5].title, "6")
+        }
+    }
+
+    func testThatBookmarksAreReorderedWithinFolder() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [.rootFolder(children: ["2", "1"])]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2", "1"])
         }
     }
 
@@ -148,7 +210,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
 
 extension SyncBookmarksProviderTests {
 
-    func fetchAllNonRootBookmarks(in context: NSManagedObjectContext) -> [BookmarkEntity] {
+    func fetchAllNonRootEntities(in context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "NOT %K IN %@", #keyPath(BookmarkEntity.uuid), [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID])
         request.sortDescriptors = [.init(key: #keyPath(BookmarkEntity.title), ascending: true)]
@@ -170,5 +232,41 @@ extension SyncBookmarksProviderTests {
             parent: parentFolder,
             context: context
         )
+    }
+}
+
+fileprivate extension Syncable {
+    static func rootFolder(children: [String]) -> Syncable {
+        .folder(id: BookmarkEntity.Constants.rootFolderID, children: children)
+    }
+
+    static func favoritesFolder(favorites: [String]) -> Syncable {
+        .folder(id: BookmarkEntity.Constants.favoritesFolderID, children: favorites)
+    }
+
+    static func bookmark(id: String, title: String? = nil, url: String? = nil, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
+        var json: [String: Any] = [
+            "id": id,
+            "title": title ?? id,
+            "page": ["url": url ?? id],
+            "client_last_modified": "1234"
+        ]
+        if isDeleted {
+            json["deleted"] = ""
+        }
+        return .init(jsonObject: json)
+    }
+
+    static func folder(id: String, title: String? = nil, children: [String], lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
+        var json: [String: Any] = [
+            "id": id,
+            "title": title ?? id,
+            "folder": ["children": children],
+            "client_last_modified": lastModified as Any
+        ]
+        if isDeleted {
+            json["deleted"] = ""
+        }
+        return .init(jsonObject: json)
     }
 }
