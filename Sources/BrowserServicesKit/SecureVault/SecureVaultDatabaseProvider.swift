@@ -150,7 +150,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
         let table = SecureVaultModels.WebsiteAccount.databaseTableName
         let username = SecureVaultModels.WebsiteAccount.Columns.username
-        let pwdHash = SecureVaultModels.WebsiteAccount.Columns.pwdHash
+        let signature = SecureVaultModels.WebsiteAccount.Columns.signature
         let lastUpdated = SecureVaultModels.WebsiteAccount.Columns.lastUpdated
         let domain = SecureVaultModels.WebsiteAccount.Columns.domain
         let tldLike = "%\(eTLDplus1)"
@@ -164,24 +164,24 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 SELECT a.*
                 FROM \(table) a
                 JOIN (
-                    SELECT \(username), \(pwdHash), MAX(\(lastUpdated)) AS latest_updated
+                    SELECT \(username), \(signature), MAX(\(lastUpdated)) AS latest_updated
                     FROM \(table)
-                    WHERE (\(username), \(pwdHash)) IN (
-                        SELECT \(username), \(pwdHash)
+                    WHERE (\(username), \(signature)) IN (
+                        SELECT \(username), \(signature)
                         FROM \(table)
-                        GROUP BY \(username), \(pwdHash)
+                        GROUP BY \(username), \(signature)
                         HAVING COUNT(*) > 1
                     )
-                    GROUP BY \(username), \(pwdHash)
-                ) b ON a.\(username) = b.\(username) AND a.\(pwdHash) = b.\(pwdHash) AND a.\(lastUpdated) = b.latest_updated
+                    GROUP BY \(username), \(signature)
+                ) b ON a.\(username) = b.\(username) AND a.\(signature) = b.\(signature) AND a.\(lastUpdated) = b.latest_updated
                 UNION
                 SELECT a.*
                 FROM \(table) a
-                WHERE (a.\(username), a.\(pwdHash)) IN (
-                    SELECT \(username), \(pwdHash)
+                WHERE (a.\(username), a.\(signature)) IN (
+                    SELECT \(username), \(signature)
                     FROM \(table)
                     WHERE \(domain) LIKE ?
-                    GROUP BY \(username), \(pwdHash)
+                    GROUP BY \(username), \(signature)
                     HAVING COUNT(*) = 1
                 )
                 AND a.\(domain) LIKE ?
@@ -692,9 +692,42 @@ extension DefaultDatabaseProvider {
     
     static func migrateV8(database: Database) throws {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
-            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.pwdHash.name, .text)            
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.signature.name, .text)
         }
+        
+        let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
+        
+        while let accountRow = try accountRows.next() {
+            let accountId: Int = accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name]
+            
+            // Query the credentials
+            let credentialRow = try Row.fetchOne(database, sql: """
+                SELECT * FROM \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+                WHERE \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+            """, arguments: [accountId])
+
+            if let credentialRow = credentialRow {
+                let username: String = accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name]
+                let password: String = credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name]
+
+                // Generate a new signature
+                let hash = try MigrationUtility.generateHash(username: username, password: password)
+                
+                // Update the accounts table with the new hash value
+                try database.execute(sql: """
+                    UPDATE
+                        \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                    SET
+                        \(SecureVaultModels.WebsiteAccount.Columns.signature.name) = ?
+                    WHERE
+                        \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+                """, arguments: [hash, accountId])
+            }
+        }
+        
     }
+        
+
 
 }
 
@@ -718,6 +751,14 @@ struct MigrationUtility {
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
         
         return try crypto.encrypt(data, withKey: decryptedL2Key)
+    }
+    
+    static func generateHash(username: String, password: String) throws -> String? {
+        let (crypto, _) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+        guard let data = "\(username)+\(password)".data(using: .utf8) else {
+            return nil
+        }
+        return try crypto.hashData(data)
     }
     
 }
@@ -771,7 +812,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, username, domain, pwdHash, notes, created, lastUpdated
+        case id, title, username, domain, signature, notes, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -779,7 +820,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         title = row[Columns.title]
         username = row[Columns.username]
         domain = row[Columns.domain]
-        pwdHash = row[Columns.pwdHash]
+        signature = row[Columns.signature]
         notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
@@ -790,7 +831,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
-        container[Columns.pwdHash] = pwdHash        
+        container[Columns.signature] = signature        
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()

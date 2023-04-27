@@ -226,7 +226,8 @@ class DefaultSecureVault: SecureVault {
         }
         var creds = credentials
         do {
-            creds.account.pwdHash = try providers.crypto.hashData(creds.password)
+            let hashString = "\(creds.account)+\(creds.password)"
+            creds.account.signature = try providers.crypto.hashData(creds.password)
             let encryptedPassword = try self.l2Encrypt(data: creds.password)
             return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
         } catch {
