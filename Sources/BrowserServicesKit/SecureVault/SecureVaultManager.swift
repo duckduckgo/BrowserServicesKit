@@ -563,6 +563,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                              from vault: SecureVault,
                              or passwordManager: PasswordManager?,
                              withPartialMatches: Bool = false,
+                             filterDuplicates: Bool = false,
                              completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> ()) {
         if let passwordManager = passwordManager,
            passwordManager.isEnabled {
@@ -577,7 +578,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         completion([], nil)
                         return
                     }
-                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1, filterDuplicates: filterDuplicates)
                     completion(accounts, nil)
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)

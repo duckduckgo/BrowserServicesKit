@@ -28,7 +28,7 @@ protocol SecureVaultDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool) throws -> [SecureVaultModels.WebsiteAccount]
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
     func notes() throws -> [SecureVaultModels.Note]
@@ -49,6 +49,13 @@ protocol SecureVaultDatabaseProvider {
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws
 
+}
+
+extension SecureVaultDatabaseProvider {
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
+        return try websiteAccountsForTopLevelDomain(eTLDplus1, filterDuplicates: false)
+    }
+    
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -140,11 +147,22 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        return try db.read {
-            return try SecureVaultModels.WebsiteAccount
-                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%\(eTLDplus1)"))
-                .fetchAll($0)
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
+        return try db.read { db in
+            if filterDuplicates {
+                let request = """
+                SELECT *
+                FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                WHERE domain LIKE ?
+                GROUP BY account, pwdHash
+                HAVING COUNT(*) > 1
+                """
+                return try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: ["%\(eTLDplus1)"])
+            } else {
+                return try SecureVaultModels.WebsiteAccount
+                    .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%\(eTLDplus1)"))
+                    .fetchAll(db)
+            }
         }
     }
 
