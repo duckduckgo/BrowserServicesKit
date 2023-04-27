@@ -40,13 +40,13 @@ extension NSObject {
         }
     }
 
-    /// Add an observer for the object deallocation even
+    /// Add an observer for the object deallocation event
     /// be sure not to reference the object inside the callback as it would create a retain cycle
     @discardableResult
     public func onDeinit(_ onDeinit: @escaping () -> Void) -> DeinitObserver {
         dispatchPrecondition(condition: .onQueue(.main))
         if let deinitObserver = self as? DeinitObserver {
-            assert(deinitObserver.callback == nil)
+            assert(deinitObserver.callback == nil, "disarm DeinitObserver first before re-setting its callback")
             deinitObserver.callback = onDeinit
             return deinitObserver
         }

@@ -400,7 +400,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             os_log("Task cancelled for %s", log: self.log, type: .default, navigationAction.debugDescription)
             decisionHandler(.cancel, wkPreferences)
 
-            // in case main completion is hung release WKNavigationAction just after cancellation
+            // in case decision making is hung release WKNavigationAction just after cancellation
+            // to release WKProcessPool and everything bound to it including UserContentController
             withExtendedLifetime(wkNavigationAction) {}
             wkNavigationAction = nil
         }

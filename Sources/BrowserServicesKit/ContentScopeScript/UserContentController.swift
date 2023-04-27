@@ -18,7 +18,6 @@
 
 import WebKit
 import Combine
-import Common
 import UserScript
 
 // swiftlint:disable line_length
