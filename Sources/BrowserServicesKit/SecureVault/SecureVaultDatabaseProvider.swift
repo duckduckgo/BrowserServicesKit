@@ -174,19 +174,19 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                     )
                     GROUP BY \(username), \(pwdHash)
                 ) b ON a.\(username) = b.\(username) AND a.\(pwdHash) = b.\(pwdHash) AND a.\(lastUpdated) = b.latest_updated
-                WHERE \(domain) LIKE ?
                 UNION
                 SELECT a.*
                 FROM \(table) a
                 WHERE (a.\(username), a.\(pwdHash)) IN (
                     SELECT \(username), \(pwdHash)
                     FROM \(table)
+                    WHERE \(domain) LIKE ?
                     GROUP BY \(username), \(pwdHash)
                     HAVING COUNT(*) = 1
                 )
-                AND \(domain) LIKE ?
+                AND a.\(domain) LIKE ?
                 """
-                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike, tldLike])                
+                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike, tldLike])
                 return result
             } else {
                 return try SecureVaultModels.WebsiteAccount
