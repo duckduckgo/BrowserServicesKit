@@ -578,7 +578,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         completion([], nil)
                         return
                     }
-                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1, filterDuplicates: filterDuplicates)
+                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1,
+                                                                           filterDuplicates: filterDuplicates)
                     completion(accounts, nil)
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)

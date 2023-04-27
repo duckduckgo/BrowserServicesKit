@@ -52,10 +52,10 @@ protocol SecureVaultDatabaseProvider {
 }
 
 extension SecureVaultDatabaseProvider {
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
+    @available(*, deprecated, message: "Use websiteAccountsForTopLevelDomain(:eTLDplus1:filterDuplicates) instead")
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try websiteAccountsForTopLevelDomain(eTLDplus1, filterDuplicates: false)
     }
-    
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
