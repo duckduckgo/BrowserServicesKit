@@ -106,7 +106,12 @@ public protocol DDGSyncing {
     Updated the device name.
      */
     func updateDeviceName(_ name: String) async throws -> [RegisteredDevice]
-    
+
+    /**
+     Deletes this account, but does not affect locally stored data.
+     */
+    func deleteAccount() async throws
+
 }
 
 

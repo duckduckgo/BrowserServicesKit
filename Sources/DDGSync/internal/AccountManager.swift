@@ -138,6 +138,25 @@ struct AccountManager: AccountManaging {
                                deviceType: account.deviceType)
     }
 
+    func deleteAccount(_ account: SyncAccount) async throws {
+        guard let token = account.token else {
+            throw SyncError.noToken
+        }
+
+        let devices = try await fetchDevicesForAccount(account)
+
+        // Logout other devices first or the call will fail
+        for device in devices.filter({ $0.id != account.deviceId }) {
+            try await logout(deviceId: device.id, token: token)
+        }
+
+        // This is the last device, the backend will perge the data after this
+        //  An explicit delete account endpoint might be better though
+        if let thisDevice = devices.first(where: { $0.id == account.deviceId }) {
+            try await logout(deviceId: thisDevice.id, token: token)
+        }
+    }
+
     private func login(_ info: ExtractedLoginInfo,
                        deviceId: String,
                        deviceName: String,

@@ -25,11 +25,11 @@ public class DDGSync: DDGSyncing {
     public static let bundle = Bundle.module
 
     enum Constants {
-//#if DEBUG
+        //#if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-//#else
-//        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-//#endif
+        //#else
+        //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
+        //#endif
     }
 
     @Published public private(set) var state: SyncState
@@ -80,23 +80,35 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountNotFound
         }
 
-        try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
+        do {
+            try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
+        } catch {
+            try handleUnauthenticated(error)
+        }
     }
 
     public func disconnect() async throws {
         guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
             throw SyncError.accountNotFound
         }
-        try await disconnect(deviceId: deviceId)
+        do {
+            try await disconnect(deviceId: deviceId)
+            try dependencies.secureStore.removeAccount()
+        } catch {
+            try handleUnauthenticated(error)
+        }
+        updateState()
     }
 
     public func disconnect(deviceId: String) async throws {
         guard let token = try dependencies.secureStore.account()?.token else {
             throw SyncError.noToken
         }
-        try dependencies.secureStore.removeAccount()
-        try await dependencies.account.logout(deviceId: deviceId, token: token)
-        updateState()
+        do {
+            try await dependencies.account.logout(deviceId: deviceId, token: token)
+        } catch {
+            try handleUnauthenticated(error)
+        }
     }
 
     public var scheduler: Scheduling {
@@ -108,7 +120,13 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountNotFound
         }
 
-        return try await dependencies.account.fetchDevicesForAccount(account)
+        do {
+            return try await dependencies.account.fetchDevicesForAccount(account)
+        } catch {
+            try handleUnauthenticated(error)
+        }
+
+        return []
     }
 
     public func updateDeviceName(_ name: String) async throws -> [RegisteredDevice] {
@@ -116,9 +134,29 @@ public class DDGSync: DDGSyncing {
             throw SyncError.accountNotFound
         }
 
-        let result = try await dependencies.account.refreshToken(account, deviceName: name)
-        try dependencies.secureStore.persistAccount(result.account)
-        return result.devices
+        do {
+            let result = try await dependencies.account.refreshToken(account, deviceName: name)
+            try dependencies.secureStore.persistAccount(result.account)
+            return result.devices
+        } catch {
+            try handleUnauthenticated(error)
+        }
+
+        return []
+    }
+
+    public func deleteAccount() async throws {
+        guard let account = try dependencies.secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        do {
+            try await dependencies.account.deleteAccount(account)
+            try dependencies.secureStore.removeAccount()
+            updateState()
+        } catch {
+            try handleUnauthenticated(error)
+        }
     }
 
     // MARK: -
@@ -149,6 +187,22 @@ public class DDGSync: DDGSyncing {
         if previousState == .inactive && state != .inactive {
             dependencies.engine.setUpAndStartFirstSync()
         }
+    }
+
+    private func handleUnauthenticated(_ error: Error) throws {
+        guard let syncError = error as? SyncError,
+              case .unexpectedStatusCode(let statusCode) = syncError,
+              statusCode == 401 else {
+            throw error
+        }
+
+        do {
+            try self.dependencies.secureStore.removeAccount()
+        } catch {
+            // We should probably log this, maybe fire a pixel
+            print(error)
+        }
+        updateState()
     }
 
     private var startSyncCancellable: AnyCancellable?

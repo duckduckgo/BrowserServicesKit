@@ -280,7 +280,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         assert(navigationAction.mainFrameNavigation != nil || !navigationAction.isForMainFrame)
-        os_log("decidePolicyFor: %s", log: log, type: .default, navigationAction.debugDescription)
+        os_log("decidePolicyFor: %s %s", log: log, type: .default, navigationAction.debugDescription, wkNavigationAction.mainFrameNavigation?.debugDescription ?? "")
 
         // initial `about:` scheme navigation doesn‘t wait for decision
         if (navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about
@@ -460,9 +460,16 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // regular flow: start .expected navigation
             navigation = expectedNavigation
         } else if webView.url?.isEmpty == false {
-            assertionFailure("session restoration happening without NavigationAction")
+            assert(webView.url?.navigationalScheme == .about, "session restoration happening without NavigationAction")
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
-            navigation.navigationActionReceived(.sessionRestoreNavigation(webView: webView, mainFrameNavigation: navigation))
+            if let finishedNavigation = wkNavigation?.navigation {
+                assert(finishedNavigation.state == .finished)
+                // about: scheme navigation for new window sometimes duplicates didStart/didCommit/didFinish events with the same WKNavigation
+                let navigationAction = NavigationAction(request: finishedNavigation.request, navigationType: finishedNavigation.navigationAction.navigationType, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: finishedNavigation.navigationAction.sourceFrame, targetFrame: finishedNavigation.navigationAction.targetFrame, shouldDownload: false, mainFrameNavigation: navigation)
+                navigation.navigationActionReceived(navigationAction)
+            } else {
+                navigation.navigationActionReceived(.sessionRestoreNavigation(webView: webView, mainFrameNavigation: navigation))
+            }
             navigation.willStart()
         } else if let wkNavigation {
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
