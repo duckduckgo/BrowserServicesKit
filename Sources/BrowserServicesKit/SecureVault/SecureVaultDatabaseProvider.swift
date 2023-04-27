@@ -700,6 +700,12 @@ extension DefaultDatabaseProvider {
         while let accountRow = try accountRows.next() {
             let accountId: Int = accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name]
             
+            let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
+                                                           username: accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name],
+                                                           domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
+                                                           created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
+                                                           lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
+            
             // Query the credentials
             let credentialRow = try Row.fetchOne(database, sql: """
                 SELECT * FROM \(SecureVaultModels.WebsiteCredentials.databaseTableName)
@@ -707,11 +713,21 @@ extension DefaultDatabaseProvider {
             """, arguments: [accountId])
 
             if let credentialRow = credentialRow {
-                let username: String = accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name]
-                let password: String = credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name]
-
+                    
+                let credentials = SecureVaultModels.WebsiteCredentials(account: account,
+                                                                       password: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name])
+                                
+                if (account.domain == "www.netflix.com") {
+                    print(credentials)
+                }
                 // Generate a new signature
-                let hash = try MigrationUtility.generateHash(username: username, password: password)
+                guard let username = credentials.account.username.data(using: .utf8) else {
+                    continue
+                }
+                let hashData = username + credentials.password
+                guard let hash = try MigrationUtility.generateHash(hashData) else {
+                    continue
+                }
                 
                 // Update the accounts table with the new hash value
                 try database.execute(sql: """
@@ -753,11 +769,25 @@ struct MigrationUtility {
         return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
     
-    static func generateHash(username: String, password: String) throws -> String? {
-        let (crypto, _) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
-        guard let data = "\(username)+\(password)".data(using: .utf8) else {
-            return nil
+    static func l2decrypt(data: Data) throws -> Data {
+        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+        
+        guard let generatedPassword = try keyStore.generatedPassword() else {
+            throw SecureVaultError.noL2Key
         }
+
+        let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
+
+        guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
+        return try crypto.decrypt(data, withKey: decryptedL2Key)
+    }
+    
+    static func generateHash(_ data: Data) throws -> String? {
+        let (crypto, _) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
         return try crypto.hashData(data)
     }
     
