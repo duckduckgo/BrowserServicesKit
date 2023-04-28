@@ -206,6 +206,83 @@ final class SyncBookmarksProviderTests: XCTestCase {
         }
     }
 
+    func testAppendingNewBookmarkToFolder() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["3"]),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
+        }
+    }
+
+    func testAppendingAndReordering() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["3", "2"]),
+            .bookmark(id: "2"),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "3", "2"])
+        }
+    }
+
+    func testDeletingAndReordering() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["3", "2"]),
+            .bookmark(id: "1", isDeleted: true),
+            .bookmark(id: "2"),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["3", "2"])
+        }
+    }
 }
 
 extension SyncBookmarksProviderTests {
