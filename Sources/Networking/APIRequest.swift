@@ -19,6 +19,7 @@
 
 import Common
 import Foundation
+import os.log
 
 public typealias APIResponse = (data: Data?, response: HTTPURLResponse)
 public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
