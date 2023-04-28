@@ -57,27 +57,34 @@ class Engine: EngineProtocol {
     func setUpAndStartFirstSync() {
         let syncState = (try? storage.account()?.state) ?? .inactive
 
-        for dataProvider in dataProviders {
-            dataProvider.prepareForFirstSync()
-        }
+        Task {
 
-        switch syncState {
-        case .setupNewAccount:
-            if let account = try? storage.account()?.updatingState(.active) {
-                try? storage.persistAccount(account)
-            }
-            startSync()
-        case .addNewDevice:
-            Task {
-                try await worker.sync(fetchOnly: true)
-                if let account = try storage.account()?.updatingState(.active) {
-                    try storage.persistAccount(account)
+            await withThrowingTaskGroup(of: Void.self) { group in
+                for dataProvider in dataProviders {
+                    group.addTask {
+                        try await dataProvider.prepareForFirstSync()
+                    }
                 }
-                self.startSync()
             }
-        default:
-            assertionFailure("Called first sync in unexpected \(syncState) state")
-            startSync()
+
+            switch syncState {
+            case .setupNewAccount:
+                if let account = try? storage.account()?.updatingState(.active) {
+                    try? storage.persistAccount(account)
+                }
+                startSync()
+            case .addNewDevice:
+                Task {
+                    try await worker.sync(fetchOnly: true)
+                    if let account = try storage.account()?.updatingState(.active) {
+                        try storage.persistAccount(account)
+                    }
+                    self.startSync()
+                }
+            default:
+                assertionFailure("Called first sync in unexpected \(syncState) state")
+                startSync()
+            }
         }
     }
 

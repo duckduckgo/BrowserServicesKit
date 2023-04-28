@@ -40,10 +40,12 @@ struct SyncRequestMaker: SyncRequestMaking {
     func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
         var json = [String: Any]()
         for (feature, result) in results {
-            let modelPayload: [String: Any?] = [
-                "updates": result.sent.map(\.payload),
-                "modified_since": result.previousSyncTimestamp ?? "0"
+            var modelPayload: [String: Any?] = [
+                "updates": result.sent.map(\.payload)
             ]
+            if let timestamp = result.previousSyncTimestamp {
+                modelPayload["modified_since"] = timestamp
+            }
             json[feature.name] = modelPayload
         }
         json["client_timestamp"] = dateFormatter.string(from: Date())

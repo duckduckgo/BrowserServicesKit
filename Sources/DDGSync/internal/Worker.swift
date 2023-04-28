@@ -70,10 +70,10 @@ actor Worker: WorkerProtocol {
                     results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: [])
                 } else {
                     let localChanges: [Syncable] = try await {
-                        if previousSyncTimestamp != nil {
+//                        if previousSyncTimestamp != nil {
                             return try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
-                        }
-                        return try await dataProvider.fetchAllObjects(encryptedUsing: crypter)
+//                        }
+//                        return try await dataProvider.fetchAllObjects(encryptedUsing: crypter)
                     }()
                     let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
                     results[dataProvider.feature] = result

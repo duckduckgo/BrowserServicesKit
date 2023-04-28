@@ -42,8 +42,31 @@ public final class SyncBookmarksProvider: DataProviding {
         self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
     }
 
-    public func prepareForFirstSync() {
-        lastSyncTimestamp = nil
+    public func prepareForFirstSync() async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            lastSyncTimestamp = nil
+            var saveError: Error?
+
+            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+            context.performAndWait {
+                let fetchRequest = BookmarkEntity.fetchRequest()
+                let bookmarks = (try? context.fetch(fetchRequest)) ?? []
+                bookmarks.forEach { $0.modifiedAt = Date() }
+
+                do {
+                    try context.save()
+                } catch {
+                    saveError = error
+                }
+            }
+            if let saveError {
+                print("SAVE ERROR", saveError)
+                continuation.resume(throwing: saveError)
+            } else {
+                continuation.resume()
+            }
+        }
     }
 
     public func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
@@ -171,12 +194,10 @@ public final class SyncBookmarksProvider: DataProviding {
 
         // at this point all new bookmarks are created
         // populate favorites
-        if !favoritesUUIDs.isEmpty {
-            favoritesUUIDs.forEach { uuid in
-                if let bookmark = insertedByUUID[uuid] ?? existingByUUID[uuid] {
-                    bookmark.removeFromFavorites()
-                    bookmark.addToFavorites(favoritesRoot: favoritesFolder)
-                }
+        favoritesUUIDs.forEach { uuid in
+            if let bookmark = insertedByUUID[uuid] ?? existingByUUID[uuid] {
+                bookmark.removeFromFavorites()
+                bookmark.addToFavorites(favoritesRoot: favoritesFolder)
             }
         }
 
