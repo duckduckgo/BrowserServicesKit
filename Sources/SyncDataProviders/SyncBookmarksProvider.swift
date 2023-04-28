@@ -172,12 +172,10 @@ public final class SyncBookmarksProvider: DataProviding {
         // at this point all new bookmarks are created
         // populate favorites
         if !favoritesUUIDs.isEmpty {
-            favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites() }
             favoritesUUIDs.forEach { uuid in
-                if let newBookmark = insertedByUUID[uuid] {
-                    newBookmark.addToFavorites(favoritesRoot: favoritesFolder)
-                } else if let existingBookmark = existingByUUID[uuid] {
-                    existingBookmark.addToFavorites(favoritesRoot: favoritesFolder)
+                if let bookmark = insertedByUUID[uuid] ?? existingByUUID[uuid] {
+                    bookmark.removeFromFavorites()
+                    bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
             }
         }
