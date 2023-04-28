@@ -153,7 +153,7 @@ public final class SyncBookmarksProvider: DataProviding {
 
         // extract received favorites UUIDs
         let favoritesUUIDs: [String] = received.first(where: { $0.id == BookmarkEntity.Constants.favoritesFolderID })?.children ?? []
-        var insertedBookmarks = [String: BookmarkEntity]()
+        var insertedByUUID = [String: BookmarkEntity]()
 
         // go through all received items and create new bookmarks as needed
         // filter out deleted objects from received items (they are already gone locally)
@@ -165,7 +165,7 @@ public final class SyncBookmarksProvider: DataProviding {
                 return true
             }
 
-            insertedBookmarks[uuid] = BookmarkEntity.make(withUUID: uuid, isFolder: syncable.isFolder, in: context)
+            insertedByUUID[uuid] = BookmarkEntity.make(withUUID: uuid, isFolder: syncable.isFolder, in: context)
             return true
         }
 
@@ -174,7 +174,7 @@ public final class SyncBookmarksProvider: DataProviding {
         if !favoritesUUIDs.isEmpty {
             favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites() }
             favoritesUUIDs.forEach { uuid in
-                if let newBookmark = insertedBookmarks[uuid] {
+                if let newBookmark = insertedByUUID[uuid] {
                     newBookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 } else if let existingBookmark = existingByUUID[uuid] {
                     existingBookmark.addToFavorites(favoritesRoot: favoritesFolder)
@@ -187,18 +187,22 @@ public final class SyncBookmarksProvider: DataProviding {
 
         // go through all received items and populate new bookmarks
         for syncable in validReceivedItems {
-            guard let uuid = syncable.id, let bookmark = insertedBookmarks[uuid], let parentUUID = bookmarkToFolderMap[uuid] else {
+            guard let uuid = syncable.id, let bookmark = insertedByUUID[uuid], let parentUUID = bookmarkToFolderMap[uuid] else {
                 continue
             }
-            bookmark.parent = insertedBookmarks[parentUUID] ?? existingByUUID[parentUUID]
+            bookmark.parent = insertedByUUID[parentUUID] ?? existingByUUID[parentUUID]
             try? bookmark.update(with: syncable, in: context, using: crypter, existing: &existingByUUID)
         }
 
         for folderUUID in bookmarkToFolderMap.values {
-            if let folder = existingByUUID[folderUUID] ?? insertedBookmarks[folderUUID], let bookmarks = folderToBookmarksMap[folderUUID] {
-                folder.childrenArray.forEach { $0.parent = nil }
+            if let folder = existingByUUID[folderUUID] ?? insertedByUUID[folderUUID], let bookmarks = folderToBookmarksMap[folderUUID] {
+                folder.childrenArray.forEach { bookmark in
+                    if insertedByUUID.keys.contains(bookmark.uuid ?? "") {
+                        bookmark.parent = nil
+                    }
+                }
                 for bookmarkUUID in bookmarks {
-                    if let bookmark = insertedBookmarks[bookmarkUUID] ?? existingByUUID[bookmarkUUID] {
+                    if let bookmark = insertedByUUID[bookmarkUUID] {
                         folder.addToChildren(bookmark)
                     }
                 }
