@@ -23,12 +23,12 @@ import DDGSync
 import Foundation
 
 enum BookmarkTreeNode {
-    case bookmark(id: String, name: String?, url: String?, isDeleted: Bool)
+    case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, isDeleted: Bool)
     case folder(id: String, name: String?, children: [BookmarkTreeNode], isDeleted: Bool)
 
     var id: String {
         switch self {
-        case .bookmark(let id, _, _, _):
+        case .bookmark(let id, _, _, _, _):
             return id
         case .folder(let id, _, _, _):
             return id
@@ -37,7 +37,7 @@ enum BookmarkTreeNode {
 
     var name: String? {
         switch self {
-        case .bookmark(_, let name, _, _):
+        case .bookmark(_, let name, _, _, _):
             return name
         case .folder(_, let name, _, _):
             return name
@@ -46,7 +46,7 @@ enum BookmarkTreeNode {
 
     var isDeleted: Bool {
         switch self {
-        case .bookmark(_, _, _, let isDeleted):
+        case .bookmark(_, _, _, _, let isDeleted):
             return isDeleted
         case .folder(_, _, _, let isDeleted):
             return isDeleted
@@ -62,17 +62,19 @@ struct Bookmark: BookmarkTreeNodeConvertible {
     var id: String
     var name: String?
     var url: String?
+    var isFavorite: Bool
     var isDeleted: Bool
 
-    init(_ name: String? = nil, id: String? = nil, url: String? = nil, isDeleted: Bool = false) {
+    init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, isDeleted: Bool = false) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.url = url ?? id
+        self.isFavorite = isFavorite
         self.isDeleted = isDeleted
     }
 
     func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .bookmark(id: id, name: name, url: url, isDeleted: isDeleted)
+        .bookmark(id: id, name: name, url: url, isFavorite: isFavorite, isDeleted: isDeleted)
     }
 }
 
@@ -82,7 +84,7 @@ struct Folder: BookmarkTreeNodeConvertible {
     var isDeleted: Bool
     var children: [BookmarkTreeNode]
 
-    init(_ name: String?, id: String? = nil, isDeleted: Bool = false, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
+    init(_ name: String? = nil, id: String? = nil, isDeleted: Bool = false, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode] = { [] }) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.isDeleted = isDeleted
@@ -109,10 +111,12 @@ struct BookmarksTree {
         self.bookmarkTreeNodes = builder()
     }
 
+    @discardableResult
     func createEntities(in context: NSManagedObjectContext) -> BookmarkEntity {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+        let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
         for bookmarkTreeNode in bookmarkTreeNodes {
-            BookmarkEntity.make(with: bookmarkTreeNode, rootFolder: rootFolder, in: context)
+            BookmarkEntity.make(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context)
         }
         return rootFolder
     }
@@ -122,7 +126,7 @@ struct BookmarksTree {
 
 extension BookmarkEntity {
     @discardableResult
-    static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
+    static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
         var entity: BookmarkEntity!
 
         var queue: [BookmarkTreeNode] = [treeNode]
@@ -132,7 +136,7 @@ extension BookmarkEntity {
             let node = queue.removeFirst()
 
             switch node {
-            case .bookmark(let id, let name, let url, let isDeleted):
+            case .bookmark(let id, let name, let url, let isFavorite, let isDeleted):
                 let bookmarkEntity = BookmarkEntity(context: context)
                 if entity == nil {
                     entity = bookmarkEntity
@@ -141,6 +145,9 @@ extension BookmarkEntity {
                 bookmarkEntity.parent = parents.last
                 bookmarkEntity.title = name
                 bookmarkEntity.url = url
+                if isFavorite {
+                    bookmarkEntity.addToFavorites(favoritesRoot: favoritesFolder)
+                }
                 if isDeleted {
                     bookmarkEntity.markPendingDeletion()
                 }

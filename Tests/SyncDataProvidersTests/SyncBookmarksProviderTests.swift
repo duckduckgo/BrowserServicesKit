@@ -215,6 +215,31 @@ final class SyncBookmarksProviderTests: XCTestCase {
         }
 
         let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "3"]),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
+        }
+    }
+
+    func testMergingBookmarksInTheSameFolder() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
             .rootFolder(children: ["3"]),
             .bookmark(id: "3")
         ]
@@ -228,6 +253,92 @@ final class SyncBookmarksProviderTests: XCTestCase {
             try? context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
+        }
+    }
+
+    func testAppendingNewFavorite() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "2", isFavorite: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "3"]),
+            .favoritesFolder(favorites: ["1", "2", "3"]),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+
+            XCTAssertEqual(favoritesFolder.favoritesArray.map(\.uuid), ["1", "2", "3"])
+        }
+    }
+
+    func testMergingFavorites() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "2", isFavorite: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["3"]),
+            .favoritesFolder(favorites: ["3"]),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+
+            XCTAssertEqual(favoritesFolder.favoritesArray.map(\.uuid), ["1", "2", "3"])
+        }
+    }
+
+    func testAppendingNewFavoriteFromSubfolder() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarksTree {
+            Bookmark(id: "1", isFavorite: true)
+            Folder(id: "2") {
+                Bookmark(id: "3")
+            }
+        }
+
+        let received: [Syncable] = [
+            .favoritesFolder(favorites: ["1", "3"]),
+            .folder(id: "2", children: ["3"]),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+
+            XCTAssertEqual(favoritesFolder.favoritesArray.map(\.uuid), ["1", "3"])
         }
     }
 
@@ -334,7 +445,7 @@ fileprivate extension Syncable {
         return .init(jsonObject: json)
     }
 
-    static func folder(id: String, title: String? = nil, children: [String], lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
+    static func folder(id: String, title: String? = nil, children: [String] = [], lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
         var json: [String: Any] = [
             "id": id,
             "title": title ?? id,
