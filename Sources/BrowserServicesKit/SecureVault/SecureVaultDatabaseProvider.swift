@@ -699,13 +699,12 @@ extension DefaultDatabaseProvider {
                 var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
                 decryptedCredentials = .init(account: account,
                                              password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name]))
-                                                              
-                
-                guard let username = decryptedCredentials?.account.username.data(using: .utf8),
+                                                                              
+                guard let accountHash = decryptedCredentials?.account.hashValue,
                       let password = decryptedCredentials?.password else {
                     continue
                 }
-                let hashData = username + password
+                let hashData = accountHash + password
                 guard let hash = try MigrationUtility.generateHash(hashData) else {
                     continue
                 }
