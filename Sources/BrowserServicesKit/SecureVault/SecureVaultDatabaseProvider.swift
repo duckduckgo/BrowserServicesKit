@@ -150,27 +150,32 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
         let table = SecureVaultModels.WebsiteAccount.databaseTableName
         let signature = SecureVaultModels.WebsiteAccount.Columns.signature
-        let lastUpdated = SecureVaultModels.WebsiteAccount.Columns.lastUpdated
         let domain = SecureVaultModels.WebsiteAccount.Columns.domain
         let tldLike = "%\(eTLDplus1)"
         return try db.read { db in
             if filterDuplicates {
-                /* This query combines the following two via UNION:
-                    - The accounts must have a domain value that matches a specified pattern.
-                    - If there are accounts with the same signature value, only the row with the most recent `lastUpdated` value should be included.
+                /*
+                 Find all accounts, filtering out duplicates based on the signature column.
+                 From the dupes, we keep only the record with a domain that better matches the specified eTLDplus1.
+                 (This is done by joining the table with a subquery that finds the row ID of the best matching)
                 */
                 let request = """
                 SELECT a.*
                 FROM \(table) a
-                LEFT JOIN (
-                  SELECT \(signature), MAX(\(lastUpdated)) AS max_lastUpdated
-                  FROM \(table)
-                  GROUP BY \(signature)
-                ) b ON a.\(signature) = b.\(signature) AND a.\(lastUpdated) = b.max_lastUpdated
-                WHERE b.\(signature) IS NOT NULL
-                AND \(domain) LIKE ?
+                JOIN (
+                 SELECT a.\(signature), a.rowid AS selected_rowid
+                 FROM \(table) a
+                 WHERE a.rowid = (
+                     SELECT b.rowid
+                     FROM \(table) b
+                     WHERE b.\(signature) = a.\(signature)
+                     ORDER BY LENGTH(?) - LENGTH(SUBSTR(b.\(domain), INSTR(b.\(domain), ?))) ASC, b.rowid ASC
+                     LIMIT 1
+                 )
+                ) c ON a.\(signature) = c.\(signature) AND a.rowid = c.selected_rowid
+                WHERE \(domain) LIKE ?
                 """
-                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike])
+                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [eTLDplus1, eTLDplus1, tldLike])
                 return result
             } else {
                 return try SecureVaultModels.WebsiteAccount
