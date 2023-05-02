@@ -69,9 +69,9 @@ internal struct SecureVaultProviders {
 
 }
 
-// Filter accounts to remove duplicates, leaving one that is:
-// A. An exact match to the provided eTLDplus1
-// B. The last update item
+// Filter accounts to remove duplicates but one, that is:
+// A. An exact match to the provided eTLDplus1 OR
+// B. The most recently updated account if no exact matches
 extension Array where Element == SecureVaultModels.WebsiteAccount {
     
     func removingUplicatesFor(eTLDplus1: String) -> [SecureVaultModels.WebsiteAccount] {
