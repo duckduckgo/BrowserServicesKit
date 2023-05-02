@@ -148,14 +148,14 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         let table = SecureVaultModels.WebsiteAccount.databaseTableName
         let signature = SecureVaultModels.WebsiteAccount.Columns.signature
         let domain = SecureVaultModels.WebsiteAccount.Columns.domain
+        let lastUpdated = SecureVaultModels.WebsiteAccount.Columns.lastUpdated
         let tldLike = "%\(eTLDplus1)"
         return try db.read { db in
             if filterDuplicates {
                 /*
                  Find all accounts, filtering out duplicates based on the signature column.
-                 From the dupes, we keep only the record with a domain that better matches the specified eTLDplus1.
-                 The results return exact matches first, then most similar option
-                 (This is done by joining the table with a subquery that finds the row ID of the best matching)
+                 1. Send back an account if there one that's an exact match for the domain
+                 2. If there's no exact match, return the one updated more recently
                 */
                 let request = """
                 SELECT a.*
@@ -167,16 +167,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                         SELECT b.rowid
                         FROM \(table) b
                         WHERE b.\(signature) = a.\(signature)
-                        ORDER BY
-                            CASE b.\(domain) WHEN ? THEN 1 ELSE 2 END,
-                            b.\(domain) ASC,
-                            b.rowid ASC
                         LIMIT 1
                     )
                 ) c ON a.\(signature) = c.\(signature) AND a.rowid = c.selected_rowid
                 WHERE \(domain) LIKE ?
+                ORDER BY \(lastUpdated) DESC
                 """
-                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [eTLDplus1, tldLike])
+                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike])
                 return result
             } else {
                 return try SecureVaultModels.WebsiteAccount
