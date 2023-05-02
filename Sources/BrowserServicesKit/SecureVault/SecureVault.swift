@@ -69,6 +69,37 @@ internal struct SecureVaultProviders {
 
 }
 
+// Filter accounts to remove duplicates, leaving one that is:
+// A. An exact match to the provided eTLDplus1
+// B. The last update item
+extension Array where Element == SecureVaultModels.WebsiteAccount {
+    
+    func removingUplicatesFor(eTLDplus1: String) -> [SecureVaultModels.WebsiteAccount] {
+        let uniqueAccounts = self.reduce(into: [String: SecureVaultModels.WebsiteAccount]()) { result, account in
+            
+            if account.domain == eTLDplus1 {
+                if let signature = account.signature {
+                    result[signature] = account
+                }
+                return
+            }
+            guard let signature = account.signature else {
+                return
+            }
+            guard let existingAccount = result[signature] else {
+                result[signature] = account
+                return
+            }
+            if existingAccount.domain != eTLDplus1 && account.lastUpdated > existingAccount.lastUpdated {
+                result[signature] = account
+            }
+        }
+        return uniqueAccounts.values.sorted(by: { $0.lastUpdated > $1.lastUpdated })
+    }
+    
+}
+
+
 class DefaultSecureVault: SecureVault {
 
     private let lock = NSLock()
@@ -188,10 +219,9 @@ class DefaultSecureVault: SecureVault {
         defer {
             lock.unlock()
         }
-
         do {
-            let accounts = try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1, filterDuplicates: filterDuplicates)
-            return accounts
+            let accounts = try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
+            return filterDuplicates ? accounts.removingUplicatesFor(eTLDplus1: eTLDplus1) : accounts
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }

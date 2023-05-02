@@ -28,7 +28,7 @@ protocol SecureVaultDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool) throws -> [SecureVaultModels.WebsiteAccount]
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
     func notes() throws -> [SecureVaultModels.Note]
@@ -49,13 +49,6 @@ protocol SecureVaultDatabaseProvider {
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws
 
-}
-
-extension SecureVaultDatabaseProvider {
-    @available(*, deprecated, message: "Use websiteAccountsForTopLevelDomain(:eTLDplus1:filterDuplicates) instead")
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        return try websiteAccountsForTopLevelDomain(eTLDplus1, filterDuplicates: false)
-    }
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -144,45 +137,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
-        let table = SecureVaultModels.WebsiteAccount.databaseTableName
-        let signature = SecureVaultModels.WebsiteAccount.Columns.signature
-        let domain = SecureVaultModels.WebsiteAccount.Columns.domain
-        let lastUpdated = SecureVaultModels.WebsiteAccount.Columns.lastUpdated
-        let tldLike = "%\(eTLDplus1)"
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read { db in
-            if filterDuplicates {
-                /*
-                 Find all accounts, filtering out duplicates based on the signature column.
-                 1. Send back an account if there one that's an exact match for the domain
-                 2. If there's no exact match, return the one updated more recently
-                */
-                let request = """
-                SELECT a.*
-                FROM \(table) a
-                JOIN (
-                    SELECT a.\(signature), a.rowid AS selected_rowid
-                    FROM \(table) a
-                    WHERE a.rowid = (
-                        SELECT b.rowid
-                        FROM \(table) b
-                        WHERE b.\(signature) = a.\(signature)
-                        LIMIT 1
-                    )
-                ) c ON a.\(signature) = c.\(signature) AND a.rowid = c.selected_rowid
-                WHERE \(domain) LIKE ?
-                ORDER BY \(lastUpdated) DESC
-                """
-                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [tldLike])
-                return result
-            } else {
-                return try SecureVaultModels.WebsiteAccount
-                    .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(tldLike))
-                    .fetchAll(db)
-            }
+            return try SecureVaultModels.WebsiteAccount
+                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%" + eTLDplus1))
+                .fetchAll(db)
         }
     }
-
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
