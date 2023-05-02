@@ -221,6 +221,90 @@ class SecureVaultTests: XCTestCase {
             }
         }
     }
+    
+    func testWhenFetchingAccountPartialMatches_DuplicatesAreRemovedCorrectly() {
+
+        // Exact Match account
+        let account1 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "daniel",
+                                                        domain: "fill.dev",
+                                                        signature: "12345",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+
+       
+        let account2 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "daniel",
+                                                        domain: "www.fill.dev",
+                                                        signature: "12345",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+        // Duplicate for Account 2
+        let account3 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                         username: "daniel",
+                                                         domain: "www.fill.dev",
+                                                         signature: "12345",
+                                                         created: Date(timeIntervalSince1970: 100),
+                                                         lastUpdated: Date(timeIntervalSince1970: 100000))
+        // Duplicate for Account 2 (Last Updated)
+        let account4 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "daniel",
+                                                        domain: "aaa.fill.dev",
+                                                        signature: "12345",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100009))
+       
+        let account5 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "john",
+                                                        domain: "fill.dev",
+                                                        signature: "7890",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+        
+        // Duplicate for account 7
+        let account6 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "mary",
+                                                        domain: "www.fill.dev",
+                                                        signature: "0987",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+        // Last Updated Account
+        let account7 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "mary",
+                                                        domain: "aaa.fill.dev",
+                                                        signature: "0987",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100001)) // Last Updated
+        
+        // Test the exact match is returned by default
+        mockDatabaseProvider._accounts = [account1, account2, account3, account4]
+        var filteredAccounts: [SecureVaultModels.WebsiteAccount]
+        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
+        print(filteredAccounts)
+        XCTAssertTrue(filteredAccounts.count == 1)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account1.id })
+
+        // Test the last edited account is returned if no exact match
+        mockDatabaseProvider._accounts  = [account2, account3, account4]
+        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
+        XCTAssertTrue(filteredAccounts.count == 1)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
+
+        // Test non duplicate accounts other accounts are also returned
+        mockDatabaseProvider._accounts  = [account2, account3, account4, account5]
+        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
+        XCTAssertTrue(filteredAccounts.count == 2)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account5.id })
+
+        // Test multiple duplicates are filtered correctly, and non-duplicates are returned
+        mockDatabaseProvider._accounts  = [account2, account3, account4, account5, account6, account7]
+        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
+        XCTAssertTrue(filteredAccounts.count == 3)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account5.id })
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account7.id })
+
+    }
 
 }
-    

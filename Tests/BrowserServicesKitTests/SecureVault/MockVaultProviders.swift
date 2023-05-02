@@ -50,7 +50,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         return _accounts
     }
 
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String, filterDuplicates: Bool = true) throws -> [SecureVaultModels.WebsiteAccount] {
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         self._forDomain.append(eTLDplus1)
         return _accounts
     }
