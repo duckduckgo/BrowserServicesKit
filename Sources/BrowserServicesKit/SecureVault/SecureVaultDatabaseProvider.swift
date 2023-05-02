@@ -154,25 +154,29 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 /*
                  Find all accounts, filtering out duplicates based on the signature column.
                  From the dupes, we keep only the record with a domain that better matches the specified eTLDplus1.
+                 The results return exact matches first, then most similar option
                  (This is done by joining the table with a subquery that finds the row ID of the best matching)
                 */
                 let request = """
                 SELECT a.*
                 FROM \(table) a
                 JOIN (
-                 SELECT a.\(signature), a.rowid AS selected_rowid
-                 FROM \(table) a
-                 WHERE a.rowid = (
-                     SELECT b.rowid
-                     FROM \(table) b
-                     WHERE b.\(signature) = a.\(signature)
-                     ORDER BY LENGTH(?) - LENGTH(SUBSTR(b.\(domain), INSTR(b.\(domain), ?))) ASC, b.rowid ASC
-                     LIMIT 1
-                 )
+                    SELECT a.\(signature), a.rowid AS selected_rowid
+                    FROM \(table) a
+                    WHERE a.rowid = (
+                        SELECT b.rowid
+                        FROM \(table) b
+                        WHERE b.\(signature) = a.\(signature)
+                        ORDER BY
+                            CASE b.\(domain) WHEN ? THEN 1 ELSE 2 END,
+                            b.\(domain) ASC,
+                            b.rowid ASC
+                        LIMIT 1
+                    )
                 ) c ON a.\(signature) = c.\(signature) AND a.rowid = c.selected_rowid
                 WHERE \(domain) LIKE ?
                 """
-                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [eTLDplus1, eTLDplus1, tldLike])
+                let result = try SecureVaultModels.WebsiteAccount.fetchAll(db, sql: request, arguments: [eTLDplus1, tldLike])
                 return result
             } else {
                 return try SecureVaultModels.WebsiteAccount
