@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 /// A vault that supports storing data at various levels.
 ///
@@ -410,29 +411,40 @@ class DefaultSecureVault: SecureVault {
 }
 
 // Filter accounts to remove duplicates but one, that is:
-// A. An exact match to the provided eTLDplus1 OR
-// B. The most recently updated account if no exact matches
+// A. An exact match to the provided domain OR
+// B. An account for the TLD domain if available
+// C. The most recently updated account if no exact matches or TLD account
 extension Array where Element == SecureVaultModels.WebsiteAccount {
     
-    func removingDuplicates(forDomain: String) -> [SecureVaultModels.WebsiteAccount] {
+    func removingDuplicates(forDomain domain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+        var urlComponents = URLComponents()
+        urlComponents.host = domain
+        
         let uniqueAccounts = self.reduce(into: [String: SecureVaultModels.WebsiteAccount]()) { result, account in
             
-            if account.domain == forDomain {
-                if let signature = account.signature {
-                    result[signature] = account
-                }
-                return
-            }
             guard let signature = account.signature else {
                 return
             }
-            guard let existingAccount = result[signature] else {
-                result[signature] = account
-                return
+            
+            // For duplicate accounts
+            if signature == account.signature {
+                
+                // If it's an exact match or a match to the TLD, keep it.
+                if account.domain == domain || account.domain == urlComponents.eTLDplus1(tld: tld) {
+                    result[signature] = account
+                    return
+                }
+                
+                guard let existingAccount = result[signature] else {
+                    result[signature] = account
+                    return
+                }
+                // Otherwise keep it if its more recently updated than the existing one
+                if existingAccount.domain != domain && account.lastUpdated > existingAccount.lastUpdated {
+                    result[signature] = account
+                }
             }
-            if existingAccount.domain != forDomain && account.lastUpdated > existingAccount.lastUpdated {
-                result[signature] = account
-            }
+            
         }
         return uniqueAccounts.values.sorted(by: { $0.lastUpdated > $1.lastUpdated })
     }
