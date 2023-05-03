@@ -277,33 +277,28 @@ class SecureVaultTests: XCTestCase {
                                                         lastUpdated: Date(timeIntervalSince1970: 100001)) // Last Updated
         
         // Test the exact match is returned by default
-        mockDatabaseProvider._accounts = [account1, account2, account3, account4]
+        
         var filteredAccounts: [SecureVaultModels.WebsiteAccount]
-        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
-        print(filteredAccounts)
+        filteredAccounts = [account1, account2, account3, account4].removingDuplicates(forDomain: "fill.dev")
         XCTAssertTrue(filteredAccounts.count == 1)
         XCTAssertTrue(filteredAccounts.contains { $0.id == account1.id })
 
         // Test the last edited account is returned if no exact match
-        mockDatabaseProvider._accounts  = [account2, account3, account4]
-        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
+        filteredAccounts  = [account2, account3, account4].removingDuplicates(forDomain: "fill.dev")
         XCTAssertTrue(filteredAccounts.count == 1)
         XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
 
         // Test non duplicate accounts other accounts are also returned
-        mockDatabaseProvider._accounts  = [account2, account3, account4, account5]
-        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
+        filteredAccounts = [account2, account3, account4, account5].removingDuplicates(forDomain: "fill.dev")
         XCTAssertTrue(filteredAccounts.count == 2)
         XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
         XCTAssertTrue(filteredAccounts.contains { $0.id == account5.id })
 
         // Test multiple duplicates are filtered correctly, and non-duplicates are returned
-        mockDatabaseProvider._accounts  = [account2, account3, account4, account5, account6, account7]
-        filteredAccounts = try! testVault.accountsWithPartialMatchesFor(eTLDplus1: "fill.dev", filterDuplicates: true)
-        XCTAssertTrue(filteredAccounts.count == 3)
-        XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
+        filteredAccounts = [account5, account6, account7].removingDuplicates(forDomain: "www.fill.dev")
+        XCTAssertTrue(filteredAccounts.count == 2)
         XCTAssertTrue(filteredAccounts.contains { $0.id == account5.id })
-        XCTAssertTrue(filteredAccounts.contains { $0.id == account7.id })
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account6.id })
 
     }
 

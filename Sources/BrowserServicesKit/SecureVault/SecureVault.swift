@@ -32,7 +32,7 @@ public protocol SecureVault {
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
-    func accountsWithPartialMatchesFor(eTLDplus1: String, filterDuplicates: Bool) throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
@@ -183,14 +183,13 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    public func accountsWithPartialMatchesFor(eTLDplus1: String, filterDuplicates: Bool = false) throws -> [SecureVaultModels.WebsiteAccount] {
+    public func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         lock.lock()
         defer {
             lock.unlock()
         }
         do {
-            let accounts = try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
-            return filterDuplicates ? accounts.removingUplicatesFor(eTLDplus1: eTLDplus1) : accounts
+            return try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }
@@ -413,12 +412,12 @@ class DefaultSecureVault: SecureVault {
 // Filter accounts to remove duplicates but one, that is:
 // A. An exact match to the provided eTLDplus1 OR
 // B. The most recently updated account if no exact matches
-private extension Array where Element == SecureVaultModels.WebsiteAccount {
+extension Array where Element == SecureVaultModels.WebsiteAccount {
     
-    func removingUplicatesFor(eTLDplus1: String) -> [SecureVaultModels.WebsiteAccount] {
+    func removingDuplicates(forDomain: String) -> [SecureVaultModels.WebsiteAccount] {
         let uniqueAccounts = self.reduce(into: [String: SecureVaultModels.WebsiteAccount]()) { result, account in
             
-            if account.domain == eTLDplus1 {
+            if account.domain == forDomain {
                 if let signature = account.signature {
                     result[signature] = account
                 }
@@ -431,7 +430,7 @@ private extension Array where Element == SecureVaultModels.WebsiteAccount {
                 result[signature] = account
                 return
             }
-            if existingAccount.domain != eTLDplus1 && account.lastUpdated > existingAccount.lastUpdated {
+            if existingAccount.domain != forDomain && account.lastUpdated > existingAccount.lastUpdated {
                 result[signature] = account
             }
         }
