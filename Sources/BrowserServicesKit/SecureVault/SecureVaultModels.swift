@@ -3,7 +3,7 @@
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
-//  Licensed under the Apache License, Version 2.0 (the "License");
+//  Licensed under the Apache License, Version 2.0 (the "License");zº
 //  you may not use this file except in compliance with the License.
 //  You may obtain a copy of the License at
 //
@@ -46,28 +46,54 @@ public struct SecureVaultModels {
         public var title: String?
         public var username: String
         public var domain: String
+        public var signature: String?
         public var notes: String?
         public let created: Date
-        public let lastUpdated: Date
+        public let lastUpdated: Date        
 
-        public init(title: String? = nil, username: String, domain: String, notes: String? = nil) {
+        public init(title: String? = nil, username: String, domain: String, signature: String? = nil, notes: String? = nil) {
             self.id = nil
             self.title = title
             self.username = username
             self.domain = domain
+            self.signature = signature
             self.notes = notes
             self.created = Date()
             self.lastUpdated = self.created
         }
 
-        public init(id: String, title: String? = nil, username: String, domain: String, notes: String? = nil, created: Date, lastUpdated: Date) {
+        public init(id: String, title: String? = nil, username: String, domain: String, signature: String? = nil, notes: String? = nil, created: Date, lastUpdated: Date) {
             self.id = id
             self.title = title
             self.username = username
             self.domain = domain
+            self.signature = signature
             self.notes = notes
             self.created = created
             self.lastUpdated = lastUpdated
+        }
+        
+        private var tld: String {
+            let components = self.domain.split(separator: ".")
+            if components.count >= 2 {
+            let tldIndex = components.count - 2
+            let baseTLD = components[tldIndex]
+                return String(baseTLD)
+            }
+            return ""
+        }
+        
+        // djb2 hash from the account
+        var hashValue: Data {
+            var hash = 5381
+            for char in "\(username)\(tld)".utf8 {
+                hash = ((hash << 5) &+ hash) &+ Int(char)
+            }
+            let hashString = String(format: "%02x", hash)
+            guard let hash = hashString.data(using: .utf8) else {
+                return Data()
+            }
+            return hash
         }
 
     }

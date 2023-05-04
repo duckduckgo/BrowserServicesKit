@@ -17,6 +17,7 @@
 //
 
 import XCTest
+import Common
 @testable import BrowserServicesKit
 
 class SecureVaultTests: XCTestCase {
@@ -25,6 +26,7 @@ class SecureVaultTests: XCTestCase {
     var mockDatabaseProvider = MockDatabaseProvider()
     var mockKeystoreProvider = MockKeystoreProvider()
     var testVault: SecureVault!
+    var tld = TLD()
 
     override func setUp() {
         super.setUp()
@@ -221,6 +223,96 @@ class SecureVaultTests: XCTestCase {
             }
         }
     }
+    
+    func testWhenFetchingAccountPartialMatches_DuplicatesAreRemovedCorrectly() {
+
+        // Exact Match account
+        let account1 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "daniel",
+                                                        domain: "amazon.com",
+                                                        signature: "12345",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+
+       
+        let account2 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "daniel",
+                                                        domain: "www.amazon.com",
+                                                        signature: "12345",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+        // Duplicate for Account 2
+        let account3 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                         username: "daniel",
+                                                         domain: "www.amazon.com",
+                                                         signature: "12345",
+                                                         created: Date(timeIntervalSince1970: 100),
+                                                         lastUpdated: Date(timeIntervalSince1970: 100000))
+        // Duplicate for Account 2 (Last Updated)
+        let account4 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "daniel",
+                                                        domain: "aws.amazon.com",
+                                                        signature: "12345",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100009))
+       
+        let account5 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "john",
+                                                        domain: "amazon.com",
+                                                        signature: "7890",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+        
+        // Duplicate for account 7
+        let account6 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "mary",
+                                                        domain: "www.amazon.com",
+                                                        signature: "0987",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000))
+        // Last Updated Account
+        let account7 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "mary",
+                                                        domain: "aws.amazon.com",
+                                                        signature: "0987",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100001)) // Last Updated
+        
+        let account8 = SecureVaultModels.WebsiteAccount(id: UUID().uuidString,
+                                                        username: "mary",
+                                                        domain: "amazon.com",
+                                                        signature: "0987",
+                                                        created: Date(timeIntervalSince1970: 100),
+                                                        lastUpdated: Date(timeIntervalSince1970: 100000)) // Last Updated
+        
+        // Test the exact match is returned when duplicates
+        var filteredAccounts: [SecureVaultModels.WebsiteAccount]
+        filteredAccounts = [account1, account2, account3, account4].removingDuplicates(forDomain: "amazon.com", tld: tld)
+        XCTAssertTrue(filteredAccounts.count == 1)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account1.id })
+        
+        // Test the account with the TLD is returned when duplicates
+        filteredAccounts = [account6, account7, account8].removingDuplicates(forDomain: "signin.amazon.com", tld: tld)
+        XCTAssertTrue(filteredAccounts.count == 1)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account8.id })
+
+        // Test the last edited account is returned if no exact match/or TLD account
+        filteredAccounts  = [account2, account3, account4].removingDuplicates(forDomain: "amazon.com", tld: tld)
+        XCTAssertTrue(filteredAccounts.count == 1)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
+
+        // Test non duplicate accounts are also returned
+        filteredAccounts = [account2, account3, account4, account5].removingDuplicates(forDomain: "amazon.com", tld: tld)
+        XCTAssertTrue(filteredAccounts.count == 2)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account4.id })
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account5.id })
+
+        // Test multiple duplicates are filtered correctly, and non-duplicates are returned
+        filteredAccounts = [account5, account6, account7].removingDuplicates(forDomain: "www.amazon.com", tld: tld)
+        XCTAssertTrue(filteredAccounts.count == 2)
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account5.id })
+        XCTAssertTrue(filteredAccounts.contains { $0.id == account6.id })
+        
+    }
 
 }
-    

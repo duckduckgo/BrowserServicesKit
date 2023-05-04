@@ -19,6 +19,7 @@
 import Foundation
 import CommonCrypto
 import CryptoKit
+import Security
 
 protocol SecureVaultCryptoProvider {
 
@@ -31,14 +32,32 @@ protocol SecureVaultCryptoProvider {
     func encrypt(_ data: Data, withKey key: Data) throws -> Data
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data
+        
+    func hashData(_ data: Data) throws -> String?
 
 }
 
 final class DefaultCryptoProvider: SecureVaultCryptoProvider {
+        
+    enum Constants {
+        #if os(iOS)
+            static let hashAccount = "com.duckduckgo.mobile.ios"
+        #else
+            static let hashAccount = "com.duckduckgo.macos.browser"
+        #endif
+        static let hashService = "DuckDuckGo Privacy Browser Hashing Salt"
+    }
 
     static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
     static let keySizeInBytes = 256 / 8
 
+    private var salt: Data? {
+        guard let salt = getSaltFromKeyChain() else {
+            return generateSalt()
+        }
+        return salt
+    }
+    
     func generateSecretKey() throws -> Data {
         return SymmetricKey(size: .bits256).dataRepresentation
     }
@@ -106,6 +125,59 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
                 throw error
             }
         }
+    }
+    
+    private func getSaltFromKeyChain() -> Data? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: Constants.hashService as CFString,
+            kSecAttrAccount: Constants.hashAccount as CFString,
+            kSecReturnData: kCFBooleanTrue!,
+            kSecMatchLimit: kSecMatchLimitOne
+        ]
+        
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        
+        if status == errSecSuccess {
+            return (item as? Data)
+        }
+        return nil
+    }
+    
+    private func generateSalt() -> Data? {
+        let length = 64
+        var data = Data(count: length)
+        let result = data.withUnsafeMutableBytes {
+            SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!)
+        }
+        if result != errSecSuccess {
+            return nil
+        }
+
+        // Store the new salt
+        let addQuery: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: Constants.hashService as CFString,
+            kSecAttrAccount: Constants.hashAccount as CFString,
+            kSecValueData: data as CFData
+        ]
+        
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        if status == errSecSuccess {
+            return data
+        }
+        return nil
+    }
+
+        
+    func hashData(_ data: Data) throws -> String? {
+        if let salt = self.salt {
+            let saltedData = salt + data
+            return SHA256.hash(data: saltedData).dataRepresentation.base64EncodedString()
+        }
+        return nil
+        
     }
 
 }
