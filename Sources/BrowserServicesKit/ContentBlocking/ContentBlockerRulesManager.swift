@@ -22,6 +22,7 @@ import WebKit
 import TrackerRadarKit
 import Combine
 import Common
+import os.log
 
 // swiftlint:disable file_length
 // swiftlint:disable type_body_length

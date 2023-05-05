@@ -1370,12 +1370,21 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         }
         waitForExpectations(timeout: 5)
 
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled)
-        ])
+        // if worker is too fast navigation may get cancelled before starting
+        if responder(at: 0).history.contains(where: { if case .didStart(Nav(action: navAct(1), .started), _) = $0 { return true }; return false }) {
+            assertHistory(ofResponderAt: 0, equalsTo: [
+                .navigationAction(req(urls.local), .other, src: main()),
+                .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+                .didStart(Nav(action: navAct(1), .started)),
+                .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled)
+            ])
+        } else {
+            assertHistory(ofResponderAt: 0, equalsTo: [
+                .navigationAction(req(urls.local), .other, src: main()),
+                .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+                .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled)
+            ])
+        }
     }
 
     func testStopLoadingAfterDidStart() throws {

@@ -61,7 +61,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
                 "key": Array(repeating: UInt8(1), count: 32),
                 "secret": userScript.generatedSecret,
                 "methodName": "test-methodName"
-            ]
+            ] as [String: Any]
         ]
     }
 

@@ -36,7 +36,7 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
         }
 
         let recoveryKey = try JSONEncoder.snakeCaseKeys.encode(
-            SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey)
+            SyncCode(recovery: SyncCode.RecoveryKey(userId: account.userId, primaryKey: account.primaryKey))
         )
 
         let encryptedRecoveryKey = try crypter.seal(recoveryKey, secretKey: code.secretKey)
