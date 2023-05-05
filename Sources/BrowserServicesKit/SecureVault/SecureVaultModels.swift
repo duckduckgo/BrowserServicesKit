@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 /// The models used by the secure vault.
 /// 
@@ -40,7 +41,7 @@ public struct SecureVaultModels {
     }
 
     /// The username associated with a domain.
-    public struct WebsiteAccount {
+    public struct WebsiteAccount: Equatable {
 
         public var id: String?
         public var title: String?
@@ -460,4 +461,99 @@ extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
         return false
     }
     
+}
+
+// MARK: - WebsiteAccount Array extensions
+extension Array where Element == SecureVaultModels.WebsiteAccount {
+
+    private func extractTLD(domain: String, tld: TLD) -> String? {
+        var urlComponents = URLComponents()
+        urlComponents.host = domain
+        return urlComponents.eTLDplus1(tld: tld)
+    }
+
+    func dedupedAndSortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+        return removingDuplicatesForDomain(targetDomain, tld: tld).sortedForDomain(targetDomain, tld: tld)
+    }
+
+    func sortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+
+        // Sorts accounts for autofill suggestions
+        // First: Exact matches to provided URL
+        // Second: Accounts matching TLD (www subdomain accounts are considered a TLD match)
+        // Third: Other accounts, sorted by lastUpdated > Alphabetically
+        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld) else {
+            return []
+        }
+        let sortedAccounts = self.sorted { account1, account2 in
+            let domain1 = account1.domain
+            let domain2 = account2.domain
+
+            let tld1 = extractTLD(domain: domain1, tld: tld)
+            let tld2 = extractTLD(domain: domain2, tld: tld)
+
+            // Exact match
+            if domain1 == targetDomain {
+                return true
+            } else if domain2 == targetDomain {
+                return false
+            }
+
+            // Prioritize TLD over other subdomains
+            if tld1 == targetTLD && tld2 == targetTLD {
+
+                // We treat WWW subdomains as TLD
+                let d1 = domain1.hasPrefix("www") ? extractTLD(domain: domain1, tld: tld) : domain1
+                let d2 = domain2.hasPrefix("www") ? extractTLD(domain: domain2, tld: tld) : domain2
+
+                if d1 == targetTLD {
+                    return true
+                } else if d2 == targetTLD {
+                    return false
+                }
+            }
+
+            // Remaining stuff sorted by lastUpdated > Alphabetically
+            if account1.lastUpdated == account2.lastUpdated {
+                    return domain1 < domain2
+                } else {
+                    return account1.lastUpdated > account2.lastUpdated
+                }
+
+        }
+        return sortedAccounts
+    }
+
+    // Dedupes Accounts based on specific conditions
+    // A. Remove all except the exact match to the provided domain (if available) OR
+    // B. Remove all except for a matching TLD domain (if available)
+    // C. Remove all except the most recently updated account
+    func removingDuplicatesForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+        var urlComponents = URLComponents()
+        urlComponents.host = targetDomain
+
+        var uniqueAccounts = [String: SecureVaultModels.WebsiteAccount]()
+
+        self.forEach { account in
+            guard let signature = account.signature else {
+                return
+            }
+
+            guard let existingAccount = uniqueAccounts[signature] else {
+                uniqueAccounts[signature] = account
+                return
+            }
+
+            let isExactMatch = account.domain == targetDomain
+            let isTLD = account.domain == urlComponents.eTLDplus1(tld: tld)
+            let isNewer = existingAccount.domain != targetDomain && account.lastUpdated > existingAccount.lastUpdated
+
+            if isExactMatch || isTLD || isNewer {
+                uniqueAccounts[signature] = account
+            }
+        }
+
+        return Array(uniqueAccounts.values)
+    }
+
 }

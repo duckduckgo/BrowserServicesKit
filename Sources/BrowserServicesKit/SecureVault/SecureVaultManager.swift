@@ -130,7 +130,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let identities = try vault.identities()
             let cards = try vault.creditCards()
 
-            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches, filterDuplicates: true) { [weak self] accounts, error in
+            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
@@ -563,7 +563,6 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                              from vault: SecureVault,
                              or passwordManager: PasswordManager?,
                              withPartialMatches: Bool = false,
-                             filterDuplicates: Bool = false,
                              completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> ()) {
         if let passwordManager = passwordManager,
            passwordManager.isEnabled {
@@ -579,7 +578,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         return
                     }
                     let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
-                    completion(filterDuplicates ? accounts.removingDuplicates(forDomain: domain, tld: tld) : accounts, nil)
+                    completion(accounts, nil)
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)
                     completion(accounts, nil)
