@@ -214,8 +214,8 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("daniel", "aws.amazon.com", "12345", 0),
             testAccount("daniel", "login.amazon.com", "12345", 10)
         ]
-            .removingDuplicatesForDomain("amazon.com", tld: tld)
-        XCTAssertEqual(accounts.first, testAccount("daniel", "amazon.com", "12345", 0))
+            .removingDuplicatesForDomain("www.amazon.com", tld: tld)
+        XCTAssertEqual(accounts.first,  testAccount("daniel", "www.amazon.com", "12345", 0))
     }
 
     func testTLDAccountIsReturnedWhenDuplicates() {

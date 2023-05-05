@@ -536,32 +536,37 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
     // A. Remove all except the exact match to the provided domain (if available) OR
     // B. Remove all except for a matching TLD domain (if available)
     // C. Remove all except the most recently updated account
-    func removingDuplicatesForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+    func removingDuplicatesForDomain(_ domain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
         var urlComponents = URLComponents()
-        urlComponents.host = targetDomain
+        urlComponents.host = domain
 
-        var uniqueAccounts = [String: SecureVaultModels.WebsiteAccount]()
+        let uniqueAccounts = self.reduce(into: [String: SecureVaultModels.WebsiteAccount]()) { result, account in
 
-        self.forEach { account in
             guard let signature = account.signature else {
                 return
             }
 
-            guard let existingAccount = uniqueAccounts[signature] else {
-                uniqueAccounts[signature] = account
-                return
+            // For duplicate accounts
+            if signature == account.signature {
+
+                // If it's an exact match or a match to the TLD, keep it.
+                if account.domain == domain || account.domain == urlComponents.eTLDplus1(tld: tld) {
+                    result[signature] = account
+                    return
+                }
+
+                guard let existingAccount = result[signature] else {
+                    result[signature] = account
+                    return
+                }
+                // Otherwise keep it if its more recently updated than the existing one
+                if existingAccount.domain != domain && account.lastUpdated > existingAccount.lastUpdated {
+                    result[signature] = account
+                }
             }
 
-            let isExactMatch = account.domain == targetDomain
-            let isTLD = account.domain == urlComponents.eTLDplus1(tld: tld)
-            let isNewer = existingAccount.domain != targetDomain && account.lastUpdated > existingAccount.lastUpdated
-
-            if isExactMatch || isTLD || isNewer {
-                uniqueAccounts[signature] = account
-            }
         }
-
-        return Array(uniqueAccounts.values)
+        return uniqueAccounts.values.sorted(by: { $0.lastUpdated > $1.lastUpdated })
     }
 
 }
