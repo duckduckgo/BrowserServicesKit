@@ -96,10 +96,48 @@ class SecureVaultModelsTests: XCTestCase {
             testAccount("mary", "aws.amazon.com", "0987", 1),
         ]
             .removingDuplicatesForDomain("www.amazon.com", tld: tld)
-        
         XCTAssertTrue(accounts.contains(where: { $0 ==  testAccount("daniel", "www.amazon.com", "12345", 0) }))
         XCTAssertTrue(accounts.contains(where: { $0 == testAccount("jane", "amazon.com", "7111", 0) }))
         XCTAssertTrue(accounts.contains(where: { $0 == testAccount("mary", "www.amazon.com", "0987", 0) }))
+
+    }
+
+    func testSortingWorksAsExpected() {
+        let accounts = [
+            testAccount("mary", "www.amazon.com", "0987", 100),
+            testAccount("daniel", "www.amazon.com", "12345", 0),
+            testAccount("john", "www.amazon.com", "12345", 0),
+            testAccount("", "www.amazon.com", "12345", 0),
+            testAccount("daniel", "amazon.com", "12345", 100),
+            testAccount("jane", "amazon.com", "7111", 25),
+            testAccount("", "amazon.com", "7111", 0),
+            testAccount("mary", "aws.amazon.com", "0987", 10),
+            testAccount("jane", "aws.amazon.com", "7111", 0),
+            testAccount("adam", "login.amazon.com", "7111", 50),
+            testAccount("jane", "login.amazon.com", "7111", 50),
+            testAccount("joe", "login.amazon.com", "7111", 50),
+            testAccount("daniel", "login.amazon.com", "12345", 0),
+            testAccount("daniel", "xyz.amazon.com", "12345", 0)
+        ]
+            .sortedForDomain("www.amazon.com", tld: tld)
+        XCTAssertEqual(accounts[0], testAccount("mary", "www.amazon.com", "0987", 100))
+        XCTAssertEqual(accounts[1],  testAccount("daniel", "www.amazon.com", "12345", 0))
+        XCTAssertEqual(accounts[2], testAccount("john", "www.amazon.com", "12345", 0))
+        XCTAssertEqual(accounts[3], testAccount("", "www.amazon.com", "12345", 0))
+        XCTAssertEqual(accounts[4], testAccount("daniel", "amazon.com", "12345", 100))
+        XCTAssertEqual(accounts[5], testAccount("jane", "amazon.com", "7111", 25))
+        XCTAssertEqual(accounts[6], testAccount("", "amazon.com", "7111", 0))
+        XCTAssertEqual(accounts[7], testAccount("adam", "login.amazon.com", "7111", 50))
+        XCTAssertEqual(accounts[8], testAccount("jane", "login.amazon.com", "7111", 50))
+        XCTAssertEqual(accounts[9], testAccount("joe", "login.amazon.com", "7111", 50))
+        XCTAssertEqual(accounts[10], testAccount("mary", "aws.amazon.com", "0987", 10))
+        XCTAssertEqual(accounts[11], testAccount("jane", "aws.amazon.com", "7111", 0))
+        XCTAssertEqual(accounts[12], testAccount("daniel", "login.amazon.com", "12345", 0))
+        XCTAssertEqual(accounts[13], testAccount("daniel", "xyz.amazon.com", "12345", 0))
+
+
+
+
 
     }
     

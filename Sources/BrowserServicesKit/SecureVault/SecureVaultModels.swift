@@ -476,6 +476,14 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return removingDuplicatesForDomain(targetDomain, tld: tld).sortedForDomain(targetDomain, tld: tld)
     }
 
+    // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
+    private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
+        return !account1.username.isEmpty &&
+        account1.lastUpdated > account2.lastUpdated &&
+        account1.domain < account2.domain &&
+        account1.username < account2.username
+    }
+
     func sortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
 
         // Sorts accounts for autofill suggestions
@@ -492,11 +500,11 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             let tld1 = extractTLD(domain: domain1, tld: tld)
             let tld2 = extractTLD(domain: domain2, tld: tld)
 
-            // Exact match
+            // Exact match sorting
             if domain1 == targetDomain {
-                return true
+                return compareAccount(account1, account2)
             } else if domain2 == targetDomain {
-                return false
+                return compareAccount(account2, account1)
             }
 
             // Prioritize TLD over other subdomains
@@ -507,18 +515,18 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
                 let d2 = domain2.hasPrefix("www") ? extractTLD(domain: domain2, tld: tld) : domain2
 
                 if d1 == targetTLD {
-                    return true
+                    return compareAccount(account1, account2)
                 } else if d2 == targetTLD {
-                    return false
+                    return compareAccount(account2, account1)
                 }
             }
 
-            // Remaining stuff sorted by lastUpdated > Alphabetically
+            // Remaining stuff sorted by lastUpdated > Alphabetically            
             if account1.lastUpdated == account2.lastUpdated {
-                    return domain1 < domain2
-                } else {
-                    return account1.lastUpdated > account2.lastUpdated
-                }
+                return domain1 < domain2
+            } else {
+                return account1.lastUpdated > account2.lastUpdated
+            }
 
         }
         return sortedAccounts
