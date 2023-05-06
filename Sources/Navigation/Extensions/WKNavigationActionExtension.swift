@@ -174,3 +174,4 @@ extension WKNavigationActionPolicy {
     }()
 
 }
+// swiftlint:enable line_length

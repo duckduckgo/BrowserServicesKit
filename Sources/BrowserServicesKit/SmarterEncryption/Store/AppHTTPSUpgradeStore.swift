@@ -22,6 +22,7 @@ import Common
 import Foundation
 import CoreData
 import Persistence
+import os.log
 
 public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
 
