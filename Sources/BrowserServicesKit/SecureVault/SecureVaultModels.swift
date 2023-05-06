@@ -472,7 +472,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return urlComponents.eTLDplus1(tld: tld)
     }
 
-    func dedupedAndSortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+    public func dedupedAndSortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
         return removingDuplicatesForDomain(targetDomain, tld: tld).sortedForDomain(targetDomain, tld: tld)
     }
 
@@ -484,7 +484,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         account1.username < account2.username
     }
 
-    func sortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+    public func sortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
 
         // Sorts accounts for autofill suggestions
         // First: Exact matches to provided URL
@@ -536,7 +536,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
     // A. Remove all except the exact match to the provided domain (if available) OR
     // B. Remove all except for a matching TLD domain (if available)
     // C. Remove all except the most recently updated account
-    func removingDuplicatesForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
+    public func removingDuplicatesForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
         var urlComponents = URLComponents()
         urlComponents.host = targetDomain
 
