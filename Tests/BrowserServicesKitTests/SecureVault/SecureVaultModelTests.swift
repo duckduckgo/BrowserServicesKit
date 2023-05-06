@@ -209,13 +209,13 @@ class SecureVaultModelTests: XCTestCase {
     func testExactMatchIsReturnedWhenDuplicates() {
         // Test the exact match is returned when duplicates
         let accounts = [
-            testAccount("daniel", "amazon.com", "12345", 0),
             testAccount("daniel", "www.amazon.com", "12345", 0),
             testAccount("daniel", "aws.amazon.com", "12345", 0),
-            testAccount("daniel", "login.amazon.com", "12345", 10)
+            testAccount("daniel", "login.amazon.com", "12345", 10),
+            testAccount("daniel", "amazon.com", "12345", 0)
         ]
             .removingDuplicatesForDomain("www.amazon.com", tld: tld)
-        XCTAssertEqual(accounts.first,  testAccount("daniel", "www.amazon.com", "12345", 0))
+        XCTAssertEqual(accounts.first, testAccount("daniel", "www.amazon.com", "12345", 0))
     }
 
     func testTLDAccountIsReturnedWhenDuplicates() {
