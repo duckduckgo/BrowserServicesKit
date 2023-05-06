@@ -86,8 +86,8 @@ final class AdClickAttributionLogicTests: XCTestCase {
         }
         
         logic.onRulesChanged(latestRules: [mockRulesProvider.globalAttributionRules!])
-        
-        await waitForExpectations(timeout: 0.1)
+
+        await fulfillment(of: [rulesApplied], timeout: 0.1)
     }
     
     
@@ -109,8 +109,8 @@ final class AdClickAttributionLogicTests: XCTestCase {
         // Regular navigation, call handler immediately
         let navigationAllowed = expectation(description: "Navigation allowed")
         logic.onProvisionalNavigation { navigationAllowed.fulfill() }
-        wait(for: [navigationAllowed], timeout: 0.1)
-        
+        await fulfillment(of: [navigationAllowed], timeout: 0.1)
+
         // Expect
         // 1. Call to request attribution for found vendor
         
@@ -143,8 +143,8 @@ final class AdClickAttributionLogicTests: XCTestCase {
         
         // Requests completed now
         XCTAssertEqual(requestCompletedCount, 2)
-        
-        await waitForExpectations(timeout: 0.5)
+
+        await fulfillment(of: [rulesApplied], timeout: 0.5)
     }
     
     func testWhenAttributionDetectedThenPreviousOneIsReplaced() async {
@@ -181,7 +181,7 @@ final class AdClickAttributionLogicTests: XCTestCase {
         // -
         
         logic.attributionDetection(mockDetection, didDetectVendor: "example.com")
-        wait(for: [rulesApplied], timeout: 0.2)
+        await fulfillment(of: [rulesApplied], timeout: 0.2)
         
         // 2. These should be executed immediately
         var requestCompletedCount = 0
@@ -212,7 +212,7 @@ final class AdClickAttributionLogicTests: XCTestCase {
         logic.onProvisionalNavigation { requestCompletedCount += 1 }
         // 4. And new attribution detection.
         logic.attributionDetection(mockDetection, didDetectVendor: "other.com")
-        wait(for: [newRulesApplied], timeout: 0.2)
+        await fulfillment(of: [newRulesApplied], timeout: 0.2)
         
         logic.onProvisionalNavigation { requestCompletedCount += 1 }
         logic.onProvisionalNavigation { requestCompletedCount += 1 }
@@ -526,7 +526,7 @@ final class AdClickAttributionLogicConfigUpdateTests: XCTestCase {
         }
         
         logic.attributionDetection(mockDetection, didDetectVendor: "example.com")
-        wait(for: [rulesApplied], timeout: 0.1)
+        await fulfillment(of: [rulesApplied], timeout: 0.1)
         
         // - Prepare callbacks for update
         let updatedAttributedRules = await ContentBlockingRulesHelper().makeFakeRules(name: "attributed_updated")
@@ -548,7 +548,7 @@ final class AdClickAttributionLogicConfigUpdateTests: XCTestCase {
         XCTAssertNotNil(updatedTDSRules)
 
         logic.onRulesChanged(latestRules: [updatedTDSRules!])
-        wait(for: [rulesUpdated], timeout: 0.1)
+        await fulfillment(of: [rulesUpdated], timeout: 0.1)
     }
 }
 

@@ -20,6 +20,7 @@
 import Foundation
 import Common
 import Networking
+import os.log
 
 protocol ConfigurationFetching {
 

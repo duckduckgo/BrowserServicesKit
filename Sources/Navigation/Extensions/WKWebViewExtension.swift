@@ -18,6 +18,8 @@
 
 import WebKit
 
+// swiftlint:disable line_length
+// swiftlint:disable trailing_comma
 extension WKWebView {
 
 #if _FRAME_HANDLE_ENABLED
@@ -157,3 +159,6 @@ extension WKNavigation {
     }
 }
 #endif
+
+// swiftlint:enable line_length
+// swiftlint:enable trailing_comma
