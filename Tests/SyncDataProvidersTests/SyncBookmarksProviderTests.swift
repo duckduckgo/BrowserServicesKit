@@ -393,7 +393,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
         }
     }
 
-    func testThatDeletesForNonExistendBookmarksAreIgnored() {
+    func testThatDeletesForNonExistentBookmarksAreIgnored() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarksTree {
