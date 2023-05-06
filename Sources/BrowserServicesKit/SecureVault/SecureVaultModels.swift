@@ -478,10 +478,15 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
 
     // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
-        return !account1.username.isEmpty &&
-        account1.lastUpdated > account2.lastUpdated &&
-        account1.domain < account2.domain &&
-        account1.username < account2.username
+        if account1.lastUpdated != account2.lastUpdated {
+            return account1.lastUpdated > account2.lastUpdated
+        } else if account1.domain != account2.domain {
+            return account1.domain < account2.domain
+        } else if !account1.username.isEmpty && !account2.username.isEmpty {
+            return account1.username < account2.username
+        } else {
+            return !account1.username.isEmpty && account2.username.isEmpty
+        }
     }
 
     public func sortedForDomain(_ targetDomain: String, tld: TLD) -> [SecureVaultModels.WebsiteAccount] {
@@ -508,15 +513,21 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             }
 
             // Prioritize TLD over other subdomains
-            if tld1 == targetTLD && tld2 == targetTLD {
+            let bothMatchTLD = tld1 == targetTLD && tld2 == targetTLD
+            let onlyAccount1MatchesTLD = tld1 == targetTLD && tld2 != targetTLD
+            let onlyAccount2MatchesTLD = tld1 != targetTLD && tld2 == targetTLD
 
+            if bothMatchTLD || onlyAccount1MatchesTLD || onlyAccount2MatchesTLD {
                 // We treat WWW subdomains as TLD
                 let d1 = domain1.hasPrefix("www") ? extractTLD(domain: domain1, tld: tld) : domain1
                 let d2 = domain2.hasPrefix("www") ? extractTLD(domain: domain2, tld: tld) : domain2
 
-                if d1 == targetTLD {
+                let account1Prefered = (d1 == targetTLD && bothMatchTLD) || onlyAccount1MatchesTLD
+                let account2Prefered = (d2 == targetTLD && bothMatchTLD) || onlyAccount2MatchesTLD
+
+                if account1Prefered {
                     return compareAccount(account1, account2)
-                } else if d2 == targetTLD {
+                } else if account2Prefered {
                     return compareAccount(account2, account1)
                 }
             }
