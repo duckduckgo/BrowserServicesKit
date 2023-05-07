@@ -129,48 +129,47 @@ extension BookmarkEntity {
     static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
         var entity: BookmarkEntity!
 
-        var queue: [BookmarkTreeNode] = [treeNode]
+        var queues: [[BookmarkTreeNode]] = [[treeNode]]
         var parents: [BookmarkEntity] = [rootFolder].compactMap { $0 }
 
-        while !queue.isEmpty {
-            let node = queue.removeFirst()
+        while !queues.isEmpty {
+            var queue = queues.removeFirst()
+            let parent = parents.removeFirst()
 
-            switch node {
-            case .bookmark(let id, let name, let url, let isFavorite, let isDeleted):
-                let bookmarkEntity = BookmarkEntity(context: context)
-                if entity == nil {
-                    entity = bookmarkEntity
+            while !queue.isEmpty {
+                let node = queue.removeFirst()
+
+                switch node {
+                case .bookmark(let id, let name, let url, let isFavorite, let isDeleted):
+                    let bookmarkEntity = BookmarkEntity(context: context)
+                    if entity == nil {
+                        entity = bookmarkEntity
+                    }
+                    bookmarkEntity.uuid = id
+                    bookmarkEntity.parent = parent
+                    bookmarkEntity.title = name
+                    bookmarkEntity.url = url
+                    if isFavorite {
+                        bookmarkEntity.addToFavorites(favoritesRoot: favoritesFolder)
+                    }
+                    if isDeleted {
+                        bookmarkEntity.markPendingDeletion()
+                    }
+                case .folder(let id, let name, let children, let isDeleted):
+                    let bookmarkEntity = BookmarkEntity(context: context)
+                    if entity == nil {
+                        entity = bookmarkEntity
+                    }
+                    bookmarkEntity.uuid = id
+                    bookmarkEntity.parent = parent
+                    bookmarkEntity.isFolder = true
+                    bookmarkEntity.title = name
+                    if isDeleted {
+                        bookmarkEntity.markPendingDeletion()
+                    }
+                    parents.append(bookmarkEntity)
+                    queues.append(children)
                 }
-                bookmarkEntity.uuid = id
-                bookmarkEntity.parent = parents.last
-                bookmarkEntity.title = name
-                bookmarkEntity.url = url
-                if isFavorite {
-                    bookmarkEntity.addToFavorites(favoritesRoot: favoritesFolder)
-                }
-                if isDeleted {
-                    bookmarkEntity.markPendingDeletion()
-                }
-                if queue.isEmpty {
-                    parents.removeFirst()
-                }
-            case .folder(let id, let name, let children, let isDeleted):
-                let bookmarkEntity = BookmarkEntity(context: context)
-                if entity == nil {
-                    entity = bookmarkEntity
-                }
-                bookmarkEntity.uuid = id
-                bookmarkEntity.parent = parents.last
-                bookmarkEntity.isFolder = true
-                bookmarkEntity.title = name
-                if isDeleted {
-                    bookmarkEntity.markPendingDeletion()
-                }
-                if queue.isEmpty {
-                    parents.removeFirst()
-                }
-                parents.append(bookmarkEntity)
-                queue.append(contentsOf: children)
             }
         }
 
