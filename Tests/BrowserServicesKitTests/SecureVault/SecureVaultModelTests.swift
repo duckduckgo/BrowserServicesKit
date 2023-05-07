@@ -206,104 +206,128 @@ class SecureVaultModelTests: XCTestCase {
 
     }
 
-    func testExactMatchIsReturnedWhenDuplicates() {
-        // Test the exact match is returned when duplicates
-        let accounts = [
-            testAccount("daniel", "www.amazon.com", "12345", 0),
-            testAccount("daniel", "aws.amazon.com", "12345", 0),
-            testAccount("daniel", "login.amazon.com", "12345", 10),
-            testAccount("daniel", "amazon.com", "12345", 0)
+    lazy var sortTestAccounts = [
+        testAccount("", "appliances.amazon.com", "5678", 0),
+        testAccount("mary", "garden.amazon.com", "12345", 50),
+        testAccount("daniel", "www.amazon.com", "23456", 0),
+        testAccount("lisa", "books.amazon.com", "5678", 50),
+        testAccount("peter", "primevideo.amazon.com", "4567", 85),
+        testAccount("jane", "amazon.com", "7890", 0),
+        testAccount("", "", "7890", 0),
+        testAccount("", "amazon.com", "3456", 0),
+        testAccount("william", "fashion.amazon.com", "1234", 50),
+        testAccount("olivia", "toys.amazon.com", "4567", 50),
+        testAccount("", "movies.amazon.com", "2345", 0),
+        testAccount("jacob", "office.amazon.com", "12345", 0),
+        testAccount("rachel", "amazon.com", "7890", 0),
+        testAccount("james", "", "7890", 0),
+        testAccount("", "grocery.amazon.com", "4567", 0),
+        testAccount("frank", "sports.amazon.com", "23456", 0),
+        testAccount("quinn", "www.amazon.com", "2345", 0),
+        testAccount("oscar", "amazon.com", "7890", 0),
+        testAccount("chris", "baby.amazon.com", "3456", 0),
+        testAccount("anna", "amazon.com", "1234", 50),
+        testAccount("paul", "amazon.com", "3456", 0),
+        testAccount("john", "www.amazon.com", "4567", 0)
+    ]
+
+    func testExactMatchAccountsAreShownFirst() {
+        let sortedAccounts = sortTestAccounts.sortedForDomain("www.amazon.com", tld: tld)
+
+        let controlAccounts = [
+            testAccount("daniel", "www.amazon.com", "23456", 0),
+            testAccount("john", "www.amazon.com", "4567", 0),
+            testAccount("quinn", "www.amazon.com", "2345", 0),
+            testAccount("anna", "amazon.com", "1234", 50),
+            testAccount("jane", "amazon.com", "7890", 0),
+            testAccount("oscar", "amazon.com", "7890", 0),
+            testAccount("paul", "amazon.com", "3456", 0),
+            testAccount("rachel", "amazon.com", "7890", 0),
+            testAccount("", "amazon.com", "3456", 0),
+            testAccount("peter", "primevideo.amazon.com", "4567", 85),
+            testAccount("lisa", "books.amazon.com", "5678", 50),
+            testAccount("william", "fashion.amazon.com", "1234", 50),
+            testAccount("mary", "garden.amazon.com", "12345", 50),
+            testAccount("olivia", "toys.amazon.com", "4567", 50),
+            testAccount("chris", "baby.amazon.com", "3456", 0),
+            testAccount("jacob", "office.amazon.com", "12345", 0),
+            testAccount("frank", "sports.amazon.com", "23456", 0),
+            testAccount("", "appliances.amazon.com", "5678", 0),
+            testAccount("", "grocery.amazon.com", "4567", 0),
+            testAccount("", "movies.amazon.com", "2345", 0)
         ]
-            .removingDuplicatesForDomain("www.amazon.com", tld: tld)
-        XCTAssertEqual(accounts.first, testAccount("daniel", "www.amazon.com", "12345", 0))
+        for i in 0...18 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
     }
 
-    func testTLDAccountIsReturnedWhenDuplicates() {
-        // Test the account with the TLD is returned when duplicates
-        let accounts = [
-            testAccount("mary", "www.amazon.com", "0987", 0),
-            testAccount("mary", "aws.amazon.com", "0987", 1),
-            testAccount("mary", "amazon.com", "0987", 1)
+    func testWWWAccountsAreConsideredTopLevel() {
+
+        let sortedAccounts = sortTestAccounts.sortedForDomain("amazon.com", tld: tld)
+        let controlAccounts = [
+            testAccount("anna", "amazon.com", "1234", 50),
+            testAccount("jane", "amazon.com", "7890", 0),
+            testAccount("oscar", "amazon.com", "7890", 0),
+            testAccount("paul", "amazon.com", "3456", 0),
+            testAccount("rachel", "amazon.com", "7890", 0),
+            testAccount("", "amazon.com", "3456", 0),
+            testAccount("daniel", "www.amazon.com", "23456", 0),
+            testAccount("john", "www.amazon.com", "4567", 0),
+            testAccount("quinn", "www.amazon.com", "2345", 0),
         ]
-            .removingDuplicatesForDomain("signin.amazon.com", tld: tld)
-        XCTAssertEqual(accounts.first, testAccount("mary", "amazon.com", "0987", 1))
+        for i in 0...8 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
     }
 
-    func testLastEditedAccountIsReturnedIfNoExactMatches() {
-        // Test the last edited account is returned if no exact match/or TLD account
-        let accounts = [
-            testAccount("daniel", "www.amazon.com", "12345", 0),
-            testAccount("daniel", "aws.amazon.com", "12345", 0),
-            testAccount("daniel", "signup.amazon.com", "12345", 10)
+    func testExactSubdomainMatchIsFirstFollowedByTLDAndWWW() {
+
+        let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld)
+        let controlAccounts  = [
+            testAccount("olivia", "toys.amazon.com", "4567", 50),
+            testAccount("anna", "amazon.com", "1234", 50),
+            testAccount("jane", "amazon.com", "7890", 0),
+            testAccount("oscar", "amazon.com", "7890", 0),
+            testAccount("paul", "amazon.com", "3456", 0),
+            testAccount("rachel", "amazon.com", "7890", 0),
+            testAccount("daniel", "www.amazon.com", "23456", 0),
+            testAccount("john", "www.amazon.com", "4567", 0),
+            testAccount("quinn", "www.amazon.com", "2345", 0),
+            testAccount("", "amazon.com", "3456", 0),
+            testAccount("peter", "primevideo.amazon.com", "4567", 85),
+            testAccount("lisa", "books.amazon.com", "5678", 50),
+            testAccount("william", "fashion.amazon.com", "1234", 50),
+            testAccount("mary", "garden.amazon.com", "12345", 50),
+            testAccount("chris", "baby.amazon.com", "3456", 0),
+            testAccount("jacob", "office.amazon.com", "12345", 0),
+            testAccount("frank", "sports.amazon.com", "23456", 0),
+            testAccount("", "appliances.amazon.com", "5678", 0),
+            testAccount("", "grocery.amazon.com", "4567", 0),
+            testAccount("", "movies.amazon.com", "2345", 0)
         ]
-            .removingDuplicatesForDomain("amazon.com", tld: tld)
-        XCTAssertEqual(accounts.first, testAccount("daniel", "signup.amazon.com", "12345", 10) )
+        XCTAssertTrue(sortedAccounts.count == controlAccounts.count)
+        for i in 0...19 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
     }
 
-    func testNonDuplicateAccountsAreReturned() {
-        // Test non duplicate accounts are also returned
-        let accounts = [
-            testAccount("daniel", "www.amazon.com", "12345", 0),
-            testAccount("daniel", "www.amazon.com", "12345", 0),
-            testAccount("daniel", "www.amazon.com", "12345", 10),
-            testAccount("daniel", "aws.amazon.com", "7890", 0),
+    func testDuplicatesAreProperlyRemoved() {
+
+        let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld, removeDuplicates: true)
+        let controlAccounts  = [
+            testAccount("olivia", "toys.amazon.com", "4567", 50),
+            testAccount("anna", "amazon.com", "1234", 50),
+            testAccount("jane", "amazon.com", "7890", 0),
+            testAccount("paul", "amazon.com", "3456", 0),
+            testAccount("daniel", "www.amazon.com", "23456", 0),
+            testAccount("quinn", "www.amazon.com", "2345", 0),
+            testAccount("lisa", "books.amazon.com", "5678", 50),
+            testAccount("mary", "garden.amazon.com", "12345", 50),
         ]
-            .removingDuplicatesForDomain("amazon.com", tld: tld)
-        XCTAssertTrue(accounts.contains(where: { $0 == testAccount("daniel", "www.amazon.com", "12345", 10) }))
-        XCTAssertTrue(accounts.contains(where: { $0 ==  testAccount("daniel", "aws.amazon.com", "7890", 0) }))
+        for i in 0...7 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
     }
 
-    func testMultipleDuplicatesAreFilteredAndNonDuplicatesReturned() {
-        // Test multiple duplicates are filtered correctly, and non-duplicates are returned
-        let accounts = [
-            testAccount("daniel", "amazon.com", "12345", 0),
-            testAccount("daniel", "www.amazon.com", "12345", 0),
-            testAccount("daniel", "login.amazon.com", "12345", 0),
-            testAccount("jane", "aws.amazon.com", "7111", 0),
-            testAccount("jane", "login.amazon.com", "7111", 0),
-            testAccount("jane", "amazon.com", "7111", 0),
-            testAccount("mary", "www.amazon.com", "0987", 0),
-            testAccount("mary", "aws.amazon.com", "0987", 1),
-        ]
-            .removingDuplicatesForDomain("www.amazon.com", tld: tld)
-        XCTAssertTrue(accounts.contains(where: { $0 ==  testAccount("daniel", "www.amazon.com", "12345", 0) }))
-        XCTAssertTrue(accounts.contains(where: { $0 == testAccount("jane", "amazon.com", "7111", 0) }))
-        XCTAssertTrue(accounts.contains(where: { $0 == testAccount("mary", "www.amazon.com", "0987", 0) }))
-
-    }
-
-    func testSortingWorksAsExpected() {
-        let accounts = [
-            testAccount("mary", "www.amazon.com", "0987", 100),
-            testAccount("daniel", "www.amazon.com", "12345", 0),
-            testAccount("john", "www.amazon.com", "12345", 0),
-            testAccount("", "www.amazon.com", "12345", 0),
-            testAccount("daniel", "amazon.com", "12345", 100),
-            testAccount("jane", "amazon.com", "7111", 25),
-            testAccount("", "amazon.com", "7111", 0),
-            testAccount("mary", "aws.amazon.com", "0987", 10),
-            testAccount("jane", "aws.amazon.com", "7111", 0),
-            testAccount("adam", "login.amazon.com", "7111", 50),
-            testAccount("jane", "login.amazon.com", "7111", 50),
-            testAccount("joe", "login.amazon.com", "7111", 50),
-            testAccount("daniel", "login.amazon.com", "12345", 0),
-            testAccount("daniel", "xyz.amazon.com", "12345", 0)
-        ]
-            .sortedForDomain("www.amazon.com", tld: tld)
-        XCTAssertEqual(accounts[0], testAccount("mary", "www.amazon.com", "0987", 100))
-        XCTAssertEqual(accounts[1],  testAccount("daniel", "www.amazon.com", "12345", 0))
-        XCTAssertEqual(accounts[2], testAccount("john", "www.amazon.com", "12345", 0))
-        XCTAssertEqual(accounts[3], testAccount("", "www.amazon.com", "12345", 0))
-        XCTAssertEqual(accounts[4], testAccount("daniel", "amazon.com", "12345", 100))
-        XCTAssertEqual(accounts[5], testAccount("jane", "amazon.com", "7111", 25))
-        XCTAssertEqual(accounts[6], testAccount("", "amazon.com", "7111", 0))
-        XCTAssertEqual(accounts[7], testAccount("adam", "login.amazon.com", "7111", 50))
-        XCTAssertEqual(accounts[8], testAccount("jane", "login.amazon.com", "7111", 50))
-        XCTAssertEqual(accounts[9], testAccount("joe", "login.amazon.com", "7111", 50))
-        XCTAssertEqual(accounts[10], testAccount("mary", "aws.amazon.com", "0987", 10))
-        XCTAssertEqual(accounts[11], testAccount("jane", "aws.amazon.com", "7111", 0))
-        XCTAssertEqual(accounts[12], testAccount("daniel", "login.amazon.com", "12345", 0))
-        XCTAssertEqual(accounts[13], testAccount("daniel", "xyz.amazon.com", "12345", 0))
-    }
 
 }

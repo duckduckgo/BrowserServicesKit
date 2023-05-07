@@ -35,7 +35,7 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
     }
 
     public func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> [SecureVaultModels.WebsiteAccount] {
-        return accounts.dedupedAndSortedForDomain(url, tld: tld)
+        return accounts.sortedForDomain(url, tld: tld, removeDuplicates: true)
     }
     
 }
