@@ -26,8 +26,8 @@ import Persistence
 
 struct CryptingMock: Crypting {
 
-    var _encryptAndBase64Encode: (String) throws -> String = { $0 }
-    var _base64DecodeAndDecrypt: (String) throws -> String = { $0 }
+    var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
+    var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
 
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try _encryptAndBase64Encode(value)
