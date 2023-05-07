@@ -148,48 +148,15 @@ public final class SyncBookmarksProvider: DataProviding {
                 return true
             }
 
-            func deduplicateBookmark() -> Bool {
-                guard !syncable.isFolder else {
-                    return false
+            let parentFoldersTitles = parentNames(for: syncable, in: received, using: bookmarkToFolderMap)
+            if let deduplicatedEntity = deduplicatedEntity(with: syncable, parentFoldersTitles: parentFoldersTitles, in: context, using: crypter) {
+                if let oldUUID = deduplicatedEntity.uuid {
+                    existingByUUID.removeValue(forKey: oldUUID)
                 }
-
-                let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
-                let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
-                let parentFolderNames = parentNames(for: syncable, in: received, using: bookmarkToFolderMap)
-
-                if let bookmark = fetchBookmark(withTitle: title, url: url, parentFolderNames: parentFolderNames, in: context) {
-                    if let uuid = bookmark.uuid {
-                        existingByUUID.removeValue(forKey: uuid)
-                    }
-                    existingByUUID[uuid] = bookmark
-                    bookmark.uuid = uuid
-                    try? bookmark.update(with: syncable, in: context, using: crypter)
-                    return true
-                }
-                return false
-            }
-
-            func deduplicateFolder() -> Bool {
-                guard syncable.isFolder else {
-                    return false
-                }
-
-                let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
-                let parentFolderNames = parentNames(for: syncable, in: received, using: bookmarkToFolderMap)
-
-                if let folder = fetchFolder(withTitle: title, parentFolderNames: parentFolderNames, in: context) {
-                    if let uuid = folder.uuid {
-                        existingByUUID.removeValue(forKey: uuid)
-                    }
-                    existingByUUID[uuid] = folder
-                    folder.uuid = uuid
-                    return true
-                }
-                return false
-            }
-
-            if deduplicateBookmark() || deduplicateFolder() {
+                existingByUUID[uuid] = deduplicatedEntity
+                deduplicatedEntity.uuid = uuid
                 processedUUIDs.insert(uuid)
+                try? deduplicatedEntity.update(with: syncable, in: context, using: crypter)
                 return false
             }
 
@@ -259,24 +226,34 @@ public final class SyncBookmarksProvider: DataProviding {
         return (try? context.fetch(request)) ?? []
     }
 
-    private func fetchBookmark(withTitle title: String?, url: String?, parentFolderNames: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
+    private func deduplicatedEntity(with syncable: Syncable, parentFoldersTitles: [String?], in context: NSManagedObjectContext, using crypter: Crypting) -> BookmarkEntity? {
+        let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
+        if syncable.isFolder {
+            return fetchFolder(withTitle: title, parentFoldersTitles: parentFoldersTitles, in: context)
+        }
+
+        let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
+        return fetchBookmark(withTitle: title, url: url, parentFoldersTitles: parentFoldersTitles, in: context)
+    }
+
+    private func fetchBookmark(withTitle title: String?, url: String?, parentFoldersTitles: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@ AND %K == %@", #keyPath(BookmarkEntity.title), title ?? "", #keyPath(BookmarkEntity.url), url ?? "")
         request.returnsObjectsAsFaults = false
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
 
         let bookmarks = (try? context.fetch(request)) ?? []
-        return bookmarks.first(where: { $0.parentFoldersNames == parentFolderNames })
+        return bookmarks.first(where: { $0.parentFoldersTitles == parentFoldersTitles })
     }
 
-    private func fetchFolder(withTitle title: String?, parentFolderNames: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
+    private func fetchFolder(withTitle title: String?, parentFoldersTitles: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.title), title ?? "")
         request.returnsObjectsAsFaults = false
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
 
         let folders = (try? context.fetch(request)) ?? []
-        return folders.first(where: { $0.parentFoldersNames == parentFolderNames })
+        return folders.first(where: { $0.parentFoldersTitles == parentFoldersTitles })
     }
 
     private func parentNames(for syncable: Syncable, in syncables: [Syncable], using childrenToParentsMap: [String:String]) -> [String?] {
@@ -392,7 +369,7 @@ extension BookmarkEntity {
         }
     }
 
-    var parentFoldersNames: [String?] {
+    var parentFoldersTitles: [String?] {
         var names = [String?]()
         var currentParent = self.parent
         while currentParent != nil {
