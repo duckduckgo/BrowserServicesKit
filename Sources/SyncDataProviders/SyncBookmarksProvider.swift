@@ -132,7 +132,7 @@ public final class SyncBookmarksProvider: DataProviding {
         let bookmarks = fetchBookmarks(with: receivedIDs, in: context)
 
         // index local bookmarks by UUID
-        let existingByUUID = bookmarks.byUUID()
+        var existingByUUID = bookmarks.byUUID()
 
         // update existing local bookmarks data and store them in processedUUIDs
         var processedUUIDs = processExistingEntities(bookmarks, received: received, in: context, using: crypter)
@@ -148,16 +148,52 @@ public final class SyncBookmarksProvider: DataProviding {
                 return true
             }
 
-            let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
-            let parentFolderNames = parentNames(for: syncable, in: received, using: bookmarkToFolderMap)
+            func deduplicateBookmark() -> Bool {
+                guard !syncable.isFolder else {
+                    return false
+                }
 
-            if let bookmark = fetchBookmark(withTitle: syncable.title, url: url, parentFolderNames: parentFolderNames, in: context) {
-                bookmark.uuid = uuid
-                try? bookmark.update(with: syncable, in: context, using: crypter)
-                processedUUIDs.insert(uuid)
-            } else {
-                insertedByUUID[uuid] = BookmarkEntity.make(withUUID: uuid, isFolder: syncable.isFolder, in: context)
+                let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
+                let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
+                let parentFolderNames = parentNames(for: syncable, in: received, using: bookmarkToFolderMap)
+
+                if let bookmark = fetchBookmark(withTitle: title, url: url, parentFolderNames: parentFolderNames, in: context) {
+                    if let uuid = bookmark.uuid {
+                        existingByUUID.removeValue(forKey: uuid)
+                    }
+                    existingByUUID[uuid] = bookmark
+                    bookmark.uuid = uuid
+                    try? bookmark.update(with: syncable, in: context, using: crypter)
+                    return true
+                }
+                return false
             }
+
+            func deduplicateFolder() -> Bool {
+                guard syncable.isFolder else {
+                    return false
+                }
+
+                let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
+                let parentFolderNames = parentNames(for: syncable, in: received, using: bookmarkToFolderMap)
+
+                if let folder = fetchFolder(withTitle: title, parentFolderNames: parentFolderNames, in: context) {
+                    if let uuid = folder.uuid {
+                        existingByUUID.removeValue(forKey: uuid)
+                    }
+                    existingByUUID[uuid] = folder
+                    folder.uuid = uuid
+                    return true
+                }
+                return false
+            }
+
+            if deduplicateBookmark() || deduplicateFolder() {
+                processedUUIDs.insert(uuid)
+                return false
+            }
+
+            insertedByUUID[uuid] = BookmarkEntity.make(withUUID: uuid, isFolder: syncable.isFolder, in: context)
             return true
         }
 
@@ -233,6 +269,16 @@ public final class SyncBookmarksProvider: DataProviding {
         return bookmarks.first(where: { $0.parentFoldersNames == parentFolderNames })
     }
 
+    private func fetchFolder(withTitle title: String?, parentFolderNames: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.title), title ?? "")
+        request.returnsObjectsAsFaults = false
+        request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
+
+        let folders = (try? context.fetch(request)) ?? []
+        return folders.first(where: { $0.parentFoldersNames == parentFolderNames })
+    }
+
     private func parentNames(for syncable: Syncable, in syncables: [Syncable], using childrenToParentsMap: [String:String]) -> [String?] {
         var parentIDs = [String]()
         var currentSyncable: Syncable? = syncable
@@ -244,7 +290,7 @@ public final class SyncBookmarksProvider: DataProviding {
             currentSyncable = syncables.first(where: { $0.id == parentID })
         }
         return parentIDs.map { parentID in
-            syncables.first(where: { $0.id == parentID })?.title
+            syncables.first(where: { $0.id == parentID })?.encryptedTitle
         }
     }
 
@@ -259,7 +305,7 @@ extension Syncable {
         payload["id"] as? String
     }
 
-    var title: String? {
+    var encryptedTitle: String? {
         payload["title"] as? String
     }
 
@@ -372,8 +418,8 @@ extension Array where Element == BookmarkEntity {
 extension Array where Element == Syncable {
 
     func indexIDs() -> (allIDs: Set<String>, parentFoldersToChildren: [String: String], childrenToParents: [String: [String]]) {
-        var parentFoldersToChildren: [String: String] = [:]
-        var childrenToParents: [String: [String]] = [:]
+        var childrenToParents: [String: String] = [:]
+        var parentFoldersToChildren: [String: [String]] = [:]
 
         let allIDs: Set<String> = reduce(into: .init()) { partialResult, syncable in
             if let uuid = syncable.id {
@@ -383,14 +429,16 @@ extension Array where Element == Syncable {
                 }
 
                 if uuid != BookmarkEntity.Constants.favoritesFolderID {
-                    childrenToParents[uuid] = syncable.children
+                    if syncable.isFolder {
+                        parentFoldersToChildren[uuid] = syncable.children
+                    }
                     syncable.children.forEach { child in
-                        parentFoldersToChildren[child] = uuid
+                        childrenToParents[child] = uuid
                     }
                 }
             }
         }
 
-        return (allIDs, parentFoldersToChildren, childrenToParents)
+        return (allIDs, childrenToParents, parentFoldersToChildren)
     }
 }
