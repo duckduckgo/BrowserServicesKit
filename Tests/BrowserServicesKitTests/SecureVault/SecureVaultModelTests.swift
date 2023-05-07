@@ -312,7 +312,7 @@ class SecureVaultModelTests: XCTestCase {
     }
 
     func testDuplicatesAreProperlyRemoved() {
-
+        // (Note Duplicates are removed exclusively based on signature -- Ignoring usernames/domains)
         let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld, removeDuplicates: true)
         let controlAccounts  = [
             testAccount("olivia", "toys.amazon.com", "4567", 50),
