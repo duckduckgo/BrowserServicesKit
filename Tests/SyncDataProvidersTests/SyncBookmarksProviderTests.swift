@@ -187,7 +187,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testThatBookmarksAreReorderedWithinFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }
@@ -209,7 +209,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testAppendingNewBookmarkToFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }
@@ -234,7 +234,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testMergingBookmarksInTheSameFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }
@@ -259,7 +259,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testAppendingNewFavorite() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1", isFavorite: true)
             Bookmark(id: "2", isFavorite: true)
         }
@@ -287,7 +287,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testMergingFavorites() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1", isFavorite: true)
             Bookmark(id: "2", isFavorite: true)
         }
@@ -315,7 +315,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testAppendingNewFavoriteFromSubfolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1", isFavorite: true)
             Folder(id: "2") {
                 Bookmark(id: "3")
@@ -345,7 +345,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testAppendingAndReordering() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }
@@ -371,7 +371,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testDeletingBookmarks() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }
@@ -396,7 +396,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testThatDeletesForNonExistentBookmarksAreIgnored() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }
@@ -425,7 +425,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
     func testDeletingAndReordering() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        let bookmarkTree = BookmarksTree {
+        let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2")
         }

@@ -1,5 +1,5 @@
 //
-//  BookmarksTreeBuilder.swift
+//  BookmarkTree.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -105,7 +105,7 @@ struct BookmarkTreeBuilder {
 }
 
 
-struct BookmarksTree {
+struct BookmarkTree {
 
     init(@BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
         self.bookmarkTreeNodes = builder()
