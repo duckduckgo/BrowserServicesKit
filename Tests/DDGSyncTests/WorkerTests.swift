@@ -128,11 +128,11 @@ class WorkerTests: XCTestCase {
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        let worker = Worker(dataProviders: [dataProvider], crypter: crypter, requestMaker: requestMaker)
+        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
-            try await worker.sync(fetchOnly: false)
+            try await engine.sync(fetchOnly: false)
         }
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .GET)
@@ -144,11 +144,11 @@ class WorkerTests: XCTestCase {
         dataProvider._fetchChangedObjects = { _ in
             [Syncable(jsonObject: [:])]
         }
-        let worker = Worker(dataProviders: [dataProvider], crypter: crypter, requestMaker: requestMaker)
+        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
-            try await worker.sync(fetchOnly: false)
+            try await engine.sync(fetchOnly: false)
         }
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
@@ -180,11 +180,11 @@ class WorkerTests: XCTestCase {
             ]
         }
 
-        let worker = Worker(dataProviders: [dataProvider1, dataProvider2, dataProvider3], crypter: crypter, requestMaker: requestMaker)
+        let engine = Engine(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsError(SyncError.noResponseBody) {
-            try await worker.sync(fetchOnly: false)
+            try await engine.sync(fetchOnly: false)
         }
 
         let body = try XCTUnwrap(apiMock.createRequestCallArgs[0].body)
@@ -221,11 +221,11 @@ class WorkerTests: XCTestCase {
             sentModels = sent
         }
 
-        let worker = Worker(dataProviders: [dataProvider], crypter: crypter, requestMaker: requestMaker)
+        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
-        try await worker.sync(fetchOnly: false)
+        try await engine.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
     }

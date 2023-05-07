@@ -25,7 +25,7 @@ import Combine
  */
 protocol EngineProtocol {
     /// Used for passing data to sync
-    var dataProviders: [DataProviding] { get }
+    var dataProviders: [Feature: DataProviding] { get }
     /// Called to start sync
     func setUpAndStartFirstSync() async
     /// Called to start sync
@@ -34,12 +34,23 @@ protocol EngineProtocol {
     var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }
 
-class Engine: EngineProtocol {
+struct SyncResult {
+    let feature: Feature
+    let previousSyncTimestamp: String?
+    let sent: [Syncable]
 
-    let dataProviders: [DataProviding]
+    var lastSyncTimestamp: String?
+    var received: [Syncable] = []
+}
+
+actor Engine: EngineProtocol {
+
+    let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
     let syncQueue: SyncQueue
+    let crypter: Crypting
+    let requestMaker: SyncRequestMaking
 
     init(
         dataProviders: [DataProviding],
@@ -48,57 +59,122 @@ class Engine: EngineProtocol {
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints
     ) {
-        self.dataProviders = dataProviders
+        var providersDictionary = [Feature: DataProviding]()
+        for provider in dataProviders {
+            providersDictionary[provider.feature] = provider
+        }
+        self.dataProviders = providersDictionary
         self.storage = storage
-        let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
-        worker = Worker(dataProviders: dataProviders, crypter: crypter, requestMaker: requestMaker)
+        self.crypter = crypter
+        requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
         syncQueue = SyncQueue()
     }
 
     func setUpAndStartFirstSync() async {
-        await syncQueue.enqueue { [weak self] in
-            guard let self else {
-                return
-            }
-            let syncState = (try? self.storage.account()?.state) ?? .inactive
+        let syncState = (try? storage.account()?.state) ?? .inactive
+        guard syncState != .inactive else {
+            assertionFailure("Called first sync in unexpected \(syncState) state")
+            return
+        }
 
-            for dataProvider in self.dataProviders {
-                dataProvider.prepareForFirstSync()
-            }
-
-            switch syncState {
-            case .setupNewAccount:
-                if let account = try? self.storage.account()?.updatingState(.active) {
-                    try? self.storage.persistAccount(account)
+        await withTaskGroup(of: Void.self) { group in
+            for dataProvider in dataProviders.values {
+                group.addTask {
+                    try? await dataProvider.prepareForFirstSync()
                 }
-            case .addNewDevice:
-                try? await self.worker.sync(fetchOnly: true)
-                if let account = try? self.storage.account()?.updatingState(.active) {
-                    try? self.storage.persistAccount(account)
-                }
-            default:
-                assertionFailure("Called first sync in unexpected \(syncState) state")
             }
         }
-        await self.startSync()
+
+        if syncState == .addNewDevice {
+            try? await sync(fetchOnly: true)
+        }
+
+        if let account = try? storage.account()?.updatingState(.active) {
+            try? storage.persistAccount(account)
+        }
+
+        await startSync()
     }
 
     func startSync() async {
-        await syncQueue.enqueue { [weak self] in
-            guard let self else {
-                return
-            }
-            do {
-                try await self.worker.sync(fetchOnly: false)
-                self.syncDidFinishSubject.send(.success(()))
-            } catch {
-                print(error.localizedDescription)
-                self.syncDidFinishSubject.send(.failure(error))
-            }
+        do {
+            try await sync(fetchOnly: false)
+            syncDidFinishSubject.send(.success(()))
+        } catch {
+            print(error.localizedDescription)
+            syncDidFinishSubject.send(.failure(error))
         }
     }
 
-    private let worker: WorkerProtocol
+    func sync(fetchOnly: Bool) async throws {
+        print("Sync Operation Started. Fetch-only: \(fetchOnly)")
+        defer {
+            print("Sync Operation Finished. Fetch-only: \(fetchOnly)")
+        }
+
+        // Collect last sync timestamp and changes per feature
+        var results = try await withThrowingTaskGroup(of: [Feature: SyncResult].self) { group in
+            var results: [Feature: SyncResult] = [:]
+
+            for dataProvider in self.dataProviders.values {
+                let previousSyncTimestamp = dataProvider.lastSyncTimestamp
+                if fetchOnly {
+                    results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: [])
+                } else {
+                    let localChanges: [Syncable] = try await {
+                        if previousSyncTimestamp != nil {
+                            return try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
+                        }
+                        return try await dataProvider.fetchAllObjects(encryptedUsing: crypter)
+                    }()
+                    let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
+                    results[dataProvider.feature] = result
+                }
+            }
+            return results
+        }
+
+        let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
+        let request: HTTPRequesting = hasLocalChanges ? try requestMaker.makePatchRequest(with: results) : try requestMaker.makeGetRequest(with: results)
+        let result: HTTPResult = try await request.execute()
+
+        if let data = result.data {
+            print("Response: \(String(data: data, encoding: .utf8)!)")
+        }
+
+        switch result.response.statusCode {
+        case 200:
+            guard let data = result.data else {
+                throw SyncError.noResponseBody
+            }
+            try decodeResponse(with: data, into: &results)
+            fallthrough
+        case 204, 304:
+            for (feature, result) in results {
+                try await dataProviders[feature]?.handleSyncResult(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
+            }
+        default:
+            throw SyncError.unexpectedStatusCode(result.response.statusCode)
+        }
+    }
+
+    private func decodeResponse(with data: Data, into results: inout [Feature: SyncResult]) throws {
+        guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            throw SyncError.unexpectedResponseBody
+        }
+
+        for feature in results.keys {
+            guard let featurePayload = jsonObject[feature.name] as? [String: Any],
+                let lastModified = featurePayload["last_modified"] as? String,
+                let entries = featurePayload["entries"] as? [[String: Any]]
+            else {
+                throw SyncError.unexpectedResponseBody
+            }
+            results[feature]?.lastSyncTimestamp = lastModified
+            results[feature]?.received = entries.map(Syncable.init(jsonObject:))
+        }
+    }
+
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
 }
