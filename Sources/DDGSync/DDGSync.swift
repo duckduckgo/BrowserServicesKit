@@ -179,10 +179,12 @@ public class DDGSync: DDGSyncing {
                     guard let self else {
                         return
                     }
-                    if self.state == .active {
-                        self.dependencies.engine.startSync()
-                    } else {
-                        self.dependencies.engine.setUpAndStartFirstSync()
+                    Task {
+                        if self.state == .active {
+                            await self.dependencies.engine.startSync()
+                        } else {
+                            await self.dependencies.engine.setUpAndStartFirstSync()
+                        }
                     }
                 }
 
@@ -194,7 +196,9 @@ public class DDGSync: DDGSyncing {
                 }
 
             if !initial {
-                dependencies.engine.setUpAndStartFirstSync()
+                Task {
+                    await dependencies.engine.setUpAndStartFirstSync()
+                }
             }
 
         } else if state == .inactive {

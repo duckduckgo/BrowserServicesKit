@@ -27,9 +27,9 @@ protocol EngineProtocol {
     /// Used for passing data to sync
     var dataProviders: [DataProviding] { get }
     /// Called to start sync
-    func setUpAndStartFirstSync()
+    func setUpAndStartFirstSync() async
     /// Called to start sync
-    func startSync()
+    func startSync() async
     /// Emits events when sync each operation ends
     var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }
@@ -39,6 +39,7 @@ class Engine: EngineProtocol {
     let dataProviders: [DataProviding]
     let storage: SecureStoring
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
+    let syncQueue: SyncQueue
 
     init(
         dataProviders: [DataProviding],
@@ -52,43 +53,48 @@ class Engine: EngineProtocol {
         let requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         worker = Worker(dataProviders: dataProviders, crypter: crypter, requestMaker: requestMaker)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
+        syncQueue = SyncQueue()
     }
 
-    func setUpAndStartFirstSync() {
-        let syncState = (try? storage.account()?.state) ?? .inactive
-
-        for dataProvider in dataProviders {
-            dataProvider.prepareForFirstSync()
-        }
-
-        switch syncState {
-        case .setupNewAccount:
-            if let account = try? storage.account()?.updatingState(.active) {
-                try? storage.persistAccount(account)
+    func setUpAndStartFirstSync() async {
+        await syncQueue.enqueue { [weak self] in
+            guard let self else {
+                return
             }
-            startSync()
-        case .addNewDevice:
-            Task {
-                try await worker.sync(fetchOnly: true)
-                if let account = try storage.account()?.updatingState(.active) {
-                    try storage.persistAccount(account)
+            let syncState = (try? self.storage.account()?.state) ?? .inactive
+
+            for dataProvider in self.dataProviders {
+                dataProvider.prepareForFirstSync()
+            }
+
+            switch syncState {
+            case .setupNewAccount:
+                if let account = try? self.storage.account()?.updatingState(.active) {
+                    try? self.storage.persistAccount(account)
                 }
-                self.startSync()
+            case .addNewDevice:
+                try? await self.worker.sync(fetchOnly: true)
+                if let account = try? self.storage.account()?.updatingState(.active) {
+                    try? self.storage.persistAccount(account)
+                }
+            default:
+                assertionFailure("Called first sync in unexpected \(syncState) state")
             }
-        default:
-            assertionFailure("Called first sync in unexpected \(syncState) state")
-            startSync()
         }
+        await self.startSync()
     }
 
-    func startSync() {
-        Task {
+    func startSync() async {
+        await syncQueue.enqueue { [weak self] in
+            guard let self else {
+                return
+            }
             do {
-                try await worker.sync(fetchOnly: false)
-                syncDidFinishSubject.send(.success(()))
+                try await self.worker.sync(fetchOnly: false)
+                self.syncDidFinishSubject.send(.success(()))
             } catch {
                 print(error.localizedDescription)
-                syncDidFinishSubject.send(.failure(error))
+                self.syncDidFinishSubject.send(.failure(error))
             }
         }
     }
