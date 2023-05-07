@@ -448,6 +448,112 @@ final class SyncBookmarksProviderTests: XCTestCase {
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["3", "2"])
         }
     }
+
+    // MARK: - Deduplication
+
+    func testThatBookmarksWithTheSameNameAndURLAreDeduplicated() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("name", id: "1", url: "url")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["2"]),
+            .bookmark(id: "2", title: "name", url: "url")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2"])
+        }
+    }
+
+    func testThatBookmarksWithTheSameNameAndURLAreDeduplicated2() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Folder(id: "2") {
+                    Folder(id: "3") {
+                        Bookmark("name", id: "4", url: "url")
+                    }
+                }
+            }
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .folder(id: "1", children: ["2"]),
+            .folder(id: "2", children: ["3"]),
+            .folder(id: "3", children: ["5"]),
+            .bookmark(id: "5", title: "name", url: "url")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            let folder1 = rootFolder.childrenArray.first
+            let folder2 = folder1?.childrenArray.first
+            let folder3 = folder2?.childrenArray.first
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), [folder1?.uuid])
+            XCTAssertEqual(folder1?.childrenArray.map(\.uuid), [folder2?.uuid])
+            XCTAssertEqual(folder2?.childrenArray.map(\.uuid), [folder3?.uuid])
+            XCTAssertEqual(folder3?.childrenArray.map(\.uuid), ["5"])
+        }
+    }
+
+    func testThatFoldersWithTheSameNameAndParentAreDeduplicated() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Folder(id: "2") {
+                    Folder("Duplicated folder", id: "3") {
+                        Bookmark(id: "4")
+                    }
+                }
+            }
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .folder(id: "1", children: ["2"]),
+            .folder(id: "2", children: ["5"]),
+            .folder(id: "5", title: "Duplicated folder", children: ["4"]),
+            .bookmark(id: "6")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try? context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try? context.save()
+
+            let folder1 = rootFolder.childrenArray.first
+            let folder2 = folder1?.childrenArray.first
+            let folder5 = folder2?.childrenArray.first
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), [folder1?.uuid])
+            XCTAssertEqual(folder1?.childrenArray.map(\.uuid), [folder2?.uuid])
+            XCTAssertEqual(folder2?.childrenArray.map(\.uuid), [folder5?.uuid])
+            XCTAssertEqual(folder5?.childrenArray.map(\.uuid), ["6", "4"])
+        }
+    }
 }
 
 extension SyncBookmarksProviderTests {
