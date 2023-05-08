@@ -40,14 +40,12 @@ extension BookmarkEntity {
         return (try? context.fetch(request)) ?? []
     }
 
-    static func fetchBookmark(withTitle title: String?, url: String?, parentFoldersTitles: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
+    static func fetchBookmark(withTitle title: String?, url: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@ AND %K == %@", #keyPath(BookmarkEntity.title), title ?? "", #keyPath(BookmarkEntity.url), url ?? "")
-        request.returnsObjectsAsFaults = false
-        request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
+        request.fetchLimit = 1
 
-        let bookmarks = (try? context.fetch(request)) ?? []
-        return bookmarks.first(where: { $0.parentFoldersTitles == parentFoldersTitles })
+        return (try? context.fetch(request))?.first
     }
 
     static func fetchFolder(withTitle title: String?, parentFoldersTitles: [String?], in context: NSManagedObjectContext) -> BookmarkEntity? {
@@ -67,7 +65,7 @@ extension BookmarkEntity {
         }
 
         let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
-        return fetchBookmark(withTitle: title, url: url, parentFoldersTitles: parentFoldersTitles, in: context)
+        return fetchBookmark(withTitle: title, url: url, in: context)
     }
 
     func update(with syncable: Syncable, in context: NSManagedObjectContext, using crypter: Crypting) throws {
