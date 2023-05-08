@@ -26,8 +26,18 @@ import Persistence
 
 struct CryptingMock: Crypting {
 
-    var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
-    var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
+    var _encryptAndBase64Encode: (String) throws -> String = { value in
+        if [BookmarkEntity.Constants.favoritesFolderID, BookmarkEntity.Constants.rootFolderID].contains(value) {
+            return value
+        }
+        return "encrypted_\(value)"
+    }
+    var _base64DecodeAndDecrypt: (String) throws -> String = { value in
+        if [BookmarkEntity.Constants.favoritesFolderID, BookmarkEntity.Constants.rootFolderID].contains(value) {
+            return value
+        }
+        return value.dropping(prefix: "encrypted_")
+    }
 
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try _encryptAndBase64Encode(value)
@@ -161,9 +171,9 @@ final class SyncBookmarksProviderTests: XCTestCase {
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
-            try? context.save()
+            try! context.save()
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let bookmarks = fetchAllNonRootEntities(in: context)
             let rootFolder = BookmarkUtils.fetchRootFolder(context)
@@ -197,10 +207,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2", "1"])
         }
@@ -222,10 +232,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
         }
@@ -247,10 +257,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
         }
@@ -273,10 +283,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
 
@@ -301,10 +311,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
 
@@ -331,10 +341,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
 
@@ -359,10 +369,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "3", "2"])
         }
@@ -384,10 +394,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2"])
         }
@@ -413,10 +423,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2"])
         }
@@ -440,10 +450,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["3", "2"])
         }
@@ -466,12 +476,49 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2"])
+        }
+    }
+
+    func testThatBookmarksWithTheSameNameAndURLInDifferentFoldersAreDeduplicatedAndRemoteWins() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark("name", id: "10", url: "url")
+            }
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2"]),
+            .folder(id: "1"),
+            .folder(id: "2", children: ["3"]),
+            .bookmark(id: "3", title: "name", url: "url")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            provider.processReceivedBookmarks(received, in: context, using: crypter)
+            try! context.save()
+
+            let folder1 = rootFolder.childrenArray[0]
+            let folder2 = rootFolder.childrenArray[1]
+            let bookmark = folder2.childrenArray[0]
+
+            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2"])
+            XCTAssertTrue(folder1.childrenArray.isEmpty)
+            XCTAssertEqual(folder2.childrenArray.map(\.uuid), ["3"])
+            XCTAssertEqual(bookmark.uuid, "3")
+            XCTAssertEqual(bookmark.title, "name")
+            XCTAssertEqual(bookmark.url, "url")
         }
     }
 
@@ -499,10 +546,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let folder1 = rootFolder.childrenArray.first
             let folder2 = folder1?.childrenArray.first
@@ -539,10 +586,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let folder1 = rootFolder.childrenArray.first
             let folder2 = folder1?.childrenArray.first
@@ -587,10 +634,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let folder1 = rootFolder.childrenArray.first
             let folder2 = folder1?.childrenArray.first
@@ -620,12 +667,76 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["11", "12"])
+        }
+    }
+
+    func testReceivingUpdateToDeletedObject() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", isDeleted: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        await provider.handleSyncResult(sent: sent, received: received, timestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            XCTAssertTrue(rootFolder.childrenArray.isEmpty)
+        }
+    }
+
+    func testReceivingUpdateToDeletedObject2() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        context.performAndWait {
+            let request = BookmarkEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), "1")
+            let bookmark = try! context.fetch(request).first!
+            bookmark.markPendingDeletion()
+            try! context.save()
+        }
+
+        await provider.handleSyncResult(sent: sent, received: received, timestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            XCTAssertTrue(rootFolder.childrenArray.isEmpty)
         }
     }
 
@@ -686,10 +797,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
-            try? context.save()
+            try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
-            try? context.save()
+            try! context.save()
 
             let folder01 = rootFolder.childrenArray[0]
             let folder02 = folder01.childrenArray[0]
@@ -717,7 +828,7 @@ extension SyncBookmarksProviderTests {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "NOT %K IN %@", #keyPath(BookmarkEntity.uuid), [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID])
         request.sortDescriptors = [.init(key: #keyPath(BookmarkEntity.title), ascending: true)]
-        return (try? context.fetch(request)) ?? []
+        return try! context.fetch(request)
     }
 
     @discardableResult
