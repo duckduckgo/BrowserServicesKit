@@ -50,7 +50,7 @@ public struct SecureVaultModels {
         public var signature: String?
         public var notes: String?
         public let created: Date
-        public let lastUpdated: Date        
+        public let lastUpdated: Date
 
         public init(title: String? = nil, username: String, domain: String, signature: String? = nil, notes: String? = nil) {
             self.id = nil
@@ -73,17 +73,17 @@ public struct SecureVaultModels {
             self.created = created
             self.lastUpdated = lastUpdated
         }
-        
+
         private var tld: String {
             let components = self.domain.split(separator: ".")
             if components.count >= 2 {
-            let tldIndex = components.count - 2
-            let baseTLD = components[tldIndex]
+                let tldIndex = components.count - 2
+                let baseTLD = components[tldIndex]
                 return String(baseTLD)
             }
             return ""
         }
-        
+
         // djb2 hash from the account
         var hashValue: Data {
             var hash = 5381
@@ -109,7 +109,7 @@ public struct SecureVaultModels {
             static let expirationMonthKey = "expirationMonth"
             static let expirationYearKey = "expirationYear"
         }
-        
+
         public var id: Int64?
         public var title: String
         public let created: Date
@@ -121,7 +121,7 @@ public struct SecureVaultModels {
         public var cardSecurityCode: String?
         public var expirationMonth: Int?
         public var expirationYear: Int?
-        
+
         public var cardNumber: String {
             return String(data: cardNumberData, encoding: .utf8)!
         }
@@ -130,7 +130,7 @@ public struct SecureVaultModels {
             let type = CreditCardValidation.type(for: cardNumber)
             return "\(type.displayName) (\(cardSuffix))"
         }
-        
+
         static func suffix(from cardNumber: String) -> String {
             let trimmedCardNumber = cardNumber.trimmingCharacters(in: .whitespacesAndNewlines)
             return String(trimmedCardNumber.suffix(4))
@@ -155,15 +155,15 @@ public struct SecureVaultModels {
             self.expirationMonth = expirationMonth
             self.expirationYear = expirationYear
         }
-        
+
         public init?(autofillDictionary: [String: Any]) {
             guard let creditCardsDictionary = autofillDictionary[Constants.creditCardsKey] as? [String: Any] else {
                 return nil
             }
-            
+
             self.init(creditCardsDictionary: creditCardsDictionary)
         }
-        
+
         public init?(creditCardsDictionary: [String: Any]) {
             guard let cardNumber = creditCardsDictionary[Constants.cardNumberKey] as? String else {
                 return nil
@@ -203,16 +203,16 @@ public struct SecureVaultModels {
 
             self.associatedDomain = associatedDomain
             self.text = text
-            
+
             self.displayTitle = generateDisplayTitle()
             self.displaySubtitle = generateDisplaySubtitle()
         }
-        
+
         // Display Properties:
-        
+
         public internal(set) var displayTitle: String?
         public internal(set) var displaySubtitle: String = ""
-        
+
         /// If a note has a title, it will be used when displaying the note in the UI. If it doesn't have a title and it has body text, the first non-empty line of the body text
         /// will be used. If it doesn't have a title or body text, a placeholder string is used.
         internal func generateDisplayTitle() -> String? {
@@ -224,7 +224,7 @@ public struct SecureVaultModels {
             let noteLines = text.components(separatedBy: .newlines)
             return noteLines.first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty })
         }
-        
+
         /// If a note has a title, the first non-empty line of the note is used as the subtitle. If it doesn't have a title, the first non-empty line will be used as a title, so the
         /// second non-empty line will then be used as the subtitle. If there is no title or body text, an empty string is returned.
         internal func generateDisplaySubtitle() -> String {
@@ -235,7 +235,7 @@ public struct SecureVaultModels {
             // The title is empty, so assume that the first non-empty line is used as the title, and find the second non-empty line instead.
             let noteLines = text.components(separatedBy: .newlines)
             var alreadyFoundFirstNonEmptyLine = false
-            
+
             for line in noteLines where !line.isEmpty {
                 if !alreadyFoundFirstNonEmptyLine {
                     alreadyFoundFirstNonEmptyLine = true
@@ -243,10 +243,10 @@ public struct SecureVaultModels {
                     return line
                 }
             }
-            
+
             return ""
         }
-        
+
         private var firstNonEmptyLine: String? {
             let noteLines = text.components(separatedBy: .newlines)
             return noteLines.first(where: { !$0.isEmpty })
@@ -261,13 +261,13 @@ public struct SecureVaultModels {
             nameFormatter.style = .medium
             return nameFormatter
         }()
-        
+
         private static let longPersonNameComponentsFormatter: PersonNameComponentsFormatter = {
             let nameFormatter = PersonNameComponentsFormatter()
             nameFormatter.style = .long
             return nameFormatter
         }()
-        
+
         private var nameComponents: PersonNameComponents {
             var nameComponents = PersonNameComponents()
 
@@ -277,15 +277,15 @@ public struct SecureVaultModels {
 
             return nameComponents
         }
-        
+
         public var formattedName: String {
             return Self.mediumPersonNameComponentsFormatter.string(from: nameComponents)
         }
-        
+
         public var longFormattedName: String {
             return Self.longPersonNameComponentsFormatter.string(from: nameComponents)
         }
-        
+
         var autofillEqualityName: String?
         var autofillEqualityAddressStreet: String?
 
@@ -376,16 +376,16 @@ public struct SecureVaultModels {
             self.homePhone = homePhone
             self.mobilePhone = mobilePhone
             self.emailAddress = emailAddress
-            
+
             self.autofillEqualityName = normalizedAutofillName()
             self.autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
         }
-        
+
         public init?(autofillDictionary: [String: Any]) {
             guard let dictionary = autofillDictionary["identities"] as? [String: Any] else {
                 return nil
             }
-            
+
             self.init(identityDictionary: dictionary)
         }
 
@@ -435,9 +435,9 @@ public struct SecureVaultModels {
 // MARK: - Autofill Equality
 
 protocol SecureVaultAutofillEquatable {
-    
+
     func hasAutofillEquality(comparedTo object: Self) -> Bool
-    
+
 }
 
 extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
@@ -445,22 +445,22 @@ extension SecureVaultModels.Identity: SecureVaultAutofillEquatable {
     func hasAutofillEquality(comparedTo otherIdentity: SecureVaultModels.Identity) -> Bool {
         let hasNameEquality = self.autofillEqualityName == otherIdentity.autofillEqualityName
         let hasAddressEquality = self.autofillEqualityAddressStreet == otherIdentity.autofillEqualityAddressStreet
-        
+
         return hasNameEquality && hasAddressEquality
     }
-    
+
 }
 
 extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
-    
+
     func hasAutofillEquality(comparedTo object: Self) -> Bool {
         if self.cardNumber.autofillNormalized() == object.cardNumber.autofillNormalized() {
             return true
         }
-        
+
         return false
     }
-    
+
 }
 
 // MARK: - WebsiteAccount Array extensions
@@ -504,8 +504,8 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return true
         } else if account1.username.isEmpty && !account2.username.isEmpty {
             return false
-        } else if account1.lastUpdated != account2.lastUpdated {
-            return account1.lastUpdated > account2.lastUpdated
+        } else if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
+            return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
         } else if account1.domain != account2.domain {
             return account1.domain < account2.domain
         } else if !account1.username.isEmpty && !account2.username.isEmpty {
@@ -524,4 +524,14 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         }
     }
 
+}
+
+private extension Date {
+
+    // Removes time from date
+    var withoutTime: Date {
+        let calendar = Calendar.current
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: self)
+        return calendar.date(from: dateComponents) ?? self
+    }
 }
