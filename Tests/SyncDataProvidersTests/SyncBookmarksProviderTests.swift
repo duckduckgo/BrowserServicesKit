@@ -175,7 +175,6 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let bookmarks = fetchAllNonRootEntities(in: context)
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
             assertEquivalent(rootFolder, BookmarkTree {

@@ -68,16 +68,6 @@ extension BookmarkEntity {
         return fetchBookmark(withTitle: title, url: url, in: context)
     }
 
-    static func fetchBookmark(withTitle title: String?, url: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
-        let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@ AND %K == %@", #keyPath(BookmarkEntity.title), title ?? "", #keyPath(BookmarkEntity.url), url ?? "")
-        request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
-        request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
-
-        return (try? context.fetch(request))?.first
-    }
-
     static func fetchFolder(withTitle title: String?, parentUUID: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.title), title ?? "")
