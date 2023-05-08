@@ -20,6 +20,7 @@
 import Bookmarks
 import CoreData
 import Foundation
+import XCTest
 
 enum BookmarkTreeNode {
     case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, isDeleted: Bool)
@@ -67,7 +68,7 @@ struct Bookmark: BookmarkTreeNodeConvertible {
     init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, isDeleted: Bool = false) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
-        self.url = url ?? id
+        self.url = (url ?? name) ?? id
         self.isFavorite = isFavorite
         self.isDeleted = isDeleted
     }
@@ -174,5 +175,42 @@ extension BookmarkEntity {
         }
 
         return entity
+    }
+}
+
+
+extension XCTestCase {
+    func assertEquivalent(_ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
+        let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        context.persistentStoreCoordinator = bookmarkEntity.managedObjectContext?.persistentStoreCoordinator
+
+        context.performAndWait {
+            context.deleteAll(matching: BookmarkEntity.fetchRequest())
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = tree.createEntities(in: context)
+            let thisFolder = bookmarkEntity
+            XCTAssertEqual(rootFolder.uuid, thisFolder.uuid, file: file, line: line)
+
+            var tempTreeQueue: [BookmarkEntity] = [rootFolder]
+            var thisTreeQueue: [BookmarkEntity] = [thisFolder]
+
+            while !tempTreeQueue.isEmpty {
+                let tempNode = tempTreeQueue.removeFirst()
+                let thisNode = thisTreeQueue.removeFirst()
+
+                XCTAssertEqual(tempNode.uuid, thisNode.uuid, file: file, line: line)
+                XCTAssertEqual(tempNode.title, thisNode.title, file: file, line: line)
+                XCTAssertEqual(tempNode.url, thisNode.url, file: file, line: line)
+                XCTAssertEqual(tempNode.isFolder, thisNode.isFolder, file: file, line: line)
+                XCTAssertEqual(tempNode.isPendingDeletion, thisNode.isPendingDeletion, file: file, line: line)
+                XCTAssertEqual(tempNode.children?.count, thisNode.children?.count, file: file, line: line)
+                XCTAssertEqual(tempNode.isFavorite, thisNode.isFavorite, file: file, line: line)
+
+                if tempNode.isFolder {
+                    tempTreeQueue.append(contentsOf: tempNode.childrenArray)
+                    thisTreeQueue.append(contentsOf: thisNode.childrenArray)
+                }
+            }
+        }
     }
 }

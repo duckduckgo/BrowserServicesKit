@@ -176,21 +176,17 @@ final class SyncBookmarksProviderTests: XCTestCase {
             try! context.save()
 
             let bookmarks = fetchAllNonRootEntities(in: context)
-            let rootFolder = BookmarkUtils.fetchRootFolder(context)
-            XCTAssertEqual(rootFolder?.childrenArray.map(\.uuid), ["1", "2", "3", "4"])
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
-            XCTAssertEqual(bookmarks.count, 6)
-
-            XCTAssertEqual(bookmarks[0].title, "1")
-            XCTAssertEqual(bookmarks[1].title, "2")
-            XCTAssertEqual(bookmarks[2].title, "3")
-            XCTAssertEqual(bookmarks[3].title, "4")
-            XCTAssertTrue(bookmarks[3].isFolder)
-
-            XCTAssertEqual(bookmarks[4].parent?.objectID, bookmarks[3].objectID)
-            XCTAssertEqual(bookmarks[5].parent?.objectID, bookmarks[3].objectID)
-            XCTAssertEqual(bookmarks[4].title, "5")
-            XCTAssertEqual(bookmarks[5].title, "6")
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+                Folder(id: "4") {
+                    Bookmark(id: "5")
+                    Bookmark(id: "6")
+                }
+            })
         }
     }
 
@@ -212,7 +208,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2", "1"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "2")
+                Bookmark(id: "1")
+            })
         }
     }
 
@@ -237,7 +236,11 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+            })
         }
     }
 
@@ -262,7 +265,11 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2", "3"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+            })
         }
     }
 
@@ -282,15 +289,17 @@ final class SyncBookmarksProviderTests: XCTestCase {
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
-            bookmarkTree.createEntities(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
             try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
-
-            XCTAssertEqual(favoritesFolder.favoritesArray.map(\.uuid), ["1", "2", "3"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1", isFavorite: true)
+                Bookmark(id: "2", isFavorite: true)
+                Bookmark(id: "3", isFavorite: true)
+            })
         }
     }
 
@@ -310,15 +319,17 @@ final class SyncBookmarksProviderTests: XCTestCase {
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
-            bookmarkTree.createEntities(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
             try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
-
-            XCTAssertEqual(favoritesFolder.favoritesArray.map(\.uuid), ["1", "2", "3"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1", isFavorite: true)
+                Bookmark(id: "2", isFavorite: true)
+                Bookmark(id: "3", isFavorite: true)
+            })
         }
     }
 
@@ -340,15 +351,18 @@ final class SyncBookmarksProviderTests: XCTestCase {
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
-            bookmarkTree.createEntities(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
             try! context.save()
 
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
-
-            XCTAssertEqual(favoritesFolder.favoritesArray.map(\.uuid), ["1", "3"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1", isFavorite: true)
+                Folder(id: "2") {
+                    Bookmark(id: "3", isFavorite: true)
+                }
+            })
         }
     }
 
@@ -374,7 +388,11 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "3", "2"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "3")
+                Bookmark(id: "2")
+            })
         }
     }
 
@@ -399,7 +417,9 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "2")
+            })
         }
     }
 
@@ -428,7 +448,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "2")
+            })
         }
     }
 
@@ -455,7 +478,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["3", "2"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "3")
+                Bookmark(id: "2")
+            })
         }
     }
 
@@ -481,7 +507,9 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["2"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("name", id: "2", url: "url")
+            })
         }
     }
 
@@ -509,16 +537,12 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let folder1 = rootFolder.childrenArray[0]
-            let folder2 = rootFolder.childrenArray[1]
-            let bookmark = folder2.childrenArray[0]
-
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["1", "2"])
-            XCTAssertTrue(folder1.childrenArray.isEmpty)
-            XCTAssertEqual(folder2.childrenArray.map(\.uuid), ["3"])
-            XCTAssertEqual(bookmark.uuid, "3")
-            XCTAssertEqual(bookmark.title, "name")
-            XCTAssertEqual(bookmark.url, "url")
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder(id: "1")
+                Folder(id: "2") {
+                    Bookmark("name", id: "3", url: "url")
+                }
+            })
         }
     }
 
@@ -551,14 +575,15 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let folder1 = rootFolder.childrenArray.first
-            let folder2 = folder1?.childrenArray.first
-            let folder3 = folder2?.childrenArray.first
-
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), [folder1?.uuid])
-            XCTAssertEqual(folder1?.childrenArray.map(\.uuid), [folder2?.uuid])
-            XCTAssertEqual(folder2?.childrenArray.map(\.uuid), [folder3?.uuid])
-            XCTAssertEqual(folder3?.childrenArray.map(\.uuid), ["5"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder(id: "1") {
+                    Folder(id: "2") {
+                        Folder(id: "3") {
+                            Bookmark("name", id: "5", url: "url")
+                        }
+                    }
+                }
+            })
         }
     }
 
@@ -591,14 +616,16 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let folder1 = rootFolder.childrenArray.first
-            let folder2 = folder1?.childrenArray.first
-            let folder5 = folder2?.childrenArray.first
-
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), [folder1?.uuid])
-            XCTAssertEqual(folder1?.childrenArray.map(\.uuid), [folder2?.uuid])
-            XCTAssertEqual(folder2?.childrenArray.map(\.uuid), [folder5?.uuid])
-            XCTAssertEqual(folder5?.childrenArray.map(\.uuid), ["4", "6"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder(id: "1") {
+                    Folder(id: "2") {
+                        Folder("Duplicated folder", id: "5") {
+                            Bookmark(id: "4")
+                            Bookmark(id: "6")
+                        }
+                    }
+                }
+            })
         }
     }
 
@@ -639,14 +666,25 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let folder1 = rootFolder.childrenArray.first
-            let folder2 = folder1?.childrenArray.first
-            let folder6 = folder2?.childrenArray.first
-
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), [folder1?.uuid])
-            XCTAssertEqual(folder1?.childrenArray.map(\.uuid), [folder2?.uuid])
-            XCTAssertEqual(folder2?.childrenArray.map(\.uuid), [folder6?.uuid])
-            XCTAssertEqual(folder6?.childrenArray.map(\.uuid), ["4", "6", "7", "8", "10", "11", "12"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder(id: "1") {
+                    Folder(id: "2") {
+                        Folder("Duplicated folder", id: "9") {
+                            Folder(id: "4") {
+                                Bookmark(id: "5")
+                            }
+                            Bookmark(id: "6")
+                            Bookmark(id: "7")
+                            Bookmark(id: "8")
+                            Bookmark(id: "10")
+                            Bookmark(id: "11")
+                            Folder(id: "12") {
+                                Bookmark(id: "13")
+                            }
+                        }
+                    }
+                }
+            })
         }
     }
 
@@ -672,7 +710,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["11", "12"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder("1", id: "11")
+                Bookmark("2", id: "12")
+            })
         }
     }
 
@@ -802,22 +843,33 @@ final class SyncBookmarksProviderTests: XCTestCase {
             provider.processReceivedBookmarks(received, in: context, using: crypter)
             try! context.save()
 
-            let folder01 = rootFolder.childrenArray[0]
-            let folder02 = folder01.childrenArray[0]
-            let folder05 = folder01.childrenArray[2]
-            let folder07 = folder05.childrenArray[1]
-            let folder08 = folder07.childrenArray[0]
-            let folder16 = rootFolder.childrenArray[2]
-            let folder17 = folder16.childrenArray[0]
-
-            XCTAssertEqual(rootFolder.childrenArray.map(\.uuid), ["101", "115", "116", "119"])
-            XCTAssertEqual(folder01.childrenArray.map(\.uuid), ["102", "104", "105", "114"])
-            XCTAssertEqual(folder02.childrenArray.map(\.uuid), ["103"])
-            XCTAssertEqual(folder05.childrenArray.map(\.uuid), ["106", "107", "112", "113"])
-            XCTAssertEqual(folder07.childrenArray.map(\.uuid), ["108", "109", "110", "111"])
-            XCTAssertTrue(folder08.childrenArray.isEmpty)
-            XCTAssertEqual(folder16.childrenArray.map(\.uuid), ["117"])
-            XCTAssertEqual(folder17.childrenArray.map(\.uuid), ["118"])
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder("01", id: "101") {
+                    Folder("02", id: "102") {
+                        Bookmark("03", id: "103")
+                    }
+                    Bookmark("04", id: "104")
+                    Folder("05", id: "105") {
+                        Bookmark("06", id: "106")
+                        Folder("07", id: "107") {
+                            Folder("08", id: "108")
+                            Bookmark("09", id: "109")
+                            Bookmark("10", id: "110")
+                            Bookmark("11", id: "111")
+                        }
+                        Bookmark("12", id: "112")
+                        Bookmark("13", id: "113")
+                    }
+                    Bookmark("14", id: "114")
+                }
+                Bookmark("15", id: "115")
+                Folder("16", id: "116") {
+                    Folder("17", id: "117") {
+                        Bookmark("18", id: "118")
+                    }
+                }
+                Bookmark("19", id: "119")
+            })
         }
     }
 }
@@ -862,7 +914,7 @@ fileprivate extension Syncable {
         var json: [String: Any] = [
             "id": id,
             "title": title ?? id,
-            "page": ["url": url ?? title],
+            "page": ["url": (url ?? title) ?? id],
             "client_last_modified": "1234"
         ]
         if isDeleted {
