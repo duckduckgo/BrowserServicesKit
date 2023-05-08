@@ -80,21 +80,6 @@ extension Syncable {
         self.init(jsonObject: payload)
     }
 
-    func parentNames(in syncables: [Syncable], using childrenToParentsMap: [String:String]) -> [String?] {
-        var parentIDs = [String]()
-        var currentSyncable: Syncable? = self
-        while currentSyncable != nil {
-            guard let syncableID = currentSyncable?.id, let parentID = childrenToParentsMap[syncableID] else {
-                break
-            }
-            parentIDs.append(parentID)
-            currentSyncable = syncables.first(where: { $0.id == parentID })
-        }
-        return parentIDs.map { parentID in
-            syncables.first(where: { $0.id == parentID })?.encryptedTitle
-        }
-    }
-
     private static var dateFormatter: ISO8601DateFormatter {
         ISO8601DateFormatter()
     }

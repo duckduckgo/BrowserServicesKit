@@ -189,7 +189,7 @@ extension XCTestCase {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = tree.createEntities(in: context)
             let thisFolder = bookmarkEntity
-            XCTAssertEqual(rootFolder.uuid, thisFolder.uuid, file: file, line: line)
+            XCTAssertEqual(rootFolder.uuid, thisFolder.uuid, "root folder uuid mismatch", file: file, line: line)
 
             var tempTreeQueue: [BookmarkEntity] = [rootFolder]
             var thisTreeQueue: [BookmarkEntity] = [thisFolder]
@@ -198,13 +198,13 @@ extension XCTestCase {
                 let tempNode = tempTreeQueue.removeFirst()
                 let thisNode = thisTreeQueue.removeFirst()
 
-                XCTAssertEqual(tempNode.uuid, thisNode.uuid, file: file, line: line)
-                XCTAssertEqual(tempNode.title, thisNode.title, file: file, line: line)
-                XCTAssertEqual(tempNode.url, thisNode.url, file: file, line: line)
-                XCTAssertEqual(tempNode.isFolder, thisNode.isFolder, file: file, line: line)
-                XCTAssertEqual(tempNode.isPendingDeletion, thisNode.isPendingDeletion, file: file, line: line)
-                XCTAssertEqual(tempNode.children?.count, thisNode.children?.count, file: file, line: line)
-                XCTAssertEqual(tempNode.isFavorite, thisNode.isFavorite, file: file, line: line)
+                XCTAssertEqual(tempNode.uuid, thisNode.uuid, "uuid mismatch", file: file, line: line)
+                XCTAssertEqual(tempNode.title, thisNode.title, "title mismatch", file: file, line: line)
+                XCTAssertEqual(tempNode.url, thisNode.url, "url mismatch", file: file, line: line)
+                XCTAssertEqual(tempNode.isFolder, thisNode.isFolder, "isFolder mismatch", file: file, line: line)
+                XCTAssertEqual(tempNode.isPendingDeletion, thisNode.isPendingDeletion, "isPendingDeletion mismatch", file: file, line: line)
+                XCTAssertEqual(tempNode.children?.count, thisNode.children?.count, "children count mismatch", file: file, line: line)
+                XCTAssertEqual(tempNode.isFavorite, thisNode.isFavorite, "isFavorite mismatch", file: file, line: line)
 
                 if tempNode.isFolder {
                     tempTreeQueue.append(contentsOf: tempNode.childrenArray)

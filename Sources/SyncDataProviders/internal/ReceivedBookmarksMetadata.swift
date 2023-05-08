@@ -27,6 +27,7 @@ struct ReceivedBookmarksMetadata {
     let receivedByID: [String: Syncable]
     let parentFoldersToChildrenMap: [String: String]
     let childrenToParentFoldersMap: [String: [String]]
+    let foldersWithoutParent: Set<String>
 
     init(received: [Syncable]) {
         self.received = received
@@ -35,13 +36,13 @@ struct ReceivedBookmarksMetadata {
                 partialResult[id] = syncable
             }
         }
-        (receivedIDs, parentFoldersToChildrenMap, childrenToParentFoldersMap) = received.indexIDs()
+        (receivedIDs, parentFoldersToChildrenMap, childrenToParentFoldersMap, foldersWithoutParent) = received.indexIDs()
     }
 }
 
 extension Array where Element == Syncable {
 
-    func indexIDs() -> (allIDs: Set<String>, parentFoldersToChildren: [String: String], childrenToParents: [String: [String]]) {
+    func indexIDs() -> (allIDs: Set<String>, parentFoldersToChildren: [String: String], childrenToParents: [String: [String]], foldersWithoutParent: Set<String>) {
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]
 
@@ -63,6 +64,8 @@ extension Array where Element == Syncable {
             }
         }
 
-        return (allIDs, childrenToParents, parentFoldersToChildren)
+        let foldersWithoutParent = Set(parentFoldersToChildren.keys).subtracting(childrenToParents.keys)
+
+        return (allIDs, childrenToParents, parentFoldersToChildren, foldersWithoutParent)
     }
 }

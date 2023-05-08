@@ -134,14 +134,23 @@ public final class SyncBookmarksProvider: DataProviding {
         var existingByUUID = bookmarks.byUUID()
 
         // update existing local bookmarks data and store them in processedUUIDs
-        var processedUUIDs = processExistingEntities(bookmarks, received: received, in: context, using: crypter)
-        var insertedByUUID = [String: BookmarkEntity]()
+        processExistingEntities(bookmarks, received: received, in: context, using: crypter)
 
         // deduplication
 
-        if let rootFolderSyncable = metadata.receivedByID[BookmarkEntity.Constants.rootFolderID], let rootFolderSyncableID = rootFolderSyncable.id {
-            var queues: [[String]] = [rootFolderSyncable.children]
-            var parentIDs: [String] = [rootFolderSyncableID]
+        let topLevelFolderSyncables: [Syncable] = {
+            if let rootFolderSyncable = metadata.receivedByID[BookmarkEntity.Constants.rootFolderID] {
+                return [rootFolderSyncable]
+            }
+            return metadata.foldersWithoutParent.compactMap { metadata.receivedByID[$0] }
+        }()
+
+        for topLevelFolderSyncable in topLevelFolderSyncables {
+            guard let topLevelFolderID = topLevelFolderSyncable.id else {
+                continue
+            }
+            var queues: [[String]] = [topLevelFolderSyncable.children]
+            var parentIDs: [String] = [topLevelFolderID]
 
             while !queues.isEmpty {
                 var queue = queues.removeFirst()
@@ -161,15 +170,13 @@ public final class SyncBookmarksProvider: DataProviding {
                         }
                         existingByUUID[syncableID] = deduplicatedEntity
                         deduplicatedEntity.uuid = syncableID
-                        processedUUIDs.insert(syncableID)
                     } else if let existingEntity = existingByUUID[syncableID] {
                         try? existingEntity.update(with: syncable, in: context, using: crypter)
-                        processedUUIDs.insert(syncableID)
                     } else if !syncable.isDeleted {
                         let newEntity = BookmarkEntity.make(withUUID: syncableID, isFolder: syncable.isFolder, in: context)
                         newEntity.parent = parent
                         try? newEntity.update(with: syncable, in: context, using: crypter)
-                        insertedByUUID[syncableID] = newEntity
+                        existingByUUID[syncableID] = newEntity
                     }
                     if syncable.isFolder, !syncable.children.isEmpty {
                         queues.append(syncable.children)
@@ -191,7 +198,7 @@ public final class SyncBookmarksProvider: DataProviding {
             }
 
             favoritesUUIDs.forEach { uuid in
-                if let bookmark = insertedByUUID[uuid] ?? existingByUUID[uuid] {
+                if let bookmark = existingByUUID[uuid] {
                     bookmark.removeFromFavorites()
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
@@ -199,9 +206,9 @@ public final class SyncBookmarksProvider: DataProviding {
         }
 
         for folderUUID in metadata.childrenToParentFoldersMap.keys {
-            if let folder = existingByUUID[folderUUID] ?? insertedByUUID[folderUUID], let bookmarks = metadata.childrenToParentFoldersMap[folderUUID] {
+            if let folder = existingByUUID[folderUUID], let bookmarks = metadata.childrenToParentFoldersMap[folderUUID] {
                 for bookmarkUUID in bookmarks {
-                    if let bookmark = insertedByUUID[bookmarkUUID] ?? existingByUUID[bookmarkUUID] {
+                    if let bookmark = existingByUUID[bookmarkUUID] {
                         bookmark.parent = nil
                         folder.addToChildren(bookmark)
                     }
@@ -210,7 +217,14 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
-    private func processExistingEntities(_ bookmarks: [BookmarkEntity], received: [Syncable], in context: NSManagedObjectContext, using crypter: Crypting) -> Set<String> {
+    @discardableResult
+    private func processExistingEntities(
+        _ bookmarks: [BookmarkEntity],
+        received: [Syncable],
+        in context: NSManagedObjectContext,
+        using crypter: Crypting
+    ) -> Set<String> {
+
         bookmarks.reduce(into: .init()) { partialResult, bookmark in
             guard let syncable = received.first(where: { $0.id == bookmark.uuid }) else {
                 return
