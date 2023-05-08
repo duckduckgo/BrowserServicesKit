@@ -129,7 +129,7 @@ extension BookmarkEntity {
         var entity: BookmarkEntity!
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
-        var parents: [BookmarkEntity] = [rootFolder].compactMap { $0 }
+        var parents: [BookmarkEntity] = [rootFolder]
 
         while !queues.isEmpty {
             var queue = queues.removeFirst()
@@ -146,6 +146,7 @@ extension BookmarkEntity {
                     }
                     bookmarkEntity.uuid = id
                     bookmarkEntity.parent = parent
+                    bookmarkEntity.isFolder = false
                     bookmarkEntity.title = name
                     bookmarkEntity.url = url
                     if isFavorite {
