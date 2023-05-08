@@ -23,11 +23,12 @@ import Foundation
 
 struct ReceivedBookmarksMetadata {
     let received: [Syncable]
-    let receivedIDs: Set<String>
+    let allReceivedIDs: Set<String>
     let receivedByID: [String: Syncable]
     let parentFoldersToChildrenMap: [String: String]
     let childrenToParentFoldersMap: [String: [String]]
     let foldersWithoutParent: Set<String>
+    var entitiesByUUID: [String: BookmarkEntity] = [:]
 
     init(received: [Syncable]) {
         self.received = received
@@ -36,7 +37,7 @@ struct ReceivedBookmarksMetadata {
                 partialResult[id] = syncable
             }
         }
-        (receivedIDs, parentFoldersToChildrenMap, childrenToParentFoldersMap, foldersWithoutParent) = received.indexIDs()
+        (allReceivedIDs, parentFoldersToChildrenMap, childrenToParentFoldersMap, foldersWithoutParent) = received.indexIDs()
     }
 }
 
