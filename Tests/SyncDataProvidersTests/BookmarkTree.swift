@@ -19,7 +19,6 @@
 
 import Bookmarks
 import CoreData
-import DDGSync
 import Foundation
 
 enum BookmarkTreeNode {
