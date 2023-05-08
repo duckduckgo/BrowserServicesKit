@@ -137,6 +137,51 @@ public final class SyncBookmarksProvider: DataProviding {
         var processedUUIDs = processExistingEntities(bookmarks, received: received, in: context, using: crypter)
         var insertedByUUID = [String: BookmarkEntity]()
 
+        // deduplication
+
+        if let rootFolderSyncable = metadata.receivedByID[BookmarkEntity.Constants.rootFolderID], let rootFolderSyncableID = rootFolderSyncable.id {
+            var queues: [[String]] = [rootFolderSyncable.children]
+            var parentIDs: [String] = [rootFolderSyncableID]
+
+            while !queues.isEmpty {
+                var queue = queues.removeFirst()
+                let parentID = parentIDs.removeFirst()
+                let parent = BookmarkEntity.fetchFolder(withUUID: parentID, in: context)
+                assert(parent != nil)
+
+                while !queue.isEmpty {
+                    let syncableID = queue.removeLast()
+                    guard let syncable = metadata.receivedByID[syncableID] else {
+                        continue
+                    }
+
+                    if let deduplicatedEntity = BookmarkEntity.deduplicatedEntity(with: syncable, parentID: parentID, in: context, using: crypter) {
+                        if let oldUUID = deduplicatedEntity.uuid {
+                            existingByUUID.removeValue(forKey: oldUUID)
+                        }
+                        existingByUUID[syncableID] = deduplicatedEntity
+                        deduplicatedEntity.uuid = syncableID
+                        processedUUIDs.insert(syncableID)
+                        validReceivedItems.append(syncable)
+                    } else if let existingEntity = existingByUUID[syncableID] {
+                        try? existingEntity.update(with: syncable, in: context, using: crypter)
+                        processedUUIDs.insert(syncableID)
+                        validReceivedItems.append(syncable)
+                    } else if !syncable.isDeleted {
+                        let newEntity = BookmarkEntity.make(withUUID: syncableID, isFolder: syncable.isFolder, in: context)
+                        newEntity.parent = parent
+                        try? newEntity.update(with: syncable, in: context, using: crypter)
+                        insertedByUUID[syncableID] = newEntity
+                        validReceivedItems.append(syncable)
+                    }
+                    if syncable.isFolder, !syncable.children.isEmpty {
+                        queues.append(syncable.children)
+                        parentIDs.append(syncableID)
+                    }
+                }
+            }
+        }
+
         // go through all received items and create new bookmarks as needed
         // filter out deleted objects from received items (they are already gone locally)
         let validReceivedItems: [Syncable] = received.filter { syncable in

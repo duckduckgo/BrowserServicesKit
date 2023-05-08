@@ -24,11 +24,17 @@ import Foundation
 struct ReceivedBookmarksMetadata {
     let received: [Syncable]
     let receivedIDs: Set<String>
+    let receivedByID: [String: Syncable]
     let parentFoldersToChildrenMap: [String: String]
     let childrenToParentFoldersMap: [String: [String]]
 
     init(received: [Syncable]) {
         self.received = received
+        self.receivedByID = received.reduce(into: [String: Syncable]()) { partialResult, syncable in
+            if let id = syncable.id {
+                partialResult[id] = syncable
+            }
+        }
         (receivedIDs, parentFoldersToChildrenMap, childrenToParentFoldersMap) = received.indexIDs()
     }
 }
