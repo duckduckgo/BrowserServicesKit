@@ -23,33 +23,42 @@ import Foundation
 import XCTest
 
 enum BookmarkTreeNode {
-    case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, isDeleted: Bool)
-    case folder(id: String, name: String?, children: [BookmarkTreeNode], isDeleted: Bool)
+    case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, isDeleted: Bool, isOrphaned: Bool)
+    case folder(id: String, name: String?, children: [BookmarkTreeNode], isDeleted: Bool, isOrphaned: Bool)
 
     var id: String {
         switch self {
-        case .bookmark(let id, _, _, _, _):
+        case .bookmark(let id, _, _, _, _, _):
             return id
-        case .folder(let id, _, _, _):
+        case .folder(let id, _, _, _, _):
             return id
         }
     }
 
     var name: String? {
         switch self {
-        case .bookmark(_, let name, _, _, _):
+        case .bookmark(_, let name, _, _, _, _):
             return name
-        case .folder(_, let name, _, _):
+        case .folder(_, let name, _, _, _):
             return name
         }
     }
 
     var isDeleted: Bool {
         switch self {
-        case .bookmark(_, _, _, _, let isDeleted):
+        case .bookmark(_, _, _, _, let isDeleted, _):
             return isDeleted
-        case .folder(_, _, _, let isDeleted):
+        case .folder(_, _, _, let isDeleted, _):
             return isDeleted
+        }
+    }
+
+    var isOrphaned: Bool {
+        switch self {
+        case .bookmark(_, _, _, _, _, let isOrphaned):
+            return isOrphaned
+        case .folder(_, _, _, _, let isOrphaned):
+            return isOrphaned
         }
     }
 }
@@ -64,17 +73,19 @@ struct Bookmark: BookmarkTreeNodeConvertible {
     var url: String?
     var isFavorite: Bool
     var isDeleted: Bool
+    var isOrphaned: Bool
 
-    init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, isDeleted: Bool = false) {
+    init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, isDeleted: Bool = false, isOrphaned: Bool = false) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.url = (url ?? name) ?? id
         self.isFavorite = isFavorite
         self.isDeleted = isDeleted
+        self.isOrphaned = isOrphaned
     }
 
     func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .bookmark(id: id, name: name, url: url, isFavorite: isFavorite, isDeleted: isDeleted)
+        .bookmark(id: id, name: name, url: url, isFavorite: isFavorite, isDeleted: isDeleted, isOrphaned: isOrphaned)
     }
 }
 
@@ -82,17 +93,19 @@ struct Folder: BookmarkTreeNodeConvertible {
     var id: String
     var name: String?
     var isDeleted: Bool
+    var isOrphaned: Bool
     var children: [BookmarkTreeNode]
 
-    init(_ name: String? = nil, id: String? = nil, isDeleted: Bool = false, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode] = { [] }) {
+    init(_ name: String? = nil, id: String? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode] = { [] }) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.isDeleted = isDeleted
+        self.isOrphaned = isOrphaned
         self.children = builder()
     }
 
     func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .folder(id: id, name: name, children: children, isDeleted: isDeleted)
+        .folder(id: id, name: name, children: children, isDeleted: isDeleted, isOrphaned: isOrphaned)
     }
 }
 
@@ -140,13 +153,12 @@ extension BookmarkEntity {
                 let node = queue.removeFirst()
 
                 switch node {
-                case .bookmark(let id, let name, let url, let isFavorite, let isDeleted):
+                case .bookmark(let id, let name, let url, let isFavorite, let isDeleted, let isOrphaned):
                     let bookmarkEntity = BookmarkEntity(context: context)
                     if entity == nil {
                         entity = bookmarkEntity
                     }
                     bookmarkEntity.uuid = id
-                    bookmarkEntity.parent = parent
                     bookmarkEntity.isFolder = false
                     bookmarkEntity.title = name
                     bookmarkEntity.url = url
@@ -156,17 +168,22 @@ extension BookmarkEntity {
                     if isDeleted {
                         bookmarkEntity.markPendingDeletion()
                     }
-                case .folder(let id, let name, let children, let isDeleted):
+                    if !isOrphaned {
+                        bookmarkEntity.parent = parent
+                    }
+                case .folder(let id, let name, let children, let isDeleted, let isOrphaned):
                     let bookmarkEntity = BookmarkEntity(context: context)
                     if entity == nil {
                         entity = bookmarkEntity
                     }
                     bookmarkEntity.uuid = id
-                    bookmarkEntity.parent = parent
                     bookmarkEntity.isFolder = true
                     bookmarkEntity.title = name
                     if isDeleted {
                         bookmarkEntity.markPendingDeletion()
+                    }
+                    if !isOrphaned {
+                        bookmarkEntity.parent = parent
                     }
                     parents.append(bookmarkEntity)
                     queues.append(children)

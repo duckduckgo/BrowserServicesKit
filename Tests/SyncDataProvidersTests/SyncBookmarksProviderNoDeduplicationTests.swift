@@ -26,6 +26,33 @@ import Persistence
 
 final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTests {
 
+
+    func testWhenOrphanedBookmarkIsReceivedThenItIsSaved() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [.bookmark(id: "3")]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            provider.processReceivedBookmarks(received, deduplicate: false, in: context, using: crypter)
+            try! context.save()
+
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "2")
+                Bookmark(id: "3", isOrphaned: true)
+            })
+        }
+    }
+
     func testThatBookmarksAreReorderedWithinFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
