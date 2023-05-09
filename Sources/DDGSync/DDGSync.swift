@@ -166,10 +166,10 @@ public class DDGSync: DDGSyncing {
     init(dependencies: SyncDependencies) {
         self.dependencies = dependencies
         self.state = .inactive
-        updateState(initial: true)
+        updateState(startSyncIfNeeded: false)
     }
 
-    private func updateState(initial: Bool = false) {
+    private func updateState(startSyncIfNeeded: Bool = true) {
         let previousState = state
         state = (try? dependencies.secureStore.account()?.state) ?? .inactive
 
@@ -195,7 +195,7 @@ public class DDGSync: DDGSyncing {
                     }
                 }
 
-            if !initial {
+            if startSyncIfNeeded {
                 Task {
                     await dependencies.engine.setUpAndStartFirstSync()
                 }
