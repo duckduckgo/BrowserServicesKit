@@ -212,14 +212,9 @@ public protocol DataProviding {
     func prepareForFirstSync() async throws
 
     /**
-     * Return objects that have changed since last sync.
+     * Return objects that have changed since last sync, or all objects in case of the initial sync.
      */
     func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable]
-
-    /**
-     * Return all objects to be synced during initial sync operation.
-     */
-    func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable]
 
     /**
      * Apply initial sync operation response.

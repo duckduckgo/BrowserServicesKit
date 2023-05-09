@@ -42,22 +42,33 @@ public final class SyncBookmarksProvider: DataProviding {
         self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
     }
 
-    public func prepareForFirstSync() {
+    public func prepareForFirstSync() async throws {
         lastSyncTimestamp = nil
-    }
 
-    public func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        return await withCheckedContinuation { continuation in
-            var syncableBookmarks: [Syncable] = []
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            var saveError: Error?
 
             let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
             context.performAndWait {
                 let fetchRequest = BookmarkEntity.fetchRequest()
                 let bookmarks = (try? context.fetch(fetchRequest)) ?? []
-                syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
+                for bookmark in bookmarks {
+                    bookmark.modifiedAt = Date()
+                }
+
+                do {
+                    try context.save()
+                } catch {
+                    saveError = error
+                }
             }
-            continuation.resume(with: .success(syncableBookmarks))
+
+            if let saveError {
+                continuation.resume(with: .failure(saveError))
+            } else {
+                continuation.resume()
+            }
         }
     }
 

@@ -122,12 +122,7 @@ actor Engine: EngineProtocol {
                 if fetchOnly {
                     results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: [])
                 } else {
-                    let localChanges: [Syncable] = try await {
-                        if previousSyncTimestamp != nil {
-                            return try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
-                        }
-                        return try await dataProvider.fetchAllObjects(encryptedUsing: crypter)
-                    }()
+                    let localChanges: [Syncable] = try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
                     let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
                     results[dataProvider.feature] = result
                 }
