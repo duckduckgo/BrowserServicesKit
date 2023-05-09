@@ -42,10 +42,10 @@ public struct BookmarkUtils {
     public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "NOT %K IN %@ AND %K == NO",
+            format: "NOT %K IN %@ AND %K == nil",
             #keyPath(BookmarkEntity.uuid),
             [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID],
-            #keyPath(BookmarkEntity.isFolder)
+            #keyPath(BookmarkEntity.parent)
         )
         request.returnsObjectsAsFaults = false
 

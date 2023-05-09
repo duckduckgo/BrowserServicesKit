@@ -225,9 +225,10 @@ public protocol DataProviding {
      * Apply initial sync operation response.
      *
      * - Parameter received: Objects that were received from the server.
+     * - Parameter timestamp: Timestamp of the last sync operation.
      * - Parameter crypter: Crypter object to decrypt received data.
      */
-    func handleInitialSyncResponse(received: [Syncable], crypter: Crypting) async throws
+    func handleInitialSyncResponse(received: [Syncable], timestamp: String?, crypter: Crypting) async throws
 
     /**
      * Apply sync operation result.

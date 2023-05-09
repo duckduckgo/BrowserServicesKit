@@ -88,6 +88,9 @@ extension BookmarkEntity {
     }
 
     static func deduplicatedEntity(with syncable: Syncable, parentID: String, in context: NSManagedObjectContext, using crypter: Crypting) -> BookmarkEntity? {
+        if syncable.isDeleted {
+            return nil
+        }
         let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
         if syncable.isFolder {
             return fetchFolder(withTitle: title, parentUUID: parentID, in: context)

@@ -75,7 +75,7 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
-    public func handleInitialSyncResponse(received: [Syncable], crypter: Crypting) async throws {
+    public func handleInitialSyncResponse(received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
         await withCheckedContinuation { continuation in
             var saveError: Error?
 
@@ -97,6 +97,9 @@ public final class SyncBookmarksProvider: DataProviding {
             }
             if let saveError {
                 print("SAVE ERROR", saveError)
+            } else if let timestamp {
+                lastSyncTimestamp = timestamp
+                reloadBookmarksAfterSync()
             }
 
             continuation.resume()

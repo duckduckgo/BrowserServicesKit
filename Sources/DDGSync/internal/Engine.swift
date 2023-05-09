@@ -153,7 +153,7 @@ actor Engine: EngineProtocol {
         case 204, 304:
             if fetchOnly {
                 for (feature, result) in results {
-                    try await dataProviders[feature]?.handleInitialSyncResponse(received: result.received, crypter: crypter)
+                    try await dataProviders[feature]?.handleInitialSyncResponse(received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
                 }
             } else {
                 for (feature, result) in results {
