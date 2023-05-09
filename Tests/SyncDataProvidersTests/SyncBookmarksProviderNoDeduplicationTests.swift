@@ -53,6 +53,39 @@ final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTest
         }
     }
 
+    func testWhenOrphanedBookmarkIsReceivedThenItIsSaved2() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+            }
+        }
+
+        let received: [Syncable] = [
+            .folder(id: "1", children: ["4"]),
+            .bookmark(id: "4")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            provider.processReceivedBookmarks(received, deduplicate: false, in: context, using: crypter)
+            try! context.save()
+
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder(id: "1") {
+                    Bookmark(id: "4")
+                }
+                Bookmark(id: "2", isOrphaned: true)
+                Bookmark(id: "3", isOrphaned: true)
+            })
+        }
+    }
+
     func testThatBookmarksAreReorderedWithinFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
@@ -129,8 +162,8 @@ final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTest
             try! context.save()
 
             assertEquivalent(rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "2")
+                Bookmark(id: "1", isOrphaned: true)
+                Bookmark(id: "2", isOrphaned: true)
                 Bookmark(id: "3")
             })
         }
@@ -189,8 +222,8 @@ final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTest
             try! context.save()
 
             assertEquivalent(rootFolder, BookmarkTree {
-                Bookmark(id: "1", isFavorite: true)
-                Bookmark(id: "2", isFavorite: true)
+                Bookmark(id: "1", isFavorite: true, isOrphaned: true)
+                Bookmark(id: "2", isFavorite: true, isOrphaned: true)
                 Bookmark(id: "3", isFavorite: true)
             })
         }
@@ -252,7 +285,7 @@ final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTest
             try! context.save()
 
             assertEquivalent(rootFolder, BookmarkTree {
-                Bookmark(id: "1")
+                Bookmark(id: "1", isOrphaned: true)
                 Bookmark(id: "3")
                 Bookmark(id: "2")
             })
@@ -484,10 +517,10 @@ final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTest
                 Folder(id: "3") {
                     Folder(id: "4")
                     Folder(id: "6") {
-                        Bookmark("title2", id: "7", url: "url2")
                         Bookmark("title", id: "5", url: "url")
                     }
                 }
+                Bookmark("title2", id: "7", url: "url2", isOrphaned: true)
             })
         }
     }

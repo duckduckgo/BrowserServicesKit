@@ -235,6 +235,13 @@ public final class SyncBookmarksProvider: DataProviding {
             let parent = BookmarkEntity.fetchFolder(withUUID: parentUUID, in: context)
             assert(parent != nil)
 
+            // For non-first sync we rely fully on the server response
+            if !deduplicate {
+                for child in parent?.childrenArray ?? [] {
+                    parent?.removeFromChildren(child)
+                }
+            }
+
             while !queue.isEmpty {
                 let syncableUUID = queue.removeLast()
                 guard let syncable = metadata.receivedByUUID[syncableUUID] else {
@@ -248,10 +255,12 @@ public final class SyncBookmarksProvider: DataProviding {
                     }
                     metadata.entitiesByUUID[syncableUUID] = deduplicatedEntity
                     deduplicatedEntity.uuid = syncableUUID
+                    deduplicatedEntity.parent = parent
 
                 } else if let existingEntity = metadata.entitiesByUUID[syncableUUID] {
 
                     try? existingEntity.update(with: syncable, in: context, using: crypter)
+                    existingEntity.parent = parent
 
                 } else if !syncable.isDeleted {
 
