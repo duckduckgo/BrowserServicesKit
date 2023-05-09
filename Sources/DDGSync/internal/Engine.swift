@@ -48,7 +48,6 @@ actor Engine: EngineProtocol {
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
-    let syncQueue: SyncQueue
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
 
@@ -68,7 +67,6 @@ actor Engine: EngineProtocol {
         self.crypter = crypter
         requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
-        syncQueue = SyncQueue()
     }
 
     func setUpAndStartFirstSync() async {
