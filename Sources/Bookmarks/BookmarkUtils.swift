@@ -29,7 +29,7 @@ public struct BookmarkUtils {
         
         return try? context.fetch(request).first
     }
-    
+
     public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.favoritesFolderID)
@@ -38,7 +38,20 @@ public struct BookmarkUtils {
         
         return try? context.fetch(request).first
     }
-    
+
+    public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "NOT %K IN %@ AND %K == NO",
+            #keyPath(BookmarkEntity.uuid),
+            [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID],
+            #keyPath(BookmarkEntity.isFolder)
+        )
+        request.returnsObjectsAsFaults = false
+
+        return (try? context.fetch(request)) ?? []
+    }
+
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) {
         
         func insertRootFolder(uuid: String, into context: NSManagedObjectContext) {
