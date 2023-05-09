@@ -62,6 +62,11 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials], SecureVaultModels.CredentialsProvider) -> Void)
 
+    func autofillUserScript(_: AutofillUserScript,
+                            didRequestOfferGeneratedPasswordForDomain domain: String,
+                            withGeneratedPassword generatedPassword: String,
+                            completionHandler: @escaping (Bool) -> Void)
+
     func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel)
 
 }
@@ -322,6 +327,12 @@ extension AutofillUserScript {
 
     }
 
+    struct GeneratedPasswordResponse: Codable {
+
+        let action: String
+
+    }
+
     struct AskToUnlockProviderResponse: Codable {
 
         struct AskToUnlockProviderResponseContents: Codable {
@@ -387,6 +398,7 @@ extension AutofillUserScript {
         let mainType: GetAutofillDataMainType
         let subType: GetAutofillDataSubType
         let trigger: GetTriggerType
+        let generatedPassword: GetGeneratedPasswordType?
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
@@ -408,13 +420,39 @@ extension AutofillUserScript {
         case autoprompt
     }
 
+    // TODO - link to gh
+    public struct GetGeneratedPasswordType: Codable {
+        let value: String
+    }
+
+
+
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
     func getAutofillData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        struct RequestGeneratedPasswordResponseContents: Codable {
+            let success: GeneratedPasswordResponse
+        }
+
         guard let request: GetAutofillDataRequest = DecodableHelper.decode(from: message.messageBody) else {
             return
         }
 
         let domain = hostForMessage(message)
+
+        if request.mainType == .credentials, request.subType == .password, let generatedPassword = request.generatedPassword?.value, !generatedPassword.isEmpty {
+            vaultDelegate?.autofillUserScript(self,
+                                              didRequestOfferGeneratedPasswordForDomain: domain,
+                                              withGeneratedPassword: generatedPassword) { useGeneratedPassword in
+
+                // TODO - constants here
+                let action = useGeneratedPassword ? "acceptGeneratedPassword" : "rejectGeneratedPassword"
+                let response = RequestGeneratedPasswordResponseContents(success: GeneratedPasswordResponse(action: action))
+                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                    replyHandler(jsonString)
+                }
+            }
+            return
+        }
 
         vaultDelegate?.autofillUserScript(self,
                                           didRequestCredentialsForDomain: domain,
