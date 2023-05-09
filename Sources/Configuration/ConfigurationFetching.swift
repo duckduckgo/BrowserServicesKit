@@ -131,7 +131,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     
     private func fetch(from url: URL, withEtag etag: String?, requirements: APIResponseRequirements) async throws -> ConfigurationFetchResult {
         let configuration = APIRequest.Configuration(url: url,
-                                                     headers: APIRequest.Headers().default(with: etag),
+                                                     headers: APIRequest.Headers(etag: etag),
                                                      cachePolicy: .reloadIgnoringLocalCacheData)
         let log = log
         let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession, log: log)
