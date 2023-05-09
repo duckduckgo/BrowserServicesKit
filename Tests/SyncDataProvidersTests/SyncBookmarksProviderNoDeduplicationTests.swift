@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTests {
+final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTestsBase {
 
 
     func testWhenOrphanedBookmarkIsReceivedThenItIsSaved() {

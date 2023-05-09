@@ -24,56 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-internal class SyncBookmarksProviderTests: XCTestCase {
-    var bookmarksDatabase: CoreDataDatabase!
-    var bookmarksDatabaseLocation: URL!
-    var metadataDatabase: CoreDataDatabase!
-    var metadataDatabaseLocation: URL!
-    var crypter = CryptingMock()
-    var provider: SyncBookmarksProvider!
-
-    func setUpBookmarksDatabase() {
-        bookmarksDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-
-        let bundle = Bookmarks.bundle
-        guard let model = CoreDataDatabase.loadModel(from: bundle, named: "BookmarksModel") else {
-            XCTFail("Failed to load model")
-            return
-        }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: bookmarksDatabaseLocation, model: model)
-        bookmarksDatabase.loadStore()
-    }
-
-    func setUpSyncMetadataDatabase() {
-        metadataDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-
-        let bundle = DDGSync.bundle
-        guard let model = CoreDataDatabase.loadModel(from: bundle, named: "SyncMetadata") else {
-            XCTFail("Failed to load model")
-            return
-        }
-        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
-        metadataDatabase.loadStore()
-    }
-
-    override func setUp() {
-        super.setUp()
-
-        setUpBookmarksDatabase()
-        setUpSyncMetadataDatabase()
-
-        provider = SyncBookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), reloadBookmarksAfterSync: {})
-    }
-
-    override func tearDown() {
-        try? bookmarksDatabase.tearDown(deleteStores: true)
-        bookmarksDatabase = nil
-        try? FileManager.default.removeItem(at: bookmarksDatabaseLocation)
-
-        try? metadataDatabase.tearDown(deleteStores: true)
-        metadataDatabase = nil
-        try? FileManager.default.removeItem(at: metadataDatabaseLocation)
-    }
+internal class SyncBookmarksProviderTests: SyncBookmarksProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
@@ -130,32 +81,5 @@ internal class SyncBookmarksProviderTests: XCTestCase {
             XCTAssertEqual(bookmarks[1].modifiedAt, nil)
             XCTAssertEqual(bookmarks[2].modifiedAt, nil)
         }
-    }
-}
-
-extension SyncBookmarksProviderTests {
-
-    func fetchAllNonRootEntities(in context: NSManagedObjectContext) -> [BookmarkEntity] {
-        let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "NOT %K IN %@", #keyPath(BookmarkEntity.uuid), [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID])
-        request.sortDescriptors = [.init(key: #keyPath(BookmarkEntity.title), ascending: true)]
-        return try! context.fetch(request)
-    }
-
-    @discardableResult
-    func makeFolder(named title: String, withParent parent: BookmarkEntity? = nil, in context: NSManagedObjectContext) -> BookmarkEntity {
-        let parentFolder = parent ?? BookmarkUtils.fetchRootFolder(context)!
-        return BookmarkEntity.makeFolder(title: title, parent: parentFolder, context: context)
-    }
-
-    @discardableResult
-    func makeBookmark(named title: String = "Bookmark", withParent parent: BookmarkEntity? = nil, in context: NSManagedObjectContext) -> BookmarkEntity {
-        let parentFolder = parent ?? BookmarkUtils.fetchRootFolder(context)!
-        return BookmarkEntity.makeBookmark(
-            title: title,
-            url: "https://www.duckduckgo.com",
-            parent: parentFolder,
-            context: context
-        )
     }
 }

@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-final class SyncBookmarksProviderDeduplicationTests: SyncBookmarksProviderTests {
+final class SyncBookmarksProviderDeduplicationTests: SyncBookmarksProviderTestsBase {
 
     func testThatBookmarksAreReorderedWithinFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
