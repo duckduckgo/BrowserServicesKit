@@ -88,8 +88,8 @@ struct DataProvidingMock: DataProviding {
         try await _fetchAllObjects(crypter)
     }
 
-    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
-        try await handleSyncResult(sent, received, timestamp, crypter)
+    func handleSyncResponse(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
+        try await handleSyncResponse(sent, received, timestamp, crypter)
     }
 }
 

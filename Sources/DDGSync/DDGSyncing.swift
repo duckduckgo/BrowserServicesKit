@@ -222,11 +222,20 @@ public protocol DataProviding {
     func fetchAllObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable]
 
     /**
+     * Apply initial sync operation response.
+     *
+     * - Parameter received: Objects that were received from the server.
+     * - Parameter crypter: Crypter object to decrypt received data.
+     */
+    func handleInitialSyncResponse(received: [Syncable], crypter: Crypting) async throws
+
+    /**
      * Apply sync operation result.
      *
      * - Parameter sent: Objects that were sent to the server.
      * - Parameter received: Objects that were received from the server.
      * - Parameter timestamp: Timestamp of the last sync operation.
+     * - Parameter crypter: Crypter object to decrypt sent and received data.
      */
-    func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws
+    func handleSyncResponse(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws
 }

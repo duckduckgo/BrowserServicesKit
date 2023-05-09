@@ -151,8 +151,14 @@ actor Engine: EngineProtocol {
             try decodeResponse(with: data, into: &results)
             fallthrough
         case 204, 304:
-            for (feature, result) in results {
-                try await dataProviders[feature]?.handleSyncResult(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
+            if fetchOnly {
+                for (feature, result) in results {
+                    try await dataProviders[feature]?.handleInitialSyncResponse(received: result.received, crypter: crypter)
+                }
+            } else {
+                for (feature, result) in results {
+                    try await dataProviders[feature]?.handleSyncResponse(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
+                }
             }
         default:
             throw SyncError.unexpectedStatusCode(result.response.statusCode)

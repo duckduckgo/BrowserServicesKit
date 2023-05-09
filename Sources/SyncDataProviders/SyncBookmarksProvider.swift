@@ -75,7 +75,35 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
-    public func handleSyncResult(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async {
+    public func handleInitialSyncResponse(received: [Syncable], crypter: Crypting) async throws {
+        await withCheckedContinuation { continuation in
+            var saveError: Error?
+
+            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+            context.performAndWait {
+                processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
+
+                let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
+                let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
+
+                do {
+                    try context.save()
+                    (insertedObjects + updatedObjects).forEach { $0.modifiedAt = nil }
+                    try context.save()
+                } catch {
+                    saveError = error
+                }
+            }
+            if let saveError {
+                print("SAVE ERROR", saveError)
+            }
+
+            continuation.resume()
+        }
+    }
+
+    public func handleSyncResponse(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async {
         await withCheckedContinuation { continuation in
             var saveError: Error?
 
@@ -83,7 +111,7 @@ public final class SyncBookmarksProvider: DataProviding {
 
             context.performAndWait {
                 cleanUpSentItems(sent, in: context)
-                processReceivedBookmarks(received, in: context, using: crypter)
+                processReceivedBookmarks(received, deduplicate: false, in: context, using: crypter)
 
                 let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
                 let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
@@ -122,7 +150,7 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
-    func processReceivedBookmarks(_ received: [Syncable], in context: NSManagedObjectContext, using crypter: Crypting) {
+    func processReceivedBookmarks(_ received: [Syncable], deduplicate: Bool, in context: NSManagedObjectContext, using crypter: Crypting) {
         if received.isEmpty {
             return
         }
@@ -134,7 +162,6 @@ public final class SyncBookmarksProvider: DataProviding {
         processExistingEntities(metadata: &metadata, in: context, using: crypter)
 
         // deduplication
-
         let topLevelFoldersSyncables: [Syncable] = {
             if let rootFolderSyncable = metadata.receivedByUUID[BookmarkEntity.Constants.rootFolderID] {
                 return [rootFolderSyncable]
@@ -143,7 +170,7 @@ public final class SyncBookmarksProvider: DataProviding {
         }()
 
         for topLevelFolderSyncable in topLevelFoldersSyncables {
-            processTopLevelFolder(topLevelFolderSyncable, metadata: &metadata, in: context, using: crypter)
+            processTopLevelFolder(topLevelFolderSyncable, deduplicate: deduplicate, metadata: &metadata, in: context, using: crypter)
         }
 
         // at this point all new bookmarks are created
@@ -191,7 +218,7 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
-    private func processTopLevelFolder(_ topLevelFolderSyncable: Syncable, metadata: inout ReceivedBookmarksMetadata, in context: NSManagedObjectContext, using crypter: Crypting) {
+    private func processTopLevelFolder(_ topLevelFolderSyncable: Syncable, deduplicate: Bool, metadata: inout ReceivedBookmarksMetadata, in context: NSManagedObjectContext, using crypter: Crypting) {
         guard let topLevelFolderUUID = topLevelFolderSyncable.uuid else {
             return
         }
@@ -210,7 +237,7 @@ public final class SyncBookmarksProvider: DataProviding {
                     continue
                 }
 
-                if let deduplicatedEntity = BookmarkEntity.deduplicatedEntity(with: syncable, parentID: parentUUID, in: context, using: crypter) {
+                if deduplicate, let deduplicatedEntity = BookmarkEntity.deduplicatedEntity(with: syncable, parentID: parentUUID, in: context, using: crypter) {
 
                     if let oldUUID = deduplicatedEntity.uuid {
                         metadata.entitiesByUUID.removeValue(forKey: oldUUID)
@@ -237,7 +264,7 @@ public final class SyncBookmarksProvider: DataProviding {
             }
         }
     }
-
+    
     private let database: CoreDataDatabase
     private let metadataStore: SyncMetadataStore
     private let reloadBookmarksAfterSync: () -> Void

@@ -736,7 +736,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        await provider.handleSyncResult(sent: sent, received: received, timestamp: "1234", crypter: crypter)
+        await provider.handleSyncResponse(sent: sent, received: received, timestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -772,7 +772,7 @@ final class SyncBookmarksProviderTests: XCTestCase {
             try! context.save()
         }
 
-        await provider.handleSyncResult(sent: sent, received: received, timestamp: "1234", crypter: crypter)
+        await provider.handleSyncResponse(sent: sent, received: received, timestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
