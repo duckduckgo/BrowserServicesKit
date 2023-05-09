@@ -1,5 +1,5 @@
 //
-//  SyncBookmarksProviderNoDeduplicationTests.swift
+//  SyncBookmarksProviderRegularSyncTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-final class SyncBookmarksProviderNoDeduplicationTests: SyncBookmarksProviderTestsBase {
+final class SyncBookmarksProviderRegularSyncTests: SyncBookmarksProviderTestsBase {
 
 
     func testWhenOrphanedBookmarkIsReceivedThenItIsSaved() {

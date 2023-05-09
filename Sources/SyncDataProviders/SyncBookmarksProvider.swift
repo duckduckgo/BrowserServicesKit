@@ -24,6 +24,15 @@ import DDGSync
 
 public final class SyncBookmarksProvider: DataProviding {
 
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) {
+        self.database = database
+        self.metadataStore = metadataStore
+        self.metadataStore.registerFeature(named: feature.name)
+        self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
+    }
+
+    // MARK: - DataProviding
+
     public let feature: Feature = .init(name: "bookmarks")
 
     public var lastSyncTimestamp: String? {
@@ -33,13 +42,6 @@ public final class SyncBookmarksProvider: DataProviding {
         set {
             metadataStore.updateTimestamp(newValue, forFeatureNamed: feature.name)
         }
-    }
-
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) {
-        self.database = database
-        self.metadataStore = metadataStore
-        self.metadataStore.registerFeature(named: feature.name)
-        self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
     }
 
     public func prepareForFirstSync() async throws {
@@ -149,6 +151,8 @@ public final class SyncBookmarksProvider: DataProviding {
         }
     }
 
+    // MARK: - Internal
+
     func cleanUpSentItems(_ sent: [Syncable], in context: NSManagedObjectContext) {
         if sent.isEmpty {
             return
@@ -223,6 +227,8 @@ public final class SyncBookmarksProvider: DataProviding {
             }
         }
     }
+
+    // MARK: - Private
 
     private func processExistingEntities(metadata: inout ReceivedBookmarksMetadata, in context: NSManagedObjectContext, using crypter: Crypting) {
         let bookmarks = BookmarkEntity.fetchBookmarks(with: metadata.allReceivedIDs, in: context)
