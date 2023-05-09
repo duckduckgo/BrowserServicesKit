@@ -26,7 +26,7 @@ let package = Package(
         .library(name: "Navigation", targets: ["Navigation"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", revision: "35c735a7c23f03902fddf237472ee55b37973cb0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", revision: "4e78417400d0e853f44838d89c8368587685c1dd"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
