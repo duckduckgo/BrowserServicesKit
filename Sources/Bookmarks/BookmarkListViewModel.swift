@@ -110,6 +110,9 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
+        if bookmark.parent == nil {
+            BookmarkUtils.fetchRootFolder(context)?.addToChildren(bookmark)
+        }
         guard let parentFolder = bookmark.parent else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
@@ -137,6 +140,9 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     }
 
     public func softDeleteBookmark(_ bookmark: BookmarkEntity) {
+        if bookmark.parent == nil {
+            BookmarkUtils.fetchRootFolder(context)?.addToChildren(bookmark)
+        }
         guard let parentFolder = bookmark.parent else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
@@ -204,16 +210,25 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             errorEvents?.fire(.fetchingRootItemFailed(.bookmarks))
             return []
         }
-        
+
         return root.childrenArray
     }
 
     public func fetchBookmarksInFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
-        if let folder = folder {
-            return folder.childrenArray
-        } else {
+        let shouldFetchRootFolder = folder == nil || folder?.uuid == BookmarkEntity.Constants.rootFolderID
+
+        var folderBookmarks: [BookmarkEntity] = {
+            if let folder = folder {
+                return folder.childrenArray
+            }
             return fetchBookmarksInRootFolder()
+        }()
+
+        if shouldFetchRootFolder {
+            let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
+            folderBookmarks += orphanedBookmarks
         }
+        return folderBookmarks
     }
 
     public func bookmark(with id: NSManagedObjectID) -> BookmarkEntity? {

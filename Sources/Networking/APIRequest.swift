@@ -82,13 +82,12 @@ public struct APIRequest {
     private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
         let httpResponse = try response.asHTTPURLResponse()
 
-        os_log("Request completed: %s %s response code: %d headers %s",
+        os_log("Request completed: %s %s response code: %d",
                log: log,
                type: .debug,
                request.httpMethod ?? "",
                request.url?.absoluteString ?? "",
-               httpResponse.statusCode,
-               String(describing: httpResponse.allHeaderFields))
+               httpResponse.statusCode)
         
         var data = data
         if requirements.contains(.allowHTTPNotModified), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {

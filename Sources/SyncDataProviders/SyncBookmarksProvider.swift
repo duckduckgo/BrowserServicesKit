@@ -175,6 +175,7 @@ public final class SyncBookmarksProvider: DataProviding {
         for topLevelFolderSyncable in topLevelFoldersSyncables {
             processTopLevelFolder(topLevelFolderSyncable, deduplicate: deduplicate, metadata: &metadata, in: context, using: crypter)
         }
+        processOrphanedBookmarks(withMetadata: &metadata, deduplicate: deduplicate, in: context, using: crypter)
 
         // at this point all new bookmarks are created
 
@@ -195,8 +196,8 @@ public final class SyncBookmarksProvider: DataProviding {
             }
         }
 
-        for folderUUID in metadata.childrenToParentFoldersMap.keys {
-            if let folder = metadata.entitiesByUUID[folderUUID], let bookmarks = metadata.childrenToParentFoldersMap[folderUUID] {
+        for folderUUID in metadata.parentFoldersToChildrenMap.keys {
+            if let folder = metadata.entitiesByUUID[folderUUID], let bookmarks = metadata.parentFoldersToChildrenMap[folderUUID] {
                 for bookmarkUUID in bookmarks {
                     if let bookmark = metadata.entitiesByUUID[bookmarkUUID] {
                         bookmark.parent = nil
@@ -264,6 +265,39 @@ public final class SyncBookmarksProvider: DataProviding {
                     queues.append(syncable.children)
                     parentUUIDs.append(syncableUUID)
                 }
+            }
+        }
+    }
+
+    private func processOrphanedBookmarks(withMetadata metadata: inout ReceivedBookmarksMetadata, deduplicate: Bool, in context: NSManagedObjectContext, using crypter: Crypting) {
+
+        for syncableUUID in metadata.bookmarksWithoutParent {
+            guard let syncable = metadata.receivedByUUID[syncableUUID] else {
+                continue
+            }
+
+            guard !syncable.isFolder else {
+                assertionFailure("Bookmark folder passed to \(#function)")
+                continue
+            }
+
+            if deduplicate, let deduplicatedEntity = BookmarkEntity.deduplicatedBookmark(with: syncable, in: context, using: crypter) {
+
+                if let oldUUID = deduplicatedEntity.uuid {
+                    metadata.entitiesByUUID.removeValue(forKey: oldUUID)
+                }
+                metadata.entitiesByUUID[syncableUUID] = deduplicatedEntity
+                deduplicatedEntity.uuid = syncableUUID
+
+            } else if let existingEntity = metadata.entitiesByUUID[syncableUUID] {
+
+                try? existingEntity.update(with: syncable, in: context, using: crypter)
+
+            } else if !syncable.isDeleted {
+
+                let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
+                try? newEntity.update(with: syncable, in: context, using: crypter)
+                metadata.entitiesByUUID[syncableUUID] = newEntity
             }
         }
     }

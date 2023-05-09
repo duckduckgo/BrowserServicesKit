@@ -87,6 +87,15 @@ extension BookmarkEntity {
         return (try? context.fetch(request))?.first
     }
 
+    static func deduplicatedBookmark(with syncable: Syncable, in context: NSManagedObjectContext, using crypter: Crypting) -> BookmarkEntity? {
+        if syncable.isDeleted || syncable.isFolder {
+            return nil
+        }
+        let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
+        let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
+        return fetchBookmark(withTitle: title, url: url, in: context)
+    }
+
     static func deduplicatedEntity(with syncable: Syncable, parentID: String, in context: NSManagedObjectContext, using crypter: Crypting) -> BookmarkEntity? {
         if syncable.isDeleted {
             return nil
