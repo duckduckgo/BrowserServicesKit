@@ -30,7 +30,6 @@ public class BookmarkEntity: NSManagedObject {
     }
 
     public enum Error: Swift.Error {
-        case mustExistInsideRootFolder
         case folderStructureHasCycle
         case folderHasURL
         case invalidFavoritesFolder
@@ -181,18 +180,10 @@ public class BookmarkEntity: NSManagedObject {
 extension BookmarkEntity {
 
     func validate() throws {
-        try validateThatEntitiesExistInsideTheRootFolder()
         try validateThatFoldersDoNotHaveURLs()
         try validateThatFolderHierarchyHasNoCycles()
         try validateFavoritesStatus()
         try validateFavoritesFolder()
-    }
-
-    func validateThatEntitiesExistInsideTheRootFolder() throws {
-        if parent == nil,
-           Constants.favoritesFolderID != uuid && Constants.rootFolderID != uuid {
-            throw Error.mustExistInsideRootFolder
-        }
     }
 
     func validateFavoritesStatus() throws {
