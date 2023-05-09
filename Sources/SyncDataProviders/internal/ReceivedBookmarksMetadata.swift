@@ -22,19 +22,19 @@ import DDGSync
 import Foundation
 
 struct ReceivedBookmarksMetadata {
-    let received: [Syncable]
+    let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
-    let receivedByID: [String: Syncable]
+
     let parentFoldersToChildrenMap: [String: String]
     let childrenToParentFoldersMap: [String: [String]]
     let foldersWithoutParent: Set<String>
+
     var entitiesByUUID: [String: BookmarkEntity] = [:]
 
     init(received: [Syncable]) {
-        self.received = received
-        self.receivedByID = received.reduce(into: [String: Syncable]()) { partialResult, syncable in
-            if let id = syncable.id {
-                partialResult[id] = syncable
+        self.receivedByUUID = received.reduce(into: [String: Syncable]()) { partialResult, syncable in
+            if let uuid = syncable.uuid {
+                partialResult[uuid] = syncable
             }
         }
         (allReceivedIDs, parentFoldersToChildrenMap, childrenToParentFoldersMap, foldersWithoutParent) = received.indexIDs()
@@ -48,7 +48,7 @@ extension Array where Element == Syncable {
         var parentFoldersToChildren: [String: [String]] = [:]
 
         let allIDs: Set<String> = reduce(into: .init()) { partialResult, syncable in
-            if let uuid = syncable.id {
+            if let uuid = syncable.uuid {
                 partialResult.insert(uuid)
                 if syncable.isFolder {
                     partialResult.formUnion(syncable.children)

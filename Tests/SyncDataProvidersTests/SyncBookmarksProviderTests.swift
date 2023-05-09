@@ -1021,6 +1021,10 @@ final class SyncBookmarksProviderTests: XCTestCase {
             })
         }
     }
+
+    func testRootFolderAndSubtreesPresentInResponse() {
+
+    }
 }
 
 extension SyncBookmarksProviderTests {

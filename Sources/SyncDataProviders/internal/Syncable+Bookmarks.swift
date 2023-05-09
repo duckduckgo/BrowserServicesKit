@@ -23,7 +23,7 @@ import Foundation
 
 extension Syncable {
 
-    var id: String? {
+    var uuid: String? {
         payload["id"] as? String
     }
 
