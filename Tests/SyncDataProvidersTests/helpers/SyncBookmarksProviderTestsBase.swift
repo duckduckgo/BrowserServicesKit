@@ -74,6 +74,16 @@ internal class SyncBookmarksProviderTestsBase: XCTestCase {
         metadataDatabase = nil
         try? FileManager.default.removeItem(at: metadataDatabaseLocation)
     }
+
+    func createEntitiesAndProcessReceivedBookmarks(with bookmarkTree: BookmarkTree, received: [Syncable], in context: NSManagedObjectContext, deduplicate: Bool) -> BookmarkEntity {
+        BookmarkUtils.prepareFoldersStructure(in: context)
+        let rootFolder = bookmarkTree.createEntities(in: context)
+        try! context.save()
+        let responseHandler = SyncBookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: deduplicate)
+        responseHandler.processReceivedBookmarks()
+        try! context.save()
+        return rootFolder
+    }
 }
 
 extension SyncBookmarksProviderTestsBase {

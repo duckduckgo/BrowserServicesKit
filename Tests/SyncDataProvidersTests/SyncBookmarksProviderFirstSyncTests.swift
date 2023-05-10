@@ -37,12 +37,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         let received: [Syncable] = [.rootFolder(children: ["2", "1"])]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "2")
@@ -65,12 +60,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "1")
@@ -94,12 +84,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "1")
@@ -124,12 +109,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "1", isFavorite: true)
@@ -154,12 +134,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "1", isFavorite: true)
@@ -184,12 +159,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "1")
@@ -213,12 +183,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "2")
@@ -244,12 +209,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "1")
@@ -274,12 +234,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark(id: "3")
@@ -303,12 +258,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark("name", id: "2", url: "url")
@@ -333,12 +283,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1")
@@ -371,12 +316,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1") {
@@ -412,12 +352,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1") {
@@ -462,12 +397,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1") {
@@ -506,12 +436,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder("1", id: "11")
@@ -639,12 +564,7 @@ final class SyncBookmarksProviderFirstSyncTests: SyncBookmarksProviderTestsBase 
         ]
 
         context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
-            try! context.save()
-
-            provider.processReceivedBookmarks(received, deduplicate: true, in: context, using: crypter)
-            try! context.save()
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
 
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder("01", id: "101") {
