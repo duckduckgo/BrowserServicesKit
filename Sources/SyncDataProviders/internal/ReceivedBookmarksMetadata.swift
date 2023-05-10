@@ -18,6 +18,7 @@
 //
 
 import Bookmarks
+import CoreData
 import DDGSync
 import Foundation
 
@@ -25,48 +26,59 @@ struct ReceivedBookmarksMetadata {
     let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
 
-    let foldersWithoutParent: Set<String>
-    let bookmarksWithoutParent: Set<String>
+    let topLevelFoldersSyncables: [Syncable]
+    let bookmarkSyncablesWithoutParent: [Syncable]
+    let favoritesUUIDs: [String]
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
 
-    init(received: [Syncable]) {
-        self.receivedByUUID = received.reduce(into: [String: Syncable]()) { partialResult, syncable in
-            if let uuid = syncable.uuid {
-                partialResult[uuid] = syncable
-            }
-        }
-        (allReceivedIDs, foldersWithoutParent, bookmarksWithoutParent) = received.indexIDs()
-    }
-}
-
-extension Array where Element == Syncable {
-
-    func indexIDs() -> (allIDs: Set<String>, foldersWithoutParent: Set<String>, bookmarksWithoutParent: Set<String>) {
+    init(received: [Syncable], in context: NSManagedObjectContext) {
+        var syncablesByUUID: [String: Syncable] = [:]
+        var allUUIDs: Set<String> = []
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]
+        var favoritesUUIDs: [String] = []
 
-        let allIDs: Set<String> = reduce(into: .init()) { partialResult, syncable in
-            if let uuid = syncable.uuid {
-                partialResult.insert(uuid)
+        received.forEach { syncable in
+            guard let uuid = syncable.uuid else {
+                return
+            }
+            syncablesByUUID[uuid] = syncable
+
+            allUUIDs.insert(uuid)
+            if syncable.isFolder {
+                allUUIDs.formUnion(syncable.children)
+            }
+
+            if uuid == BookmarkEntity.Constants.favoritesFolderID {
+                favoritesUUIDs = syncable.children
+            } else {
                 if syncable.isFolder {
-                    partialResult.formUnion(syncable.children)
+                    parentFoldersToChildren[uuid] = syncable.children
                 }
-
-                if uuid != BookmarkEntity.Constants.favoritesFolderID {
-                    if syncable.isFolder {
-                        parentFoldersToChildren[uuid] = syncable.children
-                    }
-                    syncable.children.forEach { child in
-                        childrenToParents[child] = uuid
-                    }
+                syncable.children.forEach { child in
+                    childrenToParents[child] = uuid
                 }
             }
         }
 
-        let foldersWithoutParent = Set(parentFoldersToChildren.keys).subtracting(childrenToParents.keys)
-        let bookmarksWithoutParent = allIDs.subtracting(childrenToParents.keys).subtracting(foldersWithoutParent).subtracting([BookmarkEntity.Constants.favoritesFolderID])
+        self.allReceivedIDs = allUUIDs
+        self.receivedByUUID = syncablesByUUID
+        self.favoritesUUIDs = favoritesUUIDs
 
-        return (allIDs, foldersWithoutParent, bookmarksWithoutParent)
+        let foldersWithoutParent = Set(parentFoldersToChildren.keys).subtracting(childrenToParents.keys)
+        topLevelFoldersSyncables = foldersWithoutParent.compactMap { syncablesByUUID[$0] }
+
+        bookmarkSyncablesWithoutParent = allUUIDs.subtracting(childrenToParents.keys)
+            .subtracting(foldersWithoutParent + [BookmarkEntity.Constants.favoritesFolderID])
+            .compactMap { syncablesByUUID[$0] }
+
+        BookmarkEntity.fetchBookmarks(with: allReceivedIDs, in: context)
+            .forEach { bookmark in
+                guard let uuid = bookmark.uuid else {
+                    return
+                }
+                entitiesByUUID[uuid] = bookmark
+            }
     }
 }

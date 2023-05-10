@@ -173,22 +173,16 @@ public final class SyncBookmarksProvider: DataProviding {
             return
         }
 
-        var metadata = ReceivedBookmarksMetadata(received: received)
-
         // index local bookmarks by UUID
-        // update existing local bookmarks data and store them in processedUUIDs
-        processExistingEntities(metadata: &metadata, in: context, using: crypter)
+        var metadata = ReceivedBookmarksMetadata(received: received, in: context)
 
-        let topLevelFoldersSyncables = metadata.foldersWithoutParent.compactMap { metadata.receivedByUUID[$0] }
-        for topLevelFolderSyncable in topLevelFoldersSyncables {
+        for topLevelFolderSyncable in metadata.topLevelFoldersSyncables {
             processTopLevelFolder(topLevelFolderSyncable, deduplicate: deduplicate, metadata: &metadata, in: context, using: crypter)
         }
         processOrphanedBookmarks(withMetadata: &metadata, deduplicate: deduplicate, in: context, using: crypter)
 
-        // extract received favorites UUIDs
-        let favoritesUUIDs: [String] = metadata.receivedByUUID[BookmarkEntity.Constants.favoritesFolderID]?.children ?? []
         // populate favorites
-        if !favoritesUUIDs.isEmpty {
+        if !metadata.favoritesUUIDs.isEmpty {
             guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
                 // Error - unable to process favorites
                 return
@@ -199,7 +193,7 @@ public final class SyncBookmarksProvider: DataProviding {
                 favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites() }
             }
 
-            favoritesUUIDs.forEach { uuid in
+            metadata.favoritesUUIDs.forEach { uuid in
                 if let bookmark = metadata.entitiesByUUID[uuid] {
                     bookmark.removeFromFavorites()
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
@@ -209,17 +203,6 @@ public final class SyncBookmarksProvider: DataProviding {
     }
 
     // MARK: - Private
-
-    private func processExistingEntities(metadata: inout ReceivedBookmarksMetadata, in context: NSManagedObjectContext, using crypter: Crypting) {
-        let bookmarks = BookmarkEntity.fetchBookmarks(with: metadata.allReceivedIDs, in: context)
-
-        metadata.entitiesByUUID = bookmarks.reduce(into: .init()) { partialResult, bookmark in
-            guard let uuid = bookmark.uuid else {
-                return
-            }
-            partialResult[uuid] = bookmark
-        }
-    }
 
     private func processTopLevelFolder(_ topLevelFolderSyncable: Syncable, deduplicate: Bool, metadata: inout ReceivedBookmarksMetadata, in context: NSManagedObjectContext, using crypter: Crypting) {
         guard let topLevelFolderUUID = topLevelFolderSyncable.uuid else {
@@ -262,10 +245,7 @@ public final class SyncBookmarksProvider: DataProviding {
 
     private func processOrphanedBookmarks(withMetadata metadata: inout ReceivedBookmarksMetadata, deduplicate: Bool, in context: NSManagedObjectContext, using crypter: Crypting) {
 
-        for syncableUUID in metadata.bookmarksWithoutParent {
-            guard let syncable = metadata.receivedByUUID[syncableUUID] else {
-                continue
-            }
+        for syncable in metadata.bookmarkSyncablesWithoutParent {
             guard !syncable.isFolder else {
                 assertionFailure("Bookmark folder passed to \(#function)")
                 continue
