@@ -25,7 +25,6 @@ struct ReceivedBookmarksMetadata {
     let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
 
-    let parentFoldersToChildrenMap: [String: [String]]
     let foldersWithoutParent: Set<String>
     let bookmarksWithoutParent: Set<String>
 
@@ -37,13 +36,13 @@ struct ReceivedBookmarksMetadata {
                 partialResult[uuid] = syncable
             }
         }
-        (allReceivedIDs, parentFoldersToChildrenMap, foldersWithoutParent, bookmarksWithoutParent) = received.indexIDs()
+        (allReceivedIDs, foldersWithoutParent, bookmarksWithoutParent) = received.indexIDs()
     }
 }
 
 extension Array where Element == Syncable {
 
-    func indexIDs() -> (allIDs: Set<String>, parentFoldersToChildren: [String: [String]], foldersWithoutParent: Set<String>, bookmarksWithoutParent: Set<String>) {
+    func indexIDs() -> (allIDs: Set<String>, foldersWithoutParent: Set<String>, bookmarksWithoutParent: Set<String>) {
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]
 
@@ -68,6 +67,6 @@ extension Array where Element == Syncable {
         let foldersWithoutParent = Set(parentFoldersToChildren.keys).subtracting(childrenToParents.keys)
         let bookmarksWithoutParent = allIDs.subtracting(childrenToParents.keys).subtracting(foldersWithoutParent).subtracting([BookmarkEntity.Constants.favoritesFolderID])
 
-        return (allIDs, parentFoldersToChildren, foldersWithoutParent, bookmarksWithoutParent)
+        return (allIDs, foldersWithoutParent, bookmarksWithoutParent)
     }
 }

@@ -215,17 +215,6 @@ public final class SyncBookmarksProvider: DataProviding {
                 }
             }
         }
-
-        for folderUUID in metadata.parentFoldersToChildrenMap.keys {
-            if let folder = metadata.entitiesByUUID[folderUUID], let bookmarks = metadata.parentFoldersToChildrenMap[folderUUID] {
-                for bookmarkUUID in bookmarks {
-                    if let bookmark = metadata.entitiesByUUID[bookmarkUUID] {
-                        bookmark.parent = nil
-                        folder.addToChildren(bookmark)
-                    }
-                }
-            }
-        }
     }
 
     // MARK: - Private
@@ -237,9 +226,6 @@ public final class SyncBookmarksProvider: DataProviding {
             guard let uuid = bookmark.uuid else {
                 return
             }
-            if let syncable = metadata.receivedByUUID[uuid] {
-                try? bookmark.update(with: syncable, in: context, using: crypter)
-            }
             partialResult[uuid] = bookmark
         }
     }
@@ -250,6 +236,10 @@ public final class SyncBookmarksProvider: DataProviding {
         }
         var queues: [[String]] = [topLevelFolderSyncable.children]
         var parentUUIDs: [String] = [topLevelFolderUUID]
+
+        if topLevelFolderUUID != BookmarkEntity.Constants.rootFolderID {
+            processEntity(with: topLevelFolderSyncable, metadata: &metadata, deduplicate: deduplicate, in: context, using: crypter)
+        }
 
         while !queues.isEmpty {
             var queue = queues.removeFirst()
@@ -263,16 +253,17 @@ public final class SyncBookmarksProvider: DataProviding {
             }
 
             while !queue.isEmpty {
-                let syncableUUID = queue.removeLast()
-                guard let syncable = metadata.receivedByUUID[syncableUUID] else {
-                    continue
-                }
+                let syncableUUID = queue.removeFirst()
 
-                processEntity(with: syncable, parent: parent, metadata: &metadata, deduplicate: deduplicate, in: context, using: crypter)
-
-                if syncable.isFolder, !syncable.children.isEmpty {
-                    queues.append(syncable.children)
-                    parentUUIDs.append(syncableUUID)
+                if let syncable = metadata.receivedByUUID[syncableUUID] {
+                    processEntity(with: syncable, parent: parent, metadata: &metadata, deduplicate: deduplicate, in: context, using: crypter)
+                    if syncable.isFolder, !syncable.children.isEmpty {
+                        queues.append(syncable.children)
+                        parentUUIDs.append(syncableUUID)
+                    }
+                } else if let existingEntity = metadata.entitiesByUUID[syncableUUID] {
+                    existingEntity.parent = nil
+                    existingEntity.parent = parent
                 }
             }
         }
@@ -312,12 +303,18 @@ public final class SyncBookmarksProvider: DataProviding {
             }
             metadata.entitiesByUUID[syncableUUID] = deduplicatedEntity
             deduplicatedEntity.uuid = syncableUUID
-            deduplicatedEntity.parent = parent
+            if parent != nil {
+                deduplicatedEntity.parent = nil
+                deduplicatedEntity.parent = parent
+            }
 
         } else if let existingEntity = metadata.entitiesByUUID[syncableUUID] {
 
             try? existingEntity.update(with: syncable, in: context, using: crypter)
-            existingEntity.parent = parent
+            if parent != nil {
+                existingEntity.parent = nil
+                existingEntity.parent = parent
+            }
 
         } else if !syncable.isDeleted {
 
