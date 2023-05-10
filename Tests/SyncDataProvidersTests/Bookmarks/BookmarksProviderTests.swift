@@ -61,7 +61,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
             let sent = [bookmark1, bookmark2, bookmark3, bookmark4, bookmark5, folder].compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
 
-            provider.cleanUpSentItems(sent, in: context)
+            provider.cleanUpSentItems(sent, clientTimestamp: Date(), in: context)
 
             do {
                 try context.save()
@@ -80,6 +80,111 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             XCTAssertEqual(bookmarks[0].modifiedAt, nil)
             XCTAssertEqual(bookmarks[1].modifiedAt, nil)
             XCTAssertEqual(bookmarks[2].modifiedAt, nil)
+        }
+    }
+
+    func testReceivingUpdateToDeletedObject() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", isDeleted: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            XCTAssertTrue(rootFolder.childrenArray.isEmpty)
+        }
+    }
+
+    func testReceivingUpdateToDeletedObject2() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        context.performAndWait {
+            let request = BookmarkEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), "1")
+            let bookmark = try! context.fetch(request).first!
+            bookmark.markPendingDeletion()
+            try! context.save()
+        }
+
+        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            XCTAssertTrue(rootFolder.childrenArray.isEmpty)
+        }
+    }
+
+    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        context.performAndWait {
+            let request = BookmarkEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), "1")
+            let bookmark = try! context.fetch(request).first!
+            bookmark.title = "test3"
+            try! context.save()
+        }
+
+        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test3", id: "1", url: "test")
+            })
         }
     }
 }

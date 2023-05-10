@@ -88,7 +88,7 @@ public final class BookmarksProvider: DataProviding {
         }
     }
 
-    public func handleInitialSyncResponse(received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
+    public func handleInitialSyncResponse(received: [Syncable], serverTimestamp: String?, crypter: Crypting) async throws {
         await withCheckedContinuation { continuation in
             var saveError: Error?
 
@@ -111,8 +111,8 @@ public final class BookmarksProvider: DataProviding {
             }
             if let saveError {
                 print("SAVE ERROR", saveError)
-            } else if let timestamp {
-                lastSyncTimestamp = timestamp
+            } else if let serverTimestamp {
+                lastSyncTimestamp = serverTimestamp
                 reloadBookmarksAfterSync()
             }
 
@@ -120,15 +120,21 @@ public final class BookmarksProvider: DataProviding {
         }
     }
 
-    public func handleSyncResponse(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async {
+    public func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async {
         await withCheckedContinuation { continuation in
             var saveError: Error?
 
             let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
             context.performAndWait {
-                cleanUpSentItems(sent, in: context)
-                let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
+                cleanUpSentItems(sent, clientTimestamp: clientTimestamp, in: context)
+                let responseHandler = BookmarksResponseHandler(
+                    received: received,
+                    clientTimestamp: clientTimestamp,
+                    context: context,
+                    crypter: crypter,
+                    deduplicateEntities: false
+                )
                 responseHandler.processReceivedBookmarks()
 
                 let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
@@ -144,8 +150,8 @@ public final class BookmarksProvider: DataProviding {
             }
             if let saveError {
                 print("SAVE ERROR", saveError)
-            } else if let timestamp {
-                lastSyncTimestamp = timestamp
+            } else if let serverTimestamp {
+                lastSyncTimestamp = serverTimestamp
                 reloadBookmarksAfterSync()
             }
 
@@ -155,13 +161,16 @@ public final class BookmarksProvider: DataProviding {
 
     // MARK: - Internal
 
-    func cleanUpSentItems(_ sent: [Syncable], in context: NSManagedObjectContext) {
+    func cleanUpSentItems(_ sent: [Syncable], clientTimestamp: Date, in context: NSManagedObjectContext) {
         if sent.isEmpty {
             return
         }
         let identifiers = sent.compactMap(\.uuid)
         let bookmarks = BookmarkEntity.fetchBookmarks(with: identifiers, in: context)
         for bookmark in bookmarks {
+            if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
+                continue
+            }
             if bookmark.isPendingDeletion {
                 context.delete(bookmark)
             } else {

@@ -129,7 +129,13 @@ actor Engine: EngineProtocol {
         }
 
         let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
-        let request: HTTPRequesting = hasLocalChanges ? try requestMaker.makePatchRequest(with: results) : try requestMaker.makeGetRequest(with: results)
+        let clientTimestamp = Date()
+        let request: HTTPRequesting = try {
+            if hasLocalChanges {
+                return try requestMaker.makePatchRequest(with: results, clientTimestamp: clientTimestamp)
+            }
+            return try requestMaker.makeGetRequest(with: results)
+        }()
         let result: HTTPResult = try await request.execute()
 
         if let data = result.data {
@@ -146,11 +152,21 @@ actor Engine: EngineProtocol {
         case 204, 304:
             if fetchOnly {
                 for (feature, result) in results {
-                    try await dataProviders[feature]?.handleInitialSyncResponse(received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
+                    try await dataProviders[feature]?.handleInitialSyncResponse(
+                        received: result.received,
+                        serverTimestamp: result.lastSyncTimestamp,
+                        crypter: crypter
+                    )
                 }
             } else {
                 for (feature, result) in results {
-                    try await dataProviders[feature]?.handleSyncResponse(sent: result.sent, received: result.received, timestamp: result.lastSyncTimestamp, crypter: crypter)
+                    try await dataProviders[feature]?.handleSyncResponse(
+                        sent: result.sent,
+                        received: result.received,
+                        clientTimestamp: clientTimestamp,
+                        serverTimestamp: result.lastSyncTimestamp,
+                        crypter: crypter
+                    )
                 }
             }
         default:

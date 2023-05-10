@@ -23,6 +23,7 @@ import DDGSync
 import Foundation
 
 final class BookmarksResponseHandler {
+    let clientTimestamp: Date?
     let received: [Syncable]
     let context: NSManagedObjectContext
     let crypter: Crypting
@@ -37,7 +38,8 @@ final class BookmarksResponseHandler {
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
 
-    init(received: [Syncable], context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) {
+    init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) {
+        self.clientTimestamp = clientTimestamp
         self.received = received
         self.context = context
         self.crypter = crypter
@@ -194,9 +196,13 @@ final class BookmarksResponseHandler {
             }
 
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
+            if clientTimestamp != nil, let modifiedAt = existingEntity.modifiedAt {
+                assert(modifiedAt > clientTimestamp!, "modified is not nil but not greater than request timestamp, should be cleaned in cleanUpSentItems")
+            } else {
+                try? existingEntity.update(with: syncable, in: context, using: crypter)
+            }
 
-            try? existingEntity.update(with: syncable, in: context, using: crypter)
-            if parent != nil {
+            if parent != nil, !existingEntity.isDeleted {
                 existingEntity.parent = nil
                 existingEntity.parent = parent
             }

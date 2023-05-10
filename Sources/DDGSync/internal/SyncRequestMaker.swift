@@ -21,7 +21,7 @@ import Foundation
 
 protocol SyncRequestMaking {
     func makeGetRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting
-    func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting
+    func makePatchRequest(with results: [Feature: SyncResult], clientTimestamp: Date) throws -> HTTPRequesting
 }
 
 struct SyncRequestMaker: SyncRequestMaking {
@@ -37,7 +37,7 @@ struct SyncRequestMaker: SyncRequestMaking {
         return api.createAuthenticatedGetRequest(url: url, authToken: try getToken(), parameters: ["since": timestamps])
     } 
 
-    func makePatchRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
+    func makePatchRequest(with results: [Feature: SyncResult], clientTimestamp: Date) throws -> HTTPRequesting {
         var json = [String: Any]()
         for (feature, result) in results {
             let modelPayload: [String: Any?] = [
@@ -46,7 +46,7 @@ struct SyncRequestMaker: SyncRequestMaking {
             ]
             json[feature.name] = modelPayload
         }
-        json["client_timestamp"] = dateFormatter.string(from: Date())
+        json["client_timestamp"] = dateFormatter.string(from: clientTimestamp)
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
         return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)

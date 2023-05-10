@@ -74,7 +74,7 @@ struct DataProvidingMock: DataProviding {
     var _prepareForFirstSync: () -> Void = {}
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
     var handleInitialSyncResponse: ([Syncable], String?, Crypting) async throws -> Void = { _,_,_ in }
-    var handleSyncResponse: ([Syncable], [Syncable], String?, Crypting) async throws -> Void = { _,_,_,_ in }
+    var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
 
     func prepareForFirstSync() {
         _prepareForFirstSync()
@@ -84,12 +84,12 @@ struct DataProvidingMock: DataProviding {
         try await _fetchChangedObjects(crypter)
     }
 
-    func handleInitialSyncResponse(received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
-        try await handleInitialSyncResponse(received, timestamp, crypter)
+    func handleInitialSyncResponse(received: [Syncable], serverTimestamp: String?, crypter: Crypting) async throws {
+        try await handleInitialSyncResponse(received, serverTimestamp, crypter)
     }
 
-    func handleSyncResponse(sent: [Syncable], received: [Syncable], timestamp: String?, crypter: Crypting) async throws {
-        try await handleSyncResponse(sent, received, timestamp, crypter)
+    func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
     }
 }
 
@@ -217,7 +217,7 @@ class EngineTests: XCTestCase {
         var sentModels: [Syncable] = []
         dataProvider.lastSyncTimestamp = "1234"
         dataProvider._fetchChangedObjects = { _ in objectsToSync }
-        dataProvider.handleSyncResponse = { sent, _, _, _ in
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
             sentModels = sent
         }
 
