@@ -1,5 +1,5 @@
 //
-//  ReceivedBookmarksMetadata.swift
+//  ReceivedBookmarksIndex.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -22,7 +22,7 @@ import CoreData
 import DDGSync
 import Foundation
 
-struct ReceivedBookmarksMetadata {
+struct ReceivedBookmarksIndex {
     let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
 
