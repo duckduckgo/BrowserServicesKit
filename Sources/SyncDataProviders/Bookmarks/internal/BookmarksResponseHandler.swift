@@ -1,5 +1,5 @@
 //
-//  SyncBookmarksResponseHandler.swift
+//  BookmarksResponseHandler.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -22,7 +22,7 @@ import CoreData
 import DDGSync
 import Foundation
 
-final class SyncBookmarksResponseHandler {
+final class BookmarksResponseHandler {
     let received: [Syncable]
     let context: NSManagedObjectContext
     let crypter: Crypting

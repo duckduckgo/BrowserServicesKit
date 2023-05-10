@@ -1,5 +1,5 @@
 //
-//  SyncBookmarksProviderTestsBase.swift
+//  BookmarksProviderTestsBase.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -24,13 +24,13 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-internal class SyncBookmarksProviderTestsBase: XCTestCase {
+internal class BookmarksProviderTestsBase: XCTestCase {
     var bookmarksDatabase: CoreDataDatabase!
     var bookmarksDatabaseLocation: URL!
     var metadataDatabase: CoreDataDatabase!
     var metadataDatabaseLocation: URL!
     var crypter = CryptingMock()
-    var provider: SyncBookmarksProvider!
+    var provider: BookmarksProvider!
 
     func setUpBookmarksDatabase() {
         bookmarksDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -62,7 +62,7 @@ internal class SyncBookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        provider = SyncBookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), reloadBookmarksAfterSync: {})
+        provider = BookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), reloadBookmarksAfterSync: {})
     }
 
     override func tearDown() {
@@ -79,14 +79,14 @@ internal class SyncBookmarksProviderTestsBase: XCTestCase {
         BookmarkUtils.prepareFoldersStructure(in: context)
         let rootFolder = bookmarkTree.createEntities(in: context)
         try! context.save()
-        let responseHandler = SyncBookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: deduplicate)
+        let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: deduplicate)
         responseHandler.processReceivedBookmarks()
         try! context.save()
         return rootFolder
     }
 }
 
-extension SyncBookmarksProviderTestsBase {
+extension BookmarksProviderTestsBase {
 
     func fetchAllNonRootEntities(in context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()

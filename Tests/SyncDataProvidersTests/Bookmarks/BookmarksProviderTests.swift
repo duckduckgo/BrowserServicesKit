@@ -1,5 +1,5 @@
 //
-//  SyncBookmarksProviderTests.swift
+//  BookmarksProviderTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-internal class SyncBookmarksProviderTests: SyncBookmarksProviderTestsBase {
+internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)

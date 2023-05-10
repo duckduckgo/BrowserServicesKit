@@ -1,5 +1,5 @@
 //
-//  SyncBookmarksProviderRegularSyncTests.swift
+//  BookmarksProviderRegularSyncTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-final class SyncBookmarksProviderRegularSyncTests: SyncBookmarksProviderTestsBase {
+final class BookmarksProviderRegularSyncTests: BookmarksProviderTestsBase {
 
 
     func testWhenOrphanedBookmarkIsReceivedThenItIsSaved() {
@@ -41,7 +41,7 @@ final class SyncBookmarksProviderRegularSyncTests: SyncBookmarksProviderTestsBas
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
             try! context.save()
-            let responseHandler = SyncBookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
+            let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
             responseHandler.processReceivedBookmarks()
             try! context.save()
 
@@ -72,7 +72,7 @@ final class SyncBookmarksProviderRegularSyncTests: SyncBookmarksProviderTestsBas
             BookmarkUtils.prepareFoldersStructure(in: context)
             let rootFolder = bookmarkTree.createEntities(in: context)
             try! context.save()
-            let responseHandler = SyncBookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
+            let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
             responseHandler.processReceivedBookmarks()
             try! context.save()
 

@@ -1,5 +1,5 @@
 //
-//  SyncBookmarksProvider.swift
+//  BookmarksProvider.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +22,7 @@ import CoreData
 import Persistence
 import DDGSync
 
-public final class SyncBookmarksProvider: DataProviding {
+public final class BookmarksProvider: DataProviding {
 
     public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) {
         self.database = database
@@ -95,7 +95,7 @@ public final class SyncBookmarksProvider: DataProviding {
             let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
             context.performAndWait {
-                let responseHandler = SyncBookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
+                let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
                 responseHandler.processReceivedBookmarks()
 
                 let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
@@ -128,7 +128,7 @@ public final class SyncBookmarksProvider: DataProviding {
 
             context.performAndWait {
                 cleanUpSentItems(sent, in: context)
-                let responseHandler = SyncBookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
+                let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
                 responseHandler.processReceivedBookmarks()
 
                 let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
