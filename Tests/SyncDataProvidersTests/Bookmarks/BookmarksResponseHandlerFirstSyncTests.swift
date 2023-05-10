@@ -1,5 +1,5 @@
 //
-//  BookmarksProviderFirstSyncTests.swift
+//  BookmarksResponseHandlerFirstSyncTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-final class BookmarksResponseHandlerTests: BookmarksProviderTestsBase {
+final class BookmarksResponseHandlerFirstSyncTests: BookmarksProviderTestsBase {
 
     func testThatBookmarksAreReorderedWithinFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
