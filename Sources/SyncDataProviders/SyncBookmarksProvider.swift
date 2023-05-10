@@ -179,20 +179,11 @@ public final class SyncBookmarksProvider: DataProviding {
         // update existing local bookmarks data and store them in processedUUIDs
         processExistingEntities(metadata: &metadata, in: context, using: crypter)
 
-        // deduplication
-        let topLevelFoldersSyncables: [Syncable] = {
-            if let rootFolderSyncable = metadata.receivedByUUID[BookmarkEntity.Constants.rootFolderID] {
-                return [rootFolderSyncable]
-            }
-            return metadata.foldersWithoutParent.compactMap { metadata.receivedByUUID[$0] }
-        }()
-
+        let topLevelFoldersSyncables = metadata.foldersWithoutParent.compactMap { metadata.receivedByUUID[$0] }
         for topLevelFolderSyncable in topLevelFoldersSyncables {
             processTopLevelFolder(topLevelFolderSyncable, deduplicate: deduplicate, metadata: &metadata, in: context, using: crypter)
         }
         processOrphanedBookmarks(withMetadata: &metadata, deduplicate: deduplicate, in: context, using: crypter)
-
-        // at this point all new bookmarks are created
 
         // extract received favorites UUIDs
         let favoritesUUIDs: [String] = metadata.receivedByUUID[BookmarkEntity.Constants.favoritesFolderID]?.children ?? []
