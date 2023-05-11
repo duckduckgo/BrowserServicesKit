@@ -532,6 +532,37 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         }
     }
 
+    func testAppendingBookmarksToAFolder() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder("Folder", id: "1") {
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+            }
+        }
+
+        let received: [Syncable] = [
+            .folder(id: "1", title: "Folder", children: ["2", "3", "5", "6"]),
+            .bookmark(id: "5"),
+            .bookmark(id: "6")
+        ]
+
+        context.performAndWait {
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
+
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Folder("Folder", id: "1") {
+                    Bookmark(id: "2")
+                    Bookmark(id: "3")
+                    Bookmark(id: "5")
+                    Bookmark(id: "6")
+                }
+            })
+        }
+    }
+
+
     func testRootFolderAndSubtreesPresentInResponse() {
 
     }

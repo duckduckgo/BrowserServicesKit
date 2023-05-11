@@ -159,6 +159,9 @@ final class BookmarksResponseHandler {
                         queues.append(syncable.children)
                         parentUUIDs.append(syncableUUID)
                     }
+                    if shouldDeduplicateEntities {
+                        idsOfItemsThatRetainModifiedAt.insert(parentUUID)
+                    }
                 } else if let existingEntity = entitiesByUUID[syncableUUID] {
                     existingEntity.parent = nil
                     existingEntity.parent = parent
