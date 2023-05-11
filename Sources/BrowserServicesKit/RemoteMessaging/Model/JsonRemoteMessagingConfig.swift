@@ -84,6 +84,7 @@ public enum RemoteMessageResponse {
         case ddgAnnounce = "DDGAnnounce"
         case criticalUpdate = "CriticalUpdate"
         case appUpdate = "AppUpdate"
+        case macComputer = "MacComputer"
     }
 
     public enum StatusError: Error {
