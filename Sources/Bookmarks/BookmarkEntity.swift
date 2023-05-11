@@ -74,6 +74,9 @@ public class BookmarkEntity: NSManagedObject {
         guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
             return
         }
+        if isInserted && (uuid == Constants.rootFolderID || uuid == Constants.favoritesFolderID) {
+            return
+        }
         modifiedAt = Date()
     }
 

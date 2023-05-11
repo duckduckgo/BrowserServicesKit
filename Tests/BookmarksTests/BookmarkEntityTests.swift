@@ -47,6 +47,22 @@ final class BookmarkEntityTests: XCTestCase {
         try? FileManager.default.removeItem(at: location)
     }
 
+    func testWhenSettingUpDatabaseThenModifiedAtIsNotSetForRootAndFavoritesFolders() throws {
+
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+
+            XCTAssertNil(rootFolder.modifiedAt)
+            XCTAssertNil(favoritesFolder.modifiedAt)
+        }
+    }
+
     func testWhenBookmarkIsSavedThenModifiedAtIsUpdated() throws {
 
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -54,14 +70,14 @@ final class BookmarkEntityTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let bookmark = makeBookmark(in: context)
-            XCTAssertNoThrow(try? context.save())
+            try! context.save()
 
             let firstSaveModifiedAt = bookmark.modifiedAt
             XCTAssertNotNil(firstSaveModifiedAt)
 
             bookmark.url = "https://www.duck.com"
 
-            XCTAssertNoThrow(try? context.save())
+            try! context.save()
 
             let nextSaveModifiedAt = bookmark.modifiedAt
             XCTAssertNotNil(nextSaveModifiedAt)
@@ -70,7 +86,6 @@ final class BookmarkEntityTests: XCTestCase {
         }
     }
 
-
     func testWhenBookmarkModificationTimestampIsUpdatedThenItIsNotOverwrittenUponSave() throws {
 
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -78,14 +93,14 @@ final class BookmarkEntityTests: XCTestCase {
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
             let bookmark = makeBookmark(in: context)
-            XCTAssertNoThrow(try? context.save())
+            try! context.save()
 
             let firstSaveModifiedAt = bookmark.modifiedAt
             XCTAssertNotNil(firstSaveModifiedAt)
 
             bookmark.modifiedAt = nil
 
-            XCTAssertNoThrow(try? context.save())
+            try! context.save()
 
             XCTAssertNil(bookmark.modifiedAt)
         }
