@@ -37,6 +37,7 @@ final class BookmarksResponseHandler {
     let favoritesUUIDs: [String]
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
+    var idsOfItemsThatRetainModifiedAt = Set<String>()
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) {
         self.clientTimestamp = clientTimestamp
@@ -198,6 +199,10 @@ final class BookmarksResponseHandler {
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             if clientTimestamp != nil, let modifiedAt = existingEntity.modifiedAt {
                 assert(modifiedAt > clientTimestamp!, "modified is not nil but not greater than request timestamp, should be cleaned in cleanUpSentItems")
+                // This entity should not be updated, but we have to reassign it's parent in case that one is updated.
+                // Because of that, this entity will end up in updatedObjects and would have modifiedAt cleared.
+                // To prevent this happening, we exclude this entity from clearing modifiedAt.
+                idsOfItemsThatRetainModifiedAt.insert(syncableUUID)
             } else {
                 try? existingEntity.update(with: syncable, in: context, using: crypter)
             }

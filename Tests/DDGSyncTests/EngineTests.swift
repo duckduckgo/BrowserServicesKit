@@ -73,7 +73,7 @@ struct DataProvidingMock: DataProviding {
     var lastSyncTimestamp: String?
     var _prepareForFirstSync: () -> Void = {}
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
-    var handleInitialSyncResponse: ([Syncable], String?, Crypting) async throws -> Void = { _,_,_ in }
+    var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
     var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
 
     func prepareForFirstSync() {
@@ -84,8 +84,8 @@ struct DataProvidingMock: DataProviding {
         try await _fetchChangedObjects(crypter)
     }
 
-    func handleInitialSyncResponse(received: [Syncable], serverTimestamp: String?, crypter: Crypting) async throws {
-        try await handleInitialSyncResponse(received, serverTimestamp, crypter)
+    func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
     }
 
     func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {

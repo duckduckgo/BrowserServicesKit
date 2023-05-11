@@ -154,6 +154,7 @@ actor Engine: EngineProtocol {
                 for (feature, result) in results {
                     try await dataProviders[feature]?.handleInitialSyncResponse(
                         received: result.received,
+                        clientTimestamp: clientTimestamp,
                         serverTimestamp: result.lastSyncTimestamp,
                         crypter: crypter
                     )

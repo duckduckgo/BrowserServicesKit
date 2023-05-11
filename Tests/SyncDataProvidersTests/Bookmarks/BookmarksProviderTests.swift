@@ -55,7 +55,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-        await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()
@@ -89,7 +89,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()
@@ -119,14 +119,12 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         context.performAndWait {
-            let request = BookmarkEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), "1")
-            let bookmark = try! context.fetch(request).first!
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
             bookmark.markPendingDeletion()
             try! context.save()
         }
 
-        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()
@@ -158,15 +156,94 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         var bookmarkModificationDate: Date?
 
         context.performAndWait {
-            let request = BookmarkEntity.fetchRequest()
-            request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), "1")
-            let bookmark = try! context.fetch(request).first!
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
             bookmark.title = "test3"
             try! context.save()
             bookmarkModificationDate = bookmark.modifiedAt
         }
 
-        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
+            })
+        }
+    }
+
+    func testWhenThereIsMergeConflictDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+        }
+
+        var bookmarkModificationDate: Date?
+        provider.willSaveContextAfterApplyingSyncResponse = {
+            if bookmarkModificationDate != nil {
+                return
+            }
+            context.performAndWait {
+                let bookmarkTree = BookmarkTree {
+                    Bookmark("test-local", id: "1")
+                }
+                let rootFolder = bookmarkTree.createEntities(in: context)
+                try! context.save()
+                bookmarkModificationDate = rootFolder.childrenArray.first!.modifiedAt
+            }
+        }
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test-local", id: "1", modifiedAt: bookmarkModificationDate)
+            })
+        }
+    }
+
+    func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        var bookmarkModificationDate: Date?
+        provider.willSaveContextAfterApplyingSyncResponse = {
+            if bookmarkModificationDate != nil {
+                return
+            }
+            context.performAndWait {
+                let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
+                bookmark.title = "test3"
+                try! context.save()
+                bookmarkModificationDate = bookmark.modifiedAt
+            }
+        }
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()

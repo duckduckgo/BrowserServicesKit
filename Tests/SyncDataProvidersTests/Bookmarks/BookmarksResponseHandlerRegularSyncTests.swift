@@ -351,7 +351,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -387,7 +387,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
             try! context.save()
         }
 
-        await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
