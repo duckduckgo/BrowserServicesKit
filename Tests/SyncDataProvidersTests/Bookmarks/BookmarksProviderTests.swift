@@ -133,6 +133,48 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
+    func testAppendingBookmarksToDuplicatedFolder() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder("Folder", id: "1") {
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+            }
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["4"]),
+            .folder(id: "4", title: "Folder", children: ["5", "6"]),
+            .bookmark(id: "5"),
+            .bookmark(id: "6")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let clientTimestamp = Date()
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: clientTimestamp, serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Folder("Folder", id: "4") {
+                    Bookmark(id: "2")
+                    Bookmark(id: "3")
+                    Bookmark(id: "5")
+                    Bookmark(id: "6")
+                }
+            })
+            let folder = rootFolder.childrenArray.first!
+            XCTAssertTrue(folder.modifiedAt! > clientTimestamp)
+        }
+    }
+
     func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
