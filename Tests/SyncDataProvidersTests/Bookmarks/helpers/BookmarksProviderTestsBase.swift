@@ -85,30 +85,3 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         return rootFolder
     }
 }
-
-extension BookmarksProviderTestsBase {
-
-    func fetchAllNonRootEntities(in context: NSManagedObjectContext) -> [BookmarkEntity] {
-        let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "NOT %K IN %@", #keyPath(BookmarkEntity.uuid), [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID])
-        request.sortDescriptors = [.init(key: #keyPath(BookmarkEntity.title), ascending: true)]
-        return try! context.fetch(request)
-    }
-
-    @discardableResult
-    func makeFolder(named title: String, withParent parent: BookmarkEntity? = nil, in context: NSManagedObjectContext) -> BookmarkEntity {
-        let parentFolder = parent ?? BookmarkUtils.fetchRootFolder(context)!
-        return BookmarkEntity.makeFolder(title: title, parent: parentFolder, context: context)
-    }
-
-    @discardableResult
-    func makeBookmark(named title: String = "Bookmark", withParent parent: BookmarkEntity? = nil, in context: NSManagedObjectContext) -> BookmarkEntity {
-        let parentFolder = parent ?? BookmarkUtils.fetchRootFolder(context)!
-        return BookmarkEntity.makeBookmark(
-            title: title,
-            url: "https://www.duckduckgo.com",
-            parent: parentFolder,
-            context: context
-        )
-    }
-}
