@@ -45,7 +45,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
             responseHandler.processReceivedBookmarks()
             try! context.save()
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2")
                 Bookmark(id: "3", isOrphaned: true)
@@ -76,7 +76,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
             responseHandler.processReceivedBookmarks()
             try! context.save()
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Folder(id: "1") {
                     Bookmark(id: "4")
                 }
@@ -99,7 +99,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "2")
                 Bookmark(id: "1")
             })
@@ -122,7 +122,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2")
                 Bookmark(id: "3")
@@ -146,7 +146,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1", isOrphaned: true)
                 Bookmark(id: "2", isOrphaned: true)
                 Bookmark(id: "3")
@@ -171,7 +171,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1", isFavorite: true)
                 Bookmark(id: "2", isFavorite: true)
                 Bookmark(id: "3", isFavorite: true)
@@ -196,7 +196,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1", isFavorite: true, isOrphaned: true)
                 Bookmark(id: "2", isFavorite: true, isOrphaned: true)
                 Bookmark(id: "3", isFavorite: true)
@@ -223,7 +223,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1", isFavorite: true)
                 Folder(id: "2") {
                     Bookmark(id: "3", isFavorite: true)
@@ -249,7 +249,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1", isOrphaned: true)
                 Bookmark(id: "3")
                 Bookmark(id: "2")
@@ -273,7 +273,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "2")
             })
         }
@@ -299,7 +299,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2")
             })
@@ -324,7 +324,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "3")
                 Bookmark(id: "2")
             })
@@ -416,7 +416,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2")
                 Folder(id: "3") {
@@ -451,7 +451,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2")
                 Folder(id: "3") {
@@ -504,7 +504,7 @@ final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase
         context.performAndWait {
             let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2")
                 Folder(id: "3") {

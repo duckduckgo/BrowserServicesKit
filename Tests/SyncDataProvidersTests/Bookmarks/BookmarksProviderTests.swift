@@ -35,51 +35,37 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
     }
 
-    func testThatSentItemsAreProperlyCleanedUp() {
+    func testThatSentItemsAreProperlyCleanedUp() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("Bookmark 1", id: "1", modifiedAt: Date())
+            Bookmark("Bookmark 2", id: "2", modifiedAt: Date(), isDeleted: true)
+            Folder("Folder", id: "3", modifiedAt: Date(), isDeleted: true) {
+                Bookmark("Bookmark 4", id: "4", modifiedAt: Date(), isDeleted: true)
+            }
+            Bookmark("Bookmark 5", id: "5", modifiedAt: Date())
+            Bookmark("Bookmark 6", id: "6", modifiedAt: Date())
+        }
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
 
-            let bookmark1 = makeBookmark(named: "Bookmark 1", in: context)
-            let bookmark2 = makeBookmark(in: context)
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
-            let folder = makeFolder(named: "Folder", in: context)
-            let bookmark3 = makeBookmark(withParent: folder, in: context)
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
-            let bookmark4 = makeBookmark(named: "Bookmark 4", in: context)
-            let bookmark5 = makeBookmark(named: "Bookmark 5", in: context)
-
-            bookmark2.markPendingDeletion()
-            folder.markPendingDeletion()
-
-            do {
-                try context.save()
-            } catch {
-                XCTFail("Failed to save context")
-            }
-
-            let sent = [bookmark1, bookmark2, bookmark3, bookmark4, bookmark5, folder].compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
-
-            provider.cleanUpSentItems(sent, clientTimestamp: Date(), in: context)
-
-            do {
-                try context.save()
-            } catch {
-                XCTFail("Failed to save context")
-            }
-
-            let bookmarks = fetchAllNonRootEntities(in: context)
-
-            XCTAssertEqual(bookmarks.count, 3)
-
-            XCTAssertEqual(bookmarks[0].title, "Bookmark 1")
-            XCTAssertEqual(bookmarks[1].title, "Bookmark 4")
-            XCTAssertEqual(bookmarks[2].title, "Bookmark 5")
-
-            XCTAssertEqual(bookmarks[0].modifiedAt, nil)
-            XCTAssertEqual(bookmarks[1].modifiedAt, nil)
-            XCTAssertEqual(bookmarks[2].modifiedAt, nil)
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("Bookmark 1", id: "1")
+                Bookmark("Bookmark 5", id: "5")
+                Bookmark("Bookmark 6", id: "6")
+            })
         }
     }
 
@@ -169,12 +155,15 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
+        var bookmarkModificationDate: Date?
+
         context.performAndWait {
             let request = BookmarkEntity.fetchRequest()
             request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), "1")
             let bookmark = try! context.fetch(request).first!
             bookmark.title = "test3"
             try! context.save()
+            bookmarkModificationDate = bookmark.modifiedAt
         }
 
         await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
@@ -183,7 +172,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
             assertEquivalent(rootFolder, BookmarkTree {
-                Bookmark("test3", id: "1", url: "test")
+                Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
             })
         }
     }

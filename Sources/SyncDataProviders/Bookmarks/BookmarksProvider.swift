@@ -98,13 +98,8 @@ public final class BookmarksProvider: DataProviding {
                 let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
                 responseHandler.processReceivedBookmarks()
 
-                let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
-                let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
-
                 do {
-                    try context.save()
-                    (insertedObjects + updatedObjects).forEach { $0.modifiedAt = nil }
-                    try context.save()
+                    try saveContextAndClearModifiedAt(context)
                 } catch {
                     saveError = error
                 }
@@ -127,7 +122,7 @@ public final class BookmarksProvider: DataProviding {
             let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
             context.performAndWait {
-                cleanUpSentItems(sent, clientTimestamp: clientTimestamp, in: context)
+                let idsOfItemsThatRetainModifiedAt = cleanUpSentItems(sent, clientTimestamp: clientTimestamp, in: context)
                 let responseHandler = BookmarksResponseHandler(
                     received: received,
                     clientTimestamp: clientTimestamp,
@@ -137,13 +132,8 @@ public final class BookmarksProvider: DataProviding {
                 )
                 responseHandler.processReceivedBookmarks()
 
-                let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
-                let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
-
                 do {
-                    try context.save()
-                    (insertedObjects + updatedObjects).forEach { $0.modifiedAt = nil }
-                    try context.save()
+                    try saveContextAndClearModifiedAt(context, excludedUUIDs: idsOfItemsThatRetainModifiedAt)
                 } catch {
                     saveError = error
                 }
@@ -161,14 +151,20 @@ public final class BookmarksProvider: DataProviding {
 
     // MARK: - Internal
 
-    func cleanUpSentItems(_ sent: [Syncable], clientTimestamp: Date, in context: NSManagedObjectContext) {
+    func cleanUpSentItems(_ sent: [Syncable], clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
         if sent.isEmpty {
-            return
+            return []
         }
         let identifiers = sent.compactMap(\.uuid)
         let bookmarks = BookmarkEntity.fetchBookmarks(with: identifiers, in: context)
+
+        var idsOfItemsThatRetainModifiedAt = Set<String>()
+
         for bookmark in bookmarks {
             if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
+                if let uuid = bookmark.uuid {
+                    idsOfItemsThatRetainModifiedAt.insert(uuid)
+                }
                 continue
             }
             if bookmark.isPendingDeletion {
@@ -177,6 +173,28 @@ public final class BookmarksProvider: DataProviding {
                 bookmark.modifiedAt = nil
             }
         }
+
+        return idsOfItemsThatRetainModifiedAt
+    }
+
+    /**
+     * Saves context and ensures that `modifiedAt` field is cleared on affected objects.
+     *
+     * Context needs to be saved twice because setting `modifiedAt` to `nil` is not enough when `modifiedAt` was already `nil`.
+     * In that case it would get updated to current date. So we first trigger save to populate `modifiedAt`,
+     * and then we explicitly clear them for all affected objects and save again.
+     */
+    private func saveContextAndClearModifiedAt(_ context: NSManagedObjectContext, excludedUUIDs: Set<String> = []) throws {
+        let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
+        let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
+
+        try context.save()
+        (insertedObjects + updatedObjects).forEach { bookmarkEntity in
+            if let uuid = bookmarkEntity.uuid, !excludedUUIDs.contains(uuid) {
+                bookmarkEntity.modifiedAt = nil
+            }
+        }
+        try context.save()
     }
 
     private let database: CoreDataDatabase
