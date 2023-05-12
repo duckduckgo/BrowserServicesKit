@@ -107,4 +107,5 @@ public enum PrivacyFeature: String {
     case referrer
     case adClickAttribution
     case windowsWaitlist
+    case windowsDownloadLink
 }

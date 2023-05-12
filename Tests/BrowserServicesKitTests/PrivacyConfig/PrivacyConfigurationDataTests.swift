@@ -42,6 +42,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertNotNil(windowsWaitlistFeature)
         XCTAssertEqual(windowsWaitlistFeature?.state, "enabled")
 
+        let windowsDownloadLinkFeature = configData.features["windowsDownloadLink"]
+        XCTAssertNotNil(windowsDownloadLinkFeature)
+        XCTAssertEqual(windowsDownloadLinkFeature?.state, "disabled")
+
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
         XCTAssertEqual(gpcFeature?.state, "enabled")
@@ -85,6 +89,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         let windowsWaitlistFeature = configData.features["windowsWaitlist"]
         XCTAssertNotNil(windowsWaitlistFeature)
         XCTAssertEqual(windowsWaitlistFeature?.state, "enabled")
+
+        let windowsDownloadLinkFeature = configData.features["windowsDownloadLink"]
+        XCTAssertNotNil(windowsDownloadLinkFeature)
+        XCTAssertEqual(windowsDownloadLinkFeature?.state, "disabled")
 
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
