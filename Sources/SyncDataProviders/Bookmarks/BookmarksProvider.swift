@@ -105,7 +105,9 @@ public final class BookmarksProvider: DataProviding {
                     )
                     responseHandler.processReceivedBookmarks()
 
+#if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
+#endif
                     do {
                         try saveContextAndClearModifiedAt(context, excludedUUIDs: responseHandler.idsOfItemsThatRetainModifiedAt)
                         break
@@ -154,7 +156,9 @@ public final class BookmarksProvider: DataProviding {
                     )
                     responseHandler.processReceivedBookmarks()
 
+#if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
+#endif
                     do {
                         try saveContextAndClearModifiedAt(context, excludedUUIDs: idsOfItemsThatRetainModifiedAt.union(responseHandler.idsOfItemsThatRetainModifiedAt))
                         break
@@ -240,8 +244,6 @@ public final class BookmarksProvider: DataProviding {
 
 #if DEBUG
     var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
-#else
-    let willSaveContextAfterApplyingSyncResponse: () -> Void = {}
 #endif
 
 }

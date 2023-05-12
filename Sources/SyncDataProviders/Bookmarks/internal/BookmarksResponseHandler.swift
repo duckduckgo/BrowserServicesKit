@@ -38,6 +38,7 @@ final class BookmarksResponseHandler {
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
     var idsOfItemsThatRetainModifiedAt = Set<String>()
+    var deduplicatedItemsUUIDs = Set<String>()
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) {
         self.clientTimestamp = clientTimestamp
@@ -159,7 +160,9 @@ final class BookmarksResponseHandler {
                         queues.append(syncable.children)
                         parentUUIDs.append(syncableUUID)
                     }
-                    if shouldDeduplicateEntities && parentUUID != BookmarkEntity.Constants.rootFolderID {
+                    // If this entity belongs to a deduplicated folder, we'll need to sync that folder back later.
+                    // Let's keep its modifiedAt.
+                    if deduplicatedItemsUUIDs.contains(parentUUID) {
                         idsOfItemsThatRetainModifiedAt.insert(parentUUID)
                     }
                 } else if let existingEntity = entitiesByUUID[syncableUUID] {
@@ -194,6 +197,7 @@ final class BookmarksResponseHandler {
             }
             entitiesByUUID[syncableUUID] = deduplicatedEntity
             deduplicatedEntity.uuid = syncableUUID
+            deduplicatedItemsUUIDs.insert(syncableUUID)
             if parent != nil {
                 deduplicatedEntity.parent = nil
                 deduplicatedEntity.parent = parent
@@ -202,7 +206,8 @@ final class BookmarksResponseHandler {
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             if clientTimestamp != nil, let modifiedAt = existingEntity.modifiedAt {
                 assert(modifiedAt > clientTimestamp!, "modified is not nil but not greater than request timestamp, should be cleaned in cleanUpSentItems")
-                // This entity should not be updated, but we have to reassign it's parent in case that one is updated.
+                // This entity was modified after sync has started. As such, it should not be updated,
+                // but if its parent gets updated in the same sync response, we have to reassign it.
                 // Because of that, this entity will end up in updatedObjects and would have modifiedAt cleared.
                 // To prevent this happening, we exclude this entity from clearing modifiedAt.
                 idsOfItemsThatRetainModifiedAt.insert(syncableUUID)
