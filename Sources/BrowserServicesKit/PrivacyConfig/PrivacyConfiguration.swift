@@ -90,6 +90,7 @@ public extension PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature) -> Bool {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
+    
     func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
         return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
     }
