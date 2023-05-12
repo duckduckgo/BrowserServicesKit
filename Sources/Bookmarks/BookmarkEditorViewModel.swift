@@ -37,6 +37,7 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(context)
 
+    private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
     
@@ -73,6 +74,13 @@ public class BookmarkEditorViewModel: ObservableObject {
         refresh()
         registerForChanges()
     }
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+    }
     
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
@@ -100,21 +108,23 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     private func registerForChanges() {
-        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
-                                               object: nil,
-                                               queue: .main) { [weak self] notification in
+        observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                                          object: nil,
+                                                          queue: nil) { [weak self] notification in
             guard let otherContext = notification.object as? NSManagedObjectContext,
                   otherContext != self?.context,
             otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
 
-            self?.context.mergeChanges(fromContextDidSave: notification)
+            self?.context.perform {
+                self?.context.mergeChanges(fromContextDidSave: notification)
 
-            if let bookmark = self?.bookmark, !bookmark.isInserted {
-                self?.context.refresh(bookmark, mergeChanges: true)
+                if let bookmark = self?.bookmark, !bookmark.isInserted {
+                    self?.context.refresh(bookmark, mergeChanges: true)
+                }
+
+                self?.refresh()
+                self?.subject.send()
             }
-
-            self?.refresh()
-            self?.subject.send()
         }
     }
 

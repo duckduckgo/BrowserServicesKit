@@ -38,12 +38,12 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
             let path = "\(Resource.configRootPath)/\(testConfig.referenceConfig)"
             
             let configData = dataLoader.fromJsonFile(path)
-            let configJSON = try JSONSerialization.jsonObject(with: configData, options: []) as! [String: Any]
-            let privacyConfigurationData = PrivacyConfigurationData(json: configJSON)
+            let privacyConfigurationData = try PrivacyConfigurationData(data: configData)
             
             let privacyConfiguration = AppPrivacyConfiguration(data: privacyConfigurationData,
                                                                identifier: UUID().uuidString,
-                                                               localProtection: MockDomainsProtectionStore())
+                                                               localProtection: MockDomainsProtectionStore(),
+                                                               internalUserDecider: DefaultInternalUserDecider())
             for test in testConfig.tests {
                 if test.exceptPlatforms.contains(.macosBrowser) || test.exceptPlatforms.contains(.iosBrowser) {
                     os_log("Skipping test %@", test.name)

@@ -80,7 +80,7 @@ class DistributedNavigationDelegateTestsBase: XCTestCase {
 extension DistributedNavigationDelegateTestsBase {
 
     static func makeNavigationDelegateProxy() -> NavigationDelegateProxy {
-        NavigationDelegateProxy(delegate: DistributedNavigationDelegate(logger: .default))
+        NavigationDelegateProxy(delegate: DistributedNavigationDelegate(log: .default))
     }
 
     func makeWebView() -> WKWebView {
@@ -90,6 +90,7 @@ extension DistributedNavigationDelegateTestsBase {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = navigationDelegateProxy
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         currentHistoryItemIdentityCancellable = navigationDelegate.$currentHistoryItemIdentity.sink { [unowned self] historyItem in
             guard let historyItem,
                   !self.history.contains(where: { $0.value == historyItem }),
@@ -98,7 +99,7 @@ extension DistributedNavigationDelegateTestsBase {
 
             self.history[lastNavigationAction] = historyItem
         }
-
+#endif
         return webView
     }
 
@@ -368,31 +369,42 @@ extension DistributedNavigationDelegateTestsBase {
 
     // MARK: FrameInfo mocking
 
-    func main(_ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+    func main(webView webViewArg: WKWebView? = nil, _ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         withWebView { webView in
-            FrameInfo(webView: webView, handle: webView.mainFrameHandle, isMainFrame: true, url: current, securityOrigin: secOrigin ?? current.securityOrigin)
+            FrameInfo(webView: webViewArg ?? webView, handle: webViewArg?.mainFrameHandle ?? webView.mainFrameHandle, isMainFrame: true, url: current, securityOrigin: secOrigin ?? current.securityOrigin)
         }
     }
 
-    func frame(_ frameID: UInt64, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+    func frame(_ frameID: UInt64!, _ url: URL, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         withWebView { webView in
             FrameInfo(webView: webView, handle: .init(rawValue: frameID), isMainFrame: false, url: url, securityOrigin: secOrigin ?? url.securityOrigin)
         }
     }
-    func frame(_ frameID: UInt64, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
+    func frame(_ frameID: UInt64!, _ url: String, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
         frame(frameID, URL(string: url)!, secOrigin: secOrigin)
     }
 
     // Event sequence checking
     func assertHistory(ofResponderAt responderIdx: Int, equalsTo rhs: [TestsNavigationEvent], file: StaticString = #file, line: UInt = #line, useEventLine: Bool = true) {
         let lhs = responder(at: responderIdx).history
+        var rhs = rhs
         var lastEventLine = line
         for idx in 0..<max(lhs.count, rhs.count) {
             let event1 = lhs.indices.contains(idx) ? lhs[idx] : nil
-            let event2 = rhs.indices.contains(idx) ? rhs[idx] : nil
+            var idx2: Int! = (event1 != nil ? rhs.firstIndex(where: { event2 in compare("", event1, event2) == nil }) : nil)
+            if let idx2 {
+                // events are equal
+                rhs.remove(at: idx2)
+                continue
+            } else {
+                idx2 = idx
+            }
+
+            let event2 = rhs.indices.contains(idx2) ? rhs.remove(at: idx2) : nil
             let line = useEventLine ? (event2?.line ?? lastEventLine) : line
             lastEventLine = line
 
+            guard event1 != nil || event2 != nil else { continue }
             if let diff = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2) {
                 printEncoded(responder: responderIdx)
                 XCTFail("\n#\(idx): " + diff, file: file, line: line)

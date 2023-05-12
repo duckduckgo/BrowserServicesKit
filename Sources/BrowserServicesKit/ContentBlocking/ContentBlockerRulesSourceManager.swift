@@ -19,7 +19,6 @@
 
 import Foundation
 import TrackerRadarKit
-import os
 import Common
 
 /**
@@ -96,16 +95,19 @@ public class ContentBlockerRulesSourceManager {
     public private(set) var fallbackTDSFailure = false
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let log: OSLog
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
 
     init(rulesList: ContentBlockerRulesList,
          exceptionsSource: ContentBlockerRulesExceptionsSource,
          errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-         log: OSLog = .disabled) {
+         log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.rulesList = rulesList
         self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
-        self.log = log
+        self.getLog = log
     }
 
     /**

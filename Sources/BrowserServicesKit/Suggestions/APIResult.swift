@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import os.log
 
 /// A structure representing suggestions fetched from duckduckgo.com/ac
 public struct APIResult: Codable {

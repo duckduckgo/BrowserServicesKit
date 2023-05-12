@@ -30,6 +30,12 @@ public protocol NavigationResponder {
     @MainActor
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy?
 
+    /// Called when NavigationAction did not turn into a Navigation (received .cancel or .redirect)
+    /// won‘t be called for cancelled server-redirect NavigationActions, `navigationDidFail` will be called instead
+    /// won‘t be called for NavigationAction turned into downloads, `navigationAction(_:willBecomeDownloadIn:)` will be called instead
+    @MainActor
+    func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?)
+
     // MARK: Navigation
 
     /// Called only for Main Frame Navigation Actions when all of the Responders returned `.next` or one of the Responders returned `.allow`  for `decidePolicy(for:navigationAction)` query
@@ -90,6 +96,7 @@ public protocol NavigationResponder {
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?)
 
     // MARK: - Private
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     @MainActor
     func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?)
 
@@ -104,6 +111,7 @@ public protocol NavigationResponder {
 
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error)
+#endif
 
     /// Return true to disable stop on decidePolicyForNavigationAction taking longer than 4 secoinds
     @MainActor
@@ -116,6 +124,8 @@ public protocol NavigationResponder {
 public extension NavigationResponder {
 
     func decidePolicy(for navigationAction: NavigationAction, preferences: inout NavigationPreferences) async -> NavigationActionPolicy? { .next }
+
+    func didCancelNavigationAction(_ navigationAction: NavigationAction, withRedirectNavigations expectedNavigations: [ExpectedNavigation]?) {}
 
     func willStart(_ navigation: Navigation) {}
     func didStart(_ navigation: Navigation) {}
@@ -141,19 +151,21 @@ public extension NavigationResponder {
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {}
 
     @MainActor
-    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {}
-
-    @MainActor
     func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval) {}
 
     @MainActor
     func webViewDidCancelClientRedirect(currentNavigation: Navigation?) {}
+
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+    @MainActor
+    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {}
 
     @MainActor
     func didFinishLoad(with request: URLRequest, in frame: WKFrameInfo) {}
 
     @MainActor
     func didFailProvisionalLoad(with request: URLRequest, in frame: WKFrameInfo, with error: Error) {}
+#endif
 
     var shouldDisableLongDecisionMakingChecks: Bool { false }
 

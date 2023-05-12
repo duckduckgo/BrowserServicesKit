@@ -57,6 +57,8 @@ extension TestsNavigationEvent {
                 } else {
                     return ".navigationAction(" + arg.navigationAction.encoded(context).dropping(prefix: ".init") + ")"
                 }
+            case .didCancel(let arg, expected: let arg2, line: _):
+                return ".didCancel(\(arg.navigationAction.encoded(context))\(arg2 != nil ? ", expected: \(arg2!)" : ""))"
             case .navActionWillBecomeDownload(let arg, line: _):
                 return ".navActionWillBecomeDownload(\(arg.navigationAction.encoded(context)))"
             case .navActionBecameDownload(let arg, let arg2, line: _):
@@ -345,13 +347,45 @@ private func dataConst(forLength length: Int64, in dataSource: Any) -> String {
     for child in m.children where (child.value as? Data)?.count == Int(length) {
         return "data." + child.label! + ".count"
     }
-    fatalError("Data const with length \(length) not found in \(dataSource)")
+    return "Data const with length \(length) not found in \(dataSource)"
 }
 
-var defaultHeaders = [
-    "User-Agent": WKWebView().value(forKey: "userAgent") as! String,
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-]
+var defaultHeaders: [String: String] = {
+    let webView = WKWebView()
+    class DefaultHeadersRetreiverNavigationDelegate: NSObject, WKNavigationDelegate {
+        var headers: [String: String]?
+
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            self.headers = navigationAction.request.allHTTPHeaderFields
+            decisionHandler(.cancel)
+        }
+    }
+
+    let delegate = DefaultHeadersRetreiverNavigationDelegate()
+    webView.navigationDelegate = delegate
+    webView.load(URLRequest(url: URL(string: "https://duckduckgo.com")!))
+    while delegate.headers == nil {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+    }
+
+    return delegate.headers!
+}()
+
+extension [String: String] {
+
+    static let allowsExtraKeysKey = "_allowsExtraKeysKey"
+
+    var allowingExtraKeys: [String: String] {
+        var result = self
+        result[Self.allowsExtraKeysKey] = "1"
+        return result
+    }
+
+    var allowsExtraKeys: Bool {
+        self[Self.allowsExtraKeysKey] == "1"
+    }
+
+}
 
 func req(_ string: String, _ headers: [String: String]? = defaultHeaders, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy) -> URLRequest {
     req(URL(string: string)!, headers, cachePolicy: cachePolicy)
@@ -386,7 +420,7 @@ extension URLResponse {
 
         return """
         urlresp(
-            \(urlConst(for: self.url!, in: context.urls)!),
+            \(urlConst(for: self.url!, in: context.urls) ?? "\(self.url!) not registered in URLs"),
             \((self as? HTTPURLResponse)?.statusCode != 200 ? "status: " + ((self as? HTTPURLResponse).map { String($0.statusCode) } ?? "nil") + "," : "")
             \(mimeType != "text/html" ? "mime: \"\(mimeType ?? "nil")\"," : "")
             \(expectedContentLength != -1 ? "\(dataConst(forLength: expectedContentLength, in: context.dataSource))" + (textEncodingName != nil ? "," : "") : "")
@@ -437,8 +471,14 @@ extension NavigationAction: TestComparable {
         ?? compare_tc("targetFrame", lhs.targetFrame, rhs.targetFrame)
         ?? compare("shouldDownload", lhs.shouldDownload, rhs.shouldDownload)
         ?? compare_tc("request", lhs.request, rhs.request)
-        ?? compare("fromHistoryItemIdentity", lhs.fromHistoryItemIdentity, rhs.fromHistoryItemIdentity)
         ?? compare("redirectHistory", lhs.redirectHistory, rhs.redirectHistory)
+        ?? {
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+            compare("fromHistoryItemIdentity", lhs.fromHistoryItemIdentity, rhs.fromHistoryItemIdentity)
+#else
+            nil
+#endif
+        }()
     }
 
 }
@@ -472,20 +512,39 @@ extension [NavigationAction]?: TestComparable {
 
 extension URLRequest: TestComparable {
 
-    private func prettifiedHeaders() -> [String: String] {
-        var headers = (allHTTPHeaderFields ?? [:])
-        if let lang = headers["Accept-Language"] {
-            headers["Accept-Language"] = lang.replacing(regex: "^\\S\\S-\\S\\S", with: "en-XX")
-        }
-        return headers
-    }
-
     static func difference(between lhs: URLRequest, and rhs: URLRequest) -> String? {
         compare("url", lhs.url ?? .empty, rhs.url ?? .empty) { $0.matches($1) }
         ?? compare("httpMethod", lhs.httpMethod, rhs.httpMethod)
-        ?? compare("allHTTPHeaderFields", lhs.prettifiedHeaders(), rhs.prettifiedHeaders())
+        ?? compare("allHTTPHeaderFields", Headers(lhs.allHTTPHeaderFields), Headers(rhs.allHTTPHeaderFields))
         ?? compare("cachePolicy", lhs.cachePolicy, rhs.cachePolicy)
         ?? compare("timeoutInterval", lhs.timeoutInterval, rhs.timeoutInterval)
+    }
+
+}
+
+struct Headers: TestComparable {
+
+    let dict: [String: String]
+
+    init(_ dict: [String: String]?) {
+        self.dict = dict ?? [:]
+    }
+
+    static func difference(between lhs: Headers, and rhs: Headers) -> String? {
+        var result = ""
+        let lhs = lhs.dict
+        let rhs = rhs.dict
+        for key in Set(lhs.keys).union(rhs.keys) where key != [String: String].allowsExtraKeysKey {
+            let value1 = lhs[key]
+            let value2 = rhs[key]
+            if let diff = compare(key, value1, value2) {
+                if value1 == nil && lhs.allowsExtraKeys { continue }
+                if value2 == nil && rhs.allowsExtraKeys { continue }
+
+                result += (result.isEmpty ? "" : ",\n") + diff
+            }
+        }
+        return result.isEmpty ? nil : result
     }
 
 }
@@ -585,15 +644,25 @@ extension NavigationAction {
         @unknown default:
             fatalError()
         }
+#if _FRAME_HANDLE_ENABLED
+        let sourceFrameEnc = targetFrame == sourceFrame  ? "" : "targ: " + (targetFrame?.encoded(context) ?? "nil") + ","
+#else
+        let sourceFrameEnc = " ,"
+#endif
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        let fromHistoryItemIdentityEnc = fromHistoryItemIdentity != nil ? "from: " + fromHistoryItemIdentity!.encoded(context) + "," : ""
+#else
+        let fromHistoryItemIdentityEnc = " ,"
+#endif
         return """
         NavAction(
-            req(\(urlConst(for: url, in: context.urls)!)\(headers)),
+            req(\(urlConst(for: url, in: context.urls) ?? "\(url) not registered in URLs")\(headers)),
             \(navigationType.encoded(context)),
-            \(fromHistoryItemIdentity != nil ? "from: " + fromHistoryItemIdentity!.encoded(context) + "," : "")
+            \(fromHistoryItemIdentityEnc)
             \(redirectHistory != nil ? "redirects: [\(redirectHistory!.map { $0.encoded(context) }.joined(separator: ", "))]," : "")
             \(isUserInitiated)
             src: \(sourceFrame.encoded(context)),
-            \(targetFrame == sourceFrame  ? "" : "targ: " + (targetFrame?.encoded(context) ?? "nil") + ",")
+            \(sourceFrameEnc)
             \(shouldDownload ? ".shouldDownload," : "")
         """.trimmingWhitespace().dropping(suffix: ",") +
         ")"
@@ -606,7 +675,12 @@ extension FrameInfo {
         if self.isMainFrame {
             return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)! + (secOrigin.isEmpty ? "" : ", "))  + secOrigin + ")"
         } else {
-            return "frame(\(handle.frameID), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
+#if _FRAME_HANDLE_ENABLED
+            let frameID = handle.frameID
+#else
+            let frameID = ""
+#endif
+            return "frame(\(frameID), \(urlConst(for: url, in: context.urls)!)\((secOrigin.isEmpty ? "" : ", ") + secOrigin))"
         }
     }
 }
@@ -639,7 +713,11 @@ extension NavigationType {
 
     static var form = NavigationType.formSubmitted
     static var formRe = NavigationType.formResubmitted
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     static func backForw(_ dist: Int) -> NavigationType { .backForward(distance: dist) }
+#else
+    static func backForw(_ dist: Int) -> NavigationType { .backForward }
+#endif
     static var restore = NavigationType.sessionRestoration
 
     func encoded(_ context: EncodingContext) -> String {
@@ -655,8 +733,13 @@ extension NavigationType {
             return ".form"
         case .formResubmitted:
             return ".formRe"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         case .backForward(distance: let distance):
             return ".backForw(\(distance))"
+#else
+        case .backForward:
+            return ".backForw"
+#endif
         case .reload:
             return ".reload"
         case .redirect(.server):
@@ -902,14 +985,6 @@ private extension WKNavigationAction {
     }
 }
 
-private extension NSObject {
-    private static let onDeinitKey = UnsafeRawPointer(bitPattern: "onDeinitKey".hashValue)!
-    func onDeinit(do job: @escaping () -> Void) {
-        let cancellable = AnyCancellable(job)
-        objc_setAssociatedObject(self, Self.onDeinitKey, cancellable, .OBJC_ASSOCIATION_RETAIN)
-    }
-}
-
 extension Data {
 
     static let sessionRestorationMagic = Data([0x00, 0x00, 0x00, 0x02])
@@ -1000,3 +1075,24 @@ extension URLResponse {
         return URLResponse(url: request.url!, mimeType: mimeType, expectedContentLength: expectedLength, textEncodingName: encoding)
     }
 }
+
+
+#if !_FRAME_HANDLE_ENABLED
+
+struct FrameHandle: Equatable {
+    init(rawValue: UInt64? = nil) {}
+}
+
+extension WKWebView {
+    var mainFrameHandle: FrameHandle { FrameHandle() }
+}
+
+extension FrameInfo {
+    var handle: FrameHandle { FrameHandle() }
+
+    init(webView: WKWebView?, handle: FrameHandle?, isMainFrame: Bool, url: URL, securityOrigin: SecurityOrigin) {
+        self.init(webView: webView, isMainFrame: isMainFrame, url: url, securityOrigin: securityOrigin)
+    }
+}
+
+#endif

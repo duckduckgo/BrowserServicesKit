@@ -22,10 +22,6 @@ import ContentBlocking
 
 public struct TrackerInfo: Encodable {
     
-    public struct Constants {
-        public static let majorNetworkPrevalence = 25.0
-    }
-    
     enum CodingKeys: String, CodingKey {
         case requests
         case installedSurrogates

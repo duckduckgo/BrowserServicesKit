@@ -33,7 +33,7 @@ public protocol PrivacyConfigurationManaging: AnyObject {
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
 
-    func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
+    @discardableResult func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
 
 public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
@@ -53,6 +53,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let lock = NSLock()
     private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
+    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
+    private let internalUserDecider: InternalUserDecider
     
     private let updatesSubject = PassthroughSubject<Void, Never>()
     public var updatesPublisher: AnyPublisher<Void, Never> {
@@ -85,8 +87,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 data = embedded
             } else {
                 let jsonData = embeddedDataProvider.embeddedData
-                let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-                let configData = PrivacyConfigurationData(json: json!)
+                let configData = try! PrivacyConfigurationData(data: jsonData)
                 _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData
             }
@@ -100,16 +101,16 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         }
     }
 
-    private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-
     public init(fetchedETag: String?,
                 fetchedData: Data?,
                 embeddedDataProvider: EmbeddedDataProvider,
                 localProtection: DomainsProtectionStore,
-                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+                internalUserDecider: InternalUserDecider) {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
+        self.internalUserDecider = internalUserDecider
 
         reload(etag: fetchedETag, data: fetchedData)
     }
@@ -118,12 +119,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         if let fetchedData = fetchedConfigData {
             return AppPrivacyConfiguration(data: fetchedData.data,
                                            identifier: fetchedData.etag,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: internalUserDecider)
         }
 
         return AppPrivacyConfiguration(data: embeddedConfigData.data,
                                        identifier: embeddedConfigData.etag,
-                                       localProtection: localProtection)
+                                       localProtection: localProtection,
+                                       internalUserDecider: internalUserDecider)
     }
     
     public var currentConfig: Data {
@@ -145,12 +148,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
             
             do {
                 // This might fail if the downloaded data is corrupt or format has changed unexpectedly
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                    let configData = PrivacyConfigurationData(json: json)
-                    fetchedConfigData = (data, configData, etag)
-                } else {
-                    throw ParsingError.dataMismatch
-                }
+                let configData = try PrivacyConfigurationData(data: data)
+                fetchedConfigData = (data, configData, etag)
             } catch {
                 errorReporting?.fire(.privacyConfigurationParseFailed, error: error)
                 fetchedConfigData = nil

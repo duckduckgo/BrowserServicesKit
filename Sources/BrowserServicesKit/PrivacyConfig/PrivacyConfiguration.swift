@@ -39,6 +39,8 @@ public protocol PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool
+
     /// Domains for which given PrivacyFeature is disabled.
     ///
     /// Use `isTempUnprotected(domain:)` to check if a feature is disabled for the given domain.
@@ -108,4 +110,7 @@ public enum PrivacyFeature: String {
     case adClickAttribution
     case windowsWaitlist
     case windowsDownloadLink
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
+        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
+    }
 }

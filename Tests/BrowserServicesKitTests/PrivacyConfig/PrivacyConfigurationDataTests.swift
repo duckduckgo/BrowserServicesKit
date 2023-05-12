@@ -25,11 +25,9 @@ class PrivacyConfigurationDataTests: XCTestCase {
 
     private var data = JsonTestDataLoader()
 
-    func testJSONParsing() {
+    func testJSONParsing() throws {
         let jsonData = data.fromJsonFile("Resources/privacy-config-example.json")
-        let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-
-        let configData = PrivacyConfigurationData(json: json!)
+        let configData = try PrivacyConfigurationData(data: jsonData)
 
         XCTAssertEqual(configData.unprotectedTemporary.count, 1)
         XCTAssertEqual(configData.unprotectedTemporary.first?.domain, "example.com")
@@ -57,6 +55,15 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual((exampleFeature?.settings["arrayValue"] as? [String])?.first, "value")
         XCTAssertEqual((exampleFeature?.settings["stringValue"] as? String), "value")
         XCTAssertEqual((exampleFeature?.settings["numericalValue"] as? Int), 1)
+
+        if let subfeatures = exampleFeature?.features {
+            XCTAssertEqual(subfeatures["disabledSubfeature"]?.state, "disabled")
+            XCTAssertEqual(subfeatures["minSupportedSubfeature"]?.minSupportedVersion, "1.36.0")
+            XCTAssertEqual(subfeatures["enabledSubfeature"]?.state, "enabled")
+            XCTAssertEqual(subfeatures["internalSubfeature"]?.state, "internal")
+        } else {
+            XCTFail("Could not parse subfeatures")
+        }
 
         let allowlist = configData.trackerAllowlist
         XCTAssertEqual(allowlist.state, "enabled")
@@ -110,5 +117,4 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertEqual(allowlist.state, "disabled")
         XCTAssertEqual(allowlist.entries.count, 0)
     }
-
 }

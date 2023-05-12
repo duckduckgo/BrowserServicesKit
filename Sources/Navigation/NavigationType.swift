@@ -30,7 +30,11 @@ public enum NavigationType: Equatable {
     case formSubmitted
     case formResubmitted
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     case backForward(distance: Int)
+#else
+    case backForward
+#endif
     case reload
 
     case redirect(RedirectType)
@@ -39,7 +43,7 @@ public enum NavigationType: Equatable {
 
     case other
 
-    /// developer-defined, set using `DistributedNavigationDelegate.setExpectedNavigationType(_:matching:)`
+    /// developer-defined, set using `WebView.navigator().load(..., withExpectedNavigationType: .custom(.someType))`
     case custom(CustomNavigationType)
 
     public init(_ navigationAction: WebViewNavigationAction, currentHistoryItemIdentity: HistoryItemIdentity?) {
@@ -55,7 +59,11 @@ public enum NavigationType: Equatable {
             self = .linkActivated
 #endif
         case .backForward:
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
             self = .backForward(distance: navigationAction.getDistance(from: currentHistoryItemIdentity) ?? 0)
+#else
+            self = .backForward
+#endif
         case .reload:
             self = .reload
         case .formSubmitted:
@@ -108,6 +116,7 @@ public extension NavigationType {
         return false
     }
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     var backForwardDistance: Int? {
         if case .backForward(distance: let distance) = self, distance != 0 { return distance }
         return nil
@@ -120,6 +129,7 @@ public extension NavigationType {
     var isGoingForward: Bool {
         (backForwardDistance ?? 0) > 0
     }
+#endif
 
     var isSessionRestoration: Bool {
         if case .sessionRestoration = self { return true }
@@ -132,7 +142,9 @@ public protocol WebViewNavigationAction {
     var navigationType: WKNavigationType { get }
     var isSameDocumentNavigation: Bool { get }
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     func getDistance(from historyItemIdentity: HistoryItemIdentity?) -> Int?
+#endif
 #if os(macOS)
     var isMiddleClick: Bool { get }
 #endif
@@ -166,7 +178,11 @@ extension NavigationType: CustomDebugStringConvertible {
         switch self {
         case .linkActivated: return "linkActivated"
         case .formSubmitted: return "formSubmitted"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         case .backForward(let distance): return "backForward" + (distance != 0 ? "[\(distance)]" : "")
+#else
+        case .backForward: return "backForward"
+#endif
         case .reload: return "reload"
         case .formResubmitted: return "formResubmitted"
         case .sessionRestoration: return "sessionRestoration"

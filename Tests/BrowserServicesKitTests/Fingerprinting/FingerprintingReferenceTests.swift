@@ -58,7 +58,8 @@ final class FingerprintingReferenceTests: XCTestCase {
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: DefaultInternalUserDecider())
     }()
     
     override func tearDown() {

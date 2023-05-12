@@ -17,7 +17,6 @@
 //
 
 import Common
-import os.log
 import WebKit
 
 public extension WKFrameInfo {
@@ -31,6 +30,7 @@ public extension WKFrameInfo {
         return nil
     }
 
+#if _FRAME_HANDLE_ENABLED
     @nonobjc var handle: FrameHandle {
         guard let handle = self.value(forKey: "handle") as? FrameHandle else {
             assertionFailure("WKFrameInfo.handle is missing")
@@ -38,6 +38,7 @@ public extension WKFrameInfo {
         }
         return handle
     }
+#endif
 
     /// Safe Optional `request: URLRequest` getter:
     /// .request of a new Frame can be `null`, see https://app.asana.com/0/0/1203965979591356/f

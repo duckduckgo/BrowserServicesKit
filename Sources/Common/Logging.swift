@@ -20,31 +20,179 @@
 import Foundation
 import os
 
+public typealias OSLog = os.OSLog
+
 extension OSLog {
 
-    public static var userScripts: OSLog {
-        Logging.userScriptsEnabled ? Logging.userScriptsLog : .disabled
-    }
-    
-    public static var passwordManager: OSLog {
-        Logging.passwordManagerEnabled ? Logging.passwordManagerLog : .disabled
+    public enum Categories: String, CaseIterable {
+        case userScripts = "User Scripts"
+        case passwordManager = "Password Manager"
+        case remoteMessaging = "Remote Messaging"
     }
 
-    public static var remoteMessaging: OSLog {
-        Logging.remoteMessagingEnabled ? Logging.remoteMessagingLog : .disabled
+#if DEBUG
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // To activate Logging Categories for DEBUG add categories here:
+    static var debugCategories: Set<Categories> = [ /* .userScripts, */ ]
+#endif
+
+    @OSLogWrapper(.userScripts)     public static var userScripts
+    @OSLogWrapper(.passwordManager) public static var passwordManager
+    @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
+
+    public static var enabledLoggingCategories = Set<String>()
+
+    static let isRunningInDebugEnvironment: Bool = {
+        ProcessInfo().environment[ProcessInfo.Constants.osActivityMode] == ProcessInfo.Constants.debug
+            || ProcessInfo().environment[ProcessInfo.Constants.osActivityDtMode] == ProcessInfo.Constants.yes
+    }()
+
+    static let subsystem = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
+
+    @propertyWrapper
+    public struct OSLogWrapper {
+
+        public let category: String
+
+        public init(rawValue: String) {
+            self.category = rawValue
+        }
+
+        public var wrappedValue: OSLog {
+            var isEnabled = OSLog.enabledLoggingCategories.contains(category)
+#if CI
+            isEnabled = true
+#elseif DEBUG
+            isEnabled = isEnabled || Categories(rawValue: category).map(OSLog.debugCategories.contains) == true
+#endif
+
+            return isEnabled ? OSLog(subsystem: OSLog.subsystem, category: category) : .disabled
+        }
+
     }
 
 }
 
-struct Logging {
+public extension OSLog.OSLogWrapper {
 
-    fileprivate static let userScriptsEnabled = false
-    fileprivate static let userScriptsLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "User Scripts")
-    
-    fileprivate static let passwordManagerEnabled = false
-    fileprivate static let passwordManagerLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Password Manager")
-
-    fileprivate static let remoteMessagingEnabled = false
-    fileprivate static let remoteMessagingLog: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Remote Messaging")
+    init(_ category: OSLog.Categories) {
+        self.init(rawValue: category.rawValue)
+    }
 
 }
+
+extension ProcessInfo {
+    enum Constants {
+        static let osActivityMode = "OS_ACTIVITY_MODE"
+        static let osActivityDtMode = "OS_ACTIVITY_DT_MODE"
+        static let debug = "debug"
+        static let yes = "YES"
+    }
+}
+
+// swiftlint:disable line_length
+// swiftlint:disable function_parameter_count
+
+// MARK: - message first
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType) {
+    os.os_log(message, log: log, type: type)
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog) {
+    os.os_log(message, log: log, type: .default)
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4())
+}
+
+@inlinable
+public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg, _ arg5: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
+}
+
+@inlinable
+public func os_log(message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
+    guard log != .disabled else { return }
+    os_log("%s", log: log, type: type, message())
+}
+
+// MARK: - type first
+
+@inlinable
+public func os_log(_ type: OSLogType, log: OSLog = .default, _ message: StaticString) {
+    os.os_log(message, log: log, type: type)
+}
+
+@inlinable
+public func os_log(log: OSLog, _ message: StaticString) {
+    os.os_log(message, log: log, type: .default)
+}
+
+@inlinable
+public func os_log(_ message: StaticString) {
+    os.os_log(message, log: .default, type: .default)
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg, _ arg5: @autoclosure () -> some CVarArg) {
+    guard log != .disabled else { return }
+    os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
+}
+
+@inlinable
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, message: @autoclosure () -> String) {
+    guard log != .disabled else { return }
+    os_log("%s", log: log, type: type, message())
+}
+
+// swiftlint:enable line_length
+// swiftlint:enable function_parameter_count

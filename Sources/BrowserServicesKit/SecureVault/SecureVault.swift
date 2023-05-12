@@ -32,6 +32,7 @@ public protocol SecureVault {
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
@@ -177,6 +178,20 @@ class DefaultSecureVault: SecureVault {
                 parts.removeFirst()
             }
             return []
+        } catch {
+            throw SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+     public func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            let accounts = try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
+            return accounts
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }

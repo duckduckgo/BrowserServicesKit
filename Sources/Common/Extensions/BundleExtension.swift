@@ -21,17 +21,17 @@ import Foundation
 
 extension Bundle {
 
-    struct Keys {
+    enum Key {
+        
         static let name = kCFBundleNameKey as String
-        static let versionNumber = "CFBundleShortVersionString"
+        static let identifier = kCFBundleIdentifierKey as String
+        static let buildNumber = kCFBundleVersionKey as String
+		static let versionNumber = "CFBundleShortVersionString"
+        static let displayName = "CFBundleDisplayName"
+
     }
 
-    public var releaseVersionNumber: String? {
-        return infoDictionary?[Keys.versionNumber] as? String
-    }
-
-    public var name: String? {
-        object(forInfoDictionaryKey: Keys.name) as? String
-    }
-
+    public var releaseVersionNumber: String? { infoDictionary?[Key.versionNumber] as? String }
+    public var displayName: String? { object(forInfoDictionaryKey: Key.displayName) as? String ?? name }
+    public var name: String? { object(forInfoDictionaryKey: Key.name) as? String }
 }

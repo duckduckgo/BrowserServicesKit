@@ -33,6 +33,7 @@ public struct NavigationAction {
     static func resetIdentifier() { maxIdentifier = 0 }
 #endif
 
+    /// auto-incremented id
     public var identifier: UInt64 = {
         Self.maxIdentifier += 1
         return Self.maxIdentifier
@@ -42,10 +43,12 @@ public struct NavigationAction {
 
     public let navigationType: NavigationType
 #if os(macOS)
+    /// keyboard modifiers for `linkActivated` NavigationType
     public internal(set) var modifierFlags: NSEvent.ModifierFlags = []
 #endif
 
 #if _IS_USER_INITIATED_ENABLED
+    /// if navigation was initiated by user action on a web page
     public let isUserInitiated: Bool
 #endif
     public let shouldDownload: Bool
@@ -66,9 +69,12 @@ public struct NavigationAction {
     /// May be non-nil for non-main-frame NavigationActions
     public internal(set) weak var mainFrameNavigation: Navigation?
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     /// Actual `BackForwardListItem` identity before the NavigationAction had started
     public let fromHistoryItemIdentity: HistoryItemIdentity?
-    /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
+#endif
+    /// Previous Navigation Actions received during current logical `Navigation`, includes .server, .client and .developer redirects
+    /// zero-based, most recent is the last redirect
     public let redirectHistory: [NavigationAction]?
 
     public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo?, shouldDownload: Bool, mainFrameNavigation: Navigation?) {
@@ -89,7 +95,9 @@ public struct NavigationAction {
         self.sourceFrame = sourceFrame
         self.targetFrame = targetFrame
 
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         self.fromHistoryItemIdentity = currentHistoryItemIdentity
+#endif
         self.redirectHistory = redirectHistory
         self.mainFrameNavigation = mainFrameNavigation
     }
@@ -109,16 +117,21 @@ public struct NavigationAction {
            webView.backForwardList.currentItem != nil {
 
             // go back after failing session restoration has `other` Navigation Type
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
             if let currentHistoryItemIdentity,
                let distance = navigationAction.getDistance(from: currentHistoryItemIdentity) {
 
                 navigationType = .backForward(distance: distance)
-
             // session restoration
             } else if navigationAction.isUserInitiated != true,
                       currentHistoryItemIdentity == nil {
                 navigationType = .sessionRestoration
             }
+#else
+            if navigationAction.isUserInitiated != true {
+                navigationType = .sessionRestoration
+            }
+#endif
         }
 
         self.init(request: navigationAction.request,
@@ -149,6 +162,7 @@ public extension NavigationAction {
         targetFrame?.isMainFrame == true
     }
 
+    /// if another WebView initiated the navigation
     var isTargetingNewWindow: Bool {
         assert(sourceFrame.webView != nil || targetFrame?.webView != nil)
         return sourceFrame.webView != targetFrame?.webView || targetFrame?.webView == nil
@@ -231,7 +245,12 @@ extension NavigationAction: CustomDebugStringConvertible {
 #else
         let isUserInitiatedStr = ""
 #endif
-        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame != targetFrame ? sourceFrame.debugDescription + " -> " : "")\(targetFrame.debugDescription)>"
+#if _FRAME_HANDLE_ENABLED
+        let sourceFrame = sourceFrame != targetFrame ? sourceFrame.debugDescription + " -> " : ""
+#else
+        let sourceFrame = sourceFrame.debugDescription + " -> "
+#endif
+        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame)\(targetFrame.debugDescription)>"
     }
 }
 
@@ -251,3 +270,5 @@ extension NavigationPreferences: CustomDebugStringConvertible {
         "\(userAgent ?? "")\(contentMode == .recommended ? "" : (contentMode == .mobile ? ":mobile" : "desktop"))\(javaScriptEnabledValue == false ? ":jsdisabled" : "")"
     }
 }
+
+// swiftlint:enable line_length
