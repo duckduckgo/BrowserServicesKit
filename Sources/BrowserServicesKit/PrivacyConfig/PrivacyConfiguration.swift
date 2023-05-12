@@ -90,26 +90,6 @@ public extension PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature) -> Bool {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
-}
-
-public enum PrivacyFeature: String {
-    case contentBlocking
-    case duckPlayer
-    case fingerprintingTemporaryStorage
-    case fingerprintingBattery
-    case fingerprintingScreenSize
-    case gpc
-    case httpsUpgrade = "https"
-    case autoconsent
-    case clickToPlay
-    case autofill
-    case ampLinks
-    case trackingParameters
-    case customUserAgent
-    case referrer
-    case adClickAttribution
-    case windowsWaitlist
-    case windowsDownloadLink
     func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
         return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
     }
