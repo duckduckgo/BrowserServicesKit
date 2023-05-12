@@ -17,9 +17,10 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
-import os.log
 import BloomFilterWrapper
+import os.log
 
 public enum HTTPSUpgradeError: Error {
     case badUrl
@@ -33,31 +34,21 @@ public enum HTTPSUpgradeError: Error {
 
 public actor HTTPSUpgrade {
 
-    private struct BloomFilter {
-        private let wrapper: BloomFilterWrapper
-        let specification: HTTPSBloomFilterSpecification
-
-        init(wrapper: BloomFilterWrapper, specification: HTTPSBloomFilterSpecification) {
-            self.wrapper = wrapper
-            self.specification = specification
-        }
-
-        @MainActor
-        func containsHost(_ host: String) -> Bool {
-            wrapper.contains(host)
-        }
-    }
-
     private var dataReloadTask: Task<BloomFilter?, Never>?
     private let store: HTTPSUpgradeStore
     private let privacyManager: PrivacyConfigurationManaging
 
     private var bloomFilter: BloomFilter?
 
-    public init(store: HTTPSUpgradeStore,
-                privacyManager: PrivacyConfigurationManaging) {
+    private let getLog: () -> OSLog
+    nonisolated private var log: OSLog {
+        getLog()
+    }
+
+    public init(store: HTTPSUpgradeStore, privacyManager: PrivacyConfigurationManaging, log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.store = store
         self.privacyManager = privacyManager
+        self.getLog = log
     }
 
     @MainActor
@@ -102,6 +93,7 @@ public actor HTTPSUpgrade {
     }
 
     nonisolated public func loadDataAsync() {
+        os_log("loadDataAsync", log: log, type: .debug)
         Task {
             await self.loadData()
         }
@@ -109,7 +101,7 @@ public actor HTTPSUpgrade {
 
     public func loadData() async {
         if let dataReloadTask {
-            os_log("Reload already in progress", type: .debug)
+            os_log("Reload already in progress", log: log)
             _=await dataReloadTask.value
         }
         dataReloadTask = Task.detached { [store] in
@@ -117,6 +109,21 @@ public actor HTTPSUpgrade {
         }
         self.bloomFilter = await dataReloadTask!.value
         self.dataReloadTask = nil
+    }
+
+    private func reloadBloomFilter() async -> BloomFilter? {
+        os_log("Reloading Bloom Filter", log: log, type: .debug)
+        let bloomFilter = store.loadBloomFilter().map { BloomFilter(wrapper: $0.wrapper, specification: $0.specification) }
+        self.bloomFilter = bloomFilter
+        return bloomFilter
+    }
+
+    public func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws {
+        try store.persistBloomFilter(specification: specification, data: data)
+    }
+
+    public func persistExcludedDomains(_ domains: [String]) throws {
+        try store.persistExcludedDomains(domains)
     }
 
 }

@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import os.log
 
@@ -28,16 +29,19 @@ public struct APIRequest {
     private let request: URLRequest
     private let requirements: APIResponseRequirements
     private let urlSession: URLSession
-    private let log: OSLog
-    
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
+
     public init<QueryParams: Collection>(configuration: APIRequest.Configuration<QueryParams>,
                                          requirements: APIResponseRequirements = [],
                                          urlSession: URLSession = .shared,
-                                         log: OSLog = .disabled) {
+                                         log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.request = configuration.request
         self.requirements = requirements
         self.urlSession = urlSession
-        self.log = log
+        self.getLog = log
         
         assertUserAgentIsPresent()
     }
@@ -73,11 +77,11 @@ public struct APIRequest {
     private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
         let httpResponse = try response.asHTTPURLResponse()
 
-        os_log("Request for %s completed with response code: %s and headers %s",
+        os_log("Request for %s completed with response code: %d and headers %s",
                log: log,
                type: .debug,
                request.url?.absoluteString ?? "",
-               String(describing: httpResponse.statusCode),
+               httpResponse.statusCode,
                String(describing: httpResponse.allHeaderFields))
         
         var data = data

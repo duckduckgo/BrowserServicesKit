@@ -19,7 +19,7 @@
 
 import Foundation
 
-public struct SyncAccount: Codable {
+public struct SyncAccount: Codable, Sendable {
     public let deviceId: String
     public let deviceName: String
     public let deviceType: String
@@ -28,17 +28,24 @@ public struct SyncAccount: Codable {
     public let secretKey: Data
     public let token: String?
 
+    /// Convenience var which calls `SyncCode().toJSON().base64EncodedString()`
     public var recoveryCode: String? {
-        guard let userIdData = userId.data(using: .utf8) else { return nil }
-        let recoveryCodeData = primaryKey + userIdData
-        return recoveryCodeData.base64EncodedString()
+        do {
+            let json = try SyncCode(recovery: .init(userId: userId, primaryKey: primaryKey)).toJSON()
+            return json.base64EncodedString()
+        } catch {
+            assertionFailure(error.localizedDescription)
+            return nil
+        }
     }
 }
 
-public struct RegisteredDevice: Codable {
+public struct RegisteredDevice: Codable, Sendable {
+
     public let id: String
     public let name: String
     public let type: String
+
 }
 
 public struct AccountCreationKeys {
@@ -53,4 +60,46 @@ public struct ExtractedLoginInfo {
     public let primaryKey: Data
     public let passwordHash: Data
     public let stretchedPrimaryKey: Data
+}
+
+public struct ConnectInfo {
+    public let deviceID: String
+    public let publicKey: Data
+    public let secretKey: Data
+}
+
+public struct SyncCode: Codable {
+
+    public enum Base64Error: Error {
+        case error
+    }
+
+    public struct RecoveryKey: Codable, Sendable {
+        let userId: String
+        let primaryKey: Data
+    }
+
+    public struct ConnectCode: Codable, Sendable {
+        let deviceId: String
+        let secretKey: Data
+    }
+
+    public var recovery: RecoveryKey?
+    public var connect: ConnectCode?
+
+    public static func decode(_ data: Data) throws -> Self {
+        return try JSONDecoder.snakeCaseKeys.decode(self, from: data)
+    }
+
+    public func toJSON() throws -> Data {
+        return try JSONEncoder.snakeCaseKeys.encode(self)
+    }
+
+    public static func decodeBase64String(_ string: String) throws -> Self {
+        guard let data = Data(base64Encoded: string) else {
+            throw Base64Error.error
+        }
+        return try Self.decode(data)
+    }
+
 }

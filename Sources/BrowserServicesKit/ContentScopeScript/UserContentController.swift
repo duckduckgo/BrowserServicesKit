@@ -20,7 +20,10 @@ import WebKit
 import Combine
 import UserScript
 
+// swiftlint:disable line_length
+
 public protocol UserContentControllerDelegate: AnyObject {
+    @MainActor
     func userContentController(_ userContentController: UserContentController,
                                didInstallContentRuleLists contentRuleLists: [String: WKContentRuleList],
                                userScripts: UserScriptsProvider,
@@ -33,9 +36,10 @@ public protocol UserContentControllerNewContent {
 
     var rulesUpdate: ContentBlockerRulesManager.UpdateEvent { get }
     var sourceProvider: SourceProvider { get }
-    var makeUserScripts: (SourceProvider) -> UserScripts { get }
+    var makeUserScripts: @MainActor (SourceProvider) -> UserScripts { get }
 }
 
+@MainActor
 final public class UserContentController: WKUserContentController {
     public let privacyConfigurationManager: PrivacyConfigurationManaging
     public weak var delegate: UserContentControllerDelegate?
@@ -43,14 +47,18 @@ final public class UserContentController: WKUserContentController {
     public struct ContentBlockingAssets {
         public let globalRuleLists: [String: WKContentRuleList]
         public let userScripts: UserScriptsProvider
+        public let wkUserScripts: [WKUserScript]
         public let updateEvent: ContentBlockerRulesManager.UpdateEvent
 
-        public init<Content: UserContentControllerNewContent>(content: Content) {
+        public init<Content: UserContentControllerNewContent>(content: Content) async {
             self.globalRuleLists = content.rulesUpdate.rules.reduce(into: [:]) { result, rules in
                 result[rules.name] = rules.rulesList
             }
-            self.userScripts = content.makeUserScripts(content.sourceProvider)
+            let userScripts = await content.makeUserScripts(content.sourceProvider)
+            self.userScripts = userScripts
             self.updateEvent = content.rulesUpdate
+
+            self.wkUserScripts = await userScripts.loadWKUserScripts()
         }
     }
 
@@ -59,21 +67,26 @@ final public class UserContentController: WKUserContentController {
             self.removeAllContentRuleLists()
             self.removeAllUserScripts()
         }
-        didSet {
-            guard let contentBlockingAssets = contentBlockingAssets else { return }
-            self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
-            self.installUserScripts(contentBlockingAssets.userScripts)
+    }
+    private func installContentBlockingAssets(_ contentBlockingAssets: ContentBlockingAssets) {
+        // don‘t install ContentBlockingAssets (especially Message Handlers retaining `self`) after cleanUpBeforeClosing was called
+        guard assetsPublisherCancellable != nil else { return }
 
-            delegate?.userContentController(self,
-                                            didInstallContentRuleLists: contentBlockingAssets.globalRuleLists,
-                                            userScripts: contentBlockingAssets.userScripts,
-                                            updateEvent: contentBlockingAssets.updateEvent)
-        }
+        self.contentBlockingAssets = contentBlockingAssets
+
+        self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
+        self.installUserScripts(contentBlockingAssets.wkUserScripts, handlers: contentBlockingAssets.userScripts.userScripts)
+
+        delegate?.userContentController(self,
+                                        didInstallContentRuleLists: contentBlockingAssets.globalRuleLists,
+                                        userScripts: contentBlockingAssets.userScripts,
+                                        updateEvent: contentBlockingAssets.updateEvent)
     }
 
     private var localRuleLists = [String: WKContentRuleList]()
 
-    private var cancellable: AnyCancellable?
+    private var assetsPublisherCancellable: AnyCancellable?
+    private let scriptMessageHandler = PermanentScriptMessageHandler()
 
     public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
     where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
@@ -81,9 +94,12 @@ final public class UserContentController: WKUserContentController {
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
 
-        cancellable = assetsPublisher.receive(on: DispatchQueue.main)
-            .map(ContentBlockingAssets.init)
-            .assign(to: \.contentBlockingAssets, onWeaklyHeld: self)
+        assetsPublisherCancellable = assetsPublisher.sink { [weak self] content in
+            Task.detached { [weak self] in
+                let contentBlockingAssets = await ContentBlockingAssets(content: content)
+                await self?.installContentBlockingAssets(contentBlockingAssets)
+            }
+        }
 
 #if DEBUG
         // make sure delegate for UserScripts is set shortly after init
@@ -139,44 +155,45 @@ final public class UserContentController: WKUserContentController {
         super.removeAllContentRuleLists()
     }
 
-    private func installUserScripts(_ userScripts: UserScriptsProvider) {
-        userScripts.userScripts.forEach(self.addHandler)
-        userScripts.scripts.forEach(self.addUserScript)
+    private func installUserScripts(_ wkUserScripts: [WKUserScript], handlers: [UserScript]) {
+        handlers.forEach { self.addHandler($0) }
+        wkUserScripts.forEach(self.addUserScript)
     }
 
-    public override func removeAllUserScripts() {
-        super.removeAllUserScripts()
-        self.contentBlockingAssets?.userScripts.userScripts.forEach(self.removeHandler)
-    }
+    public func cleanUpBeforeClosing() {
+        self.removeAllUserScripts()
 
-    func addHandlerNoContentWorld(_ userScript: UserScript) {
-        for messageName in userScript.messageNames {
-            add(userScript, name: messageName)
+        if #available(macOS 11.0, *) {
+            self.removeAllScriptMessageHandlers()
+        } else {
+            self.scriptMessageHandler.registeredMessageNames.forEach(self.removeScriptMessageHandler)
         }
+
+        self.scriptMessageHandler.clear()
+        self.assetsPublisherCancellable = nil
+
+        self.removeAllContentRuleLists()
     }
 
     func addHandler(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
+            assert(scriptMessageHandler.messageHandler(for: messageName) == nil || type(of: scriptMessageHandler.messageHandler(for: messageName)!) == type(of: userScript),
+                   "\(scriptMessageHandler.messageHandler(for: messageName)!) already registered for message \(messageName)")
+
+            defer {
+                scriptMessageHandler.register(userScript, for: messageName)
+            }
+            guard !scriptMessageHandler.isMessageHandlerRegistered(for: messageName) else { continue }
+
             if #available(macOS 11.0, iOS 14.0, *) {
                 let contentWorld: WKContentWorld = userScript.getContentWorld()
-                if let handlerWithReply = userScript as? WKScriptMessageHandlerWithReply {
-                    addScriptMessageHandler(handlerWithReply, contentWorld: contentWorld, name: messageName)
+                if userScript is WKScriptMessageHandlerWithReply {
+                    addScriptMessageHandler(scriptMessageHandler, contentWorld: contentWorld, name: messageName)
                 } else {
-                    add(userScript, contentWorld: contentWorld, name: messageName)
+                    add(scriptMessageHandler, contentWorld: contentWorld, name: messageName)
                 }
             } else {
-                add(userScript, name: messageName)
-            }
-        }
-    }
-
-    func removeHandler(_ userScript: UserScript) {
-        userScript.messageNames.forEach {
-            if #available(macOS 11.0, iOS 14.0, *) {
-                let contentWorld: WKContentWorld = userScript.getContentWorld()
-                removeScriptMessageHandler(forName: $0, contentWorld: contentWorld)
-            } else {
-                removeScriptMessageHandler(forName: $0)
+                add(scriptMessageHandler, name: messageName)
             }
         }
     }
@@ -189,20 +206,100 @@ public extension UserContentController {
         contentBlockingAssets != nil
     }
 
-    @MainActor
-    func awaitContentBlockingAssetsInstalled() async {
-        guard !contentBlockingAssetsInstalled else { return }
+    // func awaitContentBlockingAssetsInstalled() async non-retaining `self`
+    var awaitContentBlockingAssetsInstalled: () async -> Void {
+        guard !contentBlockingAssetsInstalled else { return {} }
+        return { [weak self] in
+            // merge $contentBlockingAssets with Task cancellation completion event publisher
+            let taskCancellationSubject = PassthroughSubject<ContentBlockingAssets?, Error>()
+            guard let assetsPublisher = self?.$contentBlockingAssets else { return }
 
-        await withCheckedContinuation { c in
-            var cancellable: AnyCancellable!
-            cancellable = $contentBlockingAssets.receive(on: DispatchQueue.main).sink { assets in
-                guard assets != nil else { return }
-                withExtendedLifetime(cancellable) {
-                    c.resume()
-                    cancellable.cancel()
-                }
+            // throw an error when current Task is cancelled
+            let throwingPublisher = assetsPublisher
+                .mapError({ _ -> Error in })
+                .merge(with: taskCancellationSubject)
+                .receive(on: DispatchQueue.main)
+
+            // send completion to the throwingPublisher if current Task is cancelled
+            try? await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { c in
+                    var cancellable: AnyCancellable!
+                    cancellable = throwingPublisher.sink /* completion: */ { _ in
+                        withExtendedLifetime(cancellable) {
+                            c.resume(with: .failure(CancellationError()))
+                            cancellable.cancel()
+                        }
+                    } receiveValue: { assets in
+                        guard assets != nil else { return }
+                        withExtendedLifetime(cancellable) {
+                            c.resume(with: .success( () ))
+                            cancellable.cancel()
+                        }
+                    }
+                } as Void
+
+            } onCancel: {
+                taskCancellationSubject.send(completion: .failure(CancellationError()))
             }
-        } as Void
+        }
     }
 
 }
+
+/// Script Message Handler only added once per UserScriptController for all the Message Names (to avoid race conditions for re-added User Scripts)
+private class PermanentScriptMessageHandler: NSObject, WKScriptMessageHandler, WKScriptMessageHandlerWithReply {
+
+    private struct WeakScriptMessageHandlerBox {
+        weak var handler: WKScriptMessageHandler?
+    }
+    private var registeredMessageHandlers = [String: WeakScriptMessageHandlerBox]()
+
+    var registeredMessageNames: [String] {
+        Array(registeredMessageHandlers.keys)
+    }
+
+    func clear() {
+        self.registeredMessageHandlers.removeAll()
+    }
+
+    func isMessageHandlerRegistered(for messageName: String) -> Bool {
+        return self.registeredMessageHandlers[messageName] != nil
+    }
+
+    func messageHandler(for messageName: String) -> WKScriptMessageHandler? {
+        return self.registeredMessageHandlers[messageName]?.handler
+    }
+
+    func register(_ handler: WKScriptMessageHandler, for messageName: String) {
+        self.registeredMessageHandlers[messageName] = .init(handler: handler)
+    }
+
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let box = self.registeredMessageHandlers[message.messageName] else {
+            assertionFailure("no registered message handler for \(message.messageName)")
+            return
+        }
+        guard let handler = box.handler else {
+            assertionFailure("handler for \(message.messageName) has been unregistered")
+            return
+        }
+        handler.userContentController(userContentController, didReceive: message)
+    }
+
+    @available(macOS 11.0, iOS 14.0, *)
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping (Any?, String?) -> Void) {
+        guard let box = self.registeredMessageHandlers[message.messageName] else {
+            assertionFailure("no registered message handler for \(message.messageName)")
+            return
+        }
+        guard let handler = box.handler else {
+            assertionFailure("handler for \(message.messageName) has been unregistered")
+            return
+        }
+        assert(handler is WKScriptMessageHandlerWithReply)
+        (handler as? WKScriptMessageHandlerWithReply)?.userContentController(userContentController, didReceive: message, replyHandler: replyHandler)
+    }
+
+}
+
+// swiftlint:enable line_length

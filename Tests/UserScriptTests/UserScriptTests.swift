@@ -44,19 +44,19 @@ class UserScriptTests: XCTestCase {
         }
     }
 
-    func testWhenWKUserScriptCreatedValuesInitializedCorrectly() {
+    func testWhenWKUserScriptCreatedValuesInitializedCorrectly() async {
         let src = "var val = 'Test';\n"
         let us = TestUserScript(val: "Test", injectionTime: .atDocumentStart, forMainFrameOnly: true, messageNames: [])
-        let script = us.makeWKUserScript()
+        let script = await us.makeWKUserScript().wkUserScript
         XCTAssertTrue(script.source.contains(src))
         XCTAssertEqual(script.injectionTime, .atDocumentStart)
         XCTAssertEqual(script.isForMainFrameOnly, true)
     }
 
-    func testWhenWKUserScriptCreatedValuesInitializedCorrectly2() {
+    func testWhenWKUserScriptCreatedValuesInitializedCorrectly2() async {
         let src = "var val = 'test2';\n"
         let us = TestUserScript(val: "test2", injectionTime: .atDocumentEnd, forMainFrameOnly: false, messageNames: [])
-        let script = us.makeWKUserScript()
+        let script = await us.makeWKUserScript().wkUserScript
         XCTAssertTrue(script.source.contains(src))
         XCTAssertEqual(script.injectionTime, .atDocumentEnd)
         XCTAssertEqual(script.isForMainFrameOnly, false)

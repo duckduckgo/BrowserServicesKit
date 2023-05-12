@@ -19,12 +19,13 @@
 
 import WebKit
 
+@MainActor
 public protocol StaticUserScript: UserScript {
 
-    static var source: String { get }
-    static var injectionTime: WKUserScriptInjectionTime { get }
-    static var forMainFrameOnly: Bool { get }
-    static var requiresRunInPageContentWorld: Bool { get }
+    nonisolated static var source: String { get }
+    nonisolated static var injectionTime: WKUserScriptInjectionTime { get }
+    nonisolated static var forMainFrameOnly: Bool { get }
+    nonisolated static var requiresRunInPageContentWorld: Bool { get }
 
     static var script: WKUserScript { get }
 
@@ -32,28 +33,20 @@ public protocol StaticUserScript: UserScript {
 
 public extension StaticUserScript {
 
-    var source: String {
+    nonisolated var source: String {
         Self.source
     }
 
-    var injectionTime: WKUserScriptInjectionTime {
+    nonisolated var injectionTime: WKUserScriptInjectionTime {
         Self.injectionTime
     }
 
-    var forMainFrameOnly: Bool {
+    nonisolated var forMainFrameOnly: Bool {
         Self.forMainFrameOnly
     }
 
-    var requiresRunInPageContentWorld: Bool {
+    nonisolated var requiresRunInPageContentWorld: Bool {
         Self.requiresRunInPageContentWorld
-    }
-
-    func makeWKUserScript() -> WKUserScript {
-        Self.script
-    }
-
-    static func makeWKUserScript() -> WKUserScript {
-        return self.makeWKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
     }
 
 }

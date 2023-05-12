@@ -21,7 +21,6 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
-// swiftlint:disable file_length
 @MainActor
 public final class Navigation {
 
@@ -46,6 +45,7 @@ public final class Navigation {
     public var redirectHistory: [NavigationAction] {
         Array(navigationActions.dropLast())
     }
+    /// contains NavigationResponse if it was received during navigation
     public private(set) var navigationResponse: NavigationResponse?
 
     init(identity: NavigationIdentity, responders: ResponderChain, state: NavigationState, redirectHistory: [NavigationAction]? = nil, isCurrent: Bool, isCommitted: Bool = false) {
@@ -57,15 +57,18 @@ public final class Navigation {
         self.isCurrent = isCurrent
     }
 
+    /// latest NavigationAction request
     public var request: URLRequest {
         guard !navigationActions.isEmpty else { return URLRequest(url: .empty) }
         return navigationAction.request
     }
 
+    /// latest NavigationAction request URL
     public var url: URL {
         request.url ?? .empty
     }
 
+    /// decidePolicyFor(navigationAction..) approved with .allow
     public var isApproved: Bool {
         switch state {
         case .expected, .navigationActionReceived:
@@ -76,6 +79,7 @@ public final class Navigation {
         }
     }
 
+    /// is Finished or Failed
     public var isCompleted: Bool {
         return state.isFinished || state.isFailed
     }
@@ -89,7 +93,7 @@ public protocol NavigationProtocol: AnyObject {
 extension Navigation: NavigationProtocol {}
 
 @MainActor
-public extension NavigationProtocol {
+public extension NavigationProtocol { // Navigation or ExpectedNavigation
 
     /** override responder chain for Navigation Events with defined ownership and nullability:
      ```
@@ -181,11 +185,27 @@ public struct NavigationIdentity: Equatable {
 extension Navigation {
 
     func associate(with wkNavigation: WKNavigation?) {
-        guard let wkNavigation, wkNavigation.navigation == nil else { return }
+        guard let wkNavigation, wkNavigation.navigation !== self else { return }
 
         // ensure Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
-        WKNavigationLifetimeTracker(navigation: self).bind(to: wkNavigation)
+        wkNavigation.onDeinit { [self] in
+            DispatchQueue.main.async { [self] in
+                self.checkNavigationCompletion()
+            }
+        }
         wkNavigation.navigation = self
+    }
+
+    /// ensure the Navigation is completed when WKNavigation is deallocated
+    private func checkNavigationCompletion() {
+        guard !isCompleted, isApproved else { return }
+
+        let error = WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled))
+        self.state = .failed(error)
+
+        for responder in navigationResponders {
+            responder.navigation(self, didFailWith: error)
+        }
     }
 
     private func resolve(with wkNavigation: WKNavigation?) {
@@ -210,6 +230,7 @@ extension Navigation {
             self.state = .navigationActionReceived
 
         case .started:
+            // receiving another NavigationAction when already started means server redirect
             willPerformServerRedirect(with: navigationAction)
 
         case .navigationActionReceived, .approved, .responseReceived, .finished, .failed, .willPerformClientRedirect, .redirected:
@@ -358,42 +379,9 @@ extension Navigation {
 
 }
 
-// ensures Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
-@MainActor
-final class WKNavigationLifetimeTracker: NSObject {
-    private let navigation: Navigation
-    private static let wkNavigationLifetimeKey = UnsafeRawPointer(bitPattern: "wkNavigationLifetimeKey".hashValue)!
-
-    init(navigation: Navigation) {
-        self.navigation = navigation
-    }
-
-    func bind(to wkNavigation: NSObject) {
-        objc_setAssociatedObject(wkNavigation, Self.wkNavigationLifetimeKey, self, .OBJC_ASSOCIATION_RETAIN)
-    }
-
-    private static func checkNavigationCompletion(_ navigation: Navigation) {
-        guard !navigation.isCompleted, navigation.isApproved else { return }
-
-        let error = WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled))
-        navigation.state = .failed(error)
-
-        for responder in navigation.navigationResponders {
-            responder.navigation(navigation, didFailWith: error)
-        }
-    }
-
-    deinit {
-        DispatchQueue.main.async { [navigation] in
-            Self.checkNavigationCompletion(navigation)
-        }
-    }
-
-}
-
 extension Navigation: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationAction.navigationType)>"
+        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")>"
     }
 }
 

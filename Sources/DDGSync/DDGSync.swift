@@ -55,17 +55,34 @@ public class DDGSync: DDGSyncing {
         updateIsAuthenticated()
     }
 
-    public func login(recoveryKey: String, deviceName: String, deviceType: String) async throws {
-        guard let recoveryKeyData = Data(base64Encoded: recoveryKey) else {
-            throw SyncError.invalidRecoveryKey
-        }
+    public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
-        let result = try await dependencies.account.login(recoveryKey: recoveryKeyData, deviceName: deviceName, deviceType: deviceType)
+        let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
         updateIsAuthenticated()
+    }
+
+    public func remoteConnect() throws -> RemoteConnecting {
+        guard try dependencies.secureStore.account() == nil else {
+            throw SyncError.accountAlreadyExists
+        }
+        let info = try dependencies.crypter.prepareForConnect()
+        return try dependencies.createRemoteConnector(info)
+    }
+
+    public func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws {
+        guard try dependencies.secureStore.account() != nil else {
+            throw SyncError.accountNotFound
+        }
+
+        do {
+            try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
+        } catch {
+            try handleUnauthenticated(error)
+        }
     }
 
     public func sender() throws -> UpdatesSending {
@@ -85,16 +102,68 @@ public class DDGSync: DDGSyncing {
         guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
             throw SyncError.accountNotFound
         }
-        try await disconnect(deviceId: deviceId)
+        do {
+            try await disconnect(deviceId: deviceId)
+            try dependencies.secureStore.removeAccount()
+        } catch {
+            try handleUnauthenticated(error)
+        }
+        updateIsAuthenticated()
     }
 
     public func disconnect(deviceId: String) async throws {
         guard let token = try dependencies.secureStore.account()?.token else {
             throw SyncError.noToken
         }
-        try await dependencies.account.logout(deviceId: deviceId, token: token)
-        try dependencies.secureStore.removeAccount()
-        updateIsAuthenticated()
+        do {
+            try await dependencies.account.logout(deviceId: deviceId, token: token)
+        } catch {
+            try handleUnauthenticated(error)
+        }
+    }
+
+    public func fetchDevices() async throws -> [RegisteredDevice] {
+        guard let account = try dependencies.secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        do {
+            return try await dependencies.account.fetchDevicesForAccount(account)
+        } catch {
+            try handleUnauthenticated(error)
+        }
+
+        return []
+    }
+
+    public func updateDeviceName(_ name: String) async throws -> [RegisteredDevice] {
+        guard let account = try dependencies.secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        do {
+            let result = try await dependencies.account.refreshToken(account, deviceName: name)
+            try dependencies.secureStore.persistAccount(result.account)
+            return result.devices
+        } catch {
+            try handleUnauthenticated(error)
+        }
+
+        return []
+    }
+
+    public func deleteAccount() async throws {
+        guard let account = try dependencies.secureStore.account() else {
+            throw SyncError.accountNotFound
+        }
+
+        do {
+            try await dependencies.account.deleteAccount(account)
+            try dependencies.secureStore.removeAccount()
+            updateIsAuthenticated()
+        } catch {
+            try handleUnauthenticated(error)
+        }
     }
 
     // MARK: -
@@ -110,5 +179,22 @@ public class DDGSync: DDGSyncing {
 
     private func updateIsAuthenticated() {
         isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
+    }
+
+    private func handleUnauthenticated(_ error: Error) throws {
+        guard let syncError = error as? SyncError,
+              case .unexpectedStatusCode(let statusCode) = syncError,
+                statusCode == 401 else {
+            throw error
+        }
+
+        do {
+            try self.dependencies.secureStore.removeAccount()
+        } catch {
+            // We should probably log this, maybe fire a pixel
+            print(error)
+        }
+        updateIsAuthenticated()
+        return
     }
 }

@@ -549,7 +549,7 @@
 
     function processPage () {
         [...document.scripts].filter((el) => hasNotSeen(el.src)).forEach((el) => {
-            if (shouldBlock(el.src, 'SCRIPT', el)) {
+            if (shouldBlock(el.src, 'script', el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         });
@@ -557,18 +557,18 @@
             // If the image's natural width is zero, then it has not loaded so we
             // can assume that it may have been blocked.
             if (el.naturalWidth === 0) {
-                if (shouldBlock(el.src, 'IMG', el)) {
+                if (shouldBlock(el.src, 'image', el)) {
                     duckduckgoDebugMessaging.log('blocking load')
                 }
             }
         });
         [...document.querySelectorAll('link')].filter((el) => hasNotSeen(el.href)).forEach((el) => {
-            if (shouldBlock(el.href, 'LINK', el)) {
+            if (shouldBlock(el.href, el.rel, el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         });
         [...document.querySelectorAll('iframe')].filter((el) => hasNotSeen(el.src)).forEach((el) => {
-            if (shouldBlock(el.src, 'IFRAME', el)) {
+            if (shouldBlock(el.src, 'subdocument', el)) {
                 duckduckgoDebugMessaging.log('blocking load')
             }
         })
