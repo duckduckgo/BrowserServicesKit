@@ -50,6 +50,11 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         return _accounts
     }
 
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+        self._forDomain.append(eTLDplus1)
+        return _accounts
+    }
+
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }

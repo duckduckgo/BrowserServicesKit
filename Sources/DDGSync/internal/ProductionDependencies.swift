@@ -53,12 +53,20 @@ struct ProductionDependencies: SyncDependencies {
         responseHandler = ResponseHandler(persistence: persistence, crypter: crypter)
     }
 
+    func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {
+        return try RemoteConnector(crypter: crypter, api: api, endpoints: endpoints, connectInfo: info)
+    }
+
     func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending {
         return UpdatesSender(fileStorageUrl: fileStorageUrl, persistence: persistence, dependencies: self)
     }
 
     func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching {
         return UpdatesFetcher(persistence: persistence, dependencies: self)
+    }
+
+    func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
+        return RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
     }
 
 }

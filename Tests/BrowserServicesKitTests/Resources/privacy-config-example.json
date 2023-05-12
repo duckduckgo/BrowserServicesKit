@@ -154,9 +154,27 @@
                 "stringValue": "value",
                 "numericalValue": 1
             },
+            "features": {
+                "disabledSubfeature": {
+                    "state": "disabled"
+                },
+                "minSupportedSubfeature": {
+                    "state": "enabled",
+                    "minSupportedVersion": "1.36.0"
+                },
+                "enabledSubfeature": {
+                    "state": "enabled"
+                },
+                "internalSubfeature": {
+                    "state": "internal"
+                }
+            }
         },
         "windowsWaitlist": {
             "state": "enabled"
+        },
+        "internalFeature": {
+            "state": "internal"
         }
     },
     "unprotectedTemporary": [

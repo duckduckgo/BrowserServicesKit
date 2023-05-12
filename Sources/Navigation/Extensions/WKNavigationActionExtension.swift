@@ -17,7 +17,6 @@
 //
 
 import Common
-import os.log
 import WebKit
 
 // swiftlint:disable line_length
@@ -175,3 +174,4 @@ extension WKNavigationActionPolicy {
     }()
 
 }
+// swiftlint:enable line_length

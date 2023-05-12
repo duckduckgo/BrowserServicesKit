@@ -18,8 +18,8 @@
 //
 
 import Foundation
-import OSLog
 import Common
+import os.log
 
 public protocol AdClickAttributionDetectionDelegate: AnyObject {
     
@@ -39,7 +39,10 @@ public class AdClickAttributionDetection {
     private var state = State.idle
     
     private let tld: TLD
-    private let log: OSLog
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
     
@@ -49,12 +52,12 @@ public class AdClickAttributionDetection {
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
                 errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                log: OSLog = .disabled) {
+                log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.attributionFeature = feature
         self.tld = tld
         self.eventReporting = eventReporting
         self.errorReporting = errorReporting
-        self.log = log
+        self.getLog = log
     }
     
     // MARK: - Public API

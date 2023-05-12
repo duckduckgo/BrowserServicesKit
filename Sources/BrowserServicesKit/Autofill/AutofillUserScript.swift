@@ -17,8 +17,8 @@
 //  limitations under the License.
 //
 
+import Common
 import WebKit
-import os.log
 import UserScript
 
 public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncryption {

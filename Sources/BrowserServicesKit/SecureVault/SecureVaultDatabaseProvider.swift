@@ -16,9 +16,9 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import GRDB
-import os.log
 
 protocol SecureVaultDatabaseProvider {
 
@@ -28,6 +28,7 @@ protocol SecureVaultDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
     func notes() throws -> [SecureVaultModels.Note]
@@ -127,10 +128,21 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    /// To be removed once macOS has been updated to use subdomain matching as per
+    /// https://app.asana.com/0/1203822806345703/1204132671693421/f
+    @available(*, deprecated, message: "use websiteAccountsForTopLevelDomain instead")
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
                 .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
+                .fetchAll($0)
+        }
+    }
+
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+        return try db.read {
+            return try SecureVaultModels.WebsiteAccount
+                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%\(eTLDplus1)"))
                 .fetchAll($0)
         }
     }
