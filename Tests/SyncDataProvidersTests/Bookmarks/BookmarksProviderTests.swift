@@ -146,7 +146,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     // MARK: - Initial Sync
 
-    func testThatInitialSyncIntoEmptyDatabaseClearsModifiedAtFromAllObjects() async throws {
+    func testThatInitialSyncIntoEmptyDatabaseClearsModifiedAtFromAllReceivedObjects() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let received: [Syncable] = [
@@ -238,8 +238,11 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
+        var willSaveCallCount = 0
+
         var bookmarkModificationDate: Date?
         provider.willSaveContextAfterApplyingSyncResponse = {
+            willSaveCallCount += 1
             if bookmarkModificationDate != nil {
                 return
             }
@@ -254,6 +257,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
         try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
+        XCTAssertEqual(willSaveCallCount, 2)
+
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -265,7 +270,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     // MARK: - Regular Sync
 
-    func testReceivingUpdateToDeletedObject() async throws {
+    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedThenTheObjectIsNotDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -285,7 +290,37 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test2", id: "1")
+            })
+        }
+    }
+
+    func testWhenObjectWasDeletedLocallyAfterStartingSyncAndAnUpdateIsReceivedThenTheUpdateIsIgnored() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let modifiedAt = Date()
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", modifiedAt: modifiedAt, isDeleted: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        try await provider.handleSyncResponse(sent: [], received: received, clientTimestamp: modifiedAt.addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()
@@ -294,9 +329,10 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
-    func testReceivingUpdateToDeletedObject2() async throws {
+    func testWhenObjectWasSentAndThenDeletedLocallyAndAnUpdateIsReceivedThenTheObjectIsDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
+        let modifiedAt = Date()
         let bookmarkTree = BookmarkTree {
             Bookmark("test", id: "1")
         }
@@ -320,7 +356,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()

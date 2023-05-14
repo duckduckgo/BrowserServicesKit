@@ -227,6 +227,10 @@ extension XCTestCase {
             var thisTreeQueue: [BookmarkEntity] = [thisFolder]
 
             while !tempTreeQueue.isEmpty {
+                guard !thisTreeQueue.isEmpty else {
+                    XCTFail("No more children in the tree, while \(tempTreeQueue.count) (ids: \(tempTreeQueue.compactMap(\.uuid))) still expected", file: file, line: line)
+                    return
+                }
                 let tempNode = tempTreeQueue.removeFirst()
                 let thisNode = thisTreeQueue.removeFirst()
 
