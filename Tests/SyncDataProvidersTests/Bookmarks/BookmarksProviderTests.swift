@@ -125,6 +125,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
             bookmarkTree.createEntities(in: context)
             try! context.save()
         }
@@ -270,7 +271,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     // MARK: - Regular Sync
 
-    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedThenTheObjectIsNotDeleted() async throws {
+    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedThenObjectIsNotDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -297,6 +298,68 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark("test2", id: "1")
+            })
+        }
+    }
+
+    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedWithoutParentFolderThenObjectIsNotDeleted() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", isDeleted: true)
+        }
+
+        let received: [Syncable] = [
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test2", id: "1")
+            })
+        }
+    }
+
+    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedThenObjectIsNotDeletedAndIsNotMovedWithinFolder() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", isDeleted: true)
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .bookmark(id: "1", title: "test2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test2", id: "1")
+                Bookmark(id: "2")
             })
         }
     }

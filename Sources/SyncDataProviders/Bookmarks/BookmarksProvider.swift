@@ -146,7 +146,6 @@ public final class BookmarksProvider: DataProviding {
             context.performAndWait {
                 while true {
 
-                    let idsOfItemsThatRetainModifiedAt = cleanUpSentItems(sent, clientTimestamp: clientTimestamp, in: context)
                     let responseHandler = BookmarksResponseHandler(
                         received: received,
                         clientTimestamp: clientTimestamp,
@@ -154,6 +153,7 @@ public final class BookmarksProvider: DataProviding {
                         crypter: crypter,
                         deduplicateEntities: false
                     )
+                    let idsOfItemsThatRetainModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     responseHandler.processReceivedBookmarks()
 
 #if DEBUG
@@ -190,7 +190,7 @@ public final class BookmarksProvider: DataProviding {
 
     // MARK: - Internal
 
-    func cleanUpSentItems(_ sent: [Syncable], clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
+    func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
         if sent.isEmpty {
             return []
         }
@@ -206,7 +206,8 @@ public final class BookmarksProvider: DataProviding {
                 }
                 continue
             }
-            if bookmark.isPendingDeletion {
+            let isLocalChangeRejectedBySync: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
+            if bookmark.isPendingDeletion, !isLocalChangeRejectedBySync {
                 context.delete(bookmark)
             } else {
                 bookmark.modifiedAt = nil

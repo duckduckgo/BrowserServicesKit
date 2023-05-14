@@ -110,6 +110,7 @@ extension BookmarkEntity {
             return
         }
 
+        cancelDeletion()
         modifiedAt = nil
 
         if let encryptedTitle = payload["title"] as? String {

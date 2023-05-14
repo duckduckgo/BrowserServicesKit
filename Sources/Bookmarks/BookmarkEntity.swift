@@ -177,6 +177,10 @@ public class BookmarkEntity: NSManagedObject {
             }
         }
     }
+
+    public func cancelDeletion() {
+        isPendingDeletion = false
+    }
 }
 
 // MARK: Validation
