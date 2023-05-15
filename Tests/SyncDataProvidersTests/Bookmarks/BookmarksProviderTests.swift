@@ -192,7 +192,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["4"]),
-            .folder(id: "4", title: "Folder", children: ["5", "6"]),
+            .folder("Folder", id: "4", children: ["5", "6"]),
             .bookmark(id: "5"),
             .bookmark(id: "6")
         ]
@@ -231,7 +231,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test")
+            .bookmark("test", id: "1")
         ]
 
         context.performAndWait {
@@ -280,7 +280,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -310,7 +310,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let received: [Syncable] = [
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -341,7 +341,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let received: [Syncable] = [
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -374,7 +374,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -402,7 +402,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -437,7 +437,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -477,7 +477,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {

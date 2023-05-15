@@ -340,7 +340,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -368,7 +368,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .bookmark(id: "1", title: "test2")
+            .bookmark("test2", id: "1")
         ]
 
         context.performAndWait {
@@ -410,7 +410,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .folder(id: "3", children: ["5", "4"]),
-            .bookmark(id: "5", title: "title", url: "url")
+            .bookmark("title", id: "5", url: "url")
         ]
 
         context.performAndWait {
@@ -445,7 +445,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .folder(id: "6", children: ["5"]),
-            .bookmark(id: "5", title: "title", url: "url")
+            .bookmark("title", id: "5", url: "url")
         ]
 
         context.performAndWait {
@@ -498,7 +498,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
             .folder(id: "8", children: ["10", "9"]),
             .folder(id: "11", children: ["12", "14", "13"]),
             .folder(id: "14", children: ["18", "15", "16"]),
-            .bookmark(id: "18", title: "title16", url: "url16")
+            .bookmark("title16", id: "18", url: "url16")
         ]
 
         context.performAndWait {
@@ -543,7 +543,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         }
 
         let received: [Syncable] = [
-            .folder(id: "1", title: "Folder", children: ["2", "3", "5", "6"]),
+            .folder("Folder", id: "1", children: ["2", "3", "5", "6"]),
             .bookmark(id: "5"),
             .bookmark(id: "6")
         ]

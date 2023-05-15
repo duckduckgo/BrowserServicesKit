@@ -29,7 +29,7 @@ extension Syncable {
         .folder(id: BookmarkEntity.Constants.favoritesFolderID, children: favorites)
     }
 
-    static func bookmark(id: String, title: String? = nil, url: String? = nil, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
+    static func bookmark(_ title: String? = nil, id: String, url: String? = nil, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
         var json: [String: Any] = [
             "id": id,
             "title": title ?? id,
@@ -42,7 +42,7 @@ extension Syncable {
         return .init(jsonObject: json)
     }
 
-    static func folder(id: String, title: String? = nil, children: [String] = [], lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
+    static func folder(_ title: String? = nil, id: String, children: [String] = [], lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
         var json: [String: Any] = [
             "id": id,
             "title": title ?? id,

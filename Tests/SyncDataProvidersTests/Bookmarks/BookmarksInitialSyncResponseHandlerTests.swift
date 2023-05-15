@@ -130,7 +130,7 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["1"]),
-            .folder(id: "1", title: "Folder", children: ["4"]),
+            .folder("Folder", id: "1", children: ["4"]),
             .bookmark(id: "4")
         ]
 
@@ -207,7 +207,7 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["3", "remote2", "4"]),
-            .bookmark(id: "remote2", title: "2"),
+            .bookmark("2", id: "remote2"),
             .bookmark(id: "3"),
             .bookmark(id: "4")
         ]
@@ -284,7 +284,7 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
         let received: [Syncable] = [
             .rootFolder(children: ["3", "remote2", "4"]),
             .bookmark(id: "1", isDeleted: true),
-            .bookmark(id: "remote2", title: "2"),
+            .bookmark("2", id: "remote2"),
             .bookmark(id: "3"),
             .bookmark(id: "4")
         ]
@@ -311,7 +311,7 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["2"]),
-            .bookmark(id: "2", title: "name", url: "url")
+            .bookmark("name", id: "2", url: "url")
         ]
 
         context.performAndWait {
@@ -341,7 +341,7 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .folder(id: "1", children: ["2"]),
             .folder(id: "2", children: ["3"]),
             .folder(id: "3", children: ["5"]),
-            .bookmark(id: "5", title: "name", url: "url")
+            .bookmark("name", id: "5", url: "url")
         ]
 
         context.performAndWait {
@@ -372,7 +372,7 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .rootFolder(children: ["1", "2"]),
             .folder(id: "1"),
             .folder(id: "2", children: ["3"]),
-            .bookmark(id: "3", title: "name", url: "url")
+            .bookmark("name", id: "3", url: "url")
         ]
 
         context.performAndWait {
@@ -402,9 +402,9 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["remote1"]),
-            .folder(id: "remote1", title: "1st level", children: ["remote2"]),
-            .folder(id: "remote2", title: "2nd level", children: ["remote5"]),
-            .folder(id: "remote5", title: "Duplicated folder", children: ["remote6"]),
+            .folder("1st level", id: "remote1", children: ["remote2"]),
+            .folder("2nd level", id: "remote2", children: ["remote5"]),
+            .folder("Duplicated folder", id: "remote5", children: ["remote6"]),
             .bookmark(id: "remote6")
         ]
 
@@ -444,9 +444,9 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["remote1"]),
-            .folder(id: "remote1", title: "1", children: ["remote2"]),
-            .folder(id: "remote2", title: "2", children: ["remote9"]),
-            .folder(id: "remote9", title: "Duplicated folder", children: ["remote10", "remote11", "remote12"]),
+            .folder("1", id: "remote1", children: ["remote2"]),
+            .folder("2", id: "remote2", children: ["remote9"]),
+            .folder("Duplicated folder", id: "remote9", children: ["remote10", "remote11", "remote12"]),
             .bookmark(id: "remote10"),
             .bookmark(id: "remote11"),
             .folder(id: "remote12", children: ["remote13"]),
@@ -488,8 +488,8 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["11", "12"]),
-            .folder(id: "11", title: "1"),
-            .bookmark(id: "12", title: "2")
+            .folder("1", id: "11"),
+            .bookmark("2", id: "12")
         ]
 
         context.performAndWait {
@@ -535,25 +535,25 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["101", "115", "116", "119"]),
-            .folder(id: "101", title: "01", children: ["102", "104", "105", "114"]),
-            .folder(id: "102", title: "02", children: ["103"]),
-            .bookmark(id: "103", title: "03"),
-            .bookmark(id: "104", title: "04"),
-            .folder(id: "105", title: "05", children: ["106", "107", "112", "113"]),
-            .bookmark(id: "106", title: "06"),
-            .folder(id: "107", title: "07", children: ["108", "109", "110", "111"]),
-            .folder(id: "108", title: "08"),
-            .bookmark(id: "109", title: "09"),
-            .bookmark(id: "110", title: "10"),
-            .bookmark(id: "111", title: "11"),
-            .bookmark(id: "112", title: "12"),
-            .bookmark(id: "113", title: "13"),
-            .bookmark(id: "114", title: "14"),
-            .bookmark(id: "115", title: "15"),
-            .folder(id: "116", title: "16", children: ["117"]),
-            .folder(id: "117", title: "17", children: ["118"]),
-            .bookmark(id: "118", title: "18"),
-            .bookmark(id: "119", title: "19")
+            .folder("01", id: "101", children: ["102", "104", "105", "114"]),
+            .folder("02", id: "102", children: ["103"]),
+            .bookmark("03", id: "103"),
+            .bookmark("04", id: "104"),
+            .folder("05", id: "105", children: ["106", "107", "112", "113"]),
+            .bookmark("06", id: "106"),
+            .folder("07", id: "107", children: ["108", "109", "110", "111"]),
+            .folder("08", id: "108"),
+            .bookmark("09", id: "109"),
+            .bookmark("10", id: "110"),
+            .bookmark("11", id: "111"),
+            .bookmark("12", id: "112"),
+            .bookmark("13", id: "113"),
+            .bookmark("14", id: "114"),
+            .bookmark("15", id: "115"),
+            .folder("16", id: "116", children: ["117"]),
+            .folder("17", id: "117", children: ["118"]),
+            .bookmark("18", id: "118"),
+            .bookmark("19", id: "119")
         ]
 
         context.performAndWait {
