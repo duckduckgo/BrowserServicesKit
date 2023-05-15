@@ -364,34 +364,6 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
-    func testWhenObjectWasDeletedLocallyAfterStartingSyncAndAnUpdateIsReceivedThenTheUpdateIsIgnored() async throws {
-        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-        let modifiedAt = Date()
-        let bookmarkTree = BookmarkTree {
-            Bookmark("test", id: "1", modifiedAt: modifiedAt, isDeleted: true)
-        }
-
-        let received: [Syncable] = [
-            .rootFolder(children: ["1"]),
-            .bookmark("test2", id: "1")
-        ]
-
-        context.performAndWait {
-            BookmarkUtils.prepareFoldersStructure(in: context)
-            bookmarkTree.createEntities(in: context)
-            try! context.save()
-        }
-
-        try await provider.handleSyncResponse(sent: [], received: received, clientTimestamp: modifiedAt.addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
-
-        context.performAndWait {
-            context.refreshAllObjects()
-            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            XCTAssertTrue(rootFolder.childrenArray.isEmpty)
-        }
-    }
-
     func testWhenObjectWasSentAndThenDeletedLocallyAndAnUpdateIsReceivedThenTheObjectIsDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
