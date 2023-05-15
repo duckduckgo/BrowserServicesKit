@@ -177,7 +177,7 @@ class EngineTests: XCTestCase {
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
     }
 
-    func testThatMultipleDataProvidersGetSerializedIntoRequestPayload() async throws {
+    func testThatForMultipleDataProvidersRequestsSeparateRequstsAreSentConcurrently() async throws {
         var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
         dataProvider1.lastSyncTimestamp = "1234"
         dataProvider1._fetchChangedObjects = { _ in
@@ -263,6 +263,44 @@ class EngineTests: XCTestCase {
         }
 
         XCTAssertEqual(payloadCount, 0)
+    }
+
+    func testThatForMultipleDataProvidersErrorsFromAllFeaturesAreThrown() async throws {
+
+        struct DataProviderError: Error, Equatable {
+            let feature: Feature
+        }
+
+        let feature1 = Feature(name: "bookmarks")
+        var dataProvider1 = DataProvidingMock(feature: feature1)
+        dataProvider1.lastSyncTimestamp = "1234"
+        dataProvider1._fetchChangedObjects = { _ in throw DataProviderError(feature: feature1) }
+
+        let feature2 = Feature(name: "settings")
+        var dataProvider2 = DataProvidingMock(feature: feature2)
+        dataProvider2.lastSyncTimestamp = "5678"
+        dataProvider2._fetchChangedObjects = { _ in throw DataProviderError(feature: feature2) }
+
+        let feature3 = Feature(name: "autofill")
+        var dataProvider3 = DataProvidingMock(feature: feature3)
+        dataProvider3.lastSyncTimestamp = "9012"
+        dataProvider3._fetchChangedObjects = { _ in [] }
+
+        let engine = Engine(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+
+        request.result = .init(data: "{\"autofill\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
+
+        await assertThrowsAnyError({
+            try await engine.sync(fetchOnly: false)
+        }, errorHandler: { error in
+            guard let syncOperationError = error as? SyncOperationError else {
+                XCTFail("Unexpected error type: \(type(of: error))")
+                return
+            }
+            XCTAssertEqual(syncOperationError.perFeatureErrors.count, 2)
+            XCTAssertEqual(syncOperationError.perFeatureErrors[feature1] as? DataProviderError, DataProviderError(feature: feature1))
+            XCTAssertEqual(syncOperationError.perFeatureErrors[feature2] as? DataProviderError, DataProviderError(feature: feature2))
+        })
     }
 
     func testThatSentModelsAreEchoedInResults() async throws {

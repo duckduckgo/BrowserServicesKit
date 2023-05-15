@@ -22,7 +22,7 @@ import Combine
 import Common
 import os
 
-struct SyncFeatureError: Error {
+struct FeatureError: Error {
     let feature: Feature
     let underlyingError: Error
 }
@@ -30,7 +30,7 @@ struct SyncFeatureError: Error {
 struct SyncOperationError: Error {
     let perFeatureErrors: [Feature: Error]
 
-    init(featureErrors: [SyncFeatureError]) {
+    init(featureErrors: [FeatureError]) {
         perFeatureErrors = featureErrors.reduce(into: .init() , { partialResult, featureError in
             partialResult[featureError.feature] = featureError.underlyingError
         })
@@ -41,13 +41,13 @@ struct SyncOperationError: Error {
  * Internal interface for sync engine.
  */
 protocol EngineProtocol {
-    /// Used for passing data to sync
+    /// Used for passing data and receiving results to/from sync
     var dataProviders: [Feature: DataProviding] { get }
-    /// Called to start sync
+    /// Called to start first sync
     func setUpAndStartFirstSync() async
     /// Called to start sync
     func startSync() async
-    /// Emits events when sync each operation ends
+    /// Emits events when sync each operation finishes
     var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }
 
@@ -76,11 +76,9 @@ actor Engine: EngineProtocol {
         endpoints: Endpoints,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
-        var providersDictionary = [Feature: DataProviding]()
-        for provider in dataProviders {
-            providersDictionary[provider.feature] = provider
-        }
-        self.dataProviders = providersDictionary
+        self.dataProviders = dataProviders.reduce(into: .init(), { partialResult, provider in
+            partialResult[provider.feature] = provider
+        })
         self.storage = storage
         self.crypter = crypter
         self.getLog = log
@@ -166,15 +164,17 @@ actor Engine: EngineProtocol {
                     } catch {
                         os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error: error)
-                        throw SyncFeatureError(feature: feature, underlyingError: error)
+                        throw FeatureError(feature: feature, underlyingError: error)
                     }
                 }
             }
-            var errors: [SyncFeatureError] = []
-            do {
-                for try await _ in group {}
-            } catch let error as SyncFeatureError {
-                errors.append(error)
+
+            var errors: [FeatureError] = []
+
+            while let result = await group.nextResult() {
+                if case .failure(let error) = result, let featureError = error as? FeatureError {
+                    errors.append(featureError)
+                }
             }
 
             if !errors.isEmpty {
