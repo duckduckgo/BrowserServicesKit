@@ -165,6 +165,8 @@ struct JsonToRemoteMessageModelMapper {
             return .ddgAnnounce
         case .criticalUpdate:
             return .criticalUpdate
+        case .macComputer:
+            return .macComputer
         case .none:
             return .announce
         }
