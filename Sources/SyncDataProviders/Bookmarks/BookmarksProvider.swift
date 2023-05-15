@@ -188,6 +188,10 @@ public final class BookmarksProvider: DataProviding {
         }
     }
 
+    public func handleSyncError(error: Error) {
+        print("Sync error: \(error)")
+    }
+
     // MARK: - Internal
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {

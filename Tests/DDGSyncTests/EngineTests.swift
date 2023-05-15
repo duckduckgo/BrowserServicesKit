@@ -37,6 +37,8 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     var createRequestCallCount = 0
     var createRequestCallArgs: [CreateRequestCallArgs] = []
     var request: HTTPRequesting = HTTPRequestingMock()
+    private let lock = NSLock()
+
     struct CreateRequestCallArgs {
         let url: URL
         let method: HTTPRequestMethod
@@ -47,6 +49,8 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     }
 
     func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting {
+        lock.lock()
+        defer { lock.unlock() }
         createRequestCallCount += 1
         createRequestCallArgs.append(CreateRequestCallArgs(url: url, method: method, headers: headers, parameters: parameters, body: body, contentType: contentType))
         return request
@@ -75,6 +79,7 @@ struct DataProvidingMock: DataProviding {
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
     var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
     var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
+    var handleSyncError: (Error) -> Void = { _ in }
 
     func prepareForFirstSync() {
         _prepareForFirstSync()
@@ -90,6 +95,10 @@ struct DataProvidingMock: DataProviding {
 
     func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
+    }
+
+    func handleSyncError(error: Error) {
+        handleSyncError(error)
     }
 }
 
@@ -127,19 +136,27 @@ class EngineTests: XCTestCase {
     }
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
-        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        let feature = Feature(name: "bookmarks")
+        let dataProvider = DataProvidingMock(feature: feature)
         let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
-        await assertThrowsError(SyncError.noResponseBody) {
+        await assertThrowsAnyError({
             try await engine.sync(fetchOnly: false)
-        }
+        }, errorHandler: { error in
+            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
+                XCTFail("Unexpected error thrown: \(error)")
+                return
+            }
+            XCTAssertEqual(featureError, .noResponseBody)
+        })
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .GET)
     }
 
     func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
-        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        let feature = Feature(name: "bookmarks")
+        var dataProvider = DataProvidingMock(feature: feature)
         dataProvider.lastSyncTimestamp = "1234"
         dataProvider._fetchChangedObjects = { _ in
             [Syncable(jsonObject: [:])]
@@ -147,9 +164,15 @@ class EngineTests: XCTestCase {
         let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
-        await assertThrowsError(SyncError.noResponseBody) {
+        await assertThrowsAnyError({
             try await engine.sync(fetchOnly: false)
-        }
+        }, errorHandler: { error in
+            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
+                XCTFail("Unexpected error thrown: \(error)")
+                return
+            }
+            XCTAssertEqual(featureError, .noResponseBody)
+        })
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
     }
@@ -183,29 +206,63 @@ class EngineTests: XCTestCase {
         let engine = Engine(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
-        await assertThrowsError(SyncError.noResponseBody) {
+        await assertThrowsAnyError {
             try await engine.sync(fetchOnly: false)
         }
 
-        let body = try XCTUnwrap(apiMock.createRequestCallArgs[0].body)
-        XCTAssertEqual(
-            try JSONDecoder.snakeCaseKeys.decode(MultiProviderRequestPayload.self, from: body), 
-            MultiProviderRequestPayload(
-                bookmarks: .init(updates: [
+        let bookmarks = BookmarksPayload(
+            bookmarks: .init(
+                updates: [
                     .init(id: "1", name: "bookmark1", url: "https://example.com"),
                     .init(id: "2", name: "bookmark2", url: "https://example.com")
                 ],
-                modifiedSince: "1234"),
-                settings: .init(updates: [
-                    .init(key: "setting-a", value: "value-a"),
-                    .init(key: "setting-b", value: "value-b")
-                ], modifiedSince: "5678"),
-                autofill: .init(updates: [
-                    .init(id: "1", login: "login1", password: "password1", url: "https://example.com"),
-                    .init(id: "2", login: "login2", password: "password2", url: "https://example.com")
-                ], modifiedSince: "9012")
+                modifiedSince: "1234"
             )
         )
+        let settings = SettingsPayload(
+            settings: .init(
+                updates: [
+                    .init(key: "setting-a", value: "value-a"),
+                    .init(key: "setting-b", value: "value-b")
+                ],
+                modifiedSince: "5678"
+            )
+        )
+        let autofill = AutofillPayload(
+            autofill: .init(
+                updates: [
+                    .init(id: "1", login: "login1", password: "password1", url: "https://example.com"),
+                    .init(id: "2", login: "login2", password: "password2", url: "https://example.com")
+                ],
+                modifiedSince: "9012"
+            )
+        )
+
+        let bodies = try XCTUnwrap(apiMock.createRequestCallArgs.map(\.body))
+        XCTAssertEqual(apiMock.createRequestCallCount, 3)
+        XCTAssertEqual(bodies.count, 3)
+
+        var payloadCount = 3
+
+        for body in bodies.compactMap({$0}) {
+            do {
+                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body)
+                XCTAssertEqual(payload, bookmarks)
+                payloadCount -= 1
+            } catch {
+                do {
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body)
+                    XCTAssertEqual(payload, settings)
+                    payloadCount -= 1
+                } catch {
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body)
+                    XCTAssertEqual(payload, autofill)
+                    payloadCount -= 1
+                }
+            }
+        }
+
+        XCTAssertEqual(payloadCount, 0)
     }
 
     func testThatSentModelsAreEchoedInResults() async throws {
@@ -239,24 +296,33 @@ private extension Array where Element == Syncable {
     }
 }
 
-private struct MultiProviderRequestPayload: Decodable, Equatable {
-    let bookmarks: FeaturePayload<Bookmark>
-    let settings: FeaturePayload<Setting>
-    let autofill: FeaturePayload<Autofill>
+struct FeaturePayload<Model: Decodable & Equatable>: Decodable, Equatable {
+    let updates: [Model]
+    let modifiedSince: String
+}
 
-    struct FeaturePayload<Model: Decodable & Equatable>: Decodable, Equatable {
-        let updates: [Model]
-        let modifiedSince: String
-    }
+struct BookmarksPayload: Decodable, Equatable {
+    let bookmarks: FeaturePayload<Bookmark>
+
     struct Bookmark: Decodable, Equatable {
         let id: String
         let name: String
         let url: String
     }
+}
+
+struct SettingsPayload: Decodable, Equatable {
+    let settings: FeaturePayload<Setting>
+
     struct Setting: Decodable, Equatable {
         let key: String
         let value: String
     }
+}
+
+struct AutofillPayload: Decodable, Equatable {
+    let autofill: FeaturePayload<Autofill>
+
     struct Autofill: Decodable, Equatable {
         let id: String
         let login: String

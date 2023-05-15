@@ -20,6 +20,21 @@
 import Foundation
 import Combine
 
+struct SyncFeatureError: Error {
+    let feature: Feature
+    let underlyingError: Error
+}
+
+struct SyncOperationError: Error {
+    let perFeatureErrors: [Feature: Error]
+
+    init(featureErrors: [SyncFeatureError]) {
+        perFeatureErrors = featureErrors.reduce(into: .init() , { partialResult, featureError in
+            partialResult[featureError.feature] = featureError.underlyingError
+        })
+    }
+}
+
 /**
  * Internal interface for sync engine.
  */
@@ -39,7 +54,7 @@ struct SyncResult {
     let previousSyncTimestamp: String?
     let sent: [Syncable]
 
-    var lastSyncTimestamp: String?
+    var syncTimestamp: String?
     var received: [Syncable] = []
 }
 
@@ -48,8 +63,8 @@ actor Engine: EngineProtocol {
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
-    let crypter: Crypting
-    let requestMaker: SyncRequestMaking
+    nonisolated let crypter: Crypting
+    nonisolated let requestMaker: SyncRequestMaking
 
     init(
         dataProviders: [DataProviding],
@@ -111,84 +126,107 @@ actor Engine: EngineProtocol {
             print("Sync Operation Finished. Fetch-only: \(fetchOnly)")
         }
 
-        // Collect last sync timestamp and changes per feature
-        var results = try await withThrowingTaskGroup(of: [Feature: SyncResult].self) { group in
-            var results: [Feature: SyncResult] = [:]
+        let dataProviders = self.dataProviders.values
 
-            for dataProvider in self.dataProviders.values {
-                let previousSyncTimestamp = dataProvider.lastSyncTimestamp
-                if fetchOnly {
-                    results[dataProvider.feature] = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: [])
-                } else {
-                    let localChanges: [Syncable] = try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
-                    let result = SyncResult(feature: dataProvider.feature, previousSyncTimestamp: previousSyncTimestamp, sent: localChanges)
-                    results[dataProvider.feature] = result
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for dataProvider in dataProviders {
+                group.addTask { [weak self] in
+                    print("syncing \(dataProvider.feature.name)")
+                    guard let self else {
+                        return
+                    }
+
+                    do {
+                        var result: SyncResult = try await self.makeResult(for: dataProvider, fetchOnly: fetchOnly)
+                        let clientTimestamp = Date()
+                        let httpRequest = try self.makeHTTPRequest(with: result, timestamp: clientTimestamp)
+                        print("will execute for \(dataProvider.feature.name)")
+                        let httpResult: HTTPResult = try await httpRequest.execute()
+
+                        if let data = httpResult.data {
+                            print("Response: \(String(data: data, encoding: .utf8)!)")
+                        }
+
+                        switch httpResult.response.statusCode {
+                        case 200:
+                            guard let data = httpResult.data else {
+                                throw SyncError.noResponseBody
+                            }
+                            try self.decodeResponse(with: data, into: &result)
+                            fallthrough
+                        case 204, 304:
+                            try await self.handleResponse(for: dataProvider, syncResult: result, fetchOnly: fetchOnly, timestamp: clientTimestamp)
+                        default:
+                            throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
+                        }
+                    } catch {
+                        print("Finished for \(dataProvider.feature.name)")
+                        dataProvider.handleSyncError(error: error)
+                        throw SyncFeatureError(feature: dataProvider.feature, underlyingError: error)
+                    }
                 }
             }
-            return results
-        }
-
-        let hasLocalChanges = results.values.contains(where: { !$0.sent.isEmpty })
-        let clientTimestamp = Date()
-        let request: HTTPRequesting = try {
-            if hasLocalChanges {
-                return try requestMaker.makePatchRequest(with: results, clientTimestamp: clientTimestamp)
+            var errors: [SyncFeatureError] = []
+            do {
+                for try await _ in group {}
+            } catch let error as SyncFeatureError {
+                print(error)
+                errors.append(error)
             }
-            return try requestMaker.makeGetRequest(with: results)
-        }()
-        let result: HTTPResult = try await request.execute()
 
-        if let data = result.data {
-            print("Response: \(String(data: data, encoding: .utf8)!)")
-        }
-
-        switch result.response.statusCode {
-        case 200:
-            guard let data = result.data else {
-                throw SyncError.noResponseBody
+            if !errors.isEmpty {
+                throw SyncOperationError(featureErrors: errors)
             }
-            try decodeResponse(with: data, into: &results)
-            fallthrough
-        case 204, 304:
-            if fetchOnly {
-                for (feature, result) in results {
-                    try await dataProviders[feature]?.handleInitialSyncResponse(
-                        received: result.received,
-                        clientTimestamp: clientTimestamp,
-                        serverTimestamp: result.lastSyncTimestamp,
-                        crypter: crypter
-                    )
-                }
-            } else {
-                for (feature, result) in results {
-                    try await dataProviders[feature]?.handleSyncResponse(
-                        sent: result.sent,
-                        received: result.received,
-                        clientTimestamp: clientTimestamp,
-                        serverTimestamp: result.lastSyncTimestamp,
-                        crypter: crypter
-                    )
-                }
-            }
-        default:
-            throw SyncError.unexpectedStatusCode(result.response.statusCode)
         }
     }
 
-    private func decodeResponse(with data: Data, into results: inout [Feature: SyncResult]) throws {
+    nonisolated private func makeResult(for dataProvider: DataProviding, fetchOnly: Bool) async throws -> SyncResult {
+        if fetchOnly {
+            return SyncResult(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: [])
+        }
+        let localChanges: [Syncable] = try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
+        return SyncResult(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: localChanges)
+    }
+
+    nonisolated private func makeHTTPRequest(with syncResult: SyncResult, timestamp: Date) throws -> HTTPRequesting {
+        let hasLocalChanges = !syncResult.sent.isEmpty
+        if hasLocalChanges {
+            return try requestMaker.makePatchRequest(with: syncResult, clientTimestamp: timestamp)
+        }
+        return try requestMaker.makeGetRequest(with: syncResult)
+    }
+
+    nonisolated private func decodeResponse(with data: Data, into result: inout SyncResult) throws {
         guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
             throw SyncError.unexpectedResponseBody
         }
 
-        for feature in results.keys {
-            guard let featurePayload = jsonObject[feature.name] as? [String: Any],
-                let lastModified = featurePayload["last_modified"] as? String,
-                let entries = featurePayload["entries"] as? [[String: Any]]
-            else {
-                throw SyncError.unexpectedResponseBody
-            }
-            results[feature]?.lastSyncTimestamp = lastModified
-            results[feature]?.received = entries.map(Syncable.init(jsonObject:))
+        guard let featurePayload = jsonObject[result.feature.name] as? [String: Any],
+              let lastModified = featurePayload["last_modified"] as? String,
+              let entries = featurePayload["entries"] as? [[String: Any]]
+        else {
+            throw SyncError.unexpectedResponseBody
+        }
+        result.syncTimestamp = lastModified
+        result.received = entries.map(Syncable.init(jsonObject:))
+    }
+
+    nonisolated private func handleResponse(for dataProvider: DataProviding, syncResult: SyncResult, fetchOnly: Bool, timestamp: Date) async throws {
+        if fetchOnly {
+            try await dataProvider.handleInitialSyncResponse(
+                received: syncResult.received,
+                clientTimestamp: timestamp,
+                serverTimestamp: syncResult.syncTimestamp,
+                crypter: crypter
+            )
+        } else {
+            try await dataProvider.handleSyncResponse(
+                sent: syncResult.sent,
+                received: syncResult.received,
+                clientTimestamp: timestamp,
+                serverTimestamp: syncResult.syncTimestamp,
+                crypter: crypter
+            )
         }
     }
 

@@ -236,4 +236,11 @@ public protocol DataProviding {
      * - Parameter crypter: Crypter object to decrypt sent and received data.
      */
     func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws
+
+    /**
+     * Called when sync operation fails.
+     *
+     * - Parameter error: Sync operation error.
+     */
+    func handleSyncError(error: Error)
 }

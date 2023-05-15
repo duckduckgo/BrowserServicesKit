@@ -166,6 +166,8 @@ public class DDGSync: DDGSyncing {
     init(dependencies: SyncDependencies) {
         self.dependencies = dependencies
         self.state = .inactive
+
+        // do not start sync upon initialization
         updateState(startSyncIfNeeded: false)
     }
 

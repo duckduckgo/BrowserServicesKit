@@ -32,12 +32,12 @@ extension XCTestCase {
         }
     }
 
-    func assertThrowsAnyError<T>(_ expression: () async throws -> T, file: StaticString = #file, line: UInt = #line) async {
+    func assertThrowsAnyError<T>(_ expression: () async throws -> T, errorHandler: (Error) -> Void = { _ in }, file: StaticString = #file, line: UInt = #line) async {
         do {
             _ = try await expression()
             XCTFail("Expected error was not thrown", file: file, line: line)
         } catch {
-            // expected
+            errorHandler(error)
         }
     }
 }

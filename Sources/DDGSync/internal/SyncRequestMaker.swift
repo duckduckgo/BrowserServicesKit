@@ -20,8 +20,8 @@
 import Foundation
 
 protocol SyncRequestMaking {
-    func makeGetRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting
-    func makePatchRequest(with results: [Feature: SyncResult], clientTimestamp: Date) throws -> HTTPRequesting
+    func makeGetRequest(with result: SyncResult) throws -> HTTPRequesting
+    func makePatchRequest(with result: SyncResult, clientTimestamp: Date) throws -> HTTPRequesting
 }
 
 struct SyncRequestMaker: SyncRequestMaking {
@@ -30,22 +30,25 @@ struct SyncRequestMaker: SyncRequestMaking {
     let endpoints: Endpoints
     let dateFormatter = ISO8601DateFormatter()
 
+    func makeGetRequest(with result: SyncResult) throws -> HTTPRequesting {
+        let url = try endpoints.syncGet(features: [result.feature.name])
 
-    func makeGetRequest(with results: [Feature: SyncResult]) throws -> HTTPRequesting {
-        let url = try endpoints.syncGet(features: results.keys.map(\.name))
-        let timestamps = results.values.map({ $0.previousSyncTimestamp ?? "0" }).lazy.joined(separator: ",")
-        return api.createAuthenticatedGetRequest(url: url, authToken: try getToken(), parameters: ["since": timestamps])
-    } 
+        let parameters: [String: String] = {
+            if let timestamp = result.previousSyncTimestamp {
+                return ["since": timestamp]
+            }
+            return [:]
+        }()
+        return api.createAuthenticatedGetRequest(url: url, authToken: try getToken(), parameters: parameters)
+    }
 
-    func makePatchRequest(with results: [Feature: SyncResult], clientTimestamp: Date) throws -> HTTPRequesting {
+    func makePatchRequest(with result: SyncResult, clientTimestamp: Date) throws -> HTTPRequesting {
         var json = [String: Any]()
-        for (feature, result) in results {
-            let modelPayload: [String: Any?] = [
-                "updates": result.sent.map(\.payload),
-                "modified_since": result.previousSyncTimestamp ?? "0"
-            ]
-            json[feature.name] = modelPayload
-        }
+        let modelPayload: [String: Any?] = [
+            "updates": result.sent.map(\.payload),
+            "modified_since": result.previousSyncTimestamp ?? "0"
+        ]
+        json[result.feature.name] = modelPayload
         json["client_timestamp"] = dateFormatter.string(from: clientTimestamp)
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
