@@ -589,7 +589,61 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
         }
     }
 
-    func testRootFolderAndSubtreesPresentInResponse() {
+    // MARK: -
 
+    func testWhenRootFolderAndOrphanedFoldersArePresentInResponseThenOrphanedFoldersAreSaved() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2"]),
+            .folder(id: "1"),
+            .folder(id: "2", children: ["3"]),
+            .bookmark("name", id: "3", url: "url"),
+            .folder(id: "4", children: ["5"]),
+            .bookmark(id: "5")
+        ]
+
+        context.performAndWait {
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
+
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Folder(id: "1")
+                Folder(id: "2") {
+                    Bookmark("name", id: "3", url: "url")
+                }
+                Folder(id: "4", isOrphaned: true) {
+                    Bookmark(id: "5")
+                }
+            })
+        }
+    }
+
+    func testThatResponseArrayOrderDoesNotAffectHandling() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        let received: [Syncable] = [
+            .bookmark(id: "5"),
+            .folder(id: "2", children: ["3"]),
+            .folder(id: "4", children: ["5"]),
+            .rootFolder(children: ["1", "2"]),
+            .bookmark("name", id: "3", url: "url"),
+            .folder(id: "1")
+        ]
+
+        context.performAndWait {
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
+
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Folder(id: "1")
+                Folder(id: "2") {
+                    Bookmark("name", id: "3", url: "url")
+                }
+                Folder(id: "4", isOrphaned: true)
+            })
+        }
     }
 }

@@ -248,6 +248,7 @@ extension XCTestCase {
                 }
 
                 if tempNode.isFolder {
+                    XCTAssertEqual(tempNode.childrenArray.count, thisNode.childrenArray.count, "children count mismatch for \(thisUUID)", file: file, line: line)
                     tempTreeQueue.append(contentsOf: tempNode.childrenArray)
                     thisTreeQueue.append(contentsOf: thisNode.childrenArray)
                 }
