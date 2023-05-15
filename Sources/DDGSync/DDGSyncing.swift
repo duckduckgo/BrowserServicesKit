@@ -97,6 +97,8 @@ public protocol DDGSyncing {
 
     var scheduler: Scheduling { get }
 
+    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
+
     /**
      Fetch the devices associated with thtis account.
      */

@@ -117,6 +117,10 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
+    public var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> {
+        dependencies.engine.syncDidFinishPublisher
+    }
+
     public func fetchDevices() async throws -> [RegisteredDevice] {
         guard let account = try dependencies.secureStore.account() else {
             throw SyncError.accountNotFound
