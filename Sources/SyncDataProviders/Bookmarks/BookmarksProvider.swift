@@ -123,7 +123,6 @@ public final class BookmarksProvider: DataProviding {
             }
 
             if let saveError {
-                print("SAVE ERROR", saveError)
                 continuation.resume(throwing: saveError)
                 return
             }
@@ -174,7 +173,6 @@ public final class BookmarksProvider: DataProviding {
                 }
             }
             if let saveError {
-                print("SAVE ERROR", saveError)
                 continuation.resume(throwing: saveError)
                 return
             }

@@ -30,25 +30,38 @@ struct ProductionDependencies: SyncDependencies {
     let scheduler: SchedulingInternal
     let engine: EngineProtocol
 
-    init(baseUrl: URL, dataProviders: [DataProviding]) {
+    var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
+
+    init(baseUrl: URL, dataProviders: [DataProviding], log: @escaping @autoclosure () -> OSLog = .disabled) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
                   dataProviders: dataProviders,
-                  secureStore: SecureStorage())
+                  secureStore: SecureStorage(),
+                  log: log())
     }
     
-    init(fileStorageUrl: URL, baseUrl: URL, dataProviders: [DataProviding], secureStore: SecureStoring) {
+    init(
+        fileStorageUrl: URL,
+        baseUrl: URL,
+        dataProviders: [DataProviding],
+        secureStore: SecureStoring,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(baseUrl: baseUrl)
         self.secureStore = secureStore
+        self.getLog = log
 
-        api = RemoteAPIRequestCreator()
+        api = RemoteAPIRequestCreator(log: log())
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
-        engine = Engine(dataProviders: dataProviders, storage: secureStore, crypter: crypter, api: api, endpoints: endpoints)
+        engine = Engine(dataProviders: dataProviders, storage: secureStore, crypter: crypter, api: api, endpoints: endpoints, log: log())
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {

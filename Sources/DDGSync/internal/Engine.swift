@@ -19,6 +19,8 @@
 
 import Foundation
 import Combine
+import Common
+import os
 
 struct SyncFeatureError: Error {
     let feature: Feature
@@ -71,7 +73,8 @@ actor Engine: EngineProtocol {
         storage: SecureStoring,
         crypter: Crypting,
         api: RemoteAPIRequestCreating,
-        endpoints: Endpoints
+        endpoints: Endpoints,
+        log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         var providersDictionary = [Feature: DataProviding]()
         for provider in dataProviders {
@@ -80,6 +83,7 @@ actor Engine: EngineProtocol {
         self.dataProviders = providersDictionary
         self.storage = storage
         self.crypter = crypter
+        self.getLog = log
         requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
     }
@@ -115,15 +119,14 @@ actor Engine: EngineProtocol {
             try await sync(fetchOnly: false)
             syncDidFinishSubject.send(.success(()))
         } catch {
-            print(error.localizedDescription)
             syncDidFinishSubject.send(.failure(error))
         }
     }
 
     func sync(fetchOnly: Bool) async throws {
-        print("Sync Operation Started. Fetch-only: \(fetchOnly)")
+        os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
-            print("Sync Operation Finished. Fetch-only: \(fetchOnly)")
+            os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
         }
 
         let dataProviders = self.dataProviders.values
@@ -131,27 +134,25 @@ actor Engine: EngineProtocol {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for dataProvider in dataProviders {
                 group.addTask { [weak self] in
-                    print("syncing \(dataProvider.feature.name)")
                     guard let self else {
                         return
                     }
+                    os_log(.debug, log: self.log, "Syncing %{public}s", dataProvider.feature.name)
 
                     do {
                         var result: SyncResult = try await self.makeResult(for: dataProvider, fetchOnly: fetchOnly)
                         let clientTimestamp = Date()
                         let httpRequest = try self.makeHTTPRequest(with: result, timestamp: clientTimestamp)
-                        print("will execute for \(dataProvider.feature.name)")
                         let httpResult: HTTPResult = try await httpRequest.execute()
-
-                        if let data = httpResult.data {
-                            print("Response: \(String(data: data, encoding: .utf8)!)")
-                        }
 
                         switch httpResult.response.statusCode {
                         case 200:
                             guard let data = httpResult.data else {
                                 throw SyncError.noResponseBody
                             }
+                            os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
+                                   dataProvider.feature.name,
+                                   String(data: data, encoding: .utf8) ?? "")
                             try self.decodeResponse(with: data, into: &result)
                             fallthrough
                         case 204, 304:
@@ -160,7 +161,7 @@ actor Engine: EngineProtocol {
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch {
-                        print("Finished for \(dataProvider.feature.name)")
+                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", dataProvider.feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error: error)
                         throw SyncFeatureError(feature: dataProvider.feature, underlyingError: error)
                     }
@@ -170,7 +171,6 @@ actor Engine: EngineProtocol {
             do {
                 for try await _ in group {}
             } catch let error as SyncFeatureError {
-                print(error)
                 errors.append(error)
             }
 
@@ -231,4 +231,8 @@ actor Engine: EngineProtocol {
     }
 
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
+    nonisolated private var log: OSLog {
+        getLog()
+    }
+    nonisolated private let getLog: () -> OSLog
 }

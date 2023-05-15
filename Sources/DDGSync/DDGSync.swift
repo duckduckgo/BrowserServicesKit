@@ -19,6 +19,8 @@
 import Foundation
 import Combine
 import DDGSyncCrypto
+import Common
+import os.log
 
 public class DDGSync: DDGSyncing {
 
@@ -42,8 +44,8 @@ public class DDGSync: DDGSyncing {
     }
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(dataProviders: [DataProviding]) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, dataProviders: dataProviders)
+    public convenience init(dataProviders: [DataProviding], log: @escaping @autoclosure () -> OSLog = .disabled) {
+        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, dataProviders: dataProviders, log: log())
         self.init(dependencies: dependencies)
     }
 

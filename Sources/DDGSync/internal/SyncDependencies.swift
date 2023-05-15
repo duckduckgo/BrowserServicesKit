@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 protocol SyncDependencies {
 
@@ -27,6 +28,7 @@ protocol SyncDependencies {
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
     var engine: EngineProtocol { get }
+    var log: OSLog { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
