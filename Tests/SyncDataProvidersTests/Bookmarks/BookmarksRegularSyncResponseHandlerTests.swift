@@ -1,5 +1,5 @@
 //
-//  BookmarksResponseHandlerRegularSyncTests.swift
+//  BookmarksRegularSyncResponseHandlerTests.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -24,7 +24,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-final class BookmarksResponseHandlerRegularSyncTests: BookmarksProviderTestsBase {
+final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase {
 
 
     func testWhenOrphanedBookmarkIsReceivedThenItIsSaved() {

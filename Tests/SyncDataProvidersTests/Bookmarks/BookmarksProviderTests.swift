@@ -271,7 +271,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     // MARK: - Regular Sync
 
-    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedThenObjectIsNotDeleted() async throws {
+    func testWhenObjectDeleteIsSentAndTheSameObjectUpdateIsReceivedThenObjectIsNotDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -302,7 +302,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
-    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedWithoutParentFolderThenObjectIsNotDeleted() async throws {
+    func testWhenObjectDeleteIsSentAndTheSameObjectUpdateIsReceivedWithoutParentFolderThenObjectIsNotDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -332,7 +332,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
-    func testWhenObjectDeleteIsSentAndThatObjectUpdateIsReceivedThenObjectIsNotDeletedAndIsNotMovedWithinFolder() async throws {
+    func testWhenObjectDeleteIsSentAndTheSameObjectUpdateIsReceivedThenObjectIsNotDeletedAndIsNotMovedWithinFolder() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
