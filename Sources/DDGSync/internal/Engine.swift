@@ -89,29 +89,34 @@ actor Engine: EngineProtocol {
     }
 
     func setUpAndStartFirstSync() async {
-        let syncState = (try? storage.account()?.state) ?? .inactive
-        guard syncState != .inactive else {
-            assertionFailure("Called first sync in unexpected \(syncState) state")
-            return
-        }
-
-        await withTaskGroup(of: Void.self) { group in
-            for dataProvider in dataProviders.values {
-                group.addTask {
-                    try? await dataProvider.prepareForFirstSync()
-                }
+        do {
+            let syncState = (try? storage.account()?.state) ?? .inactive
+            guard syncState != .inactive else {
+                assertionFailure("Called first sync in unexpected \(syncState) state")
+                return
             }
-        }
 
-        if syncState == .addNewDevice {
-            try? await sync(fetchOnly: true)
-        }
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for dataProvider in dataProviders.values {
+                    group.addTask {
+                        try await dataProvider.prepareForFirstSync()
+                    }
+                }
+                for try await _ in group {}
+            }
 
-        if let account = try? storage.account()?.updatingState(.active) {
-            try? storage.persistAccount(account)
-        }
+            if syncState == .addNewDevice {
+                try await sync(fetchOnly: true)
+            }
 
-        await startSync()
+            if let account = try storage.account()?.updatingState(.active) {
+                try storage.persistAccount(account)
+            }
+            await startSync()
+
+        } catch {
+            syncDidFinishSubject.send(.failure(error))
+        }
     }
 
     func startSync() async {
@@ -129,15 +134,13 @@ actor Engine: EngineProtocol {
             os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
         }
 
-        let dataProviders = self.dataProviders.values
-
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for dataProvider in dataProviders {
+            for (feature, dataProvider) in dataProviders {
                 group.addTask { [weak self] in
                     guard let self else {
                         return
                     }
-                    os_log(.debug, log: self.log, "Syncing %{public}s", dataProvider.feature.name)
+                    os_log(.debug, log: self.log, "Syncing %{public}s", feature.name)
 
                     do {
                         var result: SyncResult = try await self.makeResult(for: dataProvider, fetchOnly: fetchOnly)
@@ -151,7 +154,7 @@ actor Engine: EngineProtocol {
                                 throw SyncError.noResponseBody
                             }
                             os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
-                                   dataProvider.feature.name,
+                                   feature.name,
                                    String(data: data, encoding: .utf8) ?? "")
                             try self.decodeResponse(with: data, into: &result)
                             fallthrough
@@ -161,9 +164,9 @@ actor Engine: EngineProtocol {
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch {
-                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", dataProvider.feature.name, error.localizedDescription)
+                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error: error)
-                        throw SyncFeatureError(feature: dataProvider.feature, underlyingError: error)
+                        throw SyncFeatureError(feature: feature, underlyingError: error)
                     }
                 }
             }
