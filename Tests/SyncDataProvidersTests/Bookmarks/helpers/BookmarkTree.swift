@@ -138,13 +138,17 @@ struct BookmarkTree {
     }
 
     @discardableResult
-    func createEntities(in context: NSManagedObjectContext) -> BookmarkEntity {
+    func createEntities(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+        var orphans = [BookmarkEntity]()
         for bookmarkTreeNode in bookmarkTreeNodes {
-            BookmarkEntity.make(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context)
+            let entity = BookmarkEntity.make(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context)
+            if bookmarkTreeNode.isOrphaned {
+                orphans.append(entity)
+            }
         }
-        return rootFolder
+        return (rootFolder, orphans)
     }
 
     var bookmarkTreeNodes: [BookmarkTreeNode]
@@ -216,42 +220,54 @@ extension XCTestCase {
         let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = bookmarkEntity.managedObjectContext?.persistentStoreCoordinator
 
+        let orphansContext = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        orphansContext.persistentStoreCoordinator = bookmarkEntity.managedObjectContext?.persistentStoreCoordinator
+
+        var orphans: [BookmarkEntity] = []
+        var expectedRootFolder: BookmarkEntity! = nil
+        var expectedOrphans: [BookmarkEntity] = []
+
+        orphansContext.performAndWait {
+            orphans = BookmarkUtils.fetchOrphanedEntities(orphansContext)
+        }
+
         context.performAndWait {
             context.deleteAll(matching: BookmarkEntity.fetchRequest())
             BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = tree.createEntities(in: context)
-            let thisFolder = bookmarkEntity
-            XCTAssertEqual(rootFolder.uuid, thisFolder.uuid, "root folder uuid mismatch", file: file, line: line)
+            (expectedRootFolder, expectedOrphans) = tree.createEntities(in: context)
+        }
 
-            var tempTreeQueue: [BookmarkEntity] = [rootFolder]
-            var thisTreeQueue: [BookmarkEntity] = [thisFolder]
+        let thisFolder = bookmarkEntity
+        XCTAssertEqual(expectedRootFolder.uuid, thisFolder.uuid, "root folder uuid mismatch", file: file, line: line)
 
-            while !tempTreeQueue.isEmpty {
-                guard !thisTreeQueue.isEmpty else {
-                    XCTFail("No more children in the tree, while \(tempTreeQueue.count) (ids: \(tempTreeQueue.compactMap(\.uuid))) still expected", file: file, line: line)
-                    return
-                }
-                let tempNode = tempTreeQueue.removeFirst()
-                let thisNode = thisTreeQueue.removeFirst()
+        var expectedTreeQueue: [BookmarkEntity] = [[expectedRootFolder], expectedOrphans].flatMap { $0 }
+        var thisTreeQueue: [BookmarkEntity] = [[thisFolder], orphans].flatMap { $0 }
 
-                let thisUUID = thisNode.uuid ?? "<no local UUID>"
+        while !expectedTreeQueue.isEmpty {
+            guard !thisTreeQueue.isEmpty else {
+                XCTFail("No more children in the tree, while \(expectedTreeQueue.count) (ids: \(expectedTreeQueue.compactMap(\.uuid))) still expected", file: file, line: line)
+                return
+            }
+            let expectedNode = expectedTreeQueue.removeFirst()
+            let thisNode = thisTreeQueue.removeFirst()
 
-                XCTAssertEqual(tempNode.uuid, thisNode.uuid, "uuid mismatch", file: file, line: line)
-                XCTAssertEqual(tempNode.title, thisNode.title, "title mismatch for \(thisUUID)", file: file, line: line)
-                XCTAssertEqual(tempNode.url, thisNode.url, "url mismatch for \(thisUUID)", file: file, line: line)
-                XCTAssertEqual(tempNode.isFolder, thisNode.isFolder, "isFolder mismatch for \(thisUUID)", file: file, line: line)
-                XCTAssertEqual(tempNode.isPendingDeletion, thisNode.isPendingDeletion, "isPendingDeletion mismatch for \(thisUUID)", file: file, line: line)
-                XCTAssertEqual(tempNode.children?.count, thisNode.children?.count, "children count mismatch for \(thisUUID)", file: file, line: line)
-                XCTAssertEqual(tempNode.isFavorite, thisNode.isFavorite, "isFavorite mismatch for \(thisUUID)", file: file, line: line)
-                if withTimestamps {
-                    XCTAssertEqual(tempNode.modifiedAt, thisNode.modifiedAt, "modifiedAt mismatch for \(thisUUID)", file: file, line: line)
-                }
+            let thisUUID = thisNode.uuid ?? "<no local UUID>"
 
-                if tempNode.isFolder {
-                    XCTAssertEqual(tempNode.childrenArray.count, thisNode.childrenArray.count, "children count mismatch for \(thisUUID)", file: file, line: line)
-                    tempTreeQueue.append(contentsOf: tempNode.childrenArray)
-                    thisTreeQueue.append(contentsOf: thisNode.childrenArray)
-                }
+            XCTAssertEqual(expectedNode.uuid, thisNode.uuid, "uuid mismatch", file: file, line: line)
+            XCTAssertEqual(expectedNode.title, thisNode.title, "title mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(expectedNode.url, thisNode.url, "url mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(expectedNode.isFolder, thisNode.isFolder, "isFolder mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(expectedNode.isPendingDeletion, thisNode.isPendingDeletion, "isPendingDeletion mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(expectedNode.children?.count, thisNode.children?.count, "children count mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(expectedNode.isFavorite, thisNode.isFavorite, "isFavorite mismatch for \(thisUUID)", file: file, line: line)
+            if withTimestamps {
+                XCTAssertEqual(expectedNode.modifiedAt, thisNode.modifiedAt, "modifiedAt mismatch for \(thisUUID)", file: file, line: line)
+            }
+
+            if expectedNode.isFolder {
+                XCTAssertEqual(expectedNode.childrenArray.count, thisNode.childrenArray.count, "children count mismatch for \(thisUUID)", file: file, line: line)
+                expectedTreeQueue.append(contentsOf: expectedNode.childrenArray)
+                thisTreeQueue.append(contentsOf: thisNode.childrenArray)
             }
         }
     }

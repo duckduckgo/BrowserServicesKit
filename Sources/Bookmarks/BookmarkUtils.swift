@@ -48,6 +48,7 @@ public struct BookmarkUtils {
             #keyPath(BookmarkEntity.isPendingDeletion),
             #keyPath(BookmarkEntity.parent)
         )
+        request.sortDescriptors = [NSSortDescriptor(key: #keyPath(BookmarkEntity.uuid), ascending: true)]
         request.returnsObjectsAsFaults = false
 
         return (try? context.fetch(request)) ?? []

@@ -118,6 +118,31 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
         }
     }
 
+    func testFavoritesAreMerged() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "2", isFavorite: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["3"]),
+            .favoritesFolder(favorites: ["3"]),
+            .bookmark(id: "3")
+        ]
+
+        context.performAndWait {
+            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
+
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", isFavorite: true)
+                Bookmark(id: "2", isFavorite: true)
+                Bookmark(id: "3", isFavorite: true)
+            })
+        }
+    }
+
     func testThatBookmarksAreMergedInSubFolder() {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
@@ -642,7 +667,9 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
                 Folder(id: "2") {
                     Bookmark("name", id: "3", url: "url")
                 }
-                Folder(id: "4", isOrphaned: true)
+                Folder(id: "4", isOrphaned: true) {
+                    Bookmark(id: "5")
+                }
             })
         }
     }

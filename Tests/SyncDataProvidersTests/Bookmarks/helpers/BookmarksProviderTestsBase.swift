@@ -77,7 +77,7 @@ internal class BookmarksProviderTestsBase: XCTestCase {
 
     func createEntitiesAndProcessReceivedBookmarks(with bookmarkTree: BookmarkTree, received: [Syncable], in context: NSManagedObjectContext, deduplicate: Bool) -> BookmarkEntity {
         BookmarkUtils.prepareFoldersStructure(in: context)
-        let rootFolder = bookmarkTree.createEntities(in: context)
+        let (rootFolder, _) = bookmarkTree.createEntities(in: context)
         try! context.save()
         let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: deduplicate)
         responseHandler.processReceivedBookmarks()

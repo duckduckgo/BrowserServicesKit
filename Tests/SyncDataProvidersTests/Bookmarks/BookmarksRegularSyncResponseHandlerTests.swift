@@ -39,7 +39,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
+            let (rootFolder, _) = bookmarkTree.createEntities(in: context)
             try! context.save()
             let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
             responseHandler.processReceivedBookmarks()
@@ -70,7 +70,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         context.performAndWait {
             BookmarkUtils.prepareFoldersStructure(in: context)
-            let rootFolder = bookmarkTree.createEntities(in: context)
+            let (rootFolder, _) = bookmarkTree.createEntities(in: context)
             try! context.save()
             let responseHandler = BookmarksResponseHandler(received: received, context: context, crypter: crypter, deduplicateEntities: false)
             responseHandler.processReceivedBookmarks()
@@ -174,31 +174,6 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
             assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1", isFavorite: true)
                 Bookmark(id: "2", isFavorite: true)
-                Bookmark(id: "3", isFavorite: true)
-            })
-        }
-    }
-
-    func testMergingFavorites() {
-        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-        let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
-        }
-
-        let received: [Syncable] = [
-            .rootFolder(children: ["3"]),
-            .favoritesFolder(favorites: ["3"]),
-            .bookmark(id: "3")
-        ]
-
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: false)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1", isFavorite: true, isOrphaned: true)
-                Bookmark(id: "2", isFavorite: true, isOrphaned: true)
                 Bookmark(id: "3", isFavorite: true)
             })
         }

@@ -251,7 +251,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                 let bookmarkTree = BookmarkTree {
                     Bookmark("test-local", id: "1")
                 }
-                let rootFolder = bookmarkTree.createEntities(in: context)
+                let (rootFolder, _) = bookmarkTree.createEntities(in: context)
                 try! context.save()
                 bookmarkModificationDate = rootFolder.childrenArray.first!.modifiedAt
             }
