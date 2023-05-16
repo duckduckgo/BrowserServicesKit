@@ -43,6 +43,14 @@ public class DDGSync: DDGSyncing {
         try? dependencies.secureStore.account()
     }
 
+    public var scheduler: Scheduling {
+        dependencies.scheduler
+    }
+
+    public var isInProgressPublisher: AnyPublisher<Bool, Never> {
+        dependencies.engine.isSyncInProgressPublisher
+    }
+
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProviders: [DataProviding], log: @escaping @autoclosure () -> OSLog = .disabled) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, dataProviders: dataProviders, log: log())
@@ -111,14 +119,6 @@ public class DDGSync: DDGSyncing {
         } catch {
             try handleUnauthenticated(error)
         }
-    }
-
-    public var scheduler: Scheduling {
-        dependencies.scheduler
-    }
-
-    public var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> {
-        dependencies.engine.syncDidFinishPublisher
     }
 
     public func fetchDevices() async throws -> [RegisteredDevice] {

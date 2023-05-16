@@ -47,7 +47,9 @@ protocol EngineProtocol {
     func setUpAndStartFirstSync() async
     /// Called to start sync
     func startSync() async
-    /// Emits events when sync each operation finishes
+    /// Emits boolean values representing current sync operation status.
+    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
+    /// Emits events when each sync operation finishes
     var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }
 
@@ -64,6 +66,7 @@ actor Engine: EngineProtocol {
 
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
+    let isSyncInProgressPublisher: AnyPublisher<Bool, Never>
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
     nonisolated let crypter: Crypting
     nonisolated let requestMaker: SyncRequestMaking
@@ -84,10 +87,16 @@ actor Engine: EngineProtocol {
         self.getLog = log
         requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
+        isSyncInProgressPublisher = Publishers
+            .Merge(syncDidStartSubject.map({ true }), syncDidFinishSubject.map({ _ in false }))
+            .prepend(false)
+            .removeDuplicates()
+            .eraseToAnyPublisher()
     }
 
     func setUpAndStartFirstSync() async {
         do {
+            syncDidStartSubject.send(())
             let syncState = (try? storage.account()?.state) ?? .inactive
             guard syncState != .inactive else {
                 assertionFailure("Called first sync in unexpected \(syncState) state")
@@ -110,7 +119,9 @@ actor Engine: EngineProtocol {
             if let account = try storage.account()?.updatingState(.active) {
                 try storage.persistAccount(account)
             }
-            await startSync()
+
+            try await sync(fetchOnly: false)
+            syncDidFinishSubject.send(.success(()))
 
         } catch {
             syncDidFinishSubject.send(.failure(error))
@@ -119,6 +130,7 @@ actor Engine: EngineProtocol {
 
     func startSync() async {
         do {
+            syncDidStartSubject.send(())
             try await sync(fetchOnly: false)
             syncDidFinishSubject.send(.success(()))
         } catch {
@@ -234,6 +246,7 @@ actor Engine: EngineProtocol {
     }
 
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
+    private let syncDidStartSubject = PassthroughSubject<Void, Never>()
     nonisolated private var log: OSLog {
         getLog()
     }

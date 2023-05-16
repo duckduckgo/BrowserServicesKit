@@ -35,15 +35,11 @@ public protocol DDGSyncing {
 
     /**
      Describes current state of sync.
-
-     This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
      */
     var state: SyncState { get }
 
     /**
-     Describes current state of sync.
-
-     This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
+     Emits changes to current state of sync.
      */
     var statePublisher: AnyPublisher<SyncState, Never> { get }
 
@@ -51,6 +47,20 @@ public protocol DDGSyncing {
      The currently logged in sync account. Returns nil if client is not authenticated
      */
     var account: SyncAccount? { get }
+
+    /**
+     Used to trigger Sync by the client app.
+
+     Sync is not started directly, but instead its schedule is handled internally based on input events.
+     Clients should use `scheduler` and `Scheduling` API to notify Sync about app events, such as making
+     changes to syncable data or lifecycle-related events.
+     */
+    var scheduler: Scheduling { get }
+
+    /**
+     Emits boolean values representing current sync operation status.
+     */
+    var isInProgressPublisher: AnyPublisher<Bool, Never> { get }
 
     /**
      Creates an account.
@@ -91,13 +101,9 @@ public protocol DDGSyncing {
     /**
      Disconnect the specified device from the sync service.
 
-     @param deviceId ID of the device to be disconnected.
+     - Parameter deviceId: ID of the device to be disconnected.
     */
     func disconnect(deviceId: String) async throws
-
-    var scheduler: Scheduling { get }
-
-    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 
     /**
      Fetch the devices associated with thtis account.

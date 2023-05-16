@@ -135,6 +135,42 @@ class EngineTests: XCTestCase {
         requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
     }
 
+    func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {
+        let feature = Feature(name: "bookmarks")
+        let dataProvider = DataProvidingMock(feature: feature)
+        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+
+        var isInProgressEvents = [Bool]()
+
+        let cancellable = await engine.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
+        defer { cancellable.cancel() }
+
+        request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
+        await engine.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false])
+
+        await engine.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
+    }
+
+    func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithError() async throws {
+        let feature = Feature(name: "bookmarks")
+        let dataProvider = DataProvidingMock(feature: feature)
+        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+
+        var isInProgressEvents = [Bool]()
+
+        let cancellable = await engine.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
+        defer { cancellable.cancel() }
+
+        request.error = .noResponseBody
+        await engine.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false])
+
+        await engine.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
+    }
+
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
