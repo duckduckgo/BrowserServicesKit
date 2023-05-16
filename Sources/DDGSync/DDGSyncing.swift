@@ -20,7 +20,7 @@ import Foundation
 import DDGSyncCrypto
 import Combine
 
-public enum SyncState: String, Sendable, Codable {
+public enum SyncAuthState: String, Sendable, Codable {
     /// Sync is not enabled.
     case inactive
     /// Sync is in progress of registering new account.
@@ -34,14 +34,14 @@ public enum SyncState: String, Sendable, Codable {
 public protocol DDGSyncing {
 
     /**
-     Describes current state of sync.
+     Describes current state of sync account.
      */
-    var state: SyncState { get }
+    var authState: SyncAuthState { get }
 
     /**
-     Emits changes to current state of sync.
+     Emits changes to current state of sync account.
      */
-    var statePublisher: AnyPublisher<SyncState, Never> { get }
+    var authStatePublisher: AnyPublisher<SyncAuthState, Never> { get }
 
     /**
      The currently logged in sync account. Returns nil if client is not authenticated

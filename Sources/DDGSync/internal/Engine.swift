@@ -97,9 +97,9 @@ actor Engine: EngineProtocol {
     func setUpAndStartFirstSync() async {
         do {
             syncDidStartSubject.send(())
-            let syncState = (try? storage.account()?.state) ?? .inactive
-            guard syncState != .inactive else {
-                assertionFailure("Called first sync in unexpected \(syncState) state")
+            let syncAuthState = (try? storage.account()?.state) ?? .inactive
+            guard syncAuthState != .inactive else {
+                assertionFailure("Called first sync in unexpected \(syncAuthState) state")
                 return
             }
 
@@ -112,7 +112,7 @@ actor Engine: EngineProtocol {
                 for try await _ in group {}
             }
 
-            if syncState == .addNewDevice {
+            if syncAuthState == .addNewDevice {
                 try await sync(fetchOnly: true)
             }
 

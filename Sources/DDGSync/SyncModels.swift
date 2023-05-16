@@ -27,7 +27,7 @@ public struct SyncAccount: Codable, Sendable {
     public let primaryKey: Data
     public let secretKey: Data
     public let token: String?
-    public let state: SyncState
+    public let state: SyncAuthState
 
     /// Convenience var which calls `SyncCode().toJSON().base64EncodedString()`
     public var recoveryCode: String? {
@@ -48,7 +48,7 @@ public struct SyncAccount: Codable, Sendable {
         primaryKey: Data,
         secretKey: Data,
         token: String?,
-        state: SyncState
+        state: SyncAuthState
     ) {
         self.deviceId = deviceId
         self.deviceName = deviceName
@@ -69,10 +69,10 @@ public struct SyncAccount: Codable, Sendable {
         self.primaryKey = try container.decode(Data.self, forKey: .primaryKey)
         self.secretKey = try container.decode(Data.self, forKey: .secretKey)
         self.token = try container.decodeIfPresent(String.self, forKey: .token)
-        if let state: SyncState = try container.decodeIfPresent(SyncState.self, forKey: .state) {
+        if let state: SyncAuthState = try container.decodeIfPresent(SyncAuthState.self, forKey: .state) {
             self.state = state
         } else {
-            self.state = SyncState.active
+            self.state = SyncAuthState.active
         }
     }
 

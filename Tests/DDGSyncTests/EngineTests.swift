@@ -97,7 +97,7 @@ struct DataProvidingMock: DataProviding {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
     }
 
-    func handleSyncError(error: Error) {
+    func handleSyncError(_ error: Error) {
         handleSyncError(error)
     }
 }

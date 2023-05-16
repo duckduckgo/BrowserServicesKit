@@ -276,7 +276,7 @@ struct AccountManager: AccountManaging {
 
 extension SyncAccount {
 
-    func updatingState(_ state: SyncState) -> SyncAccount {
+    func updatingState(_ state: SyncAuthState) -> SyncAccount {
         SyncAccount(deviceId: self.deviceId,
                     deviceName: self.deviceName,
                     deviceType: self.deviceType,

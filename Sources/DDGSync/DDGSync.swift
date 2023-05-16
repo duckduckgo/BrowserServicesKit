@@ -34,9 +34,9 @@ public class DDGSync: DDGSyncing {
         //#endif
     }
 
-    @Published public private(set) var state: SyncState
-    public var statePublisher: AnyPublisher<SyncState, Never> {
-        $state.eraseToAnyPublisher()
+    @Published public private(set) var authState: SyncAuthState
+    public var authStatePublisher: AnyPublisher<SyncAuthState, Never> {
+        $authState.eraseToAnyPublisher()
     }
 
     public var account: SyncAccount? {
@@ -64,7 +64,7 @@ public class DDGSync: DDGSyncing {
 
         let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(account)
-        updateState()
+        updateAuthState()
     }
 
     public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws {
@@ -74,7 +74,7 @@ public class DDGSync: DDGSyncing {
 
         let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
-        updateState()
+        updateAuthState()
     }
 
     public func remoteConnect() throws -> RemoteConnecting {
@@ -107,7 +107,7 @@ public class DDGSync: DDGSyncing {
         } catch {
             try handleUnauthenticated(error)
         }
-        updateState()
+        updateAuthState()
     }
 
     public func disconnect(deviceId: String) async throws {
@@ -159,7 +159,7 @@ public class DDGSync: DDGSyncing {
         do {
             try await dependencies.account.deleteAccount(account)
             try dependencies.secureStore.removeAccount()
-            updateState()
+            updateAuthState()
         } catch {
             try handleUnauthenticated(error)
         }
@@ -171,24 +171,24 @@ public class DDGSync: DDGSyncing {
 
     init(dependencies: SyncDependencies) {
         self.dependencies = dependencies
-        self.state = .inactive
+        self.authState = .inactive
 
         // do not start sync upon initialization
-        updateState(startSyncIfNeeded: false)
+        updateAuthState(startSyncIfNeeded: false)
     }
 
-    private func updateState(startSyncIfNeeded: Bool = true) {
-        let previousState = state
-        state = (try? dependencies.secureStore.account()?.state) ?? .inactive
+    private func updateAuthState(startSyncIfNeeded: Bool = true) {
+        let previousState = authState
+        authState = (try? dependencies.secureStore.account()?.state) ?? .inactive
 
-        if previousState == .inactive && state != .inactive {
+        if previousState == .inactive && authState != .inactive {
             startSyncCancellable = dependencies.scheduler.startSyncPublisher
                 .sink { [weak self] in
                     guard let self else {
                         return
                     }
                     Task {
-                        if self.state == .active {
+                        if self.authState == .active {
                             await self.dependencies.engine.startSync()
                         } else {
                             await self.dependencies.engine.setUpAndStartFirstSync()
@@ -199,7 +199,7 @@ public class DDGSync: DDGSyncing {
             syncDidFinishCancellable = dependencies.engine.syncDidFinishPublisher
                 .sink { [weak self] result in
                     if case .success = result {
-                        self?.updateState()
+                        self?.updateAuthState()
                     }
                 }
 
@@ -212,7 +212,7 @@ public class DDGSync: DDGSyncing {
                 dependencies.scheduler.isEnabled = true
             }
 
-        } else if state == .inactive {
+        } else if authState == .inactive {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncDidFinishCancellable?.cancel()
@@ -232,7 +232,7 @@ public class DDGSync: DDGSyncing {
             // We should probably log this, maybe fire a pixel
             print(error)
         }
-        updateState()
+        updateAuthState()
     }
 
     private var startSyncCancellable: AnyCancellable?
