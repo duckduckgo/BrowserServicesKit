@@ -206,10 +206,14 @@ public class DDGSync: DDGSyncing {
             if startSyncIfNeeded {
                 Task {
                     await dependencies.engine.setUpAndStartFirstSync()
+                    dependencies.scheduler.isEnabled = true
                 }
+            } else {
+                dependencies.scheduler.isEnabled = true
             }
 
         } else if state == .inactive {
+            dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncDidFinishCancellable?.cancel()
         }

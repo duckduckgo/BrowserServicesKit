@@ -23,24 +23,33 @@ import Combine
 /**
  * Internal interface for sync schedulers.
  */
-protocol SchedulingInternal: Scheduling {
+protocol SchedulingInternal: AnyObject, Scheduling {
+    /// Used to control scheduling. If set to false, scheduler is off.
+    var isEnabled: Bool { get set }
     /// Publishes events to notify Sync Engine that sync operation should be started.
     var startSyncPublisher: AnyPublisher<Void, Never> { get }
 }
 
 class SyncScheduler: SchedulingInternal {
     func notifyDataChanged() {
-        syncTriggerSubject.send()
+        if isEnabled {
+            syncTriggerSubject.send()
+        }
     }
 
     func notifyAppLifecycleEvent() {
-        appLifecycleEventSubject.send()
+        if isEnabled {
+            appLifecycleEventSubject.send()
+        }
     }
 
     func requestSyncImmediately() {
-        syncTriggerSubject.send()
+        if isEnabled {
+            syncTriggerSubject.send()
+        }
     }
 
+    var isEnabled: Bool = false
     let startSyncPublisher: AnyPublisher<Void, Never>
 
     init() {
