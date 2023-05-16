@@ -250,5 +250,5 @@ public protocol DataProviding {
      *
      * - Parameter error: Sync operation error.
      */
-    func handleSyncError(error: Error)
+    func handleSyncError(_ error: Error)
 }

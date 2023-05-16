@@ -175,7 +175,7 @@ actor Engine: EngineProtocol {
                         }
                     } catch {
                         os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
-                        dataProvider.handleSyncError(error: error)
+                        dataProvider.handleSyncError(error)
                         throw FeatureError(feature: feature, underlyingError: error)
                     }
                 }

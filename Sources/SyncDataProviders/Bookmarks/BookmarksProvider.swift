@@ -18,9 +18,10 @@
 
 import Foundation
 import Bookmarks
+import Combine
 import CoreData
-import Persistence
 import DDGSync
+import Persistence
 
 public final class BookmarksProvider: DataProviding {
 
@@ -29,7 +30,10 @@ public final class BookmarksProvider: DataProviding {
         self.metadataStore = metadataStore
         self.metadataStore.registerFeature(named: feature.name)
         self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
+        syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
+
+    public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     // MARK: - DataProviding
 
@@ -186,8 +190,8 @@ public final class BookmarksProvider: DataProviding {
         }
     }
 
-    public func handleSyncError(error: Error) {
-        print("Sync error: \(error)")
+    public func handleSyncError(_ error: Error) {
+        syncErrorSubject.send(error)
     }
 
     // MARK: - Internal
@@ -242,6 +246,7 @@ public final class BookmarksProvider: DataProviding {
     private let database: CoreDataDatabase
     private let metadataStore: SyncMetadataStore
     private let reloadBookmarksAfterSync: () -> Void
+    private let syncErrorSubject = PassthroughSubject<Error, Never>()
 
     // MARK: - Test support
 
