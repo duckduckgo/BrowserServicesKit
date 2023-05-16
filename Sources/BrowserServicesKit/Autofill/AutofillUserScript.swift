@@ -23,6 +23,7 @@ import UserScript
 
 var incontextSignupPermanentlyDismissedAt: Double?
 var previousIncontextSignupPermanentlyDismissedAt: Double?
+var previousEmailSignedIn: Bool = false
 
 public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncryption {
     internal enum MessageName: String, CaseIterable {
