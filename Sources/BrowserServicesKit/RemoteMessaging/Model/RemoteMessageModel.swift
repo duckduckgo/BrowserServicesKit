@@ -126,4 +126,5 @@ public enum RemotePlaceholder: String, Codable {
     case ddgAnnounce = "RemoteMessageDDGAnnouncement"
     case criticalUpdate = "RemoteMessageCriticalAppUpdate"
     case appUpdate = "RemoteMessageAppUpdate"
+    case macComputer = "RemoteMessageMacComputer"
 }
