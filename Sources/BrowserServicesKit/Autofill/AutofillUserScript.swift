@@ -36,7 +36,6 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
         case pmHandlerGetAutofillInitData
 
-        case pmHandlerStoreData
         case pmHandlerGetAccounts
         case pmHandlerGetAutofillCredentials
         case pmHandlerGetIdentity
@@ -126,7 +125,6 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .getAutofillData: return getAutofillData
         case .storeFormData: return pmStoreData
 
-        case .pmHandlerStoreData: return pmStoreData
         case .pmHandlerGetAccounts: return pmGetAccounts
         case .pmHandlerGetAutofillCredentials: return pmGetAutofillCredentials
         case .pmHandlerGetIdentity: return pmGetIdentity
