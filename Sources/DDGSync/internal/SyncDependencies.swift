@@ -28,7 +28,7 @@ protocol SyncDependencies {
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
-    var engine: EngineProtocol { get }
+    var syncQueue: SyncQueueProtocol { get }
     var log: OSLog { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
@@ -111,9 +111,9 @@ protocol RecoveryKeyTransmitting {
 }
 
 /**
- * Internal interface for sync engine.
+ * Internal interface for sync queue.
  */
-protocol EngineProtocol {
+protocol SyncQueueProtocol {
     /// Used for passing data and receiving results to/from sync
     var dataProviders: [Feature: DataProviding] { get }
     /// Called to start first sync

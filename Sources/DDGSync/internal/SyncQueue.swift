@@ -1,5 +1,5 @@
 //
-//  Engine.swift
+//  SyncQueue.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -46,7 +46,7 @@ struct SyncResult {
     var received: [Syncable] = []
 }
 
-actor Engine: EngineProtocol {
+actor SyncQueue: SyncQueueProtocol {
 
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
@@ -122,6 +122,9 @@ actor Engine: EngineProtocol {
         }
     }
 
+    /**
+     * This is private to SyncQueue, but not marked as such to allow unit testing.
+     */
     func sync(fetchOnly: Bool) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {

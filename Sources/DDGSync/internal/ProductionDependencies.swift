@@ -28,7 +28,7 @@ struct ProductionDependencies: SyncDependencies {
     let secureStore: SecureStoring
     let crypter: CryptingInternal
     let scheduler: SchedulingInternal
-    let engine: EngineProtocol
+    let syncQueue: SyncQueueProtocol
 
     var log: OSLog {
         getLog()
@@ -61,7 +61,7 @@ struct ProductionDependencies: SyncDependencies {
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
-        engine = Engine(dataProviders: dataProviders, storage: secureStore, crypter: crypter, api: api, endpoints: endpoints, log: log())
+        syncQueue = SyncQueue(dataProviders: dataProviders, storage: secureStore, crypter: crypter, api: api, endpoints: endpoints, log: log())
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {

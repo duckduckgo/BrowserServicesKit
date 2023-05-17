@@ -48,7 +48,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public var isInProgressPublisher: AnyPublisher<Bool, Never> {
-        dependencies.engine.isSyncInProgressPublisher
+        dependencies.syncQueue.isSyncInProgressPublisher
     }
 
     /// This is the constructor intended for use by app clients.
@@ -189,14 +189,14 @@ public class DDGSync: DDGSyncing {
                     }
                     Task {
                         if self.authState == .active {
-                            await self.dependencies.engine.startSync()
+                            await self.dependencies.syncQueue.startSync()
                         } else {
-                            await self.dependencies.engine.setUpAndStartFirstSync()
+                            await self.dependencies.syncQueue.setUpAndStartFirstSync()
                         }
                     }
                 }
 
-            syncDidFinishCancellable = dependencies.engine.syncDidFinishPublisher
+            syncDidFinishCancellable = dependencies.syncQueue.syncDidFinishPublisher
                 .sink { [weak self] result in
                     if case .success = result {
                         self?.updateAuthState()
@@ -205,7 +205,7 @@ public class DDGSync: DDGSyncing {
 
             if startSyncIfNeeded {
                 Task {
-                    await dependencies.engine.setUpAndStartFirstSync()
+                    await dependencies.syncQueue.setUpAndStartFirstSync()
                     dependencies.scheduler.isEnabled = true
                 }
             } else {

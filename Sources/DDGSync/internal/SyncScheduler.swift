@@ -26,7 +26,7 @@ import Combine
 protocol SchedulingInternal: AnyObject, Scheduling {
     /// Used to control scheduling. If set to false, scheduler is off.
     var isEnabled: Bool { get set }
-    /// Publishes events to notify Sync Engine that sync operation should be started.
+    /// Publishes events to notify Sync Queue that sync operation should be started.
     var startSyncPublisher: AnyPublisher<Void, Never> { get }
 }
 

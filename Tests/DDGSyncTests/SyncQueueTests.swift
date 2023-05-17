@@ -102,7 +102,7 @@ struct DataProvidingMock: DataProviding {
     }
 }
 
-class EngineTests: XCTestCase {
+class SyncQueueTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
@@ -138,47 +138,47 @@ class EngineTests: XCTestCase {
     func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
-        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         var isInProgressEvents = [Bool]()
 
-        let cancellable = await engine.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
+        let cancellable = await syncQueue.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
         defer { cancellable.cancel() }
 
         request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
-        await engine.startSync()
+        await syncQueue.startSync()
         XCTAssertEqual(isInProgressEvents, [false, true, false])
 
-        await engine.startSync()
+        await syncQueue.startSync()
         XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
     }
 
     func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithError() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
-        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         var isInProgressEvents = [Bool]()
 
-        let cancellable = await engine.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
+        let cancellable = await syncQueue.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
         defer { cancellable.cancel() }
 
         request.error = .noResponseBody
-        await engine.startSync()
+        await syncQueue.startSync()
         XCTAssertEqual(isInProgressEvents, [false, true, false])
 
-        await engine.startSync()
+        await syncQueue.startSync()
         XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
     }
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
-        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsAnyError({
-            try await engine.sync(fetchOnly: false)
+            try await syncQueue.sync(fetchOnly: false)
         }, errorHandler: { error in
             guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
                 XCTFail("Unexpected error thrown: \(error)")
@@ -197,11 +197,11 @@ class EngineTests: XCTestCase {
         dataProvider._fetchChangedObjects = { _ in
             [Syncable(jsonObject: [:])]
         }
-        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsAnyError({
-            try await engine.sync(fetchOnly: false)
+            try await syncQueue.sync(fetchOnly: false)
         }, errorHandler: { error in
             guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
                 XCTFail("Unexpected error thrown: \(error)")
@@ -239,11 +239,11 @@ class EngineTests: XCTestCase {
             ]
         }
 
-        let engine = Engine(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.error = .noResponseBody
         await assertThrowsAnyError {
-            try await engine.sync(fetchOnly: false)
+            try await syncQueue.sync(fetchOnly: false)
         }
 
         let bookmarks = BookmarksPayload(
@@ -322,12 +322,12 @@ class EngineTests: XCTestCase {
         dataProvider3.lastSyncTimestamp = "9012"
         dataProvider3._fetchChangedObjects = { _ in [] }
 
-        let engine = Engine(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.result = .init(data: "{\"autofill\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
 
         await assertThrowsAnyError({
-            try await engine.sync(fetchOnly: false)
+            try await syncQueue.sync(fetchOnly: false)
         }, errorHandler: { error in
             guard let syncOperationError = error as? SyncOperationError else {
                 XCTFail("Unexpected error type: \(type(of: error))")
@@ -352,11 +352,11 @@ class EngineTests: XCTestCase {
             sentModels = sent
         }
 
-        let engine = Engine(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
 
         request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
-        try await engine.sync(fetchOnly: false)
+        try await syncQueue.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
     }

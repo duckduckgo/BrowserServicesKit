@@ -171,7 +171,7 @@ public struct Feature: Hashable {
 /**
  * Describes a data model that is supported by Sync.
  *
- * Any data model that is passed to Sync Engine is supposed to be encrypted as needed.
+ * Any data model that is passed to Sync is supposed to be encrypted as needed.
  */
 public struct Syncable {
     public var payload: [String: Any]
