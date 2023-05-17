@@ -36,7 +36,7 @@ struct SecureStorage: SecureStoring {
         
         var query = Self.defaultQuery
         query[kSecUseDataProtectionKeychain] = true
-        query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
+        query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlocked
         query[kSecAttrSynchronizable] = false
         query[kSecValueData] = data
 
