@@ -22,6 +22,7 @@ import Foundation
 import XCTest
 import WebKit
 import UserScript
+import Common
 @testable import BrowserServicesKit
 
 // swiftlint:disable type_body_length
@@ -63,6 +64,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
             ] as [String: Any]
         ]
     }
+
+    let tld = TLD()
 
     @available(macOS 11, iOS 14, *)
     func testWhenAccountsForDomainRequested_ThenDelegateCalled() {
@@ -122,6 +125,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         hostProvider = MockHostProvider(host: "domain1.com")
 
         let delegate = GetCredentialsDelegate()
+        delegate.tld = tld
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
@@ -170,6 +174,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         hostProvider = MockHostProvider(host: "domain1.com")
 
         let delegate = GetCredentialsDelegate()
+        delegate.tld = tld
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
@@ -215,6 +220,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         hostProvider = MockHostProvider(host: "www.domain1.com")
         
         let delegate = GetCredentialsDelegate()
+        delegate.tld = tld
         userScript.vaultDelegate = delegate
 
         var body = encryptedMessagingParams
@@ -548,6 +554,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
     enum CallbackType {
+        case didRequestCreditCardsManagerForDomain
+        case didRequestIdentitiesManagerForDomain
         case didRequestPasswordManagerForDomain
         case didRequestStoreDataForDomain
         case didRequestAccountsForDomain
@@ -560,6 +568,18 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
     var lastUsername: String?
     var lastPassword: String?
     var lastSubtype: AutofillUserScript.GetAutofillDataSubType?
+    var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher?
+    var tld: TLD?
+
+    public func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String) {
+        lastDomain = domain
+        receivedCallbacks.append(.didRequestCreditCardsManagerForDomain)
+    }
+
+    public func autofillUserScript(_: AutofillUserScript, didRequestIdentitiesManagerForDomain domain: String) {
+        lastDomain = domain
+        receivedCallbacks.append(.didRequestIdentitiesManagerForDomain)
+    }
 
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
         lastDomain = domain

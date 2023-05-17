@@ -33,6 +33,7 @@ public struct AccountMatches {
 
 public protocol AutofillAccountMatcher {
     func findMatchesSortedByLastUpdated(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches
+    func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> [SecureVaultModels.WebsiteAccount]
 }
 
 public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
@@ -45,6 +46,7 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         self.tld = tld
     }
 
+    @available(*, deprecated, message: "Use findMatches(accounts:for:) -- Which returns an already sorted list with removed duplicates")
     public func findMatchesSortedByLastUpdated(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches {
         let matches = buildMatches(accounts: accounts, for: url)
         return sort(matches: matches)
@@ -80,4 +82,10 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         return AccountMatches(perfectMatches: sortedPerfectMatches, partialMatches: partialMatches)
     }
 
+
+    public func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> [SecureVaultModels.WebsiteAccount] {
+        return accounts.sortedForDomain(url, tld: tld, removeDuplicates: true)
+    }
+
 }
+
