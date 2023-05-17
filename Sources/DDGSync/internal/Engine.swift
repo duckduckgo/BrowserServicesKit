@@ -37,22 +37,6 @@ struct SyncOperationError: Error {
     }
 }
 
-/**
- * Internal interface for sync engine.
- */
-protocol EngineProtocol {
-    /// Used for passing data and receiving results to/from sync
-    var dataProviders: [Feature: DataProviding] { get }
-    /// Called to start first sync
-    func setUpAndStartFirstSync() async
-    /// Called to start sync
-    func startSync() async
-    /// Emits boolean values representing current sync operation status.
-    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
-    /// Emits events when each sync operation finishes
-    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
-}
-
 struct SyncResult {
     let feature: Feature
     let previousSyncTimestamp: String?
