@@ -89,6 +89,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
         migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
         // ... add more migrations here ...
         do {
             try migrator.migrate(db)
@@ -127,10 +128,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 .fetchAll($0)
         }
     }
-
-    /// To be removed once macOS has been updated to use subdomain matching as per
-    /// https://app.asana.com/0/1203822806345703/1204132671693421/f
-    @available(*, deprecated, message: "use websiteAccountsForTopLevelDomain instead")
+    
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
@@ -140,13 +138,12 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        return try db.read {
+        return try db.read { db in
             return try SecureVaultModels.WebsiteAccount
-                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%\(eTLDplus1)"))
-                .fetchAll($0)
+                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%" + eTLDplus1))
+                .fetchAll(db)
         }
     }
-
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
@@ -640,6 +637,57 @@ extension DefaultDatabaseProvider {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.notes.name, .text)
         }
     }
+    
+    static func migrateV8(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.signature.name, .text)
+        }
+        
+        let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
+        
+        while let accountRow = try accountRows.next() {
+            let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
+                                                           username: accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name],
+                                                           domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
+                                                           created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
+                                                           lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
+            
+            // Query the credentials
+            let credentialRow = try Row.fetchOne(database, sql: """
+                SELECT * FROM \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+                WHERE \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+            """, arguments: [account.id])
+
+            if let credentialRow = credentialRow {
+                
+                var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
+                decryptedCredentials = .init(account: account,
+                                             password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name]))
+                                                                              
+                guard let accountHash = decryptedCredentials?.account.hashValue,
+                      let password = decryptedCredentials?.password else {
+                    continue
+                }
+                let hashData = accountHash + password
+                guard let hash = try MigrationUtility.generateHash(hashData) else {
+                    continue
+                }
+
+                // Update the accounts table with the new hash value
+                try database.execute(sql: """
+                    UPDATE
+                        \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                    SET
+                        \(SecureVaultModels.WebsiteAccount.Columns.signature.name) = ?
+                    WHERE
+                        \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+                """, arguments: [hash, account.id])
+            }
+        }
+        
+    }
+        
+
 
 }
 
@@ -663,6 +711,28 @@ struct MigrationUtility {
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
         
         return try crypto.encrypt(data, withKey: decryptedL2Key)
+    }
+    
+    static func l2decrypt(data: Data) throws -> Data {
+        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+        
+        guard let generatedPassword = try keyStore.generatedPassword() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
+
+        guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
+            throw SecureVaultError.noL2Key
+        }
+
+        let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
+        return try crypto.decrypt(data, withKey: decryptedL2Key)
+    }
+    
+    static func generateHash(_ data: Data) throws -> String? {
+        let (crypto, _) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+        return try crypto.hashData(data)
     }
     
 }
@@ -716,7 +786,7 @@ extension DefaultDatabaseProvider {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, title, username, domain, notes, created, lastUpdated
+        case id, title, username, domain, signature, notes, created, lastUpdated
     }
 
     public init(row: Row) {
@@ -724,6 +794,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         title = row[Columns.title]
         username = row[Columns.username]
         domain = row[Columns.domain]
+        signature = row[Columns.signature]
         notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
@@ -734,6 +805,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
+        container[Columns.signature] = signature        
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()

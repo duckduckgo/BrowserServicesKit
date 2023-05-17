@@ -67,6 +67,10 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
+    internal lazy var autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher = {
+        return AutofillDomainNameUrlMatcher()
+    }()
+
     public lazy var source: String = {
         var js = scriptSourceProvider.source
         js = js.replacingOccurrences(of: "PLACEHOLDER_SECRET", with: generatedSecret)
