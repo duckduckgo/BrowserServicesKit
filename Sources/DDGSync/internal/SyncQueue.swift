@@ -55,6 +55,16 @@ actor SyncQueue: SyncQueueProtocol {
     nonisolated let crypter: Crypting
     nonisolated let requestMaker: SyncRequestMaking
 
+    init(dataProviders: [DataProviding], dependencies: SyncDependencies) {
+        self.init(
+            dataProviders: dataProviders,
+            storage: dependencies.secureStore,
+            crypter: dependencies.crypter,
+            api: dependencies.api,
+            endpoints: dependencies.endpoints
+        )
+    }
+
     init(
         dataProviders: [DataProviding],
         storage: SecureStoring,

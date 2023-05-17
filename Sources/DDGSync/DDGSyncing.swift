@@ -31,7 +31,22 @@ public enum SyncAuthState: String, Sendable, Codable {
     case active
 }
 
+/**
+ This protocol should be implemented by clients to feed DDGSync with the list of syncable data providers.
+ */
+public protocol DataProvidersSource: AnyObject {
+    /**
+     Clients should implement this method and return data providers for all types of syncable data.
+
+     This function is called whenever sync account setup is finished
+     and initial sync operation is ready to be performed.
+     */
+    func makeDataProviders() -> [DataProviding]
+}
+
 public protocol DDGSyncing {
+
+    var dataProvidersSource: DataProvidersSource? { get set }
 
     /**
      Describes current state of sync account.

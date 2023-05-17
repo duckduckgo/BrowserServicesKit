@@ -28,18 +28,16 @@ struct ProductionDependencies: SyncDependencies {
     let secureStore: SecureStoring
     let crypter: CryptingInternal
     let scheduler: SchedulingInternal
-    let syncQueue: SyncQueueProtocol
 
     var log: OSLog {
         getLog()
     }
     private let getLog: () -> OSLog
 
-    init(baseUrl: URL, dataProviders: [DataProviding], log: @escaping @autoclosure () -> OSLog = .disabled) {
+    init(baseUrl: URL, log: @escaping @autoclosure () -> OSLog = .disabled) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
-                  dataProviders: dataProviders,
                   secureStore: SecureStorage(),
                   log: log())
     }
@@ -47,7 +45,6 @@ struct ProductionDependencies: SyncDependencies {
     init(
         fileStorageUrl: URL,
         baseUrl: URL,
-        dataProviders: [DataProviding],
         secureStore: SecureStoring,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
@@ -61,7 +58,6 @@ struct ProductionDependencies: SyncDependencies {
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
         scheduler = SyncScheduler()
-        syncQueue = SyncQueue(dataProviders: dataProviders, storage: secureStore, crypter: crypter, api: api, endpoints: endpoints, log: log())
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {

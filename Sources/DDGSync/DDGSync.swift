@@ -48,13 +48,15 @@ public class DDGSync: DDGSyncing {
     }
 
     public var isInProgressPublisher: AnyPublisher<Bool, Never> {
-        dependencies.syncQueue.isSyncInProgressPublisher
+        isSyncInProgressSubject.eraseToAnyPublisher()
     }
 
+    public weak var dataProvidersSource: DataProvidersSource?
+
     /// This is the constructor intended for use by app clients.
-    public convenience init(dataProviders: [DataProviding], log: @escaping @autoclosure () -> OSLog = .disabled) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, dataProviders: dataProviders, log: log())
-        self.init(dependencies: dependencies)
+    public convenience init(dataProvidersSource: DataProvidersSource, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, log: log())
+        self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
     public func createAccount(deviceName: String, deviceType: String) async throws {
@@ -169,7 +171,8 @@ public class DDGSync: DDGSyncing {
 
     let dependencies: SyncDependencies
 
-    init(dependencies: SyncDependencies) {
+    init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
+        self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
         self.authState = .inactive
 
@@ -182,6 +185,16 @@ public class DDGSync: DDGSyncing {
         authState = (try? dependencies.secureStore.account()?.state) ?? .inactive
 
         if previousState == .inactive && authState != .inactive {
+            let providers = dataProvidersSource?.makeDataProviders() ?? []
+            let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
+
+            syncQueueCancellable = syncQueue.isSyncInProgressPublisher
+                .sink(receiveCompletion: { [weak self] _ in
+                    self?.isSyncInProgressSubject.send(false)
+                }, receiveValue: { [weak self] isInProgress in
+                    self?.isSyncInProgressSubject.send(isInProgress)
+                })
+
             startSyncCancellable = dependencies.scheduler.startSyncPublisher
                 .sink { [weak self] in
                     guard let self else {
@@ -189,14 +202,14 @@ public class DDGSync: DDGSyncing {
                     }
                     Task {
                         if self.authState == .active {
-                            await self.dependencies.syncQueue.startSync()
+                            await syncQueue.startSync()
                         } else {
-                            await self.dependencies.syncQueue.setUpAndStartFirstSync()
+                            await syncQueue.setUpAndStartFirstSync()
                         }
                     }
                 }
 
-            syncDidFinishCancellable = dependencies.syncQueue.syncDidFinishPublisher
+            syncDidFinishCancellable = syncQueue.syncDidFinishPublisher
                 .sink { [weak self] result in
                     if case .success = result {
                         self?.updateAuthState()
@@ -205,7 +218,7 @@ public class DDGSync: DDGSyncing {
 
             if startSyncIfNeeded {
                 Task {
-                    await dependencies.syncQueue.setUpAndStartFirstSync()
+                    await syncQueue.setUpAndStartFirstSync()
                     dependencies.scheduler.isEnabled = true
                 }
             } else {
@@ -216,6 +229,8 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncDidFinishCancellable?.cancel()
+            syncQueueCancellable?.cancel()
+            syncQueue = nil
         }
     }
 
@@ -237,4 +252,8 @@ public class DDGSync: DDGSyncing {
 
     private var startSyncCancellable: AnyCancellable?
     private var syncDidFinishCancellable: AnyCancellable?
+
+    private var syncQueue: SyncQueueProtocol?
+    private var syncQueueCancellable: AnyCancellable?
+    private var isSyncInProgressSubject = PassthroughSubject<Bool, Never>()
 }
