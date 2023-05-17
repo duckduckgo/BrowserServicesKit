@@ -46,3 +46,22 @@ public class SyncFeatureEntity: NSManagedObject {
         return object
     }
 }
+
+enum SyncFeatureUtils {
+
+    static func fetchFeature(with name: String, in context: NSManagedObjectContext) -> SyncFeatureEntity? {
+        let request = SyncFeatureEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(SyncFeatureEntity.name), name)
+        request.returnsObjectsAsFaults = true
+        request.fetchLimit = 1
+
+        return try? context.fetch(request).first
+    }
+
+    static func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String, in context: NSManagedObjectContext) {
+        let feature = Self.fetchFeature(with: name, in: context)
+
+        feature?.lastModified = timestamp
+    }
+
+}

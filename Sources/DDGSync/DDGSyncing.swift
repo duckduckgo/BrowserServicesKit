@@ -158,18 +158,6 @@ public protocol Scheduling {
 }
 
 /**
- * Data returned by sync engine's results publisher.
- *
- * Can be queried by client apps to retrieve changes.
- */
-public protocol ResultsProviding {
-    var feature: Feature { get }
-    var sent: [Syncable] { get }
-    var received: [Syncable] { get }
-    var lastSyncTimestamp: String? { get }
-}
-
-/**
  * Defines sync feature, i.e. type of synced data.
  */
 public struct Feature: Hashable {
