@@ -31,7 +31,13 @@ public enum SyncAuthState: String, Sendable, Codable {
     case active
 }
 
+public protocol DataProviderProviding: AnyObject {
+    func dataProviders() -> [DataProviding]
+}
+
 public protocol DDGSyncing {
+
+    var dataProvidersProvider: DataProviderProviding? { get }
 
     /**
      Describes current state of sync account.
