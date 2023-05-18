@@ -244,11 +244,11 @@ public class EmailManager {
 
     private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
         get {
-            UserDefaults().object(forKey: Self.inContextEmailSignupPromptDismissedPermanentlyKey) as? Double ?? nil
+            UserDefaults().object(forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey) as? Double ?? nil
         }
 
         set {
-            UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyKey)
+            UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
         }
     }
 
@@ -297,7 +297,7 @@ public class EmailManager {
     }
 
     public func resetEmailProtectionInContextPrompt() {
-        UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyKey)
+        UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
     }
 }
 
