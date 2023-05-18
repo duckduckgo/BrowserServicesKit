@@ -392,6 +392,14 @@ extension EmailManager: AutofillEmailDelegate {
 
         NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
+
+    public func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+        inContextEmailSignupPromptDismissedPermanentlyAt = value
+    }
+
+    public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
+        inContextEmailSignupPromptDismissedPermanentlyAt
+    }
 }
 
 // MARK: - Token Management
