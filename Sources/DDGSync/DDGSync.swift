@@ -69,7 +69,7 @@ public class DDGSync: DDGSyncing {
         updateAuthState()
     }
 
-    public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws {
+    public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice] {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
@@ -77,6 +77,7 @@ public class DDGSync: DDGSyncing {
         let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
         updateAuthState()
+        return result.devices
     }
 
     public func remoteConnect() throws -> RemoteConnecting {

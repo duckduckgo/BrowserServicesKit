@@ -30,6 +30,9 @@ public enum RequestVaultCredentialsAction: String, Codable {
 
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
+    var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? { get }
+    var tld: TLD? { get }
+
     func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
         [SecureVaultModels.WebsiteAccount],
         [SecureVaultModels.Identity],
@@ -37,6 +40,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
         SecureVaultModels.CredentialsProvider
     ) -> Void)
 
+    func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String)
+    func autofillUserScript(_: AutofillUserScript, didRequestIdentitiesManagerForDomain domain: String)
     func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreDataForDomain domain: String, data: AutofillUserScript.DetectedAutofillData)
     func autofillUserScript(_: AutofillUserScript, didRequestAccountsForDomain domain: String,
@@ -157,6 +162,21 @@ extension AutofillUserScript {
         let id: String
         let username: String
         let credentialsProvider: String?
+        let origin: CredentialOrigin?
+
+        struct CredentialOrigin: Codable {
+            let url: String
+            let partialMatch: Bool
+        }
+
+        init(id: String, username: String, credentialsProvider: String?, origin: CredentialOrigin? = nil) {
+            self.id = id
+            self.username = username
+            self.credentialsProvider = credentialsProvider
+            // Bitwarden does not include URLs with Creds, so remove any origin we might have
+            // https://app.asana.com/0/0/1204431865163371/
+            self.origin = credentialsProvider == SecureVaultModels.CredentialsProvider.Name.bitwarden.rawValue ? nil : origin
+        }
     }
     
     // MARK: - Requests
@@ -437,10 +457,16 @@ extension AutofillUserScript {
             if credentialsProvider.locked {
                 credentials = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]
             } else {
-                credentials = accounts.compactMap {
-                    guard let id = $0.id else { return nil }
-                    return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                guard let autofillWebsiteAccountMatcher = self.vaultDelegate?.autofillWebsiteAccountMatcher else {
+                    credentials = accounts.compactMap {
+                        guard let id = $0.id else { return nil }
+                        return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                    }
+                    return
                 }
+
+                let accountMatches = autofillWebsiteAccountMatcher.findMatches(accounts: accounts, for: domain)
+                credentials = self.buildCredentialObjects(accountMatches, credentialsProvider: credentialsProvider)
             }
 
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
@@ -458,7 +484,17 @@ extension AutofillUserScript {
         }
 
     }
-     
+
+    private func buildCredentialObjects(_ accounts: [SecureVaultModels.WebsiteAccount],
+                                        credentialsProvider: SecureVaultModels.CredentialsProvider) -> [CredentialObject] {
+        var credentials: [CredentialObject] = []
+        credentials.append(contentsOf: accounts.compactMap {
+            guard let id = $0.id else { return nil }
+            return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue, origin: CredentialObject.CredentialOrigin(url: $0.domain, partialMatch: false))
+        })
+        return credentials
+    }
+
     func pmStoreData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         defer {
             replyHandler(nil)
@@ -502,7 +538,8 @@ extension AutofillUserScript {
             guard let credential = credentials,
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8),
-                  credential.account.domain.droppingWwwPrefix() == requestingDomain.droppingWwwPrefix() else {
+                  let tld = self.vaultDelegate?.tld,
+                  self.autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: requestingDomain, savedSite: credential.account.domain, tld: tld) else {
                 replyHandler("{}")
                 return
             }
@@ -595,12 +632,12 @@ extension AutofillUserScript {
     // MARK: Open Management Views
 
     func pmOpenManageCreditCards(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestCreditCardsManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 
     func pmOpenManageIdentities(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
+        vaultDelegate?.autofillUserScript(self, didRequestIdentitiesManagerForDomain: hostForMessage(message))
         replyHandler(nil)
     }
 

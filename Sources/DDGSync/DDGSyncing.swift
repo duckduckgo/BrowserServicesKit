@@ -96,7 +96,7 @@ public protocol DDGSyncing {
     /**
      Logs in to an existing account using a recovery key.
      */
-    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice]
 
     /**
     Returns a device id and temporary secret key ready for display and allows callers attempt to fetch the transmitted recovery key.
