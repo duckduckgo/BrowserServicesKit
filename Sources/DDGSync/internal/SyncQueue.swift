@@ -61,7 +61,8 @@ actor SyncQueue: SyncQueueProtocol {
             storage: dependencies.secureStore,
             crypter: dependencies.crypter,
             api: dependencies.api,
-            endpoints: dependencies.endpoints
+            endpoints: dependencies.endpoints,
+            log: dependencies.log
         )
     }
 
