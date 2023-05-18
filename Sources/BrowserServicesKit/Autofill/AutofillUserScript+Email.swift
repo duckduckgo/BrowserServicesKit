@@ -34,6 +34,8 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
     func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double)
     func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double?
+    func autofillUserScriptDidRequestInContextSignUp(_ : AutofillUserScript)
+    func autofillUserScriptDidCompleteInContextSignUp(_ : AutofillUserScript)
 
 }
 
@@ -152,7 +154,6 @@ extension AutofillUserScript {
             return
         }
         emailDelegate?.autofillUserScript(self, didRequestSetInContextPromptValue: value)
-        print(">> AB: setIncontextSignupPermanentlyDismissedAt", value)
         replyHandler(nil)
     }
 
@@ -165,22 +166,17 @@ extension AutofillUserScript {
         let response = GetIncontextSignupDismissedAtResponse(success: inContextSignupDismissedAt)
 
         if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-            print(">> AB: GET getIncontextSignupDismissedAt", jsonString)
             replyHandler(jsonString)
         }
     }
 
     func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        // AB-TODO: Implement
-        print(">> AB: startEmailProtectionSignup")
-        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
+        emailDelegate?.autofillUserScriptDidRequestInContextSignUp(self)
         replyHandler(nil)
     }
 
     func closeEmailProtectionTab(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        // AB-TODO: Implement
-        print(">> AB: closeEmailProtectionTab")
-        NotificationCenter.default.post(name: .emailDidCloseEmailProtection, object: self)
+        emailDelegate?.autofillUserScriptDidCompleteInContextSignUp(self)
         replyHandler(nil)
     }
 

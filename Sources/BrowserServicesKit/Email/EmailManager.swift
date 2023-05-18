@@ -105,6 +105,8 @@ public extension Notification.Name {
     static let emailDidGenerateAlias = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidGenerateAlias")
     static let emailDidIncontextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidIncontextSignup")
     static let emailDidCloseEmailProtection = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCloseEmailProtection")
+    static let emailDidStartInContextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidStartInContextSignup")
+    static let emailDidCompleteInContextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCompleteInContextSignup")
 }
 
 public enum AliasRequestError: Error {
@@ -399,6 +401,14 @@ extension EmailManager: AutofillEmailDelegate {
 
     public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
         inContextEmailSignupPromptDismissedPermanentlyAt
+    }
+
+    public func autofillUserScriptDidRequestInContextSignUp(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidStartInContextSignup, object: self)
+    }
+
+    public func autofillUserScriptDidCompleteInContextSignUp(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidCompleteInContextSignup, object: self)
     }
 }
 
