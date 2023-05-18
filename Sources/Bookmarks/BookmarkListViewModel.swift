@@ -135,15 +135,14 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
 
         save()
-
-        bookmarks = parentFolder.childrenArray
+        refresh()
     }
 
     public func softDeleteBookmark(_ bookmark: BookmarkEntity) {
         if bookmark.parent == nil {
             BookmarkUtils.fetchRootFolder(context)?.addToChildren(bookmark)
         }
-        guard let parentFolder = bookmark.parent else {
+        guard bookmark.parent != nil else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
         }
@@ -151,8 +150,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         bookmark.markPendingDeletion()
 
         save()
-
-        bookmarks = parentFolder.childrenArray
+        refresh()
     }
 
     public func reloadData() {
