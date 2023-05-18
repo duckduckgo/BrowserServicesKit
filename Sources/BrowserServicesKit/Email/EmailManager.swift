@@ -134,7 +134,8 @@ public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ 
 public class EmailManager {
     
     private static let emailDomain = "duck.com"
-    
+    private static let inContextEmailSignupPromptDismissedPermanentlyAtKey = "Autofill.InContextEmailSignup.dismissed.permanently.at"
+
     private let storage: EmailManagerStorage
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
     public weak var requestDelegate: EmailManagerRequestDelegate?
@@ -240,6 +241,17 @@ public class EmailManager {
         guard let username = username else { return nil }
         return username + "@" + EmailManager.emailDomain
     }
+
+    private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
+        get {
+            UserDefaults().object(forKey: Self.inContextEmailSignupPromptDismissedPermanentlyKey) as? Double ?? nil
+        }
+
+        set {
+            UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyKey)
+        }
+    }
+
     
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
@@ -284,6 +296,9 @@ public class EmailManager {
         }
     }
 
+    public func resetEmailProtectionInContextPrompt() {
+        UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyKey)
+    }
 }
 
 extension EmailManager: AutofillEmailDelegate {
