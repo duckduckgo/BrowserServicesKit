@@ -146,7 +146,7 @@ extension AutofillUserScript {
 
     // MARK: In Context Email Protection
 
-    func setInContextSignupPermanentlyDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+    func setIncontextSignupPermanentlyDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
         guard let body = message.messageBody as? [String: Any],
               let value = body["value"] as? Double else {
             return
@@ -156,7 +156,7 @@ extension AutofillUserScript {
         replyHandler(nil)
     }
 
-    func getInContextSignupDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+    func getIncontextSignupDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
         // AB-TODO: Implement
         let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
         let inContextSignupDismissedAt = IncontextSignupDismissedAt(
