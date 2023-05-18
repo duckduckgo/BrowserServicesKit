@@ -362,15 +362,11 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
         return true
     }
 
-    func secureVaultManagerShouldAutomaticallySaveGeneratedPassword(_: SecureVaultManager) -> Bool {
-        return false
-    }
+    func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String) {}
 
-    func secureVaultManagerAutoSavedCredentialsId(_: SecureVaultManager) -> String? {
-        return nil
-    }
+    func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String) {}
 
-    func secureVaultManager(_: SecureVaultManager, promptUserToUseGeneratedPasswordForDomain: String, withGeneratedPassword generatedPassword: String, completionHandler: @escaping (Bool) -> Void) {}
+    func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String) {}
 
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel) {}
     

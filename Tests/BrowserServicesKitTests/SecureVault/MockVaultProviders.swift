@@ -165,6 +165,14 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
         return data
     }
+    
+    func generateSalt() throws -> Data {
+        return Data()
+    }
+    
+    func hashData(_ data: Data) throws -> String? {
+        return ""
+    }
 
 }
 
@@ -192,6 +200,14 @@ internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data {
         return data
+    }
+    
+    func generateSalt() throws -> Data {
+        return Data()
+    }
+
+    func hashData(_ data: Data) throws -> String? {
+        return ""
     }
 
 }
