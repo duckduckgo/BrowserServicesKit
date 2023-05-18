@@ -21,7 +21,6 @@ import Common
 import WebKit
 import UserScript
 
-var incontextSignupPermanentlyDismissedAt: Double?
 var previousIncontextSignupPermanentlyDismissedAt: Double?
 var previousEmailSignedIn: Bool = false
 
