@@ -267,6 +267,14 @@ class MockUserScriptMessage: UserScriptMessage {
 }
 
 class MockAutofillEmailDelegate: AutofillEmailDelegate {
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+
+    }
+
+    func autofillUserScriptDidRequestInContextPromptValue(_: BrowserServicesKit.AutofillUserScript) -> Double? {
+        return nil
+    }
+
 
     var signedInCallback: (() -> Void)?
     var signedOutCallback: (() -> Void)?
