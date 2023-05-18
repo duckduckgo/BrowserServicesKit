@@ -118,22 +118,19 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none.value)
         let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
-        
-        if let selectedDetailsData = selectedDetailsData {
-            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok.value, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
-            self.selectedDetailsData = nil
-            return
-        }
 
-        guard let lastOpenHost = lastOpenHost, message.messageHost != lastOpenHost else {
-            if previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt || previousEmailSignedIn != emailSignedIn {
-                previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
-                previousEmailSignedIn = emailSignedIn
-                response = GetSelectedCredentialsResponse(type: CredentialsResponse.state.value)
-            }
-            return
+        if (previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt || previousEmailSignedIn != emailSignedIn) {
+            previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
+            previousEmailSignedIn = emailSignedIn
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.state.value)
+
+        } else if lastOpenHost == nil || message.messageHost != lastOpenHost {
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.stop.value)
+
+        } else if let selectedDetailsData = selectedDetailsData {
+            self.selectedDetailsData = nil
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok.value, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
         }
-        response = GetSelectedCredentialsResponse(type: CredentialsResponse.stop.value)
 
         if let json = try? JSONEncoder().encode(response),
            let jsonString = String(data: json, encoding: .utf8) {

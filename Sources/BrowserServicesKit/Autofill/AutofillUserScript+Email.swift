@@ -153,12 +153,10 @@ extension AutofillUserScript {
             return
         }
         emailDelegate?.autofillUserScript(self, didRequestSetInContextPromptValue: value)
-        print(">> AB: setIncontextSignupPermanentlyDismissedAt", value)
         replyHandler(nil)
     }
 
     func getIncontextSignupDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        // AB-TODO: Implement
         let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
         let inContextSignupDismissedAt = IncontextSignupDismissedAt(
             permanentlyDismissedAt: inContextEmailSignupPromptDismissedPermanentlyAt
@@ -166,20 +164,16 @@ extension AutofillUserScript {
         let response = GetIncontextSignupDismissedAtResponse(success: inContextSignupDismissedAt)
 
         if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
-            print(">> AB: GET getIncontextSignupDismissedAt", jsonString)
             replyHandler(jsonString)
         }
     }
 
     func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        print(">> AB: startEmailProtectionSignup")
-        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)        
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)
         replyHandler(nil)
     }
 
     func closeEmailProtectionTab(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        // AB-TODO: Implement
-        print(">> AB: closeEmailProtectionTab")
         emailDelegate?.autofillUserScriptDidCompleteInContextSignup(self)        
         replyHandler(nil)
     }
