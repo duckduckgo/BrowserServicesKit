@@ -105,8 +105,6 @@ public extension Notification.Name {
     static let emailDidGenerateAlias = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidGenerateAlias")
     static let emailDidIncontextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidIncontextSignup")
     static let emailDidCloseEmailProtection = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCloseEmailProtection")
-    static let emailDidStartInContextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidStartInContextSignup")
-    static let emailDidCompleteInContextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCompleteInContextSignup")
 }
 
 public enum AliasRequestError: Error {
@@ -304,7 +302,6 @@ public class EmailManager {
 }
 
 extension EmailManager: AutofillEmailDelegate {
-
     public func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
          return isSignedIn
     }
@@ -403,13 +400,14 @@ extension EmailManager: AutofillEmailDelegate {
         inContextEmailSignupPromptDismissedPermanentlyAt
     }
 
-    public func autofillUserScriptDidRequestInContextSignUp(_: AutofillUserScript) {
-        NotificationCenter.default.post(name: .emailDidStartInContextSignup, object: self)
+    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
     }
 
-    public func autofillUserScriptDidCompleteInContextSignUp(_: AutofillUserScript) {
-        NotificationCenter.default.post(name: .emailDidCompleteInContextSignup, object: self)
+    public func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidCloseEmailProtection, object: self)
     }
+
 }
 
 // MARK: - Token Management

@@ -34,9 +34,8 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
     func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double)
     func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double?
-    func autofillUserScriptDidRequestInContextSignUp(_ : AutofillUserScript)
-    func autofillUserScriptDidCompleteInContextSignUp(_ : AutofillUserScript)
-
+    func autofillUserScriptDidRequestInContextSignup(_ : AutofillUserScript)
+    func autofillUserScriptDidCompleteInContextSignup(_ : AutofillUserScript)
 }
 
 extension AutofillUserScript {
@@ -154,6 +153,7 @@ extension AutofillUserScript {
             return
         }
         emailDelegate?.autofillUserScript(self, didRequestSetInContextPromptValue: value)
+        print(">> AB: setIncontextSignupPermanentlyDismissedAt", value)
         replyHandler(nil)
     }
 
@@ -166,17 +166,21 @@ extension AutofillUserScript {
         let response = GetIncontextSignupDismissedAtResponse(success: inContextSignupDismissedAt)
 
         if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+            print(">> AB: GET getIncontextSignupDismissedAt", jsonString)
             replyHandler(jsonString)
         }
     }
 
     func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestInContextSignUp(self)
+        print(">> AB: startEmailProtectionSignup")
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)        
         replyHandler(nil)
     }
 
     func closeEmailProtectionTab(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidCompleteInContextSignUp(self)
+        // AB-TODO: Implement
+        print(">> AB: closeEmailProtectionTab")
+        emailDelegate?.autofillUserScriptDidCompleteInContextSignup(self)        
         replyHandler(nil)
     }
 
