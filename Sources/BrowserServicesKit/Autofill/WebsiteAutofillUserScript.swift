@@ -106,8 +106,10 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: "none")
         let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        if (previousIncontextSignupPermanentlyDismissedAt != incontextSignupPermanentlyDismissedAt || previousEmailSignedIn != emailSignedIn) {
-            previousIncontextSignupPermanentlyDismissedAt = incontextSignupPermanentlyDismissedAt
+        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
+
+        if (previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt || previousEmailSignedIn != emailSignedIn) {
+            previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
             previousEmailSignedIn = emailSignedIn
             response = GetSelectedCredentialsResponse(type: "state")
         } else if lastOpenHost == nil || message.messageHost != lastOpenHost {
