@@ -78,6 +78,9 @@ public class BookmarkEntity: NSManagedObject {
             return
         }
         modifiedAt = Date()
+        if changedKeys.contains(NSStringFromSelector(#selector(getter: isPendingDeletion))) && isPendingDeletion {
+            parent?.modifiedAt = modifiedAt
+        }
     }
 
     public override func validateForInsert() throws {

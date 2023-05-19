@@ -110,6 +110,41 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         XCTAssertEqual(Set(changedObjects.compactMap(\.uuid)), Set(["2", "3", "5", "6", "7"]))
     }
 
+    func testWhenBookmarkIsSoftDeletedThenFetchChangedObjectsReturnsBookmarkAndItsParent() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Folder(id: "2") {
+                Bookmark(id: "3")
+                Bookmark(id: "4")
+                Bookmark(id: "5")
+            }
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            // clear modifiedAt for all entities
+            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "2", "3", "4", "5"], in: context)
+            bookmarks.forEach { $0.modifiedAt = nil }
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["4"], in: context).first
+            XCTAssertNotNil(bookmark)
+            bookmark?.markPendingDeletion()
+            try! context.save()
+        }
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedFolder = try XCTUnwrap(changedObjects.first(where: { $0.uuid == "2"}))
+
+        XCTAssertEqual(Set(changedObjects.compactMap(\.uuid)), Set(["2", "4"]))
+        XCTAssertEqual(changedFolder.children, ["3", "5"])
+    }
+
     func testThatSentItemsAreProperlyCleanedUp() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 

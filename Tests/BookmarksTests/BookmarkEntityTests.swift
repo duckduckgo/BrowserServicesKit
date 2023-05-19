@@ -86,6 +86,30 @@ final class BookmarkEntityTests: XCTestCase {
         }
     }
 
+    func testWhenBookmarkIsMarkedPendingDeletionThenModifiedAtIsPopulatedForBookmarkAndItsParentFolder() throws {
+
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)
+            let bookmark = makeBookmark(in: context)
+            try! context.save()
+            XCTAssertNotNil(bookmark.modifiedAt)
+
+            bookmark.modifiedAt = nil
+            rootFolder?.modifiedAt = nil
+            try! context.save()
+            XCTAssertNil(bookmark.modifiedAt)
+            XCTAssertNil(rootFolder?.modifiedAt)
+
+            bookmark.markPendingDeletion()
+            try! context.save()
+            XCTAssertNotNil(bookmark.modifiedAt)
+            XCTAssertNotNil(rootFolder?.modifiedAt)
+        }
+    }
+
     func testWhenBookmarkModificationTimestampIsUpdatedThenItIsNotOverwrittenUponSave() throws {
 
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
