@@ -38,15 +38,11 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     /// Last user selected details in the top autofill overlay stored in the child.
     var selectedDetailsData: SelectedDetailsData?
 
-    private enum CredentialsResponse: String {
-        case none
-        case state
-        case stop
-        case ok
-
-        var value: String {
-            return self.rawValue
-        }
+    private enum CredentialsResponse {
+        static let none = "none"
+        static let state = "state"
+        static let stop = "stop"
+        static let ok = "ok"
     }
 
     public override var messageNames: [String] {
@@ -115,21 +111,22 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
 
     /// Called from the child autofill to return referenced credentials
     func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
-        var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none.value)
+        var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none)
         let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
 
-        if (previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt || previousEmailSignedIn != emailSignedIn) {
+        if (previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt ||
+            previousEmailSignedIn != emailSignedIn) {
             previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
             previousEmailSignedIn = emailSignedIn
-            response = GetSelectedCredentialsResponse(type: CredentialsResponse.state.value)
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.state)
 
         } else if lastOpenHost == nil || message.messageHost != lastOpenHost {
-            response = GetSelectedCredentialsResponse(type: CredentialsResponse.stop.value)
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.stop)
 
         } else if let selectedDetailsData = selectedDetailsData {
             self.selectedDetailsData = nil
-            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok.value, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
         }
 
         if let json = try? JSONEncoder().encode(response),
