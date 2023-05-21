@@ -112,11 +112,16 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     /// Called from the child autofill to return referenced credentials
     func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none)
-        let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
 
-        if (previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt ||
-            previousEmailSignedIn != emailSignedIn) {
+        let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        if (previousEmailSignedIn == nil) {
+            previousEmailSignedIn = emailSignedIn
+        }
+        let haEmailSignedInStateChanged = previousEmailSignedIn != emailSignedIn
+        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
+        let hasIncontextSignupStateChanged = previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt
+
+        if (haEmailSignedInStateChanged || hasIncontextSignupStateChanged) {
             previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
             previousEmailSignedIn = emailSignedIn
             response = GetSelectedCredentialsResponse(type: CredentialsResponse.state)
