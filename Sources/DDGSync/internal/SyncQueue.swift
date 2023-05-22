@@ -115,7 +115,7 @@ actor SyncQueue: SyncQueueProtocol {
                 for try await _ in group {}
             }
 
-            if syncAuthState == .addNewDevice {
+            if syncAuthState == .addingNewDevice {
                 try await sync(fetchOnly: true)
             }
 

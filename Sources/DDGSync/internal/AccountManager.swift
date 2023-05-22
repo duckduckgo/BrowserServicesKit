@@ -69,7 +69,7 @@ struct AccountManager: AccountManaging {
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
                            token: result.token,
-                           state: .setupNewAccount)
+                           state: .settingUpNewAccount)
     }
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
@@ -205,7 +205,7 @@ struct AccountManager: AccountManaging {
                 primaryKey: info.primaryKey,
                 secretKey: secretKey,
                 token: token,
-                state: .addNewDevice
+                state: .addingNewDevice
             ),
             devices: try result.devices.map {
                 RegisteredDevice(

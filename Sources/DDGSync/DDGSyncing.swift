@@ -24,9 +24,9 @@ public enum SyncAuthState: String, Sendable, Codable {
     /// Sync is not enabled.
     case inactive
     /// Sync is in progress of registering new account.
-    case setupNewAccount
+    case settingUpNewAccount
     /// Sync is in progress of adding a new device to an existing account.
-    case addNewDevice
+    case addingNewDevice
     /// User is logged in to sync.
     case active
 }
