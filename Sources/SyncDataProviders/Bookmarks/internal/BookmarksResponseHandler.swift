@@ -204,9 +204,13 @@ final class BookmarksResponseHandler {
             }
 
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
-            if clientTimestamp != nil, let modifiedAt = existingEntity.modifiedAt {
-                assert(modifiedAt > clientTimestamp!, "modified is not nil but not greater than request timestamp, should be cleaned in cleanUpSentItems")
-            } else {
+            let isModifiedAfterSyncTimestamp: Bool = {
+                guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
+                    return false
+                }
+                return modifiedAt > clientTimestamp
+            }()
+            if !isModifiedAfterSyncTimestamp {
                 try? existingEntity.update(with: syncable, in: context, using: crypter)
             }
 

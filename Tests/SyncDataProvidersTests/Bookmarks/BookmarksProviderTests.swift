@@ -215,6 +215,35 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
+    func testThatInitialSyncClearsModifiedAtFromDeduplicatedBookmark() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", url: "test")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["2"]),
+            .bookmark("test", id: "2", url: "test")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Bookmark("test", id: "2", url: "test")
+            })
+        }
+    }
+
     func testWhenInitialSyncAppendsBookmarksToDuplicateFolderThenFolderIsDeduplicatedAndMarkedAsModified() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 

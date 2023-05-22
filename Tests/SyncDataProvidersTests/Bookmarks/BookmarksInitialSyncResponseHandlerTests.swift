@@ -26,7 +26,7 @@ import Persistence
 
 final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase {
 
-    func testThatBookmarksAreReorderedWithinFolder() {
+    func testThatBookmarksAreReorderedWithinFolder() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -36,17 +36,14 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [.rootFolder(children: ["2", "1"])]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "2")
-                Bookmark(id: "1")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "2")
+            Bookmark(id: "1")
+        })
     }
 
-    func testThatNewBookmarksCanBeAppendedAtTheEndOfTheFolder() {
+    func testThatNewBookmarksCanBeAppendedAtTheEndOfTheFolder() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -59,18 +56,15 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "3")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "2")
-                Bookmark(id: "3")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+            Bookmark(id: "3")
+        })
     }
 
-    func testThatNewBookmarksCanBeInsertedInTheMiddleOfAFolder() {
+    func testThatNewBookmarksCanBeInsertedInTheMiddleOfAFolder() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -83,18 +77,15 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "2")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "2")
-                Bookmark(id: "3")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+            Bookmark(id: "3")
+        })
     }
 
-    func testThatBookmarksAreMergedInRootFolder() {
+    func testThatBookmarksAreMergedInRootFolder() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -107,18 +98,15 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "3")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "2")
-                Bookmark(id: "3")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+            Bookmark(id: "3")
+        })
     }
 
-    func testThatBookmarksAreMergedInSubFolder() {
+    func testThatBookmarksAreMergedInSubFolder() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -134,20 +122,17 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "4")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder("Folder", id: "1") {
-                    Bookmark(id: "2")
-                    Bookmark(id: "3")
-                    Bookmark(id: "4")
-                }
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder("Folder", id: "1") {
+                Bookmark(id: "2")
+                Bookmark(id: "3")
+                Bookmark(id: "4")
+            }
+        })
     }
 
-    func testThatNewFavoriteCanBeAppendedToFavorites() {
+    func testThatNewFavoriteCanBeAppendedToFavorites() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -161,18 +146,15 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "3")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1", isFavorite: true)
-                Bookmark(id: "2", isFavorite: true)
-                Bookmark(id: "3", isFavorite: true)
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "2", isFavorite: true)
+            Bookmark(id: "3", isFavorite: true)
+        })
     }
 
-    func testThatFavoritesAreMergedAndRemoteFavoritesAreAppendedAtTheEnd() {
+    func testThatFavoritesAreMergedAndRemoteFavoritesAreAppendedAtTheEnd() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -186,18 +168,15 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "3")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1", isFavorite: true)
-                Bookmark(id: "4", isFavorite: true)
-                Bookmark(id: "3", isFavorite: true)
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "4", isFavorite: true)
+            Bookmark(id: "3", isFavorite: true)
+        })
     }
 
-    func testWhenBookmarkIsDeduplicatedThenItIsMovedInParentCollectionAndAppendedTogetherWithRemoteBookmarks() {
+    func testWhenBookmarkIsDeduplicatedThenItIsMovedInParentCollectionAndAppendedTogetherWithRemoteBookmarks() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -212,19 +191,16 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "4")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "3")
-                Bookmark("2", id: "remote2")
-                Bookmark(id: "4")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "3")
+            Bookmark("2", id: "remote2")
+            Bookmark(id: "4")
+        })
     }
 
-    func testWhenDeletedBookmarkIsReceivedThenItIsDeletedLocally() {
+    func testWhenDeletedBookmarkIsReceivedThenItIsDeletedLocally() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -237,16 +213,13 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "1", isDeleted: true)
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "2")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "2")
+        })
     }
 
-    func testThatDeletesForNonExistentBookmarksAreIgnored() {
+    func testThatDeletesForNonExistentBookmarksAreIgnored() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -263,17 +236,14 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "7", isDeleted: true)
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "2")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        })
     }
 
-    func testThatSinglePayloadCanDeleteCreateReorderAndDeduplicateBookmarks() {
+    func testThatSinglePayloadCanDeleteCreateReorderAndDeduplicateBookmarks() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -289,20 +259,17 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "4")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "3")
-                Bookmark("2", id: "remote2")
-                Bookmark(id: "4")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "3")
+            Bookmark("2", id: "remote2")
+            Bookmark(id: "4")
+        })
     }
 
     // MARK: - Deduplication
 
-    func testThatBookmarksWithTheSameNameAndURLAreDeduplicated() {
+    func testThatBookmarksWithTheSameNameAndURLAreDeduplicated() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -314,16 +281,13 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark("name", id: "2", url: "url")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark("name", id: "2", url: "url")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(rootFolder, BookmarkTree {
+            Bookmark("name", id: "2", url: "url")
+        })
     }
 
-    func testThatBookmarksWithTheSameNameAndURLInsideSubfolderAreDeduplicated() {
+    func testThatBookmarksWithTheSameNameAndURLInsideSubfolderAreDeduplicated() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -344,22 +308,19 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark("name", id: "5", url: "url")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder(id: "1") {
-                    Folder(id: "2") {
-                        Folder(id: "3") {
-                            Bookmark("name", id: "5", url: "url")
-                        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder(id: "1") {
+                Folder(id: "2") {
+                    Folder(id: "3") {
+                        Bookmark("name", id: "5", url: "url")
                     }
                 }
-            })
-        }
+            }
+        })
     }
 
-    func testThatBookmarksWithTheSameNameAndURLInDifferentFoldersAreDeduplicatedAndRemoteWins() {
+    func testThatBookmarksWithTheSameNameAndURLInDifferentFoldersAreDeduplicatedAndRemoteWins() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -375,19 +336,16 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark("name", id: "3", url: "url")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder(id: "1")
-                Folder(id: "2") {
-                    Bookmark("name", id: "3", url: "url")
-                }
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder(id: "1")
+            Folder(id: "2") {
+                Bookmark("name", id: "3", url: "url")
+            }
+        })
     }
 
-    func testThatFoldersWithTheSameNameAndParentAreDeduplicated() {
+    func testThatFoldersWithTheSameNameAndParentAreDeduplicated() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -408,23 +366,20 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "remote6")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder("1st level", id: "remote1") {
-                    Folder("2nd level", id: "remote2") {
-                        Folder("Duplicated folder", id: "remote5") {
-                            Bookmark(id: "local4")
-                            Bookmark(id: "remote6")
-                        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder("1st level", id: "remote1") {
+                Folder("2nd level", id: "remote2") {
+                    Folder("Duplicated folder", id: "remote5") {
+                        Bookmark(id: "local4")
+                        Bookmark(id: "remote6")
                     }
                 }
-            })
-        }
+            }
+        })
     }
 
-    func testThatFoldersWithTheSameNameAndParentAreDeduplicated2() {
+    func testThatFoldersWithTheSameNameAndParentAreDeduplicated2() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -453,32 +408,29 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "remote13")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder("1", id: "remote1") {
-                    Folder("2", id: "remote2") {
-                        Folder("Duplicated folder", id: "remote9") {
-                            Folder("4", id: "local4") {
-                                Bookmark("5", id: "local5")
-                            }
-                            Bookmark("6", id: "local6")
-                            Bookmark("7", id: "local7")
-                            Bookmark("8", id: "local8")
-                            Bookmark(id: "remote10")
-                            Bookmark(id: "remote11")
-                            Folder(id: "remote12") {
-                                Bookmark(id: "remote13")
-                            }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder("1", id: "remote1") {
+                Folder("2", id: "remote2") {
+                    Folder("Duplicated folder", id: "remote9") {
+                        Folder("4", id: "local4") {
+                            Bookmark("5", id: "local5")
+                        }
+                        Bookmark("6", id: "local6")
+                        Bookmark("7", id: "local7")
+                        Bookmark("8", id: "local8")
+                        Bookmark(id: "remote10")
+                        Bookmark(id: "remote11")
+                        Folder(id: "remote12") {
+                            Bookmark(id: "remote13")
                         }
                     }
                 }
-            })
-        }
+            }
+        })
     }
 
-    func testThatIdenticalBookmarkTreesAreDeduplicated() {
+    func testThatIdenticalBookmarkTreesAreDeduplicated() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -492,17 +444,14 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark("2", id: "12")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder("1", id: "11")
-                Bookmark("2", id: "12")
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder("1", id: "11")
+            Bookmark("2", id: "12")
+        })
     }
 
-    func testThatComplexIdenticalBookmarkTreesAreDeduplicated() {
+    func testThatComplexIdenticalBookmarkTreesAreDeduplicated() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -556,42 +505,39 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark("19", id: "119")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder("01", id: "101") {
-                    Folder("02", id: "102") {
-                        Bookmark("03", id: "103")
-                    }
-                    Bookmark("04", id: "104")
-                    Folder("05", id: "105") {
-                        Bookmark("06", id: "106")
-                        Folder("07", id: "107") {
-                            Folder("08", id: "108")
-                            Bookmark("09", id: "109")
-                            Bookmark("10", id: "110")
-                            Bookmark("11", id: "111")
-                        }
-                        Bookmark("12", id: "112")
-                        Bookmark("13", id: "113")
-                    }
-                    Bookmark("14", id: "114")
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder("01", id: "101") {
+                Folder("02", id: "102") {
+                    Bookmark("03", id: "103")
                 }
-                Bookmark("15", id: "115")
-                Folder("16", id: "116") {
-                    Folder("17", id: "117") {
-                        Bookmark("18", id: "118")
+                Bookmark("04", id: "104")
+                Folder("05", id: "105") {
+                    Bookmark("06", id: "106")
+                    Folder("07", id: "107") {
+                        Folder("08", id: "108")
+                        Bookmark("09", id: "109")
+                        Bookmark("10", id: "110")
+                        Bookmark("11", id: "111")
                     }
+                    Bookmark("12", id: "112")
+                    Bookmark("13", id: "113")
                 }
-                Bookmark("19", id: "119")
-            })
-        }
+                Bookmark("14", id: "114")
+            }
+            Bookmark("15", id: "115")
+            Folder("16", id: "116") {
+                Folder("17", id: "117") {
+                    Bookmark("18", id: "118")
+                }
+            }
+            Bookmark("19", id: "119")
+        })
     }
 
     // MARK: -
 
-    func testWhenRootFolderAndOrphanedFoldersArePresentInResponseThenOrphanedFoldersAreSaved() {
+    func testWhenRootFolderAndOrphanedFoldersArePresentInResponseThenOrphanedFoldersAreSaved() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {}
@@ -605,22 +551,19 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .bookmark(id: "5")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
-
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder(id: "1")
-                Folder(id: "2") {
-                    Bookmark("name", id: "3", url: "url")
-                }
-                Folder(id: "4", isOrphaned: true) {
-                    Bookmark(id: "5")
-                }
-            })
-        }
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder(id: "1")
+            Folder(id: "2") {
+                Bookmark("name", id: "3", url: "url")
+            }
+            Folder(id: "4", isOrphaned: true) {
+                Bookmark(id: "5")
+            }
+        })
     }
 
-    func testThatResponseArrayOrderDoesNotAffectHandling() {
+    func testThatResponseArrayOrderDoesNotAffectHandling() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {}
@@ -634,18 +577,43 @@ final class BookmarksResponseHandlerInitialSyncTests: BookmarksProviderTestsBase
             .folder(id: "1")
         ]
 
-        context.performAndWait {
-            let rootFolder = createEntitiesAndProcessReceivedBookmarks(with: bookmarkTree, received: received, in: context, deduplicate: true)
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Folder(id: "1")
+            Folder(id: "2") {
+                Bookmark("name", id: "3", url: "url")
+            }
+            Folder(id: "4", isOrphaned: true) {
+                Bookmark(id: "5")
+            }
+        })
+    }
 
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder(id: "1")
-                Folder(id: "2") {
-                    Bookmark("name", id: "3", url: "url")
-                }
-                Folder(id: "4", isOrphaned: true) {
-                    Bookmark(id: "5")
-                }
-            })
+    // MARK: - Helpers
+
+    func createEntitiesAndHandleInitialSyncResponse(
+        with bookmarkTree: BookmarkTree,
+        received: [Syncable],
+        clientTimestamp: Date = Date(),
+        serverTimestamp: String = "1234",
+        in context: NSManagedObjectContext
+    ) async throws -> BookmarkEntity {
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
         }
+
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        var rootFolder: BookmarkEntity!
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            rootFolder = BookmarkUtils.fetchRootFolder(context)
+        }
+
+        return rootFolder
     }
 }
