@@ -67,6 +67,7 @@ public class DDGSync: DDGSyncing {
         let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(account)
         updateAuthState()
+        scheduler.requestSyncImmediately()
     }
 
     public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice] {
@@ -77,6 +78,7 @@ public class DDGSync: DDGSyncing {
         let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
         try dependencies.secureStore.persistAccount(result.account)
         updateAuthState()
+        scheduler.requestSyncImmediately()
         return result.devices
     }
 
@@ -176,12 +178,10 @@ public class DDGSync: DDGSyncing {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
         self.authState = .inactive
-
-        // do not start sync upon initialization
-        updateAuthState(startSyncIfNeeded: false)
+        updateAuthState()
     }
 
-    private func updateAuthState(startSyncIfNeeded: Bool = true) {
+    private func updateAuthState() {
         let previousState = authState
         authState = (try? dependencies.secureStore.account()?.state) ?? .inactive
 
@@ -210,26 +210,11 @@ public class DDGSync: DDGSyncing {
                     }
                 }
 
-            syncDidFinishCancellable = syncQueue.syncDidFinishPublisher
-                .sink { [weak self] result in
-                    if case .success = result {
-                        self?.updateAuthState()
-                    }
-                }
-
-            if startSyncIfNeeded {
-                Task {
-                    await syncQueue.setUpAndStartFirstSync()
-                    dependencies.scheduler.isEnabled = true
-                }
-            } else {
-                dependencies.scheduler.isEnabled = true
-            }
+            dependencies.scheduler.isEnabled = true
 
         } else if authState == .inactive {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
-            syncDidFinishCancellable?.cancel()
             syncQueueCancellable?.cancel()
             syncQueue = nil
         }
@@ -252,7 +237,6 @@ public class DDGSync: DDGSyncing {
     }
 
     private var startSyncCancellable: AnyCancellable?
-    private var syncDidFinishCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueueProtocol?
     private var syncQueueCancellable: AnyCancellable?
