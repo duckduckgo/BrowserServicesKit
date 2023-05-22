@@ -37,13 +37,21 @@ struct SyncOperationError: Error {
     }
 }
 
-struct SyncResult {
+struct SyncRequest {
     let feature: Feature
     let previousSyncTimestamp: String?
     let sent: [Syncable]
+}
 
-    var syncTimestamp: String?
-    var received: [Syncable] = []
+struct SyncResult {
+    let request: SyncRequest
+
+    let syncTimestamp: String?
+    let received: [Syncable]
+
+    static func noData(with request: SyncRequest) -> SyncResult {
+        SyncResult(request: request, syncTimestamp: nil, received: [])
+    }
 }
 
 actor SyncQueue: SyncQueueProtocol {
@@ -151,9 +159,9 @@ actor SyncQueue: SyncQueueProtocol {
                     os_log(.debug, log: self.log, "Syncing %{public}s", feature.name)
 
                     do {
-                        var result: SyncResult = try await self.makeResult(for: dataProvider, fetchOnly: fetchOnly)
+                        let syncRequest = try await self.makeSyncRequest(for: dataProvider, fetchOnly: fetchOnly)
                         let clientTimestamp = Date()
-                        let httpRequest = try self.makeHTTPRequest(with: result, timestamp: clientTimestamp)
+                        let httpRequest = try self.makeHTTPRequest(with: syncRequest, timestamp: clientTimestamp)
                         let httpResult: HTTPResult = try await httpRequest.execute()
 
                         switch httpResult.response.statusCode {
@@ -164,10 +172,10 @@ actor SyncQueue: SyncQueueProtocol {
                             os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
                                    feature.name,
                                    String(data: data, encoding: .utf8) ?? "")
-                            try self.decodeResponse(with: data, into: &result)
-                            fallthrough
+                            let syncResult = try self.decodeResponse(with: data, request: syncRequest)
+                            try await self.handleResponse(for: dataProvider, syncResult: syncResult, fetchOnly: fetchOnly, timestamp: clientTimestamp)
                         case 204, 304:
-                            try await self.handleResponse(for: dataProvider, syncResult: result, fetchOnly: fetchOnly, timestamp: clientTimestamp)
+                            try await self.handleResponse(for: dataProvider, syncResult: .noData(with: syncRequest), fetchOnly: fetchOnly, timestamp: clientTimestamp)
                         default:
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
@@ -193,35 +201,34 @@ actor SyncQueue: SyncQueueProtocol {
         }
     }
 
-    nonisolated private func makeResult(for dataProvider: DataProviding, fetchOnly: Bool) async throws -> SyncResult {
+    nonisolated private func makeSyncRequest(for dataProvider: DataProviding, fetchOnly: Bool) async throws -> SyncRequest {
         if fetchOnly {
-            return SyncResult(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: [])
+            return SyncRequest(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: [])
         }
         let localChanges: [Syncable] = try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
-        return SyncResult(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: localChanges)
+        return SyncRequest(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: localChanges)
     }
 
-    nonisolated private func makeHTTPRequest(with syncResult: SyncResult, timestamp: Date) throws -> HTTPRequesting {
-        let hasLocalChanges = !syncResult.sent.isEmpty
+    nonisolated private func makeHTTPRequest(with syncRequest: SyncRequest, timestamp: Date) throws -> HTTPRequesting {
+        let hasLocalChanges = !syncRequest.sent.isEmpty
         if hasLocalChanges {
-            return try requestMaker.makePatchRequest(with: syncResult, clientTimestamp: timestamp)
+            return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp)
         }
-        return try requestMaker.makeGetRequest(with: syncResult)
+        return try requestMaker.makeGetRequest(with: syncRequest)
     }
 
-    nonisolated private func decodeResponse(with data: Data, into result: inout SyncResult) throws {
+    nonisolated private func decodeResponse(with data: Data, request: SyncRequest) throws -> SyncResult {
         guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
             throw SyncError.unexpectedResponseBody
         }
 
-        guard let featurePayload = jsonObject[result.feature.name] as? [String: Any],
+        guard let featurePayload = jsonObject[request.feature.name] as? [String: Any],
               let lastModified = featurePayload["last_modified"] as? String,
               let entries = featurePayload["entries"] as? [[String: Any]]
         else {
             throw SyncError.unexpectedResponseBody
         }
-        result.syncTimestamp = lastModified
-        result.received = entries.map(Syncable.init(jsonObject:))
+        return SyncResult(request: request, syncTimestamp: lastModified, received: entries.map(Syncable.init(jsonObject:)))
     }
 
     nonisolated private func handleResponse(for dataProvider: DataProviding, syncResult: SyncResult, fetchOnly: Bool, timestamp: Date) async throws {
@@ -234,7 +241,7 @@ actor SyncQueue: SyncQueueProtocol {
             )
         } else {
             try await dataProvider.handleSyncResponse(
-                sent: syncResult.sent,
+                sent: syncResult.request.sent,
                 received: syncResult.received,
                 clientTimestamp: timestamp,
                 serverTimestamp: syncResult.syncTimestamp,
