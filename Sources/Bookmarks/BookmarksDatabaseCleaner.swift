@@ -63,6 +63,7 @@ public final class BookmarkDatabaseCleaner {
 
     func removeBookmarksPendingDeletion() {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        var saveAttemptsLeft = Const.maxContextSaveRetries
 
         context.performAndWait {
             var saveError: Error?
@@ -85,6 +86,11 @@ public final class BookmarkDatabaseCleaner {
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
                         context.reset()
+                        saveAttemptsLeft -= 1
+                        if saveAttemptsLeft == 0 {
+                            saveError = error
+                            break
+                        }
                     } else {
                         saveError = error
                         break
@@ -98,8 +104,9 @@ public final class BookmarkDatabaseCleaner {
         }
     }
 
-    private enum Const {
+    enum Const {
         static let cleanupInterval: TimeInterval = 24 * 3600
+        static let maxContextSaveRetries = 5
     }
 
     private let errorEvents: EventMapping<BookmarksCleanupError>?

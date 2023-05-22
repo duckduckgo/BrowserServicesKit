@@ -111,6 +111,7 @@ public final class BookmarksProvider: DataProviding {
             var saveError: Error?
 
             let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+            var saveAttemptsLeft = Const.maxContextSaveRetries
 
             context.performAndWait {
                 while true {
@@ -135,6 +136,11 @@ public final class BookmarksProvider: DataProviding {
                     } catch {
                         if (error as NSError).code == NSManagedObjectMergeError {
                             context.reset()
+                            saveAttemptsLeft -= 1
+                            if saveAttemptsLeft == 0 {
+                                saveError = error
+                                break
+                            }
                         } else {
                             saveError = error
                             break
@@ -223,6 +229,10 @@ public final class BookmarksProvider: DataProviding {
     private let metadataStore: SyncMetadataStore
     private let reloadBookmarksAfterSync: () -> Void
     private let syncErrorSubject = PassthroughSubject<Error, Never>()
+
+    enum Const {
+        static let maxContextSaveRetries = 5
+    }
 
     // MARK: - Test support
 
