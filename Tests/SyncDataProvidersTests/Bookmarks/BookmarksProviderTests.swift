@@ -475,6 +475,57 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
+    func testWhenBookmarkIsMovedBetweenFoldersAndItIsUpdatedLocallyAfterStartingSyncThenItsModifiedAtIsNotCleared() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark("test", id: "3")
+            }
+            Folder(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .folder(id: "1", children: []),
+            .folder(id: "2", children: ["3"])
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            // clear modifiedAt for all entities
+            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "2", "3"], in: context)
+            bookmarks.forEach { $0.modifiedAt = nil }
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        var bookmarkModificationDate: Date?
+
+        context.performAndWait {
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["3"], in: context).first!
+            bookmark.title = "test3"
+            try! context.save()
+            bookmarkModificationDate = bookmark.modifiedAt
+        }
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder(id: "1")
+                Folder(id: "2") {
+                    Bookmark("test3", id: "3", url: "test", modifiedAt: bookmarkModificationDate)
+                }
+            })
+        }
+    }
+
     func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
