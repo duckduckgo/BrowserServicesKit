@@ -93,56 +93,20 @@ public final class BookmarksProvider: DataProviding {
     }
 
     public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            var saveError: Error?
-
-            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-            context.performAndWait {
-                while true {
-                    let responseHandler = BookmarksResponseHandler(
-                        received: received,
-                        clientTimestamp: clientTimestamp,
-                        context: context,
-                        crypter: crypter,
-                        deduplicateEntities: true
-                    )
-                    responseHandler.processReceivedBookmarks()
-                    let idsOfItemsToClearModifiedAt = Set<String>()
-
-#if DEBUG
-                    willSaveContextAfterApplyingSyncResponse()
-#endif
-                    do {
-                        let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
-                        try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
-                        break
-                    } catch {
-                        if (error as NSError).code == NSManagedObjectMergeError {
-                            context.reset()
-                        } else {
-                            saveError = error
-                            break
-                        }
-                    }
-                }
-            }
-
-            if let saveError {
-                continuation.resume(throwing: saveError)
-                return
-            }
-
-            if let serverTimestamp {
-                lastSyncTimestamp = serverTimestamp
-                reloadBookmarksAfterSync()
-            }
-
-            continuation.resume(returning: ())
-        }
+        try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
     public func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
+    }
+
+    public func handleSyncError(_ error: Error) {
+        syncErrorSubject.send(error)
+    }
+
+    // MARK: - Internal
+
+    func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             var saveError: Error?
 
@@ -156,7 +120,7 @@ public final class BookmarksProvider: DataProviding {
                         clientTimestamp: clientTimestamp,
                         context: context,
                         crypter: crypter,
-                        deduplicateEntities: false
+                        deduplicateEntities: isInitial
                     )
                     let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     responseHandler.processReceivedBookmarks()
@@ -192,12 +156,6 @@ public final class BookmarksProvider: DataProviding {
             continuation.resume(returning: ())
         }
     }
-
-    public func handleSyncError(_ error: Error) {
-        syncErrorSubject.send(error)
-    }
-
-    // MARK: - Internal
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
         if sent.isEmpty {
