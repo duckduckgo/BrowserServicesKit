@@ -206,11 +206,6 @@ final class BookmarksResponseHandler {
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             if clientTimestamp != nil, let modifiedAt = existingEntity.modifiedAt {
                 assert(modifiedAt > clientTimestamp!, "modified is not nil but not greater than request timestamp, should be cleaned in cleanUpSentItems")
-                // This entity was modified after sync has started. As such, it should not be updated,
-                // but if its parent gets updated in the same sync response, we have to reassign it.
-                // Because of that, this entity will end up in updatedObjects and would have modifiedAt cleared.
-                // To prevent this happening, we exclude this entity from clearing modifiedAt.
-                idsOfItemsThatRetainModifiedAt.insert(syncableUUID)
             } else {
                 try? existingEntity.update(with: syncable, in: context, using: crypter)
             }

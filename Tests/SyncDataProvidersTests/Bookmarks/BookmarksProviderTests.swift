@@ -287,6 +287,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                     Bookmark("test-local", id: "1")
                 }
                 let (rootFolder, _) = bookmarkTree.createEntities(in: context)
+                // skip setting modifiedAt for rootFolder to keep unit test simpler (we don't care about checking modifiedAt for rootFolder here)
+                rootFolder.shouldManageModifiedAt = false
                 try! context.save()
                 bookmarkModificationDate = rootFolder.childrenArray.first!.modifiedAt
             }
@@ -475,7 +477,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
-    func testWhenBookmarkIsMovedBetweenFoldersAndItIsUpdatedLocallyAfterStartingSyncThenItsModifiedAtIsNotCleared() async throws {
+    func testWhenBookmarkIsMovedBetweenFoldersRemotelyAndUpdatedLocallyAfterStartingSyncThenItsModifiedAtIsNotCleared() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -503,7 +505,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        var bookmarkModificationDate: Date?
+        var bookmarkModificationDate: Date!
 
         context.performAndWait {
             let bookmark = BookmarkEntity.fetchBookmarks(with: ["3"], in: context).first!
@@ -512,17 +514,23 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             bookmarkModificationDate = bookmark.modifiedAt
         }
 
-        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: bookmarkModificationDate.addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
 
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Folder(id: "1")
                 Folder(id: "2") {
-                    Bookmark("test3", id: "3", url: "test", modifiedAt: bookmarkModificationDate)
+                    Bookmark("test3", id: "3", url: "test")
                 }
             })
+
+            // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
+            // because it's updated after sync context save (bookmark object is not included in synced data
+            // but it gets updated as a side effect of sync – an update to parent).
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["3"], in: context).first!
+            XCTAssertTrue((bookmark.modifiedAt ?? bookmarkModificationDate) > bookmarkModificationDate)
         }
     }
 

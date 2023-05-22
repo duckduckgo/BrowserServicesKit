@@ -56,6 +56,8 @@ public class BookmarkEntity: NSManagedObject {
 
     @NSManaged public fileprivate(set) var isPendingDeletion: Bool
     @NSManaged public var modifiedAt: Date?
+    /// In-memory flag. When set to `false`, disables adjusting `modifiedAt` on `willSave()`. It's reset to `true` on `didSave()`.
+    public var shouldManageModifiedAt: Bool = true
 
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: BookmarkEntity.entity(in: moc),
@@ -70,6 +72,9 @@ public class BookmarkEntity: NSManagedObject {
     }
 
     public override func willSave() {
+        guard shouldManageModifiedAt else {
+            return
+        }
         let changedKeys = changedValues().keys
         guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
             return
@@ -81,6 +86,10 @@ public class BookmarkEntity: NSManagedObject {
         if changedKeys.contains(NSStringFromSelector(#selector(getter: isPendingDeletion))) && isPendingDeletion {
             parent?.modifiedAt = modifiedAt
         }
+    }
+
+    public override func didSave() {
+        shouldManageModifiedAt = true
     }
 
     public override func validateForInsert() throws {

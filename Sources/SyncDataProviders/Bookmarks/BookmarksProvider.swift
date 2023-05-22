@@ -108,12 +108,14 @@ public final class BookmarksProvider: DataProviding {
                         deduplicateEntities: true
                     )
                     responseHandler.processReceivedBookmarks()
+                    let idsOfItemsToClearModifiedAt = Set<String>()
 
 #if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
 #endif
                     do {
-                        try saveContextAndClearModifiedAt(context, excludedUUIDs: responseHandler.idsOfItemsThatRetainModifiedAt)
+                        let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
+                        try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                         break
                     } catch {
                         if (error as NSError).code == NSManagedObjectMergeError {
@@ -156,14 +158,15 @@ public final class BookmarksProvider: DataProviding {
                         crypter: crypter,
                         deduplicateEntities: false
                     )
-                    let idsOfItemsThatRetainModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
+                    let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     responseHandler.processReceivedBookmarks()
 
 #if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
 #endif
                     do {
-                        try saveContextAndClearModifiedAt(context, excludedUUIDs: idsOfItemsThatRetainModifiedAt.union(responseHandler.idsOfItemsThatRetainModifiedAt))
+                        let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
+                        try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                         break
                     } catch {
                         if (error as NSError).code == NSManagedObjectMergeError {
@@ -203,13 +206,10 @@ public final class BookmarksProvider: DataProviding {
         let identifiers = sent.compactMap(\.uuid)
         let bookmarks = BookmarkEntity.fetchBookmarks(with: identifiers, in: context)
 
-        var idsOfItemsThatRetainModifiedAt = Set<String>()
+        var idsOfItemsToClearModifiedAt = Set<String>()
 
         for bookmark in bookmarks {
             if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
-                if let uuid = bookmark.uuid {
-                    idsOfItemsThatRetainModifiedAt.insert(uuid)
-                }
                 continue
             }
             let isLocalChangeRejectedBySync: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
@@ -217,10 +217,13 @@ public final class BookmarksProvider: DataProviding {
                 context.delete(bookmark)
             } else {
                 bookmark.modifiedAt = nil
+                if let uuid = bookmark.uuid {
+                    idsOfItemsToClearModifiedAt.insert(uuid)
+                }
             }
         }
 
-        return idsOfItemsThatRetainModifiedAt
+        return idsOfItemsToClearModifiedAt
     }
 
     /**
@@ -238,6 +241,21 @@ public final class BookmarksProvider: DataProviding {
         (insertedObjects + updatedObjects).forEach { bookmarkEntity in
             if let uuid = bookmarkEntity.uuid, !excludedUUIDs.contains(uuid) {
                 bookmarkEntity.modifiedAt = nil
+            }
+        }
+        try context.save()
+    }
+
+    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
+        let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
+        let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
+
+        (insertedObjects + updatedObjects).forEach { bookmarkEntity in
+            if let uuid = bookmarkEntity.uuid, uuids.contains(uuid) {
+                bookmarkEntity.shouldManageModifiedAt = false
+                if let modifiedAt = bookmarkEntity.modifiedAt, modifiedAt < clientTimestamp {
+                    bookmarkEntity.modifiedAt = nil
+                }
             }
         }
         try context.save()
