@@ -124,7 +124,10 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
         let contextName = self.isIsolated ? "contentScopeScriptsIsolated" : "contentScopeScripts";
 
         self.broker = UserScriptMessageBroker(context: contextName)
-        self.messageNames = [contextName]
+
+        // dont register any handlers at all if we're not in the isolated context
+        self.messageNames = self.isIsolated ? [contextName] : []
+
         self.source = ContentScopeUserScript.generateSource(
                 privacyConfigManager,
                 properties: properties,
