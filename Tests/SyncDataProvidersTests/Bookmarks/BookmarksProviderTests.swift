@@ -62,14 +62,14 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
-            assertEquivalent(rootFolder, BookmarkTree(modifiedAtCheck: { XCTAssertNotNil($0) }) {
-                Bookmark("Bookmark 1", id: "1", modifiedAtCheck: { XCTAssertNotNil($0) })
-                Bookmark("Bookmark 2", id: "2", modifiedAtCheck: { XCTAssertNotNil($0) })
-                Folder("Folder", id: "3", modifiedAtCheck: { XCTAssertNotNil($0) }) {
-                    Bookmark("Bookmark 4", id: "4", modifiedAtCheck: { XCTAssertNotNil($0) })
+            assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .notNil()) {
+                Bookmark("Bookmark 1", id: "1", modifiedAtConstraint: .notNil())
+                Bookmark("Bookmark 2", id: "2", modifiedAtConstraint: .notNil())
+                Folder("Folder", id: "3", modifiedAtConstraint: .notNil()) {
+                    Bookmark("Bookmark 4", id: "4", modifiedAtConstraint: .notNil())
                 }
-                Bookmark("Bookmark 5", id: "5", modifiedAtCheck: { XCTAssertNotNil($0) })
-                Bookmark("Bookmark 6", id: "6", modifiedAtCheck: { XCTAssertNotNil($0) })
+                Bookmark("Bookmark 5", id: "5", modifiedAtConstraint: .notNil())
+                Bookmark("Bookmark 6", id: "6", modifiedAtConstraint: .notNil())
             })
         }
     }
@@ -269,12 +269,12 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
-                Folder("Folder", id: "4", modifiedAtCheck: { XCTAssertTrue($0! > clientTimestamp) }) {
-                    Bookmark(id: "2", modifiedAtCheck: { XCTAssertNotNil($0) })
-                    Bookmark(id: "3", modifiedAtCheck: { XCTAssertNotNil($0) })
-                    Bookmark(id: "5", modifiedAtCheck: { XCTAssertNil($0) })
-                    Bookmark(id: "6", modifiedAtCheck: { XCTAssertNil($0) })
+            assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .nil()) {
+                Folder("Folder", id: "4", modifiedAtConstraint: .greaterThan(clientTimestamp)) {
+                    Bookmark(id: "2", modifiedAtConstraint: .notNil())
+                    Bookmark(id: "3", modifiedAtConstraint: .notNil())
+                    Bookmark(id: "5", modifiedAtConstraint: .nil())
+                    Bookmark(id: "6", modifiedAtConstraint: .nil())
                 }
             })
         }
@@ -544,7 +544,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                     // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
                     // because it's updated after sync context save (bookmark object is not included in synced data
                     // but it gets updated as a side effect of sync – an update to parent).
-                    Bookmark("test3", id: "3", url: "test", modifiedAtCheck: { XCTAssertTrue($0! > bookmarkModificationDate) })
+                    Bookmark("test3", id: "3", url: "test", modifiedAtConstraint: .greaterThan(bookmarkModificationDate))
                 }
             })
         }

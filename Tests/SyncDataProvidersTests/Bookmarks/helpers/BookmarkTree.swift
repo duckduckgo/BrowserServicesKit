@@ -22,11 +22,45 @@ import CoreData
 import Foundation
 import XCTest
 
-typealias BookmarkModifiedAtCheck = (Date?) -> Void
+struct ModifiedAtConstraint {
+    var check: (Date?) -> Void
+
+    static func `nil`(file: StaticString = #file, line: UInt = #line) -> ModifiedAtConstraint {
+        ModifiedAtConstraint { date in
+            XCTAssertNil(date, file: file, line: line)
+        }
+    }
+
+    static func notNil(file: StaticString = #file, line: UInt = #line) -> ModifiedAtConstraint {
+        ModifiedAtConstraint { date in
+            XCTAssertNotNil(date, file: file, line: line)
+        }
+    }
+
+    static func greaterThan(_ date: Date, file: StaticString = #file, line: UInt = #line) -> ModifiedAtConstraint {
+        ModifiedAtConstraint { actualDate in
+            guard let actualDate = actualDate else {
+                XCTFail("Date is nil", file: file, line: line)
+                return
+            }
+            XCTAssertGreaterThan(actualDate, date, file: file, line: line)
+        }
+    }
+
+    static func lessThan(_ date: Date, file: StaticString = #file, line: UInt = #line) -> ModifiedAtConstraint {
+        ModifiedAtConstraint { actualDate in
+            guard let actualDate = actualDate else {
+                XCTFail("Date is nil", file: file, line: line)
+                return
+            }
+            XCTAssertLessThan(actualDate, date, file: file, line: line)
+        }
+    }
+}
 
 enum BookmarkTreeNode {
-    case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtCheck: BookmarkModifiedAtCheck?)
-    case folder(id: String, name: String?, children: [BookmarkTreeNode], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtCheck: BookmarkModifiedAtCheck?)
+    case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
+    case folder(id: String, name: String?, children: [BookmarkTreeNode], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
 
     var id: String {
         switch self {
@@ -73,12 +107,12 @@ enum BookmarkTreeNode {
         }
     }
 
-    var modifiedAtCheck: BookmarkModifiedAtCheck? {
+    var modifiedAtConstraint: ModifiedAtConstraint? {
         switch self {
-        case .bookmark(_, _, _, _, _, _, _, let modifiedAtCheck):
-            return modifiedAtCheck
-        case .folder(_, _, _, _, _, _, let modifiedAtCheck):
-            return modifiedAtCheck
+        case .bookmark(_, _, _, _, _, _, _, let modifiedAtConstraint):
+            return modifiedAtConstraint
+        case .folder(_, _, _, _, _, _, let modifiedAtConstraint):
+            return modifiedAtConstraint
         }
     }
 }
@@ -95,21 +129,21 @@ struct Bookmark: BookmarkTreeNodeConvertible {
     var modifiedAt: Date?
     var isDeleted: Bool
     var isOrphaned: Bool
-    var modifiedAtCheck: BookmarkModifiedAtCheck?
+    var modifiedAtConstraint: ModifiedAtConstraint?
 
-    init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtCheck: BookmarkModifiedAtCheck? = nil) {
+    init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.url = (url ?? name) ?? id
         self.isFavorite = isFavorite
         self.modifiedAt = modifiedAt
         self.isDeleted = isDeleted
-        self.modifiedAtCheck = modifiedAtCheck
+        self.modifiedAtConstraint = modifiedAtConstraint
         self.isOrphaned = isOrphaned
     }
 
     func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .bookmark(id: id, name: name, url: url, isFavorite: isFavorite, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtCheck: modifiedAtCheck)
+        .bookmark(id: id, name: name, url: url, isFavorite: isFavorite, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: modifiedAtConstraint)
     }
 }
 
@@ -119,25 +153,25 @@ struct Folder: BookmarkTreeNodeConvertible {
     var modifiedAt: Date?
     var isDeleted: Bool
     var isOrphaned: Bool
-    var modifiedAtCheck: BookmarkModifiedAtCheck?
+    var modifiedAtConstraint: ModifiedAtConstraint?
     var children: [BookmarkTreeNode]
 
     init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
-        self.init(name, id: id, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtCheck: nil, children: children)
+        self.init(name, id: id, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: nil, children: children)
     }
 
-    init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtCheck: BookmarkModifiedAtCheck? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
+    init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.modifiedAt = modifiedAt
         self.isDeleted = isDeleted
         self.isOrphaned = isOrphaned
-        self.modifiedAtCheck = modifiedAtCheck
+        self.modifiedAtConstraint = modifiedAtConstraint
         self.children = children()
     }
 
     func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .folder(id: id, name: name, children: children, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtCheck: modifiedAtCheck)
+        .folder(id: id, name: name, children: children, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: modifiedAtConstraint)
     }
 }
 
@@ -152,9 +186,9 @@ struct BookmarkTreeBuilder {
 
 struct BookmarkTree {
 
-    init(modifiedAt: Date? = nil, modifiedAtCheck: BookmarkModifiedAtCheck? = nil, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
+    init(modifiedAt: Date? = nil, modifiedAtConstraint: ModifiedAtConstraint? = nil, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
         self.modifiedAt = modifiedAt
-        self.modifiedAtCheck = modifiedAtCheck
+        self.modifiedAtConstraint = modifiedAtConstraint
         self.bookmarkTreeNodes = builder()
     }
 
@@ -165,46 +199,46 @@ struct BookmarkTree {
     }
 
     @discardableResult
-    func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: BookmarkModifiedAtCheck]) {
+    func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         rootFolder.modifiedAt = modifiedAt
         let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
         var orphans = [BookmarkEntity]()
-        var modifiedAtChecks = [String:BookmarkModifiedAtCheck]()
-        if let modifiedAtCheck {
-            modifiedAtChecks[BookmarkEntity.Constants.rootFolderID] = modifiedAtCheck
+        var modifiedAtConstraints = [String:ModifiedAtConstraint]()
+        if let modifiedAtConstraint {
+            modifiedAtConstraints[BookmarkEntity.Constants.rootFolderID] = modifiedAtConstraint
         }
         for bookmarkTreeNode in bookmarkTreeNodes {
-            let (entity, checks) = BookmarkEntity.makeWithModifiedAtChecks(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context)
+            let (entity, checks) = BookmarkEntity.makeWithModifiedAtConstraints(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context)
             if bookmarkTreeNode.isOrphaned {
                 orphans.append(entity)
             }
-            modifiedAtChecks.merge(checks) { (lhs, rhs) in
+            modifiedAtConstraints.merge(checks) { (lhs, rhs) in
                 assertionFailure("duplicate keys found")
                 return rhs
             }
         }
-        return (rootFolder, orphans, modifiedAtChecks)
+        return (rootFolder, orphans, modifiedAtConstraints)
     }
 
     let modifiedAt: Date?
-    let modifiedAtCheck: BookmarkModifiedAtCheck?
+    let modifiedAtConstraint: ModifiedAtConstraint?
     let bookmarkTreeNodes: [BookmarkTreeNode]
 }
 
 extension BookmarkEntity {
     @discardableResult
     static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
-        makeWithModifiedAtChecks(with: treeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context).0
+        makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context).0
     }
 
     @discardableResult
-    static func makeWithModifiedAtChecks(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> (BookmarkEntity, [String: BookmarkModifiedAtCheck]) {
+    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
         var entity: BookmarkEntity!
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
         var parents: [BookmarkEntity] = [rootFolder]
-        var modifiedAtChecks = [String:BookmarkModifiedAtCheck]()
+        var modifiedAtConstraints = [String:ModifiedAtConstraint]()
 
         while !queues.isEmpty {
             var queue = queues.removeFirst()
@@ -214,7 +248,7 @@ extension BookmarkEntity {
                 let node = queue.removeFirst()
 
                 switch node {
-                case .bookmark(let id, let name, let url, let isFavorite, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtCheck):
+                case .bookmark(let id, let name, let url, let isFavorite, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtConstraint):
                     let bookmarkEntity = BookmarkEntity(context: context)
                     if entity == nil {
                         entity = bookmarkEntity
@@ -224,7 +258,7 @@ extension BookmarkEntity {
                     bookmarkEntity.title = name
                     bookmarkEntity.url = url
                     bookmarkEntity.modifiedAt = modifiedAt
-                    modifiedAtChecks[id] = modifiedAtCheck
+                    modifiedAtConstraints[id] = modifiedAtConstraint
                     if isFavorite {
                         bookmarkEntity.addToFavorites(favoritesRoot: favoritesFolder)
                     }
@@ -234,7 +268,7 @@ extension BookmarkEntity {
                     if !isOrphaned {
                         bookmarkEntity.parent = parent
                     }
-                case .folder(let id, let name, let children, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtCheck):
+                case .folder(let id, let name, let children, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtConstraint):
                     let bookmarkEntity = BookmarkEntity(context: context)
                     if entity == nil {
                         entity = bookmarkEntity
@@ -243,7 +277,7 @@ extension BookmarkEntity {
                     bookmarkEntity.isFolder = true
                     bookmarkEntity.title = name
                     bookmarkEntity.modifiedAt = modifiedAt
-                    modifiedAtChecks[id] = modifiedAtCheck
+                    modifiedAtConstraints[id] = modifiedAtConstraint
                     if isDeleted {
                         bookmarkEntity.markPendingDeletion()
                     }
@@ -256,7 +290,7 @@ extension BookmarkEntity {
             }
         }
 
-        return (entity, modifiedAtChecks)
+        return (entity, modifiedAtConstraints)
     }
 }
 
@@ -272,7 +306,7 @@ extension XCTestCase {
         var orphans: [BookmarkEntity] = []
         var expectedRootFolder: BookmarkEntity! = nil
         var expectedOrphans: [BookmarkEntity] = []
-        var modifiedAtChecks: [String: BookmarkModifiedAtCheck] = [:]
+        var modifiedAtConstraints: [String: ModifiedAtConstraint] = [:]
 
         orphansContext.performAndWait {
             orphans = BookmarkUtils.fetchOrphanedEntities(orphansContext)
@@ -281,7 +315,7 @@ extension XCTestCase {
         context.performAndWait {
             context.deleteAll(matching: BookmarkEntity.fetchRequest())
             BookmarkUtils.prepareFoldersStructure(in: context)
-            (expectedRootFolder, expectedOrphans, modifiedAtChecks) = tree.createEntitiesForCheckingModifiedAt(in: context)
+            (expectedRootFolder, expectedOrphans, modifiedAtConstraints) = tree.createEntitiesForCheckingModifiedAt(in: context)
         }
 
         let thisFolder = bookmarkEntity
@@ -308,8 +342,8 @@ extension XCTestCase {
             XCTAssertEqual(expectedNode.children?.count, thisNode.children?.count, "children count mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.isFavorite, thisNode.isFavorite, "isFavorite mismatch for \(thisUUID)", file: file, line: line)
             if withTimestamps {
-                if let modifiedAtCheck = modifiedAtChecks[thisUUID] {
-                    modifiedAtCheck(thisNode.modifiedAt)
+                if let modifiedAtConstraint = modifiedAtConstraints[thisUUID] {
+                    modifiedAtConstraint.check(thisNode.modifiedAt)
                 } else {
                     XCTAssertEqual(expectedNode.modifiedAt, thisNode.modifiedAt, "modifiedAt mismatch for \(thisUUID)", file: file, line: line)
                 }
