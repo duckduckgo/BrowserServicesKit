@@ -66,7 +66,7 @@ class SecureVaultManagerTests: XCTestCase {
     
     func testWhenGettingExistingEntries_AndNoAutofillDataWasProvided_AndNoEntriesExist_ThenReturnValueIsNil() throws {
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: nil, creditCard: nil, trigger: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, generatedPassword: false)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, shouldSilentlySave: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -77,7 +77,7 @@ class SecureVaultManagerTests: XCTestCase {
         let card = paymentMethod(cardNumber: "5555555555555557", cardholderName: "Name", cvv: "123", month: 1, year: 2022)
 
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: nil, creditCard: card, trigger: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, generatedPassword: false)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, shouldSilentlySave: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -90,7 +90,7 @@ class SecureVaultManagerTests: XCTestCase {
         try self.testVault.storeCreditCard(card)
 
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: nil, creditCard: card, trigger: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, generatedPassword: false)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, shouldSilentlySave: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -101,7 +101,7 @@ class SecureVaultManagerTests: XCTestCase {
         let identity = identity(name: ("First", "Middle", "Last"), addressStreet: "Address Street")
         
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: identity, credentials: nil, creditCard: nil, trigger: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, generatedPassword: false)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, shouldSilentlySave: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.creditCard)
@@ -114,7 +114,7 @@ class SecureVaultManagerTests: XCTestCase {
         try self.testVault.storeIdentity(identity)
 
         let autofillData = AutofillUserScript.DetectedAutofillData(identity: identity, credentials: nil, creditCard: nil, trigger: nil)
-        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, generatedPassword: false)
+        let entries = try manager.existingEntries(for: "domain.com", autofillData: autofillData, automaticallySavedCredentials: false, shouldSilentlySave: false)
         
         XCTAssertNil(entries.credentials)
         XCTAssertNil(entries.identity)
@@ -344,8 +344,8 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToStoreAutofillData data: AutofillData,
-                            generatedPassword: Bool,
-                            trigger: AutofillUserScript.GetTriggerType?) {
+                            hasGeneratedPassword generatedPassword: Bool,
+                            withTrigger trigger: AutofillUserScript.GetTriggerType?) {
         self.promptedAutofillData = data
     }
 
@@ -364,7 +364,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultInitFailed(_ error: SecureVaultError) {}
     
-    func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager, generatedPassword: Bool) -> Bool {
+    func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager, shouldSilentlySave: Bool) -> Bool {
         return true
     }
 

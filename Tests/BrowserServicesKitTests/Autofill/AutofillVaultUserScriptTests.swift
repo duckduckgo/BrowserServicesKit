@@ -294,7 +294,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         body["credentials"] = ["username": "username@example.com", "password": "password"]
 
         let mockWebView = MockWebView()
-        let message = MockUserScriptMessage(name: "pmHandlerStoreData", body: body,
+        let message = MockUserScriptMessage(name: "storeFormData", body: body,
                                           host: "example.com", webView: mockWebView)
 
         userScript.processEncryptedMessage(message, from: userContentController)
@@ -643,7 +643,6 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
     func autofillUserScriptDidOfferGeneratedPassword(_: BrowserServicesKit.AutofillUserScript, password: String, completionHandler: @escaping (Bool) -> Void) {
     }
-
     
     func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel) {
     }
