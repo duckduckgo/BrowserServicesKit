@@ -62,19 +62,15 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark("Bookmark 1", id: "1")
-                Bookmark("Bookmark 2", id: "2")
-                Folder("Folder", id: "3") {
-                    Bookmark("Bookmark 4", id: "4")
+            assertEquivalent(rootFolder, BookmarkTree(modifiedAtCheck: { XCTAssertNotNil($0) }) {
+                Bookmark("Bookmark 1", id: "1", modifiedAtCheck: { XCTAssertNotNil($0) })
+                Bookmark("Bookmark 2", id: "2", modifiedAtCheck: { XCTAssertNotNil($0) })
+                Folder("Folder", id: "3", modifiedAtCheck: { XCTAssertNotNil($0) }) {
+                    Bookmark("Bookmark 4", id: "4", modifiedAtCheck: { XCTAssertNotNil($0) })
                 }
-                Bookmark("Bookmark 5", id: "5")
-                Bookmark("Bookmark 6", id: "6")
+                Bookmark("Bookmark 5", id: "5", modifiedAtCheck: { XCTAssertNotNil($0) })
+                Bookmark("Bookmark 6", id: "6", modifiedAtCheck: { XCTAssertNotNil($0) })
             })
-
-            let bookmarkIDs = [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID, "1", "2", "3", "4", "5", "6"]
-            let allBookmarks = BookmarkEntity.fetchBookmarks(with: bookmarkIDs, in: context)
-            XCTAssertTrue(allBookmarks.allSatisfy({ $0.modifiedAt != nil }))
         }
     }
 
@@ -204,7 +200,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1") {
                     Bookmark(id: "2")
                     Bookmark(id: "3")
@@ -273,20 +269,14 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Folder("Folder", id: "4") {
-                    Bookmark(id: "2")
-                    Bookmark(id: "3")
-                    Bookmark(id: "5")
-                    Bookmark(id: "6")
+            assertEquivalent(rootFolder, BookmarkTree {
+                Folder("Folder", id: "4", modifiedAtCheck: { XCTAssertTrue($0! > clientTimestamp) }) {
+                    Bookmark(id: "2", modifiedAtCheck: { XCTAssertNotNil($0) })
+                    Bookmark(id: "3", modifiedAtCheck: { XCTAssertNotNil($0) })
+                    Bookmark(id: "5", modifiedAtCheck: { XCTAssertNil($0) })
+                    Bookmark(id: "6", modifiedAtCheck: { XCTAssertNil($0) })
                 }
             })
-            let folder = rootFolder.childrenArray.first!
-            XCTAssertTrue(folder.modifiedAt! > clientTimestamp)
-            XCTAssertNotNil(folder.childrenArray.first(where: { $0.uuid == "2" })?.modifiedAt)
-            XCTAssertNotNil(folder.childrenArray.first(where: { $0.uuid == "3" })?.modifiedAt)
-            XCTAssertNil(folder.childrenArray.first(where: { $0.uuid == "5" })?.modifiedAt)
-            XCTAssertNil(folder.childrenArray.first(where: { $0.uuid == "6" })?.modifiedAt)
         }
     }
 
@@ -548,18 +538,15 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1")
                 Folder(id: "2") {
-                    Bookmark("test3", id: "3", url: "test")
+                    // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
+                    // because it's updated after sync context save (bookmark object is not included in synced data
+                    // but it gets updated as a side effect of sync – an update to parent).
+                    Bookmark("test3", id: "3", url: "test", modifiedAtCheck: { XCTAssertTrue($0! > bookmarkModificationDate) })
                 }
             })
-
-            // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
-            // because it's updated after sync context save (bookmark object is not included in synced data
-            // but it gets updated as a side effect of sync – an update to parent).
-            let bookmark = BookmarkEntity.fetchBookmarks(with: ["3"], in: context).first!
-            XCTAssertTrue((bookmark.modifiedAt ?? bookmarkModificationDate) > bookmarkModificationDate)
         }
     }
 
