@@ -97,6 +97,12 @@ actor SyncQueue: SyncQueueProtocol {
             .eraseToAnyPublisher()
     }
 
+    nonisolated func prepareForFirstSync() throws {
+        for dataProvider in dataProviders.values {
+            try dataProvider.prepareForFirstSync()
+        }
+    }
+
     func setUpAndStartFirstSync() async {
         do {
             syncDidStartSubject.send(())
@@ -106,26 +112,10 @@ actor SyncQueue: SyncQueueProtocol {
                 return
             }
 
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                for dataProvider in dataProviders.values {
-                    group.addTask {
-                        try await dataProvider.prepareForFirstSync()
-                    }
-                }
-                for try await _ in group {}
-            }
-
             if syncAuthState == .addingNewDevice {
                 try await sync(fetchOnly: true)
             }
-
-            if let account = try storage.account()?.updatingState(.active) {
-                try storage.persistAccount(account)
-            }
-
-            try await sync(fetchOnly: false)
             syncDidFinishSubject.send(.success(()))
-
         } catch {
             syncDidFinishSubject.send(.failure(error))
         }

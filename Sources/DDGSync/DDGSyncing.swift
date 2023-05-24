@@ -220,7 +220,7 @@ public protocol DataProviding {
      *
      * This function is called before the initial sync is performed.
      */
-    func prepareForFirstSync() async throws
+    func prepareForFirstSync() throws
 
     /**
      * Return objects that have changed since last sync, or all objects in case of the initial sync.

@@ -115,6 +115,8 @@ protocol RecoveryKeyTransmitting {
 protocol SyncQueueProtocol {
     /// Used for passing data and receiving results to/from sync
     var dataProviders: [Feature: DataProviding] { get }
+    /// Called to prepare Data Providers for first sync
+    func prepareForFirstSync() async throws
     /// Called to start first sync
     func setUpAndStartFirstSync() async
     /// Called to start sync

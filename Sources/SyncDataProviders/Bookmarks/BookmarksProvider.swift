@@ -48,33 +48,29 @@ public final class BookmarksProvider: DataProviding {
         }
     }
 
-    public func prepareForFirstSync() async throws {
+    public func prepareForFirstSync() throws {
         lastSyncTimestamp = nil
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            var saveError: Error?
+        var saveError: Error?
 
-            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-            context.performAndWait {
-                let fetchRequest = BookmarkEntity.fetchRequest()
-                let bookmarks = (try? context.fetch(fetchRequest)) ?? []
-                for bookmark in bookmarks {
-                    bookmark.modifiedAt = Date()
-                }
-
-                do {
-                    try context.save()
-                } catch {
-                    saveError = error
-                }
+        context.performAndWait {
+            let fetchRequest = BookmarkEntity.fetchRequest()
+            let bookmarks = (try? context.fetch(fetchRequest)) ?? []
+            for bookmark in bookmarks {
+                bookmark.modifiedAt = Date()
             }
 
-            if let saveError {
-                continuation.resume(with: .failure(saveError))
-            } else {
-                continuation.resume()
+            do {
+                try context.save()
+            } catch {
+                saveError = error
             }
+        }
+
+        if let saveError {
+            throw saveError
         }
     }
 

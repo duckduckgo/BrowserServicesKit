@@ -65,8 +65,7 @@ public class DDGSync: DDGSyncing {
         }
 
         let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
-        try dependencies.secureStore.persistAccount(account)
-        updateAuthState()
+        try updateAccount(account)
         scheduler.requestSyncImmediately()
     }
 
@@ -76,8 +75,7 @@ public class DDGSync: DDGSyncing {
         }
 
         let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
-        try dependencies.secureStore.persistAccount(result.account)
-        updateAuthState()
+        try updateAccount(result.account)
         scheduler.requestSyncImmediately()
         return result.devices
     }
@@ -108,11 +106,10 @@ public class DDGSync: DDGSyncing {
         }
         do {
             try await disconnect(deviceId: deviceId)
-            try dependencies.secureStore.removeAccount()
+            try updateAccount(nil)
         } catch {
             try handleUnauthenticated(error)
         }
-        updateAuthState()
     }
 
     public func disconnect(deviceId: String) async throws {
@@ -163,8 +160,7 @@ public class DDGSync: DDGSyncing {
 
         do {
             try await dependencies.account.deleteAccount(account)
-            try dependencies.secureStore.removeAccount()
-            updateAuthState()
+            try updateAccount(nil)
         } catch {
             try handleUnauthenticated(error)
         }
@@ -177,46 +173,64 @@ public class DDGSync: DDGSyncing {
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
-        self.authState = .inactive
-        updateAuthState()
+
+        let account = try? dependencies.secureStore.account()
+        self.authState = account?.state ?? .inactive
+        try? updateAccount(account)
     }
 
-    private func updateAuthState() {
-        let previousState = authState
-        authState = (try? dependencies.secureStore.account()?.state) ?? .inactive
-
-        if previousState == .inactive && authState != .inactive {
-            let providers = dataProvidersSource?.makeDataProviders() ?? []
-            let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
-
-            syncQueueCancellable = syncQueue.isSyncInProgressPublisher
-                .sink(receiveCompletion: { [weak self] _ in
-                    self?.isSyncInProgressSubject.send(false)
-                }, receiveValue: { [weak self] isInProgress in
-                    self?.isSyncInProgressSubject.send(isInProgress)
-                })
-
-            startSyncCancellable = dependencies.scheduler.startSyncPublisher
-                .sink { [weak self] in
-                    guard let self else {
-                        return
-                    }
-                    Task {
-                        if self.authState == .active {
-                            await syncQueue.startSync()
-                        } else {
-                            await syncQueue.setUpAndStartFirstSync()
-                        }
-                    }
-                }
-
-            dependencies.scheduler.isEnabled = true
-
-        } else if authState == .inactive {
+    private func updateAccount(_ account: SyncAccount? = nil) throws {
+        guard let account, account.state != .inactive else {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
             syncQueue = nil
+            authState = .inactive
+            try dependencies.secureStore.removeAccount()
+            return
+        }
+
+        let providers = dataProvidersSource?.makeDataProviders() ?? []
+        let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
+
+        let previousState = try dependencies.secureStore.account()?.state
+        if previousState == nil || previousState ==  .inactive {
+            try syncQueue.prepareForFirstSync()
+        }
+        try dependencies.secureStore.persistAccount(account)
+        authState = account.state
+
+        syncQueueCancellable = syncQueue.isSyncInProgressPublisher
+            .sink(receiveCompletion: { [weak self] _ in
+                self?.isSyncInProgressSubject.send(false)
+            }, receiveValue: { [weak self] isInProgress in
+                self?.isSyncInProgressSubject.send(isInProgress)
+            })
+
+        startSyncCancellable = dependencies.scheduler.startSyncPublisher
+            .sink { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.startSync()
+            }
+
+        dependencies.scheduler.isEnabled = true
+        self.syncQueue = syncQueue
+    }
+
+    private func startSync() {
+        Task {
+            if authState == .active {
+                await syncQueue?.startSync()
+            } else {
+                await syncQueue?.setUpAndStartFirstSync()
+                if let account = try? dependencies.secureStore.account()?.updatingState(.active) {
+                    try? dependencies.secureStore.persistAccount(account)
+                    authState = .active
+                }
+                await syncQueue?.startSync()
+            }
         }
     }
 
@@ -228,12 +242,11 @@ public class DDGSync: DDGSyncing {
         }
 
         do {
-            try self.dependencies.secureStore.removeAccount()
+            try updateAccount(nil)
         } catch {
             // We should probably log this, maybe fire a pixel
             print(error)
         }
-        updateAuthState()
     }
 
     private var startSyncCancellable: AnyCancellable?
