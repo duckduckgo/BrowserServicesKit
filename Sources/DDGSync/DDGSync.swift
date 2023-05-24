@@ -190,6 +190,8 @@ public class DDGSync: DDGSyncing {
             return
         }
 
+        assert(syncQueue == nil, "Sync queue is not nil")
+
         let providers = dataProvidersSource?.makeDataProviders() ?? []
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
 
@@ -208,28 +210,38 @@ public class DDGSync: DDGSyncing {
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .sink { [weak self] in
+            .flatMap(maxPublishers: .max(1)) { [weak self] in
                 guard let self else {
-                    return
+                    return Future<Void, Never> { promise in
+                        promise(.success(()))
+                    }
                 }
-                self.startSync()
+                return self.startSync()
             }
+            .sink {}
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
     }
 
-    private func startSync() {
-        Task {
-            if authState == .active {
-                await syncQueue?.startSync()
-            } else {
-                await syncQueue?.setUpAndStartFirstSync()
-                if let account = try? dependencies.secureStore.account()?.updatingState(.active) {
-                    try? dependencies.secureStore.persistAccount(account)
-                    authState = .active
+    private func startSync() -> Future<Void, Never> {
+        Future { promise in
+            Task { [weak self] in
+                defer { promise(.success(())) }
+                guard let self else {
+                    return
                 }
-                await syncQueue?.startSync()
+
+                if self.authState == .active {
+                    await self.syncQueue?.startSync()
+                } else {
+                    await self.syncQueue?.startFirstSync()
+                    if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
+                        try? self.dependencies.secureStore.persistAccount(account)
+                        self.authState = .active
+                    }
+                    await self.syncQueue?.startSync()
+                }
             }
         }
     }

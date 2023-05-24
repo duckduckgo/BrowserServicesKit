@@ -103,7 +103,7 @@ actor SyncQueue: SyncQueueProtocol {
         }
     }
 
-    func setUpAndStartFirstSync() async {
+    func startFirstSync() async {
         do {
             syncDidStartSubject.send(())
             let syncAuthState = (try? storage.account()?.state) ?? .inactive

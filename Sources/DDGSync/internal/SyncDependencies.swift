@@ -118,7 +118,7 @@ protocol SyncQueueProtocol {
     /// Called to prepare Data Providers for first sync
     func prepareForFirstSync() async throws
     /// Called to start first sync
-    func setUpAndStartFirstSync() async
+    func startFirstSync() async
     /// Called to start sync
     func startSync() async
     /// Emits boolean values representing current sync operation status.
