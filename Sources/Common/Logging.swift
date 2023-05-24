@@ -136,7 +136,8 @@ public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogTy
 }
 
 @inlinable
-public func os_log(message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
+@_disfavoredOverload
+public func os_log(_ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
     guard log != .disabled else { return }
     os_log("%s", log: log, type: type, message())
 }
@@ -189,7 +190,8 @@ public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ messag
 }
 
 @inlinable
-public func os_log(_ type: OSLogType = .default, log: OSLog = .default, message: @autoclosure () -> String) {
+@_disfavoredOverload
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: @autoclosure () -> String) {
     guard log != .disabled else { return }
     os_log("%s", log: log, type: type, message())
 }
