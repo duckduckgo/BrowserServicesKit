@@ -43,7 +43,7 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         #if os(iOS)
             static let hashAccount = "com.duckduckgo.mobile.ios"
         #else
-            static let hashAccount = "com.duckduckgo.macos.browser"
+            static let hashAccount = Bundle.main.bundleIdentifier ?? "com.duckduckgo.macos.browser"
         #endif
         static let hashService = "DuckDuckGo Privacy Browser"
     }
