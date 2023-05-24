@@ -116,6 +116,10 @@ final class BookmarksResponseHandler {
             // For non-first sync we rely fully on the server response
             if !shouldDeduplicateEntities {
                 favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites() }
+            } else if !favoritesFolder.favoritesArray.isEmpty {
+                // If we're deduplicating and there are favorires locally, we'll need to sync favorites folder back later.
+                // Let's keep its modifiedAt.
+                idsOfItemsThatRetainModifiedAt.insert(BookmarkEntity.Constants.favoritesFolderID)
             }
 
             favoritesUUIDs.forEach { uuid in

@@ -39,7 +39,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark("Bookmark 1", id: "1")
+            Bookmark("Bookmark 1", id: "1", isFavorite: true)
             Bookmark("Bookmark 2", id: "2")
             Folder("Folder", id: "3") {
                 Bookmark("Bookmark 4", id: "4")
@@ -55,7 +55,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         provider.lastSyncTimestamp = "12345"
-        try await provider.prepareForFirstSync()
+        try provider.prepareForFirstSync()
         XCTAssertNil(provider.lastSyncTimestamp)
 
         context.performAndWait {
@@ -63,7 +63,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
             assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .notNil()) {
-                Bookmark("Bookmark 1", id: "1", modifiedAtConstraint: .notNil())
+                Bookmark("Bookmark 1", id: "1", isFavorite: true, modifiedAtConstraint: .notNil())
                 Bookmark("Bookmark 2", id: "2", modifiedAtConstraint: .notNil())
                 Folder("Folder", id: "3", modifiedAtConstraint: .notNil()) {
                     Bookmark("Bookmark 4", id: "4", modifiedAtConstraint: .notNil())
@@ -71,14 +71,39 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                 Bookmark("Bookmark 5", id: "5", modifiedAtConstraint: .notNil())
                 Bookmark("Bookmark 6", id: "6", modifiedAtConstraint: .notNil())
             })
+
+            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+            XCTAssertNotNil(favoritesFolder.modifiedAt)
         }
+    }
+
+    func testThatFetchChangedObjectsReturnsFavoritesFolder() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        try provider.prepareForFirstSync()
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set([BookmarkEntity.Constants.favoritesFolderID, BookmarkEntity.Constants.rootFolderID, "1"])
+        )
     }
 
     func testThatFetchChangedObjectsReturnsAllObjectsWithNonNilModifiedAt() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1")
+            Bookmark(id: "1", isFavorite: true)
             Folder(id: "2") {
                 Bookmark(id: "3")
                 Bookmark(id: "4")
@@ -103,7 +128,10 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        XCTAssertEqual(Set(changedObjects.compactMap(\.uuid)), Set(["2", "3", "5", "6", "7"]))
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set(["2", "3", "5", "6", "7"])
+        )
     }
 
     func testWhenBookmarkIsSoftDeletedThenFetchChangedObjectsReturnsBookmarkAndItsParent() async throws {

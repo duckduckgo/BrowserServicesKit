@@ -345,6 +345,32 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    func testThatFavoritesAreMerged() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["2"]),
+            .favoritesFolder(favorites: ["2"]),
+            .bookmark(id: "2")
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "2", isFavorite: true)
+        })
+
+        var favoritesFolder: BookmarkEntity!
+        context.performAndWait {
+            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)
+        }
+        XCTAssertNotNil(favoritesFolder.modifiedAt)
+    }
+
     func testThatFoldersWithTheSameNameAndParentAreDeduplicated() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
