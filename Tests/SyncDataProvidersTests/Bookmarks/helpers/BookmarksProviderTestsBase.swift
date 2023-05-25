@@ -56,13 +56,13 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         metadataDatabase.loadStore()
     }
 
-    override func setUp() {
+    override func setUpWithError() throws {
         super.setUp()
 
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        provider = BookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), reloadBookmarksAfterSync: {})
+        provider = try BookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), reloadBookmarksAfterSync: {})
     }
 
     override func tearDown() {

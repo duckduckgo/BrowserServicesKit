@@ -25,10 +25,10 @@ import Persistence
 
 public final class BookmarksProvider: DataProviding {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) {
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) throws {
         self.database = database
         self.metadataStore = metadataStore
-        self.metadataStore.registerFeature(named: feature.name)
+        try self.metadataStore.registerFeature(named: feature.name)
         self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
         syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
