@@ -38,7 +38,7 @@ final class BookmarksResponseHandler {
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
     var idsOfItemsThatRetainModifiedAt = Set<String>()
-    var deduplicatedItemsUUIDs = Set<String>()
+    var deduplicatedFolderUUIDs = Set<String>()
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) {
         self.clientTimestamp = clientTimestamp
@@ -140,9 +140,7 @@ final class BookmarksResponseHandler {
         var queues: [[String]] = [topLevelFolderSyncable.children]
         var parentUUIDs: [String] = [topLevelFolderUUID]
 
-        if topLevelFolderUUID != BookmarkEntity.Constants.rootFolderID {
-            processEntity(with: topLevelFolderSyncable)
-        }
+        processEntity(with: topLevelFolderSyncable)
 
         while !queues.isEmpty {
             var queue = queues.removeFirst()
@@ -164,14 +162,14 @@ final class BookmarksResponseHandler {
                         queues.append(syncable.children)
                         parentUUIDs.append(syncableUUID)
                     }
-                    // If this entity belongs to a deduplicated folder, we'll need to sync that folder back later.
+                    // If this entity belongs to a deduplicated non-empty folder, we'll need to sync that folder back later.
                     // Let's keep its modifiedAt.
-                    if deduplicatedItemsUUIDs.contains(parentUUID) {
+                    if deduplicatedFolderUUIDs.contains(parentUUID) {
                         idsOfItemsThatRetainModifiedAt.insert(parentUUID)
                     }
                 } else if let existingEntity = entitiesByUUID[syncableUUID] {
-                    existingEntity.parent = nil
-                    existingEntity.parent = parent
+                    existingEntity.parent?.removeFromChildren(existingEntity)
+                    parent?.addToChildren(existingEntity)
                 }
             }
         }
@@ -201,10 +199,12 @@ final class BookmarksResponseHandler {
             }
             entitiesByUUID[syncableUUID] = deduplicatedEntity
             deduplicatedEntity.uuid = syncableUUID
-            deduplicatedItemsUUIDs.insert(syncableUUID)
+            if deduplicatedEntity.isFolder, !deduplicatedEntity.childrenArray.isEmpty {
+                deduplicatedFolderUUIDs.insert(syncableUUID)
+            }
             if parent != nil {
-                deduplicatedEntity.parent = nil
-                deduplicatedEntity.parent = parent
+                deduplicatedEntity.parent?.removeFromChildren(deduplicatedEntity)
+                parent?.addToChildren(deduplicatedEntity)
             }
 
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
@@ -219,14 +219,16 @@ final class BookmarksResponseHandler {
             }
 
             if parent != nil, !existingEntity.isDeleted {
-                existingEntity.parent = nil
-                existingEntity.parent = parent
+                existingEntity.parent?.removeFromChildren(existingEntity)
+                parent?.addToChildren(existingEntity)
             }
 
         } else if !syncable.isDeleted {
 
+            assert(syncable.uuid != BookmarkEntity.Constants.rootFolderID, "Trying to make another root folder")
+
             let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
-            newEntity.parent = parent
+            parent?.addToChildren(newEntity)
             try? newEntity.update(with: syncable, in: context, using: crypter)
             entitiesByUUID[syncableUUID] = newEntity
         }

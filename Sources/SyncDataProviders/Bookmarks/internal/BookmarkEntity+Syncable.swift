@@ -94,6 +94,9 @@ extension BookmarkEntity {
         let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
         if syncable.isFolder {
             guard let parentUUID else {
+                if syncable.uuid == BookmarkEntity.Constants.rootFolderID {
+                    return BookmarkUtils.fetchRootFolder(context)
+                }
                 return nil
             }
             return fetchFolder(withTitle: title, parentUUID: parentUUID, in: context)
