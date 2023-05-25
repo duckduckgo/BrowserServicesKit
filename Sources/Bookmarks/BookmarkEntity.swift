@@ -44,7 +44,6 @@ public class BookmarkEntity: NSManagedObject {
         return NSEntityDescription.entity(forEntityName: "BookmarkEntity", in: context)!
     }
 
-    @NSManaged public fileprivate(set) var isFavorite: Bool
     @NSManaged public var isFolder: Bool
     @NSManaged public var title: String?
     @NSManaged public var url: String?
@@ -59,6 +58,10 @@ public class BookmarkEntity: NSManagedObject {
     /// In-memory flag. When set to `false`, disables adjusting `modifiedAt` on `willSave()`. It's reset to `true` on `didSave()`.
     public var shouldManageModifiedAt: Bool = true
 
+    public var isFavorite: Bool {
+        favoriteFolder != nil
+    }
+
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: BookmarkEntity.entity(in: moc),
                   insertInto: moc)
@@ -68,7 +71,6 @@ public class BookmarkEntity: NSManagedObject {
         super.awakeFromInsert()
         
         uuid = UUID().uuidString
-        isFavorite = false
     }
 
     public override func willSave() {
@@ -159,9 +161,7 @@ public class BookmarkEntity: NSManagedObject {
     // If `insertAt` is nil, it is inserted at the end.
     public func addToFavorites(insertAt: Int? = nil,
                                favoritesRoot root: BookmarkEntity) {
-        
-        isFavorite = true
-        
+
         if let position = insertAt {
             root.insertIntoFavorites(self, at: position)
         } else {
@@ -170,7 +170,6 @@ public class BookmarkEntity: NSManagedObject {
     }
     
     public func removeFromFavorites() {
-        isFavorite = false
         favoriteFolder = nil
     }
 
