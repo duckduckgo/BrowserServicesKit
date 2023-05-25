@@ -75,17 +75,14 @@ public final class BookmarksProvider: DataProviding {
     }
 
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        return await withCheckedContinuation { continuation in
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-            var syncableBookmarks: [Syncable] = []
-            context.performAndWait {
-                let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-                syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
-            }
-            continuation.resume(with: .success(syncableBookmarks))
+        var syncableBookmarks: [Syncable] = []
+        context.performAndWait {
+            let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
+            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
         }
+        return syncableBookmarks
     }
 
     public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
@@ -103,59 +100,54 @@ public final class BookmarksProvider: DataProviding {
     // MARK: - Internal
 
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            var saveError: Error?
+        var saveError: Error?
 
-            let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-            var saveAttemptsLeft = Const.maxContextSaveRetries
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        var saveAttemptsLeft = Const.maxContextSaveRetries
 
-            context.performAndWait {
-                while true {
+        context.performAndWait {
+            while true {
 
-                    let responseHandler = BookmarksResponseHandler(
-                        received: received,
-                        clientTimestamp: clientTimestamp,
-                        context: context,
-                        crypter: crypter,
-                        deduplicateEntities: isInitial
-                    )
-                    let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
-                    responseHandler.processReceivedBookmarks()
+                let responseHandler = BookmarksResponseHandler(
+                    received: received,
+                    clientTimestamp: clientTimestamp,
+                    context: context,
+                    crypter: crypter,
+                    deduplicateEntities: isInitial
+                )
+                let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
+                responseHandler.processReceivedBookmarks()
 
 #if DEBUG
-                    willSaveContextAfterApplyingSyncResponse()
+                willSaveContextAfterApplyingSyncResponse()
 #endif
-                    do {
-                        let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
-                        try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
-                        break
-                    } catch {
-                        if (error as NSError).code == NSManagedObjectMergeError {
-                            context.reset()
-                            saveAttemptsLeft -= 1
-                            if saveAttemptsLeft == 0 {
-                                saveError = error
-                                break
-                            }
-                        } else {
+                do {
+                    let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
+                    try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
+                    break
+                } catch {
+                    if (error as NSError).code == NSManagedObjectMergeError {
+                        context.reset()
+                        saveAttemptsLeft -= 1
+                        if saveAttemptsLeft == 0 {
                             saveError = error
                             break
                         }
+                    } else {
+                        saveError = error
+                        break
                     }
-
                 }
-            }
-            if let saveError {
-                continuation.resume(throwing: saveError)
-                return
-            }
 
-            if let serverTimestamp {
-                lastSyncTimestamp = serverTimestamp
-                reloadBookmarksAfterSync()
             }
+        }
+        if let saveError {
+            throw saveError
+        }
 
-            continuation.resume(returning: ())
+        if let serverTimestamp {
+            lastSyncTimestamp = serverTimestamp
+            reloadBookmarksAfterSync()
         }
     }
 
