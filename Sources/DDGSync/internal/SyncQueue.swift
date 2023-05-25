@@ -209,7 +209,7 @@ actor SyncQueue: SyncQueueProtocol {
 
     nonisolated private func decodeResponse(with data: Data, request: SyncRequest) throws -> SyncResult {
         guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-            throw SyncError.unexpectedResponseBody
+            throw SyncError.unableToDecodeResponse("Failed to decode sync response")
         }
 
         guard let featurePayload = jsonObject[request.feature.name] as? [String: Any],

@@ -31,6 +31,7 @@ public enum SyncError: Error, Equatable {
     case noResponseBody
     case unexpectedStatusCode(Int)
     case unexpectedResponseBody
+    case unableToEncodeRequestBody(_ message: String)
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
     case accountRemoved

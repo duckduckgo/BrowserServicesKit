@@ -51,6 +51,10 @@ struct SyncRequestMaker: SyncRequestMaking {
         json[result.feature.name] = modelPayload
         json["client_timestamp"] = dateFormatter.string(from: clientTimestamp)
 
+        guard JSONSerialization.isValidJSONObject(json) else {
+            throw SyncError.unableToEncodeRequestBody("Sync PATCH payload is not a valid JSON")
+        }
+
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
         return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
     }
