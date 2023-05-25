@@ -112,7 +112,7 @@ public struct ContentScopePlatform: Encodable {
 
 public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessaging {
 
-    public var broker: UserScriptMessageBroker;
+    public var broker: UserScriptMessageBroker
     public let isIsolated: Bool
     public var messageNames: [String] = []
 
@@ -123,16 +123,16 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
         self.isIsolated = isIsolated
         let contextName = self.isIsolated ? "contentScopeScriptsIsolated" : "contentScopeScripts";
 
-        self.broker = UserScriptMessageBroker(context: contextName)
+        broker = UserScriptMessageBroker(context: contextName)
 
         // dont register any handlers at all if we're not in the isolated context
-        self.messageNames = self.isIsolated ? [contextName] : []
+        messageNames = isIsolated ? [contextName] : []
 
-        self.source = ContentScopeUserScript.generateSource(
+        source = ContentScopeUserScript.generateSource(
                 privacyConfigManager,
                 properties: properties,
-                isolated: self.isIsolated,
-                config: self.broker.messagingConfig()
+                isolated: isIsolated,
+                config: broker.messagingConfig()
         )
     }
 

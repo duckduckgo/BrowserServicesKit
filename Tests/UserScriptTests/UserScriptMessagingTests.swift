@@ -198,7 +198,7 @@ func setupWith(message: [String: Any]) -> (UserScriptMessageBroker, UserScriptMe
     let testee = UserScriptMessageBroker(context: message["context"] as? String ?? "default")
 
     // register a feature for a given name
-    testee.registerSubFeature(delegate: TestDelegate())
+    testee.registerSubfeature(delegate: TestDelegate())
 
     // Mock the call from the webview.
     let msg1 = MockMsg(name: testee.context, body: message)
@@ -209,7 +209,7 @@ func setupWith(message: [String: Any]) -> (UserScriptMessageBroker, UserScriptMe
     return (testee, action, msg1)
 }
 
-/// An example of how to conform to `ContentScopeScriptsSubFeature`
+/// An example of how to conform to `Subfeature`
 /// It contains 3 examples that are typical of a feature that needs to
 /// communicate to a UserScript
 struct TestDelegate: Subfeature {

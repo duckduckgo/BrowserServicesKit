@@ -75,9 +75,9 @@ public protocol UserScriptMessaging: UserScript {
 }
 
 extension UserScriptMessaging {
-    public func registerSubFeature(delegate: Subfeature) {
+    public func registerSubfeature(delegate: Subfeature) {
         delegate.with(broker: broker)
-        broker.registerSubFeature(delegate: delegate)
+        broker.registerSubfeature(delegate: delegate)
     }
 }
 
@@ -107,7 +107,7 @@ public final class UserScriptMessageBroker: NSObject {
         self.requiresRunInPageContentWorld = requiresRunInPageContentWorld
     }
 
-    public func registerSubFeature(delegate: Subfeature) {
+    public func registerSubfeature(delegate: Subfeature) {
         callbacks[delegate.featureName] = delegate
     }
 
