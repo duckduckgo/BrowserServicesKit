@@ -19,7 +19,6 @@
 import Common
 import Foundation
 import GRDB
-import QuartzCore
 
 protocol SecureVaultDatabaseProvider {
 
@@ -656,7 +655,6 @@ extension DefaultDatabaseProvider {
         let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
         let salt = cryptoProvider.hashingSalt
 
-        let startTime = CACurrentMediaTime()
         while let accountRow = try accountRows.next() {
             let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
                                                            username: accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name],
@@ -699,8 +697,6 @@ extension DefaultDatabaseProvider {
                 """, arguments: [hash, account.id])
             }
         }
-        let endTime = CACurrentMediaTime()
-        print("Total Runtime: \(endTime - startTime) s")
         
     }
         
