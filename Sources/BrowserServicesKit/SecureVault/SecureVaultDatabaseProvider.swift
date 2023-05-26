@@ -653,7 +653,7 @@ extension DefaultDatabaseProvider {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
         let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
-        
+        let salt = cryptoProvider.hashingSalt
         while let accountRow = try accountRows.next() {
             let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
                                                            username: accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name],
@@ -681,7 +681,7 @@ extension DefaultDatabaseProvider {
                     continue
                 }
                 let hashData = accountHash + password
-                guard let hash = try cryptoProvider.hashData(hashData) else {
+                guard let hash = try cryptoProvider.hashData(hashData, salt: salt) else {
                     continue
                 }
 

@@ -32,9 +32,20 @@ protocol SecureVaultCryptoProvider {
     func encrypt(_ data: Data, withKey key: Data) throws -> Data
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data
-        
+
     func hashData(_ data: Data) throws -> String?
 
+    func hashData(_ data: Data, salt: Data?) throws -> String?
+
+    var hashingSalt: Data? { get }
+
+}
+
+extension SecureVaultCryptoProvider {
+    func hashData(_ data: Data) throws -> String? {
+        guard let salt = hashingSalt else { throw SecureVaultError.failedToGetHashingSalt }
+        return try hashData(data, salt: salt)
+    }
 }
 
 final class DefaultCryptoProvider: SecureVaultCryptoProvider {
@@ -51,23 +62,13 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
     static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
     static let keySizeInBytes = 256 / 8
 
-    private var _salt: Data?
-    private let saltLock = DispatchSemaphore(value: 1)
-    private var salt: Data? {
-        saltLock.wait()
-        defer { saltLock.signal() }
-
-        if let existingSalt = _salt {
-            return existingSalt
+    var hashingSalt: Data? {
+        guard let salt = getSaltFromKeyChain() else {
+            return generateSalt()
         }
-
-        _salt = getSaltFromKeyChain()
-        if _salt == nil {
-            _salt = generateSalt()
-        }
-        return _salt
+        return salt
     }
-    
+
     func generateSecretKey() throws -> Data {
         return SymmetricKey(size: .bits256).dataRepresentation
     }
@@ -180,15 +181,14 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         return nil
     }
 
-        
-    func hashData(_ data: Data) throws -> String? {
-        guard let salt = self.salt else {
-            return nil
+    func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
+        guard let salt = salt ?? hashingSalt else {
+            throw SecureVaultError.failedToGetHashingSalt
         }
         let saltedData = salt + data
         let hashedData = SHA256.hash(data: saltedData)
         let base64String = hashedData.dataRepresentation.base64EncodedString(options: [])
-        return base64String        
+        return base64String
     }
 
 }
