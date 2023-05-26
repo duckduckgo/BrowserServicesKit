@@ -555,6 +555,9 @@ extension DefaultDatabaseProvider {
             $0.add(column: SecureVaultModels.Identity.Columns.addressStreet2.name, .text)
         }
 
+        let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
+        let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
+
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
         // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
         // initialization logic.
@@ -591,7 +594,9 @@ extension DefaultDatabaseProvider {
 
             let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
             let plaintextCardSuffix = SecureVaultModels.CreditCard.suffix(from: number)
-            let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!)
+            let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!,
+                                                                     cryptoProvider: cryptoProvider,
+                                                                     keyStoreProvider: keyStoreProvider)
             
             // Insert data from the old table into the new one:
             
@@ -646,6 +651,8 @@ extension DefaultDatabaseProvider {
         }
         
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
+        let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
+        let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
         
         while let accountRow = try accountRows.next() {
             let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
@@ -654,6 +661,7 @@ extension DefaultDatabaseProvider {
                                                            created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
                                                            lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
             
+
             // Query the credentials
             let credentialRow = try Row.fetchOne(database, sql: """
                 SELECT * FROM \(SecureVaultModels.WebsiteCredentials.databaseTableName)
@@ -664,14 +672,16 @@ extension DefaultDatabaseProvider {
                 
                 var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
                 decryptedCredentials = .init(account: account,
-                                             password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name]))
+                                             password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name],
+                                                                                      cryptoProvider: cryptoProvider,
+                                                                                      keyStoreProvider: keyStoreProvider))
                                                                               
                 guard let accountHash = decryptedCredentials?.account.hashValue,
                       let password = decryptedCredentials?.password else {
                     continue
                 }
                 let hashData = accountHash + password
-                guard let hash = try MigrationUtility.generateHash(hashData) else {
+                guard let hash = try cryptoProvider.hashData(hashData) else {
                     continue
                 }
 
@@ -697,7 +707,7 @@ extension DefaultDatabaseProvider {
 
 struct MigrationUtility {
     
-    static func l2encrypt(data: Data) throws -> Data {
+    static func l2encrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureVaultKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
@@ -715,8 +725,8 @@ struct MigrationUtility {
         return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
     
-    static func l2decrypt(data: Data) throws -> Data {
-        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+    static func l2decrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureVaultKeyStoreProvider) throws -> Data {
+        let (crypto, keyStore) = (cryptoProvider, keyStoreProvider)
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureVaultError.noL2Key
@@ -731,12 +741,7 @@ struct MigrationUtility {
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
         return try crypto.decrypt(data, withKey: decryptedL2Key)
     }
-    
-    static func generateHash(_ data: Data) throws -> String? {
-        let (crypto, _) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
-        return try crypto.hashData(data)
-    }
-    
+
 }
 
 extension DefaultDatabaseProvider {
