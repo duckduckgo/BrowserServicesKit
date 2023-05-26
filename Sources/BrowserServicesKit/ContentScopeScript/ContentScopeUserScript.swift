@@ -21,6 +21,8 @@ import WebKit
 import Combine
 import ContentScopeScripts
 import UserScript
+import Common
+import os.log
 
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
@@ -37,10 +39,11 @@ public final class ContentScopeProperties: Encodable {
         ]
     }
 }
+
 public struct ContentScopeFeature: Encodable {
-    
+
     public let settings: [String: ContentScopeFeatureToggles]
-    
+
     public init(featureToggles: ContentScopeFeatureToggles) {
         self.settings = ["featureToggles": featureToggles]
     }
@@ -49,18 +52,18 @@ public struct ContentScopeFeature: Encodable {
 public struct ContentScopeFeatureToggles: Encodable {
 
     public let emailProtection: Bool
-    
+
     public let credentialsAutofill: Bool
     public let identitiesAutofill: Bool
     public let creditCardsAutofill: Bool
-    
+
     public let credentialsSaving: Bool
-    
+
     public let passwordGeneration: Bool
-    
+
     public let inlineIconCredentials: Bool
     public let thirdPartyCredentialsProvider: Bool
-    
+
     // Explicitly defined memberwise init only so it can be public
     public init(emailProtection: Bool,
                 credentialsAutofill: Bool,
@@ -70,7 +73,7 @@ public struct ContentScopeFeatureToggles: Encodable {
                 passwordGeneration: Bool,
                 inlineIconCredentials: Bool,
                 thirdPartyCredentialsProvider: Bool) {
-        
+
         self.emailProtection = emailProtection
         self.credentialsAutofill = credentialsAutofill
         self.identitiesAutofill = identitiesAutofill
@@ -80,18 +83,18 @@ public struct ContentScopeFeatureToggles: Encodable {
         self.inlineIconCredentials = inlineIconCredentials
         self.thirdPartyCredentialsProvider = thirdPartyCredentialsProvider
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case emailProtection = "emailProtection"
-        
+
         case credentialsAutofill = "inputType_credentials"
         case identitiesAutofill = "inputType_identities"
         case creditCardsAutofill = "inputType_creditCards"
-    
+
         case credentialsSaving = "credentials_saving"
-        
+
         case passwordGeneration = "password_generation"
-        
+
         case inlineIconCredentials = "inlineIcon_credentials"
         case thirdPartyCredentialsProvider = "third_party_credentials_provider"
     }
@@ -107,38 +110,83 @@ public struct ContentScopePlatform: Encodable {
     #endif
 }
 
-public final class ContentScopeUserScript: NSObject, UserScript {
-    public let messageNames: [String] = []
+public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessaging {
 
-    public init(_ privacyConfigManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) {
-        source = ContentScopeUserScript.generateSource(privacyConfigManager, properties: properties)
+    public var broker: UserScriptMessageBroker
+    public let isIsolated: Bool
+    public var messageNames: [String] = []
+
+    public init(_ privacyConfigManager: PrivacyConfigurationManaging,
+                properties: ContentScopeProperties,
+                isIsolated: Bool = false
+    ) {
+        self.isIsolated = isIsolated
+        let contextName = self.isIsolated ? "contentScopeScriptsIsolated" : "contentScopeScripts";
+
+        broker = UserScriptMessageBroker(context: contextName)
+
+        // dont register any handlers at all if we're not in the isolated context
+        messageNames = isIsolated ? [contextName] : []
+
+        source = ContentScopeUserScript.generateSource(
+                privacyConfigManager,
+                properties: properties,
+                isolated: isIsolated,
+                config: broker.messagingConfig()
+        )
     }
 
-    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) -> String {
+    public static func generateSource(_ privacyConfigurationManager: PrivacyConfigurationManaging,
+                                      properties: ContentScopeProperties,
+                                      isolated: Bool,
+                                      config: WebkitMessagingConfig
+    ) -> String {
 
         guard let privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8),
               let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
               let userUnprotectedDomainsString = String(data: userUnprotectedDomains, encoding: .utf8),
               let jsonProperties = try? JSONEncoder().encode(properties),
-              let jsonPropertiesString = String(data: jsonProperties, encoding: .utf8)
-              else {
+              let jsonPropertiesString = String(data: jsonProperties, encoding: .utf8),
+              let jsonConfig = try? JSONEncoder().encode(config),
+              let jsonConfigString = String(data: jsonConfig, encoding: .utf8)
+        else {
             return ""
         }
-        
-        return loadJS("contentScope", from: ContentScopeScripts.Bundle, withReplacements: [
+
+        let jsInclude = isolated ? "contentScopeIsolated" : "contentScope"
+
+        return loadJS(jsInclude, from: ContentScopeScripts.Bundle, withReplacements: [
             "$CONTENT_SCOPE$": privacyConfigJson,
             "$USER_UNPROTECTED_DOMAINS$": userUnprotectedDomainsString,
-            "$USER_PREFERENCES$": jsonPropertiesString
+            "$USER_PREFERENCES$": jsonPropertiesString,
+            "$WEBKIT_MESSAGING_CONFIG$": jsonConfigString
         ])
     }
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-    }
-
     public let source: String
-
     public let injectionTime: WKUserScriptInjectionTime = .atDocumentStart
     public let forMainFrameOnly: Bool = false
-    public let requiresRunInPageContentWorld: Bool = true
+    public var requiresRunInPageContentWorld: Bool { !self.isIsolated }
+}
 
+@available(macOS 11.0, iOS 14.0, *)
+extension ContentScopeUserScript: WKScriptMessageHandlerWithReply {
+    public func userContentController(_ userContentController: WKUserContentController,
+                                      didReceive message: WKScriptMessage) async -> (Any?, String?) {
+        let action = broker.messageHandlerFor(message)
+        do {
+            let json = try await broker.execute(action: action, original: message)
+            return (json, nil)
+        } catch {
+            // forward uncaught errors to the client
+            return (nil, error.localizedDescription)
+        }
+    }
+}
+
+// MARK: - Fallback for macOS 10.15
+extension ContentScopeUserScript: WKScriptMessageHandler {
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        // unsupported
+    }
 }

@@ -132,7 +132,10 @@ let package = Package(
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
-            name: "UserScript"
+            name: "UserScript",
+            dependencies: [
+                "Common"
+            ]
         ),
         .target(
             name: "PrivacyDashboard",
@@ -169,7 +172,7 @@ let package = Package(
             dependencies: [
                 "Networking"
             ]),
-        
+
         // MARK: - Test targets
         .testTarget(
             name: "BookmarksTests",

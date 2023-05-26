@@ -139,11 +139,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read { db in
-            return try SecureVaultModels.WebsiteAccount
-                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like("%" + eTLDplus1))
-                .fetchAll(db)
+            let query = SecureVaultModels.WebsiteAccount
+                .filter(Column(SecureVaultModels.WebsiteAccount.Columns.domain.name) == eTLDplus1 ||
+                        Column(SecureVaultModels.WebsiteAccount.Columns.domain.name).like("%." + eTLDplus1))
+            return try query.fetchAll(db)
         }
     }
+
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
