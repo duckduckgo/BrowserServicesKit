@@ -21,6 +21,7 @@ import Foundation
 import Combine
 import Common
 import CoreData
+import os.log
 import Persistence
 
 public struct BookmarksCleanupError: Error {
@@ -32,10 +33,12 @@ public final class BookmarkDatabaseCleaner {
     public init(
         bookmarkDatabase: CoreDataDatabase,
         errorEvents: EventMapping<BookmarksCleanupError>?,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         fetchBookmarksPendingDeletion: @escaping (NSManagedObjectContext) -> [BookmarkEntity] = BookmarkUtils.fetchBookmarksPendingDeletion
     ) {
         self.database = bookmarkDatabase
         self.errorEvents = errorEvents
+        self.getLog = log
         self.fetchBookmarksPendingDeletion = fetchBookmarksPendingDeletion
 
         cleanupCancellable = triggerSubject
@@ -71,7 +74,7 @@ public final class BookmarkDatabaseCleaner {
             while true {
                 let bookmarksPendingDeletion = fetchBookmarksPendingDeletion(context)
                 if bookmarksPendingDeletion.isEmpty {
-                    print("No bookmarks pending deletion")
+                    os_log(.debug, log: log, "No bookmarks pending deletion")
                     break
                 }
 
@@ -81,7 +84,7 @@ public final class BookmarkDatabaseCleaner {
 
                 do {
                     try context.save()
-                    print("Successfully purged \(bookmarksPendingDeletion.count) bookmarks")
+                    os_log(.debug, log: log, "Successfully purged %{public}s bookmarks", bookmarksPendingDeletion.count)
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
@@ -117,4 +120,9 @@ public final class BookmarkDatabaseCleaner {
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
     private let fetchBookmarksPendingDeletion: (NSManagedObjectContext) -> [BookmarkEntity]
+
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
 }

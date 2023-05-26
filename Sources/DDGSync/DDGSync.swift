@@ -256,8 +256,7 @@ public class DDGSync: DDGSyncing {
         do {
             try updateAccount(nil)
         } catch {
-            // We should probably log this, maybe fire a pixel
-            print(error)
+            os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
         }
     }
 
