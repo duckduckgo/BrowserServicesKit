@@ -518,7 +518,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
     // Receives a sorted Array, and removes duplicate based signatures
     private func removeDuplicates() -> [SecureVaultModels.WebsiteAccount] {
         return self.reduce(into: [SecureVaultModels.WebsiteAccount]()) { result, account in
-            if !result.contains(where: { $0.signature == account.signature }) {
+            if !result.contains(where: { $0.signature == account.signature && $0.signature != nil }) {
                 result.append(account)
             }
         }
