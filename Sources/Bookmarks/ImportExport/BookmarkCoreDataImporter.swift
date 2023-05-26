@@ -56,7 +56,7 @@ public class BookmarkCoreDataImporter {
     
     private func bookmarkURLToID(in context: NSManagedObjectContext) throws -> [String: NSManagedObjectID] {
         let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
-        fetch.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
+        fetch.predicate = NSPredicate(format: "%K == false && %K == NO", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.isPendingDeletion))
         fetch.resultType = .dictionaryResultType
         
         let idDescription = NSExpressionDescription()

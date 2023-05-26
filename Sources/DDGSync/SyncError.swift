@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum SyncError: Error {
+public enum SyncError: Error, Equatable {
 
     case noToken
 
@@ -27,9 +27,11 @@ public enum SyncError: Error {
     case accountAlreadyExists
     case invalidRecoveryKey
 
+    case noFeaturesSpecified
     case noResponseBody
     case unexpectedStatusCode(Int)
     case unexpectedResponseBody
+    case unableToEncodeRequestBody(_ message: String)
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
     case accountRemoved

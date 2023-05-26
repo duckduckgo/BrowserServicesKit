@@ -32,7 +32,7 @@ public enum SecureVaultError: Error {
     case duplicateRecord
     case keystoreError(status: Int32)
     case secError(status: Int32)
-    case generalCryptoError
+    case generalCryptoError    
     
 }
 
@@ -77,7 +77,7 @@ extension SecureVaultError: CustomNSError {
         case .secError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "secError", code: Int(code), userInfo: nil)
 
-        case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError:
+            case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError:
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "\(self)", code: 0, userInfo: nil)
         }
         return errorUserInfo

@@ -32,9 +32,20 @@ protocol SecureVaultCryptoProvider {
     func encrypt(_ data: Data, withKey key: Data) throws -> Data
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data
-        
+
     func hashData(_ data: Data) throws -> String?
 
+    func hashData(_ data: Data, salt: Data?) throws -> String?
+
+    var hashingSalt: Data? { get }
+
+}
+
+extension SecureVaultCryptoProvider {
+    func hashData(_ data: Data) throws -> String? {
+        guard let salt = hashingSalt else { return nil }
+        return try hashData(data, salt: salt)
+    }
 }
 
 final class DefaultCryptoProvider: SecureVaultCryptoProvider {
@@ -51,13 +62,13 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
     static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
     static let keySizeInBytes = 256 / 8
 
-    private var salt: Data? {
+    var hashingSalt: Data? {
         guard let salt = getSaltFromKeyChain() else {
             return generateSalt()
         }
         return salt
     }
-    
+
     func generateSecretKey() throws -> Data {
         return SymmetricKey(size: .bits256).dataRepresentation
     }
@@ -170,14 +181,14 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         return nil
     }
 
-        
-    func hashData(_ data: Data) throws -> String? {
-        if let salt = self.salt {
-            let saltedData = salt + data
-            return SHA256.hash(data: saltedData).dataRepresentation.base64EncodedString()
+    func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
+        guard let salt = salt ?? hashingSalt else {
+            return nil
         }
-        return nil
-        
+        let saltedData = salt + data
+        let hashedData = SHA256.hash(data: saltedData)
+        let base64String = hashedData.dataRepresentation.base64EncodedString(options: [])
+        return base64String
     }
 
 }
