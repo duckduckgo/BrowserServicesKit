@@ -140,6 +140,8 @@ struct JsonToRemoteMessageModelMapper {
         }
 
         switch RemoteMessageResponse.JsonActionType(rawValue: jsonAction.type) {
+        case .share:
+            return .share(title: jsonAction.value, url: jsonAction.value)
         case .url:
             return .url(value: jsonAction.value)
         case .appStore:

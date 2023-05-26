@@ -51,6 +51,7 @@ public enum RemoteMessageResponse {
     struct JsonMessageAction: Decodable {
         let type: String
         let value: String
+        let additionalValues: [String]?
     }
 
     struct JsonContentTranslation: Decodable {
@@ -74,6 +75,7 @@ public enum RemoteMessageResponse {
     }
 
     enum JsonActionType: String, CaseIterable {
+        case share
         case url
         case appStore = "appstore"
         case dismiss

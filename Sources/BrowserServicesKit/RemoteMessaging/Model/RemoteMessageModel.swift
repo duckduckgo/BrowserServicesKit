@@ -116,6 +116,7 @@ public enum RemoteMessageModelType: Codable, Equatable {
 }
 
 public enum RemoteAction: Codable, Equatable {
+    case share(title: String, url: String)
     case url(value: String)
     case appStore
     case dismiss
