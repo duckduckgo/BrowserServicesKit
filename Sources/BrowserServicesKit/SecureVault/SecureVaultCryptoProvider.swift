@@ -43,7 +43,7 @@ protocol SecureVaultCryptoProvider {
 
 extension SecureVaultCryptoProvider {
     func hashData(_ data: Data) throws -> String? {
-        guard let salt = hashingSalt else { throw SecureVaultError.failedToGetHashingSalt }
+        guard let salt = hashingSalt else { return nil }
         return try hashData(data, salt: salt)
     }
 }
@@ -183,7 +183,7 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
 
     func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
         guard let salt = salt ?? hashingSalt else {
-            throw SecureVaultError.failedToGetHashingSalt
+            return nil
         }
         let saltedData = salt + data
         let hashedData = SHA256.hash(data: saltedData)
