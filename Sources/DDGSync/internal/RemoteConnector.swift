@@ -23,13 +23,13 @@ class RemoteConnector: RemoteConnecting {
     let code: String
     let connectInfo: ConnectInfo
 
-    let crypter: Crypting
+    let crypter: CryptingInternal
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
 
     var isPolling = false
 
-    init(crypter: Crypting,
+    init(crypter: CryptingInternal,
          api: RemoteAPIRequestCreating,
          endpoints: Endpoints,
          connectInfo: ConnectInfo) throws {

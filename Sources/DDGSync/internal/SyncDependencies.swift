@@ -17,6 +17,8 @@
 //
 
 import Foundation
+import Combine
+import Common
 
 protocol SyncDependencies {
 
@@ -24,15 +26,12 @@ protocol SyncDependencies {
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
     var secureStore: SecureStoring { get }
-    var responseHandler: ResponseHandling { get }
-    var crypter: Crypting { get }
+    var crypter: CryptingInternal { get }
+    var scheduler: SchedulingInternal { get }
+    var log: OSLog { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
-
-    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
-    func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
-
 }
 
 protocol AccountManaging {
@@ -55,20 +54,9 @@ protocol SecureStoring {
     func removeAccount() throws
 }
 
-protocol ResponseHandling {
-    func handleUpdates(_ data: Data) async throws
-}
+protocol CryptingInternal: Crypting {
 
-protocol UpdatesFetching {
-    func fetch() async throws
-}
-
-public protocol Crypting {
-
-    func encryptAndBase64Encode(_ value: String) throws -> String
     func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String
     func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
 
     func seal(_ data: Data, secretKey: Data) throws -> Data
@@ -85,7 +73,7 @@ public protocol Crypting {
 
 }
 
-extension Crypting {
+extension CryptingInternal {
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try encryptAndBase64Encode(value, using: nil)
     }
@@ -119,4 +107,22 @@ protocol RecoveryKeyTransmitting {
 
     func send(_ code: SyncCode.ConnectCode) async throws
 
+}
+
+/**
+ * Internal interface for sync queue.
+ */
+protocol SyncQueueProtocol {
+    /// Used for passing data and receiving results to/from sync
+    var dataProviders: [Feature: DataProviding] { get }
+    /// Called to prepare Data Providers for first sync
+    func prepareForFirstSync() async throws
+    /// Called to start first sync
+    func startFirstSync() async
+    /// Called to start sync
+    func startSync() async
+    /// Emits boolean values representing current sync operation status.
+    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
+    /// Emits events when each sync operation finishes
+    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }

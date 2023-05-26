@@ -24,6 +24,7 @@ let package = Package(
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
+        .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.0.1"),
@@ -94,6 +95,7 @@ let package = Package(
                 "Networking"
             ],
             resources: [
+                .process("SyncMetadata.xcdatamodeld"),
                 .process("SyncPDFTemplate.png")
             ]
         ),
@@ -159,12 +161,24 @@ let package = Package(
                 "Common"
             ]),
         .target(
+            name: "SyncDataProviders",
+            dependencies: [
+                "Bookmarks",
+                "DDGSync",
+                "Persistence"
+            ]),
+        .target(
             name: "TestUtils",
             dependencies: [
                 "Networking"
             ]),
 
         // MARK: - Test targets
+        .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks"
+            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -229,6 +243,12 @@ let package = Package(
             dependencies: [
                 "Configuration",
                 "TestUtils"
+            ]
+        ),
+        .testTarget(
+            name: "SyncDataProvidersTests",
+            dependencies: [
+                "SyncDataProviders"
             ]
         )
     ],

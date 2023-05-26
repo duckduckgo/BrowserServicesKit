@@ -40,7 +40,7 @@ public class BookmarkEditorViewModel: ObservableObject {
     private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
-    
+
     private let errorEvents: EventMapping<BookmarksModelError>?
 
     public var canSave: Bool {
@@ -125,6 +125,12 @@ public class BookmarkEditorViewModel: ObservableObject {
                 self?.refresh()
                 self?.subject.send()
             }
+        }
+    }
+
+    public func reloadData() {
+        context.perform {
+            self.refresh()
         }
     }
 

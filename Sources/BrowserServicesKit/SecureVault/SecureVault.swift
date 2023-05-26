@@ -225,7 +225,7 @@ class DefaultSecureVault: SecureVault {
         }
         do {
             // Generate a new signature
-            guard let username = credentials.account.username.data(using: .utf8) else {
+            guard credentials.account.username.data(using: .utf8) != nil else {
                 throw SecureVaultError.generalCryptoError
             }
             let hashData = credentials.account.hashValue + credentials.password
