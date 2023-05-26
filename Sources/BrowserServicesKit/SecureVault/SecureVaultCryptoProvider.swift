@@ -51,11 +51,21 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
     static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
     static let keySizeInBytes = 256 / 8
 
+    private var _salt: Data?
+    private let saltLock = DispatchSemaphore(value: 1)
     private var salt: Data? {
-        guard let salt = getSaltFromKeyChain() else {
-            return generateSalt()
+        saltLock.wait()
+        defer { saltLock.signal() }
+
+        if let existingSalt = _salt {
+            return existingSalt
         }
-        return salt
+
+        _salt = getSaltFromKeyChain()
+        if _salt == nil {
+            _salt = generateSalt()
+        }
+        return _salt
     }
     
     func generateSecretKey() throws -> Data {
@@ -172,12 +182,13 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
 
         
     func hashData(_ data: Data) throws -> String? {
-        if let salt = self.salt {
-            let saltedData = salt + data
-            return SHA256.hash(data: saltedData).dataRepresentation.base64EncodedString()
+        guard let salt = self.salt else {
+            return nil
         }
-        return nil
-        
+        let saltedData = salt + data
+        let hashedData = SHA256.hash(data: saltedData)
+        let base64String = hashedData.dataRepresentation.base64EncodedString(options: [])
+        return base64String        
     }
 
 }
