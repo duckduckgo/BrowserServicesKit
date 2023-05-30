@@ -23,6 +23,10 @@ import CoreData
 import DDGSync
 import Persistence
 
+public enum BookmarksProviderError: Error, Equatable {
+    case bookmarkEntityMissingUUID
+}
+
 public final class BookmarksProvider: DataProviding {
 
     public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) throws {

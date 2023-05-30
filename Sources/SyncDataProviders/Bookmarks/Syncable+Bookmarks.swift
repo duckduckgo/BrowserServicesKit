@@ -53,7 +53,12 @@ extension Syncable {
 
     init(bookmark: BookmarkEntity, encryptedWith crypter: Crypting) throws {
         var payload: [String: Any] = [:]
-        payload["id"] = bookmark.uuid!
+        guard let uuid = bookmark.uuid else {
+            throw BookmarksProviderError.bookmarkEntityMissingUUID
+        }
+
+        payload["id"] = uuid
+
         if bookmark.isPendingDeletion {
             payload["deleted"] = ""
         } else {
