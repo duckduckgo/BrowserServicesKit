@@ -360,6 +360,52 @@ class SyncQueueTests: XCTestCase {
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
     }
+
+    func testThatSyncOperationsAreSerialized() async throws {
+        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
+
+        enum Event: Equatable {
+            case fetch(_ taskID: Int)
+            case handleResponse(_ taskID: Int)
+        }
+
+        var events: [Event] = []
+        var taskID = 1
+
+        dataProvider._fetchChangedObjects = { _ in
+            let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
+            events.append(.fetch(taskID))
+            taskID += 1
+            return syncables
+        }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            let taskID = sent[0].payload["taskNumber"] as! Int
+            events.append(.handleResponse(taskID))
+        }
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints, log: .default)
+
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<5 {
+                group.addTask {
+                    await syncQueue.startSync()
+                }
+            }
+        }
+
+        XCTAssertEqual(events, [
+            .fetch(1),
+            .handleResponse(1),
+            .fetch(2),
+            .handleResponse(2),
+            .fetch(3),
+            .handleResponse(3),
+            .fetch(4),
+            .handleResponse(4),
+            .fetch(5),
+            .handleResponse(5)
+        ])
+    }
 }
 
 private extension Array where Element == Syncable {

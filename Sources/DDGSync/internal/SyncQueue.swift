@@ -22,6 +22,48 @@ import Combine
 import Common
 import os
 
+// https://forums.swift.org/t/what-does-use-async-safe-scoped-locking-instead-even-mean/61029/20
+final class AsyncLock: @unchecked Sendable {
+
+    private enum Locker {
+        case holder
+        case waiter(CheckedContinuation<Bool, Never>)
+    }
+
+    private var _lock = NSLock()
+    private var lockers: [Locker] = []
+
+    func lock() async {
+        while true {
+            let acquiredLock = await withCheckedContinuation { cont in
+                _lock.lock()
+                if lockers.isEmpty {
+                    lockers.append(.holder)
+                    cont.resume(returning: true)
+                } else {
+                    lockers.append(.waiter(cont))
+                }
+                _lock.unlock()
+            }
+            if acquiredLock {
+                break
+            }
+        }
+    }
+
+    func unlock() {
+        _lock.lock()
+        assert(!lockers.isEmpty)
+        for locker in lockers {
+            if case let .waiter(cont) = locker {
+                cont.resume(returning: false)
+            }
+        }
+        lockers = []
+        _lock.unlock()
+    }
+}
+
 struct FeatureError: Error {
     let feature: Feature
     let underlyingError: Error
@@ -62,6 +104,7 @@ actor SyncQueue: SyncQueueProtocol {
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
     nonisolated let crypter: Crypting
     nonisolated let requestMaker: SyncRequestMaking
+    let lock = AsyncLock()
 
     init(dataProviders: [DataProviding], dependencies: SyncDependencies) {
         self.init(
@@ -141,9 +184,11 @@ actor SyncQueue: SyncQueueProtocol {
      * This is private to SyncQueue, but not marked as such to allow unit testing.
      */
     func sync(fetchOnly: Bool) async throws {
+        await lock.lock()
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
             os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
+            lock.unlock()
         }
 
         try await withThrowingTaskGroup(of: Void.self) { group in
