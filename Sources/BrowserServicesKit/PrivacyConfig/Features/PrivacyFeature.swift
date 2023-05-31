@@ -38,6 +38,7 @@ public enum PrivacyFeature: String {
     case adClickAttribution
     case windowsWaitlist
     case windowsDownloadLink
+    case incontextSignup
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
