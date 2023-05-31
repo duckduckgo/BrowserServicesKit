@@ -19,96 +19,12 @@
 import XCTest
 @testable import DDGSync
 
-class HTTPRequestingMock: HTTPRequesting {
-    var executeCallCount = 0
-    var error: SyncError?
-    var result: HTTPResult = .init(data: Data(), response: HTTPURLResponse())
-
-    func execute() async throws -> HTTPResult {
-        executeCallCount += 1
-        if let error {
-            throw error
-        }
-        return result
-    }
-}
-
-class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
-    var createRequestCallCount = 0
-    var createRequestCallArgs: [CreateRequestCallArgs] = []
-    var request: HTTPRequesting = HTTPRequestingMock()
-    private let lock = NSLock()
-
-    struct CreateRequestCallArgs {
-        let url: URL
-        let method: HTTPRequestMethod
-        let headers: [String: String]
-        let parameters: [String: String] 
-        let body: Data?
-        let contentType: String?
-    }
-
-    func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting {
-        lock.lock()
-        defer { lock.unlock() }
-        createRequestCallCount += 1
-        createRequestCallArgs.append(CreateRequestCallArgs(url: url, method: method, headers: headers, parameters: parameters, body: body, contentType: contentType))
-        return request
-    }
-}
-
-struct CryptingMock: Crypting {
-
-    var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
-    var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
-
-    func encryptAndBase64Encode(_ value: String) throws -> String {
-        try _encryptAndBase64Encode(value)
-    }
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String {
-        try _base64DecodeAndDecrypt(value)
-    }
-}
-
-struct DataProvidingMock: DataProviding {
-
-    var feature: Feature
-    var lastSyncTimestamp: String?
-    var _prepareForFirstSync: () -> Void = {}
-    var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
-    var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
-    var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
-    var handleSyncError: (Error) -> Void = { _ in }
-
-    func prepareForFirstSync() {
-        _prepareForFirstSync()
-    }
-
-    func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        try await _fetchChangedObjects(crypter)
-    }
-
-    func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
-        try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
-    }
-
-    func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
-        try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
-    }
-
-    func handleSyncError(_ error: Error) {
-        handleSyncError(error)
-    }
-}
-
 class SyncQueueTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
     var storage: SecureStorageStub!
     var crypter: CryptingMock!
-    var requestMaker: SyncRequestMaking!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -131,8 +47,6 @@ class SyncQueueTests: XCTestCase {
                 state: .active
             )
         )
-
-        requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
     }
 
     func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {

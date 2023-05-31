@@ -210,37 +210,27 @@ public class DDGSync: DDGSyncing {
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .flatMap(maxPublishers: .max(1)) { [weak self] in
-                guard let self else {
-                    return Future<Void, Never> { promise in
-                        promise(.success(()))
-                    }
-                }
-                return self.startSync()
+            .sink { [weak self] in
+                self?.startSync()
             }
-            .sink {}
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
     }
 
-    private func startSync() -> Future<Void, Never> {
-        Future { promise in
-            Task { [weak self] in
-                defer { promise(.success(())) }
-                guard let self else {
-                    return
-                }
-
-                if self.authState == .active {
-                    await self.syncQueue?.startSync()
-                } else {
-                    await self.syncQueue?.startFirstSync()
+    private func startSync() {
+        Task {
+            if authState == .active {
+                await syncQueue?.startSync()
+            } else {
+                await syncQueue?.startFirstSync { [weak self] in
+                    guard let self else {
+                        return
+                    }
                     if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
                         try? self.dependencies.secureStore.persistAccount(account)
                         self.authState = .active
                     }
-                    await self.syncQueue?.startSync()
                 }
             }
         }

@@ -152,7 +152,7 @@ actor SyncQueue: SyncQueueProtocol {
         }
     }
 
-    func startFirstSync() async {
+    func startFirstSync(didFinishFetch: (() -> Void)?) async {
         do {
             syncDidStartSubject.send(())
             let syncAuthState = (try? storage.account()?.state) ?? .inactive
@@ -164,6 +164,9 @@ actor SyncQueue: SyncQueueProtocol {
             if syncAuthState == .addingNewDevice {
                 try await sync(fetchOnly: true)
             }
+            didFinishFetch?()
+            try await sync(fetchOnly: false)
+
             syncDidFinishSubject.send(.success(()))
         } catch {
             syncDidFinishSubject.send(.failure(error))
