@@ -23,6 +23,10 @@ import Foundation
 
 extension Syncable {
 
+    enum SyncableBookmarkError: Error {
+        case bookmarkEntityMissingUUID
+    }
+
     var uuid: String? {
         payload["id"] as? String
     }
@@ -54,7 +58,7 @@ extension Syncable {
     init(bookmark: BookmarkEntity, encryptedWith crypter: Crypting) throws {
         var payload: [String: Any] = [:]
         guard let uuid = bookmark.uuid else {
-            throw BookmarksProviderError.bookmarkEntityMissingUUID
+            throw SyncableBookmarkError.bookmarkEntityMissingUUID
         }
 
         payload["id"] = uuid
