@@ -95,6 +95,22 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
                 throw SecureVaultError.keystoreError(status: status)
             }
 
+            if name == .l1Key && !UserDefaults.shared.bool(forKey: "l1keyUpdated") {
+                writeData(data, named: name)
+                UserDefaults.standard.set(true, forKey: "l1keyUpdated")
+            }
+
+            if name == .l2Key && !UserDefaults.shared.bool(forKey: "l2keyUpdated") {
+                writeData(data, named: name)
+                UserDefaults.standard.set(true, forKey: "l2keyUpdated")
+            }
+
+            if name == .generatedPassword && !UserDefaults.shared.bool(forKey: "generatedPasswordUpdated") {
+                writeData(data, named: name)
+                UserDefaults.standard.set(true, forKey: "generatedPasswordUpdated")
+            }
+            
+
             return data
         case errSecItemNotFound:
             return nil
@@ -104,12 +120,15 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
     }
 
     private func writeData(_ data: Data, named name: EntryName) throws {
-        var query = defaultAttributesForEntry(named: name)
-        query[kSecAttrService as String] = serviceName
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-        query[kSecValueData as String] = data
+        var attributes: [String: Any] = [
+             kSecClass as String: kSecClassGenericPassword,
+             kSecAttrAccount as String: name.rawValue,
+             kSecValueData as String: data,
+             kSecAttrService as String: Constants.encryptionKeyService,
+             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+         ]
 
-        let status = SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemAdd(attributes as CFDictionary, nil)
 
         guard status == errSecSuccess else {
             throw SecureVaultError.keystoreError(status: status)
@@ -131,8 +150,6 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
     private func defaultAttributesForEntry(named name: EntryName) -> [String: Any] {
         return [
             kSecClass: kSecClassGenericPassword,
-            kSecUseDataProtectionKeychain: true,
-            kSecAttrSynchronizable: false,
             kSecAttrAccount: name.rawValue
         ] as [String: Any]
     }
