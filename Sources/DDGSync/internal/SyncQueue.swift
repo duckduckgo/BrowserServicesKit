@@ -152,9 +152,12 @@ actor SyncQueue: SyncQueueProtocol {
         }
     }
 
-    func startFirstSync(didFinishFetch: (() -> Void)?) async {
+    func startSync(didFinishFirstFetch: (() -> Void)?) async {
         do {
+            await lock.lock()
+            defer { lock.unlock() }
             syncDidStartSubject.send(())
+
             let syncAuthState = (try? storage.account()?.state) ?? .inactive
             guard syncAuthState != .inactive else {
                 assertionFailure("Called first sync in unexpected \(syncAuthState) state")
@@ -163,20 +166,10 @@ actor SyncQueue: SyncQueueProtocol {
 
             if syncAuthState == .addingNewDevice {
                 try await sync(fetchOnly: true)
+                didFinishFirstFetch?()
             }
-            didFinishFetch?()
             try await sync(fetchOnly: false)
 
-            syncDidFinishSubject.send(.success(()))
-        } catch {
-            syncDidFinishSubject.send(.failure(error))
-        }
-    }
-
-    func startSync() async {
-        do {
-            syncDidStartSubject.send(())
-            try await sync(fetchOnly: false)
             syncDidFinishSubject.send(.success(()))
         } catch {
             syncDidFinishSubject.send(.failure(error))
@@ -187,11 +180,9 @@ actor SyncQueue: SyncQueueProtocol {
      * This is private to SyncQueue, but not marked as such to allow unit testing.
      */
     func sync(fetchOnly: Bool) async throws {
-        await lock.lock()
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
             os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
-            lock.unlock()
         }
 
         try await withThrowingTaskGroup(of: Void.self) { group in

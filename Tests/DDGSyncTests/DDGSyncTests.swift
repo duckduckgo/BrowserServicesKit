@@ -34,7 +34,7 @@ final class DDGSyncTests: XCTestCase {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
     }
 
-    func testThatSyncOperationsAreSerialized() {
+    func testThatRegularSyncOperationsAreSerialized() {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
 
@@ -79,4 +79,54 @@ final class DDGSyncTests: XCTestCase {
             .handleResponse(3)
         ])
     }
-}
+
+    func testThatFirstSyncAndRegularSyncOperationsAreSerialized() {
+        (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.addingNewDevice)
+
+        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
+
+        enum Event: Equatable {
+            case fetch(_ taskID: Int)
+            case handleResponse(_ taskID: Int)
+        }
+
+        var events: [Event] = []
+        var taskID = 1
+
+        let fetchExpectation = expectation(description: "fetch")
+        fetchExpectation.expectedFulfillmentCount = 3
+        let handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
+        handleSyncResponseExpectation.expectedFulfillmentCount = 3
+
+        dataProvider._fetchChangedObjects = { _ in
+            let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
+            events.append(.fetch(taskID))
+            taskID += 1
+            fetchExpectation.fulfill()
+            return syncables
+        }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            let taskID = sent[0].payload["taskNumber"] as! Int
+            events.append(.handleResponse(taskID))
+            handleSyncResponseExpectation.fulfill()
+        }
+
+        dataProvidersSource.dataProviders = [dataProvider]
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.scheduler.requestSyncImmediately()
+        syncService.scheduler.requestSyncImmediately()
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 1)
+
+        XCTAssertEqual(events, [
+            .fetch(1),
+            .handleResponse(1),
+            .fetch(2),
+            .handleResponse(2),
+            .fetch(3),
+            .handleResponse(3)
+        ])
+    }}

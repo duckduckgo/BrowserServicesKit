@@ -118,9 +118,7 @@ protocol SyncQueueProtocol {
     /// Called to prepare Data Providers for first sync
     func prepareForFirstSync() async throws
     /// Called to start first sync
-    func startFirstSync(didFinishFetch: (() -> Void)?) async
-    /// Called to start sync
-    func startSync() async
+    func startSync(didFinishFirstFetch: (() -> Void)?) async
     /// Emits boolean values representing current sync operation status.
     var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
     /// Emits events when each sync operation finishes

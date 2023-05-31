@@ -60,10 +60,10 @@ class SyncQueueTests: XCTestCase {
         defer { cancellable.cancel() }
 
         request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
-        await syncQueue.startSync()
+        await syncQueue.startSync(didFinishFirstFetch: nil)
         XCTAssertEqual(isInProgressEvents, [false, true, false])
 
-        await syncQueue.startSync()
+        await syncQueue.startSync(didFinishFirstFetch: nil)
         XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
     }
 
@@ -78,10 +78,10 @@ class SyncQueueTests: XCTestCase {
         defer { cancellable.cancel() }
 
         request.error = .noResponseBody
-        await syncQueue.startSync()
+        await syncQueue.startSync(didFinishFirstFetch: nil)
         XCTAssertEqual(isInProgressEvents, [false, true, false])
 
-        await syncQueue.startSync()
+        await syncQueue.startSync(didFinishFirstFetch: nil)
         XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
     }
 
@@ -302,7 +302,7 @@ class SyncQueueTests: XCTestCase {
         await withTaskGroup(of: Void.self) { group in
             for _ in 0..<5 {
                 group.addTask {
-                    await syncQueue.startSync()
+                    await syncQueue.startSync(didFinishFirstFetch: nil)
                 }
             }
         }
