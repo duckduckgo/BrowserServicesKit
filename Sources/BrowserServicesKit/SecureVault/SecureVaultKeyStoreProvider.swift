@@ -62,6 +62,14 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         try deleteEntry(named: .generatedPassword)
     }
 
+    func clearL1Key() throws {
+        try deleteEntry(named: .l1Key)
+    }
+
+    func clearL2Key() throws {
+        try deleteEntry(named: .l2Key)
+    }
+
     func storeGeneratedPassword(_ password: Data) throws {
         try writeData(password, named: .generatedPassword)
     }
@@ -95,20 +103,20 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
                 throw SecureVaultError.keystoreError(status: status)
             }
 
-            if name == .l1Key && !UserDefaults.shared.bool(forKey: "l1keyUpdated") {
-                writeData(data, named: name)
-                UserDefaults.standard.set(true, forKey: "l1keyUpdated")
-            }
-
-            if name == .l2Key && !UserDefaults.shared.bool(forKey: "l2keyUpdated") {
-                writeData(data, named: name)
-                UserDefaults.standard.set(true, forKey: "l2keyUpdated")
-            }
-
-            if name == .generatedPassword && !UserDefaults.shared.bool(forKey: "generatedPasswordUpdated") {
-                writeData(data, named: name)
-                UserDefaults.standard.set(true, forKey: "generatedPasswordUpdated")
-            }
+//            if name == .l1Key && !UserDefaults.shared.bool(forKey: "l1keyUpdated") {
+//                writeData(data, named: name)
+//                UserDefaults.standard.set(true, forKey: "l1keyUpdated")
+//            }
+//
+//            if name == .l2Key && !UserDefaults.shared.bool(forKey: "l2keyUpdated") {
+//                writeData(data, named: name)
+//                UserDefaults.standard.set(true, forKey: "l2keyUpdated")
+//            }
+//
+//            if name == .generatedPassword && !UserDefaults.shared.bool(forKey: "generatedPasswordUpdated") {
+//                writeData(data, named: name)
+//                UserDefaults.standard.set(true, forKey: "generatedPasswordUpdated")
+//            }
             
 
             return data
