@@ -32,7 +32,7 @@ protocol SecureVaultKeyStoreProvider {
 
 }
 
-final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
+final class D: SecureVaultKeyStoreProvider {
 
     struct Constants {
         static let defaultServiceName = "DuckDuckGo Secure Vault"
@@ -132,7 +132,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
              kSecClass as String: kSecClassGenericPassword,
              kSecAttrAccount as String: name.rawValue,
              kSecValueData as String: data,
-             kSecAttrService as String: Constants.encryptionKeyService,
+             kSecAttrService as String: Constants.defaultServiceName,
              kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
          ]
 
