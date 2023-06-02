@@ -28,6 +28,7 @@ protocol SyncDependencies {
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
+    var errorEvents: EventMapping<SyncError> { get }
     var log: OSLog { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
