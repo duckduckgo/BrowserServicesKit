@@ -290,13 +290,47 @@ class EmailManagerTests: XCTestCase {
         }
     }
 
+    func testWhenRequestingEmailStatusThenStatusIsReturned() async {
+        let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: true)
+        storage.mockToken = "token"
+        let emailManager = EmailManager(storage: storage)
+        let requestDelegate = MockEmailManagerRequestDelegate()
+        emailManager.requestDelegate = requestDelegate
+
+        do {
+            let response = try await emailManager.getStatusFor(email: "xtwx7744@duck.com")
+            XCTAssertTrue(response)
+        }
+        catch {
+            XCTFail("Status should be returned")
+        }
+
+
+    }
+
+    func testWhenChangingEmailStatusThenStatusIsReturned() async {
+        let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: true)
+        storage.mockToken = "token"
+        let emailManager = EmailManager(storage: storage)
+        let requestDelegate = MockEmailManagerRequestDelegate()
+        emailManager.requestDelegate = requestDelegate
+
+        do {
+            let response = try await emailManager.setStatusFor(email: "xtwx7744@duck.com", active: false)
+            XCTAssertTrue(response)
+        }
+        catch {
+            XCTFail("Status should be returned")
+        }
+    }
+
     private func storageForGetAliasTest(signedIn: Bool,
                                         storedAlias: Bool,
                                         fulfillOnFirstStorageEvent: Bool,
-                                        expectationToFulfill: XCTestExpectation) -> MockEmailManagerStorage {
+                                        expectationToFulfill: XCTestExpectation? = nil) -> MockEmailManagerStorage {
         
         let storage = MockEmailManagerStorage()
-        
+
         if signedIn {
             storage.mockUsername = "username"
             storage.mockToken = "testToken"
@@ -321,11 +355,11 @@ class EmailManagerTests: XCTestCase {
                 XCTAssertEqual(alias, "testAlias2")
                 isFirstStorage = false
                 if fulfillOnFirstStorageEvent {
-                    expectationToFulfill.fulfill()
+                    expectationToFulfill?.fulfill()
                 }
             } else {
                 XCTAssertEqual(alias, "testAlias3")
-                expectationToFulfill.fulfill()
+                expectationToFulfill?.fulfill()
             }
         }
 
@@ -382,12 +416,30 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     
     // swiftlint:disable function_parameter_count
     func emailManager(_ emailManager: EmailManager, requested url: URL, method: String, headers: [String: String], parameters: [String: String]?, httpBody: Data?, timeoutInterval: TimeInterval) async throws -> Data {
-        switch url.absoluteString {
-        case EmailUrls.Url.emailAlias: return try processMockAliasRequest().get()
-        default: fatalError("\(#file): Unsupported URL passed to mock request delegate: \(url)")
+
+        enum MockedAction: String {
+            case fetch
+            case status
+            case update
+        }
+        var action: MockedAction
+        if method == "PUT" {
+            action = .update
+        }
+        else {
+            // API uses POST for both Create and Status Fetch so look for the body
+            action = httpBody != nil ? .status : .fetch
+        }
+
+        switch action {
+            case .fetch: return try processMockAliasRequest().get()
+            case .status, .update: return try processMockAliasStatusRequest().get()            
+            default: return Data()
         }
     }
     // swiftlint:enable function_parameter_count
+
+
     
     var keychainAccessErrorAccessType: EmailKeychainAccessType?
     var keychainAccessError: EmailKeychainAccessError?
@@ -408,6 +460,12 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
         } else {
             return .failure(AliasRequestError.noDataError)
         }
+    }
+
+    private func processMockAliasStatusRequest() -> Result<Data, Error> {
+        let jsonString = "{\"active\": true}"
+        let data = jsonString.data(using: .utf8)!
+        return .success(data)
     }
     
 }
