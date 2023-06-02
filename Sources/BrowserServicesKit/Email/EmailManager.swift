@@ -111,6 +111,7 @@ public enum AliasRequestError: Error {
     case invalidResponse
     case userRefused
     case permissionDelegateNil
+    case invalidToken
 }
 
 public struct EmailUrls {
@@ -273,12 +274,34 @@ public class EmailManager {
         return alias + "@" + Self.emailDomain
     }
 
+    public func aliasFor(_ email: String) -> String {
+        return email.replacingOccurrences(of: "@" + Self.emailDomain, with: "")
+    }
+
     public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         getAliasIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             completionHandler(newAlias, error)
             if error == nil {
                 self?.consumeAliasAndReplace()
             }
+        }
+    }
+
+    public func getStatusFor(email: String, timeoutInterval: TimeInterval = 4.0) async throws -> Bool {
+        do {
+            return try await fetchStatusFor(alias: aliasFor(email), timeoutInterval: timeoutInterval)
+        }
+        catch {
+            throw error
+        }
+    }
+
+    public func setStatusFor(email: String, active: Bool, timeoutInterval: TimeInterval = 4.0) async throws -> Bool {
+        do {
+            return try await setStatusFor(alias: aliasFor(email), active: active)
+        }
+        catch {
+            throw error
         }
     }
 
@@ -398,9 +421,26 @@ private extension EmailManager {
 // MARK: - Alias Management
 
 private extension EmailManager {
-    
+
+    enum Constants {
+
+        enum RequestMethods {
+            static let put = "PUT"
+            static let post = "POST"
+        }
+
+        enum RequestParameters {
+            static let token = "token"
+            static let status = "active"
+        }
+    }
+
     struct EmailAliasResponse: Decodable {
         let address: String
+    }
+
+    struct EmailAliasStatusResponse: Decodable {
+        let active: Bool
     }
     
     typealias HTTPHeaders = [String: String]
@@ -479,7 +519,7 @@ private extension EmailManager {
             do {
                 let data = try await requestDelegate.emailManager(self,
                                                                   requested: aliasAPIURL,
-                                                                  method: "POST",
+                                                                  method: Constants.RequestMethods.post,
                                                                   headers: emailHeaders,
                                                                   parameters: [:],
                                                                   httpBody: nil,
@@ -502,6 +542,57 @@ private extension EmailManager {
                     completionHandler?(nil, error)
                 }
             }
+        }
+    }
+
+    func fetchStatusFor(alias: String, timeoutInterval: TimeInterval = 5.0) async throws -> Bool {
+        guard isSignedIn,
+              let requestDelegate else {
+            throw AliasRequestError.signedOut
+        }
+
+        let data: Data
+
+        do {
+            let requestBody: [String: Any] = ["address": alias]
+            let body = try JSONSerialization.data(withJSONObject: requestBody, options: [])
+            data = try await requestDelegate.emailManager(self,
+                                                          requested: aliasAPIURL,
+                                                          method: Constants.RequestMethods.post,
+                                                          headers: emailHeaders,
+                                                          parameters: [:],
+                                                          httpBody: body,
+                                                          timeoutInterval: timeoutInterval)
+            let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
+            return response.active
+        } catch {
+            throw AliasRequestError.invalidResponse
+        }
+    }
+
+    func setStatusFor(alias: String, active: Bool, timeoutInterval: TimeInterval = 5.0) async throws -> Bool {
+        guard isSignedIn,
+              let requestDelegate else {
+            throw AliasRequestError.signedOut
+        }
+
+        guard let token else {
+            throw AliasRequestError.invalidToken
+        }
+
+        do {            
+            let url = aliasAPIURL.appendingPathComponent(alias)
+            let data = try await requestDelegate.emailManager(self,
+                                                              requested: url,
+                                                              method: Constants.RequestMethods.put,
+                                                              headers: emailHeaders,
+                                                              parameters: [Constants.RequestParameters.token: "\(token)", Constants.RequestParameters.status: "\(active)"],
+                                                              httpBody: nil,
+                                                              timeoutInterval: timeoutInterval)
+            let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
+            return response.active
+        } catch {
+            throw AliasRequestError.invalidResponse
         }
     }
 
