@@ -19,6 +19,7 @@
 
 import XCTest
 import Bookmarks
+import BookmarksTestsUtils
 import Common
 import DDGSync
 import Persistence

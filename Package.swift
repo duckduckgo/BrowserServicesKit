@@ -75,6 +75,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "BookmarksTestsUtils",
+            dependencies: [
+                "Bookmarks"
+            ]
+        ),
+         .target(
             name: "BloomFilterWrapper",
             dependencies: [
                 "BloomFilter"
@@ -177,7 +183,8 @@ let package = Package(
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
-                "Bookmarks"
+                "Bookmarks",
+                "BookmarksTestsUtils"
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
@@ -248,6 +255,7 @@ let package = Package(
         .testTarget(
             name: "SyncDataProvidersTests",
             dependencies: [
+                "BookmarksTestsUtils",
                 "SyncDataProviders"
             ]
         )
