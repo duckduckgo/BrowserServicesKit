@@ -107,12 +107,42 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         save()
     }
 
+    private func reattachOrphanedBookmarks(forMoving bookmark: BookmarkEntity, toIndex: Int) {
+        guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
+            return
+        }
+        let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
+        let orphanedBookmarksToAttachToRootFolder: [BookmarkEntity] = {
+            guard let bookmarkIndexInOrphans = orphanedBookmarks.firstIndex(where: { $0.uuid == bookmark.uuid }) else {
+                return [bookmark]
+            }
+            let toIndexInOrphanedBookmarks = toIndex - rootFolder.childrenArray.count
+            return Array(orphanedBookmarks.prefix(through: max(toIndexInOrphanedBookmarks, bookmarkIndexInOrphans)))
+        }()
+        orphanedBookmarksToAttachToRootFolder.forEach { rootFolder.addToChildren($0) }
+    }
+
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        if bookmark.parent == nil {
-            BookmarkUtils.fetchRootFolder(context)?.addToChildren(bookmark)
+        let isOrphanedBookmark = bookmark.parent == nil
+
+        if isOrphanedBookmark {
+            reattachOrphanedBookmarks(forMoving: bookmark, toIndex: toIndex)
+//            guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
+//                return
+//            }
+//            let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
+//            let orphanedBookmarksToAttachToRootFolder: [BookmarkEntity] = {
+//                guard let bookmarkIndexInOrphans = orphanedBookmarks.firstIndex(where: { $0.uuid == bookmark.uuid }) else {
+//                    return [bookmark]
+//                }
+//                let toIndexInOrphanedBookmarks = toIndex - rootFolder.childrenArray.count
+//                return Array(orphanedBookmarks.prefix(through: max(toIndexInOrphanedBookmarks, bookmarkIndexInOrphans)))
+//            }()
+//            orphanedBookmarksToAttachToRootFolder.forEach { rootFolder.addToChildren($0) }
         }
+
         guard let parentFolder = bookmark.parent else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
