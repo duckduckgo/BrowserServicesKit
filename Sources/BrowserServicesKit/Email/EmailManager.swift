@@ -86,6 +86,8 @@ public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 // swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
 
+    var activeTask: URLSessionTask? { get set }
+
     func emailManager(_ emailManager: EmailManager,
                       requested url: URL,
                       method: String,
@@ -112,6 +114,7 @@ public enum AliasRequestError: Error {
     case userRefused
     case permissionDelegateNil
     case invalidToken
+    case notFound
 }
 
 public struct EmailUrls {
@@ -276,6 +279,13 @@ public class EmailManager {
 
     public func aliasFor(_ email: String) -> String {
         return email.replacingOccurrences(of: "@" + Self.emailDomain, with: "")
+    }
+
+    public func isPrivateEmail(email: String) -> Bool {
+        if email != userEmail && email.hasSuffix(Self.emailDomain) {
+            return true
+        }
+        return false
     }
 
     public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
