@@ -28,17 +28,19 @@ struct ProductionDependencies: SyncDependencies {
     let secureStore: SecureStoring
     let crypter: CryptingInternal
     let scheduler: SchedulingInternal
+    let errorEvents: EventMapping<SyncError>
 
     var log: OSLog {
         getLog()
     }
     private let getLog: () -> OSLog
 
-    init(baseUrl: URL, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    init(baseUrl: URL, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
                   secureStore: SecureStorage(),
+                  errorEvents: errorEvents,
                   log: log())
     }
     
@@ -46,11 +48,13 @@ struct ProductionDependencies: SyncDependencies {
         fileStorageUrl: URL,
         baseUrl: URL,
         secureStore: SecureStoring,
+        errorEvents: EventMapping<SyncError>,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(baseUrl: baseUrl)
         self.secureStore = secureStore
+        self.errorEvents = errorEvents
         self.getLog = log
 
         api = RemoteAPIRequestCreator(log: log())
