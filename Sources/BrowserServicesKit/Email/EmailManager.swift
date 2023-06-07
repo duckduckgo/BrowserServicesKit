@@ -83,6 +83,11 @@ public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 }
 // swiftlint:enable identifier_name
 
+public enum EmailManagerRequestDelegateError: Error {
+    case serverError(statusCode: Int)
+    case decodingError
+}
+
 // swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
 
@@ -135,6 +140,14 @@ public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
 public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
 public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ token: String?, AliasRequestError?) -> Void
 
+public enum EmailAliasStatus {
+    case active
+    case inactive
+    case notFound
+    case error
+    case unknown
+}
+
 public class EmailManager {
     
     private static let emailDomain = "duck.com"
@@ -147,7 +160,7 @@ public class EmailManager {
     public enum NotificationParameter {
         public static let cohort = "cohort"
     }
-    
+
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
 
@@ -315,6 +328,7 @@ public class EmailManager {
         UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
     }
     public func getStatusFor(email: String, timeoutInterval: TimeInterval = 4.0) async throws -> Bool {
+    public func getStatusFor(email: String, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
         do {
             return try await fetchStatusFor(alias: aliasFor(email), timeoutInterval: timeoutInterval)
         }
@@ -588,7 +602,7 @@ private extension EmailManager {
         }
     }
 
-    func fetchStatusFor(alias: String, timeoutInterval: TimeInterval = 5.0) async throws -> Bool {
+    func fetchStatusFor(alias: String, timeoutInterval: TimeInterval = 5.0) async throws -> EmailAliasStatus {
         guard isSignedIn,
               let requestDelegate else {
             throw AliasRequestError.signedOut
@@ -607,9 +621,19 @@ private extension EmailManager {
                                                           httpBody: body,
                                                           timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
-            return response.active
-        } catch {
-            throw AliasRequestError.invalidResponse
+            return response.active ? .active : .inactive
+        } catch let error {
+            switch error {
+                case EmailManagerRequestDelegateError.serverError(let code):
+                    switch code {
+                        case 404:
+                            return .notFound
+                        default:
+                            return .error
+                    }
+                default:
+                    return .error
+            }
         }
     }
 
