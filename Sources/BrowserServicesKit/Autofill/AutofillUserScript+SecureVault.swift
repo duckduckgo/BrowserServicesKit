@@ -328,6 +328,15 @@ extension AutofillUserScript {
         let success: CredentialObject
         let error: String?
     }
+
+    struct IncontextSignupDismissedAt: Codable {
+        let permanentlyDismissedAt: Double?
+    }
+
+    struct GetIncontextSignupDismissedAtResponse: Codable {
+        let success: IncontextSignupDismissedAt
+    }
+
     // swiftlint:enable nesting
 
     struct RequestAutoFillCreditCardResponse: Codable {
@@ -752,7 +761,6 @@ extension AutofillUserScript {
 
         vaultDelegate?.autofillUserScript(self, didSendPixel: JSPixel(pixelName: pixelName, pixelParameters: pixelParameters))
     }
-
 }
 
 extension AutofillUserScript.RequestAvailableInputTypesResponse {
