@@ -333,7 +333,7 @@ public class EmailManager {
         }
     }
 
-    public func setStatusFor(email: String, active: Bool, timeoutInterval: TimeInterval = 4.0) async throws -> Bool {
+    public func setStatusFor(email: String, active: Bool, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
         do {
             return try await setStatusFor(alias: aliasFor(email), active: active)
         }
@@ -636,7 +636,7 @@ private extension EmailManager {
         }
     }
 
-    func setStatusFor(alias: String, active: Bool, timeoutInterval: TimeInterval = 5.0) async throws -> Bool {
+    func setStatusFor(alias: String, active: Bool, timeoutInterval: TimeInterval = 5.0) async throws -> EmailAliasStatus {
         guard isSignedIn,
               let requestDelegate else {
             throw AliasRequestError.signedOut
@@ -656,9 +656,19 @@ private extension EmailManager {
                                                               httpBody: nil,
                                                               timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
-            return response.active
-        } catch {
-            throw AliasRequestError.invalidResponse
+            return response.active ? .active : .inactive
+        } catch let error {
+            switch error {
+                case EmailManagerRequestDelegateError.serverError(let code):
+                    switch code {
+                        case 404:
+                            return .notFound
+                        default:
+                            return .error
+                    }
+                default:
+                    return .error
+            }
         }
     }
 
