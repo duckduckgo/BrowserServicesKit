@@ -110,6 +110,8 @@ public extension Notification.Name {
     static let emailDidSignIn = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignIn")
     static let emailDidSignOut = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignOut")
     static let emailDidGenerateAlias = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidGenerateAlias")
+    static let emailDidIncontextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidIncontextSignup")
+    static let emailDidCloseEmailProtection = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCloseEmailProtection")
 }
 
 public enum AliasRequestError: Error {
@@ -149,7 +151,8 @@ public enum EmailAliasStatus {
 public class EmailManager {
     
     private static let emailDomain = "duck.com"
-    
+    private static let inContextEmailSignupPromptDismissedPermanentlyAtKey = "Autofill.InContextEmailSignup.dismissed.permanently.at"
+
     private let storage: EmailManagerStorage
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
     public weak var requestDelegate: EmailManagerRequestDelegate?
@@ -255,6 +258,17 @@ public class EmailManager {
         guard let username = username else { return nil }
         return username + "@" + EmailManager.emailDomain
     }
+
+    private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
+        get {
+            UserDefaults().object(forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey) as? Double ?? nil
+        }
+
+        set {
+            UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
+        }
+    }
+
     
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
@@ -328,10 +342,12 @@ public class EmailManager {
         }
     }
 
+    public func resetEmailProtectionInContextPrompt() {
+        UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
+    }
 }
 
 extension EmailManager: AutofillEmailDelegate {
-
     public func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
          return isSignedIn
     }
@@ -421,6 +437,23 @@ extension EmailManager: AutofillEmailDelegate {
 
         NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
+
+    public func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+        inContextEmailSignupPromptDismissedPermanentlyAt = value
+    }
+
+    public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
+        inContextEmailSignupPromptDismissedPermanentlyAt
+    }
+
+    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
+    }
+
+    public func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidCloseEmailProtection, object: self)
+    }
+
 }
 
 // MARK: - Token Management

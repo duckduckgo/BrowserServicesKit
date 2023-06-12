@@ -174,11 +174,12 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
             kSecValueData: data as CFData
         ]
         
-        let status = SecItemAdd(addQuery as CFDictionary, nil)
-        if status == errSecSuccess {
-            return data
+        DispatchQueue.global().async {
+            SecItemAdd(addQuery as CFDictionary, nil)
         }
-        return nil
+
+        return data
+
     }
 
     func hashData(_ data: Data, salt: Data? = nil) throws -> String? {

@@ -21,8 +21,10 @@ import Common
 import WebKit
 import UserScript
 
-public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncryption {
+var previousIncontextSignupPermanentlyDismissedAt: Double? = nil
+var previousEmailSignedIn: Bool? = nil
 
+public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncryption {
     internal enum MessageName: String, CaseIterable {
         case emailHandlerStoreToken
         case emailHandlerRemoveToken
@@ -53,6 +55,11 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case checkCredentialsProviderStatus
         
         case sendJSPixel
+
+        case setIncontextSignupPermanentlyDismissedAt
+        case getIncontextSignupDismissedAt
+        case startEmailProtectionSignup
+        case closeEmailProtectionTab
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -142,6 +149,11 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .checkCredentialsProviderStatus: return checkCredentialsProviderStatus
 
         case .sendJSPixel: return sendJSPixel
+
+        case .setIncontextSignupPermanentlyDismissedAt: return setIncontextSignupPermanentlyDismissedAt
+        case .getIncontextSignupDismissedAt: return getIncontextSignupDismissedAt
+        case .startEmailProtectionSignup: return startEmailProtectionSignup
+        case .closeEmailProtectionTab: return closeEmailProtectionTab
         }
     }
 
