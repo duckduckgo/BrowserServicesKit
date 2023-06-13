@@ -84,7 +84,7 @@ public final class BookmarkDatabaseCleaner {
 
                 do {
                     try context.save()
-                    os_log(.debug, log: log, "Successfully purged %{public}s bookmarks", bookmarksPendingDeletion.count)
+                    os_log(.debug, log: log, "Successfully purged %{public}d bookmarks", bookmarksPendingDeletion.count)
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
