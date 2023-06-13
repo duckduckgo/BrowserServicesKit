@@ -32,9 +32,11 @@ public class DDGSync: DDGSyncing {
         //#else
         //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
         //#endif
+
+        public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }
 
-    @Published public private(set) var authState: SyncAuthState
+    @Published public private(set) var authState = SyncAuthState.initializing
     public var authStatePublisher: AnyPublisher<SyncAuthState, Never> {
         $authState.eraseToAnyPublisher()
     }
@@ -173,13 +175,55 @@ public class DDGSync: DDGSyncing {
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
+    }
 
-        let account = try? dependencies.secureStore.account()
-        self.authState = account?.state ?? .inactive
-        try? updateAccount(account)
+    public func initializeIfNeeded(isInternalUser: Bool) {
+        guard authState == .initializing else { return }
+
+        let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
+        guard syncEnabled else {
+            // This is for initial tests only
+            if isInternalUser {
+                // Migrate and start using user defaults flag
+                do {
+                    let account = try dependencies.secureStore.account()
+                    authState = account?.state ?? .inactive
+                    try updateAccount(account)
+
+                } catch {
+                    // Pixel - migration problem
+                }
+            } else {
+                try? dependencies.secureStore.removeAccount()
+                authState = .inactive
+            }
+
+            return
+        }
+
+        var account: SyncAccount?
+        do {
+            account = try dependencies.secureStore.account()
+        } catch {
+            // Pixel - could not access
+            return
+        }
+
+        authState = account?.state ?? .inactive
+
+        do {
+            try updateAccount(account)
+        } catch {
+            // Pixel - could not initialize
+        }
     }
 
     private func updateAccount(_ account: SyncAccount? = nil) throws {
+        guard account?.state != .initializing else {
+            assertionFailure("Sync has not been initialized properly")
+            return
+        }
+
         guard let account, account.state != .inactive else {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
@@ -187,6 +231,7 @@ public class DDGSync: DDGSyncing {
             syncQueue = nil
             authState = .inactive
             try dependencies.secureStore.removeAccount()
+            dependencies.keyValueStore.set(nil, forKey: Constants.syncEnabledKey)
             return
         }
 
@@ -201,6 +246,7 @@ public class DDGSync: DDGSyncing {
         }
         try dependencies.secureStore.persistAccount(account)
         authState = account.state
+        dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
 
         syncQueueCancellable = syncQueue.isSyncInProgressPublisher
             .sink(receiveCompletion: { [weak self] _ in
