@@ -191,7 +191,7 @@ public class DDGSync: DDGSyncing {
                     try updateAccount(account)
 
                 } catch {
-                    // Pixel - migration problem
+                    dependencies.errorEvents.fire(.failedToMigrate, error: error)
                 }
             } else {
                 try? dependencies.secureStore.removeAccount()
@@ -205,7 +205,7 @@ public class DDGSync: DDGSyncing {
         do {
             account = try dependencies.secureStore.account()
         } catch {
-            // Pixel - could not access
+            dependencies.errorEvents.fire(.failedToLoadAccount, error: error)
             return
         }
 
@@ -214,7 +214,7 @@ public class DDGSync: DDGSyncing {
         do {
             try updateAccount(account)
         } catch {
-            // Pixel - could not initialize
+            dependencies.errorEvents.fire(.failedToSetupEngine, error: error)
         }
     }
 
