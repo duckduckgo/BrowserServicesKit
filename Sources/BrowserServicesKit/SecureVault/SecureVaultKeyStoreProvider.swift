@@ -36,6 +36,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
 
     struct Constants {
         static let defaultServiceName = "DuckDuckGo Secure Vault"
+        static let defaultServiceNameV2 = "DuckDuckGo Secure Vault V2"
     }
 
     // DO NOT CHANGE except if you want to deliberately invalidate all users's vaults.
@@ -46,12 +47,6 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
         case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
 
-    }
-
-    let serviceName: String
-
-    init(serviceName: String = Constants.defaultServiceName) {
-        self.serviceName = serviceName
     }
 
     func generatedPassword() throws -> Data? {
@@ -82,39 +77,65 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         return try readData(named: .l2Key)
     }
 
-    private func readData(named name: EntryName) throws -> Data? {
+    private func readData(named name: EntryName, serviceName: String = Constants.defaultServiceNameV2) throws -> Data? {
         var query = defaultAttributesForEntry(named: name)
         query[kSecReturnData as String] = true
+        query[kSecAttrService as String] = serviceName
 
         var item: CFTypeRef?
 
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         switch status {
-        case errSecSuccess:
-            guard let data = item as? Data else {
-                throw SecureVaultError.keystoreError(status: status)
-            }
+            case errSecSuccess:
+                guard let itemData = item as? Data,
+                      let itemString = String(data: itemData, encoding: .utf8),
+                      let decodedData = Data(base64Encoded: itemString) else {
+                    throw SecureVaultError.keystoreError(status: status)
+                }
 
-            return data
-        case errSecItemNotFound:
+                return decodedData
+            case errSecItemNotFound:
+
+                // Look for an older key and try to migrate
+                if serviceName == Constants.defaultServiceNameV2 {
+                    return try? migrateV1Key(name: name)
+                }
+                return nil
+
+            default:
+                throw SecureVaultError.keystoreError(status: status)
+        }
+    }
+    
+    private func migrateV1Key(name: EntryName) throws -> Data? {
+        do {
+            guard let v1Key = try readData(named: name, serviceName: Constants.defaultServiceName) else {
+                return nil
+            }
+            try writeData(v1Key, named: name)
+            return v1Key
+        } catch {
             return nil
-        default:
-            throw SecureVaultError.keystoreError(status: status)
         }
     }
 
-    private func writeData(_ data: Data, named name: EntryName) throws {
+    private func writeData(_ data: Data, named name: EntryName, serviceName: String = Constants.defaultServiceNameV2) throws {
+        let base64String = data.base64EncodedString()
+
+        guard let base64Data = base64String.data(using: .utf8) else {
+            throw SecureVaultError.encodingFailed
+        }
+
         var query = defaultAttributesForEntry(named: name)
         query[kSecAttrService as String] = serviceName
         query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-        query[kSecValueData as String] = data
+        query[kSecValueData as String] = base64Data
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
         guard status == errSecSuccess else {
             throw SecureVaultError.keystoreError(status: status)
         }
-
     }
 
     private func deleteEntry(named name: EntryName) throws {
@@ -131,7 +152,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
     private func defaultAttributesForEntry(named name: EntryName) -> [String: Any] {
         return [
             kSecClass: kSecClassGenericPassword,
-            kSecUseDataProtectionKeychain: true,
+            kSecUseDataProtectionKeychain: false,
             kSecAttrSynchronizable: false,
             kSecAttrAccount: name.rawValue
         ] as [String: Any]
