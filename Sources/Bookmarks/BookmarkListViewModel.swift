@@ -111,12 +111,18 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
             return
         }
-        let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
+        let orphanedBookmarks: [BookmarkEntity] = BookmarkUtils.fetchOrphanedEntities(context)
+        guard !orphanedBookmarks.isEmpty else {
+            return
+        }
         let orphanedBookmarksToAttachToRootFolder: [BookmarkEntity] = {
+            let toIndexInOrphanedBookmarks = toIndex - rootFolder.childrenArray.count
+            guard bookmark.parent == nil else {
+                return Array(orphanedBookmarks.prefix(through: toIndexInOrphanedBookmarks))
+            }
             guard let bookmarkIndexInOrphans = orphanedBookmarks.firstIndex(where: { $0.uuid == bookmark.uuid }) else {
                 return [bookmark]
             }
-            let toIndexInOrphanedBookmarks = toIndex - rootFolder.childrenArray.count
             return Array(orphanedBookmarks.prefix(through: max(toIndexInOrphanedBookmarks, bookmarkIndexInOrphans)))
         }()
         orphanedBookmarksToAttachToRootFolder.forEach { rootFolder.addToChildren($0) }
@@ -125,7 +131,8 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        if bookmark.parent == nil {
+        let shouldIncludeOrphans = bookmark.parent?.uuid == BookmarkEntity.Constants.rootFolderID || bookmark.parent == nil
+        if shouldIncludeOrphans {
             reattachOrphanedBookmarks(forMoving: bookmark, toIndex: toIndex)
         }
 
@@ -140,7 +147,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             errorEvents?.fire(.indexOutOfRange(.bookmarks))
             return
         }
-        
+
         guard let actualBookmark = children[fromIndex] as? BookmarkEntity,
               actualBookmark == bookmark else {
             errorEvents?.fire(.bookmarksListIndexNotMatchingBookmark)
