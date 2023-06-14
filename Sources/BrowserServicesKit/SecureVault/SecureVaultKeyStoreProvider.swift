@@ -78,7 +78,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
     }
 
     private func readData(named name: EntryName, serviceName: String = Constants.defaultServiceName) throws -> Data? {
-        var query = defaultAttributesForEntry(named: name)
+        var query = (serviceName == Constants.defaultServiceName) ? defaultAttributesForEntry(named: name) : legacyAttributesForEntry(named: name)
         query[kSecReturnData as String] = true
         query[kSecAttrService as String] = serviceName
 
@@ -87,13 +87,20 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         switch status {
             case errSecSuccess:
-                guard let itemData = item as? Data,
-                      let itemString = String(data: itemData, encoding: .utf8),
-                      let decodedData = Data(base64Encoded: itemString) else {
-                    throw SecureVaultError.keystoreError(status: status)
+                if serviceName == Constants.defaultServiceName {
+                    guard let itemData = item as? Data,
+                          let itemString = String(data: itemData, encoding: .utf8),
+                          let decodedData = Data(base64Encoded: itemString) else {
+                        throw SecureVaultError.keystoreError(status: status)
+                    }
+                    return decodedData
+                } else {
+                    guard let data = item as? Data else {
+                        throw SecureVaultError.keystoreError(status: status)
+                    }
+                    return data
                 }
 
-                return decodedData
             case errSecItemNotFound:
 
                 // Look for an older key and try to migrate
@@ -147,6 +154,15 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         default:
             throw SecureVaultError.keystoreError(status: status)
         }
+    }
+
+    private func legacyAttributesForEntry(named name: EntryName) -> [String: Any] {
+        return [
+            kSecClass: kSecClassGenericPassword,
+            kSecUseDataProtectionKeychain: true,
+            kSecAttrSynchronizable: false,
+            kSecAttrAccount: name.rawValue
+        ] as [String: Any]
     }
 
     private func defaultAttributesForEntry(named name: EntryName) -> [String: Any] {
