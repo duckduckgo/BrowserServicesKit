@@ -35,8 +35,8 @@ protocol SecureVaultKeyStoreProvider {
 final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
 
     struct Constants {
-        static let defaultServiceName = "DuckDuckGo Secure Vault"
-        static let defaultServiceNameV2 = "DuckDuckGo Secure Vault V2"
+        static let legacyServiceName = "DuckDuckGo Secure Vault"
+        static let defaultServiceName = "DuckDuckGo Secure Vault v2"
     }
 
     // DO NOT CHANGE except if you want to deliberately invalidate all users's vaults.
@@ -77,7 +77,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         return try readData(named: .l2Key)
     }
 
-    private func readData(named name: EntryName, serviceName: String = Constants.defaultServiceNameV2) throws -> Data? {
+    private func readData(named name: EntryName, serviceName: String = Constants.defaultServiceName) throws -> Data? {
         var query = defaultAttributesForEntry(named: name)
         query[kSecReturnData as String] = true
         query[kSecAttrService as String] = serviceName
@@ -97,7 +97,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
             case errSecItemNotFound:
 
                 // Look for an older key and try to migrate
-                if serviceName == Constants.defaultServiceNameV2 {
+                if serviceName == Constants.defaultServiceName {
                     return try? migrateV1Key(name: name)
                 }
                 return nil
@@ -106,10 +106,10 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
                 throw SecureVaultError.keystoreError(status: status)
         }
     }
-    
+
     private func migrateV1Key(name: EntryName) throws -> Data? {
         do {
-            guard let v1Key = try readData(named: name, serviceName: Constants.defaultServiceName) else {
+            guard let v1Key = try readData(named: name, serviceName: Constants.legacyServiceName) else {
                 return nil
             }
             try writeData(v1Key, named: name)
@@ -119,7 +119,7 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         }
     }
 
-    private func writeData(_ data: Data, named name: EntryName, serviceName: String = Constants.defaultServiceNameV2) throws {
+    private func writeData(_ data: Data, named name: EntryName, serviceName: String = Constants.defaultServiceName) throws {
         let base64String = data.base64EncodedString()
 
         guard let base64Data = base64String.data(using: .utf8) else {
