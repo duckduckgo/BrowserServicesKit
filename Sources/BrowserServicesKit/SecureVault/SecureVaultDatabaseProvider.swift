@@ -90,7 +90,10 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
         migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-        // ... add more migrations here ...
+        migrator.registerMigration("v9", migrate: Self.migrateV8(database:))
+        // Add more sync migrations here ...
+        // Note, these migrations will run synchronously on first access to secureVault DB
+
         do {
             try migrator.migrate(db)
         } catch {
@@ -649,7 +652,15 @@ extension DefaultDatabaseProvider {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.signature.name, .text)
         }
+        try updatePasswordHashes(database: database)
+    }
 
+    static func migrateV9(database: Database) throws {
+        try updatePasswordHashes(database: database)
+    }
+
+    // Refresh password comparison hashes
+    static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
         let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
@@ -661,7 +672,7 @@ extension DefaultDatabaseProvider {
                                                            domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
                                                            created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
                                                            lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
-            
+
 
             // Query the credentials
             let credentialRow = try Row.fetchOne(database, sql: """
@@ -670,13 +681,13 @@ extension DefaultDatabaseProvider {
             """, arguments: [account.id])
 
             if let credentialRow = credentialRow {
-                
+
                 var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
                 decryptedCredentials = .init(account: account,
                                              password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name],
                                                                                       cryptoProvider: cryptoProvider,
                                                                                       keyStoreProvider: keyStoreProvider))
-                                                                              
+
                 guard let accountHash = decryptedCredentials?.account.hashValue,
                       let password = decryptedCredentials?.password else {
                     continue
@@ -697,10 +708,7 @@ extension DefaultDatabaseProvider {
                 """, arguments: [hash, account.id])
             }
         }
-        
     }
-        
-
 
 }
 
