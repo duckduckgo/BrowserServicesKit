@@ -188,6 +188,38 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "6", isOrphaned: true)
         })
     }
+
+    func testWhenBookmarkIsMovedWithinNonOrphanedBookmarksThenOrphanedBookmarksAreNotAffected() async throws {
+
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+            Bookmark(id: "3", isOrphaned: true)
+            Bookmark(id: "4", isOrphaned: true)
+            Bookmark(id: "5", isOrphaned: true)
+            Bookmark(id: "6", isOrphaned: true)
+        }
+
+        BookmarkUtils.prepareFoldersStructure(in: context)
+        bookmarkTree.createEntities(in: context)
+        try! context.save()
+
+        let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!
+
+        bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 1, toIndex: 0)
+
+        let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "2")
+            Bookmark(id: "1")
+            Bookmark(id: "3", isOrphaned: true)
+            Bookmark(id: "4", isOrphaned: true)
+            Bookmark(id: "5", isOrphaned: true)
+            Bookmark(id: "6", isOrphaned: true)
+        })
+    }
 }
 
 private extension BookmarkEntity {
