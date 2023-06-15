@@ -116,6 +116,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!
 
+        bookmarkListViewModel.reloadData()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 1, toIndex: 0)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -144,6 +145,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "5", context: context)!
 
+        bookmarkListViewModel.reloadData()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 4, toIndex: 2)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -176,6 +178,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "3", context: context)!
 
+        bookmarkListViewModel.reloadData()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 2, toIndex: 4)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -208,6 +211,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
 
+        bookmarkListViewModel.reloadData()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 3)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -240,6 +244,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!
 
+        bookmarkListViewModel.reloadData()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 1, toIndex: 0)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!

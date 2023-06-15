@@ -145,7 +145,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             return
         }
 
-        let orphanedBookmarks: [BookmarkEntity] = BookmarkUtils.fetchOrphanedEntities(context)
+        let orphanedBookmarks = bookmarks.filter { $0.parent == nil }
         guard !orphanedBookmarks.isEmpty else {
             return
         }
