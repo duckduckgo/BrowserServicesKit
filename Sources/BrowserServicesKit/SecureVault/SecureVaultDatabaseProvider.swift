@@ -90,7 +90,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
         migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
         migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-        migrator.registerMigration("v9", migrate: Self.migrateV8(database:))
+        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
         // Add more sync migrations here ...
         // Note, these migrations will run synchronously on first access to secureVault DB
 

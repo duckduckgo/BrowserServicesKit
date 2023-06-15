@@ -146,13 +146,14 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
             kSecReturnData: kCFBooleanTrue!,
             kSecMatchLimit: kSecMatchLimitOne
         ]
-        
+
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        
-        if status == errSecSuccess {
-            return (item as? Data)
+
+        if status == errSecSuccess, let data = item as? Data {
+            return data
         }
+
         return nil
     }
 
@@ -162,24 +163,28 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         let result = data.withUnsafeMutableBytes {
             SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!)
         }
+
         if result != errSecSuccess {
             return nil
         }
 
-        // Store the new salt
+        let base64String = data.base64EncodedString()
+        guard let base64Data = base64String.data(using: .utf8) else {
+            return nil
+        }
+
         let addQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: Constants.hashService as CFString,
             kSecAttrAccount: Constants.hashAccount as CFString,
-            kSecValueData: data as CFData
+            kSecValueData: base64Data
         ]
-        
+
         DispatchQueue.global().async {
             SecItemAdd(addQuery as CFDictionary, nil)
         }
 
         return data
-
     }
 
     func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
