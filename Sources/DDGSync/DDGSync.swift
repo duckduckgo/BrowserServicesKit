@@ -256,41 +256,47 @@ public class DDGSync: DDGSyncing {
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .flatMap(maxPublishers: .max(1)) { [weak self] in
-                guard let self else {
-                    return Future<Void, Never> { promise in
-                        promise(.success(()))
-                    }
-                }
-                return self.startSync()
+            .sink { [weak self] in
+                self?.startSync2()
             }
-            .sink {}
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
     }
 
-    private func startSync() -> Future<Void, Never> {
-        Future { promise in
-            Task { [weak self] in
-                defer { promise(.success(())) }
-                guard let self else {
-                    return
-                }
-
-                if self.authState == .active {
-                    await self.syncQueue?.startSync()
-                } else {
-                    await self.syncQueue?.startFirstSync()
-                    if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
-                        try? self.dependencies.secureStore.persistAccount(account)
-                        self.authState = .active
-                    }
-                    await self.syncQueue?.startSync()
-                }
+    private func startSync2() {
+        syncQueue?.startSync { [weak self] in
+            guard let self else {
+                return
+            }
+            if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
+                try? self.dependencies.secureStore.persistAccount(account)
+                self.authState = .active
             }
         }
     }
+
+//    private func startSync() -> Future<Void, Never> {
+//        Future { promise in
+//            Task { [weak self] in
+//                defer { promise(.success(())) }
+//                guard let self else {
+//                    return
+//                }
+//
+//                if self.authState == .active {
+//                    await self.syncQueue?.startSync()
+//                } else {
+//                    await self.syncQueue?.startFirstSync()
+//                    if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
+//                        try? self.dependencies.secureStore.persistAccount(account)
+//                        self.authState = .active
+//                    }
+//                    await self.syncQueue?.startSync()
+//                }
+//            }
+//        }
+//    }
 
     private func handleUnauthenticated(_ error: Error) throws {
         guard let syncError = error as? SyncError,
