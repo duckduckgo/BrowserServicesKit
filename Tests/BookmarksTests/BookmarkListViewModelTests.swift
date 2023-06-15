@@ -24,12 +24,10 @@ import XCTest
 @testable import Bookmarks
 
 class MockBookmarksModelErrorEventMapping: EventMapping<BookmarksModelError> {
-//    var events: [BookmarksModelError] = []
 
-    // swiftlint:disable:next cyclomatic_complexity
-    init() {
+    init(didFireEvent: @escaping (BookmarksModelError) -> Void) {
         super.init { event, error, _, _ in
-//            self?.events.append(event)
+            didFireEvent(event)
         }
     }
 
@@ -42,6 +40,7 @@ final class BookmarkListViewModelTests: XCTestCase {
     var bookmarksDatabase: CoreDataDatabase!
     var bookmarkListViewModel: BookmarkListViewModel!
     var eventMapping: MockBookmarksModelErrorEventMapping!
+    var firedEvents: [BookmarksModelError] = []
     var location: URL!
 
     override func setUp() {
@@ -56,17 +55,51 @@ final class BookmarkListViewModelTests: XCTestCase {
         }
         bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: location, model: model)
         bookmarksDatabase.loadStore()
-        bookmarkListViewModel = BookmarkListViewModel(bookmarksDatabase: bookmarksDatabase, parentID: nil, errorEvents: eventMapping)
+        eventMapping = MockBookmarksModelErrorEventMapping { [weak self] event in
+            self?.firedEvents.append(event)
+        }
 
-        eventMapping = MockBookmarksModelErrorEventMapping()
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+        }
+
+        bookmarkListViewModel = BookmarkListViewModel(bookmarksDatabase: bookmarksDatabase, parentID: nil, errorEvents: eventMapping)
     }
 
     override func tearDown() {
         super.tearDown()
+        firedEvents.removeAll()
 
         try? bookmarksDatabase.tearDown(deleteStores: true)
         bookmarksDatabase = nil
         try? FileManager.default.removeItem(at: location)
+    }
+
+    func testWhenBookmarkIsMovedToIndexOutsideOfRootFolderBoundsThenErrorIsFired() {
+
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        bookmarkTree.createEntities(in: context)
+        try! context.save()
+
+        let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+        bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 5)
+
+        let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        })
+
+        XCTAssertEqual(firedEvents, [.indexOutOfRange(.bookmarks)])
     }
 
     func testWhenOrphanedBookmarkIsMovedThenItIsAttachedToRootFolder() async throws {
@@ -78,7 +111,6 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "2", isOrphaned: true)
         }
 
-        BookmarkUtils.prepareFoldersStructure(in: context)
         bookmarkTree.createEntities(in: context)
         try! context.save()
 
@@ -91,6 +123,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "2")
             Bookmark(id: "1")
         })
+        XCTAssertTrue(firedEvents.isEmpty)
     }
 
     func testWhenOrphanedBookmarkIsMovedUpThenAllOrphanedBookmarksBeforeItAreAttachedToRootFolder() async throws {
@@ -106,7 +139,6 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "6", isOrphaned: true)
         }
 
-        BookmarkUtils.prepareFoldersStructure(in: context)
         bookmarkTree.createEntities(in: context)
         try! context.save()
 
@@ -123,6 +155,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "4")
             Bookmark(id: "6", isOrphaned: true)
         })
+        XCTAssertTrue(firedEvents.isEmpty)
     }
 
     func testWhenOrphanedBookmarkIsMovedDownThenAllOrphanedBookmarksBeforeToIndexAreAttachedToRootFolder() async throws {
@@ -138,7 +171,6 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "6", isOrphaned: true)
         }
 
-        BookmarkUtils.prepareFoldersStructure(in: context)
         bookmarkTree.createEntities(in: context)
         try! context.save()
 
@@ -155,6 +187,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "3")
             Bookmark(id: "6", isOrphaned: true)
         })
+        XCTAssertTrue(firedEvents.isEmpty)
     }
 
     func testWhenBookmarkIsMovedBelowOrphanedBookmarkThenAllOrphanedBookmarksBeforeToIndexAreAttachedToRootFolder() async throws {
@@ -170,7 +203,6 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "6", isOrphaned: true)
         }
 
-        BookmarkUtils.prepareFoldersStructure(in: context)
         bookmarkTree.createEntities(in: context)
         try! context.save()
 
@@ -187,6 +219,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "5", isOrphaned: true)
             Bookmark(id: "6", isOrphaned: true)
         })
+        XCTAssertTrue(firedEvents.isEmpty)
     }
 
     func testWhenBookmarkIsMovedWithinNonOrphanedBookmarksThenOrphanedBookmarksAreNotAffected() async throws {
@@ -202,7 +235,6 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "6", isOrphaned: true)
         }
 
-        BookmarkUtils.prepareFoldersStructure(in: context)
         bookmarkTree.createEntities(in: context)
         try! context.save()
 
@@ -219,6 +251,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "5", isOrphaned: true)
             Bookmark(id: "6", isOrphaned: true)
         })
+        XCTAssertTrue(firedEvents.isEmpty)
     }
 }
 
