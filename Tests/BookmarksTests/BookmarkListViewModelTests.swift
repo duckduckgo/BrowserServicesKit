@@ -91,6 +91,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
 
+        bookmarkListViewModel.reloadData()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 5)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -124,7 +125,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "2")
             Bookmark(id: "1")
         })
-        XCTAssertTrue(firedEvents.isEmpty)
+        XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
     }
 
     func testWhenOrphanedBookmarkIsMovedUpThenAllOrphanedBookmarksBeforeItAreAttachedToRootFolder() async throws {
@@ -146,6 +147,7 @@ final class BookmarkListViewModelTests: XCTestCase {
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "5", context: context)!
 
         bookmarkListViewModel.reloadData()
+        firedEvents.removeAll()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 4, toIndex: 2)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -157,7 +159,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "4")
             Bookmark(id: "6", isOrphaned: true)
         })
-        XCTAssertTrue(firedEvents.isEmpty)
+        XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
     }
 
     func testWhenOrphanedBookmarkIsMovedDownThenAllOrphanedBookmarksBeforeToIndexAreAttachedToRootFolder() async throws {
@@ -179,6 +181,7 @@ final class BookmarkListViewModelTests: XCTestCase {
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "3", context: context)!
 
         bookmarkListViewModel.reloadData()
+        firedEvents.removeAll()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 2, toIndex: 4)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -190,7 +193,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "3")
             Bookmark(id: "6", isOrphaned: true)
         })
-        XCTAssertTrue(firedEvents.isEmpty)
+        XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
     }
 
     func testWhenBookmarkIsMovedBelowOrphanedBookmarkThenAllOrphanedBookmarksBeforeToIndexAreAttachedToRootFolder() async throws {
@@ -212,6 +215,7 @@ final class BookmarkListViewModelTests: XCTestCase {
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
 
         bookmarkListViewModel.reloadData()
+        firedEvents.removeAll()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 3)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -223,7 +227,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "5", isOrphaned: true)
             Bookmark(id: "6", isOrphaned: true)
         })
-        XCTAssertTrue(firedEvents.isEmpty)
+        XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
     }
 
     func testWhenBookmarkIsMovedWithinNonOrphanedBookmarksThenOrphanedBookmarksAreNotAffected() async throws {
@@ -245,6 +249,7 @@ final class BookmarkListViewModelTests: XCTestCase {
         let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!
 
         bookmarkListViewModel.reloadData()
+        firedEvents.removeAll()
         bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 1, toIndex: 0)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -256,7 +261,7 @@ final class BookmarkListViewModelTests: XCTestCase {
             Bookmark(id: "5", isOrphaned: true)
             Bookmark(id: "6", isOrphaned: true)
         })
-        XCTAssertTrue(firedEvents.isEmpty)
+        XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
     }
 }
 
