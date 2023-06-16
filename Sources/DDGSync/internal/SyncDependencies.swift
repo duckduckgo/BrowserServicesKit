@@ -25,6 +25,7 @@ protocol SyncDependencies {
     var endpoints: Endpoints { get }
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
+    var keyValueStore: KeyValueStoring { get }
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
@@ -47,6 +48,12 @@ protocol AccountManaging {
 
     func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice]
 
+}
+
+protocol KeyValueStoring {
+
+    func object(forKey: String) -> Any?
+    func set(_ value: Any?, forKey: String)
 }
 
 protocol SecureStoring {

@@ -21,6 +21,8 @@ import DDGSyncCrypto
 import Combine
 
 public enum SyncAuthState: String, Sendable, Codable {
+    /// Sync engine is not initialized.
+    case initializing
     /// Sync is not enabled.
     case inactive
     /// Sync is in progress of registering new account.
@@ -50,6 +52,8 @@ public protocol DDGSyncing {
 
     /**
      Describes current state of sync account.
+
+     Must be different than `initializing` to guarantee that querying state info works as expected.
      */
     var authState: SyncAuthState { get }
 
@@ -76,6 +80,11 @@ public protocol DDGSyncing {
      Emits boolean values representing current sync operation status.
      */
     var isInProgressPublisher: AnyPublisher<Bool, Never> { get }
+
+    /**
+     Initializes Sync object, loads account info and prepares internal state.
+     */
+    func initializeIfNeeded(isInternalUser: Bool)
 
     /**
      Creates an account.
