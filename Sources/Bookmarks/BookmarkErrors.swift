@@ -46,6 +46,7 @@ public enum BookmarksModelError: Error, Equatable {
     case bookmarksListMissingFolder
     case bookmarksListIndexNotMatchingBookmark
     case favoritesListIndexNotMatchingBookmark
+    case orphanedBookmarksPresent
     
     case editorNewParentMissing
 }
