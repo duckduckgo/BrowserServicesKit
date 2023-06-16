@@ -22,6 +22,13 @@ import Common
 import XCTest
 @testable import DDGSync
 
+enum Event: Equatable {
+    case started(_ taskID: Int)
+    case fetch(_ taskID: Int)
+    case handleResponse(_ taskID: Int)
+    case finished(_ taskID: Int)
+}
+
 final class DDGSyncTests: XCTestCase {
     var dataProvidersSource: MockDataProvidersSource!
     var dependencies: MockSyncDepenencies!
@@ -39,11 +46,6 @@ final class DDGSyncTests: XCTestCase {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
 
-        enum Event: Equatable {
-            case fetch(_ taskID: Int)
-            case handleResponse(_ taskID: Int)
-        }
-
         var events: [Event] = []
         var taskID = 1
 
@@ -53,7 +55,6 @@ final class DDGSyncTests: XCTestCase {
         dataProvider._fetchChangedObjects = { _ in
             let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
             events.append(.fetch(taskID))
-            taskID += 1
             return syncables
         }
         dataProvider.handleSyncResponse = { sent, _, _, _, _ in
@@ -65,19 +66,36 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        var isInProgressCancellable: AnyCancellable? = syncService.isInProgressPublisher.sink { isInProgress in
+            if isInProgress {
+                events.append(.started(taskID))
+            } else {
+                events.append(.finished(taskID))
+                taskID += 1
+            }
+        }
+
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
 
         waitForExpectations(timeout: 1)
+        isInProgressCancellable?.cancel()
+        isInProgressCancellable = nil
 
         XCTAssertEqual(events, [
+            .started(1),
             .fetch(1),
             .handleResponse(1),
+            .finished(1),
+            .started(2),
             .fetch(2),
             .handleResponse(2),
+            .finished(2),
+            .started(3),
             .fetch(3),
-            .handleResponse(3)
+            .handleResponse(3),
+            .finished(3)
         ])
     }
 

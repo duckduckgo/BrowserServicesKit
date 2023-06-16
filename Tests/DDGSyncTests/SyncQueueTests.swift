@@ -51,172 +51,172 @@ class SyncQueueTests: XCTestCase {
 
         requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
     }
-//
-//    func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {
-//        let feature = Feature(name: "bookmarks")
-//        let dataProvider = DataProvidingMock(feature: feature)
-//        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
-//
-//        var isInProgressEvents = [Bool]()
-//
-//        let cancellable = await syncQueue.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
-//        defer { cancellable.cancel() }
-//
-//        request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
-//        await syncQueue.startSync()
-//        XCTAssertEqual(isInProgressEvents, [false, true, false])
-//
-//        await syncQueue.startSync()
-//        XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
-//    }
-//
-//    func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithError() async throws {
-//        let feature = Feature(name: "bookmarks")
-//        let dataProvider = DataProvidingMock(feature: feature)
-//        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
-//
-//        var isInProgressEvents = [Bool]()
-//
-//        let cancellable = await syncQueue.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
-//        defer { cancellable.cancel() }
-//
-//        request.error = .noResponseBody
-//        await syncQueue.startSync()
-//        XCTAssertEqual(isInProgressEvents, [false, true, false])
-//
-//        await syncQueue.startSync()
-//        XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
-//    }
-//
-//    func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
-//        let feature = Feature(name: "bookmarks")
-//        let dataProvider = DataProvidingMock(feature: feature)
-//        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
-//
-//        request.error = .noResponseBody
-//        await assertThrowsAnyError({
-//            try await syncQueue.sync(fetchOnly: false)
-//        }, errorHandler: { error in
-//            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
-//                XCTFail("Unexpected error thrown: \(error)")
-//                return
-//            }
-//            XCTAssertEqual(featureError, .noResponseBody)
-//        })
-//        XCTAssertEqual(apiMock.createRequestCallCount, 1)
-//        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .GET)
-//    }
-//
-//    func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
-//        let feature = Feature(name: "bookmarks")
-//        var dataProvider = DataProvidingMock(feature: feature)
-//        dataProvider.lastSyncTimestamp = "1234"
-//        dataProvider._fetchChangedObjects = { _ in
-//            [Syncable(jsonObject: [:])]
-//        }
-//        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
-//
-//        request.error = .noResponseBody
-//        await assertThrowsAnyError({
-//            try await syncQueue.sync(fetchOnly: false)
-//        }, errorHandler: { error in
-//            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
-//                XCTFail("Unexpected error thrown: \(error)")
-//                return
-//            }
-//            XCTAssertEqual(featureError, .noResponseBody)
-//        })
-//        XCTAssertEqual(apiMock.createRequestCallCount, 1)
-//        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
-//    }
 
-//    func testThatForMultipleDataProvidersRequestsSeparateRequstsAreSentConcurrently() async throws {
-//        var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
-//        dataProvider1.lastSyncTimestamp = "1234"
-//        dataProvider1._fetchChangedObjects = { _ in
-//            [
-//                Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
-//                Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
-//            ]
-//        }
-//        var dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
-//        dataProvider2.lastSyncTimestamp = "5678"
-//        dataProvider2._fetchChangedObjects = { _ in
-//            [
-//                Syncable(jsonObject: ["key": "setting-a", "value": "value-a"]),
-//                Syncable(jsonObject: ["key": "setting-b", "value": "value-b"])
-//            ]
-//        }
-//        var dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
-//        dataProvider3.lastSyncTimestamp = "9012"
-//        dataProvider3._fetchChangedObjects = { _ in
-//            [
-//                Syncable(jsonObject: ["id": "1", "login": "login1", "password": "password1", "url": "https://example.com"]),
-//                Syncable(jsonObject: ["id": "2", "login": "login2", "password": "password2", "url": "https://example.com"])
-//            ]
-//        }
-//
-//        let syncQueue = SyncQueue(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
-//
-//        request.error = .noResponseBody
-//        await assertThrowsAnyError {
-//            try await syncQueue.sync(fetchOnly: false)
-//        }
-//
-//        let bookmarks = BookmarksPayload(
-//            bookmarks: .init(
-//                updates: [
-//                    .init(id: "1", name: "bookmark1", url: "https://example.com"),
-//                    .init(id: "2", name: "bookmark2", url: "https://example.com")
-//                ],
-//                modifiedSince: "1234"
-//            )
-//        )
-//        let settings = SettingsPayload(
-//            settings: .init(
-//                updates: [
-//                    .init(key: "setting-a", value: "value-a"),
-//                    .init(key: "setting-b", value: "value-b")
-//                ],
-//                modifiedSince: "5678"
-//            )
-//        )
-//        let autofill = AutofillPayload(
-//            autofill: .init(
-//                updates: [
-//                    .init(id: "1", login: "login1", password: "password1", url: "https://example.com"),
-//                    .init(id: "2", login: "login2", password: "password2", url: "https://example.com")
-//                ],
-//                modifiedSince: "9012"
-//            )
-//        )
-//
-//        let bodies = try XCTUnwrap(apiMock.createRequestCallArgs.map(\.body))
-//        XCTAssertEqual(apiMock.createRequestCallCount, 3)
-//        XCTAssertEqual(bodies.count, 3)
-//
-//        var payloadCount = 3
-//
-//        for body in bodies.compactMap({$0}) {
-//            do {
-//                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body)
-//                XCTAssertEqual(payload, bookmarks)
-//                payloadCount -= 1
-//            } catch {
-//                do {
-//                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body)
-//                    XCTAssertEqual(payload, settings)
-//                    payloadCount -= 1
-//                } catch {
-//                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body)
-//                    XCTAssertEqual(payload, autofill)
-//                    payloadCount -= 1
-//                }
-//            }
-//        }
-//
-//        XCTAssertEqual(payloadCount, 0)
-//    }
+    func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {
+        let feature = Feature(name: "bookmarks")
+        let dataProvider = DataProvidingMock(feature: feature)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+
+        var isInProgressEvents = [Bool]()
+
+        let cancellable = syncQueue.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
+        defer { cancellable.cancel() }
+
+        request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
+        await syncQueue.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false])
+
+        await syncQueue.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
+    }
+
+    func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithError() async throws {
+        let feature = Feature(name: "bookmarks")
+        let dataProvider = DataProvidingMock(feature: feature)
+        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+
+        var isInProgressEvents = [Bool]()
+
+        let cancellable = syncQueue.isSyncInProgressPublisher.sink(receiveValue: { isInProgressEvents.append($0) })
+        defer { cancellable.cancel() }
+
+        request.error = .noResponseBody
+        await syncQueue.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false])
+
+        await syncQueue.startSync()
+        XCTAssertEqual(isInProgressEvents, [false, true, false, true, false])
+    }
+
+    func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
+        let feature = Feature(name: "bookmarks")
+        let dataProvider = DataProvidingMock(feature: feature)
+        let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
+
+        request.error = .noResponseBody
+        await assertThrowsAnyError({
+            try await syncOperation.sync(fetchOnly: false)
+        }, errorHandler: { error in
+            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
+                XCTFail("Unexpected error thrown: \(error)")
+                return
+            }
+            XCTAssertEqual(featureError, .noResponseBody)
+        })
+        XCTAssertEqual(apiMock.createRequestCallCount, 1)
+        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .GET)
+    }
+
+    func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
+        let feature = Feature(name: "bookmarks")
+        var dataProvider = DataProvidingMock(feature: feature)
+        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider._fetchChangedObjects = { _ in
+            [Syncable(jsonObject: [:])]
+        }
+        let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
+
+        request.error = .noResponseBody
+        await assertThrowsAnyError({
+            try await syncOperation.sync(fetchOnly: false)
+        }, errorHandler: { error in
+            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
+                XCTFail("Unexpected error thrown: \(error)")
+                return
+            }
+            XCTAssertEqual(featureError, .noResponseBody)
+        })
+        XCTAssertEqual(apiMock.createRequestCallCount, 1)
+        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
+    }
+
+    func testThatForMultipleDataProvidersRequestsSeparateRequstsAreSentConcurrently() async throws {
+        var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dataProvider1.lastSyncTimestamp = "1234"
+        dataProvider1._fetchChangedObjects = { _ in
+            [
+                Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+                Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
+            ]
+        }
+        var dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
+        dataProvider2.lastSyncTimestamp = "5678"
+        dataProvider2._fetchChangedObjects = { _ in
+            [
+                Syncable(jsonObject: ["key": "setting-a", "value": "value-a"]),
+                Syncable(jsonObject: ["key": "setting-b", "value": "value-b"])
+            ]
+        }
+        var dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
+        dataProvider3.lastSyncTimestamp = "9012"
+        dataProvider3._fetchChangedObjects = { _ in
+            [
+                Syncable(jsonObject: ["id": "1", "login": "login1", "password": "password1", "url": "https://example.com"]),
+                Syncable(jsonObject: ["id": "2", "login": "login2", "password": "password2", "url": "https://example.com"])
+            ]
+        }
+
+        let syncOperation = SyncOperation(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, requestMaker: requestMaker)
+
+        request.error = .noResponseBody
+        await assertThrowsAnyError {
+            try await syncOperation.sync(fetchOnly: false)
+        }
+
+        let bookmarks = BookmarksPayload(
+            bookmarks: .init(
+                updates: [
+                    .init(id: "1", name: "bookmark1", url: "https://example.com"),
+                    .init(id: "2", name: "bookmark2", url: "https://example.com")
+                ],
+                modifiedSince: "1234"
+            )
+        )
+        let settings = SettingsPayload(
+            settings: .init(
+                updates: [
+                    .init(key: "setting-a", value: "value-a"),
+                    .init(key: "setting-b", value: "value-b")
+                ],
+                modifiedSince: "5678"
+            )
+        )
+        let autofill = AutofillPayload(
+            autofill: .init(
+                updates: [
+                    .init(id: "1", login: "login1", password: "password1", url: "https://example.com"),
+                    .init(id: "2", login: "login2", password: "password2", url: "https://example.com")
+                ],
+                modifiedSince: "9012"
+            )
+        )
+
+        let bodies = try XCTUnwrap(apiMock.createRequestCallArgs.map(\.body))
+        XCTAssertEqual(apiMock.createRequestCallCount, 3)
+        XCTAssertEqual(bodies.count, 3)
+
+        var payloadCount = 3
+
+        for body in bodies.compactMap({$0}) {
+            do {
+                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body)
+                XCTAssertEqual(payload, bookmarks)
+                payloadCount -= 1
+            } catch {
+                do {
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body)
+                    XCTAssertEqual(payload, settings)
+                    payloadCount -= 1
+                } catch {
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body)
+                    XCTAssertEqual(payload, autofill)
+                    payloadCount -= 1
+                }
+            }
+        }
+
+        XCTAssertEqual(payloadCount, 0)
+    }
 
     func testThatForMultipleDataProvidersErrorsFromAllFeaturesAreThrown() async throws {
 

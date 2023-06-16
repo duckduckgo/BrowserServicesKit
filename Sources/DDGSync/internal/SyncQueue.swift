@@ -54,7 +54,7 @@ struct SyncResult {
     }
 }
 
-class SyncQueue: SyncQueueProtocol {
+class SyncQueue {
 
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
@@ -62,13 +62,6 @@ class SyncQueue: SyncQueueProtocol {
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
-    let operationQueue: OperationQueue = {
-        let queue = OperationQueue()
-        queue.name = "com.duckduckgo.sync.queue"
-        queue.qualityOfService = .userInitiated
-        queue.maxConcurrentOperationCount = 1
-        return queue
-    }()
 
     convenience init(dataProviders: [DataProviding], dependencies: SyncDependencies) {
         self.init(
@@ -115,37 +108,68 @@ class SyncQueue: SyncQueueProtocol {
             }
         }
     }
-//
-//    func startFirstSync() async {
-//        do {
-//            syncDidStartSubject.send(())
-//            let syncAuthState = (try? storage.account()?.state) ?? .inactive
-//            guard syncAuthState != .inactive else {
-//                assertionFailure("Called first sync in unexpected \(syncAuthState) state")
-//                return
-//            }
-//
-//            if syncAuthState == .addingNewDevice {
-//                let operation = SyncOperation(fetchOnly: true, dataProviders: dataProviders, storage: storage, crypter: crypter, requestMaker: requestMaker, log: self.log)
-//                operationQueue.addOperation(operation)
-//            }
-//            syncDidFinishSubject.send(.success(()))
-//        } catch {
-//            syncDidFinishSubject.send(.failure(error))
-//        }
-//    }
 
-    func startSync(didFinishInitialFetch: (() -> Void)?) {
-        do {
-//            syncDidStartSubject.send(())
-            let operation = SyncOperation(dataProviders: dataProviders, storage: storage, crypter: crypter, requestMaker: requestMaker, log: self.log, didFinishInitialFetch: didFinishInitialFetch)
-            operationQueue.addOperation(operation)
-//            try await sync(fetchOnly: false)
-//            syncDidFinishSubject.send(.success(()))
-        } catch {
-//            syncDidFinishSubject.send(.failure(error))
+    func startFirstSync(with completion: @escaping () -> Void) {
+        let operation = makeSyncOperation(fetchOnly: true)
+        scheduleSyncOperation(operation)
+        operationQueue.addBarrierBlock(completion)
+    }
+
+    func startSync() {
+        let operation = makeSyncOperation()
+        scheduleSyncOperation(operation)
+    }
+
+    // MARK: - Concurrency
+
+    func startFirstSync(with completion: @escaping () -> Void) async throws {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let operation = makeSyncOperation(fetchOnly: true)
+            scheduleSyncOperation(operation)
+            operationQueue.addBarrierBlock {
+                completion()
+                continuation.resume()
+            }
         }
     }
+
+    func startSync() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let operation = makeSyncOperation()
+            scheduleSyncOperation(operation)
+            operationQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+    }
+
+    // MARK: - Private
+
+    private func scheduleSyncOperation(_ operation: SyncOperation) {
+        operationQueue.addBarrierBlock { [weak self] in
+            self?.syncDidStartSubject.send(())
+        }
+        operationQueue.addOperation(operation)
+        operationQueue.addBarrierBlock { [weak self] in
+            if let error = operation.error {
+                self?.syncDidFinishSubject.send(.failure(error))
+            } else {
+                self?.syncDidFinishSubject.send(.success(()))
+            }
+        }
+    }
+
+    private func makeSyncOperation(fetchOnly: Bool = false) -> SyncOperation {
+        SyncOperation(fetchOnly: fetchOnly, dataProviders: dataProviders, storage: storage, crypter: crypter, requestMaker: requestMaker, log: self.log)
+    }
+
+    private let operationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "com.duckduckgo.sync.queue"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
 
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
     private let syncDidStartSubject = PassthroughSubject<Void, Never>()

@@ -26,88 +26,41 @@ class SyncOperation: Operation {
 
     private(set) var error: Error?
 
-    override var isAsynchronous: Bool { true }
-
-    override var isExecuting: Bool {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isExecuting
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            willChangeValue(forKey: #keyPath(isExecuting))
-            _isExecuting = newValue
-            didChangeValue(forKey: #keyPath(isExecuting))
-        }
-    }
-
-    override var isFinished: Bool {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isFinished
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            willChangeValue(forKey: #keyPath(isFinished))
-            _isFinished = newValue
-            didChangeValue(forKey: #keyPath(isFinished))
-        }
-    }
-
-    override var isCancelled: Bool {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isCancelled
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            willChangeValue(forKey: #keyPath(isCancelled))
-            _isCancelled = newValue
-            didChangeValue(forKey: #keyPath(isCancelled))
-        }
-    }
-
+    let fetchOnly: Bool
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
-    let didFinishInitialFetch: (() -> Void)?
 
     convenience init(
+        fetchOnly: Bool = false,
         dataProviders: [DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
-        didFinishInitialFetch: (() -> Void)? = nil
+        log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         let dataProvidersMap: [Feature: DataProviding] = dataProviders.reduce(into: .init(), { partialResult, provider in
             partialResult[provider.feature] = provider
         })
 
-        self.init(dataProviders: dataProvidersMap, storage: storage, crypter: crypter, requestMaker: requestMaker, log: log(), didFinishInitialFetch: didFinishInitialFetch)
+        self.init(fetchOnly: fetchOnly, dataProviders: dataProvidersMap, storage: storage, crypter: crypter, requestMaker: requestMaker, log: log())
     }
 
     init(
+        fetchOnly: Bool = false,
         dataProviders: [Feature: DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
-        didFinishInitialFetch: (() -> Void)? = nil
+        log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
+        self.fetchOnly = fetchOnly
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.requestMaker = requestMaker
         self.getLog = log
-        self.didFinishInitialFetch = didFinishInitialFetch
     }
 
     override func start() {
@@ -121,17 +74,7 @@ class SyncOperation: Operation {
             }
 
             do {
-                let syncAuthState = (try? storage.account()?.state) ?? .inactive
-                guard syncAuthState != .inactive else {
-                    assertionFailure("Called first sync in unexpected \(syncAuthState) state")
-                    return
-                }
-
-                if syncAuthState == .addingNewDevice {
-                    try await sync(fetchOnly: true)
-                    didFinishInitialFetch?()
-                }
-                try await sync(fetchOnly: false)
+                try await sync(fetchOnly: fetchOnly)
             } catch {
                 self.error = error
             }
@@ -249,6 +192,54 @@ class SyncOperation: Operation {
     }
     private let getLog: () -> OSLog
 
+    // MARK: - Overrides
+
+    override var isAsynchronous: Bool { true }
+
+    override var isExecuting: Bool {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _isExecuting
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            willChangeValue(forKey: #keyPath(isExecuting))
+            _isExecuting = newValue
+            didChangeValue(forKey: #keyPath(isExecuting))
+        }
+    }
+
+    override var isFinished: Bool {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _isFinished
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            willChangeValue(forKey: #keyPath(isFinished))
+            _isFinished = newValue
+            didChangeValue(forKey: #keyPath(isFinished))
+        }
+    }
+
+    override var isCancelled: Bool {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _isCancelled
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            willChangeValue(forKey: #keyPath(isCancelled))
+            _isCancelled = newValue
+            didChangeValue(forKey: #keyPath(isCancelled))
+        }
+    }
 
     private let lock = NSRecursiveLock()
     private var _isExecuting: Bool = false
