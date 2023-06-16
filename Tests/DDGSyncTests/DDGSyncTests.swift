@@ -22,7 +22,7 @@ import Common
 import XCTest
 @testable import DDGSync
 
-enum Event: Equatable {
+private enum SyncOperationEvent: Equatable {
     case started(_ taskID: Int)
     case fetch(_ taskID: Int)
     case handleResponse(_ taskID: Int)
@@ -40,37 +40,47 @@ final class DDGSyncTests: XCTestCase {
         dependencies = MockSyncDepenencies()
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
+        dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
     }
 
     func testThatRegularSyncOperationsAreSerialized() {
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
 
-        var events: [Event] = []
+        var events: [SyncOperationEvent] = []
         var taskID = 1
 
-        let expectation = expectation(description: "handleSyncResponse")
-        expectation.expectedFulfillmentCount = 3
+        let syncStartedExpectation = expectation(description: "syncStarted")
+        let fetchExpectation = expectation(description: "fetch")
+        let handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
+        let syncFinishedExpectation = expectation(description: "syncFinished")
+
+        syncStartedExpectation.expectedFulfillmentCount = 3
+        fetchExpectation.expectedFulfillmentCount = 3
+        handleSyncResponseExpectation.expectedFulfillmentCount = 3
+        syncFinishedExpectation.expectedFulfillmentCount = 3
 
         dataProvider._fetchChangedObjects = { _ in
             let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
             events.append(.fetch(taskID))
+            fetchExpectation.fulfill()
             return syncables
         }
         dataProvider.handleSyncResponse = { sent, _, _, _, _ in
             let taskID = sent[0].payload["taskNumber"] as! Int
             events.append(.handleResponse(taskID))
-            expectation.fulfill()
+            handleSyncResponseExpectation.fulfill()
         }
 
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        var isInProgressCancellable: AnyCancellable? = syncService.isInProgressPublisher.sink { isInProgress in
+        let isInProgressCancellable = syncService.isInProgressPublisher.sink { isInProgress in
             if isInProgress {
                 events.append(.started(taskID))
+                syncStartedExpectation.fulfill()
             } else {
                 events.append(.finished(taskID))
+                syncFinishedExpectation.fulfill()
                 taskID += 1
             }
         }
@@ -80,8 +90,7 @@ final class DDGSyncTests: XCTestCase {
         syncService.scheduler.requestSyncImmediately()
 
         waitForExpectations(timeout: 1)
-        isInProgressCancellable?.cancel()
-        isInProgressCancellable = nil
+        isInProgressCancellable.cancel()
 
         XCTAssertEqual(events, [
             .started(1),
@@ -101,27 +110,26 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatFirstSyncAndRegularSyncOperationsAreSerialized() {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.addingNewDevice)
-
         var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
 
-        enum Event: Equatable {
-            case fetch(_ taskID: Int)
-            case handleResponse(_ taskID: Int)
-        }
-
-        var events: [Event] = []
+        var events: [SyncOperationEvent] = []
         var taskID = 1
 
+        let syncStartedExpectation = expectation(description: "syncStarted")
         let fetchExpectation = expectation(description: "fetch")
-        fetchExpectation.expectedFulfillmentCount = 3
         let handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
+        let syncFinishedExpectation = expectation(description: "syncFinished")
+
+        syncStartedExpectation.assertForOverFulfill = false
+        syncFinishedExpectation.assertForOverFulfill = false
+        syncStartedExpectation.expectedFulfillmentCount = 4
+        fetchExpectation.expectedFulfillmentCount = 3
         handleSyncResponseExpectation.expectedFulfillmentCount = 3
+        syncFinishedExpectation.expectedFulfillmentCount = 4
 
         dataProvider._fetchChangedObjects = { _ in
             let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
             events.append(.fetch(taskID))
-            taskID += 1
             fetchExpectation.fulfill()
             return syncables
         }
@@ -134,19 +142,39 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        let isInProgressCancellable = syncService.isInProgressPublisher.sink { isInProgress in
+            if isInProgress {
+                events.append(.started(taskID))
+                syncStartedExpectation.fulfill()
+            } else {
+                events.append(.finished(taskID))
+                syncFinishedExpectation.fulfill()
+                taskID += 1
+            }
+        }
+
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
 
         waitForExpectations(timeout: 1)
+        isInProgressCancellable.cancel()
 
         XCTAssertEqual(events, [
-            .fetch(1),
-            .handleResponse(1),
+            .started(1),
+            .finished(1),
+            .started(2),
             .fetch(2),
             .handleResponse(2),
+            .finished(2),
+            .started(3),
             .fetch(3),
-            .handleResponse(3)
+            .handleResponse(3),
+            .finished(3),
+            .started(4),
+            .fetch(4),
+            .handleResponse(4),
+            .finished(4)
         ])
     }
 }
