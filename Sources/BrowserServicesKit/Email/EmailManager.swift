@@ -126,7 +126,8 @@ public enum AliasRequestError: Error {
 
 public struct EmailUrls {
     struct Url {
-        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
+        //static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
+        static let emailAlias = "https://quackdev.duckduckgo.com/api/email/addresses"
     }
 
     var emailAliasAPI: URL {
@@ -481,6 +482,7 @@ private extension EmailManager {
     enum Constants {
 
         enum RequestMethods {
+            static let get = "GET"
             static let put = "PUT"
             static let post = "POST"
         }
@@ -495,8 +497,27 @@ private extension EmailManager {
         let address: String
     }
 
+    // TODO: The API responds either true|false or 1|0 so we need to account for both scenarios
     struct EmailAliasStatusResponse: Decodable {
         let active: Bool
+
+        private enum CodingKeys: String, CodingKey {
+            case active
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            if let boolValue = try? container.decode(Bool.self, forKey: .active) {
+                // If the value is in the format { "active": true }
+                active = boolValue
+            } else if let intValue = try? container.decode(Int.self, forKey: .active) {
+                // If the value is in the format { "active": 1 }
+                active = (intValue != 0)
+            } else {
+                // If the value cannot be decoded as a Bool or Int
+                throw DecodingError.dataCorruptedError(forKey: .active, in: container, debugDescription: "Invalid value for 'active'")
+            }
+        }
     }
     
     typealias HTTPHeaders = [String: String]
@@ -610,14 +631,13 @@ private extension EmailManager {
         let data: Data
 
         do {
-            let requestBody: [String: Any] = ["address": alias]
-            let body = try JSONSerialization.data(withJSONObject: requestBody, options: [])
+            let url = aliasAPIURL.appendingPathComponent(alias)
             data = try await requestDelegate.emailManager(self,
-                                                          requested: aliasAPIURL,
-                                                          method: Constants.RequestMethods.post,
+                                                          requested: url,
+                                                          method: Constants.RequestMethods.get,
                                                           headers: emailHeaders,
                                                           parameters: [:],
-                                                          httpBody: body,
+                                                          httpBody: nil,
                                                           timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
             return response.active ? .active : .inactive
@@ -642,17 +662,13 @@ private extension EmailManager {
             throw AliasRequestError.signedOut
         }
 
-        guard let token else {
-            throw AliasRequestError.invalidToken
-        }
-
-        do {            
+        do {
             let url = aliasAPIURL.appendingPathComponent(alias)
             let data = try await requestDelegate.emailManager(self,
                                                               requested: url,
                                                               method: Constants.RequestMethods.put,
                                                               headers: emailHeaders,
-                                                              parameters: [Constants.RequestParameters.token: "\(token)", Constants.RequestParameters.status: "\(active)"],
+                                                              parameters: [Constants.RequestParameters.status: "\(active)"],
                                                               httpBody: nil,
                                                               timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
