@@ -109,33 +109,16 @@ class SyncQueue {
         }
     }
 
-    func startFirstSync(with completion: @escaping () -> Void) {
-        let operation = makeSyncOperation(fetchOnly: true)
-        scheduleSyncOperation(operation)
-        operationQueue.addBarrierBlock(completion)
-    }
-
-    func startSync() {
-        let operation = makeSyncOperation()
+    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) {
+        let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
         scheduleSyncOperation(operation)
     }
 
     // MARK: - Concurrency
 
-    func startFirstSync(with completion: @escaping () -> Void) async throws {
+    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let operation = makeSyncOperation(fetchOnly: true)
-            scheduleSyncOperation(operation)
-            operationQueue.addBarrierBlock {
-                completion()
-                continuation.resume()
-            }
-        }
-    }
-
-    func startSync() async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let operation = makeSyncOperation()
+            let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
             scheduleSyncOperation(operation)
             operationQueue.addBarrierBlock {
                 continuation.resume()
@@ -144,6 +127,17 @@ class SyncQueue {
     }
 
     // MARK: - Private
+
+    private func makeSyncOperation(firstFetchCompletion: (() -> Void)?) -> SyncOperation {
+        SyncOperation(
+            dataProviders: dataProviders,
+            storage: storage,
+            crypter: crypter,
+            requestMaker: requestMaker,
+            log: self.log,
+            firstFetchCompletion: firstFetchCompletion
+        )
+    }
 
     private func scheduleSyncOperation(_ operation: SyncOperation) {
         operationQueue.addBarrierBlock { [weak self] in
@@ -157,10 +151,6 @@ class SyncQueue {
                 self?.syncDidFinishSubject.send(.success(()))
             }
         }
-    }
-
-    private func makeSyncOperation(fetchOnly: Bool = false) -> SyncOperation {
-        SyncOperation(fetchOnly: fetchOnly, dataProviders: dataProviders, storage: storage, crypter: crypter, requestMaker: requestMaker, log: self.log)
     }
 
     private let operationQueue: OperationQueue = {

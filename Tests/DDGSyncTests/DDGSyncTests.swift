@@ -106,6 +106,10 @@ final class DDGSyncTests: XCTestCase {
             .handleResponse(3),
             .finished(3)
         ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertEqual(api.createRequestCallCount, 3)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH, .PATCH, .PATCH])
     }
 
     func testThatFirstSyncAndRegularSyncOperationsAreSerialized() {
@@ -120,12 +124,10 @@ final class DDGSyncTests: XCTestCase {
         let handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
         let syncFinishedExpectation = expectation(description: "syncFinished")
 
-        syncStartedExpectation.assertForOverFulfill = false
-        syncFinishedExpectation.assertForOverFulfill = false
-        syncStartedExpectation.expectedFulfillmentCount = 4
+        syncStartedExpectation.expectedFulfillmentCount = 3
         fetchExpectation.expectedFulfillmentCount = 3
         handleSyncResponseExpectation.expectedFulfillmentCount = 3
-        syncFinishedExpectation.expectedFulfillmentCount = 4
+        syncFinishedExpectation.expectedFulfillmentCount = 3
 
         dataProvider._fetchChangedObjects = { _ in
             let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
@@ -162,6 +164,8 @@ final class DDGSyncTests: XCTestCase {
 
         XCTAssertEqual(events, [
             .started(1),
+            .fetch(1),
+            .handleResponse(1),
             .finished(1),
             .started(2),
             .fetch(2),
@@ -170,11 +174,11 @@ final class DDGSyncTests: XCTestCase {
             .started(3),
             .fetch(3),
             .handleResponse(3),
-            .finished(3),
-            .started(4),
-            .fetch(4),
-            .handleResponse(4),
-            .finished(4)
+            .finished(3)
         ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertEqual(api.createRequestCallCount, 4)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH])
     }
 }

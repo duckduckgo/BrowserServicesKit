@@ -162,7 +162,7 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     var request: HTTPRequesting = HTTPRequestingMock()
     private let lock = NSLock()
 
-    struct CreateRequestCallArgs {
+    struct CreateRequestCallArgs: Equatable {
         let url: URL
         let method: HTTPRequestMethod
         let headers: [String: String]

@@ -257,25 +257,16 @@ public class DDGSync: DDGSyncing {
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
-                self?.startSync()
+                self?.syncQueue?.startSync() {
+                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
+                        try? self?.dependencies.secureStore.persistAccount(account)
+                        self?.authState = .active
+                    }
+                }
             }
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
-    }
-
-    private func startSync() {
-        if authState == .active {
-            syncQueue?.startSync()
-        } else {
-            syncQueue?.startFirstSync { [weak self] in
-                if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
-                    try? self?.dependencies.secureStore.persistAccount(account)
-                    self?.authState = .active
-                }
-            }
-            syncQueue?.startSync()
-        }
     }
 
     private func handleUnauthenticated(_ error: Error) throws {

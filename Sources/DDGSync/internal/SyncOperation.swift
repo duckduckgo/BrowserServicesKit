@@ -26,41 +26,48 @@ class SyncOperation: Operation {
 
     private(set) var error: Error?
 
-    let fetchOnly: Bool
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
+    let firstFetchCompletion: (() -> Void)?
 
     convenience init(
-        fetchOnly: Bool = false,
         dataProviders: [DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        log: @escaping @autoclosure () -> OSLog = .disabled,
+        firstFetchCompletion: (() -> Void)? = nil
     ) {
         let dataProvidersMap: [Feature: DataProviding] = dataProviders.reduce(into: .init(), { partialResult, provider in
             partialResult[provider.feature] = provider
         })
 
-        self.init(fetchOnly: fetchOnly, dataProviders: dataProvidersMap, storage: storage, crypter: crypter, requestMaker: requestMaker, log: log())
+        self.init(
+            dataProviders: dataProvidersMap,
+            storage: storage,
+            crypter: crypter,
+            requestMaker: requestMaker,
+            log: log(),
+            firstFetchCompletion: firstFetchCompletion
+        )
     }
 
     init(
-        fetchOnly: Bool = false,
         dataProviders: [Feature: DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        log: @escaping @autoclosure () -> OSLog = .disabled,
+        firstFetchCompletion: (() -> Void)?
     ) {
-        self.fetchOnly = fetchOnly
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.requestMaker = requestMaker
         self.getLog = log
+        self.firstFetchCompletion = firstFetchCompletion
     }
 
     override func start() {
@@ -74,7 +81,12 @@ class SyncOperation: Operation {
             }
 
             do {
-                try await sync(fetchOnly: fetchOnly)
+                let state = try storage.account()?.state
+                if state == .addingNewDevice {
+                    try await sync(fetchOnly: true)
+                    firstFetchCompletion?()
+                }
+                try await sync(fetchOnly: false)
             } catch {
                 self.error = error
             }
