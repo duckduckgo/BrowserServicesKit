@@ -29,7 +29,7 @@ public struct BookmarkUtils {
         
         return try? context.fetch(request).first
     }
-    
+
     public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.favoritesFolderID)
@@ -38,7 +38,22 @@ public struct BookmarkUtils {
         
         return try? context.fetch(request).first
     }
-    
+
+    public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "NOT %K IN %@ AND %K == NO AND %K == nil",
+            #keyPath(BookmarkEntity.uuid),
+            [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID],
+            #keyPath(BookmarkEntity.isPendingDeletion),
+            #keyPath(BookmarkEntity.parent)
+        )
+        request.sortDescriptors = [NSSortDescriptor(key: #keyPath(BookmarkEntity.uuid), ascending: true)]
+        request.returnsObjectsAsFaults = false
+
+        return (try? context.fetch(request)) ?? []
+    }
+
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) {
         
         func insertRootFolder(uuid: String, into context: NSManagedObjectContext) {
@@ -62,11 +77,25 @@ public struct BookmarkUtils {
                                      predicate: NSPredicate = NSPredicate(value: true),
                                      context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        let urlPredicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.url), url.absoluteString)
+        let urlPredicate = NSPredicate(format: "%K == %@ AND %K == NO", #keyPath(BookmarkEntity.url), url.absoluteString, #keyPath(BookmarkEntity.isPendingDeletion))
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [urlPredicate, predicate])
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
         
         return try? context.fetch(request).first
+    }
+
+    public static func fetchBookmarksPendingDeletion(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == YES", #keyPath(BookmarkEntity.isPendingDeletion))
+
+        return (try? context.fetch(request)) ?? []
+    }
+
+    public static func fetchModifiedBookmarks(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K != nil", #keyPath(BookmarkEntity.modifiedAt))
+
+        return (try? context.fetch(request)) ?? []
     }
 }

@@ -18,10 +18,14 @@
 
 import Foundation
 import Networking
+import Common
+import os.log
 
 struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
-    public init() { }
+    public init(log: @escaping @autoclosure () -> OSLog = .disabled) {
+        self.getLog = log
+    }
 
     public func createRequest(
         url: URL,
@@ -40,8 +44,17 @@ struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
         let configuration = APIRequest.Configuration(url: url, method: .init(method), queryParameters: parameters, headers: requestHeaders, body: body)
 
-        return APIRequest(configuration: configuration)
+        if let body {
+            os_log(.debug, log: log, "%{public}s request body: %{public}s", method.rawValue, String(bytes: body, encoding: .utf8) ?? "")
+        }
+
+        return APIRequest(configuration: configuration, requirements: [.allowHTTPNotModified], log: log)
     }
+
+    private var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
 }
 
 extension APIRequest.HTTPMethod {
