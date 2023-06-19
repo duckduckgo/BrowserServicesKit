@@ -181,6 +181,8 @@ public protocol Scheduling {
     func requestSyncImmediately()
     /// This should be called when sync needs to be cancelled, e.g. in response to app going to background.
     func cancelSync()
+    /// This should be called when sync can be resumed, e.g. in response to app going to foreground.
+    func resumeSync()
 }
 
 /**

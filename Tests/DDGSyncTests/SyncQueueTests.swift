@@ -123,3 +123,15 @@ struct AutofillPayload: Decodable, Equatable {
         let url: String
     }
 }
+
+fileprivate extension SyncQueue {
+
+    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            startSync(withFirstFetchCompletion: firstFetchCompletion)
+            operationQueue.addBarrierBlock {
+                continuation.resume()
+            }
+        }
+    }
+}

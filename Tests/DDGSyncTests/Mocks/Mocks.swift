@@ -76,10 +76,12 @@ final class SchedulerMock: SchedulingInternal {
 
     let startSyncPublisher: AnyPublisher<Void, Never>
     let cancelSyncPublisher: AnyPublisher<Void, Never>
+    let resumeSyncPublisher: AnyPublisher<Void, Never>
 
     init() {
         startSyncPublisher = startSyncSubject.eraseToAnyPublisher()
         cancelSyncPublisher = cancelSyncSubject.eraseToAnyPublisher()
+        resumeSyncPublisher = resumeSyncSubject.eraseToAnyPublisher()
     }
 
     func notifyDataChanged() {
@@ -101,13 +103,16 @@ final class SchedulerMock: SchedulingInternal {
     }
 
     func cancelSync() {
-        if isEnabled {
-            cancelSyncSubject.send()
-        }
+        cancelSyncSubject.send()
+    }
+
+    func resumeSync() {
+        resumeSyncSubject.send()
     }
 
     private var startSyncSubject = PassthroughSubject<Void, Never>()
     private var cancelSyncSubject = PassthroughSubject<Void, Never>()
+    private var resumeSyncSubject = PassthroughSubject<Void, Never>()
 }
 
 class MockErrorHandler: EventMapping<SyncError> {

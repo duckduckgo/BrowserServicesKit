@@ -267,7 +267,12 @@ public class DDGSync: DDGSyncing {
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
             .sink { [weak self] in
-                self?.syncQueue?.cancelSync()
+                self?.syncQueue?.cancelOngoingSyncAndSuspendQueue()
+            }
+
+        resumeSyncCancellable = dependencies.scheduler.resumeSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.resumeQueue()
             }
 
         dependencies.scheduler.isEnabled = true
@@ -294,6 +299,7 @@ public class DDGSync: DDGSyncing {
 
     private var startSyncCancellable: AnyCancellable?
     private var cancelSyncCancellable: AnyCancellable?
+    private var resumeSyncCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?

@@ -114,20 +114,13 @@ class SyncQueue {
         operationQueue.addOperation(operation)
     }
 
-    func cancelSync() {
+    func cancelOngoingSyncAndSuspendQueue() {
         operationQueue.cancelAllOperations()
+        operationQueue.isSuspended = true
     }
 
-    // MARK: - Concurrency
-
-    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) async {
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
-            operationQueue.addOperation(operation)
-            operationQueue.addBarrierBlock {
-                continuation.resume()
-            }
-        }
+    func resumeQueue() {
+        operationQueue.isSuspended = false
     }
 
     // MARK: - Private
@@ -154,7 +147,7 @@ class SyncQueue {
         return operation
     }
 
-    private let operationQueue: OperationQueue = {
+    let operationQueue: OperationQueue = {
         let queue = OperationQueue()
         queue.name = "com.duckduckgo.sync.queue"
         queue.qualityOfService = .userInitiated
