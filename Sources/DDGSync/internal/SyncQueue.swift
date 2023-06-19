@@ -111,7 +111,11 @@ class SyncQueue {
 
     func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) {
         let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
-        scheduleSyncOperation(operation)
+        operationQueue.addOperation(operation)
+    }
+
+    func cancelSync() {
+        operationQueue.cancelAllOperations()
     }
 
     // MARK: - Concurrency
@@ -119,7 +123,7 @@ class SyncQueue {
     func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
-            scheduleSyncOperation(operation)
+            operationQueue.addOperation(operation)
             operationQueue.addBarrierBlock {
                 continuation.resume()
             }
@@ -129,28 +133,25 @@ class SyncQueue {
     // MARK: - Private
 
     private func makeSyncOperation(firstFetchCompletion: (() -> Void)?) -> SyncOperation {
-        SyncOperation(
+        let operation = SyncOperation(
             dataProviders: dataProviders,
             storage: storage,
             crypter: crypter,
             requestMaker: requestMaker,
-            log: self.log,
-            firstFetchCompletion: firstFetchCompletion
+            log: self.log
         )
-    }
-
-    private func scheduleSyncOperation(_ operation: SyncOperation) {
-        operationQueue.addBarrierBlock { [weak self] in
+        operation.didFinishInitialFetch = firstFetchCompletion
+        operation.didStart = { [weak self] in
             self?.syncDidStartSubject.send(())
         }
-        operationQueue.addOperation(operation)
-        operationQueue.addBarrierBlock { [weak self] in
-            if let error = operation.error {
+        operation.didFinish = { [weak self] error in
+            if let error {
                 self?.syncDidFinishSubject.send(.failure(error))
             } else {
                 self?.syncDidFinishSubject.send(.success(()))
             }
         }
+        return operation
     }
 
     private let operationQueue: OperationQueue = {

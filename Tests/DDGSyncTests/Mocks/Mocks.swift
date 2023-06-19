@@ -75,36 +75,61 @@ final class SchedulerMock: SchedulingInternal {
     var isEnabled: Bool = false
 
     let startSyncPublisher: AnyPublisher<Void, Never>
+    let cancelSyncPublisher: AnyPublisher<Void, Never>
 
     init() {
         startSyncPublisher = startSyncSubject.eraseToAnyPublisher()
+        cancelSyncPublisher = cancelSyncSubject.eraseToAnyPublisher()
     }
 
     func notifyDataChanged() {
         if isEnabled {
-            startSyncSubject.send(())
+            startSyncSubject.send()
         }
     }
 
     func notifyAppLifecycleEvent() {
         if isEnabled {
-            startSyncSubject.send(())
+            startSyncSubject.send()
         }
     }
 
     func requestSyncImmediately() {
         if isEnabled {
-            startSyncSubject.send(())
+            startSyncSubject.send()
+        }
+    }
+
+    func cancelSync() {
+        if isEnabled {
+            cancelSyncSubject.send()
         }
     }
 
     private var startSyncSubject = PassthroughSubject<Void, Never>()
+    private var cancelSyncSubject = PassthroughSubject<Void, Never>()
 }
 
 class MockErrorHandler: EventMapping<SyncError> {
 
     convenience init() {
         self.init { _, _, _, _ in
+        }
+    }
+}
+
+class MockKeyValueStore: KeyValueStoring {
+    var isSyncEnabled = true
+
+    func object(forKey: String) -> Any? {
+        if forKey == DDGSync.Constants.syncEnabledKey {
+            return isSyncEnabled
+        }
+        return nil
+    }
+    func set(_ value: Any?, forKey: String) {
+        if forKey == DDGSync.Constants.syncEnabledKey, let boolValue = value as? Bool {
+            isSyncEnabled = boolValue
         }
     }
 }
@@ -118,6 +143,7 @@ struct MockSyncDepenencies: SyncDependencies {
     var scheduler: SchedulingInternal = SchedulerMock()
     var log: OSLog = .default
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
+    var keyValueStore: KeyValueStoring = MockKeyValueStore()
 
     var request = HTTPRequestingMock()
 

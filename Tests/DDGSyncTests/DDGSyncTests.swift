@@ -74,6 +74,8 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+
         let isInProgressCancellable = syncService.isInProgressPublisher.sink { isInProgress in
             if isInProgress {
                 events.append(.started(taskID))
@@ -84,6 +86,7 @@ final class DDGSyncTests: XCTestCase {
                 taskID += 1
             }
         }
+        defer { isInProgressCancellable.cancel() }
 
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
@@ -144,6 +147,8 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+
         let isInProgressCancellable = syncService.isInProgressPublisher.sink { isInProgress in
             if isInProgress {
                 events.append(.started(taskID))
@@ -154,13 +159,13 @@ final class DDGSyncTests: XCTestCase {
                 taskID += 1
             }
         }
+        defer { isInProgressCancellable.cancel() }
 
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
 
         waitForExpectations(timeout: 1)
-        isInProgressCancellable.cancel()
 
         XCTAssertEqual(events, [
             .started(1),
@@ -180,5 +185,73 @@ final class DDGSyncTests: XCTestCase {
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 4)
         XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH])
+    }
+
+    func testWhenSyncOperationIsCancelledThenCurrentOperationReturnsEarlyAndOtherScheduledOperationsDoNotStart() {
+        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+
+        var events: [SyncOperationEvent] = []
+        var taskID = 1
+
+        let syncStartedExpectation = expectation(description: "syncStarted")
+        let fetchExpectation = expectation(description: "fetch")
+        let handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
+        let syncFinishedExpectation = expectation(description: "syncFinished")
+
+        syncStartedExpectation.expectedFulfillmentCount = 2
+        fetchExpectation.expectedFulfillmentCount = 1
+        handleSyncResponseExpectation.expectedFulfillmentCount = 1
+        syncFinishedExpectation.expectedFulfillmentCount = 2
+
+        dataProvider._fetchChangedObjects = { _ in
+            let syncables = [Syncable(jsonObject: ["taskNumber": taskID])]
+            events.append(.fetch(taskID))
+            fetchExpectation.fulfill()
+            return syncables
+        }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            let taskID = sent[0].payload["taskNumber"] as! Int
+            events.append(.handleResponse(taskID))
+            handleSyncResponseExpectation.fulfill()
+        }
+
+        dataProvidersSource.dataProviders = [dataProvider]
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+
+        let isInProgressCancellable = syncService.isInProgressPublisher.sink { [weak syncService] isInProgress in
+            if isInProgress {
+                events.append(.started(taskID))
+                syncStartedExpectation.fulfill()
+                if taskID == 2 {
+                    syncService?.scheduler.cancelSync()
+                }
+            } else {
+                events.append(.finished(taskID))
+                syncFinishedExpectation.fulfill()
+                taskID += 1
+            }
+        }
+        defer { isInProgressCancellable.cancel() }
+
+        syncService.scheduler.requestSyncImmediately()
+        syncService.scheduler.requestSyncImmediately()
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 1)
+        isInProgressCancellable.cancel()
+
+        XCTAssertEqual(events, [
+            .started(1),
+            .fetch(1),
+            .handleResponse(1),
+            .finished(1),
+            .started(2),
+            .finished(2)
+        ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH])
     }
 }

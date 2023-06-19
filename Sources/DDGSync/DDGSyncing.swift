@@ -179,6 +179,8 @@ public protocol Scheduling {
     func notifyAppLifecycleEvent()
     /// This should be called from externally scheduled background jobs that trigger sync periodically.
     func requestSyncImmediately()
+    /// This should be called when sync needs to be cancelled, e.g. in response to app going to background.
+    func cancelSync()
 }
 
 /**

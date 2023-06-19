@@ -24,21 +24,56 @@ import os
 
 class SyncOperation: Operation {
 
-    private(set) var error: Error?
-
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
-    let firstFetchCompletion: (() -> Void)?
+
+    var didFinishInitialFetch: (() -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _didFinishInitialFetch
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _didFinishInitialFetch = newValue
+        }
+    }
+
+    var didStart: (() -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _didStart
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _didStart = newValue
+        }
+    }
+
+    var didFinish: ((Error?) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _didFinish
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _didFinish = newValue
+        }
+    }
 
     convenience init(
         dataProviders: [DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
-        firstFetchCompletion: (() -> Void)? = nil
+        log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         let dataProvidersMap: [Feature: DataProviding] = dataProviders.reduce(into: .init(), { partialResult, provider in
             partialResult[provider.feature] = provider
@@ -49,8 +84,7 @@ class SyncOperation: Operation {
             storage: storage,
             crypter: crypter,
             requestMaker: requestMaker,
-            log: log(),
-            firstFetchCompletion: firstFetchCompletion
+            log: log()
         )
     }
 
@@ -59,20 +93,26 @@ class SyncOperation: Operation {
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
-        firstFetchCompletion: (() -> Void)?
+        log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.requestMaker = requestMaker
         self.getLog = log
-        self.firstFetchCompletion = firstFetchCompletion
     }
 
     override func start() {
+        if isCancelled {
+            isExecuting = false
+            isFinished = true
+            return
+        }
+
         isExecuting = true
         isFinished = false
+
+        didStart?()
 
         Task {
             defer {
@@ -84,11 +124,14 @@ class SyncOperation: Operation {
                 let state = try storage.account()?.state
                 if state == .addingNewDevice {
                     try await sync(fetchOnly: true)
-                    firstFetchCompletion?()
+                    didFinishInitialFetch?()
                 }
                 try await sync(fetchOnly: false)
+                didFinish?(nil)
+            } catch is CancellationError {
+                didFinish?(nil)
             } catch {
-                self.error = error
+                didFinish?(error)
             }
         }
     }
@@ -108,9 +151,12 @@ class SyncOperation: Operation {
                     os_log(.debug, log: self.log, "Syncing %{public}s", feature.name)
 
                     do {
+                        try checkCancellation()
                         let syncRequest = try await self.makeSyncRequest(for: dataProvider, fetchOnly: fetchOnly)
                         let clientTimestamp = Date()
                         let httpRequest = try self.makeHTTPRequest(with: syncRequest, timestamp: clientTimestamp)
+
+                        try checkCancellation()
                         let httpResult: HTTPResult = try await httpRequest.execute()
 
                         switch httpResult.response.statusCode {
@@ -122,12 +168,16 @@ class SyncOperation: Operation {
                                    feature.name,
                                    String(data: data, encoding: .utf8) ?? "")
                             let syncResult = try self.decodeResponse(with: data, request: syncRequest)
+                            try checkCancellation()
                             try await self.handleResponse(for: dataProvider, syncResult: syncResult, fetchOnly: fetchOnly, timestamp: clientTimestamp)
                         case 204, 304:
+                            try checkCancellation()
                             try await self.handleResponse(for: dataProvider, syncResult: .noData(with: syncRequest), fetchOnly: fetchOnly, timestamp: clientTimestamp)
                         default:
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
+                    } catch is CancellationError {
+                        os_log(.debug, log: self.log, "Syncing %{public}s cancelled", feature.name)
                     } catch {
                         os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error)
@@ -135,6 +185,8 @@ class SyncOperation: Operation {
                     }
                 }
             }
+
+            try checkCancellation()
 
             var errors: [FeatureError] = []
 
@@ -147,6 +199,12 @@ class SyncOperation: Operation {
             if !errors.isEmpty {
                 throw SyncOperationError(featureErrors: errors)
             }
+        }
+    }
+
+    private func checkCancellation() throws {
+        if isCancelled {
+            throw CancellationError()
         }
     }
 
@@ -238,23 +296,10 @@ class SyncOperation: Operation {
         }
     }
 
-    override var isCancelled: Bool {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _isCancelled
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            willChangeValue(forKey: #keyPath(isCancelled))
-            _isCancelled = newValue
-            didChangeValue(forKey: #keyPath(isCancelled))
-        }
-    }
-
     private let lock = NSRecursiveLock()
     private var _isExecuting: Bool = false
     private var _isFinished: Bool = false
-    private var _isCancelled: Bool = false
+    private var _didFinishInitialFetch: (() -> Void)?
+    private var _didStart: (() -> Void)?
+    private var _didFinish: ((Error?) -> Void)?
 }
