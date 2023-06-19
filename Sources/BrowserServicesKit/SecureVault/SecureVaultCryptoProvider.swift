@@ -56,7 +56,7 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         #else
             static let hashAccount = Bundle.main.bundleIdentifier ?? "com.duckduckgo.macos.browser"
         #endif
-        static let hashService = "DuckDuckGo Privacy Browser"
+        static let hashService = "DuckDuckGo Secure Vault Hash"
     }
 
     static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
@@ -140,46 +140,51 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
     
     private func getSaltFromKeyChain() -> Data? {
         let query: [CFString: Any] = [
-            kSecClass: kSecClassInternetPassword,
+            kSecClass: kSecClassGenericPassword,
             kSecAttrService: Constants.hashService as CFString,
             kSecAttrAccount: Constants.hashAccount as CFString,
             kSecReturnData: kCFBooleanTrue!,
             kSecMatchLimit: kSecMatchLimitOne
         ]
-        
+
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
-        
-        if status == errSecSuccess {
-            return (item as? Data)
+
+        if status == errSecSuccess, let data = item as? Data {
+            return data
         }
+
         return nil
     }
-    
+
     private func generateSalt() -> Data? {
         let length = 64
         var data = Data(count: length)
         let result = data.withUnsafeMutableBytes {
             SecRandomCopyBytes(kSecRandomDefault, length, $0.baseAddress!)
         }
+
         if result != errSecSuccess {
             return nil
         }
 
-        // Store the new salt
+        let base64String = data.base64EncodedString()
+        guard let base64Data = base64String.data(using: .utf8) else {
+            return nil
+        }
+
         let addQuery: [CFString: Any] = [
-            kSecClass: kSecClassInternetPassword,
+            kSecClass: kSecClassGenericPassword,
             kSecAttrService: Constants.hashService as CFString,
             kSecAttrAccount: Constants.hashAccount as CFString,
-            kSecValueData: data as CFData
+            kSecValueData: base64Data
         ]
-        
+
         DispatchQueue.global().async {
             SecItemAdd(addQuery as CFDictionary, nil)
         }
 
         return data
-
     }
 
     func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
