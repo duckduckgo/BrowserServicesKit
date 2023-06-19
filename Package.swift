@@ -24,9 +24,10 @@ let package = Package(
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
+        .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.4.3"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
@@ -74,6 +75,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "BookmarksTestsUtils",
+            dependencies: [
+                "Bookmarks"
+            ]
+        ),
+         .target(
             name: "BloomFilterWrapper",
             dependencies: [
                 "BloomFilter"
@@ -92,6 +99,10 @@ let package = Package(
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
                 "Networking"
+            ],
+            resources: [
+                .process("SyncMetadata.xcdatamodeld"),
+                .process("SyncPDFTemplate.png")
             ]
         ),
         .target(
@@ -127,7 +138,10 @@ let package = Package(
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
-            name: "UserScript"
+            name: "UserScript",
+            dependencies: [
+                "Common"
+            ]
         ),
         .target(
             name: "PrivacyDashboard",
@@ -153,12 +167,25 @@ let package = Package(
                 "Common"
             ]),
         .target(
+            name: "SyncDataProviders",
+            dependencies: [
+                "Bookmarks",
+                "DDGSync",
+                "Persistence"
+            ]),
+        .target(
             name: "TestUtils",
             dependencies: [
                 "Networking"
             ]),
-        
+
         // MARK: - Test targets
+        .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks",
+                "BookmarksTestsUtils"
+            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -223,6 +250,13 @@ let package = Package(
             dependencies: [
                 "Configuration",
                 "TestUtils"
+            ]
+        ),
+        .testTarget(
+            name: "SyncDataProvidersTests",
+            dependencies: [
+                "BookmarksTestsUtils",
+                "SyncDataProviders"
             ]
         )
     ],

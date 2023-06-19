@@ -19,9 +19,10 @@
 import Foundation
 import WebKit
 
+@MainActor
 public protocol UserScriptsProvider: AnyObject {
 
     var userScripts: [UserScript] { get }
-    var scripts: [WKUserScript] { get }
+    func loadWKUserScripts() async -> [WKUserScript]
 
 }

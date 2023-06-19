@@ -26,7 +26,7 @@ struct SecureStorage: SecureStoring {
     
     private static let defaultQuery: [AnyHashable: Any] = [
         kSecClass: kSecClassGenericPassword,
-        kSecAttrService: "com.duckduckgo.sync",
+        kSecAttrService: "\(Bundle.main.bundleIdentifier ?? "com.duckduckgo").sync",
         kSecAttrGeneric: encodedKey as Any,
         kSecAttrAccount: encodedKey as Any
     ]
@@ -40,7 +40,14 @@ struct SecureStorage: SecureStoring {
         query[kSecAttrSynchronizable] = false
         query[kSecValueData] = data
 
-        let status = SecItemAdd(query as CFDictionary, nil)
+        var status = SecItemAdd(query as CFDictionary, nil)
+
+        if status == errSecDuplicateItem {
+            status = SecItemUpdate(query as CFDictionary, [
+                kSecValueData: data
+            ] as CFDictionary)
+        }
+
         guard status == errSecSuccess else {
             throw SyncError.failedToWriteSecureStore(status: status)
         }

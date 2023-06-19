@@ -52,7 +52,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
                 "key": Array(repeating: UInt8(1), count: 32),
                 "secret": userScript.generatedSecret,
                 "methodName": "test-methodName"
-            ]
+            ] as [String: Any]
         ]
     }
 
@@ -267,6 +267,21 @@ class MockUserScriptMessage: UserScriptMessage {
 }
 
 class MockAutofillEmailDelegate: AutofillEmailDelegate {
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+
+    }
+
+    func autofillUserScriptDidRequestInContextPromptValue(_: BrowserServicesKit.AutofillUserScript) -> Double? {
+        return nil
+    }
+
+    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+
+    }
+
+    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+
+    }
 
     var signedInCallback: (() -> Void)?
     var signedOutCallback: (() -> Void)?

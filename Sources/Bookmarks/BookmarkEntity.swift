@@ -30,10 +30,8 @@ public class BookmarkEntity: NSManagedObject {
     }
 
     public enum Error: Swift.Error {
-        case mustExistInsideRootFolder
         case folderStructureHasCycle
         case folderHasURL
-        case bookmarkRequiresURL
         case invalidFavoritesFolder
         case invalidFavoritesStatus
     }
@@ -46,7 +44,6 @@ public class BookmarkEntity: NSManagedObject {
         return NSEntityDescription.entity(forEntityName: "BookmarkEntity", in: context)!
     }
 
-    @NSManaged public fileprivate(set) var isFavorite: Bool
     @NSManaged public var isFolder: Bool
     @NSManaged public var title: String?
     @NSManaged public var url: String?
@@ -55,7 +52,16 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged fileprivate(set) public var favoriteFolder: BookmarkEntity?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
-    
+
+    @NSManaged public fileprivate(set) var isPendingDeletion: Bool
+    @NSManaged public var modifiedAt: Date?
+    /// In-memory flag. When set to `false`, disables adjusting `modifiedAt` on `willSave()`. It's reset to `true` on `didSave()`.
+    public var shouldManageModifiedAt: Bool = true
+
+    public var isFavorite: Bool {
+        favoriteFolder != nil
+    }
+
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: BookmarkEntity.entity(in: moc),
                   insertInto: moc)
@@ -65,7 +71,27 @@ public class BookmarkEntity: NSManagedObject {
         super.awakeFromInsert()
         
         uuid = UUID().uuidString
-        isFavorite = false
+    }
+
+    public override func willSave() {
+        guard shouldManageModifiedAt else {
+            return
+        }
+        let changedKeys = changedValues().keys
+        guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
+            return
+        }
+        if isInserted && (uuid == Constants.rootFolderID || uuid == Constants.favoritesFolderID) {
+            return
+        }
+        modifiedAt = Date()
+        if changedKeys.contains(NSStringFromSelector(#selector(getter: isPendingDeletion))) && isPendingDeletion {
+            parent?.modifiedAt = modifiedAt
+        }
+    }
+
+    public override func didSave() {
+        shouldManageModifiedAt = true
     }
 
     public override func validateForInsert() throws {
@@ -88,7 +114,13 @@ public class BookmarkEntity: NSManagedObject {
     }
     
     public var childrenArray: [BookmarkEntity] {
-        children?.array as? [BookmarkEntity] ?? []
+        let children = children?.array as? [BookmarkEntity] ?? []
+        return children.filter { $0.isPendingDeletion == false }
+    }
+
+    public var favoritesArray: [BookmarkEntity] {
+        let children = favorites?.array as? [BookmarkEntity] ?? []
+        return children.filter { $0.isPendingDeletion == false }
     }
 
     public static func makeFolder(title: String,
@@ -129,9 +161,7 @@ public class BookmarkEntity: NSManagedObject {
     // If `insertAt` is nil, it is inserted at the end.
     public func addToFavorites(insertAt: Int? = nil,
                                favoritesRoot root: BookmarkEntity) {
-        
-        isFavorite = true
-        
+
         if let position = insertAt {
             root.insertIntoFavorites(self, at: position)
         } else {
@@ -140,8 +170,27 @@ public class BookmarkEntity: NSManagedObject {
     }
     
     public func removeFromFavorites() {
-        isFavorite = false
         favoriteFolder = nil
+    }
+
+    public func markPendingDeletion() {
+        var queue: [BookmarkEntity] = [self]
+
+        while !queue.isEmpty {
+            let currentObject = queue.removeFirst()
+
+            currentObject.url = nil
+            currentObject.title = nil
+            currentObject.isPendingDeletion = true
+
+            if currentObject.isFolder {
+                queue.append(contentsOf: currentObject.childrenArray)
+            }
+        }
+    }
+
+    public func cancelDeletion() {
+        isPendingDeletion = false
     }
 }
 
@@ -149,25 +198,10 @@ public class BookmarkEntity: NSManagedObject {
 extension BookmarkEntity {
 
     func validate() throws {
-        try validateThatEntitiesExistInsideTheRootFolder()
-        try validateBookmarkURLRequirement()
         try validateThatFoldersDoNotHaveURLs()
         try validateThatFolderHierarchyHasNoCycles()
         try validateFavoritesStatus()
         try validateFavoritesFolder()
-    }
-
-    func validateThatEntitiesExistInsideTheRootFolder() throws {
-        if parent == nil,
-           Constants.favoritesFolderID != uuid && Constants.rootFolderID != uuid {
-            throw Error.mustExistInsideRootFolder
-        }
-    }
-
-    func validateBookmarkURLRequirement() throws {
-        if !isFolder, url == nil {
-            throw Error.bookmarkRequiresURL
-        }
     }
 
     func validateFavoritesStatus() throws {

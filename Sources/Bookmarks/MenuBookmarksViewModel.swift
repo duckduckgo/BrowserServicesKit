@@ -48,6 +48,8 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         }
         return _favoritesFolder
     }
+
+    private var observer: NSObjectProtocol?
     
     private let errorEvents: EventMapping<BookmarksModelError>?
     
@@ -58,16 +60,25 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         registerForChanges()
     }
 
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+    }
+
     private func registerForChanges() {
-        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
-                                               object: nil,
-                                               queue: .main) { [weak self] notification in
+        observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                                          object: nil,
+                                                          queue: nil) { [weak self] notification in
             guard let otherContext = notification.object as? NSManagedObjectContext,
                   otherContext != self?.context,
             otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
 
-            self?.context.mergeChanges(fromContextDidSave: notification)
-            self?.context.refreshAllObjects()
+            self?.context.perform {
+                self?.context.mergeChanges(fromContextDidSave: notification)
+                self?.context.refreshAllObjects()
+            }
         }
     }
 
@@ -118,7 +129,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     public func favorite(for url: URL) -> BookmarkEntity? {
         BookmarkUtils.fetchBookmark(for: url,
-                                    predicate: NSPredicate(format: "%K == true", #keyPath(BookmarkEntity.isFavorite)),
+                                    predicate: NSPredicate(format: "%K != nil AND %K == NO", #keyPath(BookmarkEntity.favoriteFolder), #keyPath(BookmarkEntity.isPendingDeletion)),
                                     context: context)
     }
     

@@ -19,7 +19,6 @@
 
 import Foundation
 import Combine
-import os
 import Common
 
 public enum AutofillType {
@@ -39,7 +38,10 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     
     func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
 
-    func secureVaultManager(_: SecureVaultManager, promptUserToStoreAutofillData data: AutofillData)
+    func secureVaultManager(_: SecureVaultManager,
+                            promptUserToStoreAutofillData data: AutofillData,
+                            hasGeneratedPassword generatedPassword: Bool,
+                            withTrigger trigger: AutofillUserScript.GetTriggerType?)
     
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
@@ -47,12 +49,25 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
                             withTrigger trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
-    func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager) -> Bool
+    func secureVaultManager(_: SecureVaultManager,
+                            promptUserWithGeneratedPassword password: String,
+                            completionHandler: @escaping (Bool) -> Void)
+
+    func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager,
+                                                                               shouldSilentlySave: Bool) -> Bool
+
+    func secureVaultManagerShouldSilentlySaveGeneratedPassword(_: SecureVaultManager) -> Bool
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: String)
 
     // swiftlint:disable:next identifier_name
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
+
+    func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String)
+
+    func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String)
+
+    func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String)
 
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel)
 
@@ -86,7 +101,13 @@ public class SecureVaultManager {
     // This property can be removed once all platforms will search for partial account matches as the default expected behaviour.
     private let includePartialAccountMatches: Bool
 
-    private let tld: TLD?
+    public let tld: TLD?
+
+    public lazy var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? = {
+        guard let tld = tld else { return nil }
+        return AutofillWebsiteAccountMatcher(autofillUrlMatcher: AutofillDomainNameUrlMatcher(),
+                                             tld: tld)
+    }()
 
     public init(vault: SecureVault? = nil,
                 passwordManager: PasswordManager? = nil,
@@ -134,10 +155,18 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
-    public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
-        // no-op at this point
+    public func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String) {
+        delegate?.secureVaultManager(self, didRequestCreditCardsManagerForDomain: domain)
     }
     
+    public func autofillUserScript(_: AutofillUserScript, didRequestIdentitiesManagerForDomain domain: String) {
+        delegate?.secureVaultManager(self, didRequestIdentitiesManagerForDomain: domain)
+    }
+
+    public func autofillUserScript(_: AutofillUserScript, didRequestPasswordManagerForDomain domain: String) {
+        delegate?.secureVaultManager(self, didRequestPasswordManagerForDomain: domain)
+    }
+
     /// Receives each of the types of data that the Autofill script has detected, and determines whether the user should be prompted to save them.
     /// This involves checking each proposed object to determine whether it already exists in the store.
     /// Currently, only one new type of data is presented to the user, but that decision is handled client-side so that it's easier to adapt in the future when multiple types are presented at once.
@@ -147,19 +176,22 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         do {
 
             if let passwordManager = passwordManager, passwordManager.isEnabled {
-                let dataToPrompt = try existingEntries(for: domain, autofillData: data, automaticallySavedCredentials: false)
-                delegate?.secureVaultManager(self, promptUserToStoreAutofillData: dataToPrompt)
+                let dataToPrompt = try existingEntries(for: domain, autofillData: data, automaticallySavedCredentials: false, shouldSilentlySave: false)
+                delegate?.secureVaultManager(self, promptUserToStoreAutofillData: dataToPrompt, hasGeneratedPassword: false, withTrigger: data.trigger)
                 return
             }
 
             let automaticallySavedCredentials = try storeOrUpdateAutogeneratedCredentials(domain: domain, autofillData: data)
+            let autogeneratedCredentials = data.credentials?.autogenerated ?? false
+            let shouldSilentlySave = autogeneratedCredentials && delegate?.secureVaultManagerShouldSilentlySaveGeneratedPassword(self) ?? false
 
-            if delegate?.secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(self) ?? false {
+            if delegate?.secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(self,
+                                                                                               shouldSilentlySave: shouldSilentlySave) ?? false {
                 try updateExistingCredentialsWithoutUsernameWithSubmittedValues(domain: domain, autofillData: data)
             }
-            
-            let dataToPrompt = try existingEntries(for: domain, autofillData: data, automaticallySavedCredentials: automaticallySavedCredentials)
-            delegate?.secureVaultManager(self, promptUserToStoreAutofillData: dataToPrompt)
+
+            let dataToPrompt = try existingEntries(for: domain, autofillData: data, automaticallySavedCredentials: automaticallySavedCredentials, shouldSilentlySave: shouldSilentlySave)
+            delegate?.secureVaultManager(self, promptUserToStoreAutofillData: dataToPrompt, hasGeneratedPassword: autogeneratedCredentials, withTrigger: data.trigger)
         } catch {
             os_log(.error, "Error storing data: %{public}@", error.localizedDescription)
         }
@@ -356,6 +388,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
+    public func autofillUserScriptDidOfferGeneratedPassword(_: AutofillUserScript, password: String, completionHandler: @escaping (Bool) -> Void) {
+        delegate?.secureVaultManager(self,
+                                     promptUserWithGeneratedPassword: password) { useGeneratedPassword in
+            completionHandler(useGeneratedPassword)
+        }
+    }
     
     public func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel) {
         delegate?.secureVaultManager(self, didReceivePixel: pixel)
@@ -364,9 +402,11 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     /// Stores autogenerated credentials sent by the AutofillUserScript, or updates an existing row in the database if credentials already exist.
     /// The Secure Vault only stores one generated password for a domain, which is updated any time the user selects a new generated password.
     func storeOrUpdateAutogeneratedCredentials(domain: String, autofillData: AutofillUserScript.DetectedAutofillData) throws -> Bool {
+        let shouldSilentlySave = delegate?.secureVaultManagerShouldSilentlySaveGeneratedPassword(self) ?? false
+
         guard autofillData.hasAutogeneratedPassword,
               let autogeneratedCredentials = autofillData.credentials,
-              !(autogeneratedCredentials.username?.isEmpty ?? true),
+              !(autogeneratedCredentials.username?.isEmpty ?? true) || shouldSilentlySave,
               let passwordData = autogeneratedCredentials.password.data(using: .utf8) else {
             os_log("Did not meet conditions for silently saving autogenerated credentials, returning early", log: .passwordManager)
             return false
@@ -394,9 +434,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
         
         let existingAccount = accounts.first(where: { $0.username == "" })
-        var account = existingAccount ?? SecureVaultModels.WebsiteAccount(username: "", domain: domain)
+        let account = existingAccount ?? SecureVaultModels.WebsiteAccount(username: "", domain: domain)
         
-        account.title = "Saved Password (\(domain))"
         let generatedPassword = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
 
         os_log("Saving autogenerated password", log: .passwordManager)
@@ -446,7 +485,9 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     
     func existingEntries(for domain: String,
                          autofillData: AutofillUserScript.DetectedAutofillData,
-                         automaticallySavedCredentials: Bool) throws -> AutofillData {
+                         automaticallySavedCredentials: Bool,
+                         shouldSilentlySave: Bool
+    ) throws -> AutofillData {
         let vault = try self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
         
         let proposedIdentity = try existingIdentity(with: autofillData, vault: vault)
@@ -460,6 +501,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             proposedCredentials = try existingCredentials(with: autofillData,
                                                           domain: domain,
                                                           automaticallySavedCredentials: automaticallySavedCredentials,
+                                                          shouldSilentlySave: shouldSilentlySave,
                                                           vault: vault)
         }
 
@@ -485,6 +527,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     private func existingCredentials(with autofillData: AutofillUserScript.DetectedAutofillData,
                                      domain: String,
                                      automaticallySavedCredentials: Bool,
+                                     shouldSilentlySave: Bool,
                                      vault: SecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
         if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
             let accounts = try vault.accountsFor(domain: domain)
@@ -492,7 +535,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 if let existingAccountID = account.id,
                    let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID),
                    existingCredentials.password == passwordData {
-                    if automaticallySavedCredentials {
+                    if automaticallySavedCredentials || shouldSilentlySave {
                         os_log("Found duplicate credentials which were just saved, notifying user", log: .passwordManager)
                         return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
                     } else {

@@ -38,6 +38,13 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     /// Last user selected details in the top autofill overlay stored in the child.
     var selectedDetailsData: SelectedDetailsData?
 
+    private enum CredentialsResponse {
+        static let none = "none"
+        static let state = "state"
+        static let stop = "stop"
+        static let ok = "ok"
+    }
+
     public override var messageNames: [String] {
         return WebsiteAutofillMessageName.allCases.map(\.rawValue) + super.messageNames
     }
@@ -104,13 +111,29 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
 
     /// Called from the child autofill to return referenced credentials
     func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
-        var response = GetSelectedCredentialsResponse(type: "none")
-        if lastOpenHost == nil || message.messageHost != lastOpenHost {
-            response = GetSelectedCredentialsResponse(type: "stop")
-        } else if let selectedDetailsData = selectedDetailsData {
-            response = GetSelectedCredentialsResponse(type: "ok", data: selectedDetailsData.data, configType: selectedDetailsData.configType)
-            self.selectedDetailsData = nil
+        var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none)
+
+        let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        if (previousEmailSignedIn == nil) {
+            previousEmailSignedIn = emailSignedIn
         }
+        let hasEmailSignedInStateChanged = previousEmailSignedIn != emailSignedIn
+        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
+        let hasIncontextSignupStateChanged = previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt
+
+        if (hasEmailSignedInStateChanged || hasIncontextSignupStateChanged) {
+            previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
+            previousEmailSignedIn = emailSignedIn
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.state)
+
+        } else if lastOpenHost == nil || message.messageHost != lastOpenHost {
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.stop)
+
+        } else if let selectedDetailsData = selectedDetailsData {
+            self.selectedDetailsData = nil
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
+        }
+
         if let json = try? JSONEncoder().encode(response),
            let jsonString = String(data: json, encoding: .utf8) {
             replyHandler(jsonString)

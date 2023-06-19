@@ -33,6 +33,7 @@ public struct NavigationAction {
     static func resetIdentifier() { maxIdentifier = 0 }
 #endif
 
+    /// auto-incremented id
     public var identifier: UInt64 = {
         Self.maxIdentifier += 1
         return Self.maxIdentifier
@@ -42,10 +43,12 @@ public struct NavigationAction {
 
     public let navigationType: NavigationType
 #if os(macOS)
+    /// keyboard modifiers for `linkActivated` NavigationType
     public internal(set) var modifierFlags: NSEvent.ModifierFlags = []
 #endif
 
 #if _IS_USER_INITIATED_ENABLED
+    /// if navigation was initiated by user action on a web page
     public let isUserInitiated: Bool
 #endif
     public let shouldDownload: Bool
@@ -70,7 +73,8 @@ public struct NavigationAction {
     /// Actual `BackForwardListItem` identity before the NavigationAction had started
     public let fromHistoryItemIdentity: HistoryItemIdentity?
 #endif
-    /// Previous Navigation Actions received during current logical `Navigation`, zero-based, most recent is the last
+    /// Previous Navigation Actions received during current logical `Navigation`, includes .server, .client and .developer redirects
+    /// zero-based, most recent is the last redirect
     public let redirectHistory: [NavigationAction]?
 
     public init(request: URLRequest, navigationType: NavigationType, currentHistoryItemIdentity: HistoryItemIdentity?, redirectHistory: [NavigationAction]?, isUserInitiated: Bool?, sourceFrame: FrameInfo, targetFrame: FrameInfo?, shouldDownload: Bool, mainFrameNavigation: Navigation?) {
@@ -158,6 +162,7 @@ public extension NavigationAction {
         targetFrame?.isMainFrame == true
     }
 
+    /// if another WebView initiated the navigation
     var isTargetingNewWindow: Bool {
         assert(sourceFrame.webView != nil || targetFrame?.webView != nil)
         return sourceFrame.webView != targetFrame?.webView || targetFrame?.webView == nil
@@ -265,3 +270,5 @@ extension NavigationPreferences: CustomDebugStringConvertible {
         "\(userAgent ?? "")\(contentMode == .recommended ? "" : (contentMode == .mobile ? ":mobile" : "desktop"))\(javaScriptEnabledValue == false ? ":jsdisabled" : "")"
     }
 }
+
+// swiftlint:enable line_length

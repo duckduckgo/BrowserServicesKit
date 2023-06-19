@@ -74,7 +74,7 @@ final class ConfigurationValidatorTests: XCTestCase {
         let payload: [String: Any] = [
             "key1": "value",
             "key2": 2,
-            "key3": ["a", "b", 0xc]
+            "key3": ["a", "b", 0xc] as [Any]
         ]
 
         let data = try JSONSerialization.data(withJSONObject: payload)

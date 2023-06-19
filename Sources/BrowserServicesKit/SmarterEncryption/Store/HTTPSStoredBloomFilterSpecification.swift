@@ -27,6 +27,15 @@ public class HTTPSStoredBloomFilterSpecification: NSManagedObject {
         return NSFetchRequest<HTTPSStoredBloomFilterSpecification>(entityName: "HTTPSStoredBloomFilterSpecification")
     }
 
+    public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
+        return NSEntityDescription.entity(forEntityName: "HTTPSStoredBloomFilterSpecification", in: context)!
+    }
+
+    public convenience init(context moc: NSManagedObjectContext) {
+        self.init(entity: Self.entity(in: moc),
+                  insertInto: moc)
+    }
+
     @NSManaged public var bitCount: Int64
     @NSManaged public var errorRate: Double
     @NSManaged public var sha256: String?

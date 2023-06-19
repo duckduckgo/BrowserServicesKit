@@ -25,44 +25,51 @@ struct ProductionDependencies: SyncDependencies {
     let endpoints: Endpoints
     let account: AccountManaging
     let api: RemoteAPIRequestCreating
+    var keyValueStore: KeyValueStoring
     let secureStore: SecureStoring
-    let responseHandler: ResponseHandling
-    let crypter: Crypting
+    let crypter: CryptingInternal
+    let scheduler: SchedulingInternal
+    let errorEvents: EventMapping<SyncError>
 
-    private let persistence: LocalDataPersisting
+    var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
 
-    init(baseUrl: URL,
-         persistence: LocalDataPersisting) {
+    init(baseUrl: URL, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   baseUrl: baseUrl,
-                  persistence: persistence,
-                  secureStore: SecureStorage())
+                  keyValueStore: KeyValueStore(),
+                  secureStore: SecureStorage(),
+                  errorEvents: errorEvents,
+                  log: log())
     }
     
-    init(fileStorageUrl: URL, baseUrl: URL, persistence: LocalDataPersisting, secureStore: SecureStoring) {
+    init(
+        fileStorageUrl: URL,
+        baseUrl: URL,
+        keyValueStore: KeyValueStoring,
+        secureStore: SecureStoring,
+        errorEvents: EventMapping<SyncError>,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(baseUrl: baseUrl)
-        self.persistence = persistence
+        self.keyValueStore = keyValueStore
         self.secureStore = secureStore
+        self.errorEvents = errorEvents
+        self.getLog = log
 
-        api = RemoteAPIRequestCreator()
+        api = RemoteAPIRequestCreator(log: log())
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)
-        responseHandler = ResponseHandler(persistence: persistence, crypter: crypter)
+        scheduler = SyncScheduler()
     }
 
     func createRemoteConnector(_ info: ConnectInfo) throws -> RemoteConnecting {
         return try RemoteConnector(crypter: crypter, api: api, endpoints: endpoints, connectInfo: info)
-    }
-
-    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending {
-        return UpdatesSender(fileStorageUrl: fileStorageUrl, persistence: persistence, dependencies: self)
-    }
-
-    func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching {
-        return UpdatesFetcher(persistence: persistence, dependencies: self)
     }
 
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {

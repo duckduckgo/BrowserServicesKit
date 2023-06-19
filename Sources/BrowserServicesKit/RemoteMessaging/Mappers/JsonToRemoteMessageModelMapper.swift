@@ -17,8 +17,8 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
-import os.log
 
 // swiftlint:disable cyclomatic_complexity
 private enum AttributesKey: String, CaseIterable {
@@ -140,6 +140,8 @@ struct JsonToRemoteMessageModelMapper {
         }
 
         switch RemoteMessageResponse.JsonActionType(rawValue: jsonAction.type) {
+        case .share:
+            return .share(url: jsonAction.value, title: jsonAction.additionalValues?[0] ?? "")
         case .url:
             return .url(value: jsonAction.value)
         case .appStore:
@@ -165,6 +167,8 @@ struct JsonToRemoteMessageModelMapper {
             return .ddgAnnounce
         case .criticalUpdate:
             return .criticalUpdate
+        case .macComputer:
+            return .macComputer
         case .none:
             return .announce
         }

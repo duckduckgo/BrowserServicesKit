@@ -17,6 +17,7 @@
 //
 
 import XCTest
+import Common
 @testable import BrowserServicesKit
 
 class SecureVaultTests: XCTestCase {
@@ -25,6 +26,7 @@ class SecureVaultTests: XCTestCase {
     var mockDatabaseProvider = MockDatabaseProvider()
     var mockKeystoreProvider = MockKeystoreProvider()
     var testVault: SecureVault!
+    var tld = TLD()
 
     override func setUp() {
         super.setUp()
@@ -170,7 +172,7 @@ class SecureVaultTests: XCTestCase {
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
         
         try testVault.storeWebsiteCredentials(credentials)
-    
+
         let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
         XCTAssertNotNil(fetchedCredentials)
         XCTAssertNotNil(fetchedCredentials?.password)
@@ -223,4 +225,3 @@ class SecureVaultTests: XCTestCase {
     }
 
 }
-    

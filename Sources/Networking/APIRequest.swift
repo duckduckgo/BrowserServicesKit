@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import os.log
 
@@ -55,7 +56,12 @@ public struct APIRequest {
     /// This method is deprecated. Please use the 'fetch()' async method instead.
     @discardableResult
     public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
-        os_log("Requesting %s", log: log, type: .debug, request.url?.absoluteString ?? "")
+        os_log("Requesting %s %s, headers %s",
+               log: log,
+               type: .debug,
+               request.httpMethod ?? "",
+               request.url?.absoluteString ?? "",
+               String(describing: request.allHTTPHeaderFields ?? [:]))
         let task = urlSession.dataTask(with: request) { (data, urlResponse, error) in
             if let error = error {
                 completion(nil, .urlSession(error))
@@ -76,12 +82,12 @@ public struct APIRequest {
     private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
         let httpResponse = try response.asHTTPURLResponse()
 
-        os_log("Request for %s completed with response code: %s and headers %s",
+        os_log("Request completed: %s %s response code: %d",
                log: log,
                type: .debug,
+               request.httpMethod ?? "",
                request.url?.absoluteString ?? "",
-               String(describing: httpResponse.statusCode),
-               String(describing: httpResponse.allHeaderFields))
+               httpResponse.statusCode)
         
         var data = data
         if requirements.contains(.allowHTTPNotModified), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
@@ -102,7 +108,12 @@ public struct APIRequest {
     }
 
     public func fetch() async throws -> APIResponse {
-        os_log("Requesting %s", log: log, type: .debug, request.url?.absoluteString ?? "")
+        os_log("Requesting %s %s, headers %s",
+               log: log,
+               type: .debug,
+               request.httpMethod ?? "",
+               request.url?.absoluteString ?? "",
+               String(describing: request.allHTTPHeaderFields ?? [:]))
         let (data, response) = try await fetch(for: request)
         return try validateAndUnwrap(data: data, response: response)
     }

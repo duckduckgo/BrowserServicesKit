@@ -10,6 +10,7 @@ import Foundation
 
 extension ContentScopeFeatureToggles {
     static let allTogglesOn = ContentScopeFeatureToggles(emailProtection: true,
+                                                         emailProtectionIncontextSignup: true,
                                                          credentialsAutofill: true,
                                                          identitiesAutofill: true,
                                                          creditCardsAutofill: true,

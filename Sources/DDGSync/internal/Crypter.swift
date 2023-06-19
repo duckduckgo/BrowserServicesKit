@@ -19,7 +19,7 @@
 import Foundation
 import DDGSyncCrypto
 
-struct Crypter: Crypting {
+struct Crypter: CryptingInternal {
 
     let secureStore: SecureStoring
 

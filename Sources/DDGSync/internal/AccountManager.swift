@@ -23,7 +23,7 @@ struct AccountManager: AccountManaging {
 
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
-    let crypter: Crypting
+    let crypter: CryptingInternal
 
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount {
         let deviceId = UUID().uuidString
@@ -50,14 +50,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createRequest(
-            url: endpoints.signup,
-            method: .POST,
-            headers: [:],
-            parameters: [:],
-            body: paramJson,
-            contentType: "application/json"
-        )
+        let request = api.createUnauthenticatedJSONRequest(url: endpoints.signup, method: .POST, json: paramJson)
 
         let result = try await request.execute()
 
@@ -75,34 +68,27 @@ struct AccountManager: AccountManaging {
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
-                           token: result.token)
+                           token: result.token,
+                           state: .settingUpNewAccount)
     }
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
         let deviceId = UUID().uuidString
-
         let recoveryInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
-        let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: recoveryInfo.primaryKey)
-        let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: recoveryInfo.primaryKey)
+        return try await login(recoveryInfo,
+                               deviceId: deviceId,
+                               deviceName: deviceName,
+                               deviceType: deviceType)
+    }
 
-        let params = Login.Parameters(
-            userId: recoveryInfo.userId,
-            hashedPassword: recoveryInfo.passwordHash.base64EncodedString(),
-            deviceId: deviceId,
-            deviceName: encryptedDeviceName,
-            deviceType: encryptedDeviceType
-        )
+    func logout(deviceId: String, token: String) async throws {
+        let params = LogoutDevice.Parameters(deviceId: deviceId)
 
-        let paramJson = try JSONEncoder.snakeCaseKeys.encode(params)
+        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
+            fatalError()
+        }
 
-        let request = api.createRequest(
-            url: endpoints.login,
-            method: .POST,
-            headers: [:],
-            parameters: [:],
-            body: paramJson,
-            contentType: "application/json"
-        )
+        let request = api.createAuthenticatedJSONRequest(url: endpoints.logoutDevice, method: .POST, authToken: token, json: paramJson)
 
         let result = try await request.execute()
 
@@ -110,7 +96,93 @@ struct AccountManager: AccountManaging {
             throw SyncError.noResponseBody
         }
 
-        print(String(data: body, encoding: .utf8) ?? "invalid result.data")
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(LogoutDevice.Result.self, from: body) else {
+            throw SyncError.unableToDecodeResponse("Failed to decode login result")
+        }
+
+        guard result.deviceId == deviceId else {
+            throw SyncError.unexpectedResponseBody
+        }
+    }
+
+    func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice] {
+        guard let token = account.token else {
+            throw SyncError.noToken
+        }
+
+        let url = endpoints.syncGet.appendingPathComponent("devices")
+        let request = api.createAuthenticatedGetRequest(url: url, authToken: token)
+        let result = try await request.execute()
+
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
+        }
+
+        guard let result = try? JSONDecoder.snakeCaseKeys.decode(FetchDevicesResult.self, from: body) else {
+            throw SyncError.unableToDecodeResponse("Failed to decode devices")
+        }
+
+        return try result.devices?.entries.map {
+            RegisteredDevice(id: $0.id,
+                             name: try crypter.base64DecodeAndDecrypt($0.name, using: account.primaryKey),
+                             type: try crypter.base64DecodeAndDecrypt($0.type, using: account.primaryKey))
+        } ?? []
+    }
+
+    func refreshToken(_ account: SyncAccount, deviceName: String) async throws -> LoginResult {
+        let info = try crypter.extractLoginInfo(recoveryKey: SyncCode.RecoveryKey(userId: account.userId,
+                                                                                  primaryKey: account.primaryKey))
+        return try await login(info,
+                               deviceId: account.deviceId,
+                               deviceName: deviceName,
+                               deviceType: account.deviceType)
+    }
+
+    func deleteAccount(_ account: SyncAccount) async throws {
+        guard let token = account.token else {
+            throw SyncError.noToken
+        }
+
+        let devices = try await fetchDevicesForAccount(account)
+
+        // Logout other devices first or the call will fail
+        for device in devices.filter({ $0.id != account.deviceId }) {
+            try await logout(deviceId: device.id, token: token)
+        }
+
+        // This is the last device, the backend will perge the data after this
+        //  An explicit delete account endpoint might be better though
+        if let thisDevice = devices.first(where: { $0.id == account.deviceId }) {
+            try await logout(deviceId: thisDevice.id, token: token)
+        }
+    }
+
+    private func login(_ info: ExtractedLoginInfo,
+                       deviceId: String,
+                       deviceName: String,
+                       deviceType: String) async throws -> LoginResult {
+
+        let encryptedDeviceName = try crypter.encryptAndBase64Encode(deviceName, using: info.primaryKey)
+        let encryptedDeviceType = try crypter.encryptAndBase64Encode(deviceType, using: info.primaryKey)
+
+        let params = Login.Parameters(
+            userId: info.userId,
+            hashedPassword: info.passwordHash.base64EncodedString(),
+            deviceId: deviceId,
+            deviceName: encryptedDeviceName,
+            deviceType: encryptedDeviceType
+        )
+
+        let paramJson = try JSONEncoder.snakeCaseKeys.encode(params)
+
+        let request = api.createUnauthenticatedJSONRequest(url: endpoints.login, method: .POST, json: paramJson)
+
+        let result = try await request.execute()
+
+        guard let body = result.data else {
+            throw SyncError.noResponseBody
+        }
+
         guard let result = try? JSONDecoder.snakeCaseKeys.decode(Login.Result.self, from: body) else {
             throw SyncError.unableToDecodeResponse("Failed to decode login result")
         }
@@ -121,58 +193,29 @@ struct AccountManager: AccountManaging {
 
         let token = result.token
 
-        let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey, stretchedPrimaryKey: recoveryInfo.stretchedPrimaryKey)
+        let secretKey = try crypter.extractSecretKey(protectedSecretKey: protectedSecretKey,
+                                                     stretchedPrimaryKey: info.stretchedPrimaryKey)
 
         return LoginResult(
             account: SyncAccount(
-                deviceId: params.deviceId,
+                deviceId: deviceId,
                 deviceName: deviceName,
                 deviceType: deviceType,
-                userId: recoveryInfo.userId,
-                primaryKey: recoveryInfo.primaryKey,
+                userId: info.userId,
+                primaryKey: info.primaryKey,
                 secretKey: secretKey,
-                token: token
+                token: token,
+                state: .addingNewDevice
             ),
             devices: try result.devices.map {
                 RegisteredDevice(
-                    id: $0.deviceId,
-                    name: try crypter.base64DecodeAndDecrypt($0.deviceName, using: recoveryInfo.primaryKey),
-                    type: try crypter.base64DecodeAndDecrypt($0.deviceType, using: recoveryInfo.primaryKey)
+                    id: $0.id,
+                    name: try crypter.base64DecodeAndDecrypt($0.name, using: info.primaryKey),
+                    type: try crypter.base64DecodeAndDecrypt($0.type, using: info.primaryKey)
                 )
             }
         )
-    }
 
-    func logout(deviceId: String, token: String) async throws {
-        let params = LogoutDevice.Parameters(deviceId: deviceId)
-
-        guard let paramJson = try? JSONEncoder.snakeCaseKeys.encode(params) else {
-            fatalError()
-        }
-
-        let request = api.createRequest(
-            url: endpoints.logoutDevice,
-            method: .POST,
-            headers: ["Authorization": "Bearer \(token)"],
-            parameters: [:],
-            body: paramJson,
-            contentType: "application/json"
-        )
-
-        let result = try await request.execute()
-
-        guard let body = result.data else {
-            throw SyncError.noResponseBody
-        }
-
-        print(String(data: body, encoding: .utf8) ?? "invalid result.data")
-        guard let result = try? JSONDecoder.snakeCaseKeys.decode(LogoutDevice.Result.self, from: body) else {
-            throw SyncError.unableToDecodeResponse("Failed to decode login result")
-        }
-
-        guard result.deviceId == deviceId else {
-            throw SyncError.unexpectedResponseBody
-        }
     }
 
     struct Signup {
@@ -195,17 +238,11 @@ struct AccountManager: AccountManaging {
     struct Login {
 
         struct Result: Decodable {
-            let devices: [Device]
+            let devices: [RegisteredDevice]
             let token: String
             let protectedEncryptionKey: String
         }
 
-        struct Device: Decodable {
-            let deviceId: String
-            let deviceName: String
-            let deviceType: String
-        }
-        
         struct Parameters: Encodable {
             let userId: String
             let hashedPassword: String
@@ -225,5 +262,28 @@ struct AccountManager: AccountManaging {
         struct Parameters: Encodable {
             let deviceId: String
         }
+    }
+
+    struct FetchDevicesResult: Decodable {
+        struct DeviceWrapper: Decodable {
+            var lastModified: String?
+            var entries: [RegisteredDevice]
+        }
+
+        var devices: DeviceWrapper?
+    }
+}
+
+extension SyncAccount {
+
+    func updatingState(_ state: SyncAuthState) -> SyncAccount {
+        SyncAccount(deviceId: self.deviceId,
+                    deviceName: self.deviceName,
+                    deviceType: self.deviceType,
+                    userId: self.userId,
+                    primaryKey: self.primaryKey,
+                    secretKey: self.secretKey,
+                    token: self.token,
+                    state: state)
     }
 }

@@ -28,37 +28,56 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     let context: NSManagedObjectContext
 
     public var favorites = [BookmarkEntity]()
-    
+
+    private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
+    private let localSubject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
-    
+    public var localUpdates: AnyPublisher<Void, Never>
+
     private let errorEvents: EventMapping<BookmarksModelError>?
 
     public init(bookmarksDatabase: CoreDataDatabase,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
+        self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         refresh()
         registerForChanges()
     }
-    
-    private func registerForChanges() {
-        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
-                                               object: nil,
-                                               queue: .main) { [weak self] notification in
-            guard let otherContext = notification.object as? NSManagedObjectContext,
-                  otherContext != self?.context,
-            otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
-            
-            self?.context.mergeChanges(fromContextDidSave: notification)
-            self?.context.refreshAllObjects()
-            self?.refresh()
-            self?.subject.send()
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
         }
     }
     
+    private func registerForChanges() {
+        observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                                          object: nil,
+                                                          queue: nil) { [weak self] notification in
+            guard let otherContext = notification.object as? NSManagedObjectContext,
+                  otherContext != self?.context,
+            otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
+
+            self?.context.perform {
+                self?.context.mergeChanges(fromContextDidSave: notification)
+                self?.context.refreshAllObjects()
+                self?.refresh()
+                self?.subject.send()
+            }
+        }
+    }
+
+    public func reloadData() {
+        context.performAndWait {
+            self.refresh()
+        }
+    }
+
     private func refresh() {
         guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
             errorEvents?.fire(.fetchingRootItemFailed(.favorites))
@@ -66,7 +85,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             return
         }
         
-        favorites = favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoritesFolder)
     }
 
     public func favorite(at index: Int) -> BookmarkEntity? {
@@ -88,7 +107,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
 
         save()
         
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoriteFolder)
     }
     
     public func moveFavorite(_ favorite: BookmarkEntity,
@@ -118,16 +137,21 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         
         save()
         
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoriteFolder)
     }
     
     private func save() {
         do {
             try context.save()
+            localSubject.send()
         } catch {
             context.rollback()
             errorEvents?.fire(.saveFailed(.favorites), error: error)
         }
     }
 
+    private func readFavorites(with favoritesFolder: BookmarkEntity) {
+        favorites = (favoritesFolder.favorites?.array as? [BookmarkEntity] ?? [])
+            .filter { !$0.isPendingDeletion }
+    }
 }

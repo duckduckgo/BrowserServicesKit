@@ -29,16 +29,20 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     let context: NSManagedObjectContext
     
     public var bookmarks = [BookmarkEntity]()
-    
+
+    private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
+    private let localSubject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
-    
+    public var localUpdates: AnyPublisher<Void, Never>
+
     private let errorEvents: EventMapping<BookmarksModelError>?
     
     public init(bookmarksDatabase: CoreDataDatabase,
                 parentID: NSManagedObjectID?,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
+        self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
 
@@ -63,19 +67,29 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         
         registerForChanges()
     }
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+    }
+
     
     private func registerForChanges() {
-        NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
-                                               object: nil,
-                                               queue: .main) { [weak self] notification in
+        observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
+                                                          object: nil,
+                                                          queue: nil) { [weak self] notification in
             guard let otherContext = notification.object as? NSManagedObjectContext,
                   otherContext != self?.context,
             otherContext.persistentStoreCoordinator == self?.context.persistentStoreCoordinator else { return }
-            
-            self?.context.mergeChanges(fromContextDidSave: notification)
-            self?.context.refreshAllObjects()
-            self?.refresh()
-            self?.subject.send()
+
+            self?.context.perform {
+                self?.context.mergeChanges(fromContextDidSave: notification)
+                self?.context.refreshAllObjects()
+                self?.refresh()
+                self?.subject.send()
+            }
         }
     }
 
@@ -96,18 +110,23 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
+        let shouldIncludeOrphans = bookmark.parent?.uuid == BookmarkEntity.Constants.rootFolderID || bookmark.parent == nil
+        if shouldIncludeOrphans {
+            reattachOrphanedBookmarks(forMoving: bookmark, toIndex: toIndex)
+        }
+
         guard let parentFolder = bookmark.parent else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
         }
-        
+
         guard let children = parentFolder.children,
               fromIndex < children.count,
               toIndex < children.count else {
             errorEvents?.fire(.indexOutOfRange(.bookmarks))
             return
         }
-        
+
         guard let actualBookmark = children[fromIndex] as? BookmarkEntity,
               actualBookmark == bookmark else {
             errorEvents?.fire(.bookmarksListIndexNotMatchingBookmark)
@@ -118,21 +137,52 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
 
         save()
-
-        bookmarks = parentFolder.childrenArray
+        refresh()
     }
 
-    public func deleteBookmark(_ bookmark: BookmarkEntity) {
-        guard let parentFolder = bookmark.parent else {
+    private func reattachOrphanedBookmarks(forMoving bookmark: BookmarkEntity, toIndex: Int) {
+        guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
+            return
+        }
+
+        let orphanedBookmarks = bookmarks.filter { $0.parent == nil }
+        guard !orphanedBookmarks.isEmpty else {
+            return
+        }
+
+        let orphanedBookmarksToAttachToRootFolder: [BookmarkEntity] = {
+            let toIndexInOrphanedBookmarks = toIndex - rootFolder.childrenArray.count
+            guard bookmark.parent == nil else {
+                return toIndexInOrphanedBookmarks >= 0 ? Array(orphanedBookmarks.prefix(through: toIndexInOrphanedBookmarks)) : []
+            }
+            guard let bookmarkIndexInOrphans = orphanedBookmarks.firstIndex(where: { $0.uuid == bookmark.uuid }) else {
+                return [bookmark]
+            }
+            return Array(orphanedBookmarks.prefix(through: max(toIndexInOrphanedBookmarks, bookmarkIndexInOrphans)))
+        }()
+
+        orphanedBookmarksToAttachToRootFolder.forEach { rootFolder.addToChildren($0) }
+    }
+
+    public func softDeleteBookmark(_ bookmark: BookmarkEntity) {
+        if bookmark.parent == nil {
+            BookmarkUtils.fetchRootFolder(context)?.addToChildren(bookmark)
+        }
+        guard bookmark.parent != nil else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
         }
 
-        context.delete(bookmark)
+        bookmark.markPendingDeletion()
 
         save()
+        refresh()
+    }
 
-        bookmarks = parentFolder.childrenArray
+    public func reloadData() {
+        context.performAndWait {
+            self.refresh()
+        }
     }
 
     private func refresh() {
@@ -142,6 +192,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     private func save() {
         do {
             try context.save()
+            localSubject.send()
         } catch {
             context.rollback()
             errorEvents?.fire(.saveFailed(.bookmarks), error: error)
@@ -169,7 +220,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public var totalBookmarksCount: Int {
         let countRequest = BookmarkEntity.fetchRequest()
-        countRequest.predicate = NSPredicate(format: "%K == false", #keyPath(BookmarkEntity.isFolder))
+        countRequest.predicate = NSPredicate(format: "%K == false && %K == NO", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.isPendingDeletion))
         
         return (try? context.count(for: countRequest)) ?? 0
     }
@@ -183,16 +234,28 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             errorEvents?.fire(.fetchingRootItemFailed(.bookmarks))
             return []
         }
-        
+
         return root.childrenArray
     }
 
     public func fetchBookmarksInFolder(_ folder: BookmarkEntity?) -> [BookmarkEntity] {
-        if let folder = folder {
-            return folder.childrenArray
-        } else {
+        let shouldFetchRootFolder = folder == nil || folder?.uuid == BookmarkEntity.Constants.rootFolderID
+
+        var folderBookmarks: [BookmarkEntity] = {
+            if let folder = folder {
+                return folder.childrenArray
+            }
             return fetchBookmarksInRootFolder()
+        }()
+
+        if shouldFetchRootFolder {
+            let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
+            if !orphanedBookmarks.isEmpty {
+                errorEvents?.fire(.orphanedBookmarksPresent)
+            }
+            folderBookmarks += orphanedBookmarks
         }
+        return folderBookmarks
     }
 
     public func bookmark(with id: NSManagedObjectID) -> BookmarkEntity? {

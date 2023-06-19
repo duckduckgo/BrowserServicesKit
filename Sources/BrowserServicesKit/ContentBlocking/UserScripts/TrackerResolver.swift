@@ -106,12 +106,13 @@ public class TrackerResolver {
             blockingState = .allowed(reason: .protectionDisabled) // maybe we should not differentiate
         } else {
             // Check for custom rules
-            let rule = tracker.matchingRuleForTrackerURL(trackerUrlString)
-            let ruleAction = rule?.action(type: resourceType,
-                                          pageUrlString: pageUrlString) ?? .none
+            let (rule, ruleAction) = findMatchingRuleWithAction(tracker: tracker,
+                                                                trackerUrlString: trackerUrlString,
+                                                                resourceType: resourceType,
+                                                                pageUrlString: pageUrlString) ?? (nil, nil)
 
             switch ruleAction {
-            case .none:
+            case nil:
                 if tracker.defaultAction == .block {
                     blockingState = potentiallyBlocked ? .blocked : .allowed(reason: .ruleException)
                 } else /* if tracker.defaultAction == .ignore */ {
@@ -132,6 +133,23 @@ public class TrackerResolver {
         
         return blockingState
     }
+
+    private func findMatchingRuleWithAction(tracker: KnownTracker,
+                                            trackerUrlString: String,
+                                            resourceType: String,
+                                            pageUrlString: String) -> (KnownTracker.Rule, TrackerResolver.RuleAction)? {
+        guard let host = URL(string: pageUrlString)?.host,
+              let rules = tracker.rules else {
+            return nil
+        }
+        for rule in rules {
+            guard rule.isMatchingUrl(trackerUrlString), let action = rule.action(type: resourceType, host: host) else {
+                continue
+            }
+            return (rule, action)
+        }
+        return nil
+    }
     
     private func isPageOnUnprotectedSitesOrTempList(_ pageUrlString: String) -> Bool {
         guard let pageHost = URL(string: pageUrlString)?.host else { return false }
@@ -150,9 +168,10 @@ public class TrackerResolver {
     }
 
     enum RuleAction {
-        case none
+
         case allowRequest
         case blockRequest
+
     }
 
     static public func isMatching(_ option: KnownTracker.Rule.Matching, host: String, resourceType: String) -> Bool {
@@ -175,46 +194,32 @@ public class TrackerResolver {
 
         return !isEmpty && matching
     }
-}
 
-fileprivate extension KnownTracker {
-
-    func matchingRuleForTrackerURL(_ urlString: String) -> KnownTracker.Rule? {
-
-        let range = NSRange(location: 0, length: urlString.utf16.count)
-        
-        for rule in rules ?? [] {
-            guard let pattern = rule.rule,
-                  let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
-                continue
-            }
-
-            if regex.firstMatch(in: urlString, options: [], range: range) != nil {
-                return rule
-            }
-        }
-
-        return nil
-    }
 }
 
 fileprivate extension KnownTracker.Rule {
-    
-    func action(type: String,
-                pageUrlString: String) -> TrackerResolver.RuleAction {
-        
-        guard let host = URL(string: pageUrlString)?.host else { return .none }
 
-        // If there is a rule its default action is always block
-        var resultAction = action ?? .block
-        
-        // If there are matching exceptions toggle the action
-        if let exceptions = exceptions, TrackerResolver.isMatching(exceptions, host: host, resourceType: type) {
-            resultAction = resultAction.toggle()
+    func isMatchingUrl(_ urlString: String) -> Bool {
+        guard let pattern = rule, let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return false
         }
-        
-        return resultAction.toTrackerResolverRuleAction()
+        let range = NSRange(location: 0, length: urlString.utf16.count)
+        return regex.firstMatch(in: urlString, options: [], range: range) != nil
     }
+    
+    func action(type: String, host: String) -> TrackerResolver.RuleAction? {
+        // If there is a rule its default action is always block
+        var resultAction: KnownTracker.ActionType? = action ?? .block
+        if resultAction == .block {
+            if let options = options, !TrackerResolver.isMatching(options, host: host, resourceType: type) {
+                resultAction = nil
+            } else if let exceptions = exceptions, TrackerResolver.isMatching(exceptions, host: host, resourceType: type) {
+                resultAction = .ignore
+            }
+        }
+        return resultAction?.toTrackerResolverRuleAction()
+    }
+
 }
 
 private extension KnownTracker.ActionType {
@@ -222,8 +227,5 @@ private extension KnownTracker.ActionType {
     func toTrackerResolverRuleAction() -> TrackerResolver.RuleAction {
         self == .block ? .blockRequest : .allowRequest
     }
-    
-    func toggle() -> Self {
-        self == .ignore ? .block : .ignore
-    }
+
 }

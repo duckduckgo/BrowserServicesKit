@@ -18,8 +18,8 @@
 //
 
 import Foundation
-import OSLog
 import Common
+import os.log
 
 public protocol AdClickAttributionDetectionDelegate: AnyObject {
     

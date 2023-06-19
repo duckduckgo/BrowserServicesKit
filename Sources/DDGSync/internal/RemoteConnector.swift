@@ -23,13 +23,13 @@ class RemoteConnector: RemoteConnecting {
     let code: String
     let connectInfo: ConnectInfo
 
-    let crypter: Crypting
+    let crypter: CryptingInternal
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
 
     var isPolling = false
 
-    init(crypter: Crypting,
+    init(crypter: CryptingInternal,
          api: RemoteAPIRequestCreating,
          endpoints: Endpoints,
          connectInfo: ConnectInfo) throws {
@@ -69,10 +69,15 @@ class RemoteConnector: RemoteConnecting {
     }
 
     private func decryptEncryptedRecoveryKey(_ encryptedRecoveryKey: Data) throws -> SyncCode.RecoveryKey {
-        let recoveryKey = try crypter.unseal(encryptedData: encryptedRecoveryKey,
-                                             publicKey: connectInfo.publicKey,
-                                             secretKey: connectInfo.secretKey)
-        return try JSONDecoder.snakeCaseKeys.decode(SyncCode.RecoveryKey.self, from: recoveryKey)
+        let data = try crypter.unseal(encryptedData: encryptedRecoveryKey,
+                                      publicKey: connectInfo.publicKey,
+                                      secretKey: connectInfo.secretKey)
+
+        guard let recoveryKey = try JSONDecoder.snakeCaseKeys.decode(SyncCode.self, from: data).recovery else {
+            throw SyncError.failedToDecryptValue("Invalid recovery key in connect response")
+        }
+
+        return recoveryKey
     }
 
     private func fetchEncryptedRecoveryKey() async throws -> Data? {

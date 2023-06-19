@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 /// A vault that supports storing data at various levels.
 ///
@@ -183,15 +184,13 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-     public func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+    public func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         lock.lock()
         defer {
             lock.unlock()
         }
-
         do {
-            let accounts = try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
-            return accounts
+            return try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }
@@ -224,10 +223,16 @@ class DefaultSecureVault: SecureVault {
         defer {
             lock.unlock()
         }
-
         do {
+            // Generate a new signature
+            guard credentials.account.username.data(using: .utf8) != nil else {
+                throw SecureVaultError.generalCryptoError
+            }
+            let hashData = credentials.account.hashValue + credentials.password
+            var creds = credentials
+            creds.account.signature = try providers.crypto.hashData(hashData)
             let encryptedPassword = try self.l2Encrypt(data: credentials.password)
-            return try self.providers.database.storeWebsiteCredentials(.init(account: credentials.account, password: encryptedPassword))
+            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
@@ -390,7 +395,7 @@ class DefaultSecureVault: SecureVault {
         }
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }
-
+    
     private func l2Encrypt(data: Data) throws -> Data {
         let password = try passwordInUse()
         let l2Key = try l2KeyFrom(password: password)
@@ -404,3 +409,4 @@ class DefaultSecureVault: SecureVault {
     }
 
 }
+

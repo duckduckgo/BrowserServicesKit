@@ -19,7 +19,6 @@
 import Foundation
 import CoreData
 import Common
-import OSLog
 
 public protocol ManagedObjectContextFactory {
     
@@ -77,7 +76,8 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
     public init(name: String,
                 containerLocation: URL,
                 model: NSManagedObjectModel,
-                readOnly: Bool = false) {
+                readOnly: Bool = false,
+                options: [String: NSObject] = [:]) {
         
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
         self.containerLocation = containerLocation
@@ -85,6 +85,10 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         let description = NSPersistentStoreDescription(url: containerLocation.appendingPathComponent("\(name).sqlite"))
         description.type = NSSQLiteStoreType
         description.isReadOnly = readOnly
+
+        for (key, value) in options {
+            description.setOption(value, forKey: key)
+        }
         
         self.container.persistentStoreDescriptions = [description]
     }
@@ -143,13 +147,6 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
 }
 
 extension NSManagedObjectContext {
-
-    public func insertObject<A: NSManagedObject>() -> A {
-        guard let obj = NSEntityDescription.insertNewObject(forEntityName: A.entity().name!, into: self) as? A else {
-            fatalError("Wrong object type \(A.entity().name!)")
-        }
-        return obj
-    }
 
     public func deleteAll(entities: [NSManagedObject] = []) {
         for entity in entities {
