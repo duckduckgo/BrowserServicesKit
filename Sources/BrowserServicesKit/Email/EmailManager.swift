@@ -126,8 +126,7 @@ public enum AliasRequestError: Error {
 
 public struct EmailUrls {
     struct Url {
-        //static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
-        static let emailAlias = "https://quackdev.duckduckgo.com/api/email/addresses"
+        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"        
     }
 
     var emailAliasAPI: URL {
@@ -500,24 +499,6 @@ private extension EmailManager {
     // TODO: The API responds either true|false or 1|0 so we need to account for both scenarios
     struct EmailAliasStatusResponse: Decodable {
         let active: Bool
-
-        private enum CodingKeys: String, CodingKey {
-            case active
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            if let boolValue = try? container.decode(Bool.self, forKey: .active) {
-                // If the value is in the format { "active": true }
-                active = boolValue
-            } else if let intValue = try? container.decode(Int.self, forKey: .active) {
-                // If the value is in the format { "active": 1 }
-                active = (intValue != 0)
-            } else {
-                // If the value cannot be decoded as a Bool or Int
-                throw DecodingError.dataCorruptedError(forKey: .active, in: container, debugDescription: "Invalid value for 'active'")
-            }
-        }
     }
     
     typealias HTTPHeaders = [String: String]
