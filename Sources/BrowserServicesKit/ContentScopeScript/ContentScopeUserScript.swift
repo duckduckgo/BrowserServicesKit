@@ -29,50 +29,15 @@ public final class ContentScopeProperties: Encodable {
     public let debug: Bool = false
     public let sessionKey: String
     public let platform = ContentScopePlatform()
-    public let features: [String: ClickToLoad]
-//    public let features: [String: ContentScopeFeature]
+    public let features: [String: ContentScopeFeature]
 
     public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
         self.sessionKey = sessionKey
-
-        let clickToLoad = ClickToLoad(
-            exceptions: [],
-            settings: ClickToLoad.Settings(
-                facebookInc: ClickToLoad.Settings.Rule(ruleActions: ["block-ctl-fb"], state: "enabled"),
-                youtube: ClickToLoad.Settings.Rule(ruleActions: ["block-ctl-yt"], state: "disabled")
-            ),
-            state: "enabled",
-            hash: "be4a32a8303eb523dbc0efe89deaa34d"
-        )
-
-
         features = [
-//            "autofill": ContentScopeFeature(featureToggles: featureToggles),
-            "clickToLoad": clickToLoad
+            "autofill": ContentScopeFeature(featureToggles: featureToggles)
         ]
     }
-}
-
-public struct ClickToLoad: Encodable {
-    struct Settings: Encodable {
-        struct Rule: Encodable {
-            let ruleActions: [String]
-            let state: String
-        }
-        let facebookInc: Rule
-        let youtube: Rule
-
-        private enum CodingKeys: String, CodingKey {
-            case facebookInc = "Facebook, Inc."
-            case youtube = "Youtube"
-        }
-    }
-
-    let exceptions: [String]
-    let settings: Settings
-    let state: String
-    let hash: String
 }
 
 public struct ContentScopeFeature: Encodable {
@@ -149,14 +114,7 @@ public struct ContentScopePlatform: Encodable {
     #endif
 }
 
-//public final class ContentScopeUserScript: NSObject, UserScript, WKScriptMessageHandlerWithReply {
-//
-//    public weak var webView: WKWebView?
-//
-//    public let messageNames: [String] = ["getClickToLoadState", "unblockClickToLoadContent"]
-//=======
 public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessaging {
-//>>>>>>> main
 
     public var broker: UserScriptMessageBroker
     public let isIsolated: Bool
@@ -208,55 +166,6 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
             "$WEBKIT_MESSAGING_CONFIG$": jsonConfigString
         ])
     }
-
-//    @MainActor
-//    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-//        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
-//    }
-//
-//    @MainActor
-//    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
-//        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
-//        if message.name == "getClickToLoadState" {
-//            let msg = [
-//                "messageType": "response",
-//                "responseMessageType": "getClickToLoadState",
-//                "response": [
-//                    "devMode": true,
-//                    "youtubePreviewsEnabled": false
-//                ]
-//            ] as [String : Any]
-//            let messageData = try! JSONSerialization.data(withJSONObject: msg)
-//            let messageJSONString = String(data: messageData, encoding: .utf8)!
-//            let js = "window.clickToLoadMessageCallback(\(messageJSONString));"
-//            evaluate(js: js)
-//
-//            displayClickToLoadPlaceholders()
-//        }
-//
-//        return (nil, nil)
-//    }
-
-//    public func displayClickToLoadPlaceholders() {
-//        let message = [
-//            "messageType": "displayClickToLoadPlaceholders",
-//            "options": [
-//                "ruleAction": ["block"]
-//            ]
-//        ] as [String : Any]
-//        let messageData = try! JSONSerialization.data(withJSONObject: message)
-//        let messageJSONString = String(data: messageData, encoding: .utf8)!
-//        let js = "window.clickToLoadMessageCallback(\(messageJSONString));"
-//        evaluate(js: js)
-//    }
-//
-//    private func evaluate(js: String) {
-//        guard let webView else {
-//            assertionFailure("WebView not set")
-//            return
-//        }
-////        webView.evaluateJavaScript(js, in: nil, in: .page)
-//    }
 
     public let source: String
     public let injectionTime: WKUserScriptInjectionTime = .atDocumentStart
