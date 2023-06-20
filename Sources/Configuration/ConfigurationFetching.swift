@@ -82,6 +82,17 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             try validator.validate(data, for: configuration)
         }
         try store(fetchResult, for: configuration)
+
+        /*
+         let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: .default)
+         if let data = fetchResult.data {
+             try validator.validate(data, for: configuration)
+         }
+         let oldEtag = store.loadEtag(for: configuration) ?? store.loadEmbeddedEtag(for: configuration)
+         try store(fetchResult, for: configuration)
+         let newEtag = store.loadEtag(for: configuration)
+         return newEtag != oldEtag
+         */
     }
     
     /**

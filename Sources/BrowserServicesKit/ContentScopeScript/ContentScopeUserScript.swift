@@ -30,6 +30,7 @@ public final class ContentScopeProperties: Encodable {
     public let sessionKey: String
     public let platform = ContentScopePlatform()
     public let features: [String: ClickToLoad]
+//    public let features: [String: ContentScopeFeature]
 
     public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
@@ -148,14 +149,14 @@ public struct ContentScopePlatform: Encodable {
     #endif
 }
 
-public final class ContentScopeUserScript: NSObject, UserScript, WKScriptMessageHandlerWithReply {
-
-    public weak var webView: WKWebView?
-
-    public let messageNames: [String] = ["getClickToLoadState", "unblockClickToLoadContent"]
-=======
+//public final class ContentScopeUserScript: NSObject, UserScript, WKScriptMessageHandlerWithReply {
+//
+//    public weak var webView: WKWebView?
+//
+//    public let messageNames: [String] = ["getClickToLoadState", "unblockClickToLoadContent"]
+//=======
 public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessaging {
->>>>>>> main
+//>>>>>>> main
 
     public var broker: UserScriptMessageBroker
     public let isIsolated: Bool
@@ -208,40 +209,54 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
         ])
     }
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
-    }
+//    @MainActor
+//    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+//        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
+//    }
+//
+//    @MainActor
+//    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
+//        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
+//        if message.name == "getClickToLoadState" {
+//            let msg = [
+//                "messageType": "response",
+//                "responseMessageType": "getClickToLoadState",
+//                "response": [
+//                    "devMode": true,
+//                    "youtubePreviewsEnabled": false
+//                ]
+//            ] as [String : Any]
+//            let messageData = try! JSONSerialization.data(withJSONObject: msg)
+//            let messageJSONString = String(data: messageData, encoding: .utf8)!
+//            let js = "window.clickToLoadMessageCallback(\(messageJSONString));"
+//            evaluate(js: js)
+//
+//            displayClickToLoadPlaceholders()
+//        }
+//
+//        return (nil, nil)
+//    }
 
-    @MainActor
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
-        os_log("Message received: %s", log: .userScripts, type: .debug, String(describing: message.body))
-        if message.name == "getClickToLoadState" {
-//            let js = "window.postMessage({ ruleAction: block });"
-//            let js = """
-//                window.clickToLoadMessageCallback(\("{ \"devMode\": true, \"youtubePreviewsEnabled\": false }"));
-//            """
-            let js = "console.log(typeof window.clickToLoadMessageCallback)"
-            evaluate(js: js)
-        } else if message.name == "" {
-            let js = "window.clickToLoadMessageCallback(\("{ devMode: true, youtubePreviewsEnabled: false }"))"
-            evaluate(js: js)
-        }
-
-        return (nil, nil)
-    }
-
-    public func displayClickToLoadPlaceholders() {
-        let js = "window.displayClickToLoadPlaceholders({ \"ruleAction\": [\"block\"] });"
-        evaluate(js: js)
-    }
-
-    private func evaluate(js: String) {
-        guard let webView else {
-            assertionFailure("WebView not set")
-            return
-        }
-        webView.evaluateJavaScript(js, in: nil, in: WKContentWorld.defaultClient)
-    }
+//    public func displayClickToLoadPlaceholders() {
+//        let message = [
+//            "messageType": "displayClickToLoadPlaceholders",
+//            "options": [
+//                "ruleAction": ["block"]
+//            ]
+//        ] as [String : Any]
+//        let messageData = try! JSONSerialization.data(withJSONObject: message)
+//        let messageJSONString = String(data: messageData, encoding: .utf8)!
+//        let js = "window.clickToLoadMessageCallback(\(messageJSONString));"
+//        evaluate(js: js)
+//    }
+//
+//    private func evaluate(js: String) {
+//        guard let webView else {
+//            assertionFailure("WebView not set")
+//            return
+//        }
+////        webView.evaluateJavaScript(js, in: nil, in: .page)
+//    }
 
     public let source: String
     public let injectionTime: WKUserScriptInjectionTime = .atDocumentStart
