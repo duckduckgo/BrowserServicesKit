@@ -49,8 +49,10 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
-    public var isInProgressPublisher: AnyPublisher<Bool, Never> {
-        isSyncInProgressSubject.removeDuplicates().eraseToAnyPublisher()
+    @Published public var isSyncInProgress: Bool = false
+
+    public var isSyncInProgressPublisher: AnyPublisher<Bool, Never> {
+        $isSyncInProgress.dropFirst().removeDuplicates().eraseToAnyPublisher()
     }
 
     public weak var dataProvidersSource: DataProvidersSource?
@@ -250,9 +252,9 @@ public class DDGSync: DDGSyncing {
 
         syncQueueCancellable = syncQueue.isSyncInProgressPublisher
             .sink(receiveCompletion: { [weak self] _ in
-                self?.isSyncInProgressSubject.send(false)
+                self?.isSyncInProgress = false
             }, receiveValue: { [weak self] isInProgress in
-                self?.isSyncInProgressSubject.send(isInProgress)
+                self?.isSyncInProgress = isInProgress
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
@@ -303,5 +305,4 @@ public class DDGSync: DDGSyncing {
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
-    private var isSyncInProgressSubject = PassthroughSubject<Bool, Never>()
 }

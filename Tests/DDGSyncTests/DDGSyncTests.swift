@@ -90,7 +90,7 @@ final class DDGSyncTests: XCTestCase {
     }
 
     func bindInProgressPublisher(for syncService: DDGSyncing) {
-        isInProgressCancellable = syncService.isInProgressPublisher.sink { isInProgress in
+        isInProgressCancellable = syncService.isSyncInProgressPublisher.sink { isInProgress in
             if isInProgress {
                 self.recordedEvents.append(.started(self.taskID))
                 self.syncStartedExpectation.fulfill()
@@ -189,12 +189,12 @@ final class DDGSyncTests: XCTestCase {
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         syncService.initializeIfNeeded(isInternalUser: false)
 
-        isInProgressCancellable = syncService.isInProgressPublisher.sink { [weak syncService] isInProgress in
+        isInProgressCancellable = syncService.isSyncInProgressPublisher.sink { [weak syncService] isInProgress in
             if isInProgress {
                 self.recordedEvents.append(.started(self.taskID))
                 self.syncStartedExpectation.fulfill()
                 if self.taskID == 2 {
-                    syncService?.scheduler.cancelSync()
+                    syncService?.scheduler.cancelSyncAndSuspendSyncQueue()
                 }
             } else {
                 self.recordedEvents.append(.finished(self.taskID))
@@ -238,7 +238,7 @@ final class DDGSyncTests: XCTestCase {
         syncService.initializeIfNeeded(isInternalUser: false)
         bindInProgressPublisher(for: syncService)
 
-        syncService.scheduler.cancelSync()
+        syncService.scheduler.cancelSyncAndSuspendSyncQueue()
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
         syncService.scheduler.requestSyncImmediately()
@@ -263,9 +263,9 @@ final class DDGSyncTests: XCTestCase {
         syncService.initializeIfNeeded(isInternalUser: false)
         bindInProgressPublisher(for: syncService)
 
-        syncService.scheduler.cancelSync()
+        syncService.scheduler.cancelSyncAndSuspendSyncQueue()
         syncService.scheduler.requestSyncImmediately()
-        syncService.scheduler.resumeSync()
+        syncService.scheduler.resumeSyncQueue()
 
         waitForExpectations(timeout: 0.1)
 

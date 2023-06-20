@@ -102,11 +102,11 @@ final class SchedulerMock: SchedulingInternal {
         }
     }
 
-    func cancelSync() {
+    func cancelSyncAndSuspendSyncQueue() {
         cancelSyncSubject.send()
     }
 
-    func resumeSync() {
+    func resumeSyncQueue() {
         resumeSyncSubject.send()
     }
 

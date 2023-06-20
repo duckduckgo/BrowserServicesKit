@@ -115,11 +115,13 @@ class SyncQueue {
     }
 
     func cancelOngoingSyncAndSuspendQueue() {
+        os_log(.debug, log: self.log, "Cancelling sync and suspending sync queue")
         operationQueue.cancelAllOperations()
         operationQueue.isSuspended = true
     }
 
     func resumeQueue() {
+        os_log(.debug, log: self.log, "Resuming sync queue")
         operationQueue.isSuspended = false
     }
 
