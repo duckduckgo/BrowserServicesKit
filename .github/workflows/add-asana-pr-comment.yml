@@ -2,7 +2,7 @@ name: Add PR link to Asana task
 
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened]
 
 jobs:
   sync:
