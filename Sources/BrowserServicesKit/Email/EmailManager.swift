@@ -126,7 +126,7 @@ public enum AliasRequestError: Error {
 
 public struct EmailUrls {
     struct Url {
-        static let emailAlias = "https://duckduckgo.com/api/email/addresses"        
+        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"        
     }
 
     var emailAliasAPI: URL {
