@@ -279,4 +279,31 @@ final class DDGSyncTests: XCTestCase {
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH])
     }
+
+    func testWhenSyncGetsDisabledBeforeStartingOperationThenOperationReturnsEarly() throws {
+        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        setUpDataProviderCallbacks(for: &dataProvider)
+        setUpExpectations(started: 1, fetch: 1, handleResponse: 1, finished: 1)
+        fetchExpectation.isInverted = true
+        handleSyncResponseExpectation.isInverted = true
+
+        dataProvidersSource.dataProviders = [dataProvider]
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+        bindInProgressPublisher(for: syncService)
+
+        syncService.scheduler.requestSyncImmediately()
+        try dependencies.secureStore.removeAccount()
+
+        waitForExpectations(timeout: 1)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .finished(1),
+        ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertTrue(api.createRequestCallArgs.isEmpty)
+    }
 }

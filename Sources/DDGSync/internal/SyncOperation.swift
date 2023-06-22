@@ -103,7 +103,7 @@ class SyncOperation: Operation {
     }
 
     override func start() {
-        if isCancelled {
+        guard !isCancelled else {
             isExecuting = false
             isFinished = true
             return
@@ -121,7 +121,12 @@ class SyncOperation: Operation {
             }
 
             do {
-                let state = try storage.account()?.state
+                let state = try storage.account()?.state ?? .inactive
+                guard state != .inactive else {
+                    didFinish?(nil)
+                    return
+                }
+
                 if state == .addingNewDevice {
                     try await sync(fetchOnly: true)
                     didFinishInitialFetch?()
