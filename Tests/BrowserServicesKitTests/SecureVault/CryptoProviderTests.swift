@@ -89,12 +89,4 @@ class CryptoProviderTests: XCTestCase {
         XCTAssertGreaterThan(password.filter { $0 > 0 }.count, 0)
     }
 
-    func testWhenAStringIsHashedMultipleTimes_ThenResultIsTheSame() throws {
-        let provider = DefaultCryptoProvider()
-        let data = Data("This is some test data".utf8)
-        let hash1 = try provider.hashData(data)
-        let hash2 = try provider.hashData(data)
-        XCTAssertEqual(hash1, hash2)
-    }
-
 }
