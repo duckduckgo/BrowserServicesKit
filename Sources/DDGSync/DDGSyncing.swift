@@ -77,9 +77,14 @@ public protocol DDGSyncing {
     var scheduler: Scheduling { get }
 
     /**
+     Returns true if there is an ongoing sync operation.
+     */
+    var isSyncInProgress: Bool { get }
+
+    /**
      Emits boolean values representing current sync operation status.
      */
-    var isInProgressPublisher: AnyPublisher<Bool, Never> { get }
+    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
 
     /**
      Initializes Sync object, loads account info and prepares internal state.
@@ -179,6 +184,10 @@ public protocol Scheduling {
     func notifyAppLifecycleEvent()
     /// This should be called from externally scheduled background jobs that trigger sync periodically.
     func requestSyncImmediately()
+    /// This should be called when sync needs to be cancelled, e.g. in response to app going to background.
+    func cancelSyncAndSuspendSyncQueue()
+    /// This should be called when sync can be resumed, e.g. in response to app going to foreground.
+    func resumeSyncQueue()
 }
 
 /**
