@@ -175,6 +175,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
 
 @available(macOS 11.0, iOS 14.0, *)
 extension ContentScopeUserScript: WKScriptMessageHandlerWithReply {
+    @MainActor
     public func userContentController(_ userContentController: WKUserContentController,
                                       didReceive message: WKScriptMessage) async -> (Any?, String?) {
         let action = broker.messageHandlerFor(message)
