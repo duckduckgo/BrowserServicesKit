@@ -308,8 +308,13 @@ extension EmailManager: AutofillEmailDelegate {
 
     public func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion) {
         getAliasIfNeeded { [weak self] alias, error in
-            guard let alias = alias, error == nil, let self = self else {
+            guard let self = self else {
                 completionHandler(nil, nil, error)
+                return
+            }
+
+            guard let alias = alias, error == nil else {
+                completionHandler(self.username, nil, error)
                 return
             }
 
@@ -319,8 +324,13 @@ extension EmailManager: AutofillEmailDelegate {
 
     public func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion) {
         getAliasIfNeeded { [weak self] alias, error in
-            guard let alias = alias, error == nil, let self = self else {
+            guard let self = self else {
                 completionHandler(nil, nil, nil, error)
+                return
+            }
+
+            guard let alias = alias, error == nil else {
+                completionHandler(self.username, nil, self.token, error)
                 return
             }
 

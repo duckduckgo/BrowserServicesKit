@@ -95,6 +95,12 @@ extension AutofillUserScript {
                     "privateAddress": "\(alias)"
                 }
                 """
+            } else if let username = username {
+                addresses = """
+                {
+                    "personalAddress": "\(username)"
+                }
+                """
             } else {
                 addresses = "null"
             }
