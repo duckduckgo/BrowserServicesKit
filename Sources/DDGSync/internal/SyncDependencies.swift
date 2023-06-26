@@ -25,6 +25,7 @@ protocol SyncDependencies {
     var endpoints: Endpoints { get }
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
+    var keyValueStore: KeyValueStoring { get }
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
@@ -47,6 +48,12 @@ protocol AccountManaging {
 
     func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice]
 
+}
+
+protocol KeyValueStoring {
+
+    func object(forKey: String) -> Any?
+    func set(_ value: Any?, forKey: String)
 }
 
 protocol SecureStoring {
@@ -108,22 +115,4 @@ protocol RecoveryKeyTransmitting {
 
     func send(_ code: SyncCode.ConnectCode) async throws
 
-}
-
-/**
- * Internal interface for sync queue.
- */
-protocol SyncQueueProtocol {
-    /// Used for passing data and receiving results to/from sync
-    var dataProviders: [Feature: DataProviding] { get }
-    /// Called to prepare Data Providers for first sync
-    func prepareForFirstSync() async throws
-    /// Called to start first sync
-    func startFirstSync() async
-    /// Called to start sync
-    func startSync() async
-    /// Emits boolean values representing current sync operation status.
-    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
-    /// Emits events when each sync operation finishes
-    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }
