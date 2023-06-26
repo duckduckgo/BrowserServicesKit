@@ -299,7 +299,7 @@ class EmailManagerTests: XCTestCase {
 
         do {
             let response = try await emailManager.getStatusFor(email: "xtwx7744@duck.com")
-            XCTAssertTrue(response)
+            XCTAssertEqual(response, .active)
         }
         catch {
             XCTFail("Status should be returned")
@@ -317,7 +317,7 @@ class EmailManagerTests: XCTestCase {
 
         do {
             let response = try await emailManager.setStatusFor(email: "xtwx7744@duck.com", active: false)
-            XCTAssertTrue(response)
+            XCTAssertEqual(response, .active)
         }
         catch {
             XCTFail("Status should be returned")
@@ -410,7 +410,7 @@ class EmailManagerTests: XCTestCase {
 }
 
 class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
-
+    var activeTask: URLSessionTask?
     var mockAliases: [String] = []
     var waitlistTimestamp: Int = 1
     
@@ -433,8 +433,7 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
 
         switch action {
             case .fetch: return try processMockAliasRequest().get()
-            case .status, .update: return try processMockAliasStatusRequest().get()            
-            default: return Data()
+            case .status, .update: return try processMockAliasStatusRequest().get()
         }
     }
     // swiftlint:enable function_parameter_count
