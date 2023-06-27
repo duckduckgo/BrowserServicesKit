@@ -54,16 +54,16 @@ struct SyncResult {
     }
 }
 
-actor SyncQueue: SyncQueueProtocol {
+class SyncQueue {
 
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring
     let isSyncInProgressPublisher: AnyPublisher<Bool, Never>
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
-    nonisolated let crypter: Crypting
-    nonisolated let requestMaker: SyncRequestMaking
+    let crypter: Crypting
+    let requestMaker: SyncRequestMaking
 
-    init(dataProviders: [DataProviding], dependencies: SyncDependencies) {
+    convenience init(dataProviders: [DataProviding], dependencies: SyncDependencies) {
         self.init(
             dataProviders: dataProviders,
             storage: dependencies.secureStore,
@@ -97,7 +97,7 @@ actor SyncQueue: SyncQueueProtocol {
             .eraseToAnyPublisher()
     }
 
-    nonisolated func prepareForFirstSync() throws {
+    func prepareForFirstSync() throws {
         for dataProvider in dataProviders.values {
             do {
                 try dataProvider.prepareForFirstSync()
@@ -109,147 +109,58 @@ actor SyncQueue: SyncQueueProtocol {
         }
     }
 
-    func startFirstSync() async {
-        do {
-            syncDidStartSubject.send(())
-            let syncAuthState = (try? storage.account()?.state) ?? .inactive
-            guard syncAuthState != .inactive else {
-                assertionFailure("Called first sync in unexpected \(syncAuthState) state")
-                return
-            }
-
-            if syncAuthState == .addingNewDevice {
-                try await sync(fetchOnly: true)
-            }
-            syncDidFinishSubject.send(.success(()))
-        } catch {
-            syncDidFinishSubject.send(.failure(error))
-        }
+    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) {
+        let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
+        operationQueue.addOperation(operation)
     }
 
-    func startSync() async {
-        do {
-            syncDidStartSubject.send(())
-            try await sync(fetchOnly: false)
-            syncDidFinishSubject.send(.success(()))
-        } catch {
-            syncDidFinishSubject.send(.failure(error))
-        }
+    func cancelOngoingSyncAndSuspendQueue() {
+        os_log(.debug, log: self.log, "Cancelling sync and suspending sync queue")
+        operationQueue.cancelAllOperations()
+        operationQueue.isSuspended = true
     }
 
-    /**
-     * This is private to SyncQueue, but not marked as such to allow unit testing.
-     */
-    func sync(fetchOnly: Bool) async throws {
-        os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
-        defer {
-            os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
+    func resumeQueue() {
+        os_log(.debug, log: self.log, "Resuming sync queue")
+        operationQueue.isSuspended = false
+    }
+
+    // MARK: - Private
+
+    private func makeSyncOperation(firstFetchCompletion: (() -> Void)?) -> SyncOperation {
+        let operation = SyncOperation(
+            dataProviders: dataProviders,
+            storage: storage,
+            crypter: crypter,
+            requestMaker: requestMaker,
+            log: self.log
+        )
+        operation.didFinishInitialFetch = firstFetchCompletion
+        operation.didStart = { [weak self] in
+            self?.syncDidStartSubject.send(())
         }
-
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            for (feature, dataProvider) in dataProviders {
-                group.addTask { [weak self] in
-                    guard let self else {
-                        return
-                    }
-                    os_log(.debug, log: self.log, "Syncing %{public}s", feature.name)
-
-                    do {
-                        let syncRequest = try await self.makeSyncRequest(for: dataProvider, fetchOnly: fetchOnly)
-                        let clientTimestamp = Date()
-                        let httpRequest = try self.makeHTTPRequest(with: syncRequest, timestamp: clientTimestamp)
-                        let httpResult: HTTPResult = try await httpRequest.execute()
-
-                        switch httpResult.response.statusCode {
-                        case 200:
-                            guard let data = httpResult.data else {
-                                throw SyncError.noResponseBody
-                            }
-                            os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
-                                   feature.name,
-                                   String(data: data, encoding: .utf8) ?? "")
-                            let syncResult = try self.decodeResponse(with: data, request: syncRequest)
-                            try await self.handleResponse(for: dataProvider, syncResult: syncResult, fetchOnly: fetchOnly, timestamp: clientTimestamp)
-                        case 204, 304:
-                            try await self.handleResponse(for: dataProvider, syncResult: .noData(with: syncRequest), fetchOnly: fetchOnly, timestamp: clientTimestamp)
-                        default:
-                            throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
-                        }
-                    } catch {
-                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
-                        dataProvider.handleSyncError(error)
-                        throw FeatureError(feature: feature, underlyingError: error)
-                    }
-                }
-            }
-
-            var errors: [FeatureError] = []
-
-            while let result = await group.nextResult() {
-                if case .failure(let error) = result, let featureError = error as? FeatureError {
-                    errors.append(featureError)
-                }
-            }
-
-            if !errors.isEmpty {
-                throw SyncOperationError(featureErrors: errors)
+        operation.didFinish = { [weak self] error in
+            if let error {
+                self?.syncDidFinishSubject.send(.failure(error))
+            } else {
+                self?.syncDidFinishSubject.send(.success(()))
             }
         }
+        return operation
     }
 
-    nonisolated private func makeSyncRequest(for dataProvider: DataProviding, fetchOnly: Bool) async throws -> SyncRequest {
-        if fetchOnly {
-            return SyncRequest(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: [])
-        }
-        let localChanges: [Syncable] = try await dataProvider.fetchChangedObjects(encryptedUsing: crypter)
-        return SyncRequest(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: localChanges)
-    }
-
-    nonisolated private func makeHTTPRequest(with syncRequest: SyncRequest, timestamp: Date) throws -> HTTPRequesting {
-        let hasLocalChanges = !syncRequest.sent.isEmpty
-        if hasLocalChanges {
-            return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp)
-        }
-        return try requestMaker.makeGetRequest(with: syncRequest)
-    }
-
-    nonisolated private func decodeResponse(with data: Data, request: SyncRequest) throws -> SyncResult {
-        guard let jsonObject = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
-            throw SyncError.unableToDecodeResponse("Failed to decode sync response")
-        }
-
-        guard let featurePayload = jsonObject[request.feature.name] as? [String: Any],
-              let lastModified = featurePayload["last_modified"] as? String,
-              let entries = featurePayload["entries"] as? [[String: Any]]
-        else {
-            throw SyncError.unexpectedResponseBody
-        }
-        return SyncResult(request: request, syncTimestamp: lastModified, received: entries.map(Syncable.init(jsonObject:)))
-    }
-
-    nonisolated private func handleResponse(for dataProvider: DataProviding, syncResult: SyncResult, fetchOnly: Bool, timestamp: Date) async throws {
-        if fetchOnly {
-            try await dataProvider.handleInitialSyncResponse(
-                received: syncResult.received,
-                clientTimestamp: timestamp,
-                serverTimestamp: syncResult.syncTimestamp,
-                crypter: crypter
-            )
-        } else {
-            try await dataProvider.handleSyncResponse(
-                sent: syncResult.request.sent,
-                received: syncResult.received,
-                clientTimestamp: timestamp,
-                serverTimestamp: syncResult.syncTimestamp,
-                crypter: crypter
-            )
-        }
-    }
+    let operationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "com.duckduckgo.sync.queue"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
 
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
     private let syncDidStartSubject = PassthroughSubject<Void, Never>()
-    nonisolated private var log: OSLog {
+    private var log: OSLog {
         getLog()
     }
-    nonisolated private let getLog: () -> OSLog
+    private let getLog: () -> OSLog
 }

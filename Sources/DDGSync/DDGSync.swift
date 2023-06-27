@@ -49,8 +49,10 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
-    public var isInProgressPublisher: AnyPublisher<Bool, Never> {
-        isSyncInProgressSubject.eraseToAnyPublisher()
+    @Published public var isSyncInProgress: Bool = false
+
+    public var isSyncInProgressPublisher: AnyPublisher<Bool, Never> {
+        $isSyncInProgress.dropFirst().removeDuplicates().eraseToAnyPublisher()
     }
 
     public weak var dataProvidersSource: DataProvidersSource?
@@ -250,46 +252,33 @@ public class DDGSync: DDGSyncing {
 
         syncQueueCancellable = syncQueue.isSyncInProgressPublisher
             .sink(receiveCompletion: { [weak self] _ in
-                self?.isSyncInProgressSubject.send(false)
+                self?.isSyncInProgress = false
             }, receiveValue: { [weak self] isInProgress in
-                self?.isSyncInProgressSubject.send(isInProgress)
+                self?.isSyncInProgress = isInProgress
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .flatMap(maxPublishers: .max(1)) { [weak self] in
-                guard let self else {
-                    return Future<Void, Never> { promise in
-                        promise(.success(()))
+            .sink { [weak self] in
+                self?.syncQueue?.startSync() {
+                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
+                        try? self?.dependencies.secureStore.persistAccount(account)
+                        self?.authState = .active
                     }
                 }
-                return self.startSync()
             }
-            .sink {}
+
+        cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.cancelOngoingSyncAndSuspendQueue()
+            }
+
+        resumeSyncCancellable = dependencies.scheduler.resumeSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.resumeQueue()
+            }
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
-    }
-
-    private func startSync() -> Future<Void, Never> {
-        Future { promise in
-            Task { [weak self] in
-                defer { promise(.success(())) }
-                guard let self else {
-                    return
-                }
-
-                if self.authState == .active {
-                    await self.syncQueue?.startSync()
-                } else {
-                    await self.syncQueue?.startFirstSync()
-                    if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
-                        try? self.dependencies.secureStore.persistAccount(account)
-                        self.authState = .active
-                    }
-                    await self.syncQueue?.startSync()
-                }
-            }
-        }
     }
 
     private func handleUnauthenticated(_ error: Error) throws {
@@ -311,8 +300,9 @@ public class DDGSync: DDGSyncing {
     }
 
     private var startSyncCancellable: AnyCancellable?
+    private var cancelSyncCancellable: AnyCancellable?
+    private var resumeSyncCancellable: AnyCancellable?
 
-    private var syncQueue: SyncQueueProtocol?
+    private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
-    private var isSyncInProgressSubject = PassthroughSubject<Bool, Never>()
 }

@@ -116,21 +116,3 @@ protocol RecoveryKeyTransmitting {
     func send(_ code: SyncCode.ConnectCode) async throws
 
 }
-
-/**
- * Internal interface for sync queue.
- */
-protocol SyncQueueProtocol {
-    /// Used for passing data and receiving results to/from sync
-    var dataProviders: [Feature: DataProviding] { get }
-    /// Called to prepare Data Providers for first sync
-    func prepareForFirstSync() async throws
-    /// Called to start first sync
-    func startFirstSync() async
-    /// Called to start sync
-    func startSync() async
-    /// Emits boolean values representing current sync operation status.
-    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
-    /// Emits events when each sync operation finishes
-    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
-}

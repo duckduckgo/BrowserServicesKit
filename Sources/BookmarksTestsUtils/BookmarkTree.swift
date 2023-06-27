@@ -228,12 +228,12 @@ public struct BookmarkTree {
 
 public extension BookmarkEntity {
     @discardableResult
-    public static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
+    static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
         makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context).0
     }
 
     @discardableResult
-    public static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
+    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
         var entity: BookmarkEntity!
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
@@ -296,7 +296,7 @@ public extension BookmarkEntity {
 
 
 public extension XCTestCase {
-    public func assertEquivalent(withTimestamps: Bool = true, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
+    func assertEquivalent(withTimestamps: Bool = true, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
         let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = bookmarkEntity.managedObjectContext?.persistentStoreCoordinator
 
