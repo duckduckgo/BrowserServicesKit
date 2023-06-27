@@ -166,6 +166,7 @@ let package = Package(
             name: "SyncDataProviders",
             dependencies: [
                 "Bookmarks",
+                "BrowserServicesKit",
                 "DDGSync",
                 "Persistence"
             ]),
