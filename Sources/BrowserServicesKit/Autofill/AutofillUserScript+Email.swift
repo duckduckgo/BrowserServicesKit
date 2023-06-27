@@ -32,7 +32,10 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScriptDidRequestUserData(_ : AutofillUserScript, completionHandler: @escaping UserDataCompletion)
     func autofillUserScriptDidRequestSignOut(_ : AutofillUserScript)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
-
+    func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double)
+    func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double?
+    func autofillUserScriptDidRequestInContextSignup(_ : AutofillUserScript)
+    func autofillUserScriptDidCompleteInContextSignup(_ : AutofillUserScript)
 }
 
 extension AutofillUserScript {
@@ -140,6 +143,39 @@ extension AutofillUserScript {
         } else {
             replyHandler(nil)
         }
+    }
+
+    // MARK: In Context Email Protection
+
+    func setIncontextSignupPermanentlyDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.messageBody as? [String: Any],
+              let value = body["value"] as? Double else {
+            return
+        }
+        emailDelegate?.autofillUserScript(self, didRequestSetInContextPromptValue: value)
+        replyHandler(nil)
+    }
+
+    func getIncontextSignupDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
+        let inContextSignupDismissedAt = IncontextSignupDismissedAt(
+            permanentlyDismissedAt: inContextEmailSignupPromptDismissedPermanentlyAt
+        )
+        let response = GetIncontextSignupDismissedAtResponse(success: inContextSignupDismissedAt)
+
+        if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
+        }
+    }
+
+    func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)
+        replyHandler(nil)
+    }
+
+    func closeEmailProtectionTab(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        emailDelegate?.autofillUserScriptDidCompleteInContextSignup(self)        
+        replyHandler(nil)
     }
 
 }

@@ -22,6 +22,10 @@ public enum SyncError: Error, Equatable {
 
     case noToken
 
+    case failedToMigrate
+    case failedToLoadAccount
+    case failedToSetupEngine
+
     case failedToCreateAccountKeys(_ message: String)
     case accountNotFound
     case accountAlreadyExists

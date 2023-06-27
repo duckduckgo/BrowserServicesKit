@@ -32,9 +32,11 @@ public class DDGSync: DDGSyncing {
         //#else
         //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
         //#endif
+
+        public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }
 
-    @Published public private(set) var authState: SyncAuthState
+    @Published public private(set) var authState = SyncAuthState.initializing
     public var authStatePublisher: AnyPublisher<SyncAuthState, Never> {
         $authState.eraseToAnyPublisher()
     }
@@ -47,15 +49,17 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
-    public var isInProgressPublisher: AnyPublisher<Bool, Never> {
-        isSyncInProgressSubject.eraseToAnyPublisher()
+    @Published public var isSyncInProgress: Bool = false
+
+    public var isSyncInProgressPublisher: AnyPublisher<Bool, Never> {
+        $isSyncInProgress.dropFirst().removeDuplicates().eraseToAnyPublisher()
     }
 
     public weak var dataProvidersSource: DataProvidersSource?
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(dataProvidersSource: DataProvidersSource, log: @escaping @autoclosure () -> OSLog = .disabled) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, log: log())
+    public convenience init(dataProvidersSource: DataProvidersSource, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, errorEvents: errorEvents, log: log())
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -173,13 +177,55 @@ public class DDGSync: DDGSyncing {
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
+    }
 
-        let account = try? dependencies.secureStore.account()
-        self.authState = account?.state ?? .inactive
-        try? updateAccount(account)
+    public func initializeIfNeeded(isInternalUser: Bool) {
+        guard authState == .initializing else { return }
+
+        let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
+        guard syncEnabled else {
+            // This is for initial tests only
+            if isInternalUser {
+                // Migrate and start using user defaults flag
+                do {
+                    let account = try dependencies.secureStore.account()
+                    authState = account?.state ?? .inactive
+                    try updateAccount(account)
+
+                } catch {
+                    dependencies.errorEvents.fire(.failedToMigrate, error: error)
+                }
+            } else {
+                try? dependencies.secureStore.removeAccount()
+                authState = .inactive
+            }
+
+            return
+        }
+
+        var account: SyncAccount?
+        do {
+            account = try dependencies.secureStore.account()
+        } catch {
+            dependencies.errorEvents.fire(.failedToLoadAccount, error: error)
+            return
+        }
+
+        authState = account?.state ?? .inactive
+
+        do {
+            try updateAccount(account)
+        } catch {
+            dependencies.errorEvents.fire(.failedToSetupEngine, error: error)
+        }
     }
 
     private func updateAccount(_ account: SyncAccount? = nil) throws {
+        guard account?.state != .initializing else {
+            assertionFailure("Sync has not been initialized properly")
+            return
+        }
+
         guard let account, account.state != .inactive else {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
@@ -187,6 +233,7 @@ public class DDGSync: DDGSyncing {
             syncQueue = nil
             authState = .inactive
             try dependencies.secureStore.removeAccount()
+            dependencies.keyValueStore.set(nil, forKey: Constants.syncEnabledKey)
             return
         }
 
@@ -201,49 +248,37 @@ public class DDGSync: DDGSyncing {
         }
         try dependencies.secureStore.persistAccount(account)
         authState = account.state
+        dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
 
         syncQueueCancellable = syncQueue.isSyncInProgressPublisher
             .sink(receiveCompletion: { [weak self] _ in
-                self?.isSyncInProgressSubject.send(false)
+                self?.isSyncInProgress = false
             }, receiveValue: { [weak self] isInProgress in
-                self?.isSyncInProgressSubject.send(isInProgress)
+                self?.isSyncInProgress = isInProgress
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .flatMap(maxPublishers: .max(1)) { [weak self] in
-                guard let self else {
-                    return Future<Void, Never> { promise in
-                        promise(.success(()))
+            .sink { [weak self] in
+                self?.syncQueue?.startSync() {
+                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
+                        try? self?.dependencies.secureStore.persistAccount(account)
+                        self?.authState = .active
                     }
                 }
-                return self.startSync()
             }
-            .sink {}
+
+        cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.cancelOngoingSyncAndSuspendQueue()
+            }
+
+        resumeSyncCancellable = dependencies.scheduler.resumeSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.resumeQueue()
+            }
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
-    }
-
-    private func startSync() -> Future<Void, Never> {
-        Future { promise in
-            Task { [weak self] in
-                defer { promise(.success(())) }
-                guard let self else {
-                    return
-                }
-
-                if self.authState == .active {
-                    await self.syncQueue?.startSync()
-                } else {
-                    await self.syncQueue?.startFirstSync()
-                    if let account = try? self.dependencies.secureStore.account()?.updatingState(.active) {
-                        try? self.dependencies.secureStore.persistAccount(account)
-                        self.authState = .active
-                    }
-                    await self.syncQueue?.startSync()
-                }
-            }
-        }
     }
 
     private func handleUnauthenticated(_ error: Error) throws {
@@ -255,14 +290,19 @@ public class DDGSync: DDGSyncing {
 
         do {
             try updateAccount(nil)
+            dependencies.errorEvents.fire(syncError)
         } catch {
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
+            if let syncError = error as? SyncError {
+                dependencies.errorEvents.fire(syncError)
+            }
         }
     }
 
     private var startSyncCancellable: AnyCancellable?
+    private var cancelSyncCancellable: AnyCancellable?
+    private var resumeSyncCancellable: AnyCancellable?
 
-    private var syncQueue: SyncQueueProtocol?
+    private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
-    private var isSyncInProgressSubject = PassthroughSubject<Bool, Never>()
 }

@@ -52,6 +52,7 @@ public struct ContentScopeFeature: Encodable {
 public struct ContentScopeFeatureToggles: Encodable {
 
     public let emailProtection: Bool
+    public let emailProtectionIncontextSignup: Bool
 
     public let credentialsAutofill: Bool
     public let identitiesAutofill: Bool
@@ -66,6 +67,7 @@ public struct ContentScopeFeatureToggles: Encodable {
 
     // Explicitly defined memberwise init only so it can be public
     public init(emailProtection: Bool,
+                emailProtectionIncontextSignup: Bool,
                 credentialsAutofill: Bool,
                 identitiesAutofill: Bool,
                 creditCardsAutofill: Bool,
@@ -75,6 +77,7 @@ public struct ContentScopeFeatureToggles: Encodable {
                 thirdPartyCredentialsProvider: Bool) {
 
         self.emailProtection = emailProtection
+        self.emailProtectionIncontextSignup = emailProtectionIncontextSignup
         self.credentialsAutofill = credentialsAutofill
         self.identitiesAutofill = identitiesAutofill
         self.creditCardsAutofill = creditCardsAutofill
@@ -86,6 +89,7 @@ public struct ContentScopeFeatureToggles: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case emailProtection = "emailProtection"
+        case emailProtectionIncontextSignup = "emailProtection_incontext_signup"
 
         case credentialsAutofill = "inputType_credentials"
         case identitiesAutofill = "inputType_identities"
@@ -171,6 +175,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
 
 @available(macOS 11.0, iOS 14.0, *)
 extension ContentScopeUserScript: WKScriptMessageHandlerWithReply {
+    @MainActor
     public func userContentController(_ userContentController: WKUserContentController,
                                       didReceive message: WKScriptMessage) async -> (Any?, String?) {
         let action = broker.messageHandlerFor(message)

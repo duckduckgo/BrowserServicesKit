@@ -110,21 +110,23 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public func moveBookmark(_ bookmark: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        if bookmark.parent == nil {
-            BookmarkUtils.fetchRootFolder(context)?.addToChildren(bookmark)
+        let shouldIncludeOrphans = bookmark.parent?.uuid == BookmarkEntity.Constants.rootFolderID || bookmark.parent == nil
+        if shouldIncludeOrphans {
+            reattachOrphanedBookmarks(forMoving: bookmark, toIndex: toIndex)
         }
+
         guard let parentFolder = bookmark.parent else {
             errorEvents?.fire(.missingParent(.bookmark))
             return
         }
-        
+
         guard let children = parentFolder.children,
               fromIndex < children.count,
               toIndex < children.count else {
             errorEvents?.fire(.indexOutOfRange(.bookmarks))
             return
         }
-        
+
         guard let actualBookmark = children[fromIndex] as? BookmarkEntity,
               actualBookmark == bookmark else {
             errorEvents?.fire(.bookmarksListIndexNotMatchingBookmark)
@@ -136,6 +138,30 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
         save()
         refresh()
+    }
+
+    private func reattachOrphanedBookmarks(forMoving bookmark: BookmarkEntity, toIndex: Int) {
+        guard let rootFolder = BookmarkUtils.fetchRootFolder(context) else {
+            return
+        }
+
+        let orphanedBookmarks = bookmarks.filter { $0.parent == nil }
+        guard !orphanedBookmarks.isEmpty else {
+            return
+        }
+
+        let orphanedBookmarksToAttachToRootFolder: [BookmarkEntity] = {
+            let toIndexInOrphanedBookmarks = toIndex - rootFolder.childrenArray.count
+            guard bookmark.parent == nil else {
+                return toIndexInOrphanedBookmarks >= 0 ? Array(orphanedBookmarks.prefix(through: toIndexInOrphanedBookmarks)) : []
+            }
+            guard let bookmarkIndexInOrphans = orphanedBookmarks.firstIndex(where: { $0.uuid == bookmark.uuid }) else {
+                return [bookmark]
+            }
+            return Array(orphanedBookmarks.prefix(through: max(toIndexInOrphanedBookmarks, bookmarkIndexInOrphans)))
+        }()
+
+        orphanedBookmarksToAttachToRootFolder.forEach { rootFolder.addToChildren($0) }
     }
 
     public func softDeleteBookmark(_ bookmark: BookmarkEntity) {
@@ -224,6 +250,9 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
         if shouldFetchRootFolder {
             let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
+            if !orphanedBookmarks.isEmpty {
+                errorEvents?.fire(.orphanedBookmarksPresent)
+            }
             folderBookmarks += orphanedBookmarks
         }
         return folderBookmarks

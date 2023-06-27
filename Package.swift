@@ -27,12 +27,12 @@ let package = Package(
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.1.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.4.4"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.21.1"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
     ],
@@ -75,6 +75,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "BookmarksTestsUtils",
+            dependencies: [
+                "Bookmarks"
+            ]
+        ),
+         .target(
             name: "BloomFilterWrapper",
             dependencies: [
                 "BloomFilter"
@@ -177,7 +183,8 @@ let package = Package(
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
-                "Bookmarks"
+                "Bookmarks",
+                "BookmarksTestsUtils"
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
@@ -248,6 +255,7 @@ let package = Package(
         .testTarget(
             name: "SyncDataProvidersTests",
             dependencies: [
+                "BookmarksTestsUtils",
                 "SyncDataProviders"
             ]
         )
