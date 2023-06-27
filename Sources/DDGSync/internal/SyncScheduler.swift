@@ -28,6 +28,10 @@ protocol SchedulingInternal: AnyObject, Scheduling {
     var isEnabled: Bool { get set }
     /// Publishes events to notify Sync Queue that sync operation should be started.
     var startSyncPublisher: AnyPublisher<Void, Never> { get }
+    /// Publishes events to notify Sync Queue that sync operation should be cancelled.
+    var cancelSyncPublisher: AnyPublisher<Void, Never> { get }
+    /// Publishes events to notify Sync Queue that sync operations can be resumed.
+    var resumeSyncPublisher: AnyPublisher<Void, Never> { get }
 }
 
 class SyncScheduler: SchedulingInternal {
@@ -49,8 +53,18 @@ class SyncScheduler: SchedulingInternal {
         }
     }
 
+    func cancelSyncAndSuspendSyncQueue() {
+        cancelSyncSubject.send()
+    }
+
+    func resumeSyncQueue() {
+        resumeSyncSubject.send()
+    }
+
     var isEnabled: Bool = false
     let startSyncPublisher: AnyPublisher<Void, Never>
+    let cancelSyncPublisher: AnyPublisher<Void, Never>
+    let resumeSyncPublisher: AnyPublisher<Void, Never>
 
     init() {
         let throttledAppLifecycleEvents = appLifecycleEventSubject
@@ -60,6 +74,8 @@ class SyncScheduler: SchedulingInternal {
             .throttle(for: .seconds(Const.immediateSyncDebounceInterval), scheduler: DispatchQueue.main, latest: true)
 
         startSyncPublisher = startSyncSubject.eraseToAnyPublisher()
+        cancelSyncPublisher = cancelSyncSubject.eraseToAnyPublisher()
+        resumeSyncPublisher = resumeSyncSubject.eraseToAnyPublisher()
 
         startSyncCancellable = Publishers.Merge(throttledAppLifecycleEvents, throttledSyncTriggerEvents)
             .sink(receiveValue: { [weak self] _ in
@@ -70,6 +86,8 @@ class SyncScheduler: SchedulingInternal {
     private let appLifecycleEventSubject: PassthroughSubject<Void, Never> = .init()
     private let syncTriggerSubject: PassthroughSubject<Void, Never> = .init()
     private let startSyncSubject: PassthroughSubject<Void, Never> = .init()
+    private let cancelSyncSubject: PassthroughSubject<Void, Never> = .init()
+    private let resumeSyncSubject: PassthroughSubject<Void, Never> = .init()
     private var startSyncCancellable: AnyCancellable?
 
     enum Const {
