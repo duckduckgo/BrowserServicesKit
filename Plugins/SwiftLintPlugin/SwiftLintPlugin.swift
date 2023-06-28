@@ -47,7 +47,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             inputFiles: sourceTarget.sourceFiles(withSuffix: "swift").map(\.path),
             packageDirectory: context.package.directory,
             workingDirectory: context.pluginWorkDirectory,
-            tool: try context.tool(named: "swiftlint")
+            tool: context.tool(named:)
         )
     }
 
@@ -56,7 +56,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
         inputFiles: [Path],
         packageDirectory: Path,
         workingDirectory: Path,
-        tool: PluginContext.Tool
+        tool: (String) throws -> PluginContext.Tool
     ) throws -> [Command] {
         if inputFiles.isEmpty {
             // Don't lint anything if there are no Swift source files in this target
@@ -147,7 +147,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             result = [
                 .prebuildCommand(
                     displayName: "SwiftLint",
-                    executable: tool.path,
+                    executable: try tool("swiftlint").path,
                     arguments: arguments,
                     outputFilesDirectory: outputFilesDirectory
                 )
@@ -158,10 +158,11 @@ struct SwiftLintPlugin: BuildToolPlugin {
             try "".write(toFile: outputPath, atomically: false, encoding: .utf8)
         }
 
+
         // output cached diagnostic messages
         result.append(.prebuildCommand(
-            displayName: "SwiftLint: cached",
-            executable: .echo,
+            displayName: "SwiftLint: cached \(cacheURL.path)",
+            executable: Path("/bin/echo"),
             arguments: [cachedDiagnostics.joined(separator: "\n")],
             outputFilesDirectory: outputFilesDirectory
         ))
@@ -175,7 +176,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
                 outputFilesDirectory: outputFilesDirectory
             ))
             result.append(.prebuildCommand(
-                displayName: "Cache SwiftLint results",
+                displayName: "Cache source files modification dates for SwiftLint",
                 executable: .mv,
                 arguments: [cacheURL.appendingPathExtension("tmp").path, cacheURL.path],
                 outputFilesDirectory: outputFilesDirectory
@@ -200,7 +201,7 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
             inputFiles: inputFilePaths,
             packageDirectory: context.xcodeProject.directory,
             workingDirectory: context.pluginWorkDirectory,
-            tool: context.tool(named: "swiftlint")
+            tool: context.tool(named:)
         )
     }
 }
@@ -231,7 +232,6 @@ extension String {
 extension Path {
 
     static let mv = Path("/bin/mv")
-    static let echo = Path("/bin/echo")
 
     /// Scans the receiver, then all of its parents looking for a configuration file with the name ".swiftlint.yml".
     ///
