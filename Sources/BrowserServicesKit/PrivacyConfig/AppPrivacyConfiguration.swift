@@ -46,12 +46,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return data.unprotectedTemporary.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
 
-    public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData {
-        switch data.trackerAllowlist.state {
-        case PrivacyConfigurationData.State.enabled: return data.trackerAllowlist.entries
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser ? data.trackerAllowlist.entries : [:]
-        default: return [:]
-        }
+    public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist {
+        return data.trackerAllowlist
     }
     
     func parse(versionString: String) -> [Int] {

@@ -23,12 +23,12 @@ public class ContentBlockerRulesIdentifier: Equatable, Codable {
     
     let name: String
     let tdsEtag: String
-    let tempListEtag: String
-    let allowListEtag: String
+    let tempListId: String
+    let allowListId: String
     let unprotectedSitesHash: String
     
     public var stringValue: String {
-        return name + tdsEtag + tempListEtag + unprotectedSitesHash
+        return name + tdsEtag + tempListId + allowListId + unprotectedSitesHash
     }
     
     public struct Difference: OptionSet {
@@ -39,11 +39,11 @@ public class ContentBlockerRulesIdentifier: Equatable, Codable {
         }
         
         public static let tdsEtag = Difference(rawValue: 1 << 0)
-        public static let tempListEtag = Difference(rawValue: 1 << 1)
-        public static let allowListEtag = Difference(rawValue: 1 << 2)
+        public static let tempListId = Difference(rawValue: 1 << 1)
+        public static let allowListId = Difference(rawValue: 1 << 2)
         public static let unprotectedSites = Difference(rawValue: 1 << 3)
         
-        public static let all: Difference = [.tdsEtag, .tempListEtag, .allowListEtag, .unprotectedSites]
+        public static let all: Difference = [.tdsEtag, .tempListId, .allowListId, .unprotectedSites]
     }
     
     private class func normalize(identifier: String?) -> String {
@@ -71,12 +71,12 @@ public class ContentBlockerRulesIdentifier: Equatable, Codable {
         return domains.joined().sha1
     }
     
-    public init(name: String, tdsEtag: String, tempListEtag: String?, allowListEtag: String?, unprotectedSitesHash: String?) {
+    public init(name: String, tdsEtag: String, tempListId: String?, allowListId: String?, unprotectedSitesHash: String?) {
         
         self.name = Self.normalize(identifier: name)
         self.tdsEtag = Self.normalize(identifier: tdsEtag)
-        self.tempListEtag = Self.normalize(identifier: tempListEtag)
-        self.allowListEtag = Self.normalize(identifier: allowListEtag)
+        self.tempListId = Self.normalize(identifier: tempListId)
+        self.allowListId = Self.normalize(identifier: allowListId)
         self.unprotectedSitesHash = Self.normalize(identifier: unprotectedSitesHash)
     }
     
@@ -86,11 +86,11 @@ public class ContentBlockerRulesIdentifier: Equatable, Codable {
         if tdsEtag != id.tdsEtag {
             result.insert(.tdsEtag)
         }
-        if tempListEtag != id.tempListEtag {
-            result.insert(.tempListEtag)
+        if tempListId != id.tempListId {
+            result.insert(.tempListId)
         }
-        if allowListEtag != id.allowListEtag {
-            result.insert(.allowListEtag)
+        if allowListId != id.allowListId {
+            result.insert(.allowListId)
         }
         if unprotectedSitesHash != id.unprotectedSitesHash {
             result.insert(.unprotectedSites)
