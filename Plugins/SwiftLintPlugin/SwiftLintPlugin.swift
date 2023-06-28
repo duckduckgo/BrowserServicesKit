@@ -47,9 +47,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             inputFiles: sourceTarget.sourceFiles(withSuffix: "swift").map(\.path),
             packageDirectory: context.package.directory,
             workingDirectory: context.pluginWorkDirectory,
-            tool: try context.tool(named: "swiftlint"),
-            sh: context.tool(named: "sh"),
-            echo: context.tool(named: "echo")
+            tool: try context.tool(named: "swiftlint")
         )
     }
 
@@ -58,9 +56,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
         inputFiles: [Path],
         packageDirectory: Path,
         workingDirectory: Path,
-        tool: PluginContext.Tool,
-        sh: PluginContext.Tool,
-        echo: PluginContext.Tool
+        tool: PluginContext.Tool
     ) throws -> [Command] {
         if inputFiles.isEmpty {
             // Don't lint anything if there are no Swift source files in this target
@@ -136,7 +132,9 @@ struct SwiftLintPlugin: BuildToolPlugin {
                 // so we need to ensure that any exclusion rules in the configuration are
                 // respected.
                 "--force-exclude",
-                "--cache-path", "\(workingDirectory)"
+                "--cache-path", "\(workingDirectory)",
+                // output both to build log and to temporary output cache file
+                "--output", "\(outputPath).tmp",
             ]
 
             // Manually look for configuration files, to avoid issues when the plugin does not execute our tool from the
@@ -149,9 +147,8 @@ struct SwiftLintPlugin: BuildToolPlugin {
             result = [
                 .prebuildCommand(
                     displayName: "SwiftLint",
-                    executable: sh.path,
-                    // output both to build log and to temporary output cache file
-                    arguments: ["-c", "\(tool.path.string) \(arguments.joined(separator: " ")) | tee \(outputPath).tmp"],
+                    executable: tool.path,
+                    arguments: arguments,
                     outputFilesDirectory: outputFilesDirectory
                 )
             ]
@@ -164,7 +161,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
         // output cached diagnostic messages
         result.append(.prebuildCommand(
             displayName: "SwiftLint: cached",
-            executable: echo.path,
+            executable: .echo,
             arguments: [cachedDiagnostics.joined(separator: "\n")],
             outputFilesDirectory: outputFilesDirectory
         ))
@@ -173,8 +170,14 @@ struct SwiftLintPlugin: BuildToolPlugin {
             // when ready put temporary cache and output into place
             result.append(.prebuildCommand(
                 displayName: "Cache SwiftLint results",
-                executable: sh.path,
-                arguments: ["-c", "mv \(outputPath).tmp \(outputPath); mv \(cacheURL.path).tmp \(cacheURL.path)"],
+                executable: .mv,
+                arguments: ["\(outputPath).tmp", outputPath],
+                outputFilesDirectory: outputFilesDirectory
+            ))
+            result.append(.prebuildCommand(
+                displayName: "Cache SwiftLint results",
+                executable: .mv,
+                arguments: [cacheURL.appendingPathExtension("tmp").path, cacheURL.path],
                 outputFilesDirectory: outputFilesDirectory
             ))
         }
@@ -197,9 +200,7 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
             inputFiles: inputFilePaths,
             packageDirectory: context.xcodeProject.directory,
             workingDirectory: context.pluginWorkDirectory,
-            tool: context.tool(named: "swiftlint"),
-            sh: context.tool(named: "sh"),
-            echo: context.tool(named: "echo")
+            tool: context.tool(named: "swiftlint")
         )
     }
 }
@@ -228,6 +229,9 @@ extension String {
 }
 
 extension Path {
+
+    static let mv = Path("/bin/mv")
+    static let echo = Path("/bin/echo")
 
     /// Scans the receiver, then all of its parents looking for a configuration file with the name ".swiftlint.yml".
     ///
