@@ -184,6 +184,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
 }
 
 #if canImport(XcodeProjectPlugin)
+
 import XcodeProjectPlugin
 
 extension SwiftLintPlugin: XcodeBuildToolPlugin {
@@ -202,7 +203,6 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
         )
     }
 }
-#endif
 
 extension XcodeProduct.Kind: Equatable {
     public static func == (lhs: XcodeProduct.Kind, rhs: XcodeProduct.Kind) -> Bool {
@@ -217,6 +217,8 @@ extension XcodeProduct.Kind: Equatable {
         return false
     }
 }
+
+#endif
 
 extension String {
     static let unitTestsKind = "com.apple.product-type.bundle.unit-test"
