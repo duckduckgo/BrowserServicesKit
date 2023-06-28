@@ -37,6 +37,21 @@ public extension String {
 
     static let localhost = "localhost"
 
+    var utf8data: Data {
+        data(using: .utf8)!
+    }
+
+    /// Runs `body` over the UTF8-encoded content of the string in contiguous memory without performing byte copy if possible.
+    /// If this string is not contiguous, this will first convert it to contiguous data using `.data(using: .utf8)` call.
+    /// Note that it is unsafe to escape the pointer provided to `body`.
+    func withUTF8data<R>(_ body: (Data) throws -> R) rethrows -> R {
+        return try self.utf8.withContiguousStorageIfAvailable { buffer in
+            let ptr = UnsafeMutableRawPointer(mutating: buffer.baseAddress!)
+            let data = Data.init(bytesNoCopy: ptr, count: buffer.count, deallocator: .none)
+            return try body(data)
+        } ?? body(self.utf8data)
+    }
+
     func length() -> Int {
         self.utf16.count
     }

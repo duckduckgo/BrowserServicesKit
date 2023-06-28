@@ -22,7 +22,6 @@ import Combine
 import ContentScopeScripts
 import UserScript
 import Common
-import os.log
 
 public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool

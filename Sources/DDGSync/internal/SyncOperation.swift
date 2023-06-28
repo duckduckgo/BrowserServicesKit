@@ -20,9 +20,8 @@
 import Foundation
 import Combine
 import Common
-import os
 
-class SyncOperation: Operation {
+final class SyncOperation: Operation {
 
     let dataProviders: [Feature: DataProviding]
     let storage: SecureStoring

@@ -32,7 +32,7 @@ static unsigned int djb2Hash(const string &text);
 
 static unsigned int sdbmHash(const string &text);
 
-static unsigned int doubleHash(unsigned int hash1, unsigned int hash2, unsigned int round);
+static size_t doubleHash(unsigned int hash1, unsigned int hash2, size_t round);
 
 static vector<BlockType> readVectorFromFile(const string &path);
 
@@ -76,7 +76,7 @@ void BloomFilter::add(const string &element) {
     unsigned int hash2 = sdbmHash(element);
 
     for (size_t i = 0; i < hashRounds; i++) {
-        unsigned int hash = doubleHash(hash1, hash2, i);
+        size_t hash = doubleHash(hash1, hash2, i);
         size_t bitIndex = hash % bitCount;
         size_t blockIndex = bitIndex / BITS_PER_BLOCK;
         size_t blockOffset = bitIndex % BITS_PER_BLOCK;
@@ -90,7 +90,7 @@ bool BloomFilter::contains(const string &element) {
     unsigned int hash2 = sdbmHash(element);
 
     for (size_t i = 0; i < hashRounds; i++) {
-        unsigned int hash = doubleHash(hash1, hash2, i);
+        size_t hash = doubleHash(hash1, hash2, i);
         size_t bitIndex = hash % bitCount;
         size_t blockIndex = bitIndex / BITS_PER_BLOCK;
         size_t blockOffset = bitIndex % BITS_PER_BLOCK;
@@ -119,7 +119,7 @@ static unsigned int sdbmHash(const string &text) {
     return hash;
 }
 
-static unsigned int doubleHash(unsigned int hash1, unsigned int hash2, unsigned int round) {
+static size_t doubleHash(unsigned int hash1, unsigned int hash2, size_t round) {
     switch (round) {
         case 0:
             return hash1;

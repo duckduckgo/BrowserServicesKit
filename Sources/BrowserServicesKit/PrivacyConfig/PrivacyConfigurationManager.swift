@@ -87,7 +87,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 data = embedded
             } else {
                 let jsonData = embeddedDataProvider.embeddedData
-                let configData = try! PrivacyConfigurationData(data: jsonData)
+                let configData = (try? PrivacyConfigurationData(data: jsonData))!
                 _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData
             }

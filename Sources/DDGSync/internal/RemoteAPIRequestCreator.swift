@@ -19,7 +19,6 @@
 import Foundation
 import Networking
 import Common
-import os.log
 
 struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 

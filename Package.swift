@@ -25,6 +25,7 @@ let package = Package(
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
+        .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
@@ -57,12 +58,15 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .target(
             name: "Persistence",
             dependencies: [
                 "Common"
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "Bookmarks",
@@ -72,13 +76,15 @@ let package = Package(
             ],
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "BookmarksTestsUtils",
             dependencies: [
                 "Bookmarks"
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
          .target(
             name: "BloomFilterWrapper",
@@ -91,7 +97,8 @@ let package = Package(
                 .process("CMakeLists.txt")
             ]),
         .target(
-            name: "Crashes"
+            name: "Crashes",
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "DDGSync",
@@ -103,7 +110,8 @@ let package = Package(
             resources: [
                 .process("SyncMetadata.xcdatamodeld"),
                 .process("SyncPDFTemplate.png")
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "Common",
@@ -115,13 +123,16 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "ContentBlocking",
             dependencies: [
                 "TrackerRadarKit"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .target(
             name: "Navigation",
             dependencies: [
@@ -136,12 +147,15 @@ let package = Package(
                 .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
                 .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .target(
             name: "UserScript",
             dependencies: [
                 "Common"
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "PrivacyDashboard",
@@ -152,7 +166,8 @@ let package = Package(
                 "ContentBlocking",
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
-            path: "Sources/PrivacyDashboard"
+            path: "Sources/PrivacyDashboard",
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "Configuration",
@@ -160,24 +175,32 @@ let package = Package(
                 "Networking",
                 "BrowserServicesKit",
                 "Common"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .target(
             name: "Networking",
             dependencies: [
                 "Common"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .target(
             name: "SyncDataProviders",
             dependencies: [
                 "Bookmarks",
                 "DDGSync",
                 "Persistence"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .target(
             name: "TestUtils",
             dependencies: [
                 "Networking"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
 
         // MARK: - Test targets
         .testTarget(
@@ -185,7 +208,9 @@ let package = Package(
             dependencies: [
                 "Bookmarks",
                 "BookmarksTestsUtils"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -193,28 +218,37 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources")
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
                 "DDGSync"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .testTarget(
             name: "DDGSyncCryptoTests",
             dependencies: [
                 .product(name: "DDGSyncCrypto", package: "sync_crypto")
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .testTarget(
             name: "NetworkingTests",
             dependencies: [
                 "TestUtils"
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .testTarget(
             name: "NavigationTests",
             dependencies: [
@@ -228,7 +262,9 @@ let package = Package(
                 .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
                 .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
                 .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
-            ]),
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
         .testTarget(
             name: "UserScriptTests",
             dependencies: [
@@ -236,29 +272,45 @@ let package = Package(
             ],
             resources: [
                 .process("testUserScript.js")
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .testTarget(
             name: "PersistenceTests",
             dependencies: [
                 "Persistence",
                 "TrackerRadarKit"
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .testTarget(
             name: "ConfigurationTests",
             dependencies: [
                 "Configuration",
                 "TestUtils"
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .testTarget(
             name: "SyncDataProvidersTests",
             dependencies: [
                 "BookmarksTestsUtils",
                 "SyncDataProviders"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .plugin(
+            name: "SwiftLintPlugin",
+            capability: .buildTool(),
+            dependencies: [
+                .target(name: "SwiftLintBinary", condition: .when(platforms: [.macOS]))
             ]
-        )
+        ),
+        .binaryTarget(
+            name: "SwiftLintBinary",
+            url: "https://github.com/realm/SwiftLint/releases/download/0.52.3/SwiftLintBinary-macos.artifactbundle.zip",
+            checksum: "05cbe202aae733ce395de68557614b0dfea394093d5ee53f57436e4d71bbe12f"
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )

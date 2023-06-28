@@ -18,8 +18,8 @@
 
 import Foundation
 
-class RemoteConnector: RemoteConnecting {
-    
+final class RemoteConnector: RemoteConnecting {
+
     let code: String
     let connectInfo: ConnectInfo
 

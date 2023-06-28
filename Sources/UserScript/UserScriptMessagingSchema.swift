@@ -84,7 +84,7 @@ public struct MessageErrorResponse: Encodable {
     }
 
     public func toJSON() -> String {
-        let jsonData = try! JSONEncoder().encode(self)
+        let jsonData = (try? JSONEncoder().encode(self))!
         let jsonString = String(data: jsonData, encoding: .utf8)!
         return jsonString
     }

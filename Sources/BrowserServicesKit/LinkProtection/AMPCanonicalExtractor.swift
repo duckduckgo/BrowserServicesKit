@@ -21,9 +21,9 @@ import Foundation
 import WebKit
 import Common
 
-public class AMPCanonicalExtractor: NSObject {
+public final class AMPCanonicalExtractor: NSObject {
 
-    class CompletionHandler {
+    final class CompletionHandler {
 
         private var completion: ((URL?) -> Void)?
 

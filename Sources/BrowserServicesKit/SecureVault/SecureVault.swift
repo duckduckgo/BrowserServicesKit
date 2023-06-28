@@ -70,7 +70,7 @@ internal struct SecureVaultProviders {
 
 }
 
-class DefaultSecureVault: SecureVault {
+final class DefaultSecureVault: SecureVault {
 
     private let lock = NSLock()
     private let queue = DispatchQueue(label: "Secure Vault")

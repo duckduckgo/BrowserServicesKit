@@ -1,6 +1,5 @@
 //
 //  Logging.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,11 +17,13 @@
 //
 
 import Foundation
-import os
+import os // swiftlint:disable:this enforce_os_log_wrapper
 
 public typealias OSLog = os.OSLog
 
 extension OSLog {
+
+    public static let disabled = os.OSLog.disabled
 
     public enum Categories: String, CaseIterable {
         case userScripts = "User Scripts"

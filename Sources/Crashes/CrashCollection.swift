@@ -31,7 +31,7 @@ public struct CrashCollection {
         MXMetricManager.shared.add(collector)
     }
 
-    class CrashCollector: NSObject, MXMetricManagerSubscriber {
+    final class CrashCollector: NSObject, MXMetricManagerSubscriber {
 
         var completion: ([String: String]) -> Void = { _ in }
 

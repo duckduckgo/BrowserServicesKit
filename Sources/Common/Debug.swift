@@ -18,7 +18,6 @@
 //
 
 import Foundation
-import os.log
 
 #if DEBUG
 
