@@ -177,12 +177,18 @@ public struct PrivacyConfigurationData {
             }
         }
 
-        public let entries: TrackerAllowlistData
+        public private(set) var entries: TrackerAllowlistData
 
         public override init?(json: [String: Any]) {
-            let settings = (json[PrivacyFeature.CodingKeys.settings.rawValue] as? [String: Any]) ?? [:]
+            self.entries = [:]
+            super.init(json: json)
+
+            guard self.state != State.disabled else { return }
 
             var entries = [String: [Entry]]()
+
+            let settings = (json[PrivacyFeature.CodingKeys.settings.rawValue] as? [String: Any]) ?? [:]
+
             if let trackers = settings["allowlistedTrackers"] as? [String: [String: [Any]]] {
                 for (trackerDomain, trackerRules) in trackers {
                     if let rules = trackerRules["rules"] as? [ [String: Any] ] {
@@ -196,8 +202,6 @@ public struct PrivacyConfigurationData {
             }
 
             self.entries = entries
-
-            super.init(json: json)
         }
 
         public init(entries: [String: [Entry]], state: FeatureState) {
