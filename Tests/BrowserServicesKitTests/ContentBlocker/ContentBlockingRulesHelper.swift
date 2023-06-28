@@ -52,14 +52,14 @@ final class ContentBlockingRulesHelper {
     
     func makeFakeRules(name: String,
                        tdsEtag: String,
-                       tempListEtag: String? = nil,
-                       allowListEtag: String? = nil,
+                       tempListId: String? = nil,
+                       allowListId: String? = nil,
                        unprotectedSitesHash: String? = nil) async -> ContentBlockerRulesManager.Rules? {
         
         let identifier = ContentBlockerRulesIdentifier(name: name,
                                                        tdsEtag: tdsEtag,
-                                                       tempListEtag: tempListEtag,
-                                                       allowListEtag: allowListEtag,
+                                                       tempListId: tempListId,
+                                                       allowListId: allowListId,
                                                        unprotectedSitesHash: unprotectedSitesHash)
         let tds = makeFakeTDS()
         

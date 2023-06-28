@@ -345,8 +345,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             } else {
                 diff = result.model.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(name: task.rulesList.name,
                                                                                                 tdsEtag: "",
-                                                                                                tempListEtag: nil,
-                                                                                                allowListEtag: nil,
+                                                                                                tempListId: nil,
+                                                                                                allowListId: nil,
                                                                                                 unprotectedSitesHash: nil))
             }
 

@@ -32,8 +32,8 @@ final class MockAttributionRulesProvider: AdClickAttributionRulesProviding {
     init() async {
         globalAttributionRules = await ContentBlockingRulesHelper().makeFakeRules(name: Constants.globalAttributionRulesListName,
                                                                                   tdsEtag: "tdsEtag",
-                                                                                  tempListEtag: "tempEtag",
-                                                                                  allowListEtag: nil,
+                                                                                  tempListId: "tempEtag",
+                                                                                  allowListId: nil,
                                                                                   unprotectedSitesHash: nil)
         
         XCTAssertNotNil(globalAttributionRules)

@@ -74,8 +74,8 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         let mockLastCompiledRulesStore = MockLastCompiledRulesStore()
         let identifier = ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
                                                        tdsEtag: mockRulesSource.trackerData?.etag ?? "\"\"",
-                                                       tempListEtag: nil,
-                                                       allowListEtag: nil,
+                                                       tempListId: nil,
+                                                       allowListId: nil,
                                                        unprotectedSitesHash: nil)
         let cachedRules = MockLastCompiledRules(name: mockRulesSource.rukeListName,
                                                 trackerData: mockRulesSource.trackerData!.tds,
@@ -128,13 +128,13 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         let mockLastCompiledRulesStore = MockLastCompiledRulesStore()
         let oldIdentifier = ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
                                                           tdsEtag: mockRulesSource.trackerData?.etag ?? "\"\"",
-                                                          tempListEtag: nil,
-                                                          allowListEtag: nil,
+                                                          tempListId: nil,
+                                                          allowListId: nil,
                                                           unprotectedSitesHash: nil)
         let newIdentifier = ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
                                                           tdsEtag: mockUpdatedRulesSource.trackerData?.etag ?? "\"\"",
-                                                          tempListEtag: nil,
-                                                          allowListEtag: nil,
+                                                          tempListId: nil,
+                                                          allowListId: nil,
                                                           unprotectedSitesHash: nil)
         let cachedRules = MockLastCompiledRules(name: mockRulesSource.rukeListName,
                                                 trackerData: mockRulesSource.trackerData!.tds,
