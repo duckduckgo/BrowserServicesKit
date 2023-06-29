@@ -667,26 +667,35 @@ extension DefaultDatabaseProvider {
     }
 
     static func migrateV10(database: Database) throws {
+        typealias Account = SecureVaultModels.WebsiteAccount
         typealias AccountSyncMetadata = SecureVaultModels.WebsiteAccountSyncMetadata
 
         try database.create(table: AccountSyncMetadata.databaseTableName) {
             $0.column(AccountSyncMetadata.Columns.id.name, .text)
             $0.column(AccountSyncMetadata.Columns.lastModified.name, .date)
-            $0.column(AccountSyncMetadata.Columns.accountId.name, .integer)
+            $0.column(AccountSyncMetadata.Columns.objectId.name, .integer)
             $0.primaryKey([AccountSyncMetadata.Columns.id.name])
             $0.foreignKey(
-                [AccountSyncMetadata.Columns.accountId.name],
+                [AccountSyncMetadata.Columns.objectId.name],
                 references: SecureVaultModels.WebsiteAccount.databaseTableName,
                 onDelete: .setNull
             )
         }
 
         try database.create(
-            index: AccountSyncMetadata.databaseTableName + "_accountId",
+            index: AccountSyncMetadata.databaseTableName + "_objectId",
             on: AccountSyncMetadata.databaseTableName,
-            columns: [AccountSyncMetadata.Columns.accountId.name],
+            columns: [AccountSyncMetadata.Columns.objectId.name],
             ifNotExists: false
         )
+
+        let rows = try Row.fetchCursor(database, sql: "SELECT \(Account.Columns.id) FROM \(Account.databaseTableName)")
+
+        while let row = try rows.next() {
+            let accountId: Int64 = row[Account.Columns.id]
+            try AccountSyncMetadata(objectId: accountId).insert(database)
+        }
+
     }
 
     // Refresh password comparison hashes

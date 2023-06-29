@@ -21,31 +21,43 @@ import Common
 import Foundation
 import GRDB
 
+public protocol SecureVaultSyncable {
+    var id: String { get set }
+    var objectId: Int64? { get set }
+    var lastModified: Date? { get set }
+}
+
 extension SecureVaultModels {
 
-    public struct WebsiteAccountSyncMetadata {
+    public struct WebsiteAccountSyncMetadata: SecureVaultSyncable {
         public var id: String
-        public var accountId: String?
+        public var objectId: Int64?
         public var lastModified: Date?
+
+        public init(id: String = UUID().uuidString, objectId: Int64?, lastModified: Date? = Date()) {
+            self.id = id
+            self.objectId = objectId
+            self.lastModified = lastModified
+        }
     }
 }
 
 extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
-        case id, accountId, lastModified
+        case id, objectId, lastModified
     }
 
     public init(row: Row) {
         id = row[Columns.id]
-        accountId = row[Columns.accountId]
+        objectId = row[Columns.objectId]
         lastModified = row[Columns.lastModified]
     }
 
     public func encode(to container: inout PersistenceContainer) {
         container[Columns.id] = id
-        container[Columns.accountId] = accountId
-        container[Columns.lastModified] = Date()
+        container[Columns.objectId] = objectId
+        container[Columns.lastModified] = lastModified
     }
 
     public static var databaseTableName: String = "website_accounts_sync_metadata"
