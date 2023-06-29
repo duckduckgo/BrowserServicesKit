@@ -309,7 +309,7 @@ public class EmailManager {
     }
 
     public func isPrivateEmail(email: String) -> Bool {
-        if email != userEmail && email.hasSuffix(Self.emailDomain) {
+        if email != userEmail?.lowercased() && email.hasSuffix(Self.emailDomain) {
             return true
         }
         return false
