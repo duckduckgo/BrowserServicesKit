@@ -430,7 +430,7 @@ private extension EmailManager {
 
 // MARK: - Alias Management
 
-private extension EmailManager {
+public extension EmailManager {
     
     struct EmailAliasResponse: Decodable {
         let address: String
@@ -438,7 +438,7 @@ private extension EmailManager {
     
     typealias HTTPHeaders = [String: String]
     
-    var emailHeaders: HTTPHeaders {
+    public var emailHeaders: HTTPHeaders {
         guard let token = token else {
             return [:]
         }
