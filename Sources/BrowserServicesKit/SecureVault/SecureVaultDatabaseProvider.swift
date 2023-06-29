@@ -91,6 +91,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
         migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
         migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+        migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
         // Add more sync migrations here ...
         // Note, these migrations will run synchronously on first access to secureVault DB
 
@@ -663,6 +664,29 @@ extension DefaultDatabaseProvider {
 
     static func migrateV9(database: Database) throws {
         try updatePasswordHashes(database: database)
+    }
+
+    static func migrateV10(database: Database) throws {
+        typealias AccountSyncMetadata = SecureVaultModels.WebsiteAccountSyncMetadata
+
+        try database.create(table: AccountSyncMetadata.databaseTableName) {
+            $0.column(AccountSyncMetadata.Columns.id.name, .text)
+            $0.column(AccountSyncMetadata.Columns.lastModified.name, .date)
+            $0.column(AccountSyncMetadata.Columns.accountId.name, .integer)
+            $0.primaryKey([AccountSyncMetadata.Columns.id.name])
+            $0.foreignKey(
+                [AccountSyncMetadata.Columns.accountId.name],
+                references: SecureVaultModels.WebsiteAccount.databaseTableName,
+                onDelete: .setNull
+            )
+        }
+
+        try database.create(
+            index: AccountSyncMetadata.databaseTableName + "_accountId",
+            on: AccountSyncMetadata.databaseTableName,
+            columns: [AccountSyncMetadata.Columns.accountId.name],
+            ifNotExists: false
+        )
     }
 
     // Refresh password comparison hashes
