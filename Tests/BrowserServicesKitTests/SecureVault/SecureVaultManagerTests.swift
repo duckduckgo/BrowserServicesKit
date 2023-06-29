@@ -341,13 +341,6 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool {
         return true
     }
-    
-    func secureVaultManager(_: SecureVaultManager,
-                            promptUserToStoreAutofillData data: AutofillData,
-                            hasGeneratedPassword generatedPassword: Bool,
-                            withTrigger trigger: AutofillUserScript.GetTriggerType?) {
-        self.promptedAutofillData = data
-    }
 
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
@@ -366,10 +359,6 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager, shouldSilentlySave: Bool) -> Bool {
         return true
-    }
-
-    func secureVaultManagerShouldSilentlySaveGeneratedPassword(_: BrowserServicesKit.SecureVaultManager) -> Bool {
-        return false
     }
 
     func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String) {}
