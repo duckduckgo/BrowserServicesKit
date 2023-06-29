@@ -404,16 +404,14 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         // Create a new partial account
         if partialAccount == nil || partialAccount?.domain != domain {
-            var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
-            account.id = try String(vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)))
-            partialAccount = account
+            partialAccount = createPartialAccount(vault: vault, username: username, password: passwordData, domain: domain)
 
         // Update the last partial account for the domain
         } else {
             // TODO: If the user deletes the currently active partial account, saving will not work anymore
             let accounts = try vault.accountsFor(domain: domain)
             guard var existingAccount = accounts.first(where: { $0.id == partialAccount?.id }) else {
-                return
+                return  // If the partial account does not exist we may need to recreate
             }
             existingAccount.username = username
             try vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: existingAccount, password: passwordData))
@@ -421,6 +419,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
         return
 
+    }
+
+    private func createPartialAccount(vault: SecureVault, username: String, password: Data, domain: String) -> SecureVaultModels.WebsiteAccount {
+        var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
+        account.id = try? String(vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: password)))
+        return account
     }
 
     func existingEntries(for domain: String,
