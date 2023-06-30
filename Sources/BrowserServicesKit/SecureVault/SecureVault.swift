@@ -64,7 +64,7 @@ public protocol SecureVault {
     // MARK: - Sync Support
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials]
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
 }
@@ -376,10 +376,29 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials] {
-        try executeThrowingDatabaseOperation{
-            try self.providers.database.modifiedWebsiteCredentials()
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+        lock.lock()
+        defer {
+            lock.unlock()
         }
+
+        do {
+            let metadata = try self.providers.database.modifiedWebsiteCredentials()
+            let passwords: [Data?] = try self.l2BatchDecrypt(data: metadata.map(\.credential?.password))
+
+            return zip(metadata, passwords).map { metadata, password in
+                guard let credential = metadata.credential, let password else {
+                    return metadata
+                }
+
+                let decryptedCredential = SecureVaultModels.WebsiteCredentials(account: credential.account, password: password)
+                return SecureVaultModels.WebsiteAccountSyncMetadata(id: metadata.id, credential: decryptedCredential, lastModified: metadata.lastModified)
+            }
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+
     }
 
     func deleteCreditCardFor(cardId: Int64) throws {
@@ -433,6 +452,17 @@ class DefaultSecureVault: SecureVault {
         let password = try passwordInUse()
         let l2Key = try l2KeyFrom(password: password)
         return try providers.crypto.decrypt(data, withKey: l2Key)
+    }
+
+    private func l2BatchDecrypt(data: [Data?]) throws -> [Data?] {
+        let password = try passwordInUse()
+        let l2Key = try l2KeyFrom(password: password)
+        return try data.map { encrypted in
+            guard let encrypted else {
+                return nil
+            }
+            return try providers.crypto.decrypt(encrypted, withKey: l2Key)
+        }
     }
 
 }

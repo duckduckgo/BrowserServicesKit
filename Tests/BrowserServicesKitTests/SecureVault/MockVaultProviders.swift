@@ -129,12 +129,16 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws {
     }
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials] {
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
         []
     }
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64 {
         try storeWebsiteCredentials(credentials)
+    }
+
+    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64 {
+        try storeWebsiteCredentials(in: database, credentials)
     }
 }
 

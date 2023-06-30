@@ -1,0 +1,79 @@
+//
+//  Syncable+Login.swift
+//  DuckDuckGo
+//
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import BrowserServicesKit
+import DDGSync
+import Foundation
+
+extension Syncable {
+
+    enum SyncableLoginError: Error {
+        case failedToReadPassword
+    }
+
+    var encryptedDomain: String? {
+        payload["domain"] as? String
+    }
+
+    var encryptedUsername: String? {
+        payload["username"] as? String
+    }
+
+    var encryptedPassword: String? {
+        payload["password"] as? String
+    }
+
+    var encryptedNotes: String? {
+        payload["notes"] as? String
+    }
+
+
+    init(metadata: SecureVaultModels.WebsiteAccountSyncMetadata, encryptedWith crypter: Crypting) throws {
+        var payload: [String: Any] = [:]
+
+        payload["id"] = metadata.id
+
+        guard let credential = metadata.credential else {
+            payload["deleted"] = ""
+            self.init(jsonObject: payload)
+            return
+        }
+
+        print("Syncable init \(metadata.id)")
+        if let title = credential.account.title {
+            payload["title"] = try crypter.encryptAndBase64Encode(title)
+        }
+        payload["domain"] = try crypter.encryptAndBase64Encode(credential.account.domain)
+        payload["username"] = try crypter.encryptAndBase64Encode(credential.account.username)
+
+        guard let password = String(data: credential.password, encoding: .utf8) else {
+            throw SyncableLoginError.failedToReadPassword
+        }
+        payload["password"] = try crypter.encryptAndBase64Encode(password)
+
+        if let modifiedAt = metadata.lastModified {
+            payload["client_last_modified"] = Self.dateFormatter.string(from: modifiedAt)
+        }
+        self.init(jsonObject: payload)
+    }
+
+    private static var dateFormatter: ISO8601DateFormatter {
+        ISO8601DateFormatter()
+    }
+}

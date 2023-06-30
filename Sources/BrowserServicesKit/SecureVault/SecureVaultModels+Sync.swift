@@ -23,7 +23,7 @@ import GRDB
 
 public protocol SecureVaultSyncable {
     var id: String { get set }
-    var objectId: Int64? { get set }
+    var objectId: Int64? { get }
     var lastModified: Date? { get set }
 }
 
@@ -34,31 +34,30 @@ public enum SecureVaultSyncableColumns: String, ColumnExpression {
 extension SecureVaultModels {
 
     public struct WebsiteAccountSyncMetadata: SecureVaultSyncable {
+
         public var id: String
-        public var objectId: Int64?
+        public var credential: WebsiteCredentials?
         public var lastModified: Date?
 
-        public init(id: String = UUID().uuidString, objectId: Int64?, lastModified: Date? = Date()) {
+        public var objectId: Int64? {
+            credential?.account.id.flatMap(Int64.init)
+        }
+
+        public init(id: String = UUID().uuidString, credential: WebsiteCredentials?, lastModified: Date? = Date()) {
             self.id = id
-            self.objectId = objectId
+            self.credential = credential
             self.lastModified = lastModified
         }
     }
 }
 
-extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord, FetchableRecord {
+extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord {
 
     public typealias Columns = SecureVaultSyncableColumns
 
-    public init(row: Row) {
-        id = row[Columns.id]
-        objectId = row[Columns.objectId]
-        lastModified = row[Columns.lastModified]
-    }
-
     public func encode(to container: inout PersistenceContainer) {
         container[Columns.id] = id
-        container[Columns.objectId] = objectId
+        container[Columns.objectId] = credential?.account.id
         container[Columns.lastModified] = lastModified
     }
 

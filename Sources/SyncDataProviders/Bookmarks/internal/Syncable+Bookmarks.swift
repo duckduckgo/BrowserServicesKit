@@ -27,10 +27,6 @@ extension Syncable {
         case bookmarkEntityMissingUUID
     }
 
-    var uuid: String? {
-        payload["id"] as? String
-    }
-
     var encryptedTitle: String? {
         payload["title"] as? String
     }
@@ -49,10 +45,6 @@ extension Syncable {
             return []
         }
         return folderChildren
-    }
-
-    var isDeleted: Bool {
-        payload["deleted"] != nil
     }
 
     init(bookmark: BookmarkEntity, encryptedUsing encrypt: (String) throws -> String) throws {

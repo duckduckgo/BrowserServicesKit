@@ -37,7 +37,7 @@ public final class LoginsProvider: DataProviding {
 
     // MARK: - DataProviding
 
-    public let feature: Feature = .init(name: "logins")
+    public let feature: Feature = .init(name: "credentials")
 
     public var lastSyncTimestamp: String? {
         get {
@@ -63,7 +63,12 @@ public final class LoginsProvider: DataProviding {
 
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
-        let credentials = try secureVault.modifiedWebsiteCredentials()
+        var date = Date()
+        let metadata = try secureVault.modifiedWebsiteCredentials()
+        print("Fetching took \(Date().timeIntervalSince(date)) s")
+        date = Date()
+        let syncables = try metadata.map { try Syncable.init(metadata: $0, encryptedWith: crypter) }
+        print("Syncable population took \(Date().timeIntervalSince(date)) s")
         return []
     }
 

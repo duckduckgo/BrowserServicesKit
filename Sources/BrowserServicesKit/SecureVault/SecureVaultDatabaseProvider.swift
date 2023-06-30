@@ -61,7 +61,7 @@ protocol SecureVaultDatabaseProvider {
 
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials]
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
 }
 
 extension SecureVaultDatabaseProvider {
@@ -248,7 +248,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 VALUES (?, ?)
             """, arguments: [id, credentials.password])
 
-            try SecureVaultModels.WebsiteAccountSyncMetadata(objectId: id, lastModified: timestamp).insert(database)
+            try SecureVaultModels.WebsiteAccountSyncMetadata(credential: credentials, lastModified: timestamp).insert(database)
 
             return id
         } catch let error as DatabaseError {
@@ -260,46 +260,50 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials] {
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
         typealias Metadata = SecureVaultModels.WebsiteAccountSyncMetadata
         typealias Credentials = SecureVaultModels.WebsiteCredentials
 
         return try db.read {
-            let metadata = try Metadata.fetchAll($0, Metadata.filter(Metadata.Columns.lastModified != nil))
-            let accountIds = metadata.compactMap(\.objectId)
-
-            let accountsById: [String: SecureVaultModels.WebsiteAccount] = try SecureVaultModels.WebsiteAccount.fetchAll($0, keys: accountIds)
-                .reduce(into: .init(), { partialResult, account in
-                    if let accountID = account.id {
-                        partialResult[accountID] = account
-                    }
-                })
             let credentialRows = try Row.fetchAll($0, sql:
             """
                 SELECT
-                    \(Credentials.databaseTableName).\(Credentials.Columns.id.name),
+                    \(Metadata.databaseTableName).\(Metadata.Columns.id.name),
+                    \(Metadata.databaseTableName).\(Metadata.Columns.lastModified.name),
+                    \(Credentials.databaseTableName).\(Credentials.Columns.id.name) AS \(Metadata.Columns.objectId.name),
                     \(Credentials.databaseTableName).\(Credentials.Columns.password.name)
                 FROM
-                    \(Credentials.databaseTableName)
-                LEFT JOIN
                     \(Metadata.databaseTableName)
+                LEFT JOIN
+                    \(Credentials.databaseTableName)
                 ON
                     \(Metadata.databaseTableName).\(Metadata.Columns.objectId.name) = \(Credentials.databaseTableName).\(Credentials.Columns.id.name)
                 WHERE
                     \(Metadata.databaseTableName).\(Metadata.Columns.lastModified.name) IS NOT NULL
             """)
 
-            let credentials = credentialRows.compactMap { row -> SecureVaultModels.WebsiteCredentials? in
-                let id: Int64 = row[SecureVaultModels.WebsiteCredentials.Columns.id.name]
-                guard let account = accountsById[String(id)] else {
-                    return nil
+            let accountIds: [Int64] = credentialRows.compactMap { $0[Metadata.Columns.objectId.name] }
+            let accountsById: [String: SecureVaultModels.WebsiteAccount] = try SecureVaultModels.WebsiteAccount.fetchAll($0, keys: accountIds)
+                .reduce(into: .init()) { partialResult, account in
+                    if let accountID = account.id {
+                        partialResult[accountID] = account
+                    }
                 }
-                return SecureVaultModels.WebsiteCredentials(
-                    account: account,
-                    password: row[SecureVaultModels.WebsiteCredentials.Columns.password.name]
-                )
+
+            let metadata = credentialRows.map { row in
+                let id: String = row[Metadata.Columns.id.name]
+                let lastModified: Date? = row[Metadata.Columns.lastModified.name]
+                let accountId: String? = (row[Metadata.Columns.objectId.name] as Int64?).flatMap(String.init)
+                let credential: Credentials? = {
+                    guard let accountId, let account = accountsById[accountId], let password: Data = row[Credentials.Columns.password.name] else {
+                        return nil
+                    }
+                    return Credentials(account: account, password: password)
+                }()
+                return Metadata(id: id, credential: credential, lastModified: lastModified)
             }
-            return credentials
+
+            return metadata
         }
     }
 
@@ -791,7 +795,15 @@ extension DefaultDatabaseProvider {
 
         while let row = try rows.next() {
             let accountId: Int64 = row[Account.Columns.id]
-            try AccountSyncMetadata(objectId: accountId, lastModified: nil).insert(database)
+            try database.execute(sql: """
+                INSERT INTO
+                    \(AccountSyncMetadata.databaseTableName)
+                (
+                    \(AccountSyncMetadata.Columns.id.name),
+                    \(AccountSyncMetadata.Columns.objectId.name),
+                )
+                VALUES (?, ?)
+            """, arguments: [UUID().uuidString, accountId])
         }
 
     }
