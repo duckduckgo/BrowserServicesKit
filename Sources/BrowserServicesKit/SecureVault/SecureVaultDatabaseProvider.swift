@@ -49,6 +49,31 @@ protocol SecureVaultDatabaseProvider {
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws
 
+    // MARK: - Sync Support
+    func inTransaction(_ block: @escaping (Database) throws -> Void) throws
+
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
+    @discardableResult
+    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
+    @discardableResult
+    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
+
+    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
+
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials]
+}
+
+extension SecureVaultDatabaseProvider {
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+        try storeWebsiteCredentials(credentials, clearModifiedAt: false)
+    }
+
+    @discardableResult
+    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+        try storeWebsiteCredentials(in: database, credentials, clearModifiedAt: false)
+    }
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -126,13 +151,20 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         return try Self(file: dbFile, key: key)
     }
 
+    func inTransaction(_ block: @escaping (Database) throws -> Void) throws {
+        try db.inTransaction { database in
+            try block(database)
+            return .commit
+        }
+    }
+
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
                 .fetchAll($0)
         }
     }
-    
+
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
@@ -151,13 +183,21 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false) throws -> Int64 {
+        try db.write {
+            try storeWebsiteCredentials(in: $0, credentials, clearModifiedAt: clearModifiedAt)
+        }
+    }
+
+    @discardableResult
+    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false) throws -> Int64 {
+        let timestamp: Date? = clearModifiedAt ? nil : Date()
 
         if let stringId = credentials.account.id, let id = Int64(stringId) {
-            try updateWebsiteCredentials(credentials, usingId: id)
+            try updateWebsiteCredentials(in: database, credentials, usingId: id, timestamp: timestamp)
             return id
         } else {
-            return try insertWebsiteCredentials(credentials)
+            return try insertWebsiteCredentials(in: database, credentials, timestamp: timestamp)
         }
     }
 
@@ -172,51 +212,94 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func updateWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64) throws {
-        try db.write {
-            do {
-                try credentials.account.update($0)
-                try $0.execute(sql: """
-                    UPDATE
-                        \(SecureVaultModels.WebsiteCredentials.databaseTableName)
-                    SET
-                        \(SecureVaultModels.WebsiteCredentials.Columns.password.name) = ?
-                    WHERE
-                        \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+    func updateWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64, timestamp: Date? = Date()) throws {
+        do {
+            try credentials.account.update(database)
+            try database.execute(sql: """
+            UPDATE
+                \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+            SET
+                \(SecureVaultModels.WebsiteCredentials.Columns.password.name) = ?
+            WHERE
+                \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+        """, arguments: [credentials.password, id])
 
-                """, arguments: [credentials.password, id])
-            } catch let error as DatabaseError {
-                if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                    throw SecureVaultError.duplicateRecord
-                } else {
-                    throw error
-                }
+            try updateSyncTimestamp(in: database, tableName: SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName, objectId: id, timestamp: timestamp)
+        } catch let error as DatabaseError {
+            if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
+                throw SecureVaultError.duplicateRecord
+            } else {
+                throw error
             }
         }
     }
 
-    func insertWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
-        try db.write {
-            do {
-                try credentials.account.insert($0)
-                let id = $0.lastInsertedRowID
-                try $0.execute(sql: """
-                    INSERT INTO
-                        \(SecureVaultModels.WebsiteCredentials.databaseTableName)
-                    (
-                        \(SecureVaultModels.WebsiteCredentials.Columns.id.name),
-                        \(SecureVaultModels.WebsiteCredentials.Columns.password.name)
-                    )
-                    VALUES (?, ?)
-                """, arguments: [id, credentials.password])
-                return id
-            } catch let error as DatabaseError {
-                if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                    throw SecureVaultError.duplicateRecord
-                } else {
-                    throw error
-                }
+    func insertWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, timestamp: Date? = Date()) throws -> Int64 {
+        do {
+            try credentials.account.insert(database)
+            let id = database.lastInsertedRowID
+            try database.execute(sql: """
+                INSERT INTO
+                    \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+                (
+                    \(SecureVaultModels.WebsiteCredentials.Columns.id.name),
+                    \(SecureVaultModels.WebsiteCredentials.Columns.password.name)
+                )
+                VALUES (?, ?)
+            """, arguments: [id, credentials.password])
+
+            try SecureVaultModels.WebsiteAccountSyncMetadata(objectId: id, lastModified: timestamp).insert(database)
+
+            return id
+        } catch let error as DatabaseError {
+            if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
+                throw SecureVaultError.duplicateRecord
+            } else {
+                throw error
             }
+        }
+    }
+
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials] {
+        typealias Metadata = SecureVaultModels.WebsiteAccountSyncMetadata
+        typealias Credentials = SecureVaultModels.WebsiteCredentials
+
+        return try db.read {
+            let metadata = try Metadata.fetchAll($0, Metadata.filter(Metadata.Columns.lastModified != nil))
+            let accountIds = metadata.compactMap(\.objectId)
+
+            let accountsById: [String: SecureVaultModels.WebsiteAccount] = try SecureVaultModels.WebsiteAccount.fetchAll($0, keys: accountIds)
+                .reduce(into: .init(), { partialResult, account in
+                    if let accountID = account.id {
+                        partialResult[accountID] = account
+                    }
+                })
+            let credentialRows = try Row.fetchAll($0, sql:
+            """
+                SELECT
+                    \(Credentials.databaseTableName).\(Credentials.Columns.id.name),
+                    \(Credentials.databaseTableName).\(Credentials.Columns.password.name)
+                FROM
+                    \(Credentials.databaseTableName)
+                LEFT JOIN
+                    \(Metadata.databaseTableName)
+                ON
+                    \(Metadata.databaseTableName).\(Metadata.Columns.objectId.name) = \(Credentials.databaseTableName).\(Credentials.Columns.id.name)
+                WHERE
+                    \(Metadata.databaseTableName).\(Metadata.Columns.lastModified.name) IS NOT NULL
+            """)
+
+            let credentials = credentialRows.compactMap { row -> SecureVaultModels.WebsiteCredentials? in
+                let id: Int64 = row[SecureVaultModels.WebsiteCredentials.Columns.id.name]
+                guard let account = accountsById[String(id)] else {
+                    return nil
+                }
+                return SecureVaultModels.WebsiteCredentials(
+                    account: account,
+                    password: row[SecureVaultModels.WebsiteCredentials.Columns.password.name]
+                )
+            }
+            return credentials
         }
     }
 
@@ -236,9 +319,10 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                     \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
                 """, arguments: [account.id]) {
 
-                return SecureVaultModels.WebsiteCredentials(account: account,
-                                                password: result[SecureVaultModels.WebsiteCredentials.Columns.password.name])
-                
+                return SecureVaultModels.WebsiteCredentials(
+                    account: account,
+                    password: result[SecureVaultModels.WebsiteCredentials.Columns.password.name]
+                )
             }
             return nil
         }
@@ -406,6 +490,20 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             try creditCard.insert($0)
             return $0.lastInsertedRowID
         }
+    }
+
+    // MARK: - Sync
+
+    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date? = Date()) throws {
+        try database.execute(sql: """
+            UPDATE
+                \(tableName)
+            SET
+                \(SecureVaultSyncableColumns.lastModified.name) = ?
+            WHERE
+                \(SecureVaultSyncableColumns.objectId.name) = ?
+
+        """, arguments: [timestamp, objectId])
     }
 
 }
@@ -693,7 +791,7 @@ extension DefaultDatabaseProvider {
 
         while let row = try rows.next() {
             let accountId: Int64 = row[Account.Columns.id]
-            try AccountSyncMetadata(objectId: accountId).insert(database)
+            try AccountSyncMetadata(objectId: accountId, lastModified: nil).insert(database)
         }
 
     }

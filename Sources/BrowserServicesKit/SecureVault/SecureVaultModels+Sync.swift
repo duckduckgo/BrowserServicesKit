@@ -27,6 +27,10 @@ public protocol SecureVaultSyncable {
     var lastModified: Date? { get set }
 }
 
+public enum SecureVaultSyncableColumns: String, ColumnExpression {
+    case id, objectId, lastModified
+}
+
 extension SecureVaultModels {
 
     public struct WebsiteAccountSyncMetadata: SecureVaultSyncable {
@@ -44,9 +48,7 @@ extension SecureVaultModels {
 
 extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord, FetchableRecord {
 
-    enum Columns: String, ColumnExpression {
-        case id, objectId, lastModified
-    }
+    public typealias Columns = SecureVaultSyncableColumns
 
     public init(row: Row) {
         id = row[Columns.id]

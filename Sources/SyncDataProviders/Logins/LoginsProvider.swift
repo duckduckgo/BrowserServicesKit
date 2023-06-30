@@ -21,6 +21,7 @@ import Foundation
 import BrowserServicesKit
 import Combine
 import DDGSync
+import GRDB
 
 public final class LoginsProvider: DataProviding {
 
@@ -49,10 +50,21 @@ public final class LoginsProvider: DataProviding {
 
     public func prepareForFirstSync() throws {
         lastSyncTimestamp = nil
+        let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        try secureVault.inDatabaseTransaction { database in
+            try database.execute(sql: """
+                UPDATE
+                    \(SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName)
+                SET
+                    \(SecureVaultModels.WebsiteAccountSyncMetadata.Columns.lastModified.name) = ?
+            """, arguments: [Date()])
+        }
     }
 
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        []
+        let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        let credentials = try secureVault.modifiedWebsiteCredentials()
+        return []
     }
 
     public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {

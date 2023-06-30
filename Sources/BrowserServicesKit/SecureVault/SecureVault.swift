@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import GRDB
 
 /// A vault that supports storing data at various levels.
 ///
@@ -59,6 +60,20 @@ public protocol SecureVault {
     @discardableResult
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardFor(cardId: Int64) throws
+
+    // MARK: - Sync Support
+
+    func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials]
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
+}
+
+extension SecureVault {
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+        try storeWebsiteCredentials(credentials, clearModifiedAt: false)
+    }
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -218,7 +233,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false) throws -> Int64 {
         lock.lock()
         defer {
             lock.unlock()
@@ -352,6 +367,18 @@ class DefaultSecureVault: SecureVault {
             mutableCard.cardNumberData = try self.l2Encrypt(data: mutableCard.cardNumberData)
             
             return try self.providers.database.storeCreditCard(mutableCard)
+        }
+    }
+
+    func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.inTransaction(block)
+        }
+    }
+
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials] {
+        try executeThrowingDatabaseOperation{
+            try self.providers.database.modifiedWebsiteCredentials()
         }
     }
 

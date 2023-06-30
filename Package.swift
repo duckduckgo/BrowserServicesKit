@@ -168,6 +168,7 @@ let package = Package(
                 "Bookmarks",
                 "BrowserServicesKit",
                 "DDGSync",
+                .product(name: "GRDB", package: "GRDB.swift"),
                 "Persistence"
             ]),
         .target(

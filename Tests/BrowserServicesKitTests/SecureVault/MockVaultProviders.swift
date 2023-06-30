@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import GRDB
 @testable import BrowserServicesKit
 
 internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
@@ -120,6 +121,20 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
         _creditCards.removeValue(forKey: cardId)
+    }
+
+    func inTransaction(_ block: @escaping (Database) throws -> Void) throws {
+    }
+
+    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws {
+    }
+
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteCredentials] {
+        []
+    }
+
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64 {
+        try storeWebsiteCredentials(credentials)
     }
 }
 
