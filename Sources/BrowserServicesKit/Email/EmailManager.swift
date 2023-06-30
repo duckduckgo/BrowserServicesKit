@@ -324,6 +324,24 @@ public class EmailManager {
         }
     }
 
+    public func getStatusFor(email: String, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
+        do {
+            return try await fetchStatusFor(alias: aliasFor(email), timeoutInterval: timeoutInterval)
+        }
+        catch {
+            throw error
+        }
+    }
+
+    public func setStatusFor(email: String, active: Bool, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
+        do {
+            return try await setStatusFor(alias: aliasFor(email), active: active)
+        }
+        catch {
+            throw error
+        }
+    }
+
     public func resetEmailProtectionInContextPrompt() {
         UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
     }
