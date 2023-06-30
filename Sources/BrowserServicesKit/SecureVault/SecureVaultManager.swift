@@ -406,15 +406,21 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         if partialAccount == nil || partialAccount?.domain != domain {
             partialAccount = createPartialAccount(vault: vault, username: username, password: passwordData, domain: domain)
 
-        // Update the last partial account for the domain
+        // Update the partial account
         } else {
-            // TODO: If the user deletes the currently active partial account, saving will not work anymore
             let accounts = try vault.accountsFor(domain: domain)
-            guard var existingAccount = accounts.first(where: { $0.id == partialAccount?.id }) else {
-                return  // If the partial account does not exist we may need to recreate
+            var existingAccount = accounts.first(where: { $0.id == partialAccount?.id })
+
+            // Recreate the partial account if deleted by user
+            if existingAccount == nil {
+                existingAccount = createPartialAccount(vault: vault, username: username, password: passwordData, domain: domain)
+                partialAccount = existingAccount
             }
-            existingAccount.username = username
-            try vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: existingAccount, password: passwordData))
+            guard var account = existingAccount else {
+                return
+            }
+            account.username = username
+            try vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: passwordData))
 
         }
         return
