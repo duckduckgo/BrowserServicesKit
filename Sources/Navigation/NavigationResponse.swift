@@ -85,5 +85,3 @@ extension NavigationResponsePolicy? {
     /// Pass decision making to next responder
     public static let next = NavigationResponsePolicy?.none
 }
-
-// swiftlint:enable line_length

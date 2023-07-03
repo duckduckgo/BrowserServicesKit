@@ -100,4 +100,3 @@ extension FrameInfo: CustomDebugStringConvertible {
         return "<Frame \(webViewPtr)_\(handle)\(isMainFrame ? ": Main" : ""); current url: \(url.absoluteString.isEmpty ? "empty" : url.absoluteString)>"
     }
 }
-// swiftlint:enable line_length

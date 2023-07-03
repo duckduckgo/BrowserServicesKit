@@ -21,6 +21,7 @@ import Foundation
 import WebKit
 
 // swiftlint:disable line_length
+// swiftlint:disable file_length
 @MainActor
 public final class Navigation {
 
@@ -188,24 +189,8 @@ extension Navigation {
         guard let wkNavigation, wkNavigation.navigation !== self else { return }
 
         // ensure Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
-        wkNavigation.onDeinit { [self] in
-            DispatchQueue.main.async { [self] in
-                self.checkNavigationCompletion()
-            }
-        }
+        WKNavigationLifetimeTracker(navigation: self).bind(to: wkNavigation)
         wkNavigation.navigation = self
-    }
-
-    /// ensure the Navigation is completed when WKNavigation is deallocated
-    private func checkNavigationCompletion() {
-        guard !isCompleted, isApproved else { return }
-
-        let error = WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled))
-        self.state = .failed(error)
-
-        for responder in navigationResponders {
-            responder.navigation(self, didFailWith: error)
-        }
     }
 
     private func resolve(with wkNavigation: WKNavigation?) {
@@ -375,6 +360,39 @@ extension Navigation {
             return
         }
         self.state = .responseReceived
+    }
+
+}
+
+// ensures Navigation object lifetime is bound to the WKNavigation in case it‘s not properly started or finished
+@MainActor
+final class WKNavigationLifetimeTracker: NSObject {
+    private let navigation: Navigation
+    private static let wkNavigationLifetimeKey = UnsafeRawPointer(bitPattern: "wkNavigationLifetimeKey".hashValue)!
+
+    init(navigation: Navigation) {
+        self.navigation = navigation
+    }
+
+    func bind(to wkNavigation: NSObject) {
+        objc_setAssociatedObject(wkNavigation, Self.wkNavigationLifetimeKey, self, .OBJC_ASSOCIATION_RETAIN)
+    }
+
+    private static func checkNavigationCompletion(_ navigation: Navigation) {
+        guard !navigation.isCompleted, navigation.isApproved else { return }
+
+        let error = WKError(_nsError: NSError(domain: NSURLErrorDomain, code: NSURLErrorCancelled))
+        navigation.state = .failed(error)
+
+        for responder in navigation.navigationResponders {
+            responder.navigation(navigation, didFailWith: error)
+        }
+    }
+
+    deinit {
+        DispatchQueue.main.async { [navigation] in
+            Self.checkNavigationCompletion(navigation)
+        }
     }
 
 }

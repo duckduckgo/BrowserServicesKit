@@ -111,106 +111,72 @@ private extension DistributedNavigationDelegate {
 #endif
 
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
-    func makeAsyncDecision<T>(boundToLifetimeOf webView: WKWebView,
-                              with responders: ResponderChain,
+    func makeAsyncDecision<T>(with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
                               completion: @escaping @MainActor (T?) -> Void,
                               cancellation: @escaping @MainActor () -> Void) -> Task<Void, Never> {
         dispatchPrecondition(condition: .onQueue(.main))
-
-        // cancel the decision making Task if WebView deallocates before it‘s finished
-        let webViewDeinitObserver = webView.deinitObservers.insert(NSObject.DeinitObserver()).memberAfterInsert
-
         // TO DO: ideally the Task should be executed synchronously until the first await, check it later when custom Executors arrive to Swift
-        let task = Task.detached { @MainActor [responders, weak webView, weak webViewDeinitObserver] in
-            await withTaskCancellationHandler {
-                for responder in responders {
-                    // in case of the Task cancellation completion handler will be called in `onCancel:`
-                    guard !Task.isCancelled else { return }
+        return Task.detached { @MainActor [responders] in
+            var result: T?
+            for responder in responders {
+                guard !Task.isCancelled else {
+                    cancellation()
+                    return
+                }
+
 #if DEBUG
-                    let longDecisionMakingCheckCancellable = Self.checkLongDecisionMaking(for: responder)
-                    defer { longDecisionMakingCheckCancellable?.cancel() }
-#endif
+                let typeOfResponder = "\(type(of: responder))"
+                var timeoutWorkItem: DispatchWorkItem?
+                if !Self.sigIntRaisedForResponders.contains(typeOfResponder),
+                   // class-type responder will be queried for shouldDisableLongDecisionMakingChecks after delay
+                   (responder as? NavigationResponder & AnyObject) != nil
+                    // struct-type can‘t be mutated so it should have shouldDisableLongDecisionMakingChecks set permanently if its decisions take long
+                    || !responder.shouldDisableLongDecisionMakingChecks {
 
-                    // complete if responder returns non-nil (non-`.next`) decision
-                    if let decision = await decide(responder) {
-                        guard !Task.isCancelled else { return }
+                    let responder = responder as? NavigationResponder & AnyObject
+                    timeoutWorkItem = DispatchWorkItem { [weak responder] in
+                        guard responder?.shouldDisableLongDecisionMakingChecks != true else { return }
+                        Self.sigIntRaisedForResponders.insert(typeOfResponder)
 
-                        completion(decision)
-                        return
+                        breakByRaisingSigInt("""
+                            Decision making is taking longer than expected
+                            This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder
+
+                            Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
+                            for known long decision making to disable this warning
+                        """)
                     }
                 }
-                // default completion handler if none of responders returned non-nil result
-                guard !Task.isCancelled else { return }
-                completion(nil)
+                if let timeoutWorkItem {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
+                }
+                defer {
+                    timeoutWorkItem?.cancel()
+                }
+#endif
 
-            } onCancel: {
-                DispatchQueue.main.async {
-                    cancellation()
+                if let decision = await decide(responder) {
+                    result = decision
+                    break
                 }
             }
-
-            // remove WebView deallocation observer on the Task completion
-            if let webViewDeinitObserver {
-                webViewDeinitObserver.disarm()
-                webView?.deinitObservers.remove(webViewDeinitObserver)
+            guard !Task.isCancelled else {
+                cancellation()
+                return
             }
-        }
 
-        // cancel the Task if WebView deallocates before it‘s finished
-        webViewDeinitObserver.onDeinit {
-            task.cancel()
+            completion(result)
         }
-        return task
     }
 
-    func makeAsyncDecision<T>(boundToLifetimeOf webView: WKWebView,
-                              with responders: ResponderChain,
+    func makeAsyncDecision<T>(with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
                               completion: @escaping @MainActor (T?) -> Void) {
-        _=makeAsyncDecision(boundToLifetimeOf: webView, with: responders, decide: decide, completion: completion, cancellation: { @MainActor in
+        _=makeAsyncDecision(with: responders, decide: decide, completion: completion, cancellation: { @MainActor in
             completion(nil)
         })
     }
-
-#if DEBUG
-
-    /// DEBUG check raising SIGINT (break) if NavigationResponder decision making takes more than 4 seconds
-    /// the check won‘t be made if `responder.shouldDisableLongDecisionMakingChecks` returns `true`
-    @MainActor
-    static func checkLongDecisionMaking<Responder: NavigationResponder>(for responder: Responder) -> AnyCancellable? {
-        let typeOfResponder = String(describing: Responder.self)
-        var timeoutWorkItem: DispatchWorkItem?
-        if !Self.sigIntRaisedForResponders.contains(typeOfResponder),
-           // class-type responder will be queried for shouldDisableLongDecisionMakingChecks after delay
-           (responder as? NavigationResponder & AnyObject) != nil
-            // struct-type can‘t be mutated so it should have shouldDisableLongDecisionMakingChecks set permanently if its decisions take long
-            || !responder.shouldDisableLongDecisionMakingChecks {
-
-            let responder = responder as? NavigationResponder & AnyObject
-            timeoutWorkItem = DispatchWorkItem { [weak responder] in
-                guard responder?.shouldDisableLongDecisionMakingChecks != true else { return }
-                Self.sigIntRaisedForResponders.insert(typeOfResponder)
-
-                breakByRaisingSigInt("""
-                    Decision making is taking longer than expected
-                    This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder
-
-                    Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
-                    for known long decision making to disable this warning
-                """)
-            }
-        }
-        if let timeoutWorkItem {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: timeoutWorkItem)
-            return AnyCancellable {
-                timeoutWorkItem.cancel()
-            }
-        }
-        return nil
-    }
-
-#endif
 
     /// Instantiates a new Navigation object for a NavigationAction
     /// or returns an ExpectedNavigation instance for navigations initiated using Navigator
@@ -292,9 +258,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     // MARK: Policy making
 
     @MainActor
-    // swiftlint:disable function_body_length
-    // swiftlint:disable cyclomatic_complexity
-    public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+    public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) { // swiftlint:disable:this function_body_length
 
         // new navigation or an ongoing navigation (for a server-redirect)?
         let navigation = navigation(for: wkNavigationAction, in: webView)
@@ -333,10 +297,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         var preferences = NavigationPreferences(userAgent: webView.customUserAgent, preferences: wkPreferences)
-        // keep WKNavigationAction alive until the decision is made but not any longer!
-        var wkNavigationAction: WKNavigationAction! = wkNavigationAction
         // pass async decision making to Navigation.navigationResponders (or the delegate navigationResponders for non-main-frame navigations)
-        let task = makeAsyncDecision(boundToLifetimeOf: webView, with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
+        let task = makeAsyncDecision(with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             // get to next responder until we get non-nil (.next == nil) decision
@@ -345,12 +307,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // pass non-nil decision to `completion:`
             return decision
 
-        } completion: { @MainActor [self, weak webView] (decision: NavigationActionPolicy?) in
+        } completion: { @MainActor [self] (decision: NavigationActionPolicy?) in
             dispatchPrecondition(condition: .onQueue(.main))
-            guard let webView else {
-                decisionHandler(.cancel, wkPreferences)
-                return
-            }
 
             switch decision {
             case .allow, .none:
@@ -399,11 +357,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             os_log("Task cancelled for %s", log: self.log, type: .default, navigationAction.debugDescription)
             decisionHandler(.cancel, wkPreferences)
-
-            // in case decision making is hung release WKNavigationAction just after cancellation
-            // to release WKProcessPool and everything bound to it including UserContentController
-            withExtendedLifetime(wkNavigationAction) {}
-            wkNavigationAction = nil
         }
 
         if navigationAction.isForMainFrame {
@@ -411,8 +364,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             self.navigationActionDecisionTask = task
         }
     }
-    // swiftlint:enable function_body_length
-    // swiftlint:enable cyclomatic_complexity
 
     @MainActor
     private func willStart(_ navigation: Navigation) {
@@ -460,7 +411,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         os_log("didReceive challenge: %s: %s", log: log, type: .default, navigation?.debugDescription ?? webView.debugDescription, challenge.protectionSpace.description)
 
-        makeAsyncDecision(boundToLifetimeOf: webView, with: navigation?.navigationResponders ?? responders) { @MainActor responder in
+        makeAsyncDecision(with: navigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.didReceive(challenge, for: navigation) else { return .next }
@@ -553,7 +504,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         os_log("decidePolicyFor: %s", log: log, type: .default, navigationResponse.debugDescription)
 
         let responders = (navigationResponse.isForMainFrame ? startedNavigation?.navigationResponders : nil) ?? responders
-        makeAsyncDecision(boundToLifetimeOf: webView, with: responders) { @MainActor responder in
+        makeAsyncDecision(with: responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.decidePolicy(for: navigationResponse) else { return .next }
@@ -561,12 +512,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             return decision
 
-        } completion: { @MainActor [weak self, weak webView] (decision: NavigationResponsePolicy?) in
+        } completion: { @MainActor [weak self] (decision: NavigationResponsePolicy?) in
             dispatchPrecondition(condition: .onQueue(.main))
-            guard let webView else {
-                decisionHandler(.cancel)
-                return
-            }
 
             switch decision {
             case .allow, .none:
@@ -958,6 +905,3 @@ extension DistributedNavigationDelegate {
     }
 
 }
-
-// swiftlint:enable line_length
-// swiftlint:enable file_length

@@ -130,12 +130,12 @@ extension ContentBlockerRulesManager {
                 compilationFailed(for: model, with: error, completionHandler: completionHandler)
                 return
             }
-
+            
             let ruleList = String(data: data, encoding: .utf8)!
             DispatchQueue.main.async {
                 WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
                                                                         encodedContentRuleList: ruleList) { ruleList, error in
-
+                    
                     if let ruleList = ruleList {
                         self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
                     } else if let error = error {

@@ -150,6 +150,7 @@ public extension NavigationResponder {
 
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {}
 
+
     @MainActor
     func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval) {}
 

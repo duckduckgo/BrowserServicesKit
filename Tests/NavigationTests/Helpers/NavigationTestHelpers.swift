@@ -985,6 +985,14 @@ private extension WKNavigationAction {
     }
 }
 
+private extension NSObject {
+    private static let onDeinitKey = UnsafeRawPointer(bitPattern: "onDeinitKey".hashValue)!
+    func onDeinit(do job: @escaping () -> Void) {
+        let cancellable = AnyCancellable(job)
+        objc_setAssociatedObject(self, Self.onDeinitKey, cancellable, .OBJC_ASSOCIATION_RETAIN)
+    }
+}
+
 extension Data {
 
     static let sessionRestorationMagic = Data([0x00, 0x00, 0x00, 0x02])

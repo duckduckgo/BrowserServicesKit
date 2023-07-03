@@ -270,5 +270,3 @@ extension NavigationPreferences: CustomDebugStringConvertible {
         "\(userAgent ?? "")\(contentMode == .recommended ? "" : (contentMode == .mobile ? ":mobile" : "desktop"))\(javaScriptEnabledValue == false ? ":jsdisabled" : "")"
     }
 }
-
-// swiftlint:enable line_length
