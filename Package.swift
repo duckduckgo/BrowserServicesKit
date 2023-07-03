@@ -35,7 +35,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.4"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
-        .package(url: "https://github.com/duckduckgo/bloom_cpp.git", branch: "main"),
+        .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
     ],
     targets: [
         .target(

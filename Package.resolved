@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/bloom_cpp.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "8076199456290b61b4544bf2f4caf296759906a0"
+        "revision" : "8076199456290b61b4544bf2f4caf296759906a0",
+        "version" : "3.0.0"
       }
     },
     {
