@@ -32,7 +32,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.3"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", branch: "07-03-fix_web-compat_run_web-compat_first_in_webkit_environments"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
     ],
