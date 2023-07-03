@@ -416,11 +416,15 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 existingAccount = createPartialAccount(vault: vault, username: username, password: passwordData, domain: domain)
                 partialAccount = existingAccount
             }
-            guard var account = existingAccount else {
+            guard var account = existingAccount,
+                  let id = account.id,
+                  let credentials = try? vault.websiteCredentialsFor(accountId: id) else {
                 return
             }
-            account.username = username
-            try vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: passwordData))
+
+            account.username = username != "" ? username : credentials.account.username
+            let pwd = passwordData != Data() ? passwordData : credentials.password
+            try vault.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: pwd))
 
         }
         return
