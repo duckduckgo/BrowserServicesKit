@@ -1,5 +1,5 @@
 //
-//  LocalDataPersisting.swift
+//  SecureStorage.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,11 +18,14 @@
 
 import Foundation
 
-public protocol LocalDataPersisting {
+struct KeyValueStore: KeyValueStoring {
 
-    var bookmarksLastModified: String? { get }
-    func updateBookmarksLastModified(_ lastModified: String?)
-    
-    func persistEvents(_ events: [SyncEvent]) async throws
+    func object(forKey key: String) -> Any? {
+        return UserDefaults().object(forKey: key)
+    }
+
+    func set(_ value: Any?, forKey key: String) {
+        UserDefaults().set(value, forKey: key)
+    }
 
 }

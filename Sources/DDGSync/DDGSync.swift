@@ -19,30 +19,48 @@
 import Foundation
 import Combine
 import DDGSyncCrypto
+import Common
+import os.log
 
 public class DDGSync: DDGSyncing {
 
+    public static let bundle = Bundle.module
+
     enum Constants {
-#if DEBUG
+        //#if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-#else
-        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-#endif
+        //#else
+        //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
+        //#endif
+
+        public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }
 
-    @Published public private(set) var isAuthenticated: Bool
-    public var isAuthenticatedPublisher: AnyPublisher<Bool, Never> {
-        $isAuthenticated.eraseToAnyPublisher()
+    @Published public private(set) var authState = SyncAuthState.initializing
+    public var authStatePublisher: AnyPublisher<SyncAuthState, Never> {
+        $authState.eraseToAnyPublisher()
     }
 
     public var account: SyncAccount? {
         try? dependencies.secureStore.account()
     }
 
+    public var scheduler: Scheduling {
+        dependencies.scheduler
+    }
+
+    @Published public var isSyncInProgress: Bool = false
+
+    public var isSyncInProgressPublisher: AnyPublisher<Bool, Never> {
+        $isSyncInProgress.dropFirst().removeDuplicates().eraseToAnyPublisher()
+    }
+
+    public weak var dataProvidersSource: DataProvidersSource?
+
     /// This is the constructor intended for use by app clients.
-    public convenience init(persistence: LocalDataPersisting) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, persistence: persistence)
-        self.init(persistence: persistence, dependencies: dependencies)
+    public convenience init(dataProvidersSource: DataProvidersSource, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, errorEvents: errorEvents, log: log())
+        self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
     public func createAccount(deviceName: String, deviceType: String) async throws {
@@ -51,18 +69,19 @@ public class DDGSync: DDGSyncing {
         }
 
         let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
-        try dependencies.secureStore.persistAccount(account)
-        updateIsAuthenticated()
+        try updateAccount(account)
+        scheduler.requestSyncImmediately()
     }
 
-    public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws {
+    public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice] {
         guard try dependencies.secureStore.account() == nil else {
             throw SyncError.accountAlreadyExists
         }
 
         let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
-        try dependencies.secureStore.persistAccount(result.account)
-        updateIsAuthenticated()
+        try updateAccount(result.account)
+        scheduler.requestSyncImmediately()
+        return result.devices
     }
 
     public func remoteConnect() throws -> RemoteConnecting {
@@ -85,30 +104,16 @@ public class DDGSync: DDGSyncing {
         }
     }
 
-    public func sender() throws -> UpdatesSending {
-        return try dependencies.createUpdatesSender(persistence)
-    }
-
-    public func fetchLatest() async throws {
-        try await dependencies.createUpdatesFetcher(persistence).fetch()
-    }
-
-    public func fetchEverything() async throws {
-        persistence.updateBookmarksLastModified(nil)
-        try await dependencies.createUpdatesFetcher(persistence).fetch()
-    }
-    
     public func disconnect() async throws {
         guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
             throw SyncError.accountNotFound
         }
         do {
             try await disconnect(deviceId: deviceId)
-            try dependencies.secureStore.removeAccount()
+            try updateAccount(nil)
         } catch {
             try handleUnauthenticated(error)
         }
-        updateIsAuthenticated()
     }
 
     public func disconnect(deviceId: String) async throws {
@@ -159,8 +164,7 @@ public class DDGSync: DDGSyncing {
 
         do {
             try await dependencies.account.deleteAccount(account)
-            try dependencies.secureStore.removeAccount()
-            updateIsAuthenticated()
+            try updateAccount(nil)
         } catch {
             try handleUnauthenticated(error)
         }
@@ -168,33 +172,137 @@ public class DDGSync: DDGSyncing {
 
     // MARK: -
 
-    let persistence: LocalDataPersisting
     let dependencies: SyncDependencies
 
-    init(persistence: LocalDataPersisting, dependencies: SyncDependencies) {
-        self.persistence = persistence
+    init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
+        self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
-        self.isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
     }
 
-    private func updateIsAuthenticated() {
-        isAuthenticated = (try? dependencies.secureStore.account()?.token) != nil
+    public func initializeIfNeeded(isInternalUser: Bool) {
+        guard authState == .initializing else { return }
+
+        let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
+        guard syncEnabled else {
+            // This is for initial tests only
+            if isInternalUser {
+                // Migrate and start using user defaults flag
+                do {
+                    let account = try dependencies.secureStore.account()
+                    authState = account?.state ?? .inactive
+                    try updateAccount(account)
+
+                } catch {
+                    dependencies.errorEvents.fire(.failedToMigrate, error: error)
+                }
+            } else {
+                try? dependencies.secureStore.removeAccount()
+                authState = .inactive
+            }
+
+            return
+        }
+
+        var account: SyncAccount?
+        do {
+            account = try dependencies.secureStore.account()
+        } catch {
+            dependencies.errorEvents.fire(.failedToLoadAccount, error: error)
+            return
+        }
+
+        authState = account?.state ?? .inactive
+
+        do {
+            try updateAccount(account)
+        } catch {
+            dependencies.errorEvents.fire(.failedToSetupEngine, error: error)
+        }
+    }
+
+    private func updateAccount(_ account: SyncAccount? = nil) throws {
+        guard account?.state != .initializing else {
+            assertionFailure("Sync has not been initialized properly")
+            return
+        }
+
+        guard let account, account.state != .inactive else {
+            dependencies.scheduler.isEnabled = false
+            startSyncCancellable?.cancel()
+            syncQueueCancellable?.cancel()
+            syncQueue = nil
+            authState = .inactive
+            try dependencies.secureStore.removeAccount()
+            dependencies.keyValueStore.set(nil, forKey: Constants.syncEnabledKey)
+            return
+        }
+
+        assert(syncQueue == nil, "Sync queue is not nil")
+
+        let providers = dataProvidersSource?.makeDataProviders() ?? []
+        let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
+
+        let previousState = try dependencies.secureStore.account()?.state
+        if previousState == nil || previousState ==  .inactive {
+            try syncQueue.prepareForFirstSync()
+        }
+        try dependencies.secureStore.persistAccount(account)
+        authState = account.state
+        dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
+
+        syncQueueCancellable = syncQueue.isSyncInProgressPublisher
+            .sink(receiveCompletion: { [weak self] _ in
+                self?.isSyncInProgress = false
+            }, receiveValue: { [weak self] isInProgress in
+                self?.isSyncInProgress = isInProgress
+            })
+
+        startSyncCancellable = dependencies.scheduler.startSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.startSync() {
+                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
+                        try? self?.dependencies.secureStore.persistAccount(account)
+                        self?.authState = .active
+                    }
+                }
+            }
+
+        cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.cancelOngoingSyncAndSuspendQueue()
+            }
+
+        resumeSyncCancellable = dependencies.scheduler.resumeSyncPublisher
+            .sink { [weak self] in
+                self?.syncQueue?.resumeQueue()
+            }
+
+        dependencies.scheduler.isEnabled = true
+        self.syncQueue = syncQueue
     }
 
     private func handleUnauthenticated(_ error: Error) throws {
         guard let syncError = error as? SyncError,
               case .unexpectedStatusCode(let statusCode) = syncError,
-                statusCode == 401 else {
+              statusCode == 401 else {
             throw error
         }
 
         do {
-            try self.dependencies.secureStore.removeAccount()
+            try updateAccount(nil)
+            dependencies.errorEvents.fire(syncError)
         } catch {
-            // We should probably log this, maybe fire a pixel
-            print(error)
+            os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
+            if let syncError = error as? SyncError {
+                dependencies.errorEvents.fire(syncError)
+            }
         }
-        updateIsAuthenticated()
-        return
     }
+
+    private var startSyncCancellable: AnyCancellable?
+    private var cancelSyncCancellable: AnyCancellable?
+    private var resumeSyncCancellable: AnyCancellable?
+
+    private var syncQueue: SyncQueue?
+    private var syncQueueCancellable: AnyCancellable?
 }

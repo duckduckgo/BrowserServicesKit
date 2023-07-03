@@ -579,8 +579,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
             """.data(using: .utf8)!
     }
 
-    func testTrackerAllowlistIsAlwaysEmptyWhenDisabled() {
-        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "disabled"), etag: "test")
+    func testTrackerAllowlistIsNotEmptyWhenEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: PrivacyConfigurationData.State.enabled), etag: "test")
         let mockInternalUserStore = MockInternalUserStoring()
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
@@ -590,14 +590,11 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
         let config = manager.privacyConfig
 
-        mockInternalUserStore.isInternalUser = true
-        XCTAssertTrue(config.trackerAllowlist.isEmpty)
-        mockInternalUserStore.isInternalUser = false
-        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+        XCTAssertFalse(config.trackerAllowlist.entries.isEmpty)
     }
 
-    func testTrackerAllowlistIsEmptyForNonInternalUsersWhenInternal() {
-        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "internal"), etag: "test")
+    func testTrackerAllowlistIsEmptyWhenDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: PrivacyConfigurationData.State.disabled), etag: "test")
         let mockInternalUserStore = MockInternalUserStoring()
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
@@ -607,27 +604,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
         let config = manager.privacyConfig
 
-        mockInternalUserStore.isInternalUser = true
-        XCTAssertFalse(config.trackerAllowlist.isEmpty)
-        mockInternalUserStore.isInternalUser = false
-        XCTAssertTrue(config.trackerAllowlist.isEmpty)
-    }
-
-    func testTrackerAllowlistIsNeverEmptyWhenEnabled() {
-        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "enabled"), etag: "test")
-        let mockInternalUserStore = MockInternalUserStoring()
-
-        let manager = PrivacyConfigurationManager(fetchedETag: nil,
-                                                  fetchedData: nil,
-                                                  embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
-        let config = manager.privacyConfig
-
-        mockInternalUserStore.isInternalUser = true
-        XCTAssertFalse(config.trackerAllowlist.isEmpty)
-        mockInternalUserStore.isInternalUser = false
-        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+        XCTAssert(config.trackerAllowlist.entries.isEmpty)
     }
 
 }

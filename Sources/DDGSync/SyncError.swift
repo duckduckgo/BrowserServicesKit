@@ -18,18 +18,24 @@
 
 import Foundation
 
-public enum SyncError: Error {
+public enum SyncError: Error, Equatable {
 
     case noToken
+
+    case failedToMigrate
+    case failedToLoadAccount
+    case failedToSetupEngine
 
     case failedToCreateAccountKeys(_ message: String)
     case accountNotFound
     case accountAlreadyExists
     case invalidRecoveryKey
 
+    case noFeaturesSpecified
     case noResponseBody
     case unexpectedStatusCode(Int)
     case unexpectedResponseBody
+    case unableToEncodeRequestBody(_ message: String)
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
     case accountRemoved

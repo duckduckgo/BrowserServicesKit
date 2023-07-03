@@ -27,6 +27,7 @@ public struct SyncAccount: Codable, Sendable {
     public let primaryKey: Data
     public let secretKey: Data
     public let token: String?
+    public let state: SyncAuthState
 
     /// Convenience var which calls `SyncCode().toJSON().base64EncodedString()`
     public var recoveryCode: String? {
@@ -38,6 +39,65 @@ public struct SyncAccount: Codable, Sendable {
             return nil
         }
     }
+
+    init(
+        deviceId: String,
+        deviceName: String,
+        deviceType: String,
+        userId: String,
+        primaryKey: Data,
+        secretKey: Data,
+        token: String?,
+        state: SyncAuthState
+    ) {
+        self.deviceId = deviceId
+        self.deviceName = deviceName
+        self.deviceType = deviceType
+        self.userId = userId
+        self.primaryKey = primaryKey
+        self.secretKey = secretKey
+        self.token = token
+        self.state = state
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.deviceId = try container.decode(String.self, forKey: .deviceId)
+        self.deviceName = try container.decode(String.self, forKey: .deviceName)
+        self.deviceType = try container.decode(String.self, forKey: .deviceType)
+        self.userId = try container.decode(String.self, forKey: .userId)
+        self.primaryKey = try container.decode(Data.self, forKey: .primaryKey)
+        self.secretKey = try container.decode(Data.self, forKey: .secretKey)
+        self.token = try container.decodeIfPresent(String.self, forKey: .token)
+        if let state: SyncAuthState = try container.decodeIfPresent(SyncAuthState.self, forKey: .state) {
+            self.state = state
+        } else {
+            self.state = SyncAuthState.active
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.deviceId, forKey: .deviceId)
+        try container.encode(self.deviceName, forKey: .deviceName)
+        try container.encode(self.deviceType, forKey: .deviceType)
+        try container.encode(self.userId, forKey: .userId)
+        try container.encode(self.primaryKey, forKey: .primaryKey)
+        try container.encode(self.secretKey, forKey: .secretKey)
+        try container.encodeIfPresent(self.token, forKey: .token)
+        try container.encode(self.state, forKey: .state)
+    }
+
+    enum CodingKeys: CodingKey {
+        case deviceId
+        case deviceName
+        case deviceType
+        case userId
+        case primaryKey
+        case secretKey
+        case token
+        case state
+    }
 }
 
 public struct RegisteredDevice: Codable, Sendable {
@@ -45,13 +105,6 @@ public struct RegisteredDevice: Codable, Sendable {
     public let id: String
     public let name: String
     public let type: String
-
-    // Remove this when the server change is made to remove the device_ prefix
-    enum CodingKeys: String, CodingKey {
-        case id = "deviceId"
-        case name = "deviceName"
-        case type = "deviceType"
-    }
 
 }
 

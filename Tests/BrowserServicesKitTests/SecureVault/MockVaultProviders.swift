@@ -131,6 +131,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
     var _lastDataToDecrypt: Data?
     var _lastDataToEncrypt: Data?
     var _lastKey: Data?
+    var hashingSalt: Data?
     // swiftlint:enable identifier_name
 
     func generateSecretKey() throws -> Data {
@@ -165,10 +166,24 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
         return data
     }
+    
+    func generateSalt() throws -> Data {
+        return Data()
+    }
+    
+    func hashData(_ data: Data) throws -> String? {
+        return ""
+    }
+
+    func hashData(_ data: Data, salt: Data?) throws -> String? {
+        return ""
+    }
 
 }
 
 internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+
+    var hashingSalt: Data?
 
     func generateSecretKey() throws -> Data {
         return Data()
@@ -192,6 +207,18 @@ internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data {
         return data
+    }
+    
+    func generateSalt() throws -> Data {
+        return Data()
+    }
+
+    func hashData(_ data: Data) throws -> String? {
+        return ""
+    }
+
+    func hashData(_ data: Data, salt: Data?) throws -> String? {
+        return ""
     }
 
 }

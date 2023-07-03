@@ -48,7 +48,7 @@ public final class Navigation {
     /// contains NavigationResponse if it was received during navigation
     public private(set) var navigationResponse: NavigationResponse?
 
-    init(identity: NavigationIdentity, responders: ResponderChain, state: NavigationState, redirectHistory: [NavigationAction]? = nil, isCurrent: Bool, isCommitted: Bool = false) {
+    public init(identity: NavigationIdentity, responders: ResponderChain, state: NavigationState, redirectHistory: [NavigationAction]? = nil, isCurrent: Bool, isCommitted: Bool = false) {
         self.state = state
         self.identity = identity
         self.navigationActions = redirectHistory ?? []

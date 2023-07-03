@@ -23,13 +23,13 @@ class RemoteConnector: RemoteConnecting {
     let code: String
     let connectInfo: ConnectInfo
 
-    let crypter: Crypting
+    let crypter: CryptingInternal
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
 
     var isPolling = false
 
-    init(crypter: Crypting,
+    init(crypter: CryptingInternal,
          api: RemoteAPIRequestCreating,
          endpoints: Endpoints,
          connectInfo: ConnectInfo) throws {
@@ -83,11 +83,12 @@ class RemoteConnector: RemoteConnecting {
     private func fetchEncryptedRecoveryKey() async throws -> Data? {
         let url = endpoints.connect.appendingPathComponent(connectInfo.deviceID)
 
-        let request = api.createRequest(url: url, method: .GET,
-                              headers: [:],
-                              parameters: [:],
-                              body: nil,
-                              contentType: nil)
+        let request = api.createRequest(url: url,
+                                        method: .GET,
+                                        headers: [:],
+                                        parameters: [:],
+                                        body: nil,
+                                        contentType: nil)
 
         do {
             let result = try await request.execute()

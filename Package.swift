@@ -24,14 +24,15 @@ let package = Package(
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
+        .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.5.1"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.4.4"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.3"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/jaceklyp/bloom_cpp", branch: "develop"),
@@ -75,6 +76,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "BookmarksTestsUtils",
+            dependencies: [
+                "Bookmarks"
+            ]
+        ),
+         .target(
             name: "BloomFilterWrapper",
             dependencies: [
                 .product(name: "BloomFilter", package: "bloom_cpp")
@@ -90,6 +97,7 @@ let package = Package(
                 "Networking"
             ],
             resources: [
+                .process("SyncMetadata.xcdatamodeld"),
                 .process("SyncPDFTemplate.png")
             ]
         ),
@@ -126,7 +134,10 @@ let package = Package(
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
-            name: "UserScript"
+            name: "UserScript",
+            dependencies: [
+                "Common"
+            ]
         ),
         .target(
             name: "PrivacyDashboard",
@@ -152,12 +163,25 @@ let package = Package(
                 "Common"
             ]),
         .target(
+            name: "SyncDataProviders",
+            dependencies: [
+                "Bookmarks",
+                "DDGSync",
+                "Persistence"
+            ]),
+        .target(
             name: "TestUtils",
             dependencies: [
                 "Networking"
             ]),
-        
+
         // MARK: - Test targets
+        .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks",
+                "BookmarksTestsUtils"
+            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
@@ -222,6 +246,13 @@ let package = Package(
             dependencies: [
                 "Configuration",
                 "TestUtils"
+            ]
+        ),
+        .testTarget(
+            name: "SyncDataProvidersTests",
+            dependencies: [
+                "BookmarksTestsUtils",
+                "SyncDataProviders"
             ]
         )
     ]
