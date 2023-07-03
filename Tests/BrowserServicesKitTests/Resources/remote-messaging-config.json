@@ -97,6 +97,28 @@
           "value": ""
         }
       }
+    },
+    {
+        "id": "96EEA91B-030D-41E5-95A7-F11C1952A5FF",
+        "content": {
+            "messageType": "big_two_action",
+            "titleText": "Here goes a title",
+            "descriptionText": "description",
+            "placeholder": "NewForMacAndWindows",
+            "primaryActionText": "Ok",
+            "primaryAction": {
+                "type": "share",
+                "value": "https://duckduckgo.com/app",
+                "additionalParameters": {
+                    "title": "Share Title"
+                }
+            },
+            "secondaryActionText": "Cancel",
+            "secondaryAction": {
+                "type": "dismiss",
+                "value": ""
+            }
+        }
     }
   ],
   "rules": [
