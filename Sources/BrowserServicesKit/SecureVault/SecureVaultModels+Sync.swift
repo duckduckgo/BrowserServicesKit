@@ -49,9 +49,22 @@ extension SecureVaultModels {
             self.lastModified = lastModified
         }
     }
+
+    struct FetchableWebsiteCredentials: FetchableRecord, TableRecord {
+        public var accountId: Int64
+        public var password: Data
+
+        public static var databaseTableName: String = WebsiteCredentials.databaseTableName
+        typealias Columns = WebsiteCredentials.Columns
+
+        init(row: Row) throws {
+            accountId = row[Columns.id]
+            password = row[Columns.password]
+        }
+    }
 }
 
-extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord {
+extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord, FetchableRecord {
 
     public typealias Columns = SecureVaultSyncableColumns
 
@@ -59,6 +72,11 @@ extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord {
         container[Columns.id] = id
         container[Columns.objectId] = credential?.account.id
         container[Columns.lastModified] = lastModified
+    }
+
+    public init(row: Row) throws {
+        id = row[Columns.id]
+        lastModified = row[Columns.lastModified]
     }
 
     public static var databaseTableName: String = "website_accounts_sync_metadata"

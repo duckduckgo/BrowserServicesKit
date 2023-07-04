@@ -55,13 +55,20 @@ protocol SecureVaultDatabaseProvider {
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
     @discardableResult
-    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
     @discardableResult
-    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64
+
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws
 
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 
     func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
+    func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
+    func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata?
+    func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount]
+
 }
 
 extension SecureVaultDatabaseProvider {
@@ -71,8 +78,8 @@ extension SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
-        try storeWebsiteCredentials(in: database, credentials, clearModifiedAt: false)
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
+        try storeWebsiteCredentials(credentials, clearModifiedAt: false, in: database)
     }
 }
 
@@ -166,11 +173,15 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        return try db.read {
-            return try SecureVaultModels.WebsiteAccount
-                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
-                .fetchAll($0)
+        try db.read {
+            try websiteAccountsForDomain(domain, in: $0)
         }
+    }
+
+    func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount] {
+        try SecureVaultModels.WebsiteAccount
+            .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
+            .fetchAll(database)
     }
 
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
@@ -185,12 +196,12 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false) throws -> Int64 {
         try db.write {
-            try storeWebsiteCredentials(in: $0, credentials, clearModifiedAt: clearModifiedAt)
+            try storeWebsiteCredentials(credentials, clearModifiedAt: clearModifiedAt, in: $0)
         }
     }
 
     @discardableResult
-    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false) throws -> Int64 {
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false, in database: Database) throws -> Int64 {
         let timestamp: Date? = clearModifiedAt ? nil : Date()
 
         if let stringId = credentials.account.id, let id = Int64(stringId) {
@@ -201,14 +212,18 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
+        try database.execute(sql: """
+            DELETE FROM
+                \(SecureVaultModels.WebsiteAccount.databaseTableName)
+            WHERE
+                \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+            """, arguments: [accountId])
+    }
+
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
         try db.write {
-            try $0.execute(sql: """
-                DELETE FROM
-                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
-                WHERE
-                    \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
-                """, arguments: [accountId])
+            try deleteWebsiteCredentialsForAccountId(accountId, in: $0)
         }
     }
 
@@ -307,28 +322,65 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
-        return try db.read {
-            guard let account = try SecureVaultModels.WebsiteAccount.fetchOne($0, key: accountId) else {
-                return nil
-            }
+    func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+        typealias Metadata = SecureVaultModels.WebsiteAccountSyncMetadata
+        typealias Credentials = SecureVaultModels.WebsiteCredentials
+        typealias Account = SecureVaultModels.WebsiteAccount
 
-            if let result = try Row.fetchOne($0,
-                                             sql: """
-                SELECT
-                    \(SecureVaultModels.WebsiteCredentials.Columns.password.name)
-                FROM
-                    \(SecureVaultModels.WebsiteCredentials.databaseTableName)
-                WHERE
-                    \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
-                """, arguments: [account.id]) {
-
-                return SecureVaultModels.WebsiteCredentials(
-                    account: account,
-                    password: result[SecureVaultModels.WebsiteCredentials.Columns.password.name]
-                )
+        var metadata = try Metadata.fetchAll(database, keys: syncIds)
+        let accountIds = metadata.compactMap(\.objectId)
+        let accountsById: [Int64: Account] = try Account.fetchAll(database, keys: accountIds)
+            .reduce(into: .init()) { partialResult, account in
+                if let accountId = account.id.flatMap(Int64.init) {
+                    partialResult[accountId] = account
+                }
             }
+        let passwordsByAccountId: [Int64: Data] = try SecureVaultModels.FetchableWebsiteCredentials.fetchAll(database, keys: accountIds)
+            .reduce(into: .init(), { $0[$1.accountId] = $1.password })
+
+        for i in 0..<metadata.count {
+            if let objectId = metadata[i].objectId, let account = accountsById[objectId], let password = passwordsByAccountId[objectId] {
+                metadata[i].credential = Credentials(account: account, password: password)
+            }
+        }
+        return metadata
+    }
+
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata? {
+        let request = SecureVaultModels.WebsiteAccountSyncMetadata.filter(SecureVaultModels.WebsiteAccountSyncMetadata.Columns.objectId == accountId)
+        guard var metadata = try SecureVaultModels.WebsiteAccountSyncMetadata.fetchOne(database, request) else {
             return nil
+        }
+        metadata.credential = try websiteCredentialsForAccountId(accountId, in: database)
+        return metadata
+    }
+
+    func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
+        guard let account = try SecureVaultModels.WebsiteAccount.fetchOne(database, key: accountId) else {
+            return nil
+        }
+
+        if let result = try Row.fetchOne(database,
+                                         sql: """
+            SELECT
+                \(SecureVaultModels.WebsiteCredentials.Columns.password.name)
+            FROM
+                \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+            WHERE
+                \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+            """, arguments: [account.id]) {
+
+            return SecureVaultModels.WebsiteCredentials(
+                account: account,
+                password: result[SecureVaultModels.WebsiteCredentials.Columns.password.name]
+            )
+        }
+        return nil
+    }
+
+    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
+        try db.read {
+            try websiteCredentialsForAccountId(accountId, in: $0)
         }
     }
 

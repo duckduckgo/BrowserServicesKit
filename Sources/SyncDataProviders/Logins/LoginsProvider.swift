@@ -67,7 +67,8 @@ public final class LoginsProvider: DataProviding {
         let metadata = try secureVault.modifiedWebsiteCredentials()
         print("Fetching took \(Date().timeIntervalSince(date)) s")
         date = Date()
-        let syncables = try metadata.map { try Syncable.init(metadata: $0, encryptedWith: crypter) }
+        let encryptionKey = try crypter.fetchSecretKey()
+        let syncables = try metadata.map { try Syncable.init(metadata: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
         print("Syncable population took \(Date().timeIntervalSince(date)) s")
         return []
     }

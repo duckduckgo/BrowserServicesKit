@@ -65,8 +65,15 @@ public protocol SecureVault {
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
+    func deleteWebsiteCredentialsFor(accountId: Int64, in database: Database) throws
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, clearModifiedAt: Bool, in database: Database) throws
+
+    func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata?
+    func accountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount]
 }
 
 extension SecureVault {
@@ -199,6 +206,22 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
+    public func accountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount] {
+        do {
+            var parts = domain.components(separatedBy: ".")
+            while !parts.isEmpty {
+                let accounts = try self.providers.database.websiteAccountsForDomain(parts.joined(separator: "."), in: database)
+                if !accounts.isEmpty {
+                    return accounts
+                }
+                parts.removeFirst()
+            }
+            return []
+        } catch {
+            throw SecureVaultError.databaseError(cause: error)
+        }
+    }
+
     public func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         lock.lock()
         defer {
@@ -254,9 +277,51 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, clearModifiedAt: Bool, in database: Database) throws {
+        guard let credential = metadata.credential else {
+            assertionFailure("nil credentials passed to \(#function)")
+            return
+        }
+        try storeWebsiteCredentials(credential, clearModifiedAt: true, in: database)
+        try metadata.update(database)
+    }
+
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
+        guard let accountId = metadata.objectId else {
+            assertionFailure("nil account ID passed to \(#function)")
+            return
+        }
+        try deleteWebsiteCredentialsFor(accountId: accountId, in: database)
+        try metadata.delete(database)
+    }
+
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64 {
+        do {
+            // Generate a new signature
+            guard credentials.account.username.data(using: .utf8) != nil else {
+                throw SecureVaultError.generalCryptoError
+            }
+            let hashData = credentials.account.hashValue + credentials.password
+            var creds = credentials
+            creds.account.signature = try providers.crypto.hashData(hashData)
+            let encryptedPassword = try self.l2Encrypt(data: credentials.password)
+            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword), in: database)
+        } catch {
+            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error
+        }
+    }
+
     func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        }
+    }
+
+    func deleteWebsiteCredentialsFor(accountId: Int64, in database: Database) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId, in: database)
         }
     }
 
@@ -370,6 +435,14 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
+    func deleteCreditCardFor(cardId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteCreditCardForCreditCardId(cardId)
+        }
+    }
+
+    // MARK: - Sync Support
+
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.inTransaction(block)
@@ -398,13 +471,14 @@ class DefaultSecureVault: SecureVault {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
         }
-
     }
 
-    func deleteCreditCardFor(cardId: Int64) throws {
-        try executeThrowingDatabaseOperation {
-            try self.providers.database.deleteCreditCardForCreditCardId(cardId)
-        }
+    func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+        try self.providers.database.websiteCredentialsForSyncIds(syncIds, in: database)
+    }
+
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata? {
+        try self.providers.database.websiteCredentialsMetadataForAccountId(accountId, in: database)
     }
 
     // MARK: - Private
