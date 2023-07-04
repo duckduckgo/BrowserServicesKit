@@ -17,6 +17,8 @@
 //
 
 import Foundation
+import XCTest
+@testable import Navigation
 
 final class TestData {
 
