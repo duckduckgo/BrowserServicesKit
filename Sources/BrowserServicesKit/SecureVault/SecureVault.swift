@@ -245,8 +245,12 @@ class DefaultSecureVault: SecureVault {
         do {
             var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
             if let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
-                decryptedCredentials = .init(account: credentials.account,
-                                             password: try self.l2Decrypt(data: credentials.password))
+                if let password = credentials.password {
+                    decryptedCredentials = .init(account: credentials.account,
+                                                 password: try self.l2Decrypt(data: password))
+                } else {
+                    decryptedCredentials = credentials
+                }
             }
 
             return decryptedCredentials
@@ -263,13 +267,13 @@ class DefaultSecureVault: SecureVault {
         }
         do {
             // Generate a new signature
-            guard credentials.account.username.data(using: .utf8) != nil else {
+            guard credentials.account.username?.data(using: .utf8) != nil else {
                 throw SecureVaultError.generalCryptoError
             }
-            let hashData = credentials.account.hashValue + credentials.password
+            let hashData = credentials.account.hashValue + (credentials.password ?? Data())
             var creds = credentials
             creds.account.signature = try providers.crypto.hashData(hashData)
-            let encryptedPassword = try self.l2Encrypt(data: credentials.password)
+            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!)
             return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
@@ -299,13 +303,13 @@ class DefaultSecureVault: SecureVault {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64 {
         do {
             // Generate a new signature
-            guard credentials.account.username.data(using: .utf8) != nil else {
+            guard credentials.account.username?.data(using: .utf8) != nil else {
                 throw SecureVaultError.generalCryptoError
             }
-            let hashData = credentials.account.hashValue + credentials.password
+            let hashData = credentials.account.hashValue + (credentials.password ?? Data())
             var creds = credentials
             creds.account.signature = try providers.crypto.hashData(hashData)
-            let encryptedPassword = try self.l2Encrypt(data: credentials.password)
+            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!)
             return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword), in: database)
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)

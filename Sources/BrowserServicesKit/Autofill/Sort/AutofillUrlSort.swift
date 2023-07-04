@@ -37,7 +37,8 @@ public struct AutofillDomainNameUrlSort: AutofillUrlSort {
         if let firstChar = account.title?.first {
             return String(firstChar).lowercased()
         } else {
-            guard let urlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(account.domain),
+            guard let domain = account.domain,
+                  let urlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(domain),
                   /// eTLDplus1 is nil if the domain is exact match to a domain in tlds.json in which case we default to host
                   let host = urlComponents.eTLDplus1(tld: tld) ?? urlComponents.host,
                   let firstChar = host.first
@@ -54,8 +55,8 @@ public struct AutofillDomainNameUrlSort: AutofillUrlSort {
                                                   tld: TLD) -> ComparisonResult {
         let identicalTitles = lhs.title?.lowercased() == rhs.title?.lowercased()
 
-        let lhsUrlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(lhs.domain)
-        let rhsUrlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(rhs.domain)
+        let lhsUrlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(lhs.domain ?? "")
+        let rhsUrlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(rhs.domain ?? "")
 
         let lhsBestMatch = bestPrimarySortField(title: lhs.title,
                                                 rawDomain: lhs.domain,

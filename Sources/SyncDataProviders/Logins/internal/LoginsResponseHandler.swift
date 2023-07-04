@@ -79,7 +79,7 @@ final class LoginsResponseHandler {
 
     private func processEntity(with syncable: Syncable) throws {
         guard let syncableUUID = syncable.uuid else {
-            return
+            throw SyncError.accountAlreadyExists
         }
 
         if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredential(in: database, with: syncable, decryptedUsing: decrypt) {
@@ -117,25 +117,26 @@ final class LoginsResponseHandler {
 extension SecureVaultModels.WebsiteAccountSyncMetadata {
 
     init(syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
-        guard let encryptedDomain = syncable.encryptedDomain,
-              let encryptedUsername = syncable.encryptedUsername,
-              let encryptedPassword = syncable.encryptedPassword,
-              let id = syncable.uuid
-        else {
+        guard let id = syncable.uuid else {
             throw SyncError.accountAlreadyExists
         }
 
         let title = try syncable.encryptedTitle.flatMap { try decrypt($0) }
+        let username = try syncable.encryptedUsername.flatMap { try decrypt($0) }
+        let domain = try syncable.encryptedDomain.flatMap { try decrypt($0) }
         let notes = try syncable.encryptedNotes.flatMap { try decrypt($0) }
+        let password = try syncable.encryptedPassword.flatMap { try decrypt($0) }
 
-        let account = SecureVaultModels.WebsiteAccount(title: title, username: try decrypt(encryptedUsername), domain: try decrypt(encryptedDomain), notes: notes)
-        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: try decrypt(encryptedPassword).data(using: .utf8)!)
+        let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password?.data(using: .utf8))
         self.init(id: id, credential: credentials, lastModified: nil)
     }
 
     mutating func update(with syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
         if let encryptedDomain = syncable.encryptedDomain {
             credential?.account.domain = try decrypt(encryptedDomain)
+        } else {
+            credential?.account.domain = nil
         }
 
         if let encryptedTitle = syncable.encryptedTitle {
@@ -152,10 +153,14 @@ extension SecureVaultModels.WebsiteAccountSyncMetadata {
 
         if let encryptedUsername = syncable.encryptedUsername {
             credential?.account.username = try decrypt(encryptedUsername)
+        } else {
+            credential?.account.username = nil
         }
 
         if let encryptedPassword = syncable.encryptedPassword {
-            credential?.password = try decrypt(encryptedPassword).data(using: .utf8) ?? Data()
+            credential?.password = try decrypt(encryptedPassword).data(using: .utf8)
+        } else {
+            credential?.password = nil
         }
     }
 }

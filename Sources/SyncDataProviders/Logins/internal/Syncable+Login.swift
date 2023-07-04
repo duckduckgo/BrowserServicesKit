@@ -23,10 +23,6 @@ import Foundation
 
 extension Syncable {
 
-    enum SyncableLoginError: Error {
-        case failedToReadPassword
-    }
-
     var encryptedDomain: String? {
         payload["domain"] as? String
     }
@@ -58,13 +54,16 @@ extension Syncable {
         if let title = credential.account.title {
             payload["title"] = try encrypt(title)
         }
-        payload["domain"] = try encrypt(credential.account.domain)
-        payload["username"] = try encrypt(credential.account.username)
-
-        guard let password = String(data: credential.password, encoding: .utf8) else {
-            throw SyncableLoginError.failedToReadPassword
+        if let domain = credential.account.domain {
+            payload["domain"] = try encrypt(domain)
         }
-        payload["password"] = try encrypt(password)
+        if let username = credential.account.username {
+            payload["username"] = try encrypt(username)
+        }
+
+        if let passwordData = credential.password, let password = String(data: passwordData, encoding: .utf8) {
+            payload["password"] = try encrypt(password)
+        }
 
         if let modifiedAt = metadata.lastModified {
             payload["client_last_modified"] = Self.dateFormatter.string(from: modifiedAt)

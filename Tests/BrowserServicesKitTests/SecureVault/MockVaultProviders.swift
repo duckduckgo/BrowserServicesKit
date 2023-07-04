@@ -137,8 +137,32 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try storeWebsiteCredentials(credentials)
     }
 
-    func storeWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64 {
-        try storeWebsiteCredentials(in: database, credentials)
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
+        try storeWebsiteCredentials(credentials)
+    }
+
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64 {
+        try storeWebsiteCredentials(credentials, in: database)
+    }
+
+    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
+        self._accounts = self._accounts.filter { $0.id != String(accountId) }
+    }
+
+    func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+        []
+    }
+
+    func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
+        try websiteCredentialsForAccountId(accountId)
+    }
+
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata? {
+        nil
+    }
+
+    func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount] {
+        try websiteAccountsForDomain(domain)
     }
 }
 

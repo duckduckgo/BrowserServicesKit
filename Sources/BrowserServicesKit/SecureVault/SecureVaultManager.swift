@@ -243,7 +243,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
                 let accounts = accounts.filter {
                     // don't show accounts without usernames if the user interacted with the 'username' field
-                    if subType == .username && $0.username.isEmpty {
+                    if subType == .username && ($0.username ?? "").isEmpty {
                         return false
                     }
                     return true
@@ -423,7 +423,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         // As a precaution, check whether an account exists with the matching generated password _and_ a non-nil username.
         // If so, then the user must have already saved the generated credentials and set a username.
 
-        for account in accounts where !account.username.isEmpty {
+        for account in accounts where (account.username ?? "").isEmpty == false {
             if let accountID = account.id,
                let credentialsForAccount = try vault.websiteCredentialsFor(accountId: accountID),
                credentialsForAccount.password == passwordData,

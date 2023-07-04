@@ -90,7 +90,7 @@ class DatabaseProviderTests: XCTestCase {
         let storedAccount = try database.websiteAccountsForDomain("example.com")[0]
         let storedCredentials = try database.websiteCredentialsForAccountId(Int64(storedAccount.id!)!)
         XCTAssertNotNil(storedCredentials)
-        XCTAssertEqual("password", String(data: storedCredentials!.password, encoding: .utf8))
+        XCTAssertEqual("password", String(data: storedCredentials!.password!, encoding: .utf8))
     }
 
     func test_when_database_reopened_then_existing_data_still_exists() throws {
