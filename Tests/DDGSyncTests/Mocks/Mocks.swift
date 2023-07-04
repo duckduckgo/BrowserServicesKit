@@ -212,9 +212,12 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
 }
 
 struct CryptingMock: CryptingInternal {
-
     var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
     var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
+
+    func fetchSecretKey() throws -> Data {
+        .init()
+    }
 
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try _encryptAndBase64Encode(value)
@@ -224,11 +227,11 @@ struct CryptingMock: CryptingInternal {
         try _base64DecodeAndDecrypt(value)
     }
 
-    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String {
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data) throws -> String {
         try _encryptAndBase64Encode(value)
     }
 
-    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String {
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String {
         try _base64DecodeAndDecrypt(value)
     }
 

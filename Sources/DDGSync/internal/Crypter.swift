@@ -23,15 +23,23 @@ struct Crypter: CryptingInternal {
 
     let secureStore: SecureStoring
 
-    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String {
-        var encryptionKey: [UInt8] = secretKey?.safeBytes ?? []
-        if encryptionKey.isEmpty {
-            guard let account = try secureStore.account() else {
-                throw SyncError.accountNotFound
-            }
-            encryptionKey = account.secretKey.safeBytes
+    func fetchSecretKey() throws -> Data {
+        guard let account = try secureStore.account() else {
+            throw SyncError.accountNotFound
         }
+        return account.secretKey
+    }
 
+    func encryptAndBase64Encode(_ value: String) throws -> String {
+        try encryptAndBase64Encode(value, using: try fetchSecretKey())
+    }
+
+    func base64DecodeAndDecrypt(_ value: String) throws -> String {
+        try base64DecodeAndDecrypt(value, using: try fetchSecretKey())
+    }
+
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data) throws -> String {
+        var encryptionKey: [UInt8] = secretKey.safeBytes
         var rawBytes = Array(value.utf8)
         var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
 
@@ -43,15 +51,8 @@ struct Crypter: CryptingInternal {
         return Data(encryptedBytes).base64EncodedString()
     }
 
-    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String {
-        var decryptionKey: [UInt8] = secretKey?.safeBytes ?? []
-        if decryptionKey.isEmpty {
-            guard let account = try secureStore.account() else {
-                throw SyncError.accountNotFound
-            }
-            decryptionKey = account.secretKey.safeBytes
-        }
-
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String {
+        var decryptionKey: [UInt8] = secretKey.safeBytes
         guard let data = Data(base64Encoded: value) else {
             throw SyncError.failedToDecryptValue("Unable to decode base64 value")
         }

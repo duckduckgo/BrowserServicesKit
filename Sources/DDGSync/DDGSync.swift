@@ -226,7 +226,7 @@ public class DDGSync: DDGSyncing {
             return
         }
 
-        guard let account, account.state != .inactive else {
+        guard var account, account.state != .inactive else {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
@@ -245,6 +245,9 @@ public class DDGSync: DDGSyncing {
         let previousState = try dependencies.secureStore.account()?.state
         if previousState == nil || previousState ==  .inactive {
             try syncQueue.prepareForFirstSync()
+        }
+        if account.state == .settingUpNewAccount {
+            account = account.updatingState(.active)
         }
         try dependencies.secureStore.persistAccount(account)
         authState = account.state
