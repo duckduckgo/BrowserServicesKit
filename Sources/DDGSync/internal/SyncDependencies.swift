@@ -64,9 +64,6 @@ protocol SecureStoring {
 
 protocol CryptingInternal: Crypting {
 
-    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
-    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
-
     func seal(_ data: Data, secretKey: Data) throws -> Data
     func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data
 
@@ -79,16 +76,6 @@ protocol CryptingInternal: Crypting {
 
     func prepareForConnect() throws -> ConnectInfo
 
-}
-
-extension CryptingInternal {
-    func encryptAndBase64Encode(_ value: String) throws -> String {
-        try encryptAndBase64Encode(value, using: nil)
-    }
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String {
-        try base64DecodeAndDecrypt(value, using: nil)
-    }
 }
 
 enum HTTPRequestMethod: String {

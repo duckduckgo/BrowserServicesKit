@@ -67,11 +67,17 @@ extension BookmarkEntity {
         return (try? context.fetch(request))?.first
     }
 
-    static func deduplicatedEntity(with syncable: Syncable, parentUUID: String?, in context: NSManagedObjectContext, using crypter: Crypting) -> BookmarkEntity? {
+    static func deduplicatedEntity(
+        with syncable: Syncable,
+        parentUUID: String?,
+        in context: NSManagedObjectContext,
+        decryptedUsing decrypt: (String) throws -> String
+    ) throws -> BookmarkEntity? {
+
         if syncable.isDeleted {
             return nil
         }
-        let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
+        let title = try decrypt(syncable.encryptedTitle ?? "")
         if syncable.isFolder {
             guard let parentUUID else {
                 if syncable.uuid == BookmarkEntity.Constants.rootFolderID {
@@ -82,11 +88,11 @@ extension BookmarkEntity {
             return fetchFolder(withTitle: title, parentUUID: parentUUID, in: context)
         }
 
-        let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
+        let url = try decrypt(syncable.encryptedUrl ?? "")
         return fetchBookmark(withTitle: title, url: url, in: context)
     }
 
-    func update(with syncable: Syncable, in context: NSManagedObjectContext, using crypter: Crypting) throws {
+    func update(with syncable: Syncable, in context: NSManagedObjectContext, decryptedUsing decrypt: (String) throws -> String) throws {
         let payload = syncable.payload
         guard payload["deleted"] == nil else {
             context.delete(self)
@@ -97,12 +103,12 @@ extension BookmarkEntity {
         modifiedAt = nil
 
         if let encryptedTitle = payload["title"] as? String {
-            title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
+            title = try decrypt(encryptedTitle)
         }
 
         if !isFolder {
             if let page = payload["page"] as? [String: Any], let encryptedUrl = page["url"] as? String {
-                url = try crypter.base64DecodeAndDecrypt(encryptedUrl)
+                url = try decrypt(encryptedUrl)
             }
         }
     }

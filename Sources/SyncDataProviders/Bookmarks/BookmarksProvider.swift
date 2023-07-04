@@ -78,9 +78,10 @@ public final class BookmarksProvider: DataProviding {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         var syncableBookmarks: [Syncable] = []
+        let encryptionKey = try crypter.fetchSecretKey()
         context.performAndWait {
             let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
+            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
         }
         return syncableBookmarks
     }
@@ -108,20 +109,20 @@ public final class BookmarksProvider: DataProviding {
         context.performAndWait {
             while true {
 
-                let responseHandler = BookmarksResponseHandler(
-                    received: received,
-                    clientTimestamp: clientTimestamp,
-                    context: context,
-                    crypter: crypter,
-                    deduplicateEntities: isInitial
-                )
-                let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
-                responseHandler.processReceivedBookmarks()
+                do {
+                    let responseHandler = try BookmarksResponseHandler(
+                        received: received,
+                        clientTimestamp: clientTimestamp,
+                        context: context,
+                        crypter: crypter,
+                        deduplicateEntities: isInitial
+                    )
+                    let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
+                    try responseHandler.processReceivedBookmarks()
 
 #if DEBUG
-                willSaveContextAfterApplyingSyncResponse()
+                    willSaveContextAfterApplyingSyncResponse()
 #endif
-                do {
                     let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
                     try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                     break
