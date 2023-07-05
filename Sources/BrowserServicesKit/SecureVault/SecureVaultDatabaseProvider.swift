@@ -231,13 +231,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         do {
             try credentials.account.update(database)
             try database.execute(sql: """
-            UPDATE
-                \(SecureVaultModels.WebsiteCredentials.databaseTableName)
-            SET
-                \(SecureVaultModels.WebsiteCredentials.Columns.password.name) = ?
-            WHERE
-                \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
-        """, arguments: [credentials.password, id])
+                UPDATE
+                    \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+                SET
+                    \(SecureVaultModels.WebsiteCredentials.Columns.password.name) = ?
+                WHERE
+                    \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
+            """, arguments: [credentials.password, id])
 
             try updateSyncTimestamp(in: database, tableName: SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName, objectId: id, timestamp: timestamp)
         } catch let error as DatabaseError {
@@ -263,7 +263,10 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 VALUES (?, ?)
             """, arguments: [id, credentials.password])
 
-            try SecureVaultModels.WebsiteAccountSyncMetadata(credential: credentials, lastModified: timestamp).insert(database)
+            var insertedCredentials = credentials
+            insertedCredentials.account.id = String(id)
+
+            try SecureVaultModels.WebsiteAccountSyncMetadata(credential: insertedCredentials, lastModified: timestamp).insert(database)
 
             return id
         } catch let error as DatabaseError {
@@ -327,20 +330,25 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         typealias Credentials = SecureVaultModels.WebsiteCredentials
         typealias Account = SecureVaultModels.WebsiteAccount
 
-        var metadata = try Metadata.fetchAll(database, keys: syncIds)
-        let accountIds = metadata.compactMap(\.objectId)
+        let metadataRaw = try SecureVaultModels.WebsiteAccountSyncMetadataRaw.fetchAll(database, keys: syncIds)
+        var metadata = [Metadata]()
+        let accountIds = metadataRaw.compactMap(\.objectId)
         let accountsById: [Int64: Account] = try Account.fetchAll(database, keys: accountIds)
             .reduce(into: .init()) { partialResult, account in
                 if let accountId = account.id.flatMap(Int64.init) {
                     partialResult[accountId] = account
                 }
             }
-        let passwordsByAccountId: [Int64: Data] = try SecureVaultModels.FetchableWebsiteCredentials.fetchAll(database, keys: accountIds)
+        let passwordsByAccountId: [Int64: Data?] = try SecureVaultModels.FetchableWebsiteCredentials.fetchAll(database, keys: accountIds)
             .reduce(into: .init(), { $0[$1.accountId] = $1.password })
 
-        for i in 0..<metadata.count {
-            if let objectId = metadata[i].objectId, let account = accountsById[objectId], let password = passwordsByAccountId[objectId] {
-                metadata[i].credential = Credentials(account: account, password: password)
+        for i in 0..<metadataRaw.count {
+            guard let objectId = metadataRaw[i].objectId else {
+                continue
+            }
+            if let account = accountsById[objectId] {
+                let password = passwordsByAccountId[objectId] ?? nil
+                metadata.append(Metadata(id: metadataRaw[i].id, credential: Credentials(account: account, password: password)))
             }
         }
         return metadata

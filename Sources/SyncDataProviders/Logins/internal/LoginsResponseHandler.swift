@@ -109,6 +109,7 @@ final class LoginsResponseHandler {
         } else if !syncable.isDeleted {
 
             let newEntity = try SecureVaultModels.WebsiteAccountSyncMetadata(syncable: syncable, decryptedUsing: decrypt)
+            try secureVault.storeWebsiteCredentialsMetadata(newEntity, clearModifiedAt: true, in: database)
             credentialsByUUID[syncableUUID] = newEntity
         }
     }

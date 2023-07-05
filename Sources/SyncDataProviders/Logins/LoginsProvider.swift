@@ -70,19 +70,99 @@ public final class LoginsProvider: DataProviding {
         let encryptionKey = try crypter.fetchSecretKey()
         let syncables = try metadata.map { try Syncable.init(metadata: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
         print("Syncable population took \(Date().timeIntervalSince(date)) s")
-        return []
+        return syncables
     }
 
     public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
     public func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
     public func handleSyncError(_ error: Error) {
         syncErrorSubject.send(error)
     }
 
+    // MARK: - Internal
+
+    func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+
+        let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+
+        try secureVault.inDatabaseTransaction { database in
+
+            let responseHandler = try LoginsResponseHandler(
+                received: received,
+                clientTimestamp: clientTimestamp,
+                secureVault: secureVault,
+                database: database,
+                crypter: crypter,
+                deduplicateEntities: isInitial)
+
+            let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
+                sent,
+                receivedUUIDs: Set(responseHandler.receivedByUUID.keys),
+                clientTimestamp: clientTimestamp,
+                secureVault: secureVault,
+                in: database
+            )
+
+            try responseHandler.processReceivedCredentials()
+#if DEBUG
+            self.willSaveContextAfterApplyingSyncResponse()
+#endif
+
+            let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
+            try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestamp, secureVault: secureVault, in: database)
+        }
+
+        if let serverTimestamp {
+            lastSyncTimestamp = serverTimestamp
+            reloadLoginsAfterSync()
+        }
+    }
+
+    func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws -> Set<String> {
+        if sent.isEmpty {
+            return []
+        }
+        let identifiers = sent.compactMap(\.uuid)
+        let metadata = try secureVault.websiteCredentialsForSyncIds(identifiers, in: database)
+
+        var idsOfItemsToClearModifiedAt = Set<String>()
+
+        for i in 0..<metadata.count {
+            var metadataObject = metadata[i]
+            if let modifiedAt = metadataObject.lastModified, modifiedAt > clientTimestamp {
+                continue
+            }
+            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataObject.id)
+            if metadataObject.credential == nil, !isLocalChangeRejectedBySync {
+                try secureVault.deleteWebsiteCredentialsMetadata(metadataObject, in: database)
+            } else {
+                metadataObject.lastModified = nil
+                try metadataObject.update(database)
+                idsOfItemsToClearModifiedAt.insert(metadataObject.id)
+            }
+        }
+
+        return idsOfItemsToClearModifiedAt
+    }
+
+    private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws {
+
+        var metadata = try SecureVaultModels.WebsiteAccountSyncMetadata.fetchAll(database, keys: uuids)
+
+        for i in 0..<metadata.count {
+            var metadataObject = metadata[i]
+            if let modifiedAt = metadataObject.lastModified, modifiedAt < clientTimestamp {
+                metadataObject.lastModified = nil
+                try metadataObject.update(database)
+            }
+        }
+    }
 
     // MARK: - Private
 

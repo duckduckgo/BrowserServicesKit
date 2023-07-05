@@ -33,6 +33,22 @@ public enum SecureVaultSyncableColumns: String, ColumnExpression {
 
 extension SecureVaultModels {
 
+    struct WebsiteAccountSyncMetadataRaw: SecureVaultSyncable, TableRecord, FetchableRecord {
+        typealias Columns = SecureVaultSyncableColumns
+
+        var id: String
+        var objectId: Int64?
+        var lastModified: Date?
+
+        init(row: Row) throws {
+            id = row[Columns.id]
+            objectId = row[Columns.objectId]
+            lastModified = row[Columns.lastModified]
+        }
+
+        public static var databaseTableName: String = "website_accounts_sync_metadata"
+    }
+
     public struct WebsiteAccountSyncMetadata: SecureVaultSyncable {
 
         public var id: String
@@ -67,6 +83,7 @@ extension SecureVaultModels {
 extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord, FetchableRecord {
 
     public typealias Columns = SecureVaultSyncableColumns
+    static let account = hasOne(SecureVaultModels.WebsiteAccount.self)
 
     public func encode(to container: inout PersistenceContainer) {
         container[Columns.id] = id

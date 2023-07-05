@@ -287,7 +287,6 @@ class DefaultSecureVault: SecureVault {
             return
         }
         try storeWebsiteCredentials(credential, clearModifiedAt: true, in: database)
-        try metadata.update(database)
     }
 
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
