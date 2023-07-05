@@ -286,7 +286,7 @@ class DefaultSecureVault: SecureVault {
             assertionFailure("nil credentials passed to \(#function)")
             return
         }
-        try storeWebsiteCredentials(credential, clearModifiedAt: true, in: database)
+        try storeWebsiteCredentials(credential, clearModifiedAt: clearModifiedAt, in: database)
     }
 
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
@@ -309,7 +309,7 @@ class DefaultSecureVault: SecureVault {
             var creds = credentials
             creds.account.signature = try providers.crypto.hashData(hashData)
             let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!)
-            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword), in: database)
+            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword), clearModifiedAt: clearModifiedAt, in: database)
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
