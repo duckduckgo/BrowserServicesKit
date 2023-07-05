@@ -67,16 +67,23 @@ extension AutofillUserScript {
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
 
-        emailDelegate?.autofillUserScript(self,
-                                  didRequestAliasAndRequiresUserPermission: requiresUserPermission,
-                                  shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
-            guard let alias = alias else { return }
+        // TODO - temporary hack
+        let shouldShowInContextSignup: Bool = true
 
-            replyHandler("""
-            {
-                "alias": "\(alias)"
+        if shouldShowInContextSignup {
+            emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)
+        } else {
+            emailDelegate?.autofillUserScript(self,
+                                      didRequestAliasAndRequiresUserPermission: requiresUserPermission,
+                                      shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
+                guard let alias = alias else { return }
+
+                replyHandler("""
+                {
+                    "alias": "\(alias)"
+                }
+                """)
             }
-            """)
         }
     }
 

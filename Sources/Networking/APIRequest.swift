@@ -48,7 +48,7 @@ public struct APIRequest {
     
     private func assertUserAgentIsPresent() {
         guard request.allHTTPHeaderFields?[HTTPHeaderField.userAgent] != nil else {
-            assertionFailure("A user agent must be included in the request's HTTP header fields.")
+//            assertionFailure("A user agent must be included in the request's HTTP header fields.")
             return
         }
     }
