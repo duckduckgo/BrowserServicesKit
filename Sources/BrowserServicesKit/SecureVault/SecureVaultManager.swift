@@ -48,6 +48,10 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
                             withTrigger trigger: AutofillUserScript.GetTriggerType,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
+    func secureVaultManager(_: SecureVaultManager,
+                            promptUserWithGeneratedPassword password: String,
+                            completionHandler: @escaping (Bool) -> Void)
+
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: String)
 
     // swiftlint:disable:next identifier_name
@@ -116,6 +120,7 @@ public class SecureVaultManager {
 
 // Later these catches should check if it is an auth error and call the delegate to ask for user authentication.
 extension SecureVaultManager: AutofillSecureVaultDelegate {
+
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAutoFillInitDataForDomain domain: String,
@@ -381,6 +386,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             assertionFailure("Not implemented")
 
             completionHandler([], credentialsProvider)
+        }
+    }
+
+    public func autofillUserScriptDidOfferGeneratedPassword(_: AutofillUserScript, password: String, completionHandler: @escaping (Bool) -> Void) {
+        delegate?.secureVaultManager(self,
+                                     promptUserWithGeneratedPassword: password) { useGeneratedPassword in
+            completionHandler(useGeneratedPassword)
         }
     }
     

@@ -67,6 +67,10 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials], SecureVaultModels.CredentialsProvider) -> Void)
 
+    func autofillUserScriptDidOfferGeneratedPassword(_: AutofillUserScript,
+                                                     password: String,
+                                                     completionHandler: @escaping (Bool) -> Void)
+
     func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel)
 
 }
@@ -479,6 +483,16 @@ extension AutofillUserScript {
         }
 
         let domain = hostForMessage(message)
+        if request.mainType == .credentials, request.subType == .password, let generatedPassword = request.generatedPassword?.value, !generatedPassword.isEmpty {
+                vaultDelegate?.autofillUserScriptDidOfferGeneratedPassword(self, password: generatedPassword) { useGeneratedPassword in
+                let action = useGeneratedPassword ? RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.acceptGeneratedPassword : RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.rejectGeneratedPassword
+                let response = RequestGeneratedPasswordResponse(success: RequestGeneratedPasswordResponse.GeneratedPasswordResponseContents(action: action))
+                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                    replyHandler(jsonString)
+                }
+            }
+            return
+        }
 
         vaultDelegate?.autofillUserScript(self,
                                           didRequestCredentialsForDomain: domain,
