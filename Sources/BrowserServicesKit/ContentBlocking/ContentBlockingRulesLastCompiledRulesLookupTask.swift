@@ -1,5 +1,5 @@
 //
-//  ContentBlockerRulesSourceManager.swift
+//  ContentBlockingRulesLastCompiledRulesLookupTask.swift
 //  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
@@ -23,7 +23,7 @@ import TrackerRadarKit
 
 extension ContentBlockerRulesManager {
     
-    final class InitialCompilationTask {
+    final class LastCompiledRulesLookupTask {
         
         struct CachedRulesList {
             let name: String
@@ -34,13 +34,15 @@ extension ContentBlockerRulesManager {
         
         private let sourceRules: [ContentBlockerRulesList]
         private let lastCompiledRules: [LastCompiledRules]
-        
+
+        private var result: [CachedRulesList]? = nil
+
         init(sourceRules: [ContentBlockerRulesList], lastCompiledRules: [LastCompiledRules]) {
             self.sourceRules = sourceRules
             self.lastCompiledRules = lastCompiledRules
         }
 
-        func lookupCachedRulesLists() async throws -> [CachedRulesList] {
+        func fetchCachedRulesLists() async throws {
             let sourceRulesNames = sourceRules.map { $0.name }
             let filteredBySourceLastCompiledRules = lastCompiledRules.filter { sourceRulesNames.contains($0.name) }
 
@@ -55,7 +57,22 @@ extension ContentBlockerRulesManager {
                                               tds: rules.trackerData,
                                               rulesIdentifier: rules.identifier))
             }
-            return result
+            self.result = result
+        }
+
+        public func getFetchedRules() -> [Rules]? {
+            guard let result else { return nil }
+            return result.map {
+                let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: $0.tds)
+                let encodedData = try? JSONEncoder().encode(surrogateTDS)
+                let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
+                return Rules(name: $0.name,
+                             rulesList: $0.rulesList,
+                             trackerData: $0.tds,
+                             encodedTrackerData: encodedTrackerData,
+                             etag: $0.rulesIdentifier.tdsEtag,
+                             identifier: $0.rulesIdentifier)
+            }
         }
 
     }

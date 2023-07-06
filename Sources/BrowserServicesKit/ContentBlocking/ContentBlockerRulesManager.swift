@@ -83,19 +83,17 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             self.identifier = identifier
         }
         
-        internal init?(task: ContentBlockerRulesManager.CompilationTask) {
-            guard let result = task.result else { return nil }
-
-            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: result.model.tds)
+        internal init(compilationResult: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)) {
+            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: compilationResult.model.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
 
-            self.init(name: task.rulesList.name,
-                      rulesList: result.compiledRulesList,
-                      trackerData: result.model.tds,
+            self.init(name: compilationResult.model.name,
+                      rulesList: compilationResult.compiledRulesList,
+                      trackerData: compilationResult.model.tds,
                       encodedTrackerData: encodedTrackerData,
-                      etag: result.model.tdsIdentifier,
-                      identifier: result.model.rulesIdentifier)
+                      etag: compilationResult.model.tdsIdentifier,
+                      identifier: compilationResult.model.rulesIdentifier)
         }
     }
 
@@ -152,10 +150,14 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         workQueue.async {
             _ = self.updateCompilationState(token: "")
-            if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
-                self.startInitialCompilationProcess(with: lastCompiledRules)
-            } else {
-                self.startCompilationProcess()
+
+            self.prepareSourceManagers()
+            if !self.lookupCompiledRules() {
+                if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
+                    self.fetchLastCompiledRules(with: lastCompiledRules)
+                } else {
+                    self.startCompilationProcess()
+                }
             }
         }
     }
@@ -225,23 +227,38 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         lock.unlock()
         return true
     }
-    
-    private func startInitialCompilationProcess(with lastCompiledRules: [LastCompiledRules]) {
-        let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
-                                                            lastCompiledRules: lastCompiledRules)
-        let mutex = DispatchSemaphore(value: 0)
-        var result: [InitialCompilationTask.CachedRulesList]?
-        withUnsafeMutablePointer(to: &result) { pointer in
-            Task {
-                pointer.pointee = try? await initialCompilationTask.lookupCachedRulesLists()
-                mutex.signal()
-            }
-            // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
-            mutex.wait()
-        }
 
-        if let result = result {
-            let rules = generateRules(from: result)
+    private func lookupCompiledRules() -> Bool {
+        let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
+        let mutex = DispatchSemaphore(value: 0)
+
+        Task {
+            try? await initialCompilationTask.lookupCachedRulesLists()
+            mutex.signal()
+        }
+        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
+        mutex.wait()
+
+        if let result = initialCompilationTask.result {
+            let rules = result.map(Rules.init(compilationResult:))
+            applyRules(rules)
+            return true
+        }
+        return false
+    }
+    
+    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
+        let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
+                                                                 lastCompiledRules: lastCompiledRules)
+        let mutex = DispatchSemaphore(value: 0)
+        Task {
+            try? await initialCompilationTask.fetchCachedRulesLists()
+            mutex.signal()
+        }
+        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
+        mutex.wait()
+
+        if let rules = initialCompilationTask.getFetchedRules() {
             applyRules(rules)
         } else {
             lock.lock()
@@ -250,25 +267,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
         scheduleCompilation()
     }
-    
-    private func generateRules(from result: [InitialCompilationTask.CachedRulesList]) -> [Rules] {
-        result.map {
-            let surrogateTDS = Self.extractSurrogates(from: $0.tds)
-            let encodedData = try? JSONEncoder().encode(surrogateTDS)
-            let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
-            return Rules(name: $0.name,
-                         rulesList: $0.rulesList,
-                         trackerData: $0.tds,
-                         encodedTrackerData: encodedTrackerData,
-                         etag: $0.rulesIdentifier.tdsEtag,
-                         identifier: $0.rulesIdentifier)
-        }
-    }
-    
-    private func startCompilationProcess() {
-        // Prepare compilation tasks based on the sources
-        currentTasks = rulesSource.contentBlockerRulesLists.map { rulesList in
 
+    private func prepareSourceManagers() {
+        rulesSource.contentBlockerRulesLists.forEach { rulesList in
             let sourceManager: ContentBlockerRulesSourceManager
             if let manager = self.sourceManagers[rulesList.name] {
                 // Update rules list
@@ -282,7 +283,18 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                  log: log)
                 self.sourceManagers[rulesList.name] = sourceManager
             }
-            return CompilationTask(workQueue: workQueue, rulesList: rulesList, sourceManager: sourceManager)
+        }
+    }
+    
+    private func startCompilationProcess() {
+        prepareSourceManagers()
+
+        // Prepare compilation tasks based on the sources
+        currentTasks = sourceManagers.values.map { sourceManager in
+
+            return CompilationTask(workQueue: workQueue,
+                                   rulesList: sourceManager.rulesList,
+                                   sourceManager: sourceManager)
         }
 
         executeNextTask()
@@ -334,10 +346,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         lock.lock()
 
         let newRules: [Rules] = currentTasks.compactMap { task in
-            guard let result = task.result, let rules = Rules(task: task) else {
+            guard let result = task.result else {
                 os_log("Failed to complete task %{public}s ", log: self.log, type: .error, task.rulesList.name)
                 return nil
             }
+            let rules = Rules(compilationResult: result)
 
             let diff: ContentBlockerRulesIdentifier.Difference
             if let id = _currentRules.first(where: {$0.name == task.rulesList.name })?.identifier {

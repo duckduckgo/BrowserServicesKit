@@ -50,13 +50,18 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
+
+        let expStore = expectation(description: "Rules Stored")
+        mockLastCompiledRulesStore.onRulesSet = {
+            expStore.fulfill()
+        }
         
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
                                               updateListener: rulesUpdateListener)
         
-        wait(for: [exp], timeout: 15.0)
+        wait(for: [exp, expStore], timeout: 15.0)
         
         XCTAssertNotNil(mockLastCompiledRulesStore.rules)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -65,7 +70,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, cbrm.currentRules.first?.identifier)
     }
         
-    func testInitialCompilation_WhenNoChangesToTDS_ShouldUpdateRulesTwice() {
+    func testInitialCompilation_WhenNoChangesToTDS_ShouldNotFetchLastCompiled() {
         
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
                                                                                                                                 etag: ContentBlockerRulesManagerTests.makeEtag()),
@@ -83,6 +88,9 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                                 identifier: identifier)
 
         mockLastCompiledRulesStore.rules = [cachedRules]
+        mockLastCompiledRulesStore.onRulesGet = {
+            XCTFail("Should use rules cached by WebKit")
+        }
         
         // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
@@ -90,7 +98,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                        updateListener: rulesUpdateListener)
 
         let exp = CountedFulfillmentTestExpectation(description: "Rules Compiled")
-        exp.expectedFulfillmentCount = 3
+        exp.expectedFulfillmentCount = 2
         rulesUpdateListener.onRulesUpdated = { rules in
             exp.fulfill()
             if exp.currentFulfillmentCount == 1 { // finished compilation after first installation
@@ -106,10 +114,10 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         
         func assertRules(_ rules: [ContentBlockerRulesManager.Rules]) {
             guard let rules = rules.first else { XCTFail(); return }
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, rules.etag)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, rules.name)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, rules.trackerData)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, rules.identifier)
+            XCTAssertEqual(cachedRules.etag, rules.etag)
+            XCTAssertEqual(cachedRules.name, rules.name)
+            XCTAssertEqual(cachedRules.trackerData, rules.trackerData)
+            XCTAssertEqual(cachedRules.identifier, rules.identifier)
         }
     }
     
@@ -148,30 +156,44 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                        exceptionsSource: mockExceptionsSource,
                                        updateListener: rulesUpdateListener)
 
-        let exp = CountedFulfillmentTestExpectation(description: "Rules Compiled")
-        exp.expectedFulfillmentCount = 3
+        let expOld = CountedFulfillmentTestExpectation(description: "Old Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { rules in
-            exp.fulfill()
-            if exp.currentFulfillmentCount == 1 { // finished compilation after first installation
-                _ = ContentBlockerRulesManager(rulesSource: mockUpdatedRulesSource,
-                                               exceptionsSource: mockExceptionsSource,
-                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
-                                               updateListener: self.rulesUpdateListener)
-            } else if exp.currentFulfillmentCount == 2 { // finished compilation after cold start (using last compiled rules)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
-            } else if exp.currentFulfillmentCount == 3 { // finished recompilation of rules due to changed tds
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
-            }
+            expOld.fulfill()
+
+            _ = ContentBlockerRulesManager(rulesSource: mockUpdatedRulesSource,
+                                           exceptionsSource: mockExceptionsSource,
+                                           lastCompiledRulesStore: mockLastCompiledRulesStore,
+                                           updateListener: self.rulesUpdateListener)
         }
 
-        wait(for: [exp], timeout: 15.0)
+        wait(for: [expOld], timeout: 15.0)
+
+        let expLastCompiledFetched = CountedFulfillmentTestExpectation(description: "Last compiled fetched")
+        mockLastCompiledRulesStore.onRulesGet = {
+            expLastCompiledFetched.fulfill()
+        }
+
+        let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
+        rulesUpdateListener.onRulesUpdated = { rules in
+            expRecompiled.fulfill()
+
+        if expRecompiled.currentFulfillmentCount == 1 { // finished compilation after cold start (using last compiled rules)
+
+            mockLastCompiledRulesStore.onRulesGet = {}
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
+        } else if expRecompiled.currentFulfillmentCount == 2 { // finished recompilation of rules due to changed tds
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.rukeListName)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
+        }
     }
+
+    wait(for: [expLastCompiledFetched, expRecompiled], timeout: 15.0)
+}
     
     struct MockLastCompiledRules: LastCompiledRules {
         
@@ -183,8 +205,21 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
     }
     
     final class MockLastCompiledRulesStore: LastCompiledRulesStore {
-        
-        var rules: [LastCompiledRules] = []
+
+        var onRulesGet: () -> Void = { }
+        var onRulesSet: () -> Void = { }
+
+        var _rules: [LastCompiledRules] = []
+        var rules: [LastCompiledRules] {
+            get {
+                onRulesGet()
+                return _rules
+            }
+            set {
+                onRulesSet()
+                _rules = newValue
+            }
+        }
         
         func update(with contentBlockerRules: [ContentBlockerRulesManager.Rules]) {
             rules = contentBlockerRules.map { rules in
