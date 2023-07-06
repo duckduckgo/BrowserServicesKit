@@ -19,10 +19,16 @@
 
 import Foundation
 
-public protocol ConfigurationURLProviding {
+public protocol ConfigurationURLProviding: ConfigurationURLProvidingDebuggingSupport {
     
     func url(for configuration: Configuration) -> URL
     
+}
+
+public protocol ConfigurationURLProvidingDebuggingSupport {
+
+    func setURL(_ url: URL?, for configuration: Configuration)
+
 }
 
 public enum Configuration: String, CaseIterable, Sendable {

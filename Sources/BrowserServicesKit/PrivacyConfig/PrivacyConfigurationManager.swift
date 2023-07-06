@@ -27,7 +27,12 @@ public protocol EmbeddedDataProvider {
     var embeddedData: Data { get }
 }
 
-public protocol PrivacyConfigurationManaging: AnyObject {
+public protocol PrivacyConfigurationDebuggingSupport {
+    var overriddenAt: Date? { get }
+    @discardableResult func override(with data: Data?) -> PrivacyConfigurationManager.ReloadResult
+}
+
+public protocol PrivacyConfigurationManaging: AnyObject, PrivacyConfigurationDebuggingSupport {
 
     var currentConfig: Data { get }
     var updatesPublisher: AnyPublisher<Void, Never> { get }
@@ -139,7 +144,10 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     @discardableResult
     public func reload(etag: String?, data: Data?) -> ReloadResult {
         
-        defer { self.updatesSubject.send() }
+        defer {
+            overriddenAt = nil
+            updatesSubject.send()
+        }
         
         let result: ReloadResult
         
@@ -162,4 +170,24 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         
         return result
     }
+
+    @discardableResult
+    public func override(with data: Data?) -> ReloadResult {
+        var result: ReloadResult = .embeddedFallback
+
+        if let data = data {
+            result = .downloaded
+
+            // This might fail if the downloaded data is corrupt or format has changed unexpectedly
+            if let configData = try? PrivacyConfigurationData(data: data) {
+                fetchedConfigData = (data, configData, UUID().uuidString)
+                overriddenAt = Date()
+                updatesSubject.send()
+            }
+        }
+
+        return result
+    }
+
+    public private(set) var overriddenAt: Date? = nil
 }
