@@ -175,15 +175,12 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     public func override(with data: Data?) -> ReloadResult {
         var result: ReloadResult = .embeddedFallback
 
-        if let data = data {
+        if let data = data, let configData = try? PrivacyConfigurationData(data: data) {
             result = .downloaded
 
-            // This might fail if the downloaded data is corrupt or format has changed unexpectedly
-            if let configData = try? PrivacyConfigurationData(data: data) {
-                fetchedConfigData = (data, configData, UUID().uuidString)
-                overriddenAt = Date()
-                updatesSubject.send()
-            }
+            fetchedConfigData = (data, configData, UUID().uuidString)
+            overriddenAt = Date()
+            updatesSubject.send()
         }
 
         return result
