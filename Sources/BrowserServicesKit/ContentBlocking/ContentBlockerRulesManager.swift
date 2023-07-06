@@ -151,7 +151,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         workQueue.async {
             _ = self.updateCompilationState(token: "")
 
-            self.prepareSourceManagers()
             if !self.lookupCompiledRules() {
                 if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
                     self.fetchLastCompiledRules(with: lastCompiledRules)
@@ -228,7 +227,12 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         return true
     }
 
+    /*
+     Go through source managers and check if there are already compiled rules in the WebKit rule cache.
+     Returns true if rules were found, false otherwise.
+     */
     private func lookupCompiledRules() -> Bool {
+        prepareSourceManagers()
         let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
         let mutex = DispatchSemaphore(value: 0)
 
@@ -246,7 +250,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
         return false
     }
-    
+
+    /*
+     Go through source managers and check if there are already compiled rules in the WebKit rule cache.
+     Returns true if rules were found, false otherwise.
+     */
     private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                                  lastCompiledRules: lastCompiledRules)
@@ -265,6 +273,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             state = .idle
             lock.unlock()
         }
+
+        // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
     }
 

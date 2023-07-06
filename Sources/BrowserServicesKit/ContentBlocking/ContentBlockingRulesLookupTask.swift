@@ -45,7 +45,10 @@ extension ContentBlockerRulesManager {
 
                 guard let ruleList = try await Task(operation: { @MainActor in
                     try await WKContentRuleListStore.default().contentRuleList(forIdentifier: model.rulesIdentifier.stringValue)
-                }).value else { throw WKError(.contentRuleListStoreLookUpFailed) }
+                }).value else {
+                    // All lists must be found for this to be considered successful
+                    throw WKError(.contentRuleListStoreLookUpFailed)
+                }
 
                 result.append((ruleList, model))
             }
