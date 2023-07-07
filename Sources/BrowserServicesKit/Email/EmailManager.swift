@@ -150,7 +150,7 @@ public enum EmailAliasStatus {
 
 public class EmailManager {
     
-    private static let emailDomain = "duck.com"
+    public static let emailDomain = "duck.com"
     private static let inContextEmailSignupPromptDismissedPermanentlyAtKey = "Autofill.InContextEmailSignup.dismissed.permanently.at"
 
     private let storage: EmailManagerStorage
