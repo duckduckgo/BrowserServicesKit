@@ -46,6 +46,11 @@ extension ContentBlockerRulesManager {
             let sourceRulesNames = sourceRules.map { $0.name }
             let filteredBySourceLastCompiledRules = lastCompiledRules.filter { sourceRulesNames.contains($0.name) }
 
+            guard filteredBySourceLastCompiledRules.count == sourceRules.count else {
+                // We should only load rule lists from cache, in case we can match every one of these
+                throw WKError(.contentRuleListStoreLookUpFailed)
+            }
+
             var result: [CachedRulesList] = []
             for rules in filteredBySourceLastCompiledRules {
                 guard let ruleList = try await Task(operation: { @MainActor in
