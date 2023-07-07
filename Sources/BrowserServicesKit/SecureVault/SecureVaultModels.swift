@@ -37,11 +37,10 @@ public struct SecureVaultModels {
             self.account = account
             self.password = password
         }
-
     }
 
     /// The username associated with a domain.
-    public struct WebsiteAccount: Equatable {
+    public struct WebsiteAccount: Equatable, Decodable {
 
         public var id: String?
         public var title: String?

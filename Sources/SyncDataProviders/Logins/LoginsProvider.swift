@@ -64,7 +64,7 @@ public final class LoginsProvider: DataProviding {
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         var date = Date()
-        let metadata = try secureVault.modifiedWebsiteCredentials()
+        let metadata = try secureVault.modifiedWebsiteCredentialsMetadata()
         print("Fetching took \(Date().timeIntervalSince(date)) s")
         date = Date()
         let encryptionKey = try crypter.fetchSecretKey()
@@ -114,7 +114,7 @@ public final class LoginsProvider: DataProviding {
             self.willSaveContextAfterApplyingSyncResponse()
 #endif
 
-            let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
+            let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.receivedByUUID.keys)
             try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestamp, secureVault: secureVault, in: database)
         }
 
@@ -128,23 +128,20 @@ public final class LoginsProvider: DataProviding {
         if sent.isEmpty {
             return []
         }
-        let identifiers = sent.compactMap(\.uuid)
-        let metadata = try secureVault.websiteCredentialsForSyncIds(identifiers, in: database)
 
+        let identifiers = sent.compactMap(\.uuid)
         var idsOfItemsToClearModifiedAt = Set<String>()
 
-        for i in 0..<metadata.count {
-            var metadataObject = metadata[i]
-            if let modifiedAt = metadataObject.lastModified, modifiedAt > clientTimestamp {
-                continue
+        let metadataObjects = try SecureVaultModels.RawWebsiteAccountSyncMetadata.fetchAll(database, keys: identifiers)
+        try metadataObjects.forEach { metadata in
+            if let modifiedAt = metadata.lastModified, modifiedAt > clientTimestamp {
+                return
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataObject.id)
-            if metadataObject.credential == nil, !isLocalChangeRejectedBySync {
-                try secureVault.deleteWebsiteCredentialsMetadata(metadataObject, in: database)
+            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadata.id)
+            if metadata.objectId == nil, !isLocalChangeRejectedBySync {
+                try metadata.delete(database)
             } else {
-                metadataObject.lastModified = nil
-                try metadataObject.update(database)
-                idsOfItemsToClearModifiedAt.insert(metadataObject.id)
+                idsOfItemsToClearModifiedAt.insert(metadata.id)
             }
         }
 
@@ -153,14 +150,16 @@ public final class LoginsProvider: DataProviding {
 
     private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws {
 
-        var metadata = try SecureVaultModels.WebsiteAccountSyncMetadata.fetchAll(database, keys: uuids)
+        let request = SecureVaultModels.RawWebsiteAccountSyncMetadata
+            .filter(keys: uuids)
+            .filter(SecureVaultModels.RawWebsiteAccountSyncMetadata.Columns.lastModified < clientTimestamp)
 
-        for i in 0..<metadata.count {
-            var metadataObject = metadata[i]
-            if let modifiedAt = metadataObject.lastModified, modifiedAt < clientTimestamp {
-                metadataObject.lastModified = nil
-                try metadataObject.update(database)
-            }
+        let metadataObjects = try SecureVaultModels.RawWebsiteAccountSyncMetadata.fetchAll(database, request)
+
+        for i in 0..<metadataObjects.count {
+            var metadata = metadataObjects[i]
+            metadata.lastModified = nil
+            try metadata.update(database)
         }
     }
 

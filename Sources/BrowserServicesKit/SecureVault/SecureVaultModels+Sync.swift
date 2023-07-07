@@ -33,23 +33,42 @@ public enum SecureVaultSyncableColumns: String, ColumnExpression {
 
 extension SecureVaultModels {
 
-    struct WebsiteAccountSyncMetadataRaw: SecureVaultSyncable, TableRecord, FetchableRecord {
-        typealias Columns = SecureVaultSyncableColumns
+    public struct RawWebsiteAccountSyncMetadata: SecureVaultSyncable, TableRecord, FetchableRecord, PersistableRecord, Decodable {
+        public typealias Columns = SecureVaultSyncableColumns
+        public static var databaseTableName: String = "website_accounts_sync_metadata"
 
-        var id: String
-        var objectId: Int64?
-        var lastModified: Date?
+        public static let accountForeignKey = ForeignKey([Columns.objectId])
+        public static let credentialsForeignKey = ForeignKey([Columns.objectId])
+        public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
+        public static let credentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "credentials", using: credentialsForeignKey)
 
-        init(row: Row) throws {
+        public var id: String
+        public var objectId: Int64?
+        public var lastModified: Date?
+
+        public init(row: Row) throws {
             id = row[Columns.id]
             objectId = row[Columns.objectId]
             lastModified = row[Columns.lastModified]
         }
 
-        public static var databaseTableName: String = "website_accounts_sync_metadata"
+        public func encode(to container: inout PersistenceContainer) {
+            container[Columns.id] = id
+            container[Columns.objectId] = objectId
+            container[Columns.lastModified] = lastModified
+        }
     }
 
-    public struct WebsiteAccountSyncMetadata: SecureVaultSyncable {
+    struct WebsiteSyncableCredential: FetchableRecord, Decodable {
+        var metadata: RawWebsiteAccountSyncMetadata
+        var account: WebsiteAccount?
+        var credentials: RawWebsiteCredentials?
+    }
+
+    public struct WebsiteAccountSyncMetadata: SecureVaultSyncable, PersistableRecord, FetchableRecord {
+
+        public typealias Columns = SecureVaultSyncableColumns
+        public static var databaseTableName: String = "website_accounts_sync_metadata"
 
         public var id: String
         public var credential: WebsiteCredentials?
@@ -59,42 +78,24 @@ extension SecureVaultModels {
             credential?.account.id.flatMap(Int64.init)
         }
 
+        public var shouldUpdateModifiedBeforeSaving = false
+
         public init(id: String = UUID().uuidString, credential: WebsiteCredentials?, lastModified: Date? = Date()) {
             self.id = id
             self.credential = credential
             self.lastModified = lastModified
         }
-    }
 
-    struct FetchableWebsiteCredentials: FetchableRecord, TableRecord {
-        public var accountId: Int64
-        public var password: Data
-
-        public static var databaseTableName: String = WebsiteCredentials.databaseTableName
-        typealias Columns = WebsiteCredentials.Columns
-
-        init(row: Row) throws {
-            accountId = row[Columns.id]
-            password = row[Columns.password]
+        public func encode(to container: inout PersistenceContainer) {
+            container[Columns.id] = id
+            container[Columns.objectId] = credential?.account.id
+            container[Columns.lastModified] = lastModified
         }
+
+        public init(row: Row) throws {
+            id = row[Columns.id]
+            lastModified = row[Columns.lastModified]
+        }
+
     }
-}
-
-extension SecureVaultModels.WebsiteAccountSyncMetadata: PersistableRecord, FetchableRecord {
-
-    public typealias Columns = SecureVaultSyncableColumns
-    static let account = hasOne(SecureVaultModels.WebsiteAccount.self)
-
-    public func encode(to container: inout PersistenceContainer) {
-        container[Columns.id] = id
-        container[Columns.objectId] = credential?.account.id
-        container[Columns.lastModified] = lastModified
-    }
-
-    public init(row: Row) throws {
-        id = row[Columns.id]
-        lastModified = row[Columns.lastModified]
-    }
-
-    public static var databaseTableName: String = "website_accounts_sync_metadata"
 }

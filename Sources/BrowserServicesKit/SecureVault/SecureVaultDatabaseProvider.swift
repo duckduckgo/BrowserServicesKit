@@ -52,6 +52,8 @@ protocol SecureVaultDatabaseProvider {
     // MARK: - Sync Support
     func inTransaction(_ block: @escaping (Database) throws -> Void) throws
 
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
+
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
     @discardableResult
@@ -63,7 +65,7 @@ protocol SecureVaultDatabaseProvider {
 
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
+    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
     func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata?
@@ -200,6 +202,24 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
+        guard let credentials = metadata.credential else {
+            assertionFailure("Nil credentials passed to \(#function)")
+            return
+        }
+        do {
+            try SecureVaultModels.RawWebsiteCredentials(credentials: credentials).save(database)
+            try credentials.account.save(database)
+            try metadata.save(database)
+        } catch let error as DatabaseError {
+            if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
+                throw SecureVaultError.duplicateRecord
+            } else {
+                throw error
+            }
+        }
+    }
+
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false, in database: Database) throws -> Int64 {
         let timestamp: Date? = clearModifiedAt ? nil : Date()
@@ -213,6 +233,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
+        try updateSyncTimestamp(in: database, tableName: SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName, objectId: accountId)
         try database.execute(sql: """
             DELETE FROM
                 \(SecureVaultModels.WebsiteAccount.databaseTableName)
@@ -278,7 +299,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
         typealias Metadata = SecureVaultModels.WebsiteAccountSyncMetadata
         typealias Credentials = SecureVaultModels.WebsiteCredentials
 
@@ -330,28 +351,21 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         typealias Credentials = SecureVaultModels.WebsiteCredentials
         typealias Account = SecureVaultModels.WebsiteAccount
 
-        let metadataRaw = try SecureVaultModels.WebsiteAccountSyncMetadataRaw.fetchAll(database, keys: syncIds)
-        var metadata = [Metadata]()
-        let accountIds = metadataRaw.compactMap(\.objectId)
-        let accountsById: [Int64: Account] = try Account.fetchAll(database, keys: accountIds)
-            .reduce(into: .init()) { partialResult, account in
-                if let accountId = account.id.flatMap(Int64.init) {
-                    partialResult[accountId] = account
-                }
-            }
-        let passwordsByAccountId: [Int64: Data?] = try SecureVaultModels.FetchableWebsiteCredentials.fetchAll(database, keys: accountIds)
-            .reduce(into: .init(), { $0[$1.accountId] = $1.password })
+        let rawMetadataRequest = SecureVaultModels.RawWebsiteAccountSyncMetadata
+            .filter(keys: syncIds)
+            .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.account)
+            .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.credentials)
+            .asRequest(of: SecureVaultModels.WebsiteSyncableCredential.self)
 
-        for i in 0..<metadataRaw.count {
-            guard let objectId = metadataRaw[i].objectId else {
-                continue
-            }
-            if let account = accountsById[objectId] {
-                let password = passwordsByAccountId[objectId] ?? nil
-                metadata.append(Metadata(id: metadataRaw[i].id, credential: Credentials(account: account, password: password)))
-            }
+        let rawMetadata = try rawMetadataRequest.fetchAll(database)
+        return rawMetadata.map { rawMetadata in
+            let credential = rawMetadata.account.flatMap { SecureVaultModels.WebsiteCredentials(account: $0, password: rawMetadata.credentials?.password) }
+            return SecureVaultModels.WebsiteAccountSyncMetadata(
+                id: rawMetadata.metadata.id,
+                credential: credential,
+                lastModified: rawMetadata.metadata.lastModified
+            )
         }
-        return metadata
     }
 
     func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata? {
@@ -1008,6 +1022,48 @@ extension DefaultDatabaseProvider {
 
 // MARK: - Database records
 
+extension SecureVaultModels {
+
+    public struct RawWebsiteCredentials: FetchableRecord, PersistableRecord, TableRecord, Decodable {
+
+        public typealias Columns = WebsiteCredentials.Columns
+        public static let databaseTableName: String = WebsiteCredentials.databaseTableName
+        public static let accountForeignKey = ForeignKey([Columns.id])
+        public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
+
+        public var id: Int64
+        public var password: Data?
+
+        public init(row: Row) throws {
+            id = row[Columns.id]
+            password = row[Columns.password]
+        }
+
+        public func encode(to container: inout PersistenceContainer) throws {
+            container[Columns.id] = id
+            container[Columns.password] = password
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id, password
+        }
+
+        public init(credentials: WebsiteCredentials) throws {
+            guard let idString = credentials.account.id, let id = Int64(idString) else {
+                throw DecodingError.dataCorrupted(
+                    .init(
+                        codingPath: [CodingKeys.id],
+                        debugDescription: "Account ID missing"
+                    )
+                )
+            }
+            self.id = id
+            self.password = credentials.password
+        }
+    }
+
+}
+
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
@@ -1042,7 +1098,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
 extension SecureVaultModels.WebsiteCredentials {
 
-    enum Columns: String, ColumnExpression {
+    public enum Columns: String, ColumnExpression {
         case id, password
     }
 

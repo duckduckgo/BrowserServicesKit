@@ -34,7 +34,6 @@ final class LoginsResponseHandler {
     let allReceivedIDs: Set<String>
 
     var credentialsByUUID: [String: SecureVaultModels.WebsiteAccountSyncMetadata] = [:]
-    var idsOfItemsThatRetainModifiedAt = Set<String>()
 
     private let decrypt: (String) throws -> String
 
@@ -79,7 +78,7 @@ final class LoginsResponseHandler {
 
     private func processEntity(with syncable: Syncable) throws {
         guard let syncableUUID = syncable.uuid else {
-            throw SyncError.accountAlreadyExists
+            throw SyncError.accountAlreadyExists // todo
         }
 
         if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredential(in: database, with: syncable, decryptedUsing: decrypt) {
@@ -98,10 +97,11 @@ final class LoginsResponseHandler {
                 return modifiedAt > clientTimestamp
             }()
             if !isModifiedAfterSyncTimestamp {
-                if syncable.isDeleted, let accountId = existingEntity.objectId {
-                    try secureVault.deleteWebsiteCredentialsFor(accountId: accountId, in: database)
+                if syncable.isDeleted {
+                    try secureVault.deleteWebsiteCredentialsMetadata(existingEntity, in: database)
                 } else {
                     try existingEntity.update(with: syncable, decryptedUsing: decrypt)
+                    existingEntity.lastModified = nil
                     try secureVault.storeWebsiteCredentialsMetadata(existingEntity, clearModifiedAt: true, in: database)
                 }
             }
