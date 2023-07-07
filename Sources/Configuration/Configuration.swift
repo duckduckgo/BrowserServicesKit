@@ -27,6 +27,7 @@ public protocol ConfigurationURLProviding: ConfigurationURLProvidingDebuggingSup
 
 public protocol ConfigurationURLProvidingDebuggingSupport {
 
+    func url(for configuration: Configuration, allowOverrides: Bool) -> URL
     func setURL(_ url: URL?, for configuration: Configuration)
 
 }
