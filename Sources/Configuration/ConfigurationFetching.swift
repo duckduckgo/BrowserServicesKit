@@ -24,6 +24,7 @@ import Networking
 protocol ConfigurationFetching {
 
     func fetch(_ configuration: Configuration) async throws
+    func fetch(_ configuration: Configuration, honoringEtag shouldHonorEtag: Bool) async throws
     func fetch(all configurations: [Configuration]) async throws
 
 }
@@ -31,7 +32,7 @@ protocol ConfigurationFetching {
 typealias ConfigurationFetchResult = (etag: String, data: Data?)
 
 public final class ConfigurationFetcher: ConfigurationFetching {
-    
+
     public enum Error: Swift.Error {
         
         case apiRequest(APIRequest.Error)
@@ -65,6 +66,10 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         self.getLog = log
     }
 
+    func fetch(_ configuration: Configuration) async throws {
+        try await fetch(configuration, honoringEtag: true)
+    }
+
     /**
     Downloads and stores a single configuration specified by the Configuration enum provided in the configuration parameter.
     This function throws an error if the configuration fails to fetch or validate.
@@ -75,8 +80,8 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     - Throws:
       An error of type Error is thrown if the configuration fails to fetch or validate.
     */
-    public func fetch(_ configuration: Configuration) async throws {
-        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: .default)
+    public func fetch(_ configuration: Configuration, honoringEtag shouldHonorEtag: Bool = false) async throws {
+        let fetchResult = try await fetch(from: configuration.url, withEtag: shouldHonorEtag ? etag(for: configuration) : nil, requirements: .default)
         if let data = fetchResult.data {
             try validator.validate(data, for: configuration)
         }
