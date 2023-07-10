@@ -62,6 +62,7 @@ protocol SecureVaultDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
 
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 
@@ -203,13 +204,15 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
-        guard let credentials = metadata.credential else {
+        guard var credentials = metadata.credential else {
             assertionFailure("Nil credentials passed to \(#function)")
             return
         }
         do {
+            if let account = try credentials.account.saveAndFetch(database) {
+                credentials.account = account
+            }
             try SecureVaultModels.RawWebsiteCredentials(credentials: credentials).save(database)
-            try credentials.account.save(database)
             try metadata.save(database)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
@@ -240,6 +243,15 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             WHERE
                 \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
             """, arguments: [accountId])
+    }
+
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
+        guard let accountId = metadata.objectId else {
+            assertionFailure("nil account ID passed to \(#function)")
+            return
+        }
+        try deleteWebsiteCredentialsForAccountId(accountId, in: database)
+        try metadata.delete(database)
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {

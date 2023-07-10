@@ -47,7 +47,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    func testWhenCredentialIsSavedThenMetadataIsPopulated() throws {
+    func testWhenCredentialsAreInsertedThenMetadataIsPopulated() throws {
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         let accountId = try provider.storeWebsiteCredentials(credentials)
@@ -56,6 +56,94 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         XCTAssertEqual(metadataObjects.count, 1)
         XCTAssertEqual(metadataObjects[0].objectId, accountId)
         XCTAssertNotNil(metadataObjects[0].lastModified)
+    }
+
+    func testWhenMetadataAreInsertedThenNilLastModifiedIsHonored() throws {
+        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
+        let metadata = SecureVaultModels.WebsiteAccountSyncMetadata(id: UUID().uuidString, credential: credentials, lastModified: nil)
+
+        try provider.inTransaction { database in
+            try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
+        }
+
+        let metadataObjects = try provider.db.read { database in
+            try SecureVaultModels.WebsiteAccountSyncMetadata.fetchAll(database)
+        }
+
+        XCTAssertEqual(metadataObjects.count, 1)
+        XCTAssertNil(metadataObjects[0].lastModified)
+    }
+
+    func testWhenMetadataAreInsertedThenNonNilLastModifiedIsHonored() throws {
+        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
+        let timestamp = Date().withMillisecondPrecision
+        let metadata = SecureVaultModels.WebsiteAccountSyncMetadata(id: UUID().uuidString, credential: credentials, lastModified: timestamp)
+
+        try provider.inTransaction { database in
+            try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
+        }
+
+        let metadataObjects = try provider.db.read { database in
+            try SecureVaultModels.WebsiteAccountSyncMetadata.fetchAll(database)
+        }
+
+        XCTAssertEqual(metadataObjects.count, 1)
+        XCTAssertEqual(metadataObjects[0].lastModified!.timeIntervalSince1970, timestamp.timeIntervalSince1970, accuracy: 0.001)
+    }
+
+    func testWhenMetadataAreUpdatedThenNonNilLastModifiedIsHonored() throws {
+        let account = SecureVaultModels.WebsiteAccount(id: "2", username: "brindy", domain: "example.com", created: Date(), lastUpdated: Date())
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
+        let timestamp = Date().withMillisecondPrecision
+        var metadata = SecureVaultModels.WebsiteAccountSyncMetadata(id: UUID().uuidString, credential: credentials, lastModified: timestamp)
+
+        try provider.inTransaction { database in
+            try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
+        }
+
+        metadata.credential = try provider.websiteCredentialsForAccountId(2)
+        metadata.credential?.account.username = "brindy2"
+
+        try provider.inTransaction { database in
+            try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
+        }
+
+        let metadataObjects = try provider.db.read { database in
+            try SecureVaultModels.WebsiteAccountSyncMetadata.fetchAll(database)
+        }
+
+        XCTAssertEqual(metadataObjects.count, 1)
+        XCTAssertEqual(metadataObjects[0].lastModified!.timeIntervalSince1970, timestamp.timeIntervalSince1970, accuracy: 0.001)
+    }
+
+    func testWhenMetadataAreDeletedThenAccountAndCredentialsAreDeleted() throws {
+        let account = SecureVaultModels.WebsiteAccount(id: "2", username: "brindy", domain: "example.com", created: Date(), lastUpdated: Date())
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
+        var metadata = SecureVaultModels.WebsiteAccountSyncMetadata(id: UUID().uuidString, credential: credentials, lastModified: nil)
+
+        try provider.inTransaction { database in
+            try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
+        }
+
+        metadata.credential = try provider.websiteCredentialsForAccountId(2)
+
+        try provider.inTransaction { database in
+            try self.provider.deleteWebsiteCredentialsMetadata(metadata, in: database)
+        }
+
+        let metadataObjects = try provider.db.read { database in
+            try SecureVaultModels.WebsiteAccountSyncMetadata.fetchAll(database)
+        }
+
+        let accounts = try provider.db.read { database in
+            try SecureVaultModels.WebsiteAccount.fetchAll(database)
+        }
+
+        XCTAssertTrue(metadataObjects.isEmpty)
+        XCTAssertTrue(accounts.isEmpty)
+        XCTAssertNil(try provider.websiteCredentialsForAccountId(2))
     }
 
     func testWhenPasswordIsUpdatedThenMetadataTimestampIsUpdated() throws {
@@ -167,5 +255,11 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
                 throw error
             }
         }
+    }
+}
+
+extension Date {
+    var withMillisecondPrecision: Date {
+        Date(timeIntervalSince1970: TimeInterval(Int(timeIntervalSince1970 * 1_000_000) / 1_000) / 1_000)
     }
 }

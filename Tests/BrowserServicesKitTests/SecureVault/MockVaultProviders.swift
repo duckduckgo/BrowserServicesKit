@@ -149,6 +149,12 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
+        if let accountId = metadata.objectId {
+            try deleteWebsiteCredentialsForAccountId(accountId)
+        }
+    }
+
     func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
         []
     }

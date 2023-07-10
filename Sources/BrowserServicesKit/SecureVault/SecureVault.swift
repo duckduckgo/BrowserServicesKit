@@ -307,12 +307,9 @@ class DefaultSecureVault: SecureVault {
     }
 
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
-        guard let accountId = metadata.objectId else {
-            assertionFailure("nil account ID passed to \(#function)")
-            return
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteWebsiteCredentialsMetadata(metadata, in: database)
         }
-        try deleteWebsiteCredentialsFor(accountId: accountId, in: database)
-        try metadata.delete(database)
     }
 
     @discardableResult
