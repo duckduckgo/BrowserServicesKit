@@ -82,20 +82,14 @@ final class BookmarkListViewModelTests: XCTestCase {
         let context = bookmarkListViewModel.context
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1")
+            Bookmark(id: "1", isDeleted: true)
             Bookmark(id: "2")
-            Bookmark(id: "3")
+            Bookmark(id: "3", isDeleted: true)
             Bookmark(id: "4")
         }
 
         context.performAndWait {
             bookmarkTree.createEntities(in: context)
-
-            let deleted1 = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
-            deleted1.markPendingDeletion()
-
-            let deleted3 = BookmarkEntity.fetchBookmark(withUUID: "3", context: context)!
-            deleted3.markPendingDeletion()
             
             try! context.save()
 
