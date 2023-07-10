@@ -163,6 +163,13 @@ let package = Package(
                 "Common"
             ]),
         .target(
+            name: "RemoteMessaging",
+            dependencies: [
+                "Common",
+                "BrowserServicesKit"
+            ]
+        ),
+        .target(
             name: "SyncDataProviders",
             dependencies: [
                 "Bookmarks",
@@ -185,7 +192,8 @@ let package = Package(
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "RemoteMessaging" // Move tests later (lots of test dependencies in BSK)
             ],
             resources: [
                 .copy("Resources")
