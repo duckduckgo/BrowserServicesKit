@@ -67,10 +67,7 @@ extension AutofillUserScript {
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
 
-        // TODO - temporary hack
-        let shouldShowInContextSignup: Bool = true
-
-        if shouldShowInContextSignup {
+        if let isIncontextSignupAvailable = dict["isIncontextSignupAvailable"] as? Bool, isIncontextSignupAvailable {
             emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)
         } else {
             emailDelegate?.autofillUserScript(self,

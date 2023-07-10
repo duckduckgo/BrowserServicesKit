@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "revision" : "44cd844b6bb5d8ccfefbd6e025817d800c26ad76",
-        "version" : "7.2.0"
+        "branch" : "abrown/ios-incontext-email-promotion",
+        "revision" : "b0061b7e13bd7890bd82c0d075c63a75060e1a05"
       }
     },
     {
