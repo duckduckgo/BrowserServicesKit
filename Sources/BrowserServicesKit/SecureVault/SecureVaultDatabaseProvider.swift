@@ -57,7 +57,6 @@ protocol SecureVaultDatabaseProvider {
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
 
-    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
 
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
@@ -218,16 +217,6 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
-        try updateSyncTimestamp(in: database, tableName: SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName, objectId: accountId)
-        try database.execute(sql: """
-            DELETE FROM
-                \(SecureVaultModels.WebsiteAccount.databaseTableName)
-            WHERE
-                \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
-            """, arguments: [accountId])
-    }
-
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
         guard let accountId = metadata.objectId else {
             assertionFailure("nil account ID passed to \(#function)")
@@ -241,6 +230,16 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         try db.write {
             try deleteWebsiteCredentialsForAccountId(accountId, in: $0)
         }
+    }
+
+    private func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
+        try updateSyncTimestamp(in: database, tableName: SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName, objectId: accountId)
+        try database.execute(sql: """
+            DELETE FROM
+                \(SecureVaultModels.WebsiteAccount.databaseTableName)
+            WHERE
+                \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+            """, arguments: [accountId])
     }
 
     func updateWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64, timestamp: Date? = Date()) throws {

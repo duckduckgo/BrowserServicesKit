@@ -65,9 +65,7 @@ public protocol SecureVault {
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
-    func deleteWebsiteCredentialsFor(accountId: Int64, in database: Database) throws
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
-    @discardableResult
     func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
 
     func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata]
@@ -325,12 +323,6 @@ class DefaultSecureVault: SecureVault {
     func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
-        }
-    }
-
-    func deleteWebsiteCredentialsFor(accountId: Int64, in database: Database) throws {
-        try executeThrowingDatabaseOperation {
-            try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId, in: database)
         }
     }
 
