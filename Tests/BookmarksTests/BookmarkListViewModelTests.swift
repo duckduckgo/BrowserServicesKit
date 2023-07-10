@@ -310,7 +310,7 @@ final class BookmarkListViewModelTests: XCTestCase {
     }
 }
 
-private extension BookmarkEntity {
+extension BookmarkEntity {
     static func fetchBookmark(withUUID uuid: String, context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)

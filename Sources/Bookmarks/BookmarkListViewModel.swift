@@ -139,6 +139,12 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         let actualFromIndex = mutableChildrenSet.index(of: bookmark)
         let actualToIndex = mutableChildrenSet.index(of: visibleChildren[toIndex])
 
+        guard actualFromIndex != NSNotFound, actualToIndex != NSNotFound else {
+            assertionFailure("Bookmark: position could not be determined")
+            refresh()
+            return
+        }
+
         mutableChildrenSet.moveObjects(at: IndexSet(integer: actualFromIndex), to: actualToIndex)
 
         save()
