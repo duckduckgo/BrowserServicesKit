@@ -303,46 +303,22 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         typealias Metadata = SecureVaultModels.WebsiteAccountSyncMetadata
         typealias Credentials = SecureVaultModels.WebsiteCredentials
 
-        return try db.read {
-            let credentialRows = try Row.fetchAll($0, sql:
-            """
-                SELECT
-                    \(Metadata.databaseTableName).\(Metadata.Columns.id.name),
-                    \(Metadata.databaseTableName).\(Metadata.Columns.lastModified.name),
-                    \(Credentials.databaseTableName).\(Credentials.Columns.id.name) AS \(Metadata.Columns.objectId.name),
-                    \(Credentials.databaseTableName).\(Credentials.Columns.password.name)
-                FROM
-                    \(Metadata.databaseTableName)
-                LEFT JOIN
-                    \(Credentials.databaseTableName)
-                ON
-                    \(Metadata.databaseTableName).\(Metadata.Columns.objectId.name) = \(Credentials.databaseTableName).\(Credentials.Columns.id.name)
-                WHERE
-                    \(Metadata.databaseTableName).\(Metadata.Columns.lastModified.name) IS NOT NULL
-            """)
+        return try db.read { database in
+            let rawMetadataRequest = SecureVaultModels.RawWebsiteAccountSyncMetadata
+                .filter(SecureVaultModels.RawWebsiteAccountSyncMetadata.Columns.lastModified != nil)
+                .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.account)
+                .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.credentials)
+                .asRequest(of: SecureVaultModels.WebsiteSyncableCredential.self)
 
-            let accountIds: [Int64] = credentialRows.compactMap { $0[Metadata.Columns.objectId.name] }
-            let accountsById: [String: SecureVaultModels.WebsiteAccount] = try SecureVaultModels.WebsiteAccount.fetchAll($0, keys: accountIds)
-                .reduce(into: .init()) { partialResult, account in
-                    if let accountID = account.id {
-                        partialResult[accountID] = account
-                    }
-                }
-
-            let metadata = credentialRows.map { row in
-                let id: String = row[Metadata.Columns.id.name]
-                let lastModified: Date? = row[Metadata.Columns.lastModified.name]
-                let accountId: String? = (row[Metadata.Columns.objectId.name] as Int64?).flatMap(String.init)
-                let credential: Credentials? = {
-                    guard let accountId, let account = accountsById[accountId], let password: Data = row[Credentials.Columns.password.name] else {
-                        return nil
-                    }
-                    return Credentials(account: account, password: password)
-                }()
-                return Metadata(id: id, credential: credential, lastModified: lastModified)
+            let rawMetadata = try rawMetadataRequest.fetchAll(database)
+            return rawMetadata.map { rawMetadata in
+                let credential = rawMetadata.account.flatMap { SecureVaultModels.WebsiteCredentials(account: $0, password: rawMetadata.credentials?.password) }
+                return SecureVaultModels.WebsiteAccountSyncMetadata(
+                    id: rawMetadata.metadata.id,
+                    credential: credential,
+                    lastModified: rawMetadata.metadata.lastModified
+                )
             }
-
-            return metadata
         }
     }
 

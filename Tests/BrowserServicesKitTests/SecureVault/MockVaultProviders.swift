@@ -164,6 +164,14 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount] {
         try websiteAccountsForDomain(domain)
     }
+
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: GRDB.Database) throws {
+    }
+
+    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+        []
+    }
+
 }
 
 internal class MockCryptoProvider: SecureVaultCryptoProvider {
