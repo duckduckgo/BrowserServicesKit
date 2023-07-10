@@ -102,14 +102,15 @@ final class LoginsResponseHandler {
                 } else {
                     try existingEntity.update(with: syncable, decryptedUsing: decrypt)
                     existingEntity.lastModified = nil
-                    try secureVault.storeWebsiteCredentialsMetadata(existingEntity, clearModifiedAt: true, in: database)
+                    try secureVault.storeWebsiteCredentialsMetadata(existingEntity, in: database)
                 }
             }
 
         } else if !syncable.isDeleted {
 
             let newEntity = try SecureVaultModels.WebsiteAccountSyncMetadata(syncable: syncable, decryptedUsing: decrypt)
-            try secureVault.storeWebsiteCredentialsMetadata(newEntity, clearModifiedAt: true, in: database)
+            assert(newEntity.lastModified == nil, "lastModified should be nil for a new metadata entity")
+            try secureVault.storeWebsiteCredentialsMetadata(newEntity, in: database)
             credentialsByUUID[syncableUUID] = newEntity
         }
     }

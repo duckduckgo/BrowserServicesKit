@@ -133,16 +133,8 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         []
     }
 
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64 {
-        try storeWebsiteCredentials(credentials)
-    }
-
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
         try storeWebsiteCredentials(credentials)
-    }
-
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64 {
-        try storeWebsiteCredentials(credentials, in: database)
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {

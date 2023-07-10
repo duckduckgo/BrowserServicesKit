@@ -55,11 +55,7 @@ protocol SecureVaultDatabaseProvider {
     func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool) throws -> Int64
-    @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
-    @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool, in database: Database) throws -> Int64
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws
@@ -72,18 +68,6 @@ protocol SecureVaultDatabaseProvider {
     func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata?
     func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount]
 
-}
-
-extension SecureVaultDatabaseProvider {
-    @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
-        try storeWebsiteCredentials(credentials, clearModifiedAt: false)
-    }
-
-    @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
-        try storeWebsiteCredentials(credentials, clearModifiedAt: false, in: database)
-    }
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -197,9 +181,9 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false) throws -> Int64 {
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         try db.write {
-            try storeWebsiteCredentials(credentials, clearModifiedAt: clearModifiedAt, in: $0)
+            try storeWebsiteCredentials(credentials, in: $0)
         }
     }
 
@@ -224,14 +208,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, clearModifiedAt: Bool = false, in database: Database) throws -> Int64 {
-        let timestamp: Date? = clearModifiedAt ? nil : Date()
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
 
         if let stringId = credentials.account.id, let id = Int64(stringId) {
-            try updateWebsiteCredentials(in: database, credentials, usingId: id, timestamp: timestamp)
+            try updateWebsiteCredentials(in: database, credentials, usingId: id)
             return id
         } else {
-            return try insertWebsiteCredentials(in: database, credentials, timestamp: timestamp)
+            return try insertWebsiteCredentials(in: database, credentials)
         }
     }
 
