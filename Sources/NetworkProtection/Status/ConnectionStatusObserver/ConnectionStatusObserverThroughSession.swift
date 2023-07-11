@@ -26,7 +26,7 @@ import Common
 /// NEVPNStatusDidChange notifications or tunnel session.
 ///
 public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
-    public let publisher = CurrentValueSubject<ConnectionStatus, Never>(.unknown)
+    public let publisher = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 
     // MARK: - Notifications
 
@@ -71,6 +71,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
                 // session, other instances should reload it from preferences.
                 //
                 // For better or worse, this line ensures the session's manager is not nil.
+                //
                 try? await NETunnelProviderManager.loadAllFromPreferences()
             }
         }.store(in: &cancellables)
@@ -148,7 +149,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
         case .disconnecting:
             status = .disconnecting
         @unknown default:
-            status = .unknown
+            status = .disconnected
         }
 
         return status
