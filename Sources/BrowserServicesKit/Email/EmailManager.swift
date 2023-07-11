@@ -78,6 +78,8 @@ public enum EmailManagerPermittedAddressType {
 public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
     func emailManager(_ emailManager: EmailManager,
+                      didRequestInContextSignUp: @escaping () -> Void)
+    func emailManager(_ emailManager: EmailManager,
                       didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType) -> Void)
 
 }
@@ -130,6 +132,7 @@ public struct EmailUrls {
 public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
 public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
 public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ token: String?, AliasRequestError?) -> Void
+public typealias SignUpCompletion = (AliasRequestError?) -> Void
 
 public class EmailManager {
     
@@ -398,6 +401,20 @@ extension EmailManager: AutofillEmailDelegate {
 
     public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
         inContextEmailSignupPromptDismissedPermanentlyAt
+    }
+
+    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript, completionHandler: @escaping SignUpCompletion) {
+        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
+
+        guard let delegate = self.aliasPermissionDelegate else {
+            assertionFailure("EmailUserScript requires permission to provide Alias")
+            completionHandler(.permissionDelegateNil)
+            return
+        }
+
+        delegate.emailManager(self) {
+            completionHandler(nil)
+        }
     }
 
     public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript) {
