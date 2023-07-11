@@ -134,9 +134,9 @@ public final class LoginsProvider: DataProviding {
         var idsOfItemsToClearModifiedAt = Set<String>()
 
         let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential.fetchAll(database, keys: identifiers)
-        try metadataObjects.forEach { metadata in
+        for metadata in metadataObjects {
             if let modifiedAt = metadata.lastModified, modifiedAt > clientTimestamp {
-                return
+                continue
             }
             let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadata.id)
             if metadata.objectId == nil, !isLocalChangeRejectedBySync {

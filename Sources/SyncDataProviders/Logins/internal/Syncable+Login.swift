@@ -60,6 +60,9 @@ extension Syncable {
         if let username = credential.account.username {
             payload["username"] = try encrypt(username)
         }
+        if let notes = credential.account.notes {
+            payload["notes"] = try encrypt(notes)
+        }
 
         if let passwordData = credential.password, let password = String(data: passwordData, encoding: .utf8) {
             payload["password"] = try encrypt(password)

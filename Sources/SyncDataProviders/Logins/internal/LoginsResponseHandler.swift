@@ -135,34 +135,27 @@ extension SecureVaultModels.SyncableWebsiteCredentialInfo {
     }
 
     mutating func update(with syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
-        if let encryptedDomain = syncable.encryptedDomain {
-            account?.domain = try decrypt(encryptedDomain)
+        let title = try syncable.encryptedTitle.flatMap(decrypt)
+        let domain = try syncable.encryptedDomain.flatMap(decrypt)
+        let username = try syncable.encryptedUsername.flatMap(decrypt)
+        let password = try syncable.encryptedPassword.flatMap(decrypt)?.data(using: .utf8)
+        let notes = try syncable.encryptedNotes.flatMap(decrypt)
+
+        if account == nil {
+            account = .init(title: title, username: username, domain: domain, notes: notes)
         } else {
-            account?.domain = nil
+            account?.title = title
+            account?.domain = domain
+            account?.username = username
+            account?.notes = notes
         }
 
-        if let encryptedTitle = syncable.encryptedTitle {
-            account?.title = try decrypt(encryptedTitle)
-        } else {
-            account?.title = nil
-        }
+        assert(account != nil)
 
-        if let encryptedNotes = syncable.encryptedNotes {
-            account?.notes = try decrypt(encryptedNotes)
+        if rawCredentials == nil {
+            rawCredentials = .init(credentials: .init(account: account!, password: password))
         } else {
-            account?.notes = nil
-        }
-
-        if let encryptedUsername = syncable.encryptedUsername {
-            account?.username = try decrypt(encryptedUsername)
-        } else {
-            account?.username = nil
-        }
-
-        if let encryptedPassword = syncable.encryptedPassword {
-            rawCredentials?.password = try decrypt(encryptedPassword).data(using: .utf8)
-        } else {
-            rawCredentials?.password = nil
+            rawCredentials?.password = password
         }
     }
 }
