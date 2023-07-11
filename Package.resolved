@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "branch" : "shane/duckplayer-shorts-enabled",
-        "revision" : "f9d1b45aba4714ddaacc5aa82a657124b4bea5d2"
+        "revision" : "6ec1ebb5738474501ea00bcb64eb84360181359d",
+        "version" : "4.24.0"
       }
     },
     {
