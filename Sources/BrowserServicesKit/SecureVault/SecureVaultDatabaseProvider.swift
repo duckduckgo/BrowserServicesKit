@@ -173,18 +173,24 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     func updateWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64) throws {
         try db.write {
+            do {
+                try credentials.account.update($0)
+                try $0.execute(sql: """
+                    UPDATE
+                        \(SecureVaultModels.WebsiteCredentials.databaseTableName)
+                    SET
+                        \(SecureVaultModels.WebsiteCredentials.Columns.password.name) = ?
+                    WHERE
+                        \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
 
-            try credentials.account.update($0)
-            try $0.execute(sql: """
-                UPDATE
-                    \(SecureVaultModels.WebsiteCredentials.databaseTableName)
-                SET
-                    \(SecureVaultModels.WebsiteCredentials.Columns.password.name) = ?
-                WHERE
-                    \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
-
-            """, arguments: [credentials.password, id])
-
+                """, arguments: [credentials.password, id])
+            } catch let error as DatabaseError {
+                if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
+                    throw SecureVaultError.duplicateRecord
+                } else {
+                    throw error
+                }
+            }
         }
     }
 

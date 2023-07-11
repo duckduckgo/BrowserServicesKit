@@ -64,9 +64,6 @@ protocol SecureStoring {
 
 protocol CryptingInternal: Crypting {
 
-    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
-    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
-
     func seal(_ data: Data, secretKey: Data) throws -> Data
     func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data
 
@@ -79,16 +76,6 @@ protocol CryptingInternal: Crypting {
 
     func prepareForConnect() throws -> ConnectInfo
 
-}
-
-extension CryptingInternal {
-    func encryptAndBase64Encode(_ value: String) throws -> String {
-        try encryptAndBase64Encode(value, using: nil)
-    }
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String {
-        try base64DecodeAndDecrypt(value, using: nil)
-    }
 }
 
 enum HTTPRequestMethod: String {
@@ -115,22 +102,4 @@ protocol RecoveryKeyTransmitting {
 
     func send(_ code: SyncCode.ConnectCode) async throws
 
-}
-
-/**
- * Internal interface for sync queue.
- */
-protocol SyncQueueProtocol {
-    /// Used for passing data and receiving results to/from sync
-    var dataProviders: [Feature: DataProviding] { get }
-    /// Called to prepare Data Providers for first sync
-    func prepareForFirstSync() async throws
-    /// Called to start first sync
-    func startFirstSync() async
-    /// Called to start sync
-    func startSync() async
-    /// Emits boolean values representing current sync operation status.
-    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
-    /// Emits events when each sync operation finishes
-    var syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never> { get }
 }

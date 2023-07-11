@@ -77,9 +77,14 @@ public protocol DDGSyncing {
     var scheduler: Scheduling { get }
 
     /**
+     Returns true if there is an ongoing sync operation.
+     */
+    var isSyncInProgress: Bool { get }
+
+    /**
      Emits boolean values representing current sync operation status.
      */
-    var isInProgressPublisher: AnyPublisher<Bool, Never> { get }
+    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
 
     /**
      Initializes Sync object, loads account info and prepares internal state.
@@ -149,10 +154,54 @@ public protocol DDGSyncing {
 
 public protocol Crypting {
 
+    /**
+     * Retrieves secret key from Sync account data stored in keychain.
+     *
+     * The key can be cached locally and used as `secretKey` when passed to
+     * `encryptAndBase64Encode` and `base64DecodeAndDecrypt` functions.
+     *
+     * This function throws an error if Sync account is not present
+     * (or can't be retrieved from keychain).
+     */
+    func fetchSecretKey() throws -> Data
+
+    /**
+     * Encrypts `value` using provided `secretKey` and encodes it using Base64 encoding.
+     *
+     * Throws an error if value cannot be encrypted.
+     */
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data) throws -> String
+
+    /**
+     * Decodes Base64-encoded `value` and decrypts it using provided `secretKey`.
+     *
+     * Throws an error if value is not a valid Base64-encoded string or when decryption fails.
+     */
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String
+
+    /**
+     * Encrypts `value` and encodes it using Base64 encoding.
+     *
+     * This is a convenience function for calling `encryptAndBase64Encode(_:secretKey:)`
+     * as it calls `fetchSecretKey` internally to retrieve encryption key.
+     * Fetching key may be an expensive operation and should be avoided when the function
+     * is called multiple times (e.g. to encrypt a collection of values). In this scenario,
+     * fetching key upfront with `fetchSecretKey` and passing it to `encryptAndBase64Encode(_:secretKey:)`
+     * is preferred.
+     */
     func encryptAndBase64Encode(_ value: String) throws -> String
 
+    /**
+     * Decodes Base64-encoded `value` and decrypts it.
+     *
+     * This is a convenience function for calling `base64DecodeAndDecrypt(_:secretKey:)`
+     * as it calls `fetchSecretKey` internally to retrieve decryption key.
+     * Fetching key may be an expensive operation and should be avoided when the function
+     * is called multiple times (e.g. to decrypt a collection of values). In this scenario,
+     * fetching key upfront with `fetchSecretKey` and passing it to `base64DecodeAndDecrypt(_:secretKey:)`
+     * is preferred.
+     */
     func base64DecodeAndDecrypt(_ value: String) throws -> String
-
 }
 
 
@@ -179,6 +228,10 @@ public protocol Scheduling {
     func notifyAppLifecycleEvent()
     /// This should be called from externally scheduled background jobs that trigger sync periodically.
     func requestSyncImmediately()
+    /// This should be called when sync needs to be cancelled, e.g. in response to app going to background.
+    func cancelSyncAndSuspendSyncQueue()
+    /// This should be called when sync can be resumed, e.g. in response to app going to foreground.
+    func resumeSyncQueue()
 }
 
 /**

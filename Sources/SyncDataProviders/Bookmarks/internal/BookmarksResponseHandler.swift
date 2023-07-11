@@ -26,7 +26,6 @@ final class BookmarksResponseHandler {
     let clientTimestamp: Date?
     let received: [Syncable]
     let context: NSManagedObjectContext
-    let crypter: Crypting
     let shouldDeduplicateEntities: Bool
 
     let receivedByUUID: [String: Syncable]
@@ -40,12 +39,16 @@ final class BookmarksResponseHandler {
     var idsOfItemsThatRetainModifiedAt = Set<String>()
     var deduplicatedFolderUUIDs = Set<String>()
 
-    init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) {
+    private let decrypt: (String) throws -> String
+
+    init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
         self.received = received
         self.context = context
-        self.crypter = crypter
         self.shouldDeduplicateEntities = deduplicateEntities
+
+        let secretKey = try crypter.fetchSecretKey()
+        self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
 
         var syncablesByUUID: [String: Syncable] = [:]
         var allUUIDs: Set<String> = []
@@ -96,15 +99,15 @@ final class BookmarksResponseHandler {
             }
     }
 
-    func processReceivedBookmarks() {
+    func processReceivedBookmarks() throws {
         if received.isEmpty {
             return
         }
 
         for topLevelFolderSyncable in topLevelFoldersSyncables {
-            processTopLevelFolder(topLevelFolderSyncable)
+            try processTopLevelFolder(topLevelFolderSyncable)
         }
-        processOrphanedBookmarks()
+        try processOrphanedBookmarks()
 
         // populate favorites
         if !favoritesUUIDs.isEmpty {
@@ -133,14 +136,14 @@ final class BookmarksResponseHandler {
 
     // MARK: - Private
 
-    private func processTopLevelFolder(_ topLevelFolderSyncable: Syncable) {
+    private func processTopLevelFolder(_ topLevelFolderSyncable: Syncable) throws {
         guard let topLevelFolderUUID = topLevelFolderSyncable.uuid else {
             return
         }
         var queues: [[String]] = [topLevelFolderSyncable.children]
         var parentUUIDs: [String] = [topLevelFolderUUID]
 
-        processEntity(with: topLevelFolderSyncable)
+        try processEntity(with: topLevelFolderSyncable)
 
         while !queues.isEmpty {
             var queue = queues.removeFirst()
@@ -157,7 +160,7 @@ final class BookmarksResponseHandler {
                 let syncableUUID = queue.removeFirst()
 
                 if let syncable = receivedByUUID[syncableUUID] {
-                    processEntity(with: syncable, parent: parent)
+                    try processEntity(with: syncable, parent: parent)
                     if syncable.isFolder, !syncable.children.isEmpty {
                         queues.append(syncable.children)
                         parentUUIDs.append(syncableUUID)
@@ -175,7 +178,7 @@ final class BookmarksResponseHandler {
         }
     }
 
-    private func processOrphanedBookmarks() {
+    private func processOrphanedBookmarks() throws {
 
         for syncable in bookmarkSyncablesWithoutParent {
             guard !syncable.isFolder else {
@@ -183,16 +186,21 @@ final class BookmarksResponseHandler {
                 continue
             }
 
-            processEntity(with: syncable)
+            try processEntity(with: syncable)
         }
     }
 
-    private func processEntity(with syncable: Syncable, parent: BookmarkEntity? = nil) {
+    private func processEntity(with syncable: Syncable, parent: BookmarkEntity? = nil) throws {
         guard let syncableUUID = syncable.uuid else {
             return
         }
 
-        if shouldDeduplicateEntities, let deduplicatedEntity = BookmarkEntity.deduplicatedEntity(with: syncable, parentUUID: parent?.uuid, in: context, using: crypter) {
+        if shouldDeduplicateEntities, let deduplicatedEntity = try BookmarkEntity.deduplicatedEntity(
+            with: syncable,
+            parentUUID: parent?.uuid,
+            in: context,
+            decryptedUsing: decrypt
+        ) {
 
             if let oldUUID = deduplicatedEntity.uuid {
                 entitiesByUUID.removeValue(forKey: oldUUID)
@@ -215,7 +223,7 @@ final class BookmarksResponseHandler {
                 return modifiedAt > clientTimestamp
             }()
             if !isModifiedAfterSyncTimestamp {
-                try? existingEntity.update(with: syncable, in: context, using: crypter)
+                try existingEntity.update(with: syncable, in: context, decryptedUsing: decrypt)
             }
 
             if parent != nil, !existingEntity.isDeleted {
@@ -229,7 +237,7 @@ final class BookmarksResponseHandler {
 
             let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
             parent?.addToChildren(newEntity)
-            try? newEntity.update(with: syncable, in: context, using: crypter)
+            try newEntity.update(with: syncable, in: context, decryptedUsing: decrypt)
             entitiesByUUID[syncableUUID] = newEntity
         }
     }

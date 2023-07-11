@@ -23,6 +23,10 @@ import Foundation
 
 extension Syncable {
 
+    enum SyncableBookmarkError: Error {
+        case bookmarkEntityMissingUUID
+    }
+
     var uuid: String? {
         payload["id"] as? String
     }
@@ -51,14 +55,19 @@ extension Syncable {
         payload["deleted"] != nil
     }
 
-    init(bookmark: BookmarkEntity, encryptedWith crypter: Crypting) throws {
+    init(bookmark: BookmarkEntity, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
-        payload["id"] = bookmark.uuid!
+        guard let uuid = bookmark.uuid else {
+            throw SyncableBookmarkError.bookmarkEntityMissingUUID
+        }
+
+        payload["id"] = uuid
+
         if bookmark.isPendingDeletion {
             payload["deleted"] = ""
         } else {
             if let title = bookmark.title {
-                payload["title"] = try crypter.encryptAndBase64Encode(title)
+                payload["title"] = try encrypt(title)
             }
             if bookmark.isFolder {
                 if bookmark.uuid == BookmarkEntity.Constants.favoritesFolderID {
@@ -71,7 +80,7 @@ extension Syncable {
                     ]
                 }
             } else if let url = bookmark.url {
-                payload["page"] = ["url": try crypter.encryptAndBase64Encode(url)]
+                payload["page"] = ["url": try encrypt(url)]
             }
             if let modifiedAt = bookmark.modifiedAt {
                 payload["client_last_modified"] = Self.dateFormatter.string(from: modifiedAt)

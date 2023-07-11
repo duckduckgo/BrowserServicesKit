@@ -59,7 +59,7 @@ public struct PrivacyConfigurationData {
         if var featuresData = json[CodingKeys.features.rawValue] as? [String: Any] {
             var features = [FeatureName: PrivacyFeature]()
 
-            // Allowlist entry does not follow the ususal feature structure - procss it first
+            // Allowlist entry does not follow the usual feature structure - process it first
             if let allowlistEntry = featuresData[CodingKeys.trackerAllowlist.rawValue] as? [String: Any] {
                 if let allowlist = TrackerAllowlist(json: allowlistEntry) {
                     self.trackerAllowlist = allowlist
@@ -105,6 +105,7 @@ public struct PrivacyConfigurationData {
             case settings
             case features
             case minSupportedVersion
+            case hash
         }
 
         public struct Feature {
@@ -128,6 +129,7 @@ public struct PrivacyConfigurationData {
         public let settings: FeatureSettings
         public let features: Features
         public let minSupportedVersion: FeatureSupportedVersion?
+        public let hash: String?
 
         public init?(json: [String: Any]) {
             guard let state = json[CodingKeys.state.rawValue] as? String else { return nil }
@@ -149,14 +151,16 @@ public struct PrivacyConfigurationData {
             }
             self.features = features
             self.minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String
+            self.hash = json[CodingKeys.hash.rawValue] as? String
         }
 
-        public init(state: FeatureState, exceptions: [ExceptionEntry], settings: [String: Any] = [:], features: Features = [:], minSupportedVersion: String? = nil) {
+        public init(state: FeatureState, exceptions: [ExceptionEntry], settings: [String: Any] = [:], features: Features = [:], minSupportedVersion: String? = nil, hash: String? = nil) {
             self.state = state
             self.exceptions = exceptions
             self.settings = settings
             self.minSupportedVersion = minSupportedVersion
             self.features = features
+            self.hash = hash
         }
     }
 
@@ -173,12 +177,18 @@ public struct PrivacyConfigurationData {
             }
         }
 
-        public let entries: TrackerAllowlistData
+        public private(set) var entries: TrackerAllowlistData
 
         public override init?(json: [String: Any]) {
-            let settings = (json[PrivacyFeature.CodingKeys.settings.rawValue] as? [String: Any]) ?? [:]
+            self.entries = [:]
+            super.init(json: json)
+
+            guard self.state != State.disabled else { return }
 
             var entries = [String: [Entry]]()
+
+            let settings = (json[PrivacyFeature.CodingKeys.settings.rawValue] as? [String: Any]) ?? [:]
+
             if let trackers = settings["allowlistedTrackers"] as? [String: [String: [Any]]] {
                 for (trackerDomain, trackerRules) in trackers {
                     if let rules = trackerRules["rules"] as? [ [String: Any] ] {
@@ -192,8 +202,6 @@ public struct PrivacyConfigurationData {
             }
 
             self.entries = entries
-
-            super.init(json: json)
         }
 
         public init(entries: [String: [Entry]], state: FeatureState) {
