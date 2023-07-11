@@ -33,14 +33,14 @@ public enum SecureVaultSyncableColumns: String, ColumnExpression {
 
 extension SecureVaultModels {
 
-    public struct RawWebsiteAccountSyncMetadata: SecureVaultSyncable, TableRecord, FetchableRecord, PersistableRecord, Decodable {
+    public struct SyncableWebsiteCredential: SecureVaultSyncable, TableRecord, FetchableRecord, PersistableRecord, Decodable {
         public typealias Columns = SecureVaultSyncableColumns
         public static var databaseTableName: String = "website_accounts_sync_metadata"
 
         public static let accountForeignKey = ForeignKey([Columns.objectId])
         public static let credentialsForeignKey = ForeignKey([Columns.objectId])
         public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
-        public static let credentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "credentials", using: credentialsForeignKey)
+        public static let rawCredentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "rawCredentials", using: credentialsForeignKey)
 
         public var id: String
         public var objectId: Int64?
@@ -57,45 +57,44 @@ extension SecureVaultModels {
             container[Columns.objectId] = objectId
             container[Columns.lastModified] = lastModified
         }
-    }
 
-    public struct SyncableWebsiteCredential: FetchableRecord, Decodable {
-        public var metadata: RawWebsiteAccountSyncMetadata
-        public var account: WebsiteAccount?
-        public var credentials: RawWebsiteCredentials?
-    }
-
-    public struct WebsiteAccountSyncMetadata: SecureVaultSyncable, PersistableRecord, FetchableRecord {
-
-        public typealias Columns = SecureVaultSyncableColumns
-        public static var databaseTableName: String = "website_accounts_sync_metadata"
-
-        public var id: String
-        public var credential: WebsiteCredentials?
-        public var lastModified: Date?
-
-        public var objectId: Int64? {
-            credential?.account.id.flatMap(Int64.init)
-        }
-
-        public var shouldUpdateModifiedBeforeSaving = false
-
-        public init(id: String = UUID().uuidString, credential: WebsiteCredentials?, lastModified: Date? = Date()) {
+        public init(id: String = UUID().uuidString, objectId: Int64?, lastModified: Date? = Date()) {
             self.id = id
-            self.credential = credential
+            self.objectId = objectId
             self.lastModified = lastModified
         }
+    }
 
-        public func encode(to container: inout PersistenceContainer) {
-            container[Columns.id] = id
-            container[Columns.objectId] = credential?.account.id
-            container[Columns.lastModified] = lastModified
+    public struct SyncableWebsiteCredentialInfo: FetchableRecord, Decodable {
+        public var metadata: SyncableWebsiteCredential
+        public var account: WebsiteAccount? {
+            didSet {
+                metadata.objectId = account?.id.flatMap(Int64.init)
+            }
+        }
+        public var rawCredentials: RawWebsiteCredentials? {
+            didSet {
+                metadata.objectId = account?.id.flatMap(Int64.init)
+            }
         }
 
-        public init(row: Row) throws {
-            id = row[Columns.id]
-            lastModified = row[Columns.lastModified]
+        public var credentials: WebsiteCredentials? {
+            get {
+                guard let account, let password = rawCredentials?.password else {
+                    return nil
+                }
+                return .init(account: account, password: password)
+            }
+            set {
+                rawCredentials = newValue.flatMap { RawWebsiteCredentials(credentials: $0) }
+                account = newValue?.account
+            }
         }
 
+        public init(id: String = UUID().uuidString, credentials: WebsiteCredentials?, lastModified: Date? = Date()) {
+            metadata = .init(id: id, objectId: credentials?.account.id.flatMap(Int64.init), lastModified: lastModified)
+            account = credentials?.account
+            self.credentials = credentials
+        }
     }
 }

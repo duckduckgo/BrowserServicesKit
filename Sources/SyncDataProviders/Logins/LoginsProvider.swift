@@ -54,9 +54,9 @@ public final class LoginsProvider: DataProviding {
         try secureVault.inDatabaseTransaction { database in
             try database.execute(sql: """
                 UPDATE
-                    \(SecureVaultModels.WebsiteAccountSyncMetadata.databaseTableName)
+                    \(SecureVaultModels.SyncableWebsiteCredential.databaseTableName)
                 SET
-                    \(SecureVaultModels.WebsiteAccountSyncMetadata.Columns.lastModified.name) = ?
+                    \(SecureVaultModels.SyncableWebsiteCredential.Columns.lastModified.name) = ?
             """, arguments: [Date()])
         }
     }
@@ -133,7 +133,7 @@ public final class LoginsProvider: DataProviding {
         let identifiers = sent.compactMap(\.uuid)
         var idsOfItemsToClearModifiedAt = Set<String>()
 
-        let metadataObjects = try SecureVaultModels.RawWebsiteAccountSyncMetadata.fetchAll(database, keys: identifiers)
+        let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential.fetchAll(database, keys: identifiers)
         try metadataObjects.forEach { metadata in
             if let modifiedAt = metadata.lastModified, modifiedAt > clientTimestamp {
                 return
@@ -151,11 +151,11 @@ public final class LoginsProvider: DataProviding {
 
     private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws {
 
-        let request = SecureVaultModels.RawWebsiteAccountSyncMetadata
+        let request = SecureVaultModels.SyncableWebsiteCredential
             .filter(keys: uuids)
-            .filter(SecureVaultModels.RawWebsiteAccountSyncMetadata.Columns.lastModified < clientTimestamp)
+            .filter(SecureVaultModels.SyncableWebsiteCredential.Columns.lastModified < clientTimestamp)
 
-        let metadataObjects = try SecureVaultModels.RawWebsiteAccountSyncMetadata.fetchAll(database, request)
+        let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential.fetchAll(database, request)
 
         for i in 0..<metadataObjects.count {
             var metadata = metadataObjects[i]

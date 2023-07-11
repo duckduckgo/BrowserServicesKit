@@ -129,7 +129,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws {
     }
 
-    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
         []
     }
 
@@ -137,13 +137,13 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try storeWebsiteCredentials(credentials)
     }
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: Database) throws {
-        if let accountId = metadata.objectId {
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: Database) throws {
+        if let accountId = metadata.metadata.objectId {
             try deleteWebsiteCredentialsForAccountId(accountId)
         }
     }
 
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
         []
     }
 
@@ -151,7 +151,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try websiteCredentialsForAccountId(accountId)
     }
 
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteAccountSyncMetadata? {
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo? {
         nil
     }
 
@@ -159,10 +159,10 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try websiteAccountsForDomain(domain)
     }
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.WebsiteAccountSyncMetadata, in database: GRDB.Database) throws {
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: GRDB.Database) throws {
     }
 
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
         []
     }
 

@@ -39,18 +39,18 @@ extension Syncable {
         payload["notes"] as? String
     }
 
-    init(metadata: SecureVaultModels.WebsiteAccountSyncMetadata, encryptedUsing encrypt: (String) throws -> String) throws {
+    init(metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
-        payload["id"] = metadata.id
+        payload["id"] = metadata.metadata.id
 
-        guard let credential = metadata.credential else {
+        guard let credential = metadata.credentials else {
             payload["deleted"] = ""
             self.init(jsonObject: payload)
             return
         }
 
-        print("Syncable init \(metadata.id)")
+        print("Syncable init \(metadata.metadata.id)")
         if let title = credential.account.title {
             payload["title"] = try encrypt(title)
         }
@@ -65,7 +65,7 @@ extension Syncable {
             payload["password"] = try encrypt(password)
         }
 
-        if let modifiedAt = metadata.lastModified {
+        if let modifiedAt = metadata.metadata.lastModified {
             payload["client_last_modified"] = Self.dateFormatter.string(from: modifiedAt)
         }
         self.init(jsonObject: payload)

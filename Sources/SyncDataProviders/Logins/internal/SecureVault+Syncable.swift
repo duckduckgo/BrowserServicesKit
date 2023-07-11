@@ -27,7 +27,7 @@ extension SecureVault {
         in database: Database,
         with syncable: Syncable,
         decryptedUsing decrypt: (String) throws -> String
-    ) throws -> SecureVaultModels.WebsiteAccountSyncMetadata? {
+    ) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo? {
 
         guard !syncable.isDeleted else {
             return nil

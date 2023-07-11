@@ -33,7 +33,7 @@ final class LoginsResponseHandler {
     let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
 
-    var credentialsByUUID: [String: SecureVaultModels.WebsiteAccountSyncMetadata] = [:]
+    var credentialsByUUID: [String: SecureVaultModels.SyncableWebsiteCredentialInfo] = [:]
 
     private let decrypt: (String) throws -> String
 
@@ -61,7 +61,7 @@ final class LoginsResponseHandler {
         self.allReceivedIDs = allUUIDs
         self.receivedByUUID = syncablesByUUID
 
-        credentialsByUUID = try secureVault.websiteCredentialsMetadataForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.id] = $1 })
+        credentialsByUUID = try secureVault.websiteCredentialsMetadataForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.metadata.id] = $1 })
     }
 
     func processReceivedCredentials() throws {
@@ -83,15 +83,15 @@ final class LoginsResponseHandler {
 
         if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredential(in: database, with: syncable, decryptedUsing: decrypt) {
 
-            let oldUUID = deduplicatedEntity.id
-            deduplicatedEntity.id = syncableUUID
+            let oldUUID = deduplicatedEntity.metadata.id
+            deduplicatedEntity.metadata.id = syncableUUID
 
             credentialsByUUID.removeValue(forKey: oldUUID)
             credentialsByUUID[syncableUUID] = deduplicatedEntity
 
         } else if var existingEntity = credentialsByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
-                guard let clientTimestamp, let modifiedAt = existingEntity.lastModified else {
+                guard let clientTimestamp, let modifiedAt = existingEntity.metadata.lastModified else {
                     return false
                 }
                 return modifiedAt > clientTimestamp
@@ -101,22 +101,22 @@ final class LoginsResponseHandler {
                     try secureVault.deleteWebsiteCredentialsMetadata(existingEntity, in: database)
                 } else {
                     try existingEntity.update(with: syncable, decryptedUsing: decrypt)
-                    existingEntity.lastModified = nil
+                    existingEntity.metadata.lastModified = nil
                     try secureVault.storeWebsiteCredentialsMetadata(existingEntity, in: database)
                 }
             }
 
         } else if !syncable.isDeleted {
 
-            let newEntity = try SecureVaultModels.WebsiteAccountSyncMetadata(syncable: syncable, decryptedUsing: decrypt)
-            assert(newEntity.lastModified == nil, "lastModified should be nil for a new metadata entity")
+            let newEntity = try SecureVaultModels.SyncableWebsiteCredentialInfo(syncable: syncable, decryptedUsing: decrypt)
+            assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
             try secureVault.storeWebsiteCredentialsMetadata(newEntity, in: database)
             credentialsByUUID[syncableUUID] = newEntity
         }
     }
 }
 
-extension SecureVaultModels.WebsiteAccountSyncMetadata {
+extension SecureVaultModels.SyncableWebsiteCredentialInfo {
 
     init(syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
         guard let id = syncable.uuid else {
@@ -131,38 +131,38 @@ extension SecureVaultModels.WebsiteAccountSyncMetadata {
 
         let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password?.data(using: .utf8))
-        self.init(id: id, credential: credentials, lastModified: nil)
+        self.init(id: id, credentials: credentials, lastModified: nil)
     }
 
     mutating func update(with syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
         if let encryptedDomain = syncable.encryptedDomain {
-            credential?.account.domain = try decrypt(encryptedDomain)
+            account?.domain = try decrypt(encryptedDomain)
         } else {
-            credential?.account.domain = nil
+            account?.domain = nil
         }
 
         if let encryptedTitle = syncable.encryptedTitle {
-            credential?.account.title = try decrypt(encryptedTitle)
+            account?.title = try decrypt(encryptedTitle)
         } else {
-            credential?.account.title = nil
+            account?.title = nil
         }
 
         if let encryptedNotes = syncable.encryptedNotes {
-            credential?.account.notes = try decrypt(encryptedNotes)
+            account?.notes = try decrypt(encryptedNotes)
         } else {
-            credential?.account.notes = nil
+            account?.notes = nil
         }
 
         if let encryptedUsername = syncable.encryptedUsername {
-            credential?.account.username = try decrypt(encryptedUsername)
+            account?.username = try decrypt(encryptedUsername)
         } else {
-            credential?.account.username = nil
+            account?.username = nil
         }
 
         if let encryptedPassword = syncable.encryptedPassword {
-            credential?.password = try decrypt(encryptedPassword).data(using: .utf8)
+            rawCredentials?.password = try decrypt(encryptedPassword).data(using: .utf8)
         } else {
-            credential?.password = nil
+            rawCredentials?.password = nil
         }
     }
 }
