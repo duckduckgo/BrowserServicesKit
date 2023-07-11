@@ -302,7 +302,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 .filter(SecureVaultModels.RawWebsiteAccountSyncMetadata.Columns.lastModified != nil)
                 .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.account)
                 .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.credentials)
-                .asRequest(of: SecureVaultModels.WebsiteSyncableCredential.self)
+                .asRequest(of: SecureVaultModels.SyncableWebsiteCredential.self)
 
             let rawMetadata = try rawMetadataRequest.fetchAll(database)
             return rawMetadata.map { rawMetadata in
@@ -325,7 +325,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             .filter(keys: syncIds)
             .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.account)
             .including(optional: SecureVaultModels.RawWebsiteAccountSyncMetadata.credentials)
-            .asRequest(of: SecureVaultModels.WebsiteSyncableCredential.self)
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredential.self)
 
         let rawMetadata = try rawMetadataRequest.fetchAll(database)
         return rawMetadata.map { rawMetadata in

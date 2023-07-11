@@ -59,7 +59,7 @@ extension SecureVaultModels {
         }
     }
 
-    struct WebsiteSyncableCredential: FetchableRecord, Decodable {
+    struct SyncableWebsiteCredential: FetchableRecord, Decodable {
         var metadata: RawWebsiteAccountSyncMetadata
         var account: WebsiteAccount?
         var credentials: RawWebsiteCredentials?
