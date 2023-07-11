@@ -143,7 +143,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
+    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.WebsiteAccountSyncMetadata] {
         []
     }
 

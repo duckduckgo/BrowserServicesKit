@@ -61,7 +61,7 @@ final class LoginsResponseHandler {
         self.allReceivedIDs = allUUIDs
         self.receivedByUUID = syncablesByUUID
 
-        credentialsByUUID = try secureVault.websiteCredentialsForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.id] = $1 })
+        credentialsByUUID = try secureVault.websiteCredentialsMetadataForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.id] = $1 })
     }
 
     func processReceivedCredentials() throws {
