@@ -23,7 +23,7 @@ public protocol SecureVaultErrorReporting: AnyObject {
 }
 
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
-public class SecureVaultFactory {
+open class SecureVaultFactory {
 
     public static let `default` = SecureVaultFactory()
 
@@ -88,7 +88,7 @@ public class SecureVaultFactory {
         do {
 
             do {
-                databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
+                databaseProvider = try makeDatabaseProvider(key: existingL1Key)
             } catch DefaultDatabaseProvider.DbError.nonRecoverable {
                 databaseProvider = try DefaultDatabaseProvider.recreateDatabase(withKey: existingL1Key)
             }

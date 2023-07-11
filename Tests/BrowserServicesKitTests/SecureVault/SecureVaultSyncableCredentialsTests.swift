@@ -21,15 +21,6 @@ import GRDB
 import XCTest
 @testable import BrowserServicesKit
 
-extension DefaultDatabaseProvider {
-    static let testKey = "test-key".data(using: .utf8)!
-
-    static func makeTestProvider() throws -> DefaultDatabaseProvider {
-        let databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
-        return try DefaultDatabaseProvider(file: databaseLocation, key: testKey)
-    }
-}
-
 class SecureVaultSyncableCredentialsTests: XCTestCase {
 
     let simpleL1Key = "simple-key".data(using: .utf8)!
@@ -287,7 +278,7 @@ extension SecureVaultModels.SyncableWebsiteCredentialInfo {
     static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
         try SecureVaultModels.SyncableWebsiteCredential
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
             .fetchAll(database)
     }
