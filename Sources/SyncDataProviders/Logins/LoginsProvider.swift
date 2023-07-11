@@ -90,12 +90,13 @@ public final class LoginsProvider: DataProviding {
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
 
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        let clientTimestampMilliseconds = clientTimestamp.withMillisecondPrecision
 
         try secureVault.inDatabaseTransaction { database in
 
             let responseHandler = try LoginsResponseHandler(
                 received: received,
-                clientTimestamp: clientTimestamp,
+                clientTimestamp: clientTimestampMilliseconds,
                 secureVault: secureVault,
                 database: database,
                 crypter: crypter,
@@ -104,7 +105,7 @@ public final class LoginsProvider: DataProviding {
             let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
                 sent,
                 receivedUUIDs: Set(responseHandler.receivedByUUID.keys),
-                clientTimestamp: clientTimestamp,
+                clientTimestamp: clientTimestampMilliseconds,
                 secureVault: secureVault,
                 in: database
             )
@@ -115,7 +116,7 @@ public final class LoginsProvider: DataProviding {
 #endif
 
             let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.receivedByUUID.keys)
-            try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestamp, secureVault: secureVault, in: database)
+            try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestampMilliseconds, secureVault: secureVault, in: database)
         }
 
         if let serverTimestamp {
@@ -176,4 +177,17 @@ public final class LoginsProvider: DataProviding {
     var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
 #endif
 
+}
+
+extension Date {
+    /**
+     * Rounds receiver to milliseconds.
+     *
+     * Because SQLite stores timestamps with millisecond precision, comparing against
+     * microsecond-precision Date type may produce unexpected results. Hence sync timestamp
+     * is rounded to milliseconds.
+     */
+    var withMillisecondPrecision: Date {
+        Date(timeIntervalSince1970: TimeInterval(Int(timeIntervalSince1970 * 1_000_000) / 1_000) / 1_000)
+    }
 }
