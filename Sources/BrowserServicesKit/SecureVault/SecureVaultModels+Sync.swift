@@ -59,10 +59,10 @@ extension SecureVaultModels {
         }
     }
 
-    struct SyncableWebsiteCredential: FetchableRecord, Decodable {
-        var metadata: RawWebsiteAccountSyncMetadata
-        var account: WebsiteAccount?
-        var credentials: RawWebsiteCredentials?
+    public struct SyncableWebsiteCredential: FetchableRecord, Decodable {
+        public var metadata: RawWebsiteAccountSyncMetadata
+        public var account: WebsiteAccount?
+        public var credentials: RawWebsiteCredentials?
     }
 
     public struct WebsiteAccountSyncMetadata: SecureVaultSyncable, PersistableRecord, FetchableRecord {
