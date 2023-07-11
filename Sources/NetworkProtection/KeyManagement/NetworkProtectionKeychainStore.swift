@@ -90,7 +90,11 @@ final class NetworkProtectionKeychainStore {
 
     func deleteAll() throws {
         var query = defaultAttributes()
+#if os(macOS)
+        // This line causes the delete to error with status -50 on iOS. Needs investigation but, for now, just delete the first item
+        // https://app.asana.com/0/1203512625915051/1205009181378521
         query[kSecMatchLimit as String] = kSecMatchLimitAll
+#endif
 
         let status = SecItemDelete(query as CFDictionary)
         switch status {
