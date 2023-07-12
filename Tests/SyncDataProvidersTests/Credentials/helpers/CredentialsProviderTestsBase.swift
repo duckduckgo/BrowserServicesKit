@@ -1,0 +1,161 @@
+//
+//  CredentialsProviderTestsBase.swift
+//  DuckDuckGo
+//
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import XCTest
+import Common
+import DDGSync
+import GRDB
+import Persistence
+@testable import BrowserServicesKit
+@testable import SyncDataProviders
+
+internal class CredentialsProviderTestsBase: XCTestCase {
+
+    let simpleL1Key = "simple-key".data(using: .utf8)!
+    var databaseLocation: URL!
+    var databaseProvider: DefaultDatabaseProvider!
+
+    var metadataDatabase: CoreDataDatabase!
+    var metadataDatabaseLocation: URL!
+
+    var crypter = CryptingMock()
+    var provider: LoginsProvider!
+
+    var secureVaultFactory: SecureVaultFactory!
+    var secureVault: SecureVault!
+
+    func setUpSyncMetadataDatabase() {
+        metadataDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+
+        let bundle = DDGSync.bundle
+        guard let model = CoreDataDatabase.loadModel(from: bundle, named: "SyncMetadata") else {
+            XCTFail("Failed to load model")
+            return
+        }
+        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
+        metadataDatabase.loadStore()
+    }
+
+    func deleteDbFile() throws {
+        do {
+            let dbFileContainer = databaseLocation.deletingLastPathComponent()
+            for file in try FileManager.default.contentsOfDirectory(atPath: dbFileContainer.path) {
+                guard ["db", "bak"].contains((file as NSString).pathExtension) else { continue }
+                try FileManager.default.removeItem(atPath: dbFileContainer.appendingPathComponent(file).path)
+            }
+
+        } catch let error as NSError {
+            // File not found
+            if error.domain != NSCocoaErrorDomain || error.code != 4 {
+                throw error
+            }
+        }
+    }
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+
+        databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
+        databaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        secureVaultFactory = TestSecureVaultFactory(databaseProvider: databaseProvider)
+        try makeSecureVault()
+
+        setUpSyncMetadataDatabase()
+
+        provider = try LoginsProvider(
+            secureVaultFactory: secureVaultFactory,
+            metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
+            reloadLoginsAfterSync: {}
+        )
+    }
+
+    override func tearDownWithError() throws {
+        try deleteDbFile()
+
+        try? metadataDatabase.tearDown(deleteStores: true)
+        metadataDatabase = nil
+        try? FileManager.default.removeItem(at: metadataDatabaseLocation)
+
+        try super.tearDownWithError()
+    }
+
+    // MARK: - Helpers
+
+    func makeSecureVault() throws {
+        secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
+    }
+
+    func fetchAllSyncableCredentials() throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
+        try databaseProvider.db.read { database in
+            try SecureVaultModels.SyncableWebsiteCredentialInfo.fetchAll(database)
+        }
+    }
+
+    func handleSyncResponse(sent: [Syncable] = [], received: [Syncable], clientTimestamp: Date = Date(), serverTimestamp: String = "1234") async throws {
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
+    }
+}
+
+extension SecureVaultModels.SyncableWebsiteCredentialInfo {
+
+    static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
+        try SecureVaultModels.SyncableWebsiteCredential
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
+            .orderByPrimaryKey()
+            .fetchAll(database)
+    }
+}
+
+extension SecureVault {
+    func storeCredentials(domain: String? = nil, username: String? = nil, password: String? = nil, notes: String? = nil) throws {
+        let passwordData = password.flatMap { $0.data(using: .utf8) }
+        let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, notes: notes)
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+        try storeWebsiteCredentials(credentials)
+    }
+
+    func storeCredentialsMetadata(
+        _ id: String = UUID().uuidString,
+        domain: String? = nil,
+        username: String? = nil,
+        password: String? = nil,
+        notes: String? = nil,
+        lastModified: Date? = nil,
+        in database: Database? = nil
+    ) throws {
+        let domain = domain ?? id
+        let username = username ?? id
+        let password = password ?? id
+        let notes = notes ?? id
+
+        let passwordData = password.data(using: .utf8)
+        let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, notes: notes)
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: id, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
+        if let database {
+            try storeWebsiteCredentialsMetadata(metadata, in: database)
+        } else {
+            try inDatabaseTransaction { try storeWebsiteCredentialsMetadata(metadata, in: $0) }
+        }
+    }
+}
+

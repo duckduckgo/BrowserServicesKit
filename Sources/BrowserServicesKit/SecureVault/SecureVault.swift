@@ -297,9 +297,7 @@ class DefaultSecureVault: SecureVault {
     }
 
     func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: Database) throws {
-        try executeThrowingDatabaseOperation {
-            try self.providers.database.deleteWebsiteCredentialsMetadata(metadata, in: database)
-        }
+        try self.providers.database.deleteWebsiteCredentialsMetadata(metadata, in: database)
     }
 
     @discardableResult
