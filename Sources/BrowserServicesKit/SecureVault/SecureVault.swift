@@ -455,18 +455,16 @@ class DefaultSecureVault: SecureVault {
         }
 
         do {
-            let metadata = try self.providers.database.modifiedWebsiteCredentialsMetadata()
-            let passwords: [Data?] = try self.l2BatchDecrypt(data: metadata.map(\.rawCredentials?.password))
-
-            return zip(metadata, passwords).map { metadata, password in
-                guard let password else {
-                    return metadata
+            var metadata = try providers.database.modifiedWebsiteCredentialsMetadata()
+            let key = try getEncryptionKey()
+            for i in 0..<metadata.count {
+                guard let password = metadata[i].credentials?.password else {
+                    continue
                 }
-
-                var decryptedMetadata = metadata
-                decryptedMetadata.rawCredentials?.password = password
-                return decryptedMetadata
+                metadata[i].credentials?.password = try decrypt(password, using: key)
             }
+
+            return metadata
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
@@ -527,17 +525,5 @@ class DefaultSecureVault: SecureVault {
         let l2Key = try l2KeyFrom(password: password)
         return try providers.crypto.decrypt(data, withKey: l2Key)
     }
-
-    private func l2BatchDecrypt(data: [Data?]) throws -> [Data?] {
-        let password = try passwordInUse()
-        let l2Key = try l2KeyFrom(password: password)
-        return try data.map { encrypted in
-            guard let encrypted else {
-                return nil
-            }
-            return try providers.crypto.decrypt(encrypted, withKey: l2Key)
-        }
-    }
-
 }
 
