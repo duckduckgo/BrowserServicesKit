@@ -25,17 +25,19 @@ let package = Package(
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
+        .library(name: "NetworkProtection", targets: ["NetworkProtection"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit.git", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.4"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.5"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.0")
     ],
     targets: [
         .target(
@@ -176,6 +178,15 @@ let package = Package(
             dependencies: [
                 "Networking"
             ]),
+        .target(
+            name: "NetworkProtection",
+            dependencies: [
+                .target(name: "WireGuardC"),
+                .product(name: "WireGuard", package: "wireguard-apple"),
+                "Common"
+            ]
+        ),
+        .target(name: "WireGuardC"),
 
         // MARK: - Test targets
         .testTarget(
@@ -256,6 +267,17 @@ let package = Package(
                 "BookmarksTestsUtils",
                 "SyncDataProviders"
             ]
+        ),
+        .testTarget(
+            name: "NetworkProtectionTests",
+            dependencies: [
+                "NetworkProtection"
+            ],
+            resources: [
+                .copy("Resources/servers-original-endpoint.json"),
+                .copy("Resources/servers-updated-endpoint.json")
+            ]
         )
-    ]
+    ],
+    cxxLanguageStandard: .cxx11
 )

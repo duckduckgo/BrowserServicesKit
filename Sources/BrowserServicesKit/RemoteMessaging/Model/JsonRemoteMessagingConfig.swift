@@ -51,7 +51,7 @@ public enum RemoteMessageResponse {
     struct JsonMessageAction: Decodable {
         let type: String
         let value: String
-        let additionalValues: [String]?
+        let additionalParameters: [String: String]?
     }
 
     struct JsonContentTranslation: Decodable {
@@ -87,6 +87,7 @@ public enum RemoteMessageResponse {
         case criticalUpdate = "CriticalUpdate"
         case appUpdate = "AppUpdate"
         case macComputer = "MacComputer"
+        case newForMacAndWindows = "NewForMacAndWindows"
     }
 
     public enum StatusError: Error {
