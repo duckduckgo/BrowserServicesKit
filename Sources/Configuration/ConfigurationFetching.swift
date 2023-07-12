@@ -80,7 +80,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     - Throws:
       An error of type Error is thrown if the configuration fails to fetch or validate.
     */
-    public func fetch(_ configuration: Configuration, honoringEtag shouldHonorEtag: Bool = false) async throws {
+    public func fetch(_ configuration: Configuration, honoringEtag shouldHonorEtag: Bool = true) async throws {
         let fetchResult = try await fetch(from: configuration.url, withEtag: shouldHonorEtag ? etag(for: configuration) : nil, requirements: .default)
         if let data = fetchResult.data {
             try validator.validate(data, for: configuration)
