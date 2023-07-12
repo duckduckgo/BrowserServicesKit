@@ -88,35 +88,62 @@ public final class LoginsProvider: DataProviding {
     // MARK: - Internal
 
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        var saveError: Error?
 
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         let clientTimestampMilliseconds = clientTimestamp.withMillisecondPrecision
+        var saveAttemptsLeft = Const.maxContextSaveRetries
 
-        try secureVault.inDatabaseTransaction { database in
+        while true {
+            do {
+                try secureVault.inDatabaseTransaction { database in
 
-            let responseHandler = try LoginsResponseHandler(
-                received: received,
-                clientTimestamp: clientTimestampMilliseconds,
-                secureVault: secureVault,
-                database: database,
-                crypter: crypter,
-                deduplicateEntities: isInitial)
+                    let responseHandler = try LoginsResponseHandler(
+                        received: received,
+                        clientTimestamp: clientTimestampMilliseconds,
+                        secureVault: secureVault,
+                        database: database,
+                        crypter: crypter,
+                        deduplicateEntities: isInitial)
 
-            let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
-                sent,
-                receivedUUIDs: Set(responseHandler.receivedByUUID.keys),
-                clientTimestamp: clientTimestampMilliseconds,
-                secureVault: secureVault,
-                in: database
-            )
+                    let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
+                        sent,
+                        receivedUUIDs: Set(responseHandler.receivedByUUID.keys),
+                        clientTimestamp: clientTimestampMilliseconds,
+                        secureVault: secureVault,
+                        in: database
+                    )
 
-            try responseHandler.processReceivedCredentials()
+                    try responseHandler.processReceivedCredentials()
 #if DEBUG
-            self.willSaveContextAfterApplyingSyncResponse()
+                    try self.willSaveContextAfterApplyingSyncResponse()
 #endif
 
-            let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.receivedByUUID.keys)
-            try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestampMilliseconds, secureVault: secureVault, in: database)
+                    let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.receivedByUUID.keys)
+                    try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestampMilliseconds, secureVault: secureVault, in: database)
+                }
+                break
+            } catch {
+                if case SecureVaultError.databaseError(let cause) = error, let databaseError = cause as? DatabaseError {
+                    switch databaseError {
+                    case .SQLITE_BUSY, .SQLITE_LOCKED:
+                        saveAttemptsLeft -= 1
+                        if saveAttemptsLeft == 0 {
+                            saveError = error
+                            break
+                        }
+                    default:
+                        saveError = error
+                        break
+                    }
+                } else {
+                    saveError = error
+                    break
+                }
+            }
+        }
+        if let saveError {
+            throw saveError
         }
 
         if let serverTimestamp {
@@ -171,10 +198,14 @@ public final class LoginsProvider: DataProviding {
     private let reloadLoginsAfterSync: () -> Void
     private let syncErrorSubject = PassthroughSubject<Error, Never>()
 
+    enum Const {
+        static let maxContextSaveRetries = 5
+    }
+
     // MARK: - Test support
 
 #if DEBUG
-    var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
+    var willSaveContextAfterApplyingSyncResponse: () throws -> Void = {}
 #endif
 
 }

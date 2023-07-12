@@ -151,8 +151,36 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         XCTAssertNil(credential.metadata.lastModified)
     }
 
-    func testWhenThereIsMergeConflictDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
-        throw XCTSkip()
+    func testWhenDatabaseIsLockedDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
+
+        let localDatabaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        let localSecureVaultFactory = TestSecureVaultFactory(databaseProvider: localDatabaseProvider)
+        let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
+        _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
+
+        let received: [Syncable] = [
+            .credentials(id: "1")
+        ]
+
+        var numberOfAttempts = 0
+        var didThrowError = false
+
+        provider.willSaveContextAfterApplyingSyncResponse = {
+            numberOfAttempts += 1
+            if !didThrowError {
+                didThrowError = true
+                throw DatabaseError(resultCode: .SQLITE_LOCKED)
+            }
+        }
+
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        XCTAssertEqual(numberOfAttempts, 2)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        let credential = try XCTUnwrap(syncableCredentials.first)
+        XCTAssertEqual(credential.account?.title, "1")
+        XCTAssertNil(credential.metadata.lastModified)
     }
 
     // MARK: - Regular Sync
@@ -233,8 +261,40 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         XCTAssertEqual(updatedCredential.rawCredentials?.password, credentials.password)
     }
 
+    func testWhenDatabaseIsLockedDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
 
-    func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
-        throw XCTSkip()
+        let localDatabaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        let localSecureVaultFactory = TestSecureVaultFactory(databaseProvider: localDatabaseProvider)
+        let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
+        _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeCredentialsMetadata("1", lastModified: Date(), in: database)
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let received: [Syncable] = [
+            .credentials(id: "1")
+        ]
+
+        var numberOfAttempts = 0
+        var didThrowError = false
+
+        provider.willSaveContextAfterApplyingSyncResponse = {
+            numberOfAttempts += 1
+            if !didThrowError {
+                didThrowError = true
+                throw DatabaseError(resultCode: .SQLITE_LOCKED)
+            }
+        }
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        XCTAssertEqual(numberOfAttempts, 2)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        let credential = try XCTUnwrap(syncableCredentials.first)
+        XCTAssertEqual(credential.account?.title, "1")
+        XCTAssertNil(credential.metadata.lastModified)
     }
 }
