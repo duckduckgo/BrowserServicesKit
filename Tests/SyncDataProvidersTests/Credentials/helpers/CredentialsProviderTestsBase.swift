@@ -120,7 +120,7 @@ extension SecureVaultModels.SyncableWebsiteCredentialInfo {
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
-            .orderByPrimaryKey()
+            .order(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid)
             .fetchAll(database)
     }
 }

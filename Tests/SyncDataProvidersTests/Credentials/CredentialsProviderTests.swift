@@ -98,10 +98,10 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testThatSentItemsAreProperlyCleanedUp() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("2", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("3", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("4", lastModified: Date(), in: database)
+            try self.secureVault.storeCredentialsMetadata("10", lastModified: Date(), in: database)
+            try self.secureVault.storeCredentialsMetadata("20", lastModified: Date(), in: database)
+            try self.secureVault.storeCredentialsMetadata("30", lastModified: Date(), in: database)
+            try self.secureVault.storeCredentialsMetadata("40", lastModified: Date(), in: database)
         }
 
         try secureVault.deleteWebsiteCredentialsFor(accountId: 2)

@@ -160,7 +160,10 @@ public final class LoginsProvider: DataProviding {
         let identifiers = sent.compactMap(\.uuid)
         var idsOfItemsToClearModifiedAt = Set<String>()
 
-        let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential.fetchAll(database, keys: identifiers)
+        let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential
+            .filter(identifiers.contains(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid))
+            .fetchAll(database)
+
         for metadata in metadataObjects {
             if let modifiedAt = metadata.lastModified, Int(modifiedAt.timeIntervalSince1970 * 1000) > Int(clientTimestamp.timeIntervalSince1970 * 1000) {
                 continue
