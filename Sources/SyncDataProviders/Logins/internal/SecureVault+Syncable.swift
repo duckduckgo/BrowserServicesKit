@@ -55,8 +55,10 @@ extension SecureVault {
         let key = try getEncryptionKey()
 
         if let password, let passwordData = password.data(using: .utf8) {
-            let encryptedPassword = try encrypt(passwordData, using: key)
-            return syncableCredentials.first(where: { $0.rawCredentials?.password == encryptedPassword })
+            return try syncableCredentials.first(where: { credentials in
+                let decryptedPassword = try credentials.rawCredentials?.password.flatMap { try self.decrypt($0, using: key) }
+                return decryptedPassword == passwordData
+            })
         }
         return syncableCredentials.first(where: { $0.rawCredentials?.password == nil })
     }
