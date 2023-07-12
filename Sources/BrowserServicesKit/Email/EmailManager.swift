@@ -489,6 +489,7 @@ private extension EmailManager {
         enum RequestParameters {
             static let token = "token"
             static let status = "active"
+            static let address = "address"
         }
     }
 
@@ -496,7 +497,6 @@ private extension EmailManager {
         let address: String
     }
 
-    // TODO: The API responds either true|false or 1|0 so we need to account for both scenarios
     struct EmailAliasStatusResponse: Decodable {
         let active: Bool
     }
@@ -612,12 +612,12 @@ private extension EmailManager {
         let data: Data
 
         do {
-            let url = aliasAPIURL.appendingPathComponent(alias)
+            let url = aliasAPIURL
             data = try await requestDelegate.emailManager(self,
                                                           requested: url,
                                                           method: Constants.RequestMethods.get,
                                                           headers: emailHeaders,
-                                                          parameters: [:],
+                                                          parameters: [Constants.RequestParameters.address: alias],
                                                           httpBody: nil,
                                                           timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
@@ -644,12 +644,12 @@ private extension EmailManager {
         }
 
         do {
-            let url = aliasAPIURL.appendingPathComponent(alias)
+            let url = aliasAPIURL
             let data = try await requestDelegate.emailManager(self,
                                                               requested: url,
                                                               method: Constants.RequestMethods.put,
                                                               headers: emailHeaders,
-                                                              parameters: [Constants.RequestParameters.status: "\(active)"],
+                                                              parameters: [Constants.RequestParameters.address: alias, Constants.RequestParameters.status: "\(active)"],
                                                               httpBody: nil,
                                                               timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
