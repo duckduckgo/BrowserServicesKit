@@ -847,6 +847,17 @@ extension DefaultDatabaseProvider {
             """, arguments: [UUID().uuidString, accountId])
         }
 
+        try database.dropIndexIfExists(Account.databaseTableName + "_unique")
+
+        // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
+        try database.create(index: Account.databaseTableName + "_domain_username",
+                            on: Account.databaseTableName,
+                            columns: [
+                                Account.Columns.domain.name,
+                                Account.Columns.username.name
+                            ],
+                            unique: false,
+                            ifNotExists: false)
     }
 
     // Refresh password comparison hashes
