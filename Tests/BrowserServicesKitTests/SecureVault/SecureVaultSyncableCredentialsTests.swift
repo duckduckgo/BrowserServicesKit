@@ -267,12 +267,6 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
     }
 }
 
-extension Date {
-    var withMillisecondPrecision: Date {
-        Date(timeIntervalSince1970: TimeInterval(Int(timeIntervalSince1970 * 1_000_000) / 1_000) / 1_000)
-    }
-}
-
 extension SecureVaultModels.SyncableWebsiteCredentialInfo {
 
     static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {

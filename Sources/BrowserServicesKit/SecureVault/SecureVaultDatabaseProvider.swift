@@ -535,9 +535,22 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             WHERE
                 \(SecureVaultSyncableColumns.objectId.name) = ?
 
-        """, arguments: [timestamp, objectId])
+        """, arguments: [timestamp?.withMillisecondPrecision, objectId])
     }
 
+}
+
+extension Date {
+    /**
+     * Rounds receiver to milliseconds.
+     *
+     * Because SQLite stores timestamps with millisecond precision, comparing against
+     * microsecond-precision Date type may produce unexpected results. Hence sync timestamp
+     * needs to be rounded to milliseconds.
+     */
+    public var withMillisecondPrecision: Date {
+        Date(timeIntervalSince1970: TimeInterval(Int(timeIntervalSince1970 * 1_000_000) / 1_000) / 1_000)
+    }
 }
 
 // MARK: - Database Migrations

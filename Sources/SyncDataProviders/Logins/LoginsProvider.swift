@@ -135,7 +135,7 @@ public final class LoginsProvider: DataProviding {
 
         let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential.fetchAll(database, keys: identifiers)
         for metadata in metadataObjects {
-            if let modifiedAt = metadata.lastModified, modifiedAt > clientTimestamp {
+            if let modifiedAt = metadata.lastModified, Int(modifiedAt.timeIntervalSince1970 * 1000) > Int(clientTimestamp.timeIntervalSince1970 * 1000) {
                 continue
             }
             let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadata.id)
@@ -177,17 +177,4 @@ public final class LoginsProvider: DataProviding {
     var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
 #endif
 
-}
-
-extension Date {
-    /**
-     * Rounds receiver to milliseconds.
-     *
-     * Because SQLite stores timestamps with millisecond precision, comparing against
-     * microsecond-precision Date type may produce unexpected results. Hence sync timestamp
-     * is rounded to milliseconds.
-     */
-    var withMillisecondPrecision: Date {
-        Date(timeIntervalSince1970: TimeInterval(Int(timeIntervalSince1970 * 1_000_000) / 1_000) / 1_000)
-    }
 }

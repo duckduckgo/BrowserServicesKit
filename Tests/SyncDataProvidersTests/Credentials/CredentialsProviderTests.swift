@@ -123,7 +123,7 @@ final class CredentialsProviderTests: XCTestCase {
 
         syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertEqual(syncableCredentials.count, 4)
-        XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified! > date })
+        XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified! >= date })
     }
 
     func testThatFetchChangedObjectsReturnsAllObjectsWithNonNilModifiedAt() async throws {
@@ -228,7 +228,7 @@ final class CredentialsProviderTests: XCTestCase {
     func testWhenObjectDeleteIsSentAndTheSameObjectUpdateIsReceivedThenObjectIsNotDeleted() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: Date().withMillisecondPrecision, in: database)
+            try self.secureVault.storeCredentialsMetadata("1", in: database)
         }
 
         try secureVault.deleteWebsiteCredentialsFor(accountId: 1)
@@ -238,11 +238,13 @@ final class CredentialsProviderTests: XCTestCase {
         ]
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().withMillisecondPrecision, serverTimestamp: "1234", crypter: crypter)
 
         let syncableCredentials = try fetchAllSyncableCredentials()
+        let updatedCredential = try XCTUnwrap(syncableCredentials.first)
         XCTAssertEqual(syncableCredentials.count, 1)
-        XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified == nil })
+        XCTAssertNil(updatedCredential.metadata.lastModified)
+        XCTAssertEqual(updatedCredential.account?.username, "2")
     }
 
     func testWhenObjectWasSentAndThenDeletedLocallyAndAnUpdateIsReceivedThenTheObjectIsDeleted() async throws {
@@ -269,178 +271,40 @@ final class CredentialsProviderTests: XCTestCase {
         XCTAssertNil(deletedCredential.metadata.objectId)
     }
 
-    //        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-    //
-    //        let modifiedAt = Date()
-    //        let bookmarkTree = BookmarkTree {
-    //            Bookmark("test", id: "1")
-    //        }
-    //
-    //        let received: [Syncable] = [
-    //            .rootFolder(children: ["1"]),
-    //            .bookmark("test2", id: "1")
-    //        ]
-    //
-    //        context.performAndWait {
-    //            BookmarkUtils.prepareFoldersStructure(in: context)
-    //            bookmarkTree.createEntities(in: context)
-    //            try! context.save()
-    //        }
-    //
-    //        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-    //
-    //        context.performAndWait {
-    //            let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
-    //            bookmark.markPendingDeletion()
-    //            try! context.save()
-    //        }
-    //
-    //        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
-    //
-    //        context.performAndWait {
-    //            context.refreshAllObjects()
-    //            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-    //            XCTAssertTrue(rootFolder.childrenArray.isEmpty)
-    //        }
-    //    }
-    //
-    //    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
-    //        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-    //
-    //        let bookmarkTree = BookmarkTree {
-    //            Bookmark("test", id: "1")
-    //        }
-    //
-    //        let received: [Syncable] = [
-    //            .rootFolder(children: ["1"]),
-    //            .bookmark("test2", id: "1")
-    //        ]
-    //
-    //        context.performAndWait {
-    //            BookmarkUtils.prepareFoldersStructure(in: context)
-    //            bookmarkTree.createEntities(in: context)
-    //            try! context.save()
-    //        }
-    //
-    //        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-    //
-    //        var bookmarkModificationDate: Date?
-    //
-    //        context.performAndWait {
-    //            let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
-    //            bookmark.title = "test3"
-    //            try! context.save()
-    //            bookmarkModificationDate = bookmark.modifiedAt
-    //        }
-    //
-    //        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
-    //
-    //        context.performAndWait {
-    //            context.refreshAllObjects()
-    //            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-    //            assertEquivalent(rootFolder, BookmarkTree {
-    //                Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
-    //            })
-    //        }
-    //    }
-    //
-    //    func testWhenBookmarkIsMovedBetweenFoldersRemotelyAndUpdatedLocallyAfterStartingSyncThenItsModifiedAtIsNotCleared() async throws {
-    //        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-    //
-    //        let bookmarkTree = BookmarkTree {
-    //            Folder(id: "1") {
-    //                Bookmark("test", id: "3")
-    //            }
-    //            Folder(id: "2")
-    //        }
-    //
-    //        let received: [Syncable] = [
-    //            .folder(id: "1", children: []),
-    //            .folder(id: "2", children: ["3"])
-    //        ]
-    //
-    //        context.performAndWait {
-    //            BookmarkUtils.prepareFoldersStructure(in: context)
-    //            bookmarkTree.createEntities(in: context)
-    //            try! context.save()
-    //
-    //            // clear modifiedAt for all entities
-    //            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "2", "3"], in: context)
-    //            bookmarks.forEach { $0.modifiedAt = nil }
-    //            try! context.save()
-    //        }
-    //
-    //        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-    //
-    //        var bookmarkModificationDate: Date!
-    //
-    //        context.performAndWait {
-    //            let bookmark = BookmarkEntity.fetchBookmarks(with: ["3"], in: context).first!
-    //            bookmark.title = "test3"
-    //            try! context.save()
-    //            bookmarkModificationDate = bookmark.modifiedAt
-    //        }
-    //
-    //        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: bookmarkModificationDate.addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
-    //
-    //        context.performAndWait {
-    //            context.refreshAllObjects()
-    //            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-    //            assertEquivalent(rootFolder, BookmarkTree {
-    //                Folder(id: "1")
-    //                Folder(id: "2") {
-    //                    // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
-    //                    // because it's updated after sync context save (bookmark object is not included in synced data
-    //                    // but it gets updated as a side effect of sync – an update to parent).
-    //                    Bookmark("test3", id: "3", url: "test", modifiedAtConstraint: .greaterThan(bookmarkModificationDate))
-    //                }
-    //            })
-    //        }
-    //    }
-    //
-    //    func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
-    //        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-    //
-    //        let bookmarkTree = BookmarkTree {
-    //            Bookmark("test", id: "1")
-    //        }
-    //
-    //        let received: [Syncable] = [
-    //            .rootFolder(children: ["1"]),
-    //            .bookmark("test2", id: "1")
-    //        ]
-    //
-    //        context.performAndWait {
-    //            BookmarkUtils.prepareFoldersStructure(in: context)
-    //            bookmarkTree.createEntities(in: context)
-    //            try! context.save()
-    //        }
-    //
-    //        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-    //
-    //        var bookmarkModificationDate: Date?
-    //        provider.willSaveContextAfterApplyingSyncResponse = {
-    //            if bookmarkModificationDate != nil {
-    //                return
-    //            }
-    //            context.performAndWait {
-    //                let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
-    //                bookmark.title = "test3"
-    //                try! context.save()
-    //                bookmarkModificationDate = bookmark.modifiedAt
-    //            }
-    //        }
-    //        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
-    //
-    //        context.performAndWait {
-    //            context.refreshAllObjects()
-    //            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-    //            assertEquivalent(rootFolder, BookmarkTree {
-    //                Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
-    //            })
-    //        }
-    //    }
+    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
 
+        let modifiedAt = Date().withMillisecondPrecision
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeCredentialsMetadata("1", lastModified: modifiedAt, in: database)
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let received: [Syncable] = [
+            .credentials(id: "1", username: "2")
+        ]
+
+        var credentials = try XCTUnwrap(try secureVault.websiteCredentialsFor(accountId: 1))
+        credentials.password = "updated".data(using: .utf8)
+        try secureVault.storeWebsiteCredentials(credentials)
+        var updateTimestamp: Date?
+        try secureVault.inDatabaseTransaction({ database in
+            updateTimestamp = try self.secureVault.websiteCredentialsMetadataForAccountId(1, in: database)?.metadata.lastModified
+        })
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        let updatedCredential = try XCTUnwrap(syncableCredentials.first)
+        XCTAssertEqual(updatedCredential.metadata.lastModified, updateTimestamp)
+        XCTAssertEqual(updatedCredential.account?.username, "1")
+        XCTAssertEqual(updatedCredential.rawCredentials?.password, credentials.password)
+    }
+
+
+    func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
+        throw XCTSkip()
+    }
 
     // MARK: - Helpers
 
@@ -492,7 +356,7 @@ extension SecureVault {
         let passwordData = password.data(using: .utf8)
         let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: id, credentials: credentials, lastModified: lastModified)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: id, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
         if let database {
             try storeWebsiteCredentialsMetadata(metadata, in: database)
         } else {
