@@ -65,7 +65,6 @@ protocol SecureVaultDatabaseProvider {
     func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo]
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo?
-    func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount]
 
 }
 
@@ -313,7 +312,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         typealias Account = SecureVaultModels.WebsiteAccount
 
         let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredential
-            .filter(keys: syncIds)
+            .filter(syncIds.contains(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid))
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
@@ -814,10 +813,10 @@ extension DefaultDatabaseProvider {
         typealias AccountSyncMetadata = SecureVaultModels.SyncableWebsiteCredential
 
         try database.create(table: AccountSyncMetadata.databaseTableName) {
-            $0.column(AccountSyncMetadata.Columns.id.name, .text)
+            $0.autoIncrementedPrimaryKey(AccountSyncMetadata.Columns.id.name)
+            $0.column(AccountSyncMetadata.Columns.uuid.name, .text)
             $0.column(AccountSyncMetadata.Columns.lastModified.name, .date)
             $0.column(AccountSyncMetadata.Columns.objectId.name, .integer)
-            $0.primaryKey([AccountSyncMetadata.Columns.id.name])
             $0.foreignKey(
                 [AccountSyncMetadata.Columns.objectId.name],
                 references: SecureVaultModels.WebsiteAccount.databaseTableName,
@@ -826,7 +825,14 @@ extension DefaultDatabaseProvider {
         }
 
         try database.create(
-            index: AccountSyncMetadata.databaseTableName + "_objectId",
+            index: [AccountSyncMetadata.databaseTableName, AccountSyncMetadata.Columns.uuid.name].joined(separator: "_"),
+            on: AccountSyncMetadata.databaseTableName,
+            columns: [AccountSyncMetadata.Columns.objectId.name],
+            ifNotExists: false
+        )
+
+        try database.create(
+            index: [AccountSyncMetadata.databaseTableName, AccountSyncMetadata.Columns.objectId.name].joined(separator: "_"),
             on: AccountSyncMetadata.databaseTableName,
             columns: [AccountSyncMetadata.Columns.objectId.name],
             ifNotExists: false
@@ -1037,7 +1043,7 @@ extension SecureVaultModels {
 
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
-    enum Columns: String, ColumnExpression {
+    public enum Columns: String, ColumnExpression {
         case id, title, username, domain, signature, notes, created, lastUpdated
     }
 

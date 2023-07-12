@@ -59,7 +59,7 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
         let syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertEqual(syncableCredentials.count, 1)
-        XCTAssertEqual(syncableCredentials.map(\.metadata.id), ["2"])
+        XCTAssertEqual(syncableCredentials.map(\.metadata.uuid), ["2"])
         XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
     }
 
@@ -76,7 +76,7 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
         let syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertEqual(syncableCredentials.count, 1)
-        XCTAssertEqual(syncableCredentials.map(\.metadata.id), ["1"])
+        XCTAssertEqual(syncableCredentials.map(\.metadata.uuid), ["1"])
         XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
     }
 
@@ -96,7 +96,7 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
         let syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertEqual(syncableCredentials.count, 2)
-        XCTAssertEqual(syncableCredentials.map(\.metadata.id), ["2", "3"])
+        XCTAssertEqual(syncableCredentials.map(\.metadata.uuid), ["2", "3"])
         XCTAssertEqual(syncableCredentials.map(\.account?.username), ["2", "4"])
         XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
     }

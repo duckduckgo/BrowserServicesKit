@@ -42,7 +42,7 @@ extension Syncable {
     init(metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
-        payload["id"] = metadata.metadata.id
+        payload["id"] = metadata.metadata.uuid
 
         guard let credential = metadata.credentials else {
             payload["deleted"] = ""
@@ -50,7 +50,7 @@ extension Syncable {
             return
         }
 
-        print("Syncable init \(metadata.metadata.id)")
+        print("Syncable init \(metadata.metadata.uuid)")
         if let title = credential.account.title {
             payload["title"] = try encrypt(title)
         }

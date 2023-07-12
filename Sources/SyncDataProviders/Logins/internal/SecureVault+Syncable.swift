@@ -23,7 +23,7 @@ import GRDB
 
 extension SecureVault {
 
-    func deduplicatedCredential(
+    func deduplicatedCredentials(
         in database: Database,
         with syncable: Syncable,
         decryptedUsing decrypt: (String) throws -> String
@@ -33,16 +33,32 @@ extension SecureVault {
             return nil
         }
 
-        let domain = try decrypt(syncable.encryptedDomain ?? "")
-        let username = try decrypt(syncable.encryptedUsername ?? "")
+        let domain = try syncable.encryptedDomain.flatMap(decrypt)
+        let username = try syncable.encryptedUsername.flatMap(decrypt)
+        let password = try syncable.encryptedPassword.flatMap(decrypt)
+        let notes = try syncable.encryptedNotes.flatMap(decrypt)
 
-        let accountIdString = try accountsForDomain(domain, in: database).first(where: { $0.username == username })?.id
+        let accountAlias = TableAlias()
+        let credentialsAlias = TableAlias()
+        let conditions = [
+            accountAlias[SecureVaultModels.WebsiteAccount.Columns.domain] == domain,
+            accountAlias[SecureVaultModels.WebsiteAccount.Columns.username] == username,
+            accountAlias[SecureVaultModels.WebsiteAccount.Columns.notes] == notes
+        ]
+        let syncableCredentials = try SecureVaultModels.SyncableWebsiteCredential
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.account.aliased(accountAlias))
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials.aliased(credentialsAlias))
+            .filter(conditions.joined(operator: .add))
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
+            .fetchAll(database)
 
-        guard let accountIdString, let accountId = Int64(accountIdString) else {
-            return nil
+        let key = try getEncryptionKey()
+
+        if let password, let passwordData = password.data(using: .utf8) {
+            let encryptedPassword = try encrypt(passwordData, using: key)
+            return syncableCredentials.first(where: { $0.rawCredentials?.password == encryptedPassword })
         }
-
-        return try websiteCredentialsMetadataForAccountId(accountId, in: database)
+        return syncableCredentials.first(where: { $0.rawCredentials?.password == nil })
     }
 
 }

@@ -30,6 +30,10 @@ import GRDB
 /// Data always goes in and comes out unencrypted.
 public protocol SecureVault {
 
+    func getEncryptionKey() throws -> Data
+    func encrypt(_ data: Data, using key: Data) throws -> Data
+    func decrypt(_ data: Data, using key: Data) throws -> Data
+
     func authWith(password: Data) throws -> SecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
@@ -70,7 +74,6 @@ public protocol SecureVault {
 
     func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo]
     func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo?
-    func accountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount]
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -101,6 +104,19 @@ class DefaultSecureVault: SecureVault {
     }
 
     // MARK: - public interface (protocol candidates)
+
+    func getEncryptionKey() throws -> Data {
+        let password = try passwordInUse()
+        return try l2KeyFrom(password: password)
+    }
+
+    func encrypt(_ data: Data, using key: Data) throws -> Data {
+        try providers.crypto.encrypt(data, withKey: key)
+    }
+
+    func decrypt(_ data: Data, using key: Data) throws -> Data {
+        try providers.crypto.decrypt(data, withKey: key)
+    }
 
     /// Sets the password which is retained for the given amount of time. Call this is you receive a `authRequired` error.
     public func authWith(password: Data) throws -> SecureVault {
@@ -185,22 +201,6 @@ class DefaultSecureVault: SecureVault {
             var parts = domain.components(separatedBy: ".")
             while !parts.isEmpty {
                 let accounts = try self.providers.database.websiteAccountsForDomain(parts.joined(separator: "."))
-                if !accounts.isEmpty {
-                    return accounts
-                }
-                parts.removeFirst()
-            }
-            return []
-        } catch {
-            throw SecureVaultError.databaseError(cause: error)
-        }
-    }
-
-    public func accountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount] {
-        do {
-            var parts = domain.components(separatedBy: ".")
-            while !parts.isEmpty {
-                let accounts = try self.providers.database.websiteAccountsForDomain(parts.joined(separator: "."), in: database)
                 if !accounts.isEmpty {
                     return accounts
                 }

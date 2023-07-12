@@ -22,13 +22,13 @@ import Foundation
 import GRDB
 
 public protocol SecureVaultSyncable {
-    var id: String { get set }
+    var uuid: String { get set }
     var objectId: Int64? { get }
     var lastModified: Date? { get set }
 }
 
 public enum SecureVaultSyncableColumns: String, ColumnExpression {
-    case id, objectId, lastModified
+    case id, uuid, objectId, lastModified
 }
 
 extension SecureVaultModels {
@@ -42,24 +42,27 @@ extension SecureVaultModels {
         public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
         public static let rawCredentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "rawCredentials", using: credentialsForeignKey)
 
-        public var id: String
+        public var id: Int64?
+        public var uuid: String
         public var objectId: Int64?
         public var lastModified: Date?
 
         public init(row: Row) throws {
             id = row[Columns.id]
+            uuid = row[Columns.uuid]
             objectId = row[Columns.objectId]
             lastModified = row[Columns.lastModified]
         }
 
         public func encode(to container: inout PersistenceContainer) {
             container[Columns.id] = id
+            container[Columns.uuid] = uuid
             container[Columns.objectId] = objectId
             container[Columns.lastModified] = lastModified
         }
 
-        public init(id: String = UUID().uuidString, objectId: Int64?, lastModified: Date? = Date()) {
-            self.id = id
+        public init(uuid: String = UUID().uuidString, objectId: Int64?, lastModified: Date? = Date()) {
+            self.uuid = uuid
             self.objectId = objectId
             self.lastModified = lastModified
         }
@@ -80,10 +83,10 @@ extension SecureVaultModels {
 
         public var credentials: WebsiteCredentials? {
             get {
-                guard let account, let password = rawCredentials?.password else {
+                guard let account else {
                     return nil
                 }
-                return .init(account: account, password: password)
+                return .init(account: account, password: rawCredentials?.password)
             }
             set {
                 rawCredentials = newValue.flatMap { RawWebsiteCredentials(credentials: $0) }
@@ -91,9 +94,8 @@ extension SecureVaultModels {
             }
         }
 
-        public init(id: String = UUID().uuidString, credentials: WebsiteCredentials?, lastModified: Date? = Date()) {
-            metadata = .init(id: id, objectId: credentials?.account.id.flatMap(Int64.init), lastModified: lastModified)
-            account = credentials?.account
+        public init(uuid: String = UUID().uuidString, credentials: WebsiteCredentials?, lastModified: Date? = Date()) {
+            metadata = .init(uuid: uuid, objectId: credentials?.account.id.flatMap(Int64.init), lastModified: lastModified)
             self.credentials = credentials
         }
     }

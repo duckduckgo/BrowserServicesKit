@@ -48,14 +48,13 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         var syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified == nil })
 
-        let date = Date().withMillisecondPrecision
         try provider.prepareForFirstSync()
 
         XCTAssertNil(provider.lastSyncTimestamp)
 
         syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertEqual(syncableCredentials.count, 4)
-        XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified! >= date })
+        XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified != nil })
     }
 
     func testThatFetchChangedObjectsReturnsAllObjectsWithNonNilModifiedAt() async throws {
@@ -141,7 +140,24 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         }
 
         let received: [Syncable] = [
-            .credentials(id: "1")
+            .credentials("1", id: "2", domain: "1", username: "1", password: "1", notes: "1")
+        ]
+
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        let credential = try XCTUnwrap(syncableCredentials.first)
+        XCTAssertNil(credential.metadata.lastModified)
+    }
+
+    func testThatInitialSyncClearsModifiedAtFromDeduplicatedCredentialWithAllFieldsNil() async throws {
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeCredentialsMetadata("1", nullifyOtherFields: true, lastModified: Date().withMillisecondPrecision, in: database)
+        }
+
+        let received: [Syncable] = [
+            .credentials(id: "2", nullifyOtherFields: true)
         ]
 
         try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)

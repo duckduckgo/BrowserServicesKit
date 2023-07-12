@@ -134,25 +134,28 @@ extension SecureVault {
     }
 
     func storeCredentialsMetadata(
-        _ id: String = UUID().uuidString,
+        _ uuid: String = UUID().uuidString,
         title: String? = nil,
         domain: String? = nil,
         username: String? = nil,
         password: String? = nil,
         notes: String? = nil,
+        nullifyOtherFields: Bool = false,
         lastModified: Date? = nil,
         in database: Database? = nil
     ) throws {
-        let title = title ?? id
-        let domain = domain ?? id
-        let username = username ?? id
-        let password = password ?? id
-        let notes = notes ?? id
+        let defaultValue: String? = (nullifyOtherFields ? nil : uuid)
 
-        let passwordData = password.data(using: .utf8)
+        let title = title ?? defaultValue
+        let domain = domain ?? defaultValue
+        let username = username ?? defaultValue
+        let password = password ?? defaultValue
+        let notes = notes ?? defaultValue
+
+        let passwordData = password.flatMap { $0.data(using: .utf8) }
         let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: id, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
         if let database {
             try storeWebsiteCredentialsMetadata(metadata, in: database)
         } else {

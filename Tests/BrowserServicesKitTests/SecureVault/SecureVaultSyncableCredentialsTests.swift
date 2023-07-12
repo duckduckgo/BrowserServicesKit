@@ -52,7 +52,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
     func testWhenMetadataAreInsertedThenObjectIdIsPopulated() throws {
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: UUID().uuidString, credentials: credentials, lastModified: nil)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: UUID().uuidString, credentials: credentials, lastModified: nil)
 
         try provider.inTransaction { database in
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
@@ -70,7 +70,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
     func testWhenMetadataAreInsertedThenNilLastModifiedIsHonored() throws {
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: UUID().uuidString, credentials: credentials, lastModified: nil)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: UUID().uuidString, credentials: credentials, lastModified: nil)
 
         try provider.inTransaction { database in
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
@@ -88,7 +88,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         let timestamp = Date().withMillisecondPrecision
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: UUID().uuidString, credentials: credentials, lastModified: timestamp)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: UUID().uuidString, credentials: credentials, lastModified: timestamp)
 
         try provider.inTransaction { database in
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
@@ -106,7 +106,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         let account = SecureVaultModels.WebsiteAccount(id: "2", username: "brindy", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         let timestamp = Date().withMillisecondPrecision
-        var metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: UUID().uuidString, credentials: credentials, lastModified: timestamp)
+        var metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: UUID().uuidString, credentials: credentials, lastModified: timestamp)
 
         try provider.inTransaction { database in
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
@@ -130,7 +130,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
     func testWhenMetadataAreDeletedThenAccountAndCredentialsAreDeleted() throws {
         let account = SecureVaultModels.WebsiteAccount(id: "2", username: "brindy", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
-        var metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(id: UUID().uuidString, credentials: credentials, lastModified: nil)
+        var metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: UUID().uuidString, credentials: credentials, lastModified: nil)
 
         try provider.inTransaction { database in
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)

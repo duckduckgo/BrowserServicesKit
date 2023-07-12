@@ -165,11 +165,11 @@ public final class LoginsProvider: DataProviding {
             if let modifiedAt = metadata.lastModified, Int(modifiedAt.timeIntervalSince1970 * 1000) > Int(clientTimestamp.timeIntervalSince1970 * 1000) {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadata.id)
+            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadata.uuid)
             if metadata.objectId == nil, !isLocalChangeRejectedBySync {
                 try metadata.delete(database)
             } else {
-                idsOfItemsToClearModifiedAt.insert(metadata.id)
+                idsOfItemsToClearModifiedAt.insert(metadata.uuid)
             }
         }
 
@@ -179,7 +179,7 @@ public final class LoginsProvider: DataProviding {
     private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws {
 
         let request = SecureVaultModels.SyncableWebsiteCredential
-            .filter(keys: uuids)
+            .filter(uuids.contains(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid))
             .filter(SecureVaultModels.SyncableWebsiteCredential.Columns.lastModified < clientTimestamp)
 
         let metadataObjects = try SecureVaultModels.SyncableWebsiteCredential.fetchAll(database, request)

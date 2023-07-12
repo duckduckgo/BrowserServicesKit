@@ -61,7 +61,7 @@ final class LoginsResponseHandler {
         self.allReceivedIDs = allUUIDs
         self.receivedByUUID = syncablesByUUID
 
-        credentialsByUUID = try secureVault.websiteCredentialsMetadataForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.metadata.id] = $1 })
+        credentialsByUUID = try secureVault.websiteCredentialsMetadataForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.metadata.uuid] = $1 })
     }
 
     func processReceivedCredentials() throws {
@@ -81,10 +81,11 @@ final class LoginsResponseHandler {
             throw SyncError.accountAlreadyExists // todo
         }
 
-        if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredential(in: database, with: syncable, decryptedUsing: decrypt) {
+        if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredentials(in: database, with: syncable, decryptedUsing: decrypt) {
 
-            let oldUUID = deduplicatedEntity.metadata.id
-            deduplicatedEntity.metadata.id = syncableUUID
+            let oldUUID = deduplicatedEntity.metadata.uuid
+            deduplicatedEntity.metadata.uuid = syncableUUID
+            try secureVault.storeWebsiteCredentialsMetadata(deduplicatedEntity, in: database)
 
             credentialsByUUID.removeValue(forKey: oldUUID)
             credentialsByUUID[syncableUUID] = deduplicatedEntity
@@ -119,7 +120,7 @@ final class LoginsResponseHandler {
 extension SecureVaultModels.SyncableWebsiteCredentialInfo {
 
     init(syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
-        guard let id = syncable.uuid else {
+        guard let uuid = syncable.uuid else {
             throw SyncError.accountAlreadyExists
         }
 
@@ -131,7 +132,7 @@ extension SecureVaultModels.SyncableWebsiteCredentialInfo {
 
         let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password?.data(using: .utf8))
-        self.init(id: id, credentials: credentials, lastModified: nil)
+        self.init(uuid: uuid, credentials: credentials, lastModified: nil)
     }
 
     mutating func update(with syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {

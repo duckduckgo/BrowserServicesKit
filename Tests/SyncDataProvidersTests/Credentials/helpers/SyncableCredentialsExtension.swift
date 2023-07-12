@@ -29,17 +29,20 @@ extension Syncable {
         username: String? = nil,
         password: String? = nil,
         notes: String? = nil,
+        nullifyOtherFields: Bool = false,
         lastModified: String? = nil,
         isDeleted: Bool = false
     ) -> Syncable {
 
+        let defaultValue: Any = (nullifyOtherFields ? nil : id) as Any
+
         var json: [String: Any] = [
             "id": id,
-            "title": title ?? id,
-            "domain": domain ?? id,
-            "username": username ?? id,
-            "password": password ?? id,
-            "notes": notes ?? id,
+            "title": title ?? defaultValue,
+            "domain": domain ?? defaultValue,
+            "username": username ?? defaultValue,
+            "password": password ?? defaultValue,
+            "notes": notes ?? defaultValue,
             "client_last_modified": "1234"
         ]
         if isDeleted {
