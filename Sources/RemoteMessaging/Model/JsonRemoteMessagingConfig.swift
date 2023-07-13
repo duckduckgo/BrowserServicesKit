@@ -42,6 +42,8 @@ public enum RemoteMessageResponse {
         let titleText: String
         let descriptionText: String
         let placeholder: String?
+        let actionText: String?
+        let action: JsonMessageAction?
         let primaryActionText: String?
         let primaryAction: JsonMessageAction?
         let secondaryActionText: String?
@@ -72,6 +74,7 @@ public enum RemoteMessageResponse {
         case medium
         case bigSingleAction = "big_single_action"
         case bigTwoAction = "big_two_action"
+        case promoSingleAction = "promo_single_action"
     }
 
     enum JsonActionType: String, CaseIterable {

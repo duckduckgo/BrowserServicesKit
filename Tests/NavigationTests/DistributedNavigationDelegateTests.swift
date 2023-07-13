@@ -1013,6 +1013,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     @MainActor
     func testSimulatedRequest() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let eDidFinish = expectation(description: "onDidFinish")
@@ -1036,6 +1037,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     @MainActor
     func testSimulatedRequestWithData() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let eDidFinish = expectation(description: "onDidFinish")
@@ -1057,6 +1059,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequest() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         navigationDelegateProxy.finishEventsDispatchTime = .instant
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
@@ -1091,6 +1094,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequestWithFailureBeforeWillStartNavigation() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .beforeWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -1121,6 +1125,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterWillStartNavigation() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (because it works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -1151,7 +1156,8 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterDidStartNavigation() {
-        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+       // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in

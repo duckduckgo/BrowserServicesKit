@@ -128,6 +128,16 @@ struct JsonToRemoteMessageModelMapper {
                                  primaryAction: primaryAction,
                                  secondaryActionText: secondaryActionText,
                                  secondaryAction: secondaryAction)
+        case .promoSingleAction:
+            guard let actionText = content.actionText,
+                  !actionText.isEmpty,
+                  let action = mapToAction(content.action)
+            else {
+                return nil
+            }
+
+            return .promoSingleAction(titleText: content.titleText, descriptionText: content.descriptionText, placeholder: mapToPlaceholder(content.placeholder), actionText: actionText, action: action)
+
         case .none:
             return nil
         }

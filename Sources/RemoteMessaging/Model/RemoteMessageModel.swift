@@ -77,6 +77,13 @@ public struct RemoteMessageModel: Equatable, Codable {
                                          primaryAction: primaryAction,
                                          secondaryActionText: translation.secondaryActionText ?? secondaryActionText,
                                          secondaryAction: secondaryAction)
+        case .promoSingleAction(let titleText, let descriptionText, let placeholder, let actionText, let action):
+            self.content = .promoSingleAction(titleText: translation.titleText ?? titleText,
+                                            descriptionText: translation.descriptionText ?? descriptionText,
+                                            placeholder: placeholder,
+                                            actionText: translation.primaryActionText ?? actionText,
+                                            action: action)
+            
         }
     }
 }
@@ -89,30 +96,8 @@ public enum RemoteMessageModelType: Codable, Equatable {
     case bigTwoAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder,
                       primaryActionText: String, primaryAction: RemoteAction, secondaryActionText: String,
                       secondaryAction: RemoteAction)
-
-    public static func == (lhs: RemoteMessageModelType, rhs: RemoteMessageModelType) -> Bool {
-        switch (lhs, rhs) {
-        case (.small(let lhsTitleText, let lhsDescriptionText), .small(let rhsTitleText, let rhsDescriptionText)):
-            return lhsTitleText == rhsTitleText && lhsDescriptionText == rhsDescriptionText
-        case (.medium(let lhsTitleText, let lhsDescriptionText, let lhsPlaceholder),
-              .medium(let rhsTitleText, let rhsDescriptionText, let rhsPlaceholder)):
-            return lhsTitleText == rhsTitleText && lhsDescriptionText == rhsDescriptionText && lhsPlaceholder == rhsPlaceholder
-        case (.bigSingleAction(let lhsTitleText, let lhsDescriptionText, let lhsPlaceholder, let lhsPrimaryActionText, let lhsPrimaryAction),
-              .bigSingleAction(let rhsTitleText, let rhsDescriptionText, let rhsPlaceholder, let rhsPrimaryActionText, let rhsPrimaryAction)):
-            return lhsTitleText == rhsTitleText && lhsDescriptionText == rhsDescriptionText && lhsPlaceholder == rhsPlaceholder &&
-                   lhsPrimaryActionText == rhsPrimaryActionText && lhsPrimaryAction == rhsPrimaryAction
-        case (.bigTwoAction(let lhsTitleText, let lhsDescriptionText, let lhsPlaceholder, let lhsPrimaryActionText, let lhsPrimaryAction,
-                            let lhsSecondaryActionText, let lhsSecondaryAction), .bigTwoAction(let rhsTitleText, let rhsDescriptionText,
-                                                                                               let rhsPlaceholder, let rhsPrimaryActionText,
-                                                                                               let rhsPrimaryAction, let rhsSecondaryActionText,
-                                                                                               let rhsSecondaryAction)):
-            return lhsTitleText == rhsTitleText && lhsDescriptionText == rhsDescriptionText && lhsPlaceholder == rhsPlaceholder &&
-                   lhsPrimaryActionText == rhsPrimaryActionText && lhsPrimaryAction == rhsPrimaryAction &&
-                   lhsSecondaryActionText == rhsSecondaryActionText && lhsSecondaryAction == rhsSecondaryAction
-        default:
-            return false
-        }
-    }
+    case promoSingleAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder,
+                           actionText: String, action: RemoteAction)
 }
 
 public enum RemoteAction: Codable, Equatable {
