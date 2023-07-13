@@ -89,6 +89,7 @@ public enum NetworkProtectionNotificationName: String {
     case showIssuesResolvedNotification = "com.duckduckgo.network-protection.NetworkProtectionNotification.showIssuesResolvedNotification"
     case showIssuesNotResolvedNotification = "com.duckduckgo.network-protection.NetworkProtectionNotification.showIssuesNotResolvedNotification"
     case showVPNSupersededNotification = "com.duckduckgo.network-protection.NetworkProtectionNotification.showVPNSupersededNotification"
+    case showTestNotification = "com.duckduckgo.network-protection.NetworkProtectionNotification.showTestNotification"
 
     // Server Selection
     case serverSelected = "com.duckduckgo.network-protection.NetworkProtectionNotification.serverSelected"
