@@ -24,7 +24,7 @@ import Foundation
 import GRDB
 
 final class LoginsResponseHandler {
-    let clientTimestamp: Date?
+    let clientTimestamp: Date
     let received: [Syncable]
     let secureVault: SecureVault
     let database: Database
@@ -37,7 +37,7 @@ final class LoginsResponseHandler {
 
     private let decrypt: (String) throws -> String
 
-    init(received: [Syncable], clientTimestamp: Date? = nil, secureVault: SecureVault, database: Database, crypter: Crypting, deduplicateEntities: Bool) throws {
+    init(received: [Syncable], clientTimestamp: Date, secureVault: SecureVault, database: Database, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
         self.received = received
         self.secureVault = secureVault
@@ -84,6 +84,7 @@ final class LoginsResponseHandler {
         if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredentials(in: database, with: syncable, decryptedUsing: decrypt) {
 
             let oldUUID = deduplicatedEntity.metadata.uuid
+            deduplicatedEntity.account?.title = try syncable.encryptedTitle.flatMap(decrypt)
             deduplicatedEntity.metadata.uuid = syncableUUID
             try secureVault.storeWebsiteCredentialsMetadata(deduplicatedEntity, in: database)
 
@@ -92,7 +93,7 @@ final class LoginsResponseHandler {
 
         } else if var existingEntity = credentialsByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
-                guard let clientTimestamp, let modifiedAt = existingEntity.metadata.lastModified else {
+                guard let modifiedAt = existingEntity.metadata.lastModified else {
                     return false
                 }
                 return modifiedAt > clientTimestamp

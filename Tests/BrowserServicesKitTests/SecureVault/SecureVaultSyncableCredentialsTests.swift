@@ -112,7 +112,9 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
         }
 
-        metadata.credentials = try provider.websiteCredentialsForAccountId(2)
+        metadata = try provider.db.read { database in
+            try XCTUnwrap(try self.provider.websiteCredentialsMetadataForAccountId(2, in: database))
+        }
         metadata.credentials?.account.username = "brindy2"
 
         try provider.inTransaction { database in
@@ -136,7 +138,9 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
             try self.provider.storeWebsiteCredentialsMetadata(metadata, in: database)
         }
 
-        metadata.credentials = try provider.websiteCredentialsForAccountId(2)
+        metadata = try provider.db.read { database in
+            try XCTUnwrap(try self.provider.websiteCredentialsMetadataForAccountId(2, in: database))
+        }
 
         try provider.inTransaction { database in
             try self.provider.deleteWebsiteCredentialsMetadata(metadata, in: database)
@@ -160,6 +164,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         var credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         credentials = try storeAndFetchCredentials(credentials)
         let createdTimestamp = try provider.modifiedWebsiteCredentialsMetadata().first!.metadata.lastModified!
+        Thread.sleep(forTimeInterval: 0.001)
 
         credentials.password = "password2".data(using: .utf8)
         credentials = try storeAndFetchCredentials(credentials)
@@ -173,6 +178,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         var credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         credentials = try storeAndFetchCredentials(credentials)
         let createdTimestamp = try provider.modifiedWebsiteCredentialsMetadata().first!.metadata.lastModified!
+        Thread.sleep(forTimeInterval: 0.001)
 
         credentials.account.username = "brindy2"
         credentials = try storeAndFetchCredentials(credentials)
@@ -188,6 +194,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         var credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         credentials = try storeAndFetchCredentials(credentials)
         let createdTimestamp = try provider.modifiedWebsiteCredentialsMetadata().first!.metadata.lastModified!
+        Thread.sleep(forTimeInterval: 0.001)
 
         credentials.account.domain = "example2.com"
         credentials = try storeAndFetchCredentials(credentials)
@@ -203,6 +210,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         var credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         credentials = try storeAndFetchCredentials(credentials)
         let createdTimestamp = try provider.modifiedWebsiteCredentialsMetadata().first!.metadata.lastModified!
+        Thread.sleep(forTimeInterval: 0.001)
 
         credentials.account.title = "brindy's account"
         credentials = try storeAndFetchCredentials(credentials)
@@ -218,6 +226,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         var credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
         credentials = try storeAndFetchCredentials(credentials)
         let createdTimestamp = try provider.modifiedWebsiteCredentialsMetadata().first!.metadata.lastModified!
+        Thread.sleep(forTimeInterval: 0.001)
 
         credentials.account.notes = "here's my example.com login information"
         credentials = try storeAndFetchCredentials(credentials)
@@ -234,6 +243,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         credentials = try storeAndFetchCredentials(credentials)
         let metadata = try provider.modifiedWebsiteCredentialsMetadata().first!
         let accountId = try XCTUnwrap(metadata.metadata.objectId)
+        Thread.sleep(forTimeInterval: 0.001)
 
         try provider.deleteWebsiteCredentialsForAccountId(accountId)
 

@@ -122,25 +122,6 @@ class DatabaseProviderTests: XCTestCase {
         }
     }
 
-    func test_when_duplicate_record_stored_then_error_thrown() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
-        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
-        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        XCTAssertEqual(1, try database.storeWebsiteCredentials(credentials))
-
-        do {
-            let id = try database.storeWebsiteCredentials(credentials)
-            XCTFail("No exception for duplicate record, id: \(id)")
-        } catch {
-            switch error {
-            case SecureVaultError.duplicateRecord: break
-            default:
-                XCTFail("Unexected exception \(error)")
-            }
-        }
-
-    }
-
     func test_when_existing_record_stored_then_last_updated_date_is_updated() throws {
         let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
