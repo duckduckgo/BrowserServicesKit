@@ -31,16 +31,14 @@ extension DefaultDatabaseProvider {
 
 class TestSecureVaultFactory: SecureVaultFactory {
 
-    var mockCryptoProvider = MockCryptoProvider()
+    var mockCryptoProvider = NoOpCryptoProvider()
     var mockKeystoreProvider = MockKeystoreProvider()
     var databaseProvider: DefaultDatabaseProvider
 
     init(databaseProvider: DefaultDatabaseProvider) {
         self.databaseProvider = databaseProvider
-        mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._l1Key = "l1".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encrypted".data(using: .utf8)
-        mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
         super.init()
     }
 
