@@ -19,6 +19,7 @@
 
 import XCTest
 @testable import BrowserServicesKit
+@testable import RemoteMessaging
 
 class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
@@ -26,7 +27,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenMessagesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertEqual(config.messages.count, 6)
+        XCTAssertEqual(config.messages.count, 7)
 
         XCTAssertEqual(config.messages[0], RemoteMessageModel(
                 id: "8274589c-8aeb-4322-a737-3852911569e3",
@@ -73,6 +74,14 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                                    primaryActionText: "Ok", primaryAction: .share(value: "https://duckduckgo.com/app",
                                                                                   title: "Share Title"),
                                    secondaryActionText: "Cancel", secondaryAction: .dismiss),
+            matchingRules: [],
+            exclusionRules: [])
+        )
+
+        XCTAssertEqual(config.messages[6], RemoteMessageModel(
+            id: "6E58D3DA-AB9D-47A4-87B7-B8AF830BFB5E",
+            content: .promoSingleAction(titleText: "Promo Title", descriptionText: "Promo Description", placeholder: .newForMacAndWindows,
+                                        actionText: "Promo Action", action: .dismiss),
             matchingRules: [],
             exclusionRules: [])
         )
