@@ -23,6 +23,7 @@ import GRDB
 protocol SecureVaultDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool
 
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
@@ -155,6 +156,16 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             return try SecureVaultModels.WebsiteAccount
                 .fetchAll($0)
         }
+    }
+
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+        let account = try db.read {
+            try SecureVaultModels.WebsiteAccount
+                .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain) &&
+                        SecureVaultModels.WebsiteAccount.Columns.username.like(username))
+                .fetchOne($0)
+        }
+        return account != nil
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {

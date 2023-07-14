@@ -39,6 +39,7 @@ public protocol SecureVault {
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
@@ -219,6 +220,18 @@ class DefaultSecureVault: SecureVault {
         }
         do {
             return try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
+        } catch {
+            throw SecureVaultError.databaseError(cause: error)
+        }
+    }
+
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        do {
+            return try self.providers.database.hasAccountFor(username: username, domain: domain)
         } catch {
             throw SecureVaultError.databaseError(cause: error)
         }
