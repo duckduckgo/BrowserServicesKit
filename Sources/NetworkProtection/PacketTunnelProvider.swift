@@ -312,21 +312,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let useSystemKeychain: Bool
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
-    private let appLauncher: AppLaunching?
+    private let onDemandController: OnDemandController?
 
     public init(notificationCenter: NetworkProtectionNotificationCenter,
                 notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 useSystemKeychain: Bool,
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
-                appLauncher: AppLaunching? = nil) {
+                onDemandController: OnDemandController? = nil) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
         self.notificationCenter = notificationCenter
         self.notificationsPresenter = notificationsPresenter
         self.useSystemKeychain = useSystemKeychain
         self.debugEvents = debugEvents
         self.providerEvents = providerEvents
-        self.appLauncher = appLauncher
+        self.onDemandController = onDemandController
         self.tunnelHealth = NetworkProtectionTunnelHealthStore(notificationCenter: notificationCenter)
         self.controllerErrorStore = NetworkProtectionTunnelErrorStore(notificationCenter: notificationCenter)
 
@@ -402,7 +402,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // To be reconsidered for the Kill Switch
                 if isOnDemand {
                     Task { [self] in
-                        await self?.appLauncher?.launchApp(withCommand: .stopVPN)
+                        await self?.onDemandController?.disableOnDemand()
                         completionHandler(error)
                     }
                     return
@@ -419,7 +419,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     // ON so that on-demand won't start the connection on its own.
                     completionHandler(nil)
 
-                    await self?.appLauncher?.launchApp(withCommand: .enableOnDemand)
+                    await self?.onDemandController?.disableOnDemand()
                     return
                 }
             }
@@ -511,7 +511,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     // we can‘t prevent a respawn with on-demand rule ON
                     // request the main app to reconfigure with on-demand OFF
 
-                    await self.appLauncher?.launchApp(withCommand: .stopVPN)
+                    await self.onDemandController?.disableOnDemand()
 
                 case .superceded:
                     self.notificationsPresenter.showSupersededNotification()
@@ -537,7 +537,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public override func cancelTunnelWithError(_ error: Error?) {
         // ensure on-demand rule is taken down on connection retry failure
         Task {
-            await self.appLauncher?.launchApp(withCommand: .stopVPN)
+            await onDemandController?.disableOnDemand()
 
             super.cancelTunnelWithError(error)
         }

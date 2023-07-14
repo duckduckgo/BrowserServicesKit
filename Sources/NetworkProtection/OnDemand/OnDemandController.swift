@@ -1,7 +1,7 @@
 //
-//  AppLaunching.swift
+//  OnDemandController.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,20 +16,18 @@
 //  limitations under the License.
 //
 
-// SPDX-License-Identifier: MIT
-// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
-
 import Foundation
 
-public enum AppLaunchCommand: Codable {
-    case justOpen
-    case shareFeedback
-    case showStatus
-    case startVPN
-    case stopVPN
-    case enableOnDemand
-}
+/// Convenience protocol to make it possible to implement on-demand controlling for each platform
+/// separately, and without that logic beind specified here.
+///
+public protocol OnDemandController {
 
-public protocol AppLaunching {
-    func launchApp(withCommand command: AppLaunchCommand) async
+    /// Enables on demand
+    ///
+    func enableOnDemand() async
+
+    /// Disables on demand
+    ///
+    func disableOnDemand() async
 }
