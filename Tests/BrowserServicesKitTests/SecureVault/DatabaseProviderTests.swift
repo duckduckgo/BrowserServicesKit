@@ -21,6 +21,7 @@ import Foundation
 import XCTest
 @testable import BrowserServicesKit
 import GRDB
+import SecureStorage
 
 // swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {

@@ -21,6 +21,7 @@ import Foundation
 import XCTest
 import CryptoKit
 @testable import BrowserServicesKit
+import SecureStorage
 
 class CryptoProviderTests: XCTestCase {
 

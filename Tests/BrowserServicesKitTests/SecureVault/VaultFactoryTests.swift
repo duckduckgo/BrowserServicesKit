@@ -17,6 +17,7 @@
 //
 
 import XCTest
+import SecureStorage
 @testable import BrowserServicesKit
 
 class VaultFactoryTests: XCTestCase {

@@ -18,6 +18,7 @@
 
 import XCTest
 import UserScript
+import SecureStorage
 @testable import BrowserServicesKit
 
 class SecureVaultManagerTests: XCTestCase {

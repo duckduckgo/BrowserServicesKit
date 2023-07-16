@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import SecureStorage
 @testable import BrowserServicesKit
 
 internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
@@ -125,6 +126,18 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
 internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
+    var passwordSalt: Data {
+        return Data()
+    }
+
+    var keychainServiceName: String {
+        return "service"
+    }
+
+    var keychainAccountName: String {
+        return "account"
+    }
+
     // swiftlint:disable identifier_name
     var _derivedKey: Data?
     var _decryptedData: Data?
@@ -182,6 +195,18 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 }
 
 internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+    
+    var passwordSalt: Data {
+        return Data()
+    }
+
+    var keychainServiceName: String {
+        return "service"
+    }
+
+    var keychainAccountName: String {
+        return "account"
+    }
 
     var hashingSalt: Data?
 
