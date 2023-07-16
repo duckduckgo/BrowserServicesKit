@@ -25,6 +25,10 @@ public protocol SecureVaultErrorReporting: AnyObject {
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
 public class SecureVaultFactory {
 
+    public enum Constants {
+        public static let defaultAuthExpiration: TimeInterval = 60 * 60 * 24 * 72
+    }
+
     public static let `default` = SecureVaultFactory()
 
     private var lock = NSLock()
@@ -46,7 +50,7 @@ public class SecureVaultFactory {
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
     public func makeVault(errorReporter: SecureVaultErrorReporting?,
-                          authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> SecureVault {
+                          authExpiration: TimeInterval = Constants.defaultAuthExpiration) throws -> SecureVault {
 
         if let vault = self.vault, authExpiration == vault.authExpiry {
             return vault
