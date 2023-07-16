@@ -36,7 +36,7 @@ class VaultFactoryTests: XCTestCase {
             return mockKeystoreProvider
         }
 
-        override func makeDatabaseProvider(key: Data) throws -> SecureVaultDatabaseProvider {
+        override func makeDatabaseProvider(key: Data) throws -> SecureStorageDatabaseProvider {
             return mockDatabaseProvider
         }
 

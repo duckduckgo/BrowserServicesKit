@@ -21,7 +21,7 @@ import Foundation
 import GRDB
 import SecureStorage
 
-protocol SecureVaultDatabaseProvider {
+protocol SecureVaultDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
 

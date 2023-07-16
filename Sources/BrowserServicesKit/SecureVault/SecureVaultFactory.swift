@@ -42,7 +42,7 @@ public class SecureVaultFactory {
     /// Returns an initialised SecureVault instance that respects the user password for the specified amount of time.
     ///
     /// After this time has expired, the SecureVault will return errors for accessing L2 and above data. The default
-    /// expiry is 72 hours.  This can be overriden so that the user can choose to extend the length between
+    /// expiry is 72 hours.  This can be overridden so that the user can choose to extend the length between
     /// password prompts.
     ///
     /// The first time this is ever called the following is performed:
