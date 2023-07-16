@@ -19,20 +19,6 @@
 import Foundation
 import SecureStorage
 
-protocol SecureVaultKeyStoreProvider {
-
-    func storeGeneratedPassword(_ password: Data) throws
-    func generatedPassword() throws -> Data?
-    func clearGeneratedPassword() throws
-
-    func storeL1Key(_ data: Data) throws
-    func l1Key() throws -> Data?
-
-    func storeEncryptedL2Key(_ data: Data) throws
-    func encryptedL2Key() throws -> Data?
-
-}
-
 final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
 
     struct Constants {
@@ -50,36 +36,24 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
 
     }
 
-    func generatedPassword() throws -> Data? {
-        return try readData(named: .generatedPassword)
+    var keychainServiceName: String {
+        return Constants.defaultServiceName
     }
 
-    func clearGeneratedPassword() throws {
-        try deleteEntry(named: .generatedPassword)
+    var generatedPasswordEntryName: String {
+        return EntryName.generatedPassword.rawValue
     }
 
-    func storeGeneratedPassword(_ password: Data) throws {
-        try writeData(password, named: .generatedPassword)
+    var l1KeyEntryName: String {
+        return EntryName.l1Key.rawValue
     }
 
-    func storeL1Key(_ data: Data) throws {
-        try writeData(data, named: .l1Key)
+    var l2KeyEntryName: String {
+        return EntryName.l2Key.rawValue
     }
 
-    func storeEncryptedL2Key(_ data: Data) throws {
-        try writeData(data, named: .l2Key)
-    }
-
-    func l1Key() throws -> Data? {
-        return try readData(named: .l1Key)
-    }
-
-    func encryptedL2Key() throws -> Data? {
-        return try readData(named: .l2Key)
-    }
-
-    private func readData(named name: EntryName, serviceName: String = Constants.defaultServiceName) throws -> Data? {
-        var query = (serviceName == Constants.defaultServiceName) ? defaultAttributesForEntry(named: name) : legacyAttributesForEntry(named: name)
+    func readData(named name: String, serviceName: String = Constants.defaultServiceName) throws -> Data? {
+        var query = attributesForEntry(named: name, serviceName: serviceName)
         query[kSecReturnData as String] = true
         query[kSecAttrService as String] = serviceName
 
@@ -115,63 +89,43 @@ final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
         }
     }
 
-    private func migrateV1Key(name: EntryName) throws -> Data? {
+    private func migrateV1Key(name: String) throws -> Data? {
         do {
             guard let v1Key = try readData(named: name, serviceName: Constants.legacyServiceName) else {
                 return nil
             }
-            try writeData(v1Key, named: name)
+            try writeData(v1Key, named: name, serviceName: keychainServiceName)
             return v1Key
         } catch {
             return nil
         }
     }
 
-    private func writeData(_ data: Data, named name: EntryName, serviceName: String = Constants.defaultServiceName) throws {
-        let base64String = data.base64EncodedString()
+    // MARK: - Autofill Attributes
 
-        guard let base64Data = base64String.data(using: .utf8) else {
-            throw SecureVaultError.encodingFailed
-        }
-
-        var query = defaultAttributesForEntry(named: name)
-        query[kSecAttrService as String] = serviceName
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
-        query[kSecValueData as String] = base64Data
-
-        let status = SecItemAdd(query as CFDictionary, nil)
-
-        guard status == errSecSuccess else {
-            throw SecureVaultError.keystoreError(status: status)
+    func attributesForEntry(named name: String, serviceName: String) -> [String: Any] {
+        if serviceName == Constants.defaultServiceName {
+            return defaultAttributesForEntry(named: name)
+        } else {
+            return legacyAttributesForEntry(named: name)
         }
     }
 
-    private func deleteEntry(named name: EntryName) throws {
-        let query = defaultAttributesForEntry(named: name)
-
-        let status = SecItemDelete(query as CFDictionary)
-        switch status {
-        case errSecItemNotFound, errSecSuccess: break
-        default:
-            throw SecureVaultError.keystoreError(status: status)
-        }
-    }
-
-    private func legacyAttributesForEntry(named name: EntryName) -> [String: Any] {
+    private func legacyAttributesForEntry(named name: String) -> [String: Any] {
         return [
             kSecClass: kSecClassGenericPassword,
             kSecUseDataProtectionKeychain: true,
             kSecAttrSynchronizable: false,
-            kSecAttrAccount: name.rawValue
+            kSecAttrAccount: name
         ] as [String: Any]
     }
 
-    private func defaultAttributesForEntry(named name: EntryName) -> [String: Any] {
+    private func defaultAttributesForEntry(named name: String) -> [String: Any] {
         return [
             kSecClass: kSecClassGenericPassword,
             kSecUseDataProtectionKeychain: false,
             kSecAttrSynchronizable: false,
-            kSecAttrAccount: name.rawValue
+            kSecAttrAccount: name
         ] as [String: Any]
     }
 
