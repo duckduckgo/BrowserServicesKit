@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import CryptoKit
 
 public protocol SecureVaultCryptoProvider {
 
@@ -38,11 +39,30 @@ public protocol SecureVaultCryptoProvider {
 
 }
 
+// MARK: - SecureVaultCryptoProvider Default Implementation
+
 public extension SecureVaultCryptoProvider {
+
+    func generateSecretKey() throws -> Data {
+        return SymmetricKey(size: .bits256).dataRepresentation
+    }
 
     func hashData(_ data: Data) throws -> String? {
         guard let salt = hashingSalt else { return nil }
         return try hashData(data, salt: salt)
+    }
+
+}
+
+// MARK: - ContiguousBytes Extension
+
+// Can this be made private, or moved into Common? This isn't the ideal location for it, but we're only using it for the crypto provider right now.
+public extension ContiguousBytes {
+
+    var dataRepresentation: Data {
+        return self.withUnsafeBytes { bytes in
+            return Data(bytes)
+        }
     }
 
 }

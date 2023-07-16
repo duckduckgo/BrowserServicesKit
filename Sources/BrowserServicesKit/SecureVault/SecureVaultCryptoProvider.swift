@@ -43,10 +43,6 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         return salt
     }
 
-    func generateSecretKey() throws -> Data {
-        return SymmetricKey(size: .bits256).dataRepresentation
-    }
-
     func generatePassword() throws -> Data {
         var data = Data(count: Self.keySizeInBytes)
         let result = data.withUnsafeMutableBytes {
@@ -169,16 +165,6 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         let hashedData = SHA256.hash(data: saltedData)
         let base64String = hashedData.dataRepresentation.base64EncodedString(options: [])
         return base64String
-    }
-
-}
-
-fileprivate extension ContiguousBytes {
-
-    var dataRepresentation: Data {
-        return self.withUnsafeBytes { bytes in
-            return Data(bytes)
-        }
     }
 
 }
