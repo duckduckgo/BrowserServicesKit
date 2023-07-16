@@ -54,16 +54,6 @@ protocol SecureVaultDatabaseProvider {
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
-    enum DbError: Error {
-        case nonRecoverable(DatabaseError)
-
-        var databaseError: DatabaseError {
-            switch self {
-            case .nonRecoverable(let dbError): return dbError
-            }
-        }
-    }
-
     let db: DatabaseQueue
 
     init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
@@ -76,7 +66,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             db = try DatabaseQueue(path: file.path, configuration: config)
         } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
             os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
-            throw DbError.nonRecoverable(error)
+            throw SecureStorageDatabaseError.nonRecoverable(error)
         } catch {
             os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
             throw error

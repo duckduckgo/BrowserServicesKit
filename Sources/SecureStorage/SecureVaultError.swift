@@ -19,6 +19,16 @@
 import Foundation
 import GRDB
 
+public enum SecureStorageDatabaseError: Error {
+    case nonRecoverable(DatabaseError)
+
+    var databaseError: DatabaseError {
+        switch self {
+        case .nonRecoverable(let dbError): return dbError
+        }
+    }
+}
+
 public enum SecureVaultError: Error {
 
     case initFailed(cause: Error)
@@ -68,7 +78,7 @@ extension SecureVaultError: CustomNSError {
             }
 
             errorUserInfo["NSUnderlyingError"] = error as NSError
-            if let sqliteError = error as? DatabaseError ?? (error as? DefaultDatabaseProvider.DbError)?.databaseError {
+            if let sqliteError = error as? DatabaseError ?? (error as? SecureStorageDatabaseError)?.databaseError {
                 errorUserInfo["SQLiteResultCode"] = NSNumber(value: sqliteError.resultCode.rawValue)
                 errorUserInfo["SQLiteExtendedResultCode"] = NSNumber(value: sqliteError.extendedResultCode.rawValue)
             }

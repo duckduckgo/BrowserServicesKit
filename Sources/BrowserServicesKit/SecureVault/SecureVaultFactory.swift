@@ -94,7 +94,7 @@ public class SecureVaultFactory {
 
             do {
                 databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
-            } catch DefaultDatabaseProvider.DbError.nonRecoverable {
+            } catch SecureStorageDatabaseError.nonRecoverable {
                 databaseProvider = try DefaultDatabaseProvider.recreateDatabase(withKey: existingL1Key)
             }
 
