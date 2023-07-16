@@ -1,5 +1,5 @@
 //
-//  SecureStorageDatabaseProvider.swift
+//  SecureVaultProviders.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,9 +17,13 @@
 //
 
 import Foundation
+import SecureStorage
 
-public protocol SecureStorageDatabaseProvider {
+/// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
+internal struct SecureVaultProviders {
 
-    init(file: URL, key: Data) throws
+    var crypto: SecureVaultCryptoProvider
+    var database: SecureVaultDatabaseProvider
+    var keystore: SecureVaultKeyStoreProvider
 
 }

@@ -32,6 +32,7 @@ public protocol SecureVault {
 
     func authWith(password: Data) throws -> SecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
+    
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
@@ -60,15 +61,6 @@ public protocol SecureVault {
     @discardableResult
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardFor(cardId: Int64) throws
-}
-
-/// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
-internal struct SecureVaultProviders {
-
-    var crypto: SecureVaultCryptoProvider
-    var database: SecureVaultDatabaseProvider
-    var keystore: SecureVaultKeyStoreProvider
-
 }
 
 class DefaultSecureVault: SecureVault {
