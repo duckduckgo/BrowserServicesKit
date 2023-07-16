@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import SecureStorage
 
 /// A vault that supports storing data at various levels.
 ///
