@@ -23,14 +23,17 @@ import Security
 import SecureStorage
 
 final class DefaultCryptoProvider: SecureVaultCryptoProvider {
-        
-    enum Constants {
-        #if os(iOS)
-            static let hashAccount = "com.duckduckgo.mobile.ios"
-        #else
-            static let hashAccount = Bundle.main.bundleIdentifier ?? "com.duckduckgo.macos.browser"
-        #endif
-        static let hashService = "DuckDuckGo Secure Vault Hash"
+
+    var keychainAccountName: String {
+#if os(iOS)
+        return "com.duckduckgo.mobile.ios"
+#else
+        return Bundle.main.bundleIdentifier ?? "com.duckduckgo.macos.browser"
+#endif
+    }
+
+    var keychainServiceName: String {
+        return "DuckDuckGo Secure Vault Hash"
     }
 
     static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
@@ -111,8 +114,8 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
     private func getSaltFromKeyChain() -> Data? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Constants.hashService as CFString,
-            kSecAttrAccount: Constants.hashAccount as CFString,
+            kSecAttrService: self.keychainServiceName as CFString,
+            kSecAttrAccount: self.keychainAccountName as CFString,
             kSecReturnData: kCFBooleanTrue!,
             kSecMatchLimit: kSecMatchLimitOne
         ]
@@ -145,8 +148,8 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
 
         let addQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Constants.hashService as CFString,
-            kSecAttrAccount: Constants.hashAccount as CFString,
+            kSecAttrService: self.keychainServiceName as CFString,
+            kSecAttrAccount: self.keychainAccountName as CFString,
             kSecValueData: base64Data
         ]
 

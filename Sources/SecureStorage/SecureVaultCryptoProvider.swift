@@ -37,6 +37,10 @@ public protocol SecureVaultCryptoProvider {
 
     var hashingSalt: Data? { get }
 
+    var keychainServiceName: String { get }
+
+    var keychainAccountName: String { get } 
+
 }
 
 // MARK: - SecureVaultCryptoProvider Default Implementation
