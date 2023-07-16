@@ -489,7 +489,8 @@ extension DefaultDatabaseProvider {
         try database.drop(table: Account.databaseTableName + "Old")
         try database.drop(table: Credentials.databaseTableName + "Old")
 
-        try database.dropIndexIfExists(Account.databaseTableName + "_unique")
+        let indexName = (Account.databaseTableName + "_unique").quotedDatabaseIdentifier
+        try database.execute(sql: "DROP INDEX IF EXISTS \(indexName)")
 
         // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
         try database.create(index: Account.databaseTableName + "_unique",
