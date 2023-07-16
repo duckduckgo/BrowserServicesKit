@@ -20,6 +20,16 @@ import Foundation
 import Common
 import SecureStorage
 
+public let AutofillSecureVaultFactory = SecureVaultFactory<DefaultSecureVault>(
+    makeCryptoProvider: {
+        return AutofillCryptoProvider()
+    }, makeKeyStoreProvider: {
+        return AutofillKeyStoreProvider()
+    }, makeDatabaseProvider: { key in
+        return try DefaultDatabaseProvider(key: key)
+    }
+)
+
 /// A vault that supports storing data at various levels.
 ///
 /// * L0 - not encrypted.  Currently no data at this level and we're not likely to use it.
@@ -28,9 +38,9 @@ import SecureStorage
 /// * L3 - user password is required at time of request.  Currently no data at this level, but later e.g, credit cards.
 ///
 /// Data always goes in and comes out unencrypted.
-public protocol SecureVault {
+public protocol SecureVault: GenericVault {
 
-    func authWith(password: Data) throws -> SecureVault
+    func authWith(password: Data) throws -> any SecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
@@ -63,20 +73,22 @@ public protocol SecureVault {
     func deleteCreditCardFor(cardId: Int64) throws
 }
 
-class DefaultSecureVault: SecureVault {
+public class DefaultSecureVault: SecureVault {
+
+    public typealias AutofillDatabaseProviders = SecureVaultProviders<DefaultDatabaseProvider>
 
     private let lock = NSLock()
     private let queue = DispatchQueue(label: "Secure Vault")
 
-    private let providers: SecureVaultProviders
+    private let providers: AutofillDatabaseProviders
     private let expiringPassword: ExpiringValue<Data>
 
-    var authExpiry: TimeInterval {
+    public var authExpiry: TimeInterval {
         return expiringPassword.expiresAfter
     }
 
-    internal init(authExpiry: TimeInterval,
-                  providers: SecureVaultProviders) {
+    public required init(authExpiry: TimeInterval,
+                         providers: AutofillDatabaseProviders) {
         self.providers = providers
         self.expiringPassword = ExpiringValue(expiresAfter: authExpiry)
     }
@@ -84,7 +96,7 @@ class DefaultSecureVault: SecureVault {
     // MARK: - public interface (protocol candidates)
 
     /// Sets the password which is retained for the given amount of time. Call this is you receive a `authRequired` error.
-    public func authWith(password: Data) throws -> SecureVault {
+    public func authWith(password: Data) throws -> any SecureVault {
         lock.lock()
         defer {
             lock.unlock()
@@ -232,7 +244,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func deleteWebsiteCredentialsFor(accountId: Int64) throws {
+    public func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
         }
@@ -240,25 +252,25 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Notes
 
-    func notes() throws -> [SecureVaultModels.Note] {
+    public func notes() throws -> [SecureVaultModels.Note] {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.notes()
         }
     }
 
-    func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
+    public func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.noteForNoteId(id)
         }
     }
 
-    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+    public func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeNote(note)
         }
     }
 
-    func deleteNoteFor(noteId: Int64) throws {
+    public func deleteNoteFor(noteId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteNoteForNoteId(noteId)
         }
@@ -266,32 +278,32 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Identities
 
-    func identities() throws -> [SecureVaultModels.Identity] {
+    public func identities() throws -> [SecureVaultModels.Identity] {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.identities()
         }
     }
 
-    func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
+    public func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.identityForIdentityId(id)
         }
     }
 
     @discardableResult
-    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+    public func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeIdentity(identity)
         }
     }
 
-    func deleteIdentityFor(identityId: Int64) throws {
+    public func deleteIdentityFor(identityId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteIdentityForIdentityId(identityId)
         }
     }
     
-    func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
+    public func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
         let identities = try self.identities()
         
         return identities.first { existingIdentity in
@@ -301,7 +313,7 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Credit Cards
 
-    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+    public func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try executeThrowingDatabaseOperation {
             let cards =  try self.providers.database.creditCards()
             
@@ -316,7 +328,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
+    public func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
         return try executeThrowingDatabaseOperation {
             guard var card = try self.providers.database.creditCardForCardId(id) else {
                 return nil
@@ -328,7 +340,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
     
-    func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
+    public func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
         let cards = try self.creditCards()
         
         return cards.first { existingCard in
@@ -337,7 +349,7 @@ class DefaultSecureVault: SecureVault {
     }
 
     @discardableResult
-    func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
+    public func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             var mutableCard = card
             
@@ -348,7 +360,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func deleteCreditCardFor(cardId: Int64) throws {
+    public func deleteCreditCardFor(cardId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteCreditCardForCreditCardId(cardId)
         }

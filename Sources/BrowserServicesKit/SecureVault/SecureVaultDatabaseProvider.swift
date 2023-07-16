@@ -52,11 +52,11 @@ protocol SecureVaultDatabaseProvider: SecureStorageDatabaseProvider {
 
 }
 
-final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
+public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     let db: DatabaseQueue
 
-    init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
+    public init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -93,7 +93,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    static func recreateDatabase(withKey key: Data) throws -> DefaultDatabaseProvider {
+    public static func recreateDatabase(withKey key: Data) throws -> DefaultDatabaseProvider {
         let dbFile = self.dbFile()
 
         guard FileManager.default.fileExists(atPath: dbFile.path) else {
@@ -556,8 +556,8 @@ extension DefaultDatabaseProvider {
             $0.add(column: SecureVaultModels.Identity.Columns.addressStreet2.name, .text)
         }
 
-        let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
-        let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
+        let cryptoProvider: SecureVaultCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let keyStoreProvider: SecureVaultKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
 
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
         // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
@@ -660,8 +660,8 @@ extension DefaultDatabaseProvider {
     // Refresh password comparison hashes
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
-        let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
-        let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
+        let cryptoProvider: SecureVaultCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let keyStoreProvider: SecureVaultKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
         let salt = cryptoProvider.hashingSalt
 
         while let accountRow = try accountRows.next() {
@@ -715,7 +715,7 @@ extension DefaultDatabaseProvider {
 struct MigrationUtility {
     
     static func l2encrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureVaultKeyStoreProvider) throws -> Data {
-        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+        let (crypto, keyStore) = try AutofillSecureVaultFactory.createAndInitializeEncryptionProviders()
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureVaultError.noL2Key
@@ -753,7 +753,7 @@ struct MigrationUtility {
 
 extension DefaultDatabaseProvider {
 
-    static internal func dbFile() -> URL {
+    static public func dbFile() -> URL {
 
         let fm = FileManager.default
         let subDir = fm.applicationSupportDirectoryForComponent(named: "Vault")

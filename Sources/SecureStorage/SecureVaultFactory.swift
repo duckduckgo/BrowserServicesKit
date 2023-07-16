@@ -17,26 +17,32 @@
 //
 
 import Foundation
-import SecureStorage
 
 public protocol SecureVaultErrorReporting: AnyObject {
     func secureVaultInitFailed(_ error: SecureVaultError)
 }
 
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
-public class SecureVaultFactory {
+public class SecureVaultFactory<Vault: GenericVault> {
 
-    public enum Constants {
-        public static let defaultAuthExpiration: TimeInterval = 60 * 60 * 24 * 72
-    }
-
-    public static let `default` = SecureVaultFactory()
+    public typealias CryptoProviderInitialization = () -> SecureVaultCryptoProvider
+    public typealias KeyStoreProviderInitialization = () -> SecureVaultKeyStoreProvider
+    public typealias DatabaseProviderInitialization = (_ key: Data) throws -> Vault.DatabaseProvider
 
     private var lock = NSLock()
-    private var vault: DefaultSecureVault?
+    private var vault: Vault?
+
+    public let makeCryptoProvider: CryptoProviderInitialization
+    public let makeKeyStoreProvider: KeyStoreProviderInitialization
+    public let makeDatabaseProvider: DatabaseProviderInitialization
 
     /// You should really use the `default` accessor.
-    public init() {
+    public init(makeCryptoProvider: @escaping CryptoProviderInitialization,
+                makeKeyStoreProvider: @escaping KeyStoreProviderInitialization,
+                makeDatabaseProvider: @escaping DatabaseProviderInitialization) {
+        self.makeCryptoProvider = makeCryptoProvider
+        self.makeKeyStoreProvider = makeKeyStoreProvider
+        self.makeDatabaseProvider = makeDatabaseProvider
     }
 
     /// Returns an initialised SecureVault instance that respects the user password for the specified amount of time.
@@ -51,7 +57,7 @@ public class SecureVaultFactory {
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
     public func makeVault(errorReporter: SecureVaultErrorReporting?,
-                          authExpiration: TimeInterval = Constants.defaultAuthExpiration) throws -> SecureVault {
+                          authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> Vault {
 
         if let vault = self.vault, authExpiration == vault.authExpiry {
             return vault
@@ -63,7 +69,7 @@ public class SecureVaultFactory {
 
             do {
                 let providers = try makeSecureVaultProviders()
-                let vault = DefaultSecureVault(authExpiry: authExpiration, providers: providers)
+                let vault = Vault(authExpiry: authExpiration, providers: providers)
 
                 self.vault = vault
 
@@ -80,7 +86,7 @@ public class SecureVaultFactory {
 
     }
     
-    internal func makeSecureVaultProviders() throws -> SecureVaultProviders {
+    public func makeSecureVaultProviders() throws -> SecureVaultProviders<Vault.DatabaseProvider> {
         let (cryptoProvider, keystoreProvider): (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider)
         do {
             (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
@@ -89,13 +95,14 @@ public class SecureVaultFactory {
         }
         guard let existingL1Key = try keystoreProvider.l1Key() else { throw SecureVaultError.noL1Key }
 
-        let databaseProvider: SecureVaultDatabaseProvider
+        let databaseProvider: Vault.DatabaseProvider
+
         do {
 
             do {
-                databaseProvider = try DefaultDatabaseProvider(key: existingL1Key)
+                databaseProvider = try self.makeDatabaseProvider(existingL1Key)
             } catch SecureStorageDatabaseError.nonRecoverable {
-                databaseProvider = try DefaultDatabaseProvider.recreateDatabase(withKey: existingL1Key)
+                databaseProvider = try Vault.DatabaseProvider.recreateDatabase(withKey: existingL1Key)
             }
 
         } catch {
@@ -104,20 +111,8 @@ public class SecureVaultFactory {
 
         return SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
     }
-
-    internal func makeCryptoProvider() -> SecureVaultCryptoProvider {
-        return AutofillCryptoProvider()
-    }
-
-    internal func makeDatabaseProvider(key: Data) throws -> SecureVaultDatabaseProvider {
-        return try DefaultDatabaseProvider(key: key)
-    }
-
-    internal func makeKeyStoreProvider() -> SecureVaultKeyStoreProvider {
-        return AutofillKeyStoreProvider()
-    }
     
-    internal func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider) {
+    public func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider) {
         let cryptoProvider = makeCryptoProvider()
         let keystoreProvider = makeKeyStoreProvider()
         

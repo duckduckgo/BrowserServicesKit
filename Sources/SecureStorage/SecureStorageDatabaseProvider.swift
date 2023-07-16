@@ -22,4 +22,6 @@ public protocol SecureStorageDatabaseProvider {
 
     init(file: URL, key: Data) throws
 
+    static func recreateDatabase(withKey key: Data) throws -> Self
+
 }
