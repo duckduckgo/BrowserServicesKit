@@ -19,6 +19,7 @@
 import Common
 import Foundation
 import GRDB
+import SecureStorage
 
 protocol SecureVaultDatabaseProvider {
 

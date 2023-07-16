@@ -20,33 +20,7 @@ import Foundation
 import CommonCrypto
 import CryptoKit
 import Security
-
-protocol SecureVaultCryptoProvider {
-
-    func generateSecretKey() throws -> Data
-
-    func generatePassword() throws -> Data
-
-    func deriveKeyFromPassword(_ password: Data) throws -> Data
-
-    func encrypt(_ data: Data, withKey key: Data) throws -> Data
-
-    func decrypt(_ data: Data, withKey key: Data) throws -> Data
-
-    func hashData(_ data: Data) throws -> String?
-
-    func hashData(_ data: Data, salt: Data?) throws -> String?
-
-    var hashingSalt: Data? { get }
-
-}
-
-extension SecureVaultCryptoProvider {
-    func hashData(_ data: Data) throws -> String? {
-        guard let salt = hashingSalt else { return nil }
-        return try hashData(data, salt: salt)
-    }
-}
+import SecureStorage
 
 final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         

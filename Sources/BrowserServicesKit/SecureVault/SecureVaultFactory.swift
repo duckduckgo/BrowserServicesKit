@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import SecureStorage
 
 public protocol SecureVaultErrorReporting: AnyObject {
     func secureVaultInitFailed(_ error: SecureVaultError)
