@@ -106,7 +106,7 @@ public class SecureVaultFactory {
     }
 
     internal func makeCryptoProvider() -> SecureVaultCryptoProvider {
-        return DefaultCryptoProvider()
+        return AutofillCryptoProvider()
     }
 
     internal func makeDatabaseProvider(key: Data) throws -> SecureVaultDatabaseProvider {

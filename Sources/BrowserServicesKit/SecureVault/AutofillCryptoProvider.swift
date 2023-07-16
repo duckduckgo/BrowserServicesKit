@@ -1,5 +1,5 @@
 //
-//  SecureVaultCryptoProvider.swift
+//  AutofillCryptoProvider.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +22,7 @@ import CryptoKit
 import Security
 import SecureStorage
 
-final class DefaultCryptoProvider: SecureVaultCryptoProvider {
+final class AutofillCryptoProvider: SecureVaultCryptoProvider {
 
     var keychainAccountName: String {
 #if os(iOS)

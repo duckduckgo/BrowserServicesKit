@@ -27,7 +27,7 @@ class CryptoProviderTests: XCTestCase {
 
     func testWhenDecryptingWithKeyFromInvalidPassword_ThenThrowsInvalidPasswordError() throws {
 
-        let provider = DefaultCryptoProvider()
+        let provider = AutofillCryptoProvider()
 
         let example = "example"
         let exampleData = example.data(using: .utf8)!
@@ -54,7 +54,7 @@ class CryptoProviderTests: XCTestCase {
 
     func testWhenDataEncryptedWithKey_ThenItCanBeDecryptedWithKey() throws {
 
-        let provider = DefaultCryptoProvider()
+        let provider = AutofillCryptoProvider()
 
         let example = "password"
         let exampleData = example.data(using: .utf8)!
@@ -70,21 +70,21 @@ class CryptoProviderTests: XCTestCase {
     }
 
     func testWhenGeneratingASecretKey_ThenKeyHasRequiredLengthAndNonNilData() throws {
-        let provider = DefaultCryptoProvider()
+        let provider = AutofillCryptoProvider()
         let key = try provider.generateSecretKey()
         XCTAssertGreaterThanOrEqual(key.count, 32)
         XCTAssertGreaterThan(key.filter { $0 > 0 }.count, 0)
     }
 
     func testWhenDerivingAKeyFromAPassword_ThenKeyHasRequiredLengthAndNonNilData() throws {
-        let provider = DefaultCryptoProvider()
+        let provider = AutofillCryptoProvider()
         let key = try provider.deriveKeyFromPassword("password".data(using: .utf8)!)
         XCTAssertGreaterThanOrEqual(key.count, 32)
         XCTAssertGreaterThan(key.filter { $0 > 0 }.count, 0)
     }
 
     func testWhenGeneratingPassword_ThenPasswordHasRequiredLengthAndNonNilData() throws {
-        let provider = DefaultCryptoProvider()
+        let provider = AutofillCryptoProvider()
         let password = try provider.generatePassword()
         XCTAssertGreaterThanOrEqual(password.count, 32)
         XCTAssertGreaterThan(password.filter { $0 > 0 }.count, 0)
