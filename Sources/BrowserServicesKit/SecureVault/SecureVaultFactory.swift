@@ -114,7 +114,7 @@ public class SecureVaultFactory {
     }
 
     internal func makeKeyStoreProvider() -> SecureVaultKeyStoreProvider {
-        return DefaultKeyStoreProvider()
+        return AutofillKeyStoreProvider()
     }
     
     internal func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider) {

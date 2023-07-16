@@ -19,7 +19,7 @@
 import Foundation
 import SecureStorage
 
-final class DefaultKeyStoreProvider: SecureVaultKeyStoreProvider {
+final class AutofillKeyStoreProvider: SecureVaultKeyStoreProvider {
 
     struct Constants {
         static let legacyServiceName = "DuckDuckGo Secure Vault"
