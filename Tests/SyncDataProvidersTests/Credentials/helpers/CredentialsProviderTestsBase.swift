@@ -102,9 +102,9 @@ internal class CredentialsProviderTestsBase: XCTestCase {
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
     }
 
-    func fetchAllSyncableCredentials() throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
+    func fetchAllSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         try databaseProvider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
+            try SecureVaultModels.SyncableCredentials.query.fetchAll(database)
         }
     }
 
@@ -147,7 +147,7 @@ extension SecureVault {
         let passwordData = password.flatMap { $0.data(using: .utf8) }
         let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialsInfo(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
+        let metadata = SecureVaultModels.SyncableCredentials(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
         if let database {
             try storeWebsiteCredentialsMetadata(metadata, in: database)
         } else {

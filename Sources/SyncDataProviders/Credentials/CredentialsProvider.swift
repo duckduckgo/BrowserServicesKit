@@ -54,9 +54,9 @@ public final class CredentialsProvider: DataProviding {
         try secureVault.inDatabaseTransaction { database in
             try database.execute(sql: """
                 UPDATE
-                    \(SecureVaultModels.SyncableWebsiteCredentials.databaseTableName)
+                    \(SecureVaultModels.SyncableCredentialsRecord.databaseTableName)
                 SET
-                    \(SecureVaultModels.SyncableWebsiteCredentials.Columns.lastModified.name) = ?
+                    \(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified.name) = ?
             """, arguments: [Date()])
         }
     }
@@ -160,8 +160,8 @@ public final class CredentialsProvider: DataProviding {
         let identifiers = sent.compactMap(\.uuid)
         var idsOfItemsToClearModifiedAt = Set<String>()
 
-        let metadataObjects = try SecureVaultModels.SyncableWebsiteCredentials
-            .filter(identifiers.contains(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid))
+        let metadataObjects = try SecureVaultModels.SyncableCredentialsRecord
+            .filter(identifiers.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
             .fetchAll(database)
 
         for metadata in metadataObjects {
@@ -181,11 +181,11 @@ public final class CredentialsProvider: DataProviding {
 
     private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws {
 
-        let request = SecureVaultModels.SyncableWebsiteCredentials
-            .filter(uuids.contains(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid))
-            .filter(SecureVaultModels.SyncableWebsiteCredentials.Columns.lastModified < clientTimestamp)
+        let request = SecureVaultModels.SyncableCredentialsRecord
+            .filter(uuids.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
+            .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified < clientTimestamp)
 
-        let metadataObjects = try SecureVaultModels.SyncableWebsiteCredentials.fetchAll(database, request)
+        let metadataObjects = try SecureVaultModels.SyncableCredentialsRecord.fetchAll(database, request)
 
         for i in 0..<metadataObjects.count {
             var metadata = metadataObjects[i]

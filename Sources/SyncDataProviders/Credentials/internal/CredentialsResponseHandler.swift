@@ -33,7 +33,7 @@ final class CredentialsResponseHandler {
     let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
 
-    var credentialsByUUID: [String: SecureVaultModels.SyncableWebsiteCredentialsInfo] = [:]
+    var credentialsByUUID: [String: SecureVaultModels.SyncableCredentials] = [:]
 
     private let decrypt: (String) throws -> String
 
@@ -110,7 +110,7 @@ final class CredentialsResponseHandler {
 
         } else if !syncable.isDeleted {
 
-            let newEntity = try SecureVaultModels.SyncableWebsiteCredentialsInfo(syncable: syncable, decryptedUsing: decrypt)
+            let newEntity = try SecureVaultModels.SyncableCredentials(syncable: syncable, decryptedUsing: decrypt)
             assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
             try secureVault.storeWebsiteCredentialsMetadata(newEntity, in: database)
             credentialsByUUID[syncableUUID] = newEntity
@@ -118,7 +118,7 @@ final class CredentialsResponseHandler {
     }
 }
 
-extension SecureVaultModels.SyncableWebsiteCredentialsInfo {
+extension SecureVaultModels.SyncableCredentials {
 
     init(syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
         guard let uuid = syncable.uuid else {

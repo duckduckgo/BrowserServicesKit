@@ -39,7 +39,7 @@ extension Syncable {
         payload["notes"] as? String
     }
 
-    init(metadata: SecureVaultModels.SyncableWebsiteCredentialsInfo, encryptedUsing encrypt: (String) throws -> String) throws {
+    init(metadata: SecureVaultModels.SyncableCredentials, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
         payload["id"] = metadata.metadata.uuid

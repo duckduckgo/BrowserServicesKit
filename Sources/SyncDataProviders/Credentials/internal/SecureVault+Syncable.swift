@@ -27,7 +27,7 @@ extension SecureVault {
         in database: Database,
         with syncable: Syncable,
         decryptedUsing decrypt: (String) throws -> String
-    ) throws -> SecureVaultModels.SyncableWebsiteCredentialsInfo? {
+    ) throws -> SecureVaultModels.SyncableCredentials? {
 
         guard !syncable.isDeleted else {
             return nil
@@ -45,11 +45,11 @@ extension SecureVault {
             accountAlias[SecureVaultModels.WebsiteAccount.Columns.username] == username,
             accountAlias[SecureVaultModels.WebsiteAccount.Columns.notes] == notes
         ]
-        let syncableCredentials = try SecureVaultModels.SyncableWebsiteCredentials
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account.aliased(accountAlias))
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials.aliased(credentialsAlias))
+        let syncableCredentials = try SecureVaultModels.SyncableCredentialsRecord
+            .including(optional: SecureVaultModels.SyncableCredentialsRecord.account.aliased(accountAlias))
+            .including(optional: SecureVaultModels.SyncableCredentialsRecord.credentials.aliased(credentialsAlias))
             .filter(conditions.joined(operator: .and))
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
+            .asRequest(of: SecureVaultModels.SyncableCredentials.self)
             .fetchAll(database)
 
         guard !syncableCredentials.isEmpty else {
