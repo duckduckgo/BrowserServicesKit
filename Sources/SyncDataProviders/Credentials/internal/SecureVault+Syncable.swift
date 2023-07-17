@@ -27,7 +27,7 @@ extension SecureVault {
         in database: Database,
         with syncable: Syncable,
         decryptedUsing decrypt: (String) throws -> String
-    ) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo? {
+    ) throws -> SecureVaultModels.SyncableWebsiteCredentialsInfo? {
 
         guard !syncable.isDeleted else {
             return nil
@@ -45,11 +45,11 @@ extension SecureVault {
             accountAlias[SecureVaultModels.WebsiteAccount.Columns.username] == username,
             accountAlias[SecureVaultModels.WebsiteAccount.Columns.notes] == notes
         ]
-        let syncableCredentials = try SecureVaultModels.SyncableWebsiteCredential
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.account.aliased(accountAlias))
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials.aliased(credentialsAlias))
+        let syncableCredentials = try SecureVaultModels.SyncableWebsiteCredentials
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account.aliased(accountAlias))
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials.aliased(credentialsAlias))
             .filter(conditions.joined(operator: .and))
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
             .fetchAll(database)
 
         guard !syncableCredentials.isEmpty else {
@@ -60,11 +60,11 @@ extension SecureVault {
 
         if let password, let passwordData = password.data(using: .utf8) {
             return try syncableCredentials.first(where: { credentials in
-                let decryptedPassword = try credentials.rawCredentials?.password.flatMap { try self.decrypt($0, using: key) }
+                let decryptedPassword = try credentials.credentialsRecord?.password.flatMap { try self.decrypt($0, using: key) }
                 return decryptedPassword == passwordData
             })
         }
-        return syncableCredentials.first(where: { $0.rawCredentials?.password == nil })
+        return syncableCredentials.first(where: { $0.credentialsRecord?.password == nil })
     }
 
 }

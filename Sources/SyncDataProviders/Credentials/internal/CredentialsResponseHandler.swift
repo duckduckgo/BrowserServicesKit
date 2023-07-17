@@ -33,7 +33,7 @@ final class CredentialsResponseHandler {
     let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
 
-    var credentialsByUUID: [String: SecureVaultModels.SyncableWebsiteCredentialInfo] = [:]
+    var credentialsByUUID: [String: SecureVaultModels.SyncableWebsiteCredentialsInfo] = [:]
 
     private let decrypt: (String) throws -> String
 
@@ -110,7 +110,7 @@ final class CredentialsResponseHandler {
 
         } else if !syncable.isDeleted {
 
-            let newEntity = try SecureVaultModels.SyncableWebsiteCredentialInfo(syncable: syncable, decryptedUsing: decrypt)
+            let newEntity = try SecureVaultModels.SyncableWebsiteCredentialsInfo(syncable: syncable, decryptedUsing: decrypt)
             assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
             try secureVault.storeWebsiteCredentialsMetadata(newEntity, in: database)
             credentialsByUUID[syncableUUID] = newEntity
@@ -118,7 +118,7 @@ final class CredentialsResponseHandler {
     }
 }
 
-extension SecureVaultModels.SyncableWebsiteCredentialInfo {
+extension SecureVaultModels.SyncableWebsiteCredentialsInfo {
 
     init(syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
         guard let uuid = syncable.uuid else {
@@ -154,10 +154,10 @@ extension SecureVaultModels.SyncableWebsiteCredentialInfo {
 
         assert(account != nil)
 
-        if rawCredentials == nil {
-            rawCredentials = .init(credentials: .init(account: account!, password: password))
+        if credentialsRecord == nil {
+            credentialsRecord = .init(credentials: .init(account: account!, password: password))
         } else {
-            rawCredentials?.password = password
+            credentialsRecord?.password = password
         }
     }
 }

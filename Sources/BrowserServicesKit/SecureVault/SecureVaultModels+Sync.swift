@@ -33,14 +33,45 @@ public enum SecureVaultSyncableColumns: String, ColumnExpression {
 
 extension SecureVaultModels {
 
-    public struct SyncableWebsiteCredential: SecureVaultSyncable, TableRecord, FetchableRecord, PersistableRecord, Decodable {
+    public struct WebsiteCredentialsRecord: FetchableRecord, PersistableRecord, TableRecord, Decodable {
+
+        public typealias Columns = WebsiteCredentials.Columns
+        public static let databaseTableName: String = WebsiteCredentials.databaseTableName
+        public static let accountForeignKey = ForeignKey([Columns.id])
+        public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
+
+        public var id: Int64?
+        public var password: Data?
+
+        public init(row: Row) throws {
+            id = row[Columns.id]
+            password = row[Columns.password]
+        }
+
+        public func encode(to container: inout PersistenceContainer) throws {
+            assert(id != nil, "Account ID must not be nil")
+            container[Columns.id] = id
+            container[Columns.password] = password
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case id, password
+        }
+
+        public init(credentials: WebsiteCredentials) {
+            self.id = credentials.account.id.flatMap(Int64.init)
+            self.password = credentials.password
+        }
+    }
+
+    public struct SyncableWebsiteCredentials: SecureVaultSyncable, TableRecord, FetchableRecord, PersistableRecord, Decodable {
         public typealias Columns = SecureVaultSyncableColumns
         public static var databaseTableName: String = "website_accounts_sync_metadata"
 
         public static let accountForeignKey = ForeignKey([Columns.objectId])
         public static let credentialsForeignKey = ForeignKey([Columns.objectId])
         public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
-        public static let credentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "rawCredentials", using: credentialsForeignKey)
+        public static let credentials = belongsTo(SecureVaultModels.WebsiteCredentialsRecord.self, key: "credentialsRecord", using: credentialsForeignKey)
 
         public var id: Int64?
         public var uuid: String
@@ -68,14 +99,14 @@ extension SecureVaultModels {
         }
     }
 
-    public struct SyncableWebsiteCredentialInfo: FetchableRecord, Decodable {
-        public var metadata: SyncableWebsiteCredential
+    public struct SyncableWebsiteCredentialsInfo: FetchableRecord, Decodable {
+        public var metadata: SyncableWebsiteCredentials
         public var account: WebsiteAccount? {
             didSet {
                 metadata.objectId = account?.id.flatMap(Int64.init)
             }
         }
-        public var rawCredentials: RawWebsiteCredentials? {
+        public var credentialsRecord: WebsiteCredentialsRecord? {
             didSet {
                 metadata.objectId = account?.id.flatMap(Int64.init)
             }
@@ -86,10 +117,10 @@ extension SecureVaultModels {
                 guard let account else {
                     return nil
                 }
-                return .init(account: account, password: rawCredentials?.password)
+                return .init(account: account, password: credentialsRecord?.password)
             }
             set {
-                rawCredentials = newValue.flatMap { RawWebsiteCredentials(credentials: $0) }
+                credentialsRecord = newValue.flatMap { WebsiteCredentialsRecord(credentials: $0) }
                 account = newValue?.account
             }
         }

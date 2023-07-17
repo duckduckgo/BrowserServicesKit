@@ -274,7 +274,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         let updatedCredential = try XCTUnwrap(syncableCredentials.first)
         XCTAssertEqual(updatedCredential.metadata.lastModified, updateTimestamp)
         XCTAssertEqual(updatedCredential.account?.username, "1")
-        XCTAssertEqual(updatedCredential.rawCredentials?.password, credentials.password)
+        XCTAssertEqual(updatedCredential.credentialsRecord?.password, credentials.password)
     }
 
     func testWhenDatabaseIsLockedDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {

@@ -53,19 +53,19 @@ protocol SecureVaultDatabaseProvider {
     // MARK: - Sync Support
     func inTransaction(_ block: @escaping (Database) throws -> Void) throws
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: Database) throws
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialsInfo, in database: Database) throws
 
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: Database) throws
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialsInfo, in database: Database) throws
 
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo]
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo]
+    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo]
+    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo]
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo?
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialsInfo?
 
 }
 
@@ -196,7 +196,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: Database) throws {
+    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialsInfo, in database: Database) throws {
         guard var credentials = metadata.credentials else {
             assertionFailure("Nil credentials passed to \(#function)")
             return
@@ -207,7 +207,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 credentials.account = account
                 updatedMetadata.account = account
             }
-            try SecureVaultModels.RawWebsiteCredentials(credentials: credentials).save(database)
+            try SecureVaultModels.WebsiteCredentialsRecord(credentials: credentials).save(database)
             try updatedMetadata.metadata.save(database)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
@@ -229,7 +229,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialInfo, in database: Database) throws {
+    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableWebsiteCredentialsInfo, in database: Database) throws {
         if let accountId = metadata.metadata.objectId {
             try deleteWebsiteCredentialsForAccountId(accountId, in: database)
         }
@@ -243,7 +243,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     private func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
-        try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableWebsiteCredential.databaseTableName, objectId: accountId)
+        try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableWebsiteCredentials.databaseTableName, objectId: accountId)
         try database.execute(sql: """
             DELETE FROM
                 \(SecureVaultModels.WebsiteAccount.databaseTableName)
@@ -264,7 +264,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                     \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
             """, arguments: [credentials.password, id])
 
-            try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableWebsiteCredential.databaseTableName, objectId: id, timestamp: timestamp)
+            try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableWebsiteCredentials.databaseTableName, objectId: id, timestamp: timestamp)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
                 throw SecureVaultError.duplicateRecord
@@ -291,7 +291,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             var insertedCredentials = credentials
             insertedCredentials.account.id = String(id)
 
-            try SecureVaultModels.SyncableWebsiteCredential(objectId: id, lastModified: timestamp).insert(database)
+            try SecureVaultModels.SyncableWebsiteCredentials(objectId: id, lastModified: timestamp).insert(database)
 
             return id
         } catch let error as DatabaseError {
@@ -303,38 +303,38 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
+    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
         try db.read { database in
-            let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredential
-                .filter(SecureVaultModels.SyncableWebsiteCredential.Columns.lastModified != nil)
-                .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-                .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
-                .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
+            let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredentials
+                .filter(SecureVaultModels.SyncableWebsiteCredentials.Columns.lastModified != nil)
+                .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
+                .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
+                .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
 
             return try rawMetadataRequest.fetchAll(database)
         }
     }
 
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
-        typealias Metadata = SecureVaultModels.SyncableWebsiteCredentialInfo
+    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
+        typealias Metadata = SecureVaultModels.SyncableWebsiteCredentialsInfo
         typealias Credentials = SecureVaultModels.WebsiteCredentials
         typealias Account = SecureVaultModels.WebsiteAccount
 
-        let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredential
-            .filter(syncIds.contains(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid))
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
+        let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredentials
+            .filter(syncIds.contains(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid))
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
 
         return try rawMetadataRequest.fetchAll(database)
     }
 
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialInfo? {
-        let request = SecureVaultModels.SyncableWebsiteCredential
-            .filter(SecureVaultModels.SyncableWebsiteCredential.Columns.objectId == accountId)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
+    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialsInfo? {
+        let request = SecureVaultModels.SyncableWebsiteCredentials
+            .filter(SecureVaultModels.SyncableWebsiteCredentials.Columns.objectId == accountId)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
 
         return try request.fetchOne(database)
     }
@@ -819,7 +819,7 @@ extension DefaultDatabaseProvider {
 
     static func migrateV10(database: Database) throws {
         typealias Account = SecureVaultModels.WebsiteAccount
-        typealias AccountSyncMetadata = SecureVaultModels.SyncableWebsiteCredential
+        typealias AccountSyncMetadata = SecureVaultModels.SyncableWebsiteCredentials
 
         try database.create(table: AccountSyncMetadata.databaseTableName) {
             $0.autoIncrementedPrimaryKey(AccountSyncMetadata.Columns.id.name)
@@ -1014,41 +1014,6 @@ extension DefaultDatabaseProvider {
 }
 
 // MARK: - Database records
-
-extension SecureVaultModels {
-
-    public struct RawWebsiteCredentials: FetchableRecord, PersistableRecord, TableRecord, Decodable {
-
-        public typealias Columns = WebsiteCredentials.Columns
-        public static let databaseTableName: String = WebsiteCredentials.databaseTableName
-        public static let accountForeignKey = ForeignKey([Columns.id])
-        public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
-
-        public var id: Int64?
-        public var password: Data?
-
-        public init(row: Row) throws {
-            id = row[Columns.id]
-            password = row[Columns.password]
-        }
-
-        public func encode(to container: inout PersistenceContainer) throws {
-            assert(id != nil, "Account ID must not be nil")
-            container[Columns.id] = id
-            container[Columns.password] = password
-        }
-
-        enum CodingKeys: String, CodingKey {
-            case id, password
-        }
-
-        public init(credentials: WebsiteCredentials) {
-            self.id = credentials.account.id.flatMap(Int64.init)
-            self.password = credentials.password
-        }
-    }
-
-}
 
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 

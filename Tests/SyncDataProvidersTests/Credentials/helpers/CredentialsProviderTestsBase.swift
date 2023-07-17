@@ -102,9 +102,9 @@ internal class CredentialsProviderTestsBase: XCTestCase {
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
     }
 
-    func fetchAllSyncableCredentials() throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
+    func fetchAllSyncableCredentials() throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
         try databaseProvider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
         }
     }
 
@@ -117,14 +117,14 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     }
 }
 
-extension SecureVaultModels.SyncableWebsiteCredentialInfo {
+extension SecureVaultModels.SyncableWebsiteCredentialsInfo {
 
-    static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
-        try SecureVaultModels.SyncableWebsiteCredential
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
-            .order(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid)
+    static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
+        try SecureVaultModels.SyncableWebsiteCredentials
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
+            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
+            .order(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid)
             .fetchAll(database)
     }
 }
@@ -159,7 +159,7 @@ extension SecureVault {
         let passwordData = password.flatMap { $0.data(using: .utf8) }
         let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-        let metadata = SecureVaultModels.SyncableWebsiteCredentialInfo(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
+        let metadata = SecureVaultModels.SyncableWebsiteCredentialsInfo(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
         if let database {
             try storeWebsiteCredentialsMetadata(metadata, in: database)
         } else {
