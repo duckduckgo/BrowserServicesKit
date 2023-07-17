@@ -89,13 +89,30 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    open var connectionStatus: ConnectionStatus = .disconnected
+    public var connectionStatus: ConnectionStatus = .disconnected {
+        didSet {
+            guard connectionStatus != oldValue else {
+                return
+            }
+
+            connectionStatusPublisher.send(connectionStatus)
+        }
+    }
+
+    public let connectionStatusPublisher = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
+
 
     // MARK: - Server Selection
 
     let selectedServerStore = NetworkProtectionSelectedServerUserDefaultsStore()
 
-    open var lastSelectedServerInfo: NetworkProtectionServerInfo?
+    public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
+        didSet {
+            lastSelectedServerInfoPublisher.send(lastSelectedServerInfo)
+        }
+    }
+
+    public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>.init(nil)
 
     // MARK: - User Notifications
 
