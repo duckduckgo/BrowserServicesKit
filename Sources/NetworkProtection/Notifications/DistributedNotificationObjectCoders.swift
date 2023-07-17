@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Foundation
 
 /// JSONEncoder encrypts its output encoded as UTF8.  This is just a convenience constant to make sure we're using
@@ -76,3 +78,5 @@ public struct DistributedNotificationObjectDecoder<T: Decodable> {
         return object
     }
 }
+
+#endif
