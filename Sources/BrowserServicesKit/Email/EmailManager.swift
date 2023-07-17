@@ -78,7 +78,7 @@ public enum EmailManagerPermittedAddressType {
 public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
     func emailManager(_ emailManager: EmailManager,
-                      didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType) -> Void)
+                      didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType, _ autosave: Bool) -> Void)
 
 }
 // swiftlint:enable identifier_name
@@ -137,6 +137,7 @@ public struct EmailUrls {
 }
 
 public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
+public typealias AliasAutosaveCompletion = (String?, _ autosave: Bool, AliasRequestError?) -> Void
 public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
 public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ token: String?, AliasRequestError?) -> Void
 
@@ -258,6 +259,9 @@ public class EmailManager {
         guard let username = username else { return nil }
         return username + "@" + EmailManager.emailDomain
     }
+
+    // Whethe we should autosave email addresses in the vault
+    private var shouldAutosave: Bool = true
 
     private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
         get {
@@ -381,40 +385,41 @@ extension EmailManager: AutofillEmailDelegate {
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                                    shouldConsumeAliasIfProvided: Bool,
-                                   completionHandler: @escaping AliasCompletion) {
+                                   completionHandler: @escaping AliasAutosaveCompletion) {
             
         getAliasIfNeeded { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil, let self = self else {
-                completionHandler(nil, error)
+                completionHandler(nil, false, error)
                 return
             }
             
             if requiresUserPermission {
                 guard let delegate = self.aliasPermissionDelegate else {
                     assertionFailure("EmailUserScript requires permission to provide Alias")
-                    completionHandler(nil, .permissionDelegateNil)
+                    completionHandler(nil, false, .permissionDelegateNil)
                     return
                 }
                 
-                delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType in
+                delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType, autosave in
                     switch permissionType {
                     case .user:
                         if let username = self?.username {
-                            completionHandler(username, nil)
+                            completionHandler(username, autosave, nil)
                         } else {
-                            completionHandler(nil, .userRefused)
+                            completionHandler(nil, false, .userRefused)
                         }
                     case .generated:
-                        completionHandler(newAlias, nil)
+                        // Only generated addresses should be autosaved
+                        completionHandler(newAlias, autosave, nil)
                         if shouldConsumeAliasIfProvided {
                             self?.consumeAliasAndReplace()
                         }
                     case .none:
-                        completionHandler(nil, .userRefused)
+                        completionHandler(nil, false, .userRefused)
                     }
                 })
             } else {
-                completionHandler(newAlias, nil)
+                completionHandler(newAlias, true, nil)
                 if shouldConsumeAliasIfProvided {
                     self.consumeAliasAndReplace()
                 }
