@@ -1,5 +1,5 @@
 //
-//  LoginsProvider.swift
+//  CredentialsProvider.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -23,13 +23,13 @@ import Combine
 import DDGSync
 import GRDB
 
-public final class LoginsProvider: DataProviding {
+public final class CredentialsProvider: DataProviding {
 
-    public init(secureVaultFactory: SecureVaultFactory = .default, metadataStore: SyncMetadataStore, reloadLoginsAfterSync: @escaping () -> Void) throws {
+    public init(secureVaultFactory: SecureVaultFactory = .default, metadataStore: SyncMetadataStore, reloadCredentialsAfterSync: @escaping () -> Void) throws {
         self.secureVaultFactory = secureVaultFactory
         self.metadataStore = metadataStore
         try self.metadataStore.registerFeature(named: feature.name)
-        self.reloadLoginsAfterSync = reloadLoginsAfterSync
+        self.reloadCredentialsAfterSync = reloadCredentialsAfterSync
         syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
 
@@ -98,7 +98,7 @@ public final class LoginsProvider: DataProviding {
             do {
                 try secureVault.inDatabaseTransaction { database in
 
-                    let responseHandler = try LoginsResponseHandler(
+                    let responseHandler = try CredentialsResponseHandler(
                         received: received,
                         clientTimestamp: clientTimestampMilliseconds,
                         secureVault: secureVault,
@@ -148,7 +148,7 @@ public final class LoginsProvider: DataProviding {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            reloadLoginsAfterSync()
+            reloadCredentialsAfterSync()
         }
     }
 
@@ -198,7 +198,7 @@ public final class LoginsProvider: DataProviding {
 
     private let secureVaultFactory: SecureVaultFactory
     private let metadataStore: SyncMetadataStore
-    private let reloadLoginsAfterSync: () -> Void
+    private let reloadCredentialsAfterSync: () -> Void
     private let syncErrorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {

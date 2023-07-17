@@ -32,6 +32,10 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     var _note: SecureVaultModels.Note?
     // swiftlint:enable identifier_name
 
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+        false
+    }
+
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         if let accountIdString = credentials.account.id, let accountID = Int64(accountIdString) {
             _credentialsDict[accountID] = credentials

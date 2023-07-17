@@ -35,7 +35,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     var metadataDatabaseLocation: URL!
 
     var crypter = CryptingMock()
-    var provider: LoginsProvider!
+    var provider: CredentialsProvider!
 
     var secureVaultFactory: SecureVaultFactory!
     var secureVault: SecureVault!
@@ -78,10 +78,10 @@ internal class CredentialsProviderTestsBase: XCTestCase {
 
         setUpSyncMetadataDatabase()
 
-        provider = try LoginsProvider(
+        provider = try CredentialsProvider(
             secureVaultFactory: secureVaultFactory,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            reloadLoginsAfterSync: {}
+            reloadCredentialsAfterSync: {}
         )
     }
 
