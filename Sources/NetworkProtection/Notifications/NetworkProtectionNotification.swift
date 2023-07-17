@@ -21,18 +21,6 @@ import Common
 
 #if os(macOS)
 
-fileprivate extension Bundle {
-    private static let networkProtectionDistributedNotificationPrefixKey = "DISTRIBUTED_NOTIFICATIONS_PREFIX"
-
-    var networkProtectionDistributedNotificationPrefix: String {
-        guard let bundleID = object(forInfoDictionaryKey: Self.networkProtectionDistributedNotificationPrefixKey) as? String else {
-            fatalError("Info.plist is missing \(Self.networkProtectionDistributedNotificationPrefixKey)")
-        }
-
-        return bundleID
-    }
-}
-
 extension DistributedNotificationCenter {
     // MARK: - Logging
 
