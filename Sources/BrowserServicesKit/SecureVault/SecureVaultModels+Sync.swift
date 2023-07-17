@@ -40,7 +40,7 @@ extension SecureVaultModels {
         public static let accountForeignKey = ForeignKey([Columns.objectId])
         public static let credentialsForeignKey = ForeignKey([Columns.objectId])
         public static let account = belongsTo(SecureVaultModels.WebsiteAccount.self, key: "account", using: accountForeignKey)
-        public static let rawCredentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "rawCredentials", using: credentialsForeignKey)
+        public static let credentials = belongsTo(SecureVaultModels.RawWebsiteCredentials.self, key: "rawCredentials", using: credentialsForeignKey)
 
         public var id: Int64?
         public var uuid: String

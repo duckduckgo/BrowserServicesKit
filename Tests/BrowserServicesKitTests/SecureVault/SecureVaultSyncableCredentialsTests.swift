@@ -282,7 +282,7 @@ extension SecureVaultModels.SyncableWebsiteCredentialInfo {
     static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialInfo] {
         try SecureVaultModels.SyncableWebsiteCredential
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
             .fetchAll(database)
     }

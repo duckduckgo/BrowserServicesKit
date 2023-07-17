@@ -308,7 +308,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredential
                 .filter(SecureVaultModels.SyncableWebsiteCredential.Columns.lastModified != nil)
                 .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-                .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
+                .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
                 .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
 
             return try rawMetadataRequest.fetchAll(database)
@@ -323,7 +323,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredential
             .filter(syncIds.contains(SecureVaultModels.SyncableWebsiteCredential.Columns.uuid))
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
 
         return try rawMetadataRequest.fetchAll(database)
@@ -333,7 +333,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         let request = SecureVaultModels.SyncableWebsiteCredential
             .filter(SecureVaultModels.SyncableWebsiteCredential.Columns.objectId == accountId)
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials)
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials)
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
 
         return try request.fetchOne(database)

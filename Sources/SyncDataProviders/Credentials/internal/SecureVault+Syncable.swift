@@ -47,7 +47,7 @@ extension SecureVault {
         ]
         let syncableCredentials = try SecureVaultModels.SyncableWebsiteCredential
             .including(optional: SecureVaultModels.SyncableWebsiteCredential.account.aliased(accountAlias))
-            .including(optional: SecureVaultModels.SyncableWebsiteCredential.rawCredentials.aliased(credentialsAlias))
+            .including(optional: SecureVaultModels.SyncableWebsiteCredential.credentials.aliased(credentialsAlias))
             .filter(conditions.joined(operator: .and))
             .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialInfo.self)
             .fetchAll(database)
