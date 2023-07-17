@@ -104,7 +104,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
 
     func fetchAllSyncableCredentials() throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
         try databaseProvider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
         }
     }
 
@@ -114,18 +114,6 @@ internal class CredentialsProviderTestsBase: XCTestCase {
 
     func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date = Date(), serverTimestamp: String = "1234") async throws {
         try await provider.handleInitialSyncResponse(received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
-    }
-}
-
-extension SecureVaultModels.SyncableWebsiteCredentialsInfo {
-
-    static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
-        try SecureVaultModels.SyncableWebsiteCredentials
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
-            .order(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid)
-            .fetchAll(database)
     }
 }
 

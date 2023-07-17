@@ -305,38 +305,22 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
         try db.read { database in
-            let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredentials
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query
                 .filter(SecureVaultModels.SyncableWebsiteCredentials.Columns.lastModified != nil)
-                .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
-                .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
-                .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
-
-            return try rawMetadataRequest.fetchAll(database)
+                .fetchAll(database)
         }
     }
 
     func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
-        typealias Metadata = SecureVaultModels.SyncableWebsiteCredentialsInfo
-        typealias Credentials = SecureVaultModels.WebsiteCredentials
-        typealias Account = SecureVaultModels.WebsiteAccount
-
-        let rawMetadataRequest = SecureVaultModels.SyncableWebsiteCredentials
+        try SecureVaultModels.SyncableWebsiteCredentialsInfo.query
             .filter(syncIds.contains(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid))
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
-
-        return try rawMetadataRequest.fetchAll(database)
+            .fetchAll(database)
     }
 
     func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableWebsiteCredentialsInfo? {
-        let request = SecureVaultModels.SyncableWebsiteCredentials
+        try SecureVaultModels.SyncableWebsiteCredentialsInfo.query
             .filter(SecureVaultModels.SyncableWebsiteCredentials.Columns.objectId == accountId)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
-
-        return try request.fetchOne(database)
+            .fetchOne(database)
     }
 
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
@@ -819,31 +803,31 @@ extension DefaultDatabaseProvider {
 
     static func migrateV10(database: Database) throws {
         typealias Account = SecureVaultModels.WebsiteAccount
-        typealias AccountSyncMetadata = SecureVaultModels.SyncableWebsiteCredentials
+        typealias SyncableCredentials = SecureVaultModels.SyncableWebsiteCredentials
 
-        try database.create(table: AccountSyncMetadata.databaseTableName) {
-            $0.autoIncrementedPrimaryKey(AccountSyncMetadata.Columns.id.name)
-            $0.column(AccountSyncMetadata.Columns.uuid.name, .text)
-            $0.column(AccountSyncMetadata.Columns.lastModified.name, .date)
-            $0.column(AccountSyncMetadata.Columns.objectId.name, .integer)
+        try database.create(table: SyncableCredentials.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SyncableCredentials.Columns.id.name)
+            $0.column(SyncableCredentials.Columns.uuid.name, .text)
+            $0.column(SyncableCredentials.Columns.lastModified.name, .date)
+            $0.column(SyncableCredentials.Columns.objectId.name, .integer)
             $0.foreignKey(
-                [AccountSyncMetadata.Columns.objectId.name],
+                [SyncableCredentials.Columns.objectId.name],
                 references: SecureVaultModels.WebsiteAccount.databaseTableName,
                 onDelete: .setNull
             )
         }
 
         try database.create(
-            index: [AccountSyncMetadata.databaseTableName, AccountSyncMetadata.Columns.uuid.name].joined(separator: "_"),
-            on: AccountSyncMetadata.databaseTableName,
-            columns: [AccountSyncMetadata.Columns.objectId.name],
+            index: [SyncableCredentials.databaseTableName, SyncableCredentials.Columns.uuid.name].joined(separator: "_"),
+            on: SyncableCredentials.databaseTableName,
+            columns: [SyncableCredentials.Columns.objectId.name],
             ifNotExists: false
         )
 
         try database.create(
-            index: [AccountSyncMetadata.databaseTableName, AccountSyncMetadata.Columns.objectId.name].joined(separator: "_"),
-            on: AccountSyncMetadata.databaseTableName,
-            columns: [AccountSyncMetadata.Columns.objectId.name],
+            index: [SyncableCredentials.databaseTableName, SyncableCredentials.Columns.objectId.name].joined(separator: "_"),
+            on: SyncableCredentials.databaseTableName,
+            columns: [SyncableCredentials.Columns.objectId.name],
             ifNotExists: false
         )
 
@@ -853,10 +837,10 @@ extension DefaultDatabaseProvider {
             let accountId: Int64 = row[Account.Columns.id]
             try database.execute(sql: """
                 INSERT INTO
-                    \(AccountSyncMetadata.databaseTableName)
+                    \(SyncableCredentials.databaseTableName)
                 (
-                    \(AccountSyncMetadata.Columns.id.name),
-                    \(AccountSyncMetadata.Columns.objectId.name),
+                    \(SyncableCredentials.Columns.id.name),
+                    \(SyncableCredentials.Columns.objectId.name),
                 )
                 VALUES (?, ?)
             """, arguments: [UUID().uuidString, accountId])

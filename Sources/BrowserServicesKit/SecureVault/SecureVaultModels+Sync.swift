@@ -33,6 +33,10 @@ public enum SecureVaultSyncableColumns: String, ColumnExpression {
 
 extension SecureVaultModels {
 
+    /**
+     * Struct representing Website Credentials as stored in the database (as opposed to `WebsiteCredentials`
+     * which )
+     */
     public struct WebsiteCredentialsRecord: FetchableRecord, PersistableRecord, TableRecord, Decodable {
 
         public typealias Columns = WebsiteCredentials.Columns
@@ -128,6 +132,14 @@ extension SecureVaultModels {
         public init(uuid: String = UUID().uuidString, credentials: WebsiteCredentials?, lastModified: Date? = Date()) {
             metadata = .init(uuid: uuid, objectId: credentials?.account.id.flatMap(Int64.init), lastModified: lastModified)
             self.credentials = credentials
+        }
+
+        static public var query: QueryInterfaceRequest<SyncableWebsiteCredentialsInfo> {
+            SecureVaultModels.SyncableWebsiteCredentials
+                .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
+                .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
+                .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
+                .order(SecureVaultModels.SyncableWebsiteCredentials.Columns.uuid)
         }
     }
 }

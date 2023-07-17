@@ -59,7 +59,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         }
 
         let metadataObjects = try provider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
         }
 
         XCTAssertEqual(metadataObjects.count, 1)
@@ -77,7 +77,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         }
 
         let metadataObjects = try provider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
         }
 
         XCTAssertEqual(metadataObjects.count, 1)
@@ -95,7 +95,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         }
 
         let metadataObjects = try provider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
         }
 
         XCTAssertEqual(metadataObjects.count, 1)
@@ -122,7 +122,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         }
 
         let metadataObjects = try provider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
         }
 
         XCTAssertEqual(metadataObjects.count, 1)
@@ -147,7 +147,7 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         }
 
         let metadataObjects = try provider.db.read { database in
-            try SecureVaultModels.SyncableWebsiteCredentialsInfo.fetchAll(database)
+            try SecureVaultModels.SyncableWebsiteCredentialsInfo.query.fetchAll(database)
         }
 
         let accounts = try provider.db.read { database in
@@ -274,16 +274,5 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
                 throw error
             }
         }
-    }
-}
-
-extension SecureVaultModels.SyncableWebsiteCredentialsInfo {
-
-    static func fetchAll(_ database: Database) throws -> [SecureVaultModels.SyncableWebsiteCredentialsInfo] {
-        try SecureVaultModels.SyncableWebsiteCredentials
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.account)
-            .including(optional: SecureVaultModels.SyncableWebsiteCredentials.credentials)
-            .asRequest(of: SecureVaultModels.SyncableWebsiteCredentialsInfo.self)
-            .fetchAll(database)
     }
 }
