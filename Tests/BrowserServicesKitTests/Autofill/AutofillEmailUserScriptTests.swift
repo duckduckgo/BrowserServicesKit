@@ -275,7 +275,7 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         return nil
     }
 
-    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript, completionHandler: @escaping BrowserServicesKit.SignUpCompletion) -> Void {
 
     }
 

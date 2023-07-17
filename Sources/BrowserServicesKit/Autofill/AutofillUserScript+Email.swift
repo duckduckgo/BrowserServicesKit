@@ -66,13 +66,23 @@ extension AutofillUserScript {
     func emailGetAlias(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
-              let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
+              let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool,
+              let isIncontextSignupAvailable = dict["isIncontextSignupAvailable"] as? Bool else { return }
 
-        if let isIncontextSignupAvailable = dict["isIncontextSignupAvailable"] as? Bool, isIncontextSignupAvailable {
-            emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] _ in
-                self?.requestAlias(requiresUserPermission: requiresUserPermission,
-                                   shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
-                    replyHandler(reply)
+        let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+
+        if isIncontextSignupAvailable, !signedIn {
+            emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, error in
+                if success {
+                    self?.requestAlias(requiresUserPermission: requiresUserPermission,
+                                       shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
+                        replyHandler(reply)
+                    }
+                } else {
+                    // TODO - need a js refresh state trigger here to handle:
+                    //  1. disable incontext prompt so remove dax icon
+                    //  2. incontext signup not completed, keep dax icon grey
+//                    replyHandler(nil)
                 }
             }
         } else {
@@ -185,7 +195,7 @@ extension AutofillUserScript {
     }
 
     func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { _ in }
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { _, _  in }
         replyHandler(nil)
     }
 
