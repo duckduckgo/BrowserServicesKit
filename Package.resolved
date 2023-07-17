@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "branch" : "shane/email-protection-saving",
-        "revision" : "c1c18ca7589f61a092ff4b0cee45f1b82b0f1479"
+        "branch" : "shane/email-saving-2",
+        "revision" : "7cc75bc0da1e135577e394c9304f2f3bbcf1e24b"
       }
     },
     {
