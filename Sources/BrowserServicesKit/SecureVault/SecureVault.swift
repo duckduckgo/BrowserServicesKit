@@ -78,7 +78,6 @@ public class DefaultSecureVault: SecureVault {
     public typealias AutofillDatabaseProviders = SecureVaultProviders<DefaultDatabaseProvider>
 
     private let lock = NSLock()
-    private let queue = DispatchQueue(label: "Secure Vault")
 
     private let providers: AutofillDatabaseProviders
     private let expiringPassword: ExpiringValue<Data>
