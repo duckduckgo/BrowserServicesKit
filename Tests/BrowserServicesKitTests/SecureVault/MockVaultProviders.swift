@@ -141,13 +141,13 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try storeWebsiteCredentials(credentials)
     }
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+    func deleteSyncableCredentials(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         if let accountId = metadata.metadata.objectId {
             try deleteWebsiteCredentialsForAccountId(accountId)
         }
     }
 
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         []
     }
 
@@ -155,7 +155,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try websiteCredentialsForAccountId(accountId)
     }
 
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
         nil
     }
 
@@ -163,10 +163,10 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         try websiteAccountsForDomain(domain)
     }
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: GRDB.Database) throws {
+    func storeSyncableCredentials(_ metadata: SecureVaultModels.SyncableCredentials, in database: GRDB.Database) throws {
     }
 
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableCredentials] {
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         []
     }
 

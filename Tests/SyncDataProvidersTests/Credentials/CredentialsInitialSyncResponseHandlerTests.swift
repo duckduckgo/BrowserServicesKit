@@ -29,7 +29,7 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatNewCredentialIsAppended() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
         }
 
         let received: [Syncable] = [
@@ -46,8 +46,8 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
 
     func testWhenDeletedCredentialIsReceivedThenItIsDeletedLocally() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
-            try self.secureVault.storeCredentialsMetadata("2", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
         }
 
         let received: [Syncable] = [
@@ -64,7 +64,7 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatDeletesForNonExistentCredentialsAreIgnored() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
         }
 
         let received: [Syncable] = [
@@ -81,8 +81,8 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatCredentialsAreDeduplicated() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
-            try self.secureVault.storeCredentialsMetadata("3", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+            try self.secureVault.storeSyncableCredentials("3", in: database)
         }
 
         let received: [Syncable] = [
@@ -101,8 +101,8 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatWhenCredentialsAreDeduplicatedThenRemoteTitleIsApplied() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", title: "local-title2", in: database)
-            try self.secureVault.storeCredentialsMetadata("3", title: "local-title4", in: database)
+            try self.secureVault.storeSyncableCredentials("1", title: "local-title2", in: database)
+            try self.secureVault.storeSyncableCredentials("3", title: "local-title4", in: database)
         }
 
         let received: [Syncable] = [
@@ -122,7 +122,7 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatCredentialsWithNilFieldsAreDeduplicated() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", nullifyOtherFields: true, in: database)
+            try self.secureVault.storeSyncableCredentials("1", nullifyOtherFields: true, in: database)
         }
 
         let received: [Syncable] = [

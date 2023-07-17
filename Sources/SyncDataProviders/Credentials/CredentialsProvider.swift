@@ -63,14 +63,14 @@ public final class CredentialsProvider: DataProviding {
 
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
-        var date = Date()
-        let metadata = try secureVault.modifiedWebsiteCredentialsMetadata()
-        print("Fetching took \(Date().timeIntervalSince(date)) s")
-        date = Date()
+        let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
-        let syncables = try metadata.map { try Syncable.init(metadata: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
-        print("Syncable population took \(Date().timeIntervalSince(date)) s")
-        return syncables
+        return try syncableCredentials.map { credentials in
+            try Syncable.init(
+                syncableCredentials: credentials,
+                encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
+            )
+        }
     }
 
     public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
@@ -160,19 +160,19 @@ public final class CredentialsProvider: DataProviding {
         let identifiers = sent.compactMap(\.uuid)
         var idsOfItemsToClearModifiedAt = Set<String>()
 
-        let metadataObjects = try SecureVaultModels.SyncableCredentialsRecord
+        let syncableCredentialsRecords = try SecureVaultModels.SyncableCredentialsRecord
             .filter(identifiers.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
             .fetchAll(database)
 
-        for metadata in metadataObjects {
-            if let modifiedAt = metadata.lastModified, Int(modifiedAt.timeIntervalSince1970 * 1000) > Int(clientTimestamp.timeIntervalSince1970 * 1000) {
+        for metadataRecord in syncableCredentialsRecords {
+            if let modifiedAt = metadataRecord.lastModified, modifiedAt.compareWithMillisecondPrecision(to: clientTimestamp) == .orderedDescending {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadata.uuid)
-            if metadata.objectId == nil, !isLocalChangeRejectedBySync {
-                try metadata.delete(database)
+            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataRecord.uuid)
+            if metadataRecord.objectId == nil, !isLocalChangeRejectedBySync {
+                try metadataRecord.delete(database)
             } else {
-                idsOfItemsToClearModifiedAt.insert(metadata.uuid)
+                idsOfItemsToClearModifiedAt.insert(metadataRecord.uuid)
             }
         }
 

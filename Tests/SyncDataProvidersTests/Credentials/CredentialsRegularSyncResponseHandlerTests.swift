@@ -29,7 +29,7 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatNewCredentialIsAppended() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
         }
 
         let received: [Syncable] = [
@@ -47,8 +47,8 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
     func testWhenDeletedCredentialIsReceivedThenItIsDeletedLocally() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
-            try self.secureVault.storeCredentialsMetadata("2", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
         }
 
         let received: [Syncable] = [
@@ -65,7 +65,7 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatDeletesForNonExistentCredentialsAreIgnored() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
         }
 
         let received: [Syncable] = [
@@ -82,8 +82,8 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
 
     func testThatSinglePayloadCanDeleteCreateAndUpdateCredentials() async throws {
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
-            try self.secureVault.storeCredentialsMetadata("3", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+            try self.secureVault.storeSyncableCredentials("3", in: database)
         }
 
         let received: [Syncable] = [

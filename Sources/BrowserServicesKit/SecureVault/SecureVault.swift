@@ -69,12 +69,12 @@ public protocol SecureVault {
     // MARK: - Sync Support
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableCredentials]
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
+    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
 
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
 }
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
@@ -284,15 +284,15 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
-        guard let credentials = metadata.credentials else {
+    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        guard let credentials = syncableCredentials.credentials else {
             assertionFailure("nil credentials passed to \(#function)")
             return
         }
         let encryptedCredentials = try encryptPassword(for: credentials)
-        var metadataToStore = metadata
-        metadataToStore.credentials = encryptedCredentials
-        try providers.database.storeWebsiteCredentialsMetadata(metadataToStore, in: database)
+        var syncableCredentialsToStore = syncableCredentials
+        syncableCredentialsToStore.credentials = encryptedCredentials
+        try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
     }
 
     private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials) throws -> SecureVaultModels.WebsiteCredentials {
@@ -309,8 +309,8 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
-        try self.providers.database.deleteWebsiteCredentialsMetadata(metadata, in: database)
+    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        try self.providers.database.deleteSyncableCredentials(syncableCredentials, in: database)
     }
 
     @discardableResult
@@ -461,35 +461,35 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableCredentials] {
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         lock.lock()
         defer {
             lock.unlock()
         }
 
         do {
-            var metadata = try providers.database.modifiedWebsiteCredentialsMetadata()
+            var syncableCredentials = try providers.database.modifiedSyncableCredentials()
             let key = try getEncryptionKey()
-            for i in 0..<metadata.count {
-                guard let password = metadata[i].credentials?.password else {
+            for i in 0..<syncableCredentials.count {
+                guard let password = syncableCredentials[i].credentials?.password else {
                     continue
                 }
-                metadata[i].credentials?.password = try decrypt(password, using: key)
+                syncableCredentials[i].credentials?.password = try decrypt(password, using: key)
             }
 
-            return metadata
+            return syncableCredentials
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
         }
     }
 
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
-        try self.providers.database.websiteCredentialsMetadataForSyncIds(syncIds, in: database)
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+        try self.providers.database.syncableCredentialsForSyncIds(syncIds, in: database)
     }
 
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
-        try self.providers.database.websiteCredentialsMetadataForAccountId(accountId, in: database)
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+        try self.providers.database.syncableCredentialsForAccountId(accountId, in: database)
     }
 
     // MARK: - Private

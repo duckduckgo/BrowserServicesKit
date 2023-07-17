@@ -39,10 +39,10 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllCredentials() throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
-            try self.secureVault.storeCredentialsMetadata("2", in: database)
-            try self.secureVault.storeCredentialsMetadata("3", in: database)
-            try self.secureVault.storeCredentialsMetadata("4", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
+            try self.secureVault.storeSyncableCredentials("3", in: database)
+            try self.secureVault.storeSyncableCredentials("4", in: database)
         }
 
         var syncableCredentials = try fetchAllSyncableCredentials()
@@ -60,10 +60,10 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testThatFetchChangedObjectsReturnsAllObjectsWithNonNilModifiedAt() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("2", in: database)
-            try self.secureVault.storeCredentialsMetadata("3", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("4", in: database)
+            try self.secureVault.storeSyncableCredentials("1", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
+            try self.secureVault.storeSyncableCredentials("3", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("4", in: database)
         }
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
@@ -77,10 +77,10 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testWhenCredentialsAreSoftDeletedThenFetchChangedObjectsContainsDeletedSyncable() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
-            try self.secureVault.storeCredentialsMetadata("2", in: database)
-            try self.secureVault.storeCredentialsMetadata("3", in: database)
-            try self.secureVault.storeCredentialsMetadata("4", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
+            try self.secureVault.storeSyncableCredentials("3", in: database)
+            try self.secureVault.storeSyncableCredentials("4", in: database)
         }
 
         try secureVault.deleteWebsiteCredentialsFor(accountId: 2)
@@ -98,10 +98,10 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testThatSentItemsAreProperlyCleanedUp() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("10", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("20", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("30", lastModified: Date(), in: database)
-            try self.secureVault.storeCredentialsMetadata("40", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("10", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("20", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("30", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("40", lastModified: Date(), in: database)
         }
 
         try secureVault.deleteWebsiteCredentialsFor(accountId: 2)
@@ -136,7 +136,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testThatInitialSyncClearsModifiedAtFromDeduplicatedCredential() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: Date().withMillisecondPrecision, in: database)
+            try self.secureVault.storeSyncableCredentials("1", lastModified: Date().withMillisecondPrecision, in: database)
         }
 
         let received: [Syncable] = [
@@ -153,7 +153,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testThatInitialSyncClearsModifiedAtFromDeduplicatedCredentialWithAllFieldsNil() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", nullifyOtherFields: true, lastModified: Date().withMillisecondPrecision, in: database)
+            try self.secureVault.storeSyncableCredentials("1", nullifyOtherFields: true, lastModified: Date().withMillisecondPrecision, in: database)
         }
 
         let received: [Syncable] = [
@@ -204,7 +204,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     func testWhenObjectDeleteIsSentAndTheSameObjectUpdateIsReceivedThenObjectIsNotDeleted() async throws {
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", in: database)
+            try self.secureVault.storeSyncableCredentials("1", in: database)
         }
 
         try secureVault.deleteWebsiteCredentialsFor(accountId: 1)
@@ -228,7 +228,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         let modifiedAt = Date().withMillisecondPrecision
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: modifiedAt, in: database)
+            try self.secureVault.storeSyncableCredentials("1", lastModified: modifiedAt, in: database)
         }
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
@@ -252,7 +252,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         let modifiedAt = Date().withMillisecondPrecision
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: modifiedAt, in: database)
+            try self.secureVault.storeSyncableCredentials("1", lastModified: modifiedAt, in: database)
         }
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
@@ -265,7 +265,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         try secureVault.storeWebsiteCredentials(credentials)
         var updateTimestamp: Date?
         try secureVault.inDatabaseTransaction({ database in
-            updateTimestamp = try self.secureVault.websiteCredentialsMetadataForAccountId(1, in: database)?.metadata.lastModified
+            updateTimestamp = try self.secureVault.syncableCredentialsForAccountId(1, in: database)?.metadata.lastModified
         })
 
         try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
@@ -285,7 +285,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
 
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeCredentialsMetadata("1", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("1", lastModified: Date(), in: database)
         }
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)

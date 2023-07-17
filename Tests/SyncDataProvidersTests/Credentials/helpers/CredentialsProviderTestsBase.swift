@@ -125,7 +125,7 @@ extension SecureVault {
         try storeWebsiteCredentials(credentials)
     }
 
-    func storeCredentialsMetadata(
+    func storeSyncableCredentials(
         _ uuid: String = UUID().uuidString,
         title: String? = nil,
         domain: String? = nil,
@@ -147,11 +147,11 @@ extension SecureVault {
         let passwordData = password.flatMap { $0.data(using: .utf8) }
         let account = SecureVaultModels.WebsiteAccount(title: title, username: username, domain: domain, notes: notes)
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-        let metadata = SecureVaultModels.SyncableCredentials(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
+        let syncableCredentials = SecureVaultModels.SyncableCredentials(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
         if let database {
-            try storeWebsiteCredentialsMetadata(metadata, in: database)
+            try storeSyncableCredentials(syncableCredentials, in: database)
         } else {
-            try inDatabaseTransaction { try storeWebsiteCredentialsMetadata(metadata, in: $0) }
+            try inDatabaseTransaction { try storeSyncableCredentials(syncableCredentials, in: $0) }
         }
     }
 }

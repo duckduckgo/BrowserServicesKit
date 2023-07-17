@@ -53,20 +53,16 @@ protocol SecureVaultDatabaseProvider {
     // MARK: - Sync Support
     func inTransaction(_ block: @escaping (Database) throws -> Void) throws
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws
-
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws
-
-    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
-
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableCredentials]
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
-
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
+    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
+    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
+    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 }
 
 final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
@@ -196,19 +192,19 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func storeWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
-        guard var credentials = metadata.credentials else {
+    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        guard var credentials = syncableCredentials.credentials else {
             assertionFailure("Nil credentials passed to \(#function)")
             return
         }
         do {
-            var updatedMetadata = metadata
+            var updatedSyncableCredentials = syncableCredentials
             if let account = try credentials.account.saveAndFetch(database) {
                 credentials.account = account
-                updatedMetadata.account = account
+                updatedSyncableCredentials.account = account
             }
             try SecureVaultModels.WebsiteCredentialsRecord(credentials: credentials).save(database)
-            try updatedMetadata.metadata.save(database)
+            try updatedSyncableCredentials.metadata.save(database)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
                 throw SecureVaultError.duplicateRecord
@@ -229,11 +225,11 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteWebsiteCredentialsMetadata(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
-        if let accountId = metadata.metadata.objectId {
+    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        if let accountId = syncableCredentials.metadata.objectId {
             try deleteWebsiteCredentialsForAccountId(accountId, in: database)
         }
-        try metadata.metadata.delete(database)
+        try syncableCredentials.metadata.delete(database)
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
@@ -303,7 +299,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func modifiedWebsiteCredentialsMetadata() throws -> [SecureVaultModels.SyncableCredentials] {
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         try db.read { database in
             try SecureVaultModels.SyncableCredentials.query
                 .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified != nil)
@@ -311,13 +307,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteCredentialsMetadataForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         try SecureVaultModels.SyncableCredentials.query
             .filter(syncIds.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
             .fetchAll(database)
     }
 
-    func websiteCredentialsMetadataForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
         try SecureVaultModels.SyncableCredentials.query
             .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.objectId == accountId)
             .fetchOne(database)
@@ -542,6 +538,18 @@ extension Date {
      */
     public var withMillisecondPrecision: Date {
         Date(timeIntervalSince1970: TimeInterval(Int(timeIntervalSince1970 * 1_000_000) / 1_000) / 1_000)
+    }
+
+    public func compareWithMillisecondPrecision(to other: Date) -> ComparisonResult {
+        let milliseconds = Int(timeIntervalSince1970 * 1000)
+        let otherMilliseconds = Int(other.timeIntervalSince1970 * 1000)
+        if milliseconds > otherMilliseconds {
+            return .orderedDescending
+        }
+        if milliseconds < otherMilliseconds {
+            return .orderedAscending
+        }
+        return .orderedSame
     }
 }
 
@@ -803,31 +811,31 @@ extension DefaultDatabaseProvider {
 
     static func migrateV10(database: Database) throws {
         typealias Account = SecureVaultModels.WebsiteAccount
-        typealias SyncableCredentials = SecureVaultModels.SyncableCredentialsRecord
+        typealias SyncableCredentialsRecord = SecureVaultModels.SyncableCredentialsRecord
 
-        try database.create(table: SyncableCredentials.databaseTableName) {
-            $0.autoIncrementedPrimaryKey(SyncableCredentials.Columns.id.name)
-            $0.column(SyncableCredentials.Columns.uuid.name, .text)
-            $0.column(SyncableCredentials.Columns.lastModified.name, .date)
-            $0.column(SyncableCredentials.Columns.objectId.name, .integer)
+        try database.create(table: SyncableCredentialsRecord.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SyncableCredentialsRecord.Columns.id.name)
+            $0.column(SyncableCredentialsRecord.Columns.uuid.name, .text)
+            $0.column(SyncableCredentialsRecord.Columns.lastModified.name, .date)
+            $0.column(SyncableCredentialsRecord.Columns.objectId.name, .integer)
             $0.foreignKey(
-                [SyncableCredentials.Columns.objectId.name],
+                [SyncableCredentialsRecord.Columns.objectId.name],
                 references: SecureVaultModels.WebsiteAccount.databaseTableName,
                 onDelete: .setNull
             )
         }
 
         try database.create(
-            index: [SyncableCredentials.databaseTableName, SyncableCredentials.Columns.uuid.name].joined(separator: "_"),
-            on: SyncableCredentials.databaseTableName,
-            columns: [SyncableCredentials.Columns.objectId.name],
+            index: [SyncableCredentialsRecord.databaseTableName, SyncableCredentialsRecord.Columns.uuid.name].joined(separator: "_"),
+            on: SyncableCredentialsRecord.databaseTableName,
+            columns: [SyncableCredentialsRecord.Columns.objectId.name],
             ifNotExists: false
         )
 
         try database.create(
-            index: [SyncableCredentials.databaseTableName, SyncableCredentials.Columns.objectId.name].joined(separator: "_"),
-            on: SyncableCredentials.databaseTableName,
-            columns: [SyncableCredentials.Columns.objectId.name],
+            index: [SyncableCredentialsRecord.databaseTableName, SyncableCredentialsRecord.Columns.objectId.name].joined(separator: "_"),
+            on: SyncableCredentialsRecord.databaseTableName,
+            columns: [SyncableCredentialsRecord.Columns.objectId.name],
             ifNotExists: false
         )
 
@@ -837,10 +845,10 @@ extension DefaultDatabaseProvider {
             let accountId: Int64 = row[Account.Columns.id]
             try database.execute(sql: """
                 INSERT INTO
-                    \(SyncableCredentials.databaseTableName)
+                    \(SyncableCredentialsRecord.databaseTableName)
                 (
-                    \(SyncableCredentials.Columns.id.name),
-                    \(SyncableCredentials.Columns.objectId.name),
+                    \(SyncableCredentialsRecord.Columns.id.name),
+                    \(SyncableCredentialsRecord.Columns.objectId.name),
                 )
                 VALUES (?, ?)
             """, arguments: [UUID().uuidString, accountId])
@@ -849,14 +857,13 @@ extension DefaultDatabaseProvider {
         try database.dropIndexIfExists(Account.databaseTableName + "_unique")
 
         // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
-        try database.create(index: Account.databaseTableName + "_domain_username",
-                            on: Account.databaseTableName,
-                            columns: [
-                                Account.Columns.domain.name,
-                                Account.Columns.username.name
-                            ],
-                            unique: false,
-                            ifNotExists: false)
+        try database.create(
+            index: [Account.databaseTableName, Account.Columns.domain.name, Account.Columns.username.name].joined(separator: "_"),
+            on: Account.databaseTableName,
+            columns: [Account.Columns.domain.name, Account.Columns.username.name],
+            unique: false,
+            ifNotExists: false
+        )
     }
 
     // Refresh password comparison hashes

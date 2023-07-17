@@ -61,7 +61,7 @@ final class CredentialsResponseHandler {
         self.allReceivedIDs = allUUIDs
         self.receivedByUUID = syncablesByUUID
 
-        credentialsByUUID = try secureVault.websiteCredentialsMetadataForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.metadata.uuid] = $1 })
+        credentialsByUUID = try secureVault.syncableCredentialsForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.metadata.uuid] = $1 })
     }
 
     func processReceivedCredentials() throws {
@@ -86,7 +86,7 @@ final class CredentialsResponseHandler {
             let oldUUID = deduplicatedEntity.metadata.uuid
             deduplicatedEntity.account?.title = try syncable.encryptedTitle.flatMap(decrypt)
             deduplicatedEntity.metadata.uuid = syncableUUID
-            try secureVault.storeWebsiteCredentialsMetadata(deduplicatedEntity, in: database)
+            try secureVault.storeSyncableCredentials(deduplicatedEntity, in: database)
 
             credentialsByUUID.removeValue(forKey: oldUUID)
             credentialsByUUID[syncableUUID] = deduplicatedEntity
@@ -100,11 +100,11 @@ final class CredentialsResponseHandler {
             }()
             if !isModifiedAfterSyncTimestamp {
                 if syncable.isDeleted {
-                    try secureVault.deleteWebsiteCredentialsMetadata(existingEntity, in: database)
+                    try secureVault.deleteSyncableCredentials(existingEntity, in: database)
                 } else {
                     try existingEntity.update(with: syncable, decryptedUsing: decrypt)
                     existingEntity.metadata.lastModified = nil
-                    try secureVault.storeWebsiteCredentialsMetadata(existingEntity, in: database)
+                    try secureVault.storeSyncableCredentials(existingEntity, in: database)
                 }
             }
 
@@ -112,7 +112,7 @@ final class CredentialsResponseHandler {
 
             let newEntity = try SecureVaultModels.SyncableCredentials(syncable: syncable, decryptedUsing: decrypt)
             assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
-            try secureVault.storeWebsiteCredentialsMetadata(newEntity, in: database)
+            try secureVault.storeSyncableCredentials(newEntity, in: database)
             credentialsByUUID[syncableUUID] = newEntity
         }
     }
