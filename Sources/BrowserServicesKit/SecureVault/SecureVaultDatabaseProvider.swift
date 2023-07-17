@@ -57,6 +57,9 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     let db: DatabaseQueue
 
     public init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
+
+        // GENERIC STUFF:
+
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -73,6 +76,9 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
 
         var migrator = DatabaseMigrator()
+
+        // AUTOFILL STUFF:
+
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
@@ -85,6 +91,8 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         // Add more sync migrations here ...
         // Note, these migrations will run synchronously on first access to secureVault DB
 
+        // RESUME MIGRATION:
+
         do {
             try migrator.migrate(db)
         } catch {
@@ -93,6 +101,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
+    // TODO: Move into SecureStorage
     public static func recreateDatabase(withKey key: Data) throws -> DefaultDatabaseProvider {
         let dbFile = self.dbFile()
 
@@ -751,6 +760,7 @@ struct MigrationUtility {
 
 }
 
+// TODO: Move into SecureStorage
 extension DefaultDatabaseProvider {
 
     static public func dbFile() -> URL {

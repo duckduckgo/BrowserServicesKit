@@ -48,6 +48,7 @@ public protocol SecureVaultCryptoProvider {
 
 // MARK: - SecureVaultCryptoProvider Default Implementation
 
+// TODO: This doesn't go here
 public enum SecureVaultCryptoProviderConstants {
     public static let keySizeInBytes = 256 / 8
 }
