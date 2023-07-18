@@ -58,8 +58,6 @@ public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     public init(file: URL = DefaultAutofillDatabaseProvider.dbFile(), key: Data) throws {
 
-        // GENERIC STUFF:
-
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -77,8 +75,6 @@ public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
 
         var migrator = DatabaseMigrator()
 
-        // AUTOFILL STUFF:
-
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
         migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
@@ -91,38 +87,12 @@ public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
         // Add more sync migrations here ...
         // Note, these migrations will run synchronously on first access to secureVault DB
 
-        // RESUME MIGRATION:
-
         do {
             try migrator.migrate(db)
         } catch {
             os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
             throw error
         }
-    }
-
-    // TODO: Move into SecureStorage
-    public static func recreateDatabase(withKey key: Data) throws -> DefaultAutofillDatabaseProvider {
-        let dbFile = self.dbFile()
-
-        guard FileManager.default.fileExists(atPath: dbFile.path) else {
-            return try Self(file: dbFile, key: key)
-        }
-
-        // make sure we can create an empty db first and release it then
-        let newDbFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension)
-        try autoreleasepool {
-            try _=Self(file: newDbFile, key: key)
-        }
-
-        // backup old db file
-        let backupFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension + ".bak")
-        try FileManager.default.moveItem(at: dbFile, to: backupFile)
-
-        // place just created new db in place of dbFile
-        try FileManager.default.moveItem(at: newDbFile, to: dbFile)
-
-        return try Self(file: dbFile, key: key)
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
@@ -756,51 +726,6 @@ struct MigrationUtility {
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
         return try crypto.decrypt(data, withKey: decryptedL2Key)
-    }
-
-}
-
-// TODO: Move into SecureStorage
-extension DefaultAutofillDatabaseProvider {
-
-    static public func dbFile() -> URL {
-
-        let fm = FileManager.default
-        let subDir = fm.applicationSupportDirectoryForComponent(named: "Vault")
-
-        var isDir: ObjCBool = false
-        if !fm.fileExists(atPath: subDir.path, isDirectory: &isDir) {
-            do {
-                try fm.createDirectory(at: subDir, withIntermediateDirectories: true, attributes: nil)
-                isDir = true
-            } catch {
-                fatalError("Failed to create directory at \(subDir.path)")
-            }
-        }
-
-        if !isDir.boolValue {
-            fatalError("Configuration folder at \(subDir.path) is not a directory")
-        }
-
-        return subDir.appendingPathComponent("Vault.db")
-    }
-
-    static internal func nonExistingDBFile(withExtension ext: String) -> URL {
-        let originalPath = Self.dbFile().deletingPathExtension().path
-
-        for i in 0... {
-            var path = originalPath
-            if i > 0 {
-                path += "_\(i)"
-            }
-            path += "." + ext
-
-            if !FileManager.default.fileExists(atPath: path) {
-                return URL(fileURLWithPath: path)
-            }
-        }
-
-        fatalError()
     }
 
 }
