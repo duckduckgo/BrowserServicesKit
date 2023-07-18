@@ -1,5 +1,5 @@
 //
-//  SecureVaultProviders.swift
+//  SecureStorageProviders.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
-public struct SecureVaultProviders<DatabaseProvider: SecureStorageDatabaseProvider> {
+public struct SecureStorageProviders<DatabaseProvider: SecureStorageDatabaseProvider> {
 
     public var crypto: SecureVaultCryptoProvider
     public var database: DatabaseProvider

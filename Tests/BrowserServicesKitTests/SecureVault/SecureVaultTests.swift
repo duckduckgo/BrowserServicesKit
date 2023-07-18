@@ -32,9 +32,9 @@ class SecureVaultTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        let providers = SecureVaultProviders(crypto: mockCryptoProvider,
-                                             database: mockDatabaseProvider,
-                                             keystore: mockKeystoreProvider)
+        let providers = SecureStorageProviders(crypto: mockCryptoProvider,
+                                               database: mockDatabaseProvider,
+                                               keystore: mockKeystoreProvider)
 
         testVault = DefaultSecureVault(authExpiry: 1,
                                        providers: providers)

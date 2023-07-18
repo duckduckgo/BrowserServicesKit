@@ -24,6 +24,6 @@ public protocol GenericVault {
 
     var authExpiry: TimeInterval { get }
 
-    init(authExpiry: TimeInterval, providers: SecureVaultProviders<DatabaseProvider>)
+    init(authExpiry: TimeInterval, providers: SecureStorageProviders<DatabaseProvider>)
 
 }

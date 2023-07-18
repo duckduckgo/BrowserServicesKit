@@ -77,7 +77,7 @@ public protocol SecureVault: GenericVault {
 
 public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
 
-    public typealias AutofillDatabaseProviders = SecureVaultProviders<T>
+    public typealias AutofillDatabaseProviders = SecureStorageProviders<T>
 
     private let lock = NSLock()
 

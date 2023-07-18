@@ -68,7 +68,7 @@ open class SecureVaultFactory<Vault: GenericVault> {
             }
 
             do {
-                let providers = try makeSecureVaultProviders()
+                let providers = try makeSecureStorageProviders()
                 let vault = Vault(authExpiry: authExpiration, providers: providers)
 
                 self.vault = vault
@@ -86,7 +86,7 @@ open class SecureVaultFactory<Vault: GenericVault> {
 
     }
     
-    public func makeSecureVaultProviders() throws -> SecureVaultProviders<Vault.DatabaseProvider> {
+    public func makeSecureStorageProviders() throws -> SecureStorageProviders<Vault.DatabaseProvider> {
         let (cryptoProvider, keystoreProvider): (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider)
         do {
             (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
@@ -109,7 +109,7 @@ open class SecureVaultFactory<Vault: GenericVault> {
             throw SecureVaultError.failedToOpenDatabase(cause: error)
         }
 
-        return SecureVaultProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
+        return SecureStorageProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
     }
     
     public func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider) {

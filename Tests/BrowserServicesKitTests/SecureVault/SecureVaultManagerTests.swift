@@ -59,7 +59,7 @@ class SecureVaultManagerTests: XCTestCase {
         mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
 
-        let providers = SecureVaultProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)
+        let providers = SecureStorageProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)
         
         self.testVault = DefaultSecureVault(authExpiry: 30, providers: providers)
         self.secureVaultManagerDelegate = MockSecureVaultManagerDelegate()
