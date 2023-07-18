@@ -94,7 +94,7 @@ public class SecureVaultManager {
 
     public weak var delegate: SecureVaultManagerDelegate?
     
-    private let vault: (any SecureVault)?
+    private let vault: (any AutofillSecureVault)?
 
     // Third party password manager
     private let passwordManager: PasswordManager?
@@ -110,7 +110,7 @@ public class SecureVaultManager {
                                              tld: tld)
     }()
 
-    public init(vault: (any SecureVault)? = nil,
+    public init(vault: (any AutofillSecureVault)? = nil,
                 passwordManager: PasswordManager? = nil,
                 includePartialAccountMatches: Bool = false,
                 tld: TLD? = nil) {
@@ -515,7 +515,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
     
     private func existingIdentity(with autofillData: AutofillUserScript.DetectedAutofillData,
-                                  vault: any SecureVault) throws -> SecureVaultModels.Identity? {
+                                  vault: any AutofillSecureVault) throws -> SecureVaultModels.Identity? {
         if let identity = autofillData.identity, try vault.existingIdentityForAutofill(matching: identity) == nil {
             os_log("Got new identity/address to save", log: .passwordManager)
             return identity
@@ -529,7 +529,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                      domain: String,
                                      automaticallySavedCredentials: Bool,
                                      shouldSilentlySave: Bool,
-                                     vault: any SecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
+                                     vault: any AutofillSecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
         if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
             let accounts = try vault.accountsFor(domain: domain)
             if let account = accounts.first(where: { $0.username == credentials.username ?? "" }) {
@@ -561,7 +561,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
     
     private func existingPaymentMethod(with autofillData: AutofillUserScript.DetectedAutofillData,
-                                       vault: any SecureVault) throws -> SecureVaultModels.CreditCard? {
+                                       vault: any AutofillSecureVault) throws -> SecureVaultModels.CreditCard? {
         if let card = autofillData.creditCard, try vault.existingCardForAutofill(matching: card) == nil {
             os_log("Got new payment method to save", log: .passwordManager)
             return card
@@ -585,7 +585,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
 
     private func getAccounts(for domain: String,
-                             from vault: any SecureVault,
+                             from vault: any AutofillSecureVault,
                              or passwordManager: PasswordManager?,
                              withPartialMatches: Bool = false,
                              completion: @escaping ([SecureVaultModels.WebsiteAccount], Error?) -> ()) {
@@ -615,7 +615,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
 
     private func getCredentials(for accountId: String,
-                                from vault: any SecureVault,
+                                from vault: any AutofillSecureVault,
                         or passwordManager: PasswordManager?,
                         completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void) {
         if let passwordManager = passwordManager,
@@ -635,7 +635,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     private func existingCredentialsInPasswordManager(with autofillData: AutofillUserScript.DetectedAutofillData,
                                                       domain: String,
                                                       automaticallySavedCredentials: Bool,
-                                                      vault: any SecureVault) -> SecureVaultModels.WebsiteCredentials? {
+                                                      vault: any AutofillSecureVault) -> SecureVaultModels.WebsiteCredentials? {
         guard let passwordManager = passwordManager, passwordManager.isEnabled else {
             return nil
         }
@@ -669,7 +669,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
 }
 
-fileprivate extension SecureVault {
+fileprivate extension AutofillSecureVault {
 
     func websiteCredentialsFor(accountId: String) throws -> SecureVaultModels.WebsiteCredentials? {
         guard let accountIdInt = Int64(accountId) else {

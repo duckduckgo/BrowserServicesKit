@@ -26,7 +26,7 @@ class SecureVaultTests: XCTestCase {
     var mockCryptoProvider = MockCryptoProvider()
     var mockDatabaseProvider = (try! MockDatabaseProvider())
     var mockKeystoreProvider = MockKeystoreProvider()
-    var testVault: (any SecureVault)!
+    var testVault: (any AutofillSecureVault)!
     var tld = TLD()
 
     override func setUp() {
@@ -36,8 +36,7 @@ class SecureVaultTests: XCTestCase {
                                                database: mockDatabaseProvider,
                                                keystore: mockKeystoreProvider)
 
-        testVault = DefaultSecureVault(authExpiry: 1,
-                                       providers: providers)
+        testVault = DefaultAutofillSecureVault(authExpiry: 1, providers: providers)
 
     }
 

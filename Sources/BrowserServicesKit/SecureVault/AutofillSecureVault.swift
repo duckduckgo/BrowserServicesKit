@@ -1,5 +1,5 @@
 //
-//  SecureVault.swift
+//  AutofillSecureVault.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -20,9 +20,9 @@ import Foundation
 import Common
 import SecureStorage
 
-public typealias AutofillVaultFactory = SecureVaultFactory<DefaultSecureVault<DefaultAutofillDatabaseProvider>>
+public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
 
-public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultSecureVault>(
+public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault>(
     makeCryptoProvider: {
         return AutofillCryptoProvider()
     }, makeKeyStoreProvider: {
@@ -40,9 +40,9 @@ public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory
 /// * L3 - user password is required at time of request.  Currently no data at this level, but later e.g, credit cards.
 ///
 /// Data always goes in and comes out unencrypted.
-public protocol SecureVault: GenericVault {
+public protocol AutofillSecureVault: GenericVault {
 
-    func authWith(password: Data) throws -> any SecureVault
+    func authWith(password: Data) throws -> any AutofillSecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
@@ -75,7 +75,7 @@ public protocol SecureVault: GenericVault {
     func deleteCreditCardFor(cardId: Int64) throws
 }
 
-public class DefaultSecureVault<T: AutofillDatabaseProvider>: SecureVault {
+public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSecureVault {
 
     public typealias AutofillDatabaseProviders = SecureStorageProviders<T>
 
@@ -97,7 +97,7 @@ public class DefaultSecureVault<T: AutofillDatabaseProvider>: SecureVault {
     // MARK: - public interface (protocol candidates)
 
     /// Sets the password which is retained for the given amount of time. Call this is you receive a `authRequired` error.
-    public func authWith(password: Data) throws -> any SecureVault {
+    public func authWith(password: Data) throws -> any AutofillSecureVault {
         lock.lock()
         defer {
             lock.unlock()

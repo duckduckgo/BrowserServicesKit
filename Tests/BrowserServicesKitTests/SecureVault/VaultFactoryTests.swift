@@ -23,7 +23,7 @@ import SecureStorage
 class VaultFactoryTests: XCTestCase {
 
     func test() throws {
-        let testHarness = SecureVaultFactory<DefaultSecureVault>(
+        let testHarness = SecureVaultFactory<DefaultAutofillSecureVault>(
             makeCryptoProvider: {
                 return MockCryptoProvider()
             }, makeKeyStoreProvider: {

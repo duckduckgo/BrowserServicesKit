@@ -49,7 +49,7 @@ class SecureVaultManagerTests: XCTestCase {
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
     
-    private var testVault: (any SecureVault)!
+    private var testVault: (any AutofillSecureVault)!
     private var secureVaultManagerDelegate: MockSecureVaultManagerDelegate!
     private var manager: SecureVaultManager!
 
@@ -61,7 +61,7 @@ class SecureVaultManagerTests: XCTestCase {
 
         let providers = SecureStorageProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)
         
-        self.testVault = DefaultSecureVault(authExpiry: 30, providers: providers)
+        self.testVault = DefaultAutofillSecureVault(authExpiry: 30, providers: providers)
         self.secureVaultManagerDelegate = MockSecureVaultManagerDelegate()
         self.manager = SecureVaultManager(vault: self.testVault)
         self.manager.delegate = secureVaultManagerDelegate
