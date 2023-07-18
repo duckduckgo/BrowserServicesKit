@@ -20,7 +20,7 @@ import Foundation
 import SecureStorage
 @testable import BrowserServicesKit
 
-internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
+internal class MockDatabaseProvider: AutofillDatabaseProvider {
 
     // swiftlint:disable identifier_name
     var _accounts = [SecureVaultModels.WebsiteAccount]()

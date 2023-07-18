@@ -1,5 +1,5 @@
 //
-//  SecureVaultDatabaseProvider.swift
+//  AutofillDatabaseProvider.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +21,7 @@ import Foundation
 import GRDB
 import SecureStorage
 
-public protocol SecureVaultDatabaseProvider: SecureStorageDatabaseProvider {
+public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
 
@@ -52,11 +52,11 @@ public protocol SecureVaultDatabaseProvider: SecureStorageDatabaseProvider {
 
 }
 
-public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
+public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     let db: DatabaseQueue
 
-    public init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
+    public init(file: URL = DefaultAutofillDatabaseProvider.dbFile(), key: Data) throws {
 
         // GENERIC STUFF:
 
@@ -102,7 +102,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     // TODO: Move into SecureStorage
-    public static func recreateDatabase(withKey key: Data) throws -> DefaultDatabaseProvider {
+    public static func recreateDatabase(withKey key: Data) throws -> DefaultAutofillDatabaseProvider {
         let dbFile = self.dbFile()
 
         guard FileManager.default.fileExists(atPath: dbFile.path) else {
@@ -411,7 +411,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
 // MARK: - Database Migrations
 
-extension DefaultDatabaseProvider {
+extension DefaultAutofillDatabaseProvider {
 
     static func migrateV1(database: Database) throws {
 
@@ -761,7 +761,7 @@ struct MigrationUtility {
 }
 
 // TODO: Move into SecureStorage
-extension DefaultDatabaseProvider {
+extension DefaultAutofillDatabaseProvider {
 
     static public func dbFile() -> URL {
 
