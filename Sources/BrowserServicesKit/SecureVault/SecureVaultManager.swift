@@ -92,8 +92,6 @@ public protocol PasswordManager: AnyObject {
 
 public class SecureVaultManager {
 
-    typealias AutofillFactory = SecureVaultFactory<DefaultSecureVault>
-
     public weak var delegate: SecureVaultManagerDelegate?
     
     private let vault: (any SecureVault)?
