@@ -848,7 +848,7 @@ extension DefaultDatabaseProvider {
                     \(SyncableCredentialsRecord.databaseTableName)
                 (
                     \(SyncableCredentialsRecord.Columns.id.name),
-                    \(SyncableCredentialsRecord.Columns.objectId.name),
+                    \(SyncableCredentialsRecord.Columns.objectId.name)
                 )
                 VALUES (?, ?)
             """, arguments: [UUID().uuidString, accountId])
