@@ -847,7 +847,7 @@ extension DefaultDatabaseProvider {
                 INSERT INTO
                     \(SyncableCredentialsRecord.databaseTableName)
                 (
-                    \(SyncableCredentialsRecord.Columns.id.name),
+                    \(SyncableCredentialsRecord.Columns.uuid.name),
                     \(SyncableCredentialsRecord.Columns.objectId.name)
                 )
                 VALUES (?, ?)
