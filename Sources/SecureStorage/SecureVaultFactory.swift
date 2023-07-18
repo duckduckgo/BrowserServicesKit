@@ -19,7 +19,7 @@
 import Foundation
 
 public protocol SecureVaultErrorReporting: AnyObject {
-    func secureVaultInitFailed(_ error: SecureVaultError)
+    func secureVaultInitFailed(_ error: SecureStorageError)
 }
 
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
@@ -75,12 +75,12 @@ open class SecureVaultFactory<Vault: GenericVault> {
 
                 return vault
 
-            } catch let error as SecureVaultError {
+            } catch let error as SecureStorageError {
                 errorReporter?.secureVaultInitFailed(error)
                 throw error
             } catch {
-                errorReporter?.secureVaultInitFailed(SecureVaultError.initFailed(cause: error))
-                throw SecureVaultError.initFailed(cause: error)
+                errorReporter?.secureVaultInitFailed(SecureStorageError.initFailed(cause: error))
+                throw SecureStorageError.initFailed(cause: error)
             }
         }
 
@@ -91,9 +91,9 @@ open class SecureVaultFactory<Vault: GenericVault> {
         do {
             (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
         } catch {
-            throw SecureVaultError.initFailed(cause: error)
+            throw SecureStorageError.initFailed(cause: error)
         }
-        guard let existingL1Key = try keystoreProvider.l1Key() else { throw SecureVaultError.noL1Key }
+        guard let existingL1Key = try keystoreProvider.l1Key() else { throw SecureStorageError.noL1Key }
 
         let databaseProvider: Vault.DatabaseProvider
 
@@ -106,7 +106,7 @@ open class SecureVaultFactory<Vault: GenericVault> {
             }
 
         } catch {
-            throw SecureVaultError.failedToOpenDatabase(cause: error)
+            throw SecureStorageError.failedToOpenDatabase(cause: error)
         }
 
         return SecureStorageProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)

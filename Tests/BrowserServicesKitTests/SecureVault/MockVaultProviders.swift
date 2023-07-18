@@ -181,7 +181,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
         _lastKey = key
 
         guard let data = _decryptedData else {
-            throw SecureVaultError.invalidPassword
+            throw SecureStorageError.invalidPassword
         }
 
         return data

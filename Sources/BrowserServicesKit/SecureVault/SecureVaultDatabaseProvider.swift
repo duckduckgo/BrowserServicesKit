@@ -186,7 +186,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 """, arguments: [credentials.password, id])
             } catch let error as DatabaseError {
                 if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                    throw SecureVaultError.duplicateRecord
+                    throw SecureStorageError.duplicateRecord
                 } else {
                     throw error
                 }
@@ -211,7 +211,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
                 return id
             } catch let error as DatabaseError {
                 if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                    throw SecureVaultError.duplicateRecord
+                    throw SecureStorageError.duplicateRecord
                 } else {
                     throw error
                 }
@@ -727,13 +727,13 @@ struct MigrationUtility {
         let (crypto, keyStore) = try AutofillSecureVaultFactory.createAndInitializeEncryptionProviders()
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
 
         guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
@@ -745,13 +745,13 @@ struct MigrationUtility {
         let (crypto, keyStore) = (cryptoProvider, keyStoreProvider)
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
 
         guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)

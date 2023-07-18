@@ -117,7 +117,7 @@ class SecureVaultTests: XCTestCase {
         do {
             _ = try testVault.authWith(password: "password".data(using: .utf8)!)
         } catch {
-            if case SecureVaultError.invalidPassword = error {
+            if case SecureStorageError.invalidPassword = error {
                 // no-op
             } else {
                 XCTFail("Unexepected error \(error)")
@@ -217,7 +217,7 @@ class SecureVaultTests: XCTestCase {
         do {
             _ = try testVault.websiteCredentialsFor(accountId: 1)
         } catch {
-            if case SecureVaultError.authRequired = error {
+            if case SecureStorageError.authRequired = error {
                 // no-op
             } else {
                 XCTFail("Unexepected error \(error)")

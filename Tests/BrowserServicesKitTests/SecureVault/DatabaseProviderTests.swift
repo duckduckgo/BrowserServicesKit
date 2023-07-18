@@ -134,7 +134,7 @@ class DatabaseProviderTests: XCTestCase {
             XCTFail("No exception for duplicate record, id: \(id)")
         } catch {
             switch error {
-            case SecureVaultError.duplicateRecord: break
+            case SecureStorageError.duplicateRecord: break
             default:
                 XCTFail("Unexected exception \(error)")
             }

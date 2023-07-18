@@ -108,7 +108,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
             self.expiringPassword.value = password
             return self
         } catch {
-            let error = error as? SecureVaultError ?? .authError(cause: error)
+            let error = error as? SecureStorageError ?? .authError(cause: error)
             throw error
         }
     }
@@ -126,7 +126,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
             // Use the provided old password if provided, or the stored generated password
             let generatedPassword = try self.providers.keystore.generatedPassword()
             guard let oldPassword = oldPassword ?? generatedPassword else {
-                throw SecureVaultError.invalidPassword
+                throw SecureStorageError.invalidPassword
             }
 
             // get decrypted l2key using old password
@@ -146,10 +146,10 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
 
         } catch {
 
-            if let error = error as? SecureVaultError {
+            if let error = error as? SecureStorageError {
                 throw error
             } else {
-                throw SecureVaultError.databaseError(cause: error)
+                throw SecureStorageError.databaseError(cause: error)
             }
 
         }
@@ -165,7 +165,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
         do {
             return try self.providers.database.accounts()
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -186,7 +186,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
             }
             return []
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -198,7 +198,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
         do {
             return try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -219,7 +219,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
 
             return decryptedCredentials
         } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
     }
@@ -232,7 +232,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
         do {
             // Generate a new signature
             guard credentials.account.username.data(using: .utf8) != nil else {
-                throw SecureVaultError.generalCryptoError
+                throw SecureStorageError.generalCryptoError
             }
             let hashData = credentials.account.hashValue + credentials.password
             var creds = credentials
@@ -240,7 +240,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
             let encryptedPassword = try self.l2Encrypt(data: credentials.password)
             return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
         } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
     }
@@ -378,7 +378,7 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
         do {
             return try operation()
         } catch {
-            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -391,13 +391,13 @@ public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
             return userPassword
         }
 
-        throw SecureVaultError.authRequired
+        throw SecureStorageError.authRequired
     }
 
     private func l2KeyFrom(password: Data) throws -> Data {
         let decryptionKey = try providers.crypto.deriveKeyFromPassword(password)
         guard let encryptedL2Key = try providers.keystore.encryptedL2Key() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }

@@ -87,7 +87,7 @@ public extension SecureVaultKeyStoreProvider {
             guard let itemData = item as? Data,
                   let itemString = String(data: itemData, encoding: .utf8),
                   let decodedData = Data(base64Encoded: itemString) else {
-                throw SecureVaultError.keystoreError(status: status)
+                throw SecureStorageError.keystoreError(status: status)
             }
             return decodedData
 
@@ -95,7 +95,7 @@ public extension SecureVaultKeyStoreProvider {
             return nil
 
         default:
-            throw SecureVaultError.keystoreError(status: status)
+            throw SecureStorageError.keystoreError(status: status)
         }
     }
 
@@ -103,7 +103,7 @@ public extension SecureVaultKeyStoreProvider {
         let base64String = data.base64EncodedString()
 
         guard let base64Data = base64String.data(using: .utf8) else {
-            throw SecureVaultError.encodingFailed
+            throw SecureStorageError.encodingFailed
         }
 
         var query = attributesForEntry(named: name, serviceName: serviceName)
@@ -114,7 +114,7 @@ public extension SecureVaultKeyStoreProvider {
         let status = SecItemAdd(query as CFDictionary, nil)
 
         guard status == errSecSuccess else {
-            throw SecureVaultError.keystoreError(status: status)
+            throw SecureStorageError.keystoreError(status: status)
         }
     }
 
@@ -127,7 +127,7 @@ public extension SecureVaultKeyStoreProvider {
         switch status {
         case errSecItemNotFound, errSecSuccess: break
         default:
-            throw SecureVaultError.keystoreError(status: status)
+            throw SecureStorageError.keystoreError(status: status)
         }
     }
 

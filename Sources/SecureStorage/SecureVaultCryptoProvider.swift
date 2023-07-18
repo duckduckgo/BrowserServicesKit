@@ -65,7 +65,7 @@ public extension SecureVaultCryptoProvider {
             return SecRandomCopyBytes(kSecRandomDefault, SecureVaultCryptoProviderConstants.keySizeInBytes, $0.baseAddress!)
         }
         guard result == errSecSuccess else {
-            throw SecureVaultError.secError(status: result)
+            throw SecureStorageError.secError(status: result)
         }
         return data
     }
@@ -95,7 +95,7 @@ public extension SecureVaultCryptoProvider {
         }
 
         guard status == kCCSuccess else {
-            throw SecureVaultError.secError(status: status)
+            throw SecureStorageError.secError(status: status)
         }
 
         return key
@@ -105,7 +105,7 @@ public extension SecureVaultCryptoProvider {
         let symmetricKey = SymmetricKey(data: key)
         let sealedData = try AES.GCM.seal(data, using: symmetricKey)
         guard let data = sealedData.combined else {
-            throw SecureVaultError.generalCryptoError
+            throw SecureStorageError.generalCryptoError
         }
         return data
     }
@@ -117,7 +117,7 @@ public extension SecureVaultCryptoProvider {
             return try AES.GCM.open(sealedBox, using: symmetricKey)
         } catch {
             if case CryptoKitError.authenticationFailure = error {
-                throw SecureVaultError.invalidPassword
+                throw SecureStorageError.invalidPassword
             } else {
                 throw error
             }

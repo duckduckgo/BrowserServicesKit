@@ -1,5 +1,5 @@
 //
-//  SecureVaultError.swift
+//  SecureStorageError.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -29,7 +29,7 @@ public enum SecureStorageDatabaseError: Error {
     }
 }
 
-public enum SecureVaultError: Error {
+public enum SecureStorageError: Error {
 
     case initFailed(cause: Error)
     case authRequired
@@ -46,8 +46,9 @@ public enum SecureVaultError: Error {
     case encodingFailed
 }
 
-extension SecureVaultError: CustomNSError {
+extension SecureStorageError: CustomNSError {
 
+    /// Uses the legacy "SecureVaultError" name to avoid causing issues with metrics after this was renamed to `SecureStorageError`.
     public static var errorDomain: String { "SecureVaultError" }
 
     public var errorCode: Int {
@@ -73,7 +74,7 @@ extension SecureVaultError: CustomNSError {
         switch self {
         case .initFailed(cause: let error), .authError(cause: let error),
              .failedToOpenDatabase(cause: let error), .databaseError(cause: let error):
-            if let secureVaultError = error as? SecureVaultError {
+            if let secureVaultError = error as? SecureStorageError {
                 return secureVaultError.errorUserInfo
             }
 

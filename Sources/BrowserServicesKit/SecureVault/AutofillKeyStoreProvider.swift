@@ -66,12 +66,12 @@ final class AutofillKeyStoreProvider: SecureVaultKeyStoreProvider {
                     guard let itemData = item as? Data,
                           let itemString = String(data: itemData, encoding: .utf8),
                           let decodedData = Data(base64Encoded: itemString) else {
-                        throw SecureVaultError.keystoreError(status: status)
+                        throw SecureStorageError.keystoreError(status: status)
                     }
                     return decodedData
                 } else {
                     guard let data = item as? Data else {
-                        throw SecureVaultError.keystoreError(status: status)
+                        throw SecureStorageError.keystoreError(status: status)
                     }
                     return data
                 }
@@ -85,7 +85,7 @@ final class AutofillKeyStoreProvider: SecureVaultKeyStoreProvider {
                 return nil
 
             default:
-                throw SecureVaultError.keystoreError(status: status)
+                throw SecureStorageError.keystoreError(status: status)
         }
     }
 

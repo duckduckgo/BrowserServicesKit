@@ -43,7 +43,7 @@ class CryptoProviderTests: XCTestCase {
             _ = try provider.decrypt(encrypted, withKey: wrongPasswordKey)
             XCTFail("Expected throws")
         } catch {
-            if case SecureVaultError.invalidPassword = error {
+            if case SecureStorageError.invalidPassword = error {
                 // We good
             } else {
                 XCTFail("Expected invalidPassword, received \(error)")
