@@ -20,7 +20,9 @@ import Foundation
 import Common
 import SecureStorage
 
-public let AutofillSecureVaultFactory = SecureVaultFactory<DefaultSecureVault>(
+public typealias AutofillVaultFactory = SecureVaultFactory<DefaultSecureVault<DefaultDatabaseProvider>>
+
+public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultSecureVault>(
     makeCryptoProvider: {
         return AutofillCryptoProvider()
     }, makeKeyStoreProvider: {
@@ -73,9 +75,9 @@ public protocol SecureVault: GenericVault {
     func deleteCreditCardFor(cardId: Int64) throws
 }
 
-public class DefaultSecureVault: SecureVault {
+public class DefaultSecureVault<T: SecureVaultDatabaseProvider>: SecureVault {
 
-    public typealias AutofillDatabaseProviders = SecureVaultProviders<DefaultDatabaseProvider>
+    public typealias AutofillDatabaseProviders = SecureVaultProviders<T>
 
     private let lock = NSLock()
 

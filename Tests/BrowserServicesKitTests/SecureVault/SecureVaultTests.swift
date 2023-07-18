@@ -24,9 +24,9 @@ import SecureStorage
 class SecureVaultTests: XCTestCase {
 
     var mockCryptoProvider = MockCryptoProvider()
-    var mockDatabaseProvider = MockDatabaseProvider()
+    var mockDatabaseProvider = (try! MockDatabaseProvider())
     var mockKeystoreProvider = MockKeystoreProvider()
-    var testVault: SecureVault!
+    var testVault: (any SecureVault)!
     var tld = TLD()
 
     override func setUp() {

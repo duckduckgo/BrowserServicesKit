@@ -32,6 +32,13 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     var _note: SecureVaultModels.Note?
     // swiftlint:enable identifier_name
 
+
+    required init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {}
+
+    static func recreateDatabase(withKey key: Data) throws -> Self {
+        return try MockDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self
+    }
+
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         if let accountIdString = credentials.account.id, let accountID = Int64(accountIdString) {
             _credentialsDict[accountID] = credentials
@@ -257,6 +264,26 @@ internal class MockKeystoreProvider: SecureVaultKeyStoreProvider {
     var _generatedPasswordCleared = false
     var _lastEncryptedL2Key: Data?
     // swiftlint:enable identifier_name
+
+    var generatedPasswordEntryName: String {
+        return ""
+    }
+
+    var l1KeyEntryName: String {
+        return ""
+    }
+
+    var l2KeyEntryName: String {
+        return ""
+    }
+
+    var keychainServiceName: String {
+        return ""
+    }
+
+    func attributesForEntry(named: String, serviceName: String) -> [String : Any] {
+        return [:]
+    }
 
     func storeGeneratedPassword(_ password: Data) throws {
     }

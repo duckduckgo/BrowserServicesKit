@@ -24,8 +24,10 @@ import SecureStorage
 class SecureVaultManagerTests: XCTestCase {
     
     private var mockCryptoProvider = NoOpCryptoProvider()
-    private var mockDatabaseProvider = MockDatabaseProvider()
     private var mockKeystoreProvider = MockKeystoreProvider()
+    private var mockDatabaseProvider: MockDatabaseProvider = {
+        return try! MockDatabaseProvider()
+    }()
     
     private let mockAutofillUserScript: AutofillUserScript = {
         let embeddedConfig =
@@ -47,7 +49,7 @@ class SecureVaultManagerTests: XCTestCase {
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
     
-    private var testVault: SecureVault!
+    private var testVault: (any SecureVault)!
     private var secureVaultManagerDelegate: MockSecureVaultManagerDelegate!
     private var manager: SecureVaultManager!
 

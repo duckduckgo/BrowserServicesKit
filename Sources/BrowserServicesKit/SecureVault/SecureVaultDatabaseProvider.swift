@@ -21,7 +21,7 @@ import Foundation
 import GRDB
 import SecureStorage
 
-protocol SecureVaultDatabaseProvider: SecureStorageDatabaseProvider {
+public protocol SecureVaultDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
 
@@ -125,14 +125,14 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         return try Self(file: dbFile, key: key)
     }
 
-    func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
+    public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
                 .fetchAll($0)
         }
     }
     
-    func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
+    public func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
                 .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
@@ -140,7 +140,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+    public func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read { db in
             let query = SecureVaultModels.WebsiteAccount
                 .filter(Column(SecureVaultModels.WebsiteAccount.Columns.domain.name) == eTLDplus1 ||
@@ -150,7 +150,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
 
         if let stringId = credentials.account.id, let id = Int64(stringId) {
             try updateWebsiteCredentials(credentials, usingId: id)
@@ -160,7 +160,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+    public func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -219,7 +219,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
+    public func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         return try db.read {
             guard let account = try SecureVaultModels.WebsiteAccount.fetchOne($0, key: accountId) else {
                 return nil
@@ -245,13 +245,13 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: Notes
 
-    func notes() throws -> [SecureVaultModels.Note] {
+    public func notes() throws -> [SecureVaultModels.Note] {
         return try db.read {
             return try SecureVaultModels.Note.fetchAll($0)
         }
     }
 
-    func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note? {
+    public func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note? {
         try db.read {
             return try SecureVaultModels.Note.fetchOne($0, sql: """
                 SELECT
@@ -264,7 +264,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+    public func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
         if let id = note.id {
             try updateNote(note, usingId: id)
             return id
@@ -273,7 +273,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteNoteForNoteId(_ noteId: Int64) throws {
+    public func deleteNoteForNoteId(_ noteId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -299,13 +299,13 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: Identities
 
-    func identities() throws -> [SecureVaultModels.Identity] {
+    public func identities() throws -> [SecureVaultModels.Identity] {
         return try db.read {
             return try SecureVaultModels.Identity.fetchAll($0)
         }
     }
 
-    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
+    public func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
         try db.read {
             return try SecureVaultModels.Identity.fetchOne($0, sql: """
                 SELECT
@@ -319,7 +319,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+    public func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
         if let id = identity.id {
             try updateIdentity(identity, usingId: id)
             return id
@@ -328,7 +328,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteIdentityForIdentityId(_ identityId: Int64) throws {
+    public func deleteIdentityForIdentityId(_ identityId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -354,13 +354,13 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: Credit Cards
 
-    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+    public func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try db.read {
             return try SecureVaultModels.CreditCard.fetchAll($0)
         }
     }
 
-    func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
+    public func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
         try db.read {
             return try SecureVaultModels.CreditCard.fetchOne($0, sql: """
                 SELECT
@@ -374,7 +374,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
+    public func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
         if let id = creditCard.id {
             try updateCreditCard(creditCard)
             return id
@@ -383,7 +383,7 @@ public final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
+    public func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
