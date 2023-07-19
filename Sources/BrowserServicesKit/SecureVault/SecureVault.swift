@@ -66,12 +66,17 @@ public protocol SecureVault {
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardFor(cardId: Int64) throws
 
+    // MARK: - Import Support
+
+    @discardableResult
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database, encryptedUsing l2Key: Data) throws -> Int64
+
     // MARK: - Sync Support
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
-    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
+    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database, encryptedUsing l2Key: Data) throws
 
     func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
@@ -263,45 +268,47 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database, encryptedUsing l2Key: Data) throws -> Int64 {
+        let encryptedCredentials = try encryptPassword(for: credentials, using: l2Key)
+        return try self.providers.database.storeWebsiteCredentials(encryptedCredentials, in: database)
+    }
+
     public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         lock.lock()
         defer {
             lock.unlock()
         }
         do {
-            // Generate a new signature
-            guard credentials.account.username?.data(using: .utf8) != nil else {
-                throw SecureVaultError.generalCryptoError
-            }
-            let hashData = credentials.account.hashValue + (credentials.password ?? Data())
-            var creds = credentials
-            creds.account.signature = try providers.crypto.hashData(hashData)
-            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!)
-            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
+            let encryptedCredentials = try encryptPassword(for: credentials)
+            return try self.providers.database.storeWebsiteCredentials(encryptedCredentials)
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
             throw error
         }
     }
 
-    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+    func storeSyncableCredentials(
+        _ syncableCredentials: SecureVaultModels.SyncableCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data
+    ) throws {
         guard let credentials = syncableCredentials.credentials else {
             assertionFailure("nil credentials passed to \(#function)")
             return
         }
-        let encryptedCredentials = try encryptPassword(for: credentials)
+        let encryptedCredentials = try encryptPassword(for: credentials, using: l2Key)
         var syncableCredentialsToStore = syncableCredentials
         syncableCredentialsToStore.credentials = encryptedCredentials
         try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
     }
 
-    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials) throws -> SecureVaultModels.WebsiteCredentials {
+    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials, using l2Key: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
             // Generate a new signature
             let hashData = credentials.account.hashValue + (credentials.password ?? Data())
             var creds = credentials
             creds.account.signature = try providers.crypto.hashData(hashData)
-            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!)
+            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!, using: l2Key)
             return .init(account: creds.account, password: encryptedPassword)
         } catch {
             let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
@@ -311,24 +318,6 @@ class DefaultSecureVault: SecureVault {
 
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         try self.providers.database.deleteSyncableCredentials(syncableCredentials, in: database)
-    }
-
-    @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
-        do {
-            // Generate a new signature
-            guard credentials.account.username?.data(using: .utf8) != nil else {
-                throw SecureVaultError.generalCryptoError
-            }
-            let hashData = credentials.account.hashValue + (credentials.password ?? Data())
-            var creds = credentials
-            creds.account.signature = try providers.crypto.hashData(hashData)
-            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!)
-            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword), in: database)
-        } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
-            throw error
-        }
     }
 
     func deleteWebsiteCredentialsFor(accountId: Int64) throws {
@@ -527,16 +516,26 @@ class DefaultSecureVault: SecureVault {
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }
     
-    private func l2Encrypt(data: Data) throws -> Data {
-        let password = try passwordInUse()
-        let l2Key = try l2KeyFrom(password: password)
-        return try providers.crypto.encrypt(data, withKey: l2Key)
+    private func l2Encrypt(data: Data, using l2Key: Data? = nil) throws -> Data {
+        let key: Data = try {
+            if let l2Key {
+                return l2Key
+            }
+            let password = try passwordInUse()
+            return try l2KeyFrom(password: password)
+        }()
+        return try providers.crypto.encrypt(data, withKey: key)
     }
 
-    private func l2Decrypt(data: Data) throws -> Data {
-        let password = try passwordInUse()
-        let l2Key = try l2KeyFrom(password: password)
-        return try providers.crypto.decrypt(data, withKey: l2Key)
+    private func l2Decrypt(data: Data, using l2Key: Data? = nil) throws -> Data {
+        let key: Data = try {
+            if let l2Key {
+                return l2Key
+            }
+            let password = try passwordInUse()
+            return try l2KeyFrom(password: password)
+        }()
+        return try providers.crypto.decrypt(data, withKey: key)
     }
 }
 

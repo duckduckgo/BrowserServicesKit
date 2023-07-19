@@ -69,14 +69,16 @@ final class CredentialsResponseHandler {
             return
         }
 
+        let encryptionKey = try secureVault.getEncryptionKey()
+
         for syncable in received {
-            try processEntity(with: syncable)
+            try processEntity(with: syncable, secureVaultEncryptionKey: encryptionKey)
         }
     }
 
     // MARK: - Private
 
-    private func processEntity(with syncable: Syncable) throws {
+    private func processEntity(with syncable: Syncable, secureVaultEncryptionKey: Data) throws {
         guard let syncableUUID = syncable.uuid else {
             throw SyncError.accountAlreadyExists // todo
         }
@@ -86,7 +88,7 @@ final class CredentialsResponseHandler {
             let oldUUID = deduplicatedEntity.metadata.uuid
             deduplicatedEntity.account?.title = try syncable.encryptedTitle.flatMap(decrypt)
             deduplicatedEntity.metadata.uuid = syncableUUID
-            try secureVault.storeSyncableCredentials(deduplicatedEntity, in: database)
+            try secureVault.storeSyncableCredentials(deduplicatedEntity, in: database, encryptedUsing: secureVaultEncryptionKey)
 
             credentialsByUUID.removeValue(forKey: oldUUID)
             credentialsByUUID[syncableUUID] = deduplicatedEntity
@@ -104,7 +106,7 @@ final class CredentialsResponseHandler {
                 } else {
                     try existingEntity.update(with: syncable, decryptedUsing: decrypt)
                     existingEntity.metadata.lastModified = nil
-                    try secureVault.storeSyncableCredentials(existingEntity, in: database)
+                    try secureVault.storeSyncableCredentials(existingEntity, in: database, encryptedUsing: secureVaultEncryptionKey)
                 }
             }
 
@@ -112,7 +114,7 @@ final class CredentialsResponseHandler {
 
             let newEntity = try SecureVaultModels.SyncableCredentials(syncable: syncable, decryptedUsing: decrypt)
             assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
-            try secureVault.storeSyncableCredentials(newEntity, in: database)
+            try secureVault.storeSyncableCredentials(newEntity, in: database, encryptedUsing: secureVaultEncryptionKey)
             credentialsByUUID[syncableUUID] = newEntity
         }
     }
