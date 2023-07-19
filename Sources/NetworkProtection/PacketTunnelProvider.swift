@@ -89,47 +89,30 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    /// Holds the date when the status was last changed so we can send it out as additional information
-    /// in our status-change notifications.
-    ///
-    private var lastStatusChangeDate = Date()
-
-    private var connectionStatus: ConnectionStatus = .disconnected {
+    public var connectionStatus: ConnectionStatus = .disconnected {
         didSet {
-            if oldValue != connectionStatus {
-                lastStatusChangeDate = Date()
-                broadcastConnectionStatus()
+            guard connectionStatus != oldValue else {
+                return
             }
+
+            connectionStatusPublisher.send(connectionStatus)
         }
     }
 
-    private func broadcastConnectionStatus() {
-        let lastStatusChange = ConnectionStatusChange(status: connectionStatus, on: lastStatusChangeDate)
-        let payload = ConnectionStatusChangeEncoder().encode(lastStatusChange)
+    public let connectionStatusPublisher = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 
-        notificationCenter.post(.statusDidChange, object: payload)
-    }
 
     // MARK: - Server Selection
 
     let selectedServerStore = NetworkProtectionSelectedServerUserDefaultsStore()
 
-    var lastSelectedServerInfo: NetworkProtectionServerInfo? {
+    public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
         didSet {
-            broadcastLastSelectedServerInfo()
+            lastSelectedServerInfoPublisher.send(lastSelectedServerInfo)
         }
     }
 
-    private func broadcastLastSelectedServerInfo() {
-        guard let serverInfo = lastSelectedServerInfo else {
-            return
-        }
-
-        let serverStatusInfo = NetworkProtectionStatusServerInfo(serverLocation: serverInfo.serverLocation, serverAddress: serverInfo.endpoint?.description)
-        let payload = ServerSelectedNotificationObjectEncoder().encode(serverStatusInfo)
-
-        notificationCenter.post(.serverSelected, object: payload)
-    }
+    public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>.init(nil)
 
     // MARK: - User Notifications
 
@@ -298,44 +281,35 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
     private let latencyReporter = NetworkProtectionLatencyReporter(log: .networkProtection)
 
-    // MARK: - Notifications: Observation Tokens
-
-    private var requestStatusUpdateCancellable: AnyCancellable!
-
     // MARK: - Cancellables
 
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Initializers
 
-    private let notificationCenter: NetworkProtectionNotificationCenter
     private let useSystemKeychain: Bool
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
     private let appLauncher: AppLaunching?
 
-    public init(notificationCenter: NetworkProtectionNotificationCenter,
-                notificationsPresenter: NetworkProtectionNotificationsPresenter,
+    public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
+                tunnelHealthStore: NetworkProtectionTunnelHealthStore,
+                controllerErrorStore: NetworkProtectionTunnelErrorStore,
                 useSystemKeychain: Bool,
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 appLauncher: AppLaunching? = nil) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
-        self.notificationCenter = notificationCenter
+
         self.notificationsPresenter = notificationsPresenter
         self.useSystemKeychain = useSystemKeychain
         self.debugEvents = debugEvents
         self.providerEvents = providerEvents
         self.appLauncher = appLauncher
-        self.tunnelHealth = NetworkProtectionTunnelHealthStore(notificationCenter: notificationCenter)
-        self.controllerErrorStore = NetworkProtectionTunnelErrorStore(notificationCenter: notificationCenter)
+        self.tunnelHealth = tunnelHealthStore
+        self.controllerErrorStore = controllerErrorStore
 
         super.init()
-
-        requestStatusUpdateCancellable = notificationCenter.publisher(for: .requestStatusUpdate).sink { [weak self] _ in
-            self?.broadcastConnectionStatus()
-            self?.broadcastLastSelectedServerInfo()
-        }
     }
 
     deinit {
@@ -514,7 +488,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     await self.appLauncher?.launchApp(withCommand: .stopVPN)
 
                 case .superceded:
-                    self.notificationsPresenter.showSupercededNotification()
+                    self.notificationsPresenter.showSupersededNotification()
 
                 default:
                     break

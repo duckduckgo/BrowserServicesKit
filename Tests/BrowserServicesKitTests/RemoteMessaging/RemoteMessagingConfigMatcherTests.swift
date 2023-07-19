@@ -21,6 +21,7 @@ import XCTest
 import Common
 @testable import BrowserServicesKit
 @testable import Common
+@testable import RemoteMessaging
 
 // swiftlint:disable line_length
 class RemoteMessagingConfigMatcherTests: XCTestCase {

@@ -348,8 +348,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
         
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
 
@@ -386,11 +386,11 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         // TDS is also marked as invalid to simplify flow
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
         
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier, mockExceptionsSource.tempListId)
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier, mockExceptionsSource.tempListId)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
@@ -425,9 +425,9 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
         
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
         
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
@@ -465,10 +465,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
 
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
@@ -506,13 +506,13 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
 
         // TDS is also marked as invalid to simplify flow
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
 
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier, mockExceptionsSource.allowListId)
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier, mockExceptionsSource.allowListId)
 
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
@@ -578,20 +578,20 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
         
         // TDS is also marked as invalid to simplify flow
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier,
                        mockRulesSource.trackerData?.etag)
         
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier,
                        mockExceptionsSource.tempListId)
 
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier,
                        mockExceptionsSource.allowListId)
         
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier,
                        mockExceptionsSource.unprotectedSitesHash)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -656,18 +656,18 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
         
-        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tdsIdentifier)
+        XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
         
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.tempListIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier,
                        mockExceptionsSource.tempListId)
 
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.allowListIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier,
                        mockExceptionsSource.allowListId)
         
-        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier)
-        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.rukeListName]?.brokenSources?.unprotectedSitesIdentifier,
+        XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
+        XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier,
                        mockExceptionsSource.unprotectedSitesHash)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -1110,7 +1110,7 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
         didSet {
             let trackerData = trackerData
             let embeddedTrackerData = embeddedTrackerData
-            contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
+            contentBlockerRulesLists = [ContentBlockerRulesList(name: ruleListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
         }
@@ -1119,7 +1119,7 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
         didSet {
             let trackerData = trackerData
             let embeddedTrackerData = embeddedTrackerData
-            contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
+            contentBlockerRulesLists = [ContentBlockerRulesList(name: ruleListName,
                                                                 trackerData: trackerData,
                                                                 fallbackTrackerData: embeddedTrackerData)]
         }
@@ -1127,13 +1127,13 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     
     var contentBlockerRulesLists: [ContentBlockerRulesList]
     
-    var rukeListName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
+    var ruleListName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
     
     init(trackerData: TrackerDataManager.DataSet?, embeddedTrackerData: TrackerDataManager.DataSet) {
         self.trackerData = trackerData
         self.embeddedTrackerData = embeddedTrackerData
         
-        contentBlockerRulesLists = [ContentBlockerRulesList(name: rukeListName,
+        contentBlockerRulesLists = [ContentBlockerRulesList(name: ruleListName,
                                                             trackerData: trackerData,
                                                             fallbackTrackerData: embeddedTrackerData)]
     }
