@@ -170,6 +170,7 @@ fileprivate struct Helper: PDFGeneratorHelping {
     var textCodeColor = UIColor.black
 
     func pushGraphicsContext(_ context: CGContext) {
+        asdadsasdsadsdijdladsjdddh
         UIGraphicsPushContext(context)
     }
 
