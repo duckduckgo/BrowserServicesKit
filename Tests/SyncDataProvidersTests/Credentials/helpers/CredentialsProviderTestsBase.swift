@@ -149,9 +149,9 @@ extension SecureVault {
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
         let syncableCredentials = SecureVaultModels.SyncableCredentials(uuid: uuid, credentials: credentials, lastModified: lastModified?.withMillisecondPrecision)
         if let database {
-            try storeSyncableCredentials(syncableCredentials, in: database)
+            try storeSyncableCredentials(syncableCredentials, in: database, encryptedUsing: Data(), hashedUsing: nil)
         } else {
-            try inDatabaseTransaction { try storeSyncableCredentials(syncableCredentials, in: $0) }
+            try inDatabaseTransaction { try storeSyncableCredentials(syncableCredentials, in: $0, encryptedUsing: Data(), hashedUsing: nil) }
         }
     }
 }

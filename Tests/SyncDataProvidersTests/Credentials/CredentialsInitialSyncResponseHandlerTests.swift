@@ -136,4 +136,19 @@ final class CredentialsInitialSyncResponseHandlerTests: CredentialsProviderTests
         XCTAssertEqual(syncableCredentials.map(\.metadata.uuid), ["2"])
         XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
     }
+
+    func testWhenPayloadContainsDuplicatedRecordsThenAllRecordsAreStored() async throws {
+
+        let received: [Syncable] = [
+            .credentials(id: "1", nullifyOtherFields: true),
+            .credentials(id: "2", nullifyOtherFields: true),
+        ]
+
+        try await handleInitialSyncResponse(received: received)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        XCTAssertEqual(syncableCredentials.count, 2)
+        XCTAssertEqual(syncableCredentials.map(\.metadata.uuid), ["1", "2"])
+        XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
+    }
 }
