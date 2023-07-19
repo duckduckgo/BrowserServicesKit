@@ -108,7 +108,7 @@ public final class CredentialsProvider: DataProviding {
 
                     let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
                         sent,
-                        receivedUUIDs: Set(responseHandler.receivedByUUID.keys),
+                        receivedUUIDs: Set(responseHandler.allReceivedIDs),
                         clientTimestamp: clientTimestampMilliseconds,
                         secureVault: secureVault,
                         in: database
@@ -119,7 +119,7 @@ public final class CredentialsProvider: DataProviding {
                     try self.willSaveContextAfterApplyingSyncResponse()
 #endif
 
-                    let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.receivedByUUID.keys)
+                    let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.allReceivedIDs)
                     try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestampMilliseconds, secureVault: secureVault, in: database)
                 }
                 break

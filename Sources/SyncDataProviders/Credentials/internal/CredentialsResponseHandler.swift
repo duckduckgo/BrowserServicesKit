@@ -17,7 +17,6 @@
 //  limitations under the License.
 //
 
-
 import BrowserServicesKit
 import DDGSync
 import Foundation
@@ -30,10 +29,8 @@ final class CredentialsResponseHandler {
     let database: Database
     let shouldDeduplicateEntities: Bool
 
-    let receivedByUUID: [String: Syncable]
     let allReceivedIDs: Set<String>
-
-    var credentialsByUUID: [String: SecureVaultModels.SyncableCredentials] = [:]
+    private var credentialsByUUID: [String: SecureVaultModels.SyncableCredentials] = [:]
 
     private let decrypt: (String) throws -> String
 
@@ -59,7 +56,6 @@ final class CredentialsResponseHandler {
         }
 
         self.allReceivedIDs = allUUIDs
-        self.receivedByUUID = syncablesByUUID
 
         credentialsByUUID = try secureVault.syncableCredentialsForSyncIds(allUUIDs, in: database).reduce(into: .init(), { $0[$1.metadata.uuid] = $1 })
     }
@@ -84,8 +80,7 @@ final class CredentialsResponseHandler {
             throw SyncError.accountAlreadyExists // todo
         }
 
-        if shouldDeduplicateEntities, var deduplicatedEntity = try secureVault.deduplicatedCredentials(in: database, with: syncable, decryptedUsing: decrypt) {
-
+        if shouldDeduplicateEntities, var deduplicatedEntity = try deduplicatedCredentials(with: syncable, secureVaultEncryptionKey: secureVaultEncryptionKey) {
             let oldUUID = deduplicatedEntity.metadata.uuid
             deduplicatedEntity.account?.title = try syncable.encryptedTitle.flatMap(decrypt)
             deduplicatedEntity.metadata.uuid = syncableUUID
@@ -118,6 +113,46 @@ final class CredentialsResponseHandler {
             try secureVault.storeSyncableCredentials(newEntity, in: database, encryptedUsing: secureVaultEncryptionKey, hashedUsing: secureVaultHashingSalt)
             credentialsByUUID[syncableUUID] = newEntity
         }
+    }
+
+    private func deduplicatedCredentials(with syncable: Syncable, secureVaultEncryptionKey: Data) throws -> SecureVaultModels.SyncableCredentials? {
+
+        guard !syncable.isDeleted else {
+            return nil
+        }
+
+        let domain = try syncable.encryptedDomain.flatMap(decrypt)
+        let username = try syncable.encryptedUsername.flatMap(decrypt)
+        let password = try syncable.encryptedPassword.flatMap(decrypt)
+        let notes = try syncable.encryptedNotes.flatMap(decrypt)
+
+        let accountAlias = TableAlias()
+        let credentialsAlias = TableAlias()
+        let conditions = [
+            !allReceivedIDs.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid),
+            accountAlias[SecureVaultModels.WebsiteAccount.Columns.domain] == domain,
+            accountAlias[SecureVaultModels.WebsiteAccount.Columns.username] == username,
+            accountAlias[SecureVaultModels.WebsiteAccount.Columns.notes] == notes
+        ]
+        let syncableCredentials = try SecureVaultModels.SyncableCredentialsRecord
+            .including(optional: SecureVaultModels.SyncableCredentialsRecord.account.aliased(accountAlias))
+            .including(optional: SecureVaultModels.SyncableCredentialsRecord.credentials.aliased(credentialsAlias))
+            .filter(conditions.joined(operator: .and))
+            .asRequest(of: SecureVaultModels.SyncableCredentials.self)
+            .fetchAll(database)
+
+        guard !syncableCredentials.isEmpty else {
+            return nil
+        }
+
+        if let password, let passwordData = password.data(using: .utf8) {
+            return try syncableCredentials.first(where: { credentials in
+                let decryptedPassword = try credentials.credentialsRecord?.password
+                    .flatMap { try secureVault.decrypt($0, using: secureVaultEncryptionKey) }
+                return decryptedPassword == passwordData
+            })
+        }
+        return syncableCredentials.first(where: { $0.credentialsRecord?.password == nil })
     }
 }
 
