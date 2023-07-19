@@ -49,6 +49,7 @@ public class DefaultInternalUserDecider: InternalUserDecider {
         }
         set {
             store.isInternalUser = newValue
+            isInternalUserSubject.send(newValue)
         }
     }
 
@@ -78,5 +79,13 @@ public class DefaultInternalUserDecider: InternalUserDecider {
             return true
         }
         return false
+    }
+}
+
+extension DefaultInternalUserDecider {
+
+    // Used to set internal user state form debug menu.
+    public func debugSetInternalUserState(_ state: Bool) {
+        isInternalUser = state
     }
 }
