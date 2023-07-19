@@ -84,7 +84,7 @@ public class DefaultInternalUserDecider: InternalUserDecider {
 
 extension DefaultInternalUserDecider {
 
-    // Used to set internal user state form debug menu.
+    // Used to set internal user state from debug menu.
     public func debugSetInternalUserState(_ state: Bool) {
         isInternalUser = state
     }
