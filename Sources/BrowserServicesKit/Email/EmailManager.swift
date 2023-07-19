@@ -309,11 +309,11 @@ public class EmailManager {
     }
 
     public func aliasFor(_ email: String) -> String {
-        return email.replacingOccurrences(of: "@" + Self.emailDomain, with: "")
+        return email.lowercased().replacingOccurrences(of: "@" + Self.emailDomain, with: "")
     }
 
     public func isPrivateEmail(email: String) -> Bool {
-        if email != userEmail?.lowercased() && email.hasSuffix(Self.emailDomain) {
+        if email != userEmail?.lowercased() && email.lowercased().hasSuffix(Self.emailDomain) {
             return true
         }
         return false
