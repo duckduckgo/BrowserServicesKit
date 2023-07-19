@@ -30,6 +30,8 @@ import GRDB
 /// Data always goes in and comes out unencrypted.
 public protocol SecureVault {
 
+    func getHashingSalt() throws -> Data?
+
     func getEncryptionKey() throws -> Data
     func encrypt(_ data: Data, using key: Data) throws -> Data
     func decrypt(_ data: Data, using key: Data) throws -> Data
@@ -69,14 +71,24 @@ public protocol SecureVault {
     // MARK: - Import Support
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database, encryptedUsing l2Key: Data) throws -> Int64
+    func storeWebsiteCredentials(
+        _ credentials: SecureVaultModels.WebsiteCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws -> Int64
 
     // MARK: - Sync Support
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
-    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database, encryptedUsing l2Key: Data) throws
+    func storeSyncableCredentials(
+        _ syncableCredentials: SecureVaultModels.SyncableCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws
 
     func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
@@ -110,6 +122,10 @@ class DefaultSecureVault: SecureVault {
     }
 
     // MARK: - public interface (protocol candidates)
+
+    func getHashingSalt() throws -> Data? {
+        providers.crypto.hashingSalt
+    }
 
     func getEncryptionKey() throws -> Data {
         let password = try passwordInUse()
@@ -268,8 +284,13 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database, encryptedUsing l2Key: Data) throws -> Int64 {
-        let encryptedCredentials = try encryptPassword(for: credentials, using: l2Key)
+    public func storeWebsiteCredentials(
+        _ credentials: SecureVaultModels.WebsiteCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws -> Int64 {
+        let encryptedCredentials = try encryptPassword(for: credentials, key: l2Key, salt: salt)
         return try self.providers.database.storeWebsiteCredentials(encryptedCredentials, in: database)
     }
 
@@ -290,24 +311,25 @@ class DefaultSecureVault: SecureVault {
     func storeSyncableCredentials(
         _ syncableCredentials: SecureVaultModels.SyncableCredentials,
         in database: Database,
-        encryptedUsing l2Key: Data
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
     ) throws {
         guard let credentials = syncableCredentials.credentials else {
             assertionFailure("nil credentials passed to \(#function)")
             return
         }
-        let encryptedCredentials = try encryptPassword(for: credentials, using: l2Key)
+        let encryptedCredentials = try encryptPassword(for: credentials, key: l2Key, salt: salt)
         var syncableCredentialsToStore = syncableCredentials
         syncableCredentialsToStore.credentials = encryptedCredentials
         try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
     }
 
-    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials, using l2Key: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
+    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials, key l2Key: Data? = nil, salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
             // Generate a new signature
             let hashData = credentials.account.hashValue + (credentials.password ?? Data())
             var creds = credentials
-            creds.account.signature = try providers.crypto.hashData(hashData)
+            creds.account.signature = try providers.crypto.hashData(hashData, salt: salt)
             let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!, using: l2Key)
             return .init(account: creds.account, password: encryptedPassword)
         } catch {
