@@ -54,8 +54,6 @@ extension DistributedNotificationCenter: NetworkProtectionNotificationPosting {
     }
 }
 
-#endif
-
 public protocol NetworkProtectionNotificationPosting: AnyObject {
     func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String?, log: OSLog)
 }
@@ -114,3 +112,5 @@ public enum NetworkProtectionNotification: String {
         "\(Bundle.main.networkProtectionDistributedNotificationPrefix).\(notificationName)"
     }
 }
+
+#endif

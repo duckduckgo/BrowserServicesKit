@@ -170,7 +170,11 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
                "Returning attribution rules for vendor  %{private}s to %{public}d caller(s)",
                attributionTask.vendor, matchingTasks.count)
         
-        let rules = ContentBlockerRulesManager.Rules(task: compilationTask)
+        var rules: ContentBlockerRulesManager.Rules? = nil
+        if let result = compilationTask.result {
+            rules = .init(compilationResult: result)
+        }
+        
         DispatchQueue.main.async {
             for task in matchingTasks {
                 task.completion(rules)
