@@ -48,7 +48,6 @@ let package = Package(
                 .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
@@ -196,7 +195,8 @@ let package = Package(
         .target(
             name: "SecureStorage",
             dependencies: [
-                "Common"
+                "Common",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
         .target(name: "WireGuardC"),

@@ -74,16 +74,7 @@ public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
         }
 
         var migrator = DatabaseMigrator()
-
-        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-        migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
-        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
-        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
-        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
-        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
-        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
-        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+        self.registerMigrations(with: &migrator)
         // Add more sync migrations here ...
         // Note, these migrations will run synchronously on first access to secureVault DB
 
@@ -93,6 +84,18 @@ public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
             os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
             throw error
         }
+    }
+
+    public func registerMigrations(with migrator: inout DatabaseMigrator) {
+        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
+        migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
+        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
