@@ -27,6 +27,8 @@ import Common
 public final class NetworkProtectionTunnelErrorStore {
     private static let lastErrorMessageKey = "com.duckduckgo.NetworkProtectionTunnelErrorStore.lastErrorMessage"
     private let userDefaults: UserDefaults
+
+#if os(macOS)
     private let notificationCenter: NetworkProtectionNotificationCenter
 
     public init(userDefaults: UserDefaults = .standard,
@@ -35,6 +37,20 @@ public final class NetworkProtectionTunnelErrorStore {
         self.notificationCenter = notificationCenter
     }
 
+    // MARK: - Posting Distributed Notifications
+
+    private func postLastErrorMessageChangedNotification(_ errorMessage: String?) {
+        notificationCenter.post(.tunnelErrorChanged, object: errorMessage)
+    }
+
+#else
+
+    public init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
+
+#endif
+
     public var lastErrorMessage: String? {
         get {
             userDefaults.string(forKey: Self.lastErrorMessageKey)
@@ -42,11 +58,10 @@ public final class NetworkProtectionTunnelErrorStore {
 
         set {
             userDefaults.set(newValue, forKey: Self.lastErrorMessageKey)
+
+            #if os(macOS)
             postLastErrorMessageChangedNotification(newValue)
+            #endif
         }
-    }
-    // MARK: - Posting Notifications
-    private func postLastErrorMessageChangedNotification(_ errorMessage: String?) {
-        notificationCenter.post(.tunnelErrorChanged, object: errorMessage)
     }
 }
