@@ -214,7 +214,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         ]
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().withMillisecondPrecision, serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: 1).withMillisecondPrecision, serverTimestamp: "1234", crypter: crypter)
 
         let syncableCredentials = try fetchAllSyncableCredentials()
         let updatedCredential = try XCTUnwrap(syncableCredentials.first)
