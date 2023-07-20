@@ -22,7 +22,7 @@ import CryptoKit
 import Security
 import SecureStorage
 
-final class AutofillCryptoProvider: SecureVaultCryptoProvider {
+final class AutofillCryptoProvider: SecureStorageCryptoProvider {
 
     var keychainAccountName: String {
 #if os(iOS)

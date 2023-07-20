@@ -25,7 +25,7 @@ public protocol SecureVaultErrorReporting: AnyObject {
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
 public class SecureVaultFactory<Vault: GenericVault> {
 
-    public typealias CryptoProviderInitialization = () -> SecureVaultCryptoProvider
+    public typealias CryptoProviderInitialization = () -> SecureStorageCryptoProvider
     public typealias KeyStoreProviderInitialization = () -> SecureStorageKeyStoreProvider
     public typealias DatabaseProviderInitialization = (_ key: Data) throws -> Vault.DatabaseProvider
 
@@ -87,7 +87,7 @@ public class SecureVaultFactory<Vault: GenericVault> {
     }
     
     public func makeSecureStorageProviders() throws -> SecureStorageProviders<Vault.DatabaseProvider> {
-        let (cryptoProvider, keystoreProvider): (SecureVaultCryptoProvider, SecureStorageKeyStoreProvider)
+        let (cryptoProvider, keystoreProvider): (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider)
         do {
             (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
         } catch {
@@ -112,7 +112,7 @@ public class SecureVaultFactory<Vault: GenericVault> {
         return SecureStorageProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
     }
     
-    public func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureStorageKeyStoreProvider) {
+    public func createAndInitializeEncryptionProviders() throws -> (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider) {
         let cryptoProvider = makeCryptoProvider()
         let keystoreProvider = makeKeyStoreProvider()
         

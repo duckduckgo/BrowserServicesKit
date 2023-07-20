@@ -535,7 +535,7 @@ extension DefaultAutofillDatabaseProvider {
             $0.add(column: SecureVaultModels.Identity.Columns.addressStreet2.name, .text)
         }
 
-        let cryptoProvider: SecureVaultCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
         let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
 
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
@@ -639,7 +639,7 @@ extension DefaultAutofillDatabaseProvider {
     // Refresh password comparison hashes
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
-        let cryptoProvider: SecureVaultCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
         let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
         let salt = cryptoProvider.hashingSalt
 
@@ -693,7 +693,7 @@ extension DefaultAutofillDatabaseProvider {
 
 struct MigrationUtility {
     
-    static func l2encrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
+    static func l2encrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = try AutofillSecureVaultFactory.createAndInitializeEncryptionProviders()
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
@@ -711,7 +711,7 @@ struct MigrationUtility {
         return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
     
-    static func l2decrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
+    static func l2decrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = (cryptoProvider, keyStoreProvider)
         
         guard let generatedPassword = try keyStore.generatedPassword() else {

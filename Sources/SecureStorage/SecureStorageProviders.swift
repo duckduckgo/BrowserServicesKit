@@ -21,11 +21,11 @@ import Foundation
 /// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
 public struct SecureStorageProviders<DatabaseProvider: SecureStorageDatabaseProvider> {
 
-    public var crypto: SecureVaultCryptoProvider
+    public var crypto: SecureStorageCryptoProvider
     public var database: DatabaseProvider
     public var keystore: SecureStorageKeyStoreProvider
 
-    public init(crypto: SecureVaultCryptoProvider, database: DatabaseProvider, keystore: SecureStorageKeyStoreProvider) {
+    public init(crypto: SecureStorageCryptoProvider, database: DatabaseProvider, keystore: SecureStorageKeyStoreProvider) {
         self.crypto = crypto
         self.database = database
         self.keystore = keystore

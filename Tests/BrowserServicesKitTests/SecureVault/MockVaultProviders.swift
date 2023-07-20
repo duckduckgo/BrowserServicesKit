@@ -131,7 +131,7 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     }
 }
 
-internal class MockCryptoProvider: SecureVaultCryptoProvider {
+internal class MockCryptoProvider: SecureStorageCryptoProvider {
 
     var passwordSalt: Data {
         return Data()
@@ -201,7 +201,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
 }
 
-internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+internal class NoOpCryptoProvider: SecureStorageCryptoProvider {
     
     var passwordSalt: Data {
         return Data()

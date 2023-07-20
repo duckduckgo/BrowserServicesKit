@@ -1,5 +1,5 @@
 //
-//  SecureVaultCryptoProvider.swift
+//  SecureStorageCryptoProvider.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import Foundation
 import CommonCrypto
 import CryptoKit
 
-public protocol SecureVaultCryptoProvider {
+public protocol SecureStorageCryptoProvider {
 
     func generateSecretKey() throws -> Data
 
@@ -46,23 +46,22 @@ public protocol SecureVaultCryptoProvider {
 
 }
 
-// MARK: - SecureVaultCryptoProvider Default Implementation
+// MARK: - SecureStorageCryptoProvider Default Implementation
 
-// TODO: This doesn't go here
-public enum SecureVaultCryptoProviderConstants {
+private enum SecureStorageCryptoProviderConstants {
     public static let keySizeInBytes = 256 / 8
 }
 
-public extension SecureVaultCryptoProvider {
+public extension SecureStorageCryptoProvider {
 
     func generateSecretKey() throws -> Data {
         return SymmetricKey(size: .bits256).dataRepresentation
     }
 
     func generatePassword() throws -> Data {
-        var data = Data(count: SecureVaultCryptoProviderConstants.keySizeInBytes)
+        var data = Data(count: SecureStorageCryptoProviderConstants.keySizeInBytes)
         let result = data.withUnsafeMutableBytes {
-            return SecRandomCopyBytes(kSecRandomDefault, SecureVaultCryptoProviderConstants.keySizeInBytes, $0.baseAddress!)
+            return SecRandomCopyBytes(kSecRandomDefault, SecureStorageCryptoProviderConstants.keySizeInBytes, $0.baseAddress!)
         }
         guard result == errSecSuccess else {
             throw SecureStorageError.secError(status: result)
@@ -72,7 +71,7 @@ public extension SecureVaultCryptoProvider {
 
     func deriveKeyFromPassword(_ password: Data) throws -> Data {
         let salt = self.passwordSalt
-        var key = Data(repeating: 0, count: SecureVaultCryptoProviderConstants.keySizeInBytes)
+        var key = Data(repeating: 0, count: SecureStorageCryptoProviderConstants.keySizeInBytes)
         let keyLength = key.count
         let status: OSStatus = key.withUnsafeMutableBytes { derivedKeyBytes in
             let derivedKeyRawBytes = derivedKeyBytes.bindMemory(to: UInt8.self).baseAddress
