@@ -23,7 +23,7 @@ public protocol SecureVaultErrorReporting: AnyObject {
 }
 
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
-public class SecureVaultFactory<Vault: GenericVault> {
+public class SecureVaultFactory<Vault: SecureVault> {
 
     public typealias CryptoProviderInitialization = () -> SecureStorageCryptoProvider
     public typealias KeyStoreProviderInitialization = () -> SecureStorageKeyStoreProvider

@@ -40,7 +40,7 @@ public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory
 /// * L3 - user password is required at time of request.  Currently no data at this level, but later e.g, credit cards.
 ///
 /// Data always goes in and comes out unencrypted.
-public protocol AutofillSecureVault: GenericVault {
+public protocol AutofillSecureVault: SecureVault {
 
     func authWith(password: Data) throws -> any AutofillSecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws

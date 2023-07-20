@@ -1,5 +1,5 @@
 //
-//  GenericVault.swift
+//  SecureVault.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol GenericVault {
+public protocol SecureVault {
 
     associatedtype DatabaseProvider: SecureStorageDatabaseProvider
 
