@@ -79,7 +79,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     let db: DatabaseQueue
 
-    init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data) throws {
+    init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data, customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -96,18 +96,22 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
 
         var migrator = DatabaseMigrator()
-        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-        migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
-        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
-        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
-        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
-        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
-        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
-        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
-        migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
-        // Add more sync migrations here ...
-        // Note, these migrations will run synchronously on first access to secureVault DB
+        if let customMigrations {
+            customMigrations(&migrator)
+        } else {
+            migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
+            migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+            migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+            migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+            migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+            migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+            migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+            migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
+            migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+            migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
+            // Add more sync migrations here ...
+            // Note, these migrations will run synchronously on first access to secureVault DB
+        }
 
         do {
             try migrator.migrate(db)
@@ -836,6 +840,7 @@ extension DefaultDatabaseProvider {
             index: [SyncableCredentialsRecord.databaseTableName, SyncableCredentialsRecord.Columns.objectId.name].joined(separator: "_"),
             on: SyncableCredentialsRecord.databaseTableName,
             columns: [SyncableCredentialsRecord.Columns.objectId.name],
+            unique: true,
             ifNotExists: false
         )
 

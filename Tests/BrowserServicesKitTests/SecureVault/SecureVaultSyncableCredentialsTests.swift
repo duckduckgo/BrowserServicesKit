@@ -129,6 +129,25 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
         XCTAssertEqual(metadataObjects[0].metadata.lastModified!.timeIntervalSince1970, timestamp.timeIntervalSince1970, accuracy: 0.001)
     }
 
+    func testWhenCredentialsAreUpdatedThenSyncTimestampIsUpdated() throws {
+        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        var credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
+        let accountId = try provider.storeWebsiteCredentials(credentials)
+
+        var metadata = try XCTUnwrap(try provider.db.read { try SecureVaultModels.SyncableCredentialsRecord.fetchOne($0) })
+        metadata.lastModified = nil
+        try provider.db.write { try metadata.update($0) }
+
+        credentials.account = try XCTUnwrap(try provider.db.read { try SecureVaultModels.WebsiteAccount.fetchOne($0) })
+        credentials.account.username = "brindy2"
+        try provider.storeWebsiteCredentials(credentials)
+
+        let syncableCredentials = try provider.modifiedSyncableCredentials()
+        XCTAssertEqual(syncableCredentials.count, 1)
+        XCTAssertEqual(syncableCredentials[0].metadata.objectId, accountId)
+        XCTAssertNotNil(syncableCredentials[0].metadata.lastModified)
+    }
+
     func testWhenSyncableCredentialsAreDeletedThenAccountAndCredentialsAreDeleted() throws {
         let account = SecureVaultModels.WebsiteAccount(id: "2", username: "brindy", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8))
