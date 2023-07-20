@@ -52,12 +52,34 @@ public final class CredentialsProvider: DataProviding {
         lastSyncTimestamp = nil
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         try secureVault.inDatabaseTransaction { database in
+
             try database.execute(sql: """
                 UPDATE
                     \(SecureVaultModels.SyncableCredentialsRecord.databaseTableName)
                 SET
                     \(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified.name) = ?
             """, arguments: [Date()])
+
+            let accountIds = try Row.fetchAll(
+                database,
+                sql: "SELECT \(SecureVaultModels.WebsiteAccount.Columns.id.name) FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)"
+            ).compactMap { row -> Int64? in
+                row[SecureVaultModels.WebsiteAccount.Columns.id.name]
+            }
+
+            let credentialsMetadata = try SecureVaultModels.SyncableCredentialsRecord.fetchAll(database)
+
+            if accountIds.count != credentialsMetadata.count {
+                assertionFailure("Syncable Credentials metadata objects count does not match the number of accounts (\(credentialsMetadata.count) metadata objects vs \(accountIds.count) accounts)")
+//                syncErrorSubject.send(SyncError.accountAlreadyExists) // todo
+
+//                for accountId in Set(accountIds).subtracting(Set(credentialsMetadata.compactMap(\.objectId))) {
+//                }
+            }
+
+            for accountId in accountIds {
+                try SecureVaultModels.SyncableCredentialsRecord(objectId: accountId, lastModified: Date()).upsert(database)
+            }
         }
     }
 
