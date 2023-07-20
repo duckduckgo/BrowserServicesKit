@@ -828,7 +828,7 @@ extension DefaultDatabaseProvider {
         try database.create(
             index: [SyncableCredentialsRecord.databaseTableName, SyncableCredentialsRecord.Columns.uuid.name].joined(separator: "_"),
             on: SyncableCredentialsRecord.databaseTableName,
-            columns: [SyncableCredentialsRecord.Columns.objectId.name],
+            columns: [SyncableCredentialsRecord.Columns.uuid.name],
             ifNotExists: false
         )
 
