@@ -53,13 +53,6 @@ public final class CredentialsProvider: DataProviding {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         try secureVault.inDatabaseTransaction { database in
 
-            try database.execute(sql: """
-                UPDATE
-                    \(SecureVaultModels.SyncableCredentialsRecord.databaseTableName)
-                SET
-                    \(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified.name) = ?
-            """, arguments: [Date()])
-
             let accountIds = try Row.fetchAll(
                 database,
                 sql: "SELECT \(SecureVaultModels.WebsiteAccount.Columns.id.name) FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)"
@@ -68,17 +61,27 @@ public final class CredentialsProvider: DataProviding {
             }
 
             let credentialsMetadata = try SecureVaultModels.SyncableCredentialsRecord.fetchAll(database)
+            var accountIdsSet = Set(accountIds)
+            let currentTimestamp = Date()
 
-            if accountIds.count != credentialsMetadata.count {
-                assertionFailure("Syncable Credentials metadata objects count does not match the number of accounts (\(credentialsMetadata.count) metadata objects vs \(accountIds.count) accounts)")
-//                syncErrorSubject.send(SyncError.accountAlreadyExists) // todo
+            for i in 0..<credentialsMetadata.count {
+                var metadataObject = credentialsMetadata[i]
+                metadataObject.lastModified = currentTimestamp
+                try metadataObject.update(database)
 
-//                for accountId in Set(accountIds).subtracting(Set(credentialsMetadata.compactMap(\.objectId))) {
-//                }
+                if let accountId = metadataObject.objectId {
+                    accountIdsSet.remove(accountId)
+                }
             }
 
-            for accountId in accountIds {
-                try SecureVaultModels.SyncableCredentialsRecord(objectId: accountId, lastModified: Date()).upsert(database)
+            if accountIdsSet.count > 0 {
+                assertionFailure("Syncable Credentials metadata objects not present for all Website Account objects")
+
+                self.syncErrorSubject.send(SyncError.credentialsMetadataMissingBeforeFirstSync)
+
+                for accountId in accountIdsSet {
+                    try SecureVaultModels.SyncableCredentialsRecord(objectId: accountId, lastModified: Date()).insert(database)
+                }
             }
         }
     }
