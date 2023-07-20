@@ -79,10 +79,7 @@ extension AutofillUserScript {
                         replyHandler(reply)
                     }
                 } else {
-                    // TODO - need a js refresh state trigger here to handle:
-                    //  1. disable incontext prompt so remove dax icon
-                    //  2. incontext signup not completed, keep dax icon grey
-//                    replyHandler(nil)
+                    replyHandler(nil)
                 }
             }
         } else {
