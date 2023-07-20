@@ -292,7 +292,13 @@ let package = Package(
                 .copy("Resources/servers-original-endpoint.json"),
                 .copy("Resources/servers-updated-endpoint.json")
             ]
-        )
+        ),
+        .testTarget(
+            name: "SecureStorageTests",
+            dependencies: [
+                "SecureStorage"
+            ]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )
