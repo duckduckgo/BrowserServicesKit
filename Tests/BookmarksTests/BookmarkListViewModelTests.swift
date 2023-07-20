@@ -77,6 +77,39 @@ final class BookmarkListViewModelTests: XCTestCase {
         try? FileManager.default.removeItem(at: location)
     }
 
+    func testWhenBookmarkIsDeletedAndAnotherIsMovedThenNoErrorIsFired() {
+
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", isDeleted: true)
+            Bookmark(id: "2")
+            Bookmark(id: "3", isDeleted: true)
+            Bookmark(id: "4")
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 1)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", isDeleted: true)
+                Bookmark(id: "3", isDeleted: true)
+                Bookmark(id: "4")
+                Bookmark(id: "2")
+            })
+
+            XCTAssertEqual(firedEvents, [])
+        }
+    }
+
     func testWhenBookmarkIsMovedToIndexOutsideOfRootFolderBoundsThenErrorIsFired() {
 
         let context = bookmarkListViewModel.context
@@ -277,7 +310,7 @@ final class BookmarkListViewModelTests: XCTestCase {
     }
 }
 
-private extension BookmarkEntity {
+extension BookmarkEntity {
     static func fetchBookmark(withUUID uuid: String, context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)

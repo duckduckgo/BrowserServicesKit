@@ -119,6 +119,20 @@
                 "value": ""
             }
         }
+    },
+    {
+        "id": "6E58D3DA-AB9D-47A4-87B7-B8AF830BFB5E",
+        "content": {
+            "messageType": "promo_single_action",
+            "titleText": "Promo Title",
+            "descriptionText": "Promo Description",
+            "placeholder": "NewForMacAndWindows",
+            "actionText": "Promo Action",
+            "action": {
+                "type": "dismiss",
+                "value": ""
+            }
+        }
     }
   ],
   "rules": [

@@ -118,22 +118,32 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             return
         }
         
-        guard let children = favoriteFolder.favorites,
-              fromIndex < children.count,
-              toIndex < children.count else {
+        let visibleChildren = favoriteFolder.favoritesArray
+
+        guard fromIndex < visibleChildren.count,
+              toIndex < visibleChildren.count else {
             errorEvents?.fire(.indexOutOfRange(.favorites))
             return
         }
         
-        guard let actualFavorite = children[fromIndex] as? BookmarkEntity,
-              actualFavorite == favorite else {
+        guard visibleChildren[fromIndex] == favorite else {
             errorEvents?.fire(.favoritesListIndexNotMatchingBookmark)
             return
         }
         
+        // Take into account bookmarks that are pending deletion
         let mutableChildrenSet = favoriteFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.favorites))
-        
-        mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
+
+        let actualFromIndex = mutableChildrenSet.index(of: favorite)
+        let actualToIndex = mutableChildrenSet.index(of: visibleChildren[toIndex])
+
+        guard actualFromIndex != NSNotFound, actualToIndex != NSNotFound else {
+            assertionFailure("Favorite: position could not be determined")
+            refresh()
+            return
+        }
+
+        mutableChildrenSet.moveObjects(at: IndexSet(integer: actualFromIndex), to: actualToIndex)
         
         save()
         
