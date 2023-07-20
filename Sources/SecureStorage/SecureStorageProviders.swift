@@ -23,9 +23,9 @@ public struct SecureStorageProviders<DatabaseProvider: SecureStorageDatabaseProv
 
     public var crypto: SecureVaultCryptoProvider
     public var database: DatabaseProvider
-    public var keystore: SecureVaultKeyStoreProvider
+    public var keystore: SecureStorageKeyStoreProvider
 
-    public init(crypto: SecureVaultCryptoProvider, database: DatabaseProvider, keystore: SecureVaultKeyStoreProvider) {
+    public init(crypto: SecureVaultCryptoProvider, database: DatabaseProvider, keystore: SecureStorageKeyStoreProvider) {
         self.crypto = crypto
         self.database = database
         self.keystore = keystore

@@ -26,7 +26,7 @@ public protocol SecureVaultErrorReporting: AnyObject {
 public class SecureVaultFactory<Vault: GenericVault> {
 
     public typealias CryptoProviderInitialization = () -> SecureVaultCryptoProvider
-    public typealias KeyStoreProviderInitialization = () -> SecureVaultKeyStoreProvider
+    public typealias KeyStoreProviderInitialization = () -> SecureStorageKeyStoreProvider
     public typealias DatabaseProviderInitialization = (_ key: Data) throws -> Vault.DatabaseProvider
 
     private var lock = NSLock()
@@ -87,7 +87,7 @@ public class SecureVaultFactory<Vault: GenericVault> {
     }
     
     public func makeSecureStorageProviders() throws -> SecureStorageProviders<Vault.DatabaseProvider> {
-        let (cryptoProvider, keystoreProvider): (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider)
+        let (cryptoProvider, keystoreProvider): (SecureVaultCryptoProvider, SecureStorageKeyStoreProvider)
         do {
             (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
         } catch {
@@ -112,7 +112,7 @@ public class SecureVaultFactory<Vault: GenericVault> {
         return SecureStorageProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
     }
     
-    public func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureVaultKeyStoreProvider) {
+    public func createAndInitializeEncryptionProviders() throws -> (SecureVaultCryptoProvider, SecureStorageKeyStoreProvider) {
         let cryptoProvider = makeCryptoProvider()
         let keystoreProvider = makeKeyStoreProvider()
         

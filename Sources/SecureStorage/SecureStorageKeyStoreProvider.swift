@@ -1,5 +1,5 @@
 //
-//  SecureVaultKeyStoreProvider.swift
+//  SecureStorageKeyStoreProvider.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol SecureVaultKeyStoreProvider {
+public protocol SecureStorageKeyStoreProvider {
 
     var generatedPasswordEntryName: String { get }
     var l1KeyEntryName: String { get }
@@ -41,7 +41,7 @@ public protocol SecureVaultKeyStoreProvider {
 
 }
 
-public extension SecureVaultKeyStoreProvider {
+public extension SecureStorageKeyStoreProvider {
 
     func generatedPassword() throws -> Data? {
         return try readData(named: generatedPasswordEntryName, serviceName: keychainServiceName)

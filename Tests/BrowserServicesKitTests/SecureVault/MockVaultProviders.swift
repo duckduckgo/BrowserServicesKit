@@ -255,7 +255,7 @@ internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
 
 }
 
-internal class MockKeystoreProvider: SecureVaultKeyStoreProvider {
+internal class MockKeystoreProvider: SecureStorageKeyStoreProvider {
 
     // swiftlint:disable identifier_name
     var _l1Key: Data?
