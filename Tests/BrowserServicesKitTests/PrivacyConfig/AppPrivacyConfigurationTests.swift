@@ -549,6 +549,153 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
     }
+    
+    let exampleSubfeatureWithRolloutsConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "rollouts": [{
+                            "percent": 5
+                        }]
+                    }
+                },
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+    
+    func clearRolloutData(feature: String, subFeature: String) {
+        UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")
+        UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).lastRolloutSize")
+    }
+    
+    func testWhenCheckingSubfeatureState_SubfeatureIsEnabledWithSingleRolloutProbability() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+        
+        let testIterations = 100
+        let testTolerance = 2
+        let testTarget = 5 // Should be same as test config
+        
+        var enabledCount = 0
+        for _ in 0..<testIterations {
+            clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving) ? 1 : 0
+        }
+        
+        print("Feature Enabled: \(enabledCount) times")
+        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance))
+    }
+    
+    let exampleSubfeatureWithMultipleRolloutsConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "rollouts": [{
+                            "percent": 5
+                        }, {
+                            "percent": 15,
+                        }]
+                    },
+                    "credentialsAutofill": {
+                        "state": "enabled",
+                        "rollouts": [{
+                            "percent": 5
+                        }, {
+                            "percent": 15,
+                        }, {
+                            "percent": 25
+                        }]
+                    },
+                },
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+    
+    func testWhenCheckingSubfeatureState_SubfeatureIsEnabledWithMultipleRolloutProbability() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+        
+        let testIterations = 100
+        var testTolerance = 4
+        var testTarget = 11 // Should be same as test config, Note: Effective probability is (y - x)/(100 - y) with a rollouts array of [x, y]
+        
+        var enabledCount = 0
+        for _ in 0..<testIterations {
+            clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving) ? 1 : 0
+        }
+
+        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance),
+                  "Subfeature enabled \(enabledCount) times (\(testTarget) target) outside of \(testTolerance)% tolerance range.")
+        
+        testTolerance = 5
+        testTarget = 25 // Should be same as test config, Note: Effective probability is (y - x)/(100 - y) with a rollouts array of [x, y]
+        
+        enabledCount = 0
+        for _ in 0..<testIterations {
+            clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill) ? 1 : 0
+        }
+
+        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance),
+                  "Subfeature enabled \(enabledCount) times (\(testTarget) target) outside of \(testTolerance)% tolerance range.")
+    }
+    
+    func testWhenCheckingSubfeatureStateAndRolloutSizeChanges_SubfeatureIsEnabledWithMultipleRolloutProbability() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+        
+        let testIterations = 100
+        let testTolerance = 5
+        let testTarget = 25 // Should be same as test config, Note: Effective probability is (z - y)/(100 - z) with a rollouts array of [x, y, z]
+        
+        var enabledCount = 0
+        for _ in 0..<testIterations {
+            clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+            
+            // Mock that the user has previously seen the rollout and was not chosen
+            UserDefaults().set(2, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
+            
+            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill) ? 1 : 0
+        }
+
+        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance),
+                  "Subfeature enabled \(enabledCount) times (\(testTarget) target) outside of \(testTolerance)% tolerance range.")
+    }
 
     func exampleTrackerAllowlistConfig(with state: String) -> Data {
         return
