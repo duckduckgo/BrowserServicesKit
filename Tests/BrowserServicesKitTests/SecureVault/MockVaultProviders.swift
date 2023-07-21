@@ -18,6 +18,7 @@
 
 import Foundation
 import SecureStorage
+import GRDB
 @testable import BrowserServicesKit
 
 internal class MockDatabaseProvider: AutofillDatabaseProvider {
@@ -32,6 +33,9 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     var _note: SecureVaultModels.Note?
     // swiftlint:enable identifier_name
 
+    var databaseFileName: String {
+        return "mock_database.db"
+    }
 
     required init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {}
 

@@ -22,18 +22,18 @@ import GRDB
 
 public protocol SecureStorageDatabaseProvider {
 
+    var databaseFileName: String { get }
+
     init(file: URL, key: Data) throws
 
     static func recreateDatabase(withKey key: Data) throws -> Self
-
-    func registerMigrations(with migrator: inout DatabaseMigrator)
 
 }
 
 extension SecureStorageDatabaseProvider {
 
     public static func recreateDatabase(withKey key: Data) throws -> Self {
-        let dbFile = self.dbFile()
+        let dbFile = self.databaseFilePath()
 
         guard FileManager.default.fileExists(atPath: dbFile.path) else {
             return try Self(file: dbFile, key: key)
@@ -55,7 +55,7 @@ extension SecureStorageDatabaseProvider {
         return try Self(file: dbFile, key: key)
     }
 
-    static public func dbFile() -> URL {
+    static public func databaseFilePath() -> URL {
 
         let fm = FileManager.default
         let subDir = fm.applicationSupportDirectoryForComponent(named: "Vault")
@@ -78,7 +78,7 @@ extension SecureStorageDatabaseProvider {
     }
 
     static internal func nonExistingDBFile(withExtension ext: String) -> URL {
-        let originalPath = Self.dbFile().deletingPathExtension().path
+        let originalPath = Self.databaseFilePath().deletingPathExtension().path
 
         for i in 0... {
             var path = originalPath
@@ -95,4 +95,43 @@ extension SecureStorageDatabaseProvider {
         fatalError()
     }
 
+    public static func createDatabaseQueue(file: URL, key: Data, registerMigrationsHandler: (inout DatabaseMigrator) -> Void) throws -> DatabaseQueue {
+        var config = Configuration()
+        config.prepareDatabase {
+            try $0.usePassphrase(key)
+        }
+
+        let queue: DatabaseQueue
+
+        do {
+            queue = try DatabaseQueue(path: file.path, configuration: config)
+        } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
+            os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
+            throw SecureStorageDatabaseError.nonRecoverable(error)
+        } catch {
+            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
+            throw error
+        }
+
+        var migrator = DatabaseMigrator()
+        registerMigrationsHandler(&migrator)
+
+        // Add more sync migrations here ...
+        // Note, these migrations will run synchronously on first access to secureVault DB
+
+        do {
+            try migrator.migrate(queue)
+        } catch {
+            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
+            throw error
+        }
+
+        return queue
+    }
+
+}
+
+private enum DatabaseWriterType {
+    case queue
+    case pool
 }

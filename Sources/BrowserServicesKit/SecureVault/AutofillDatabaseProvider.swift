@@ -54,48 +54,24 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
 public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
 
-    let db: DatabaseQueue
-
-    public init(file: URL = DefaultAutofillDatabaseProvider.dbFile(), key: Data) throws {
-
-        var config = Configuration()
-        config.prepareDatabase {
-            try $0.usePassphrase(key)
-        }
-
-        do {
-            db = try DatabaseQueue(path: file.path, configuration: config)
-        } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
-            os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
-            throw SecureStorageDatabaseError.nonRecoverable(error)
-        } catch {
-            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
-            throw error
-        }
-
-        var migrator = DatabaseMigrator()
-        self.registerMigrations(with: &migrator)
-        // Add more sync migrations here ...
-        // Note, these migrations will run synchronously on first access to secureVault DB
-
-        do {
-            try migrator.migrate(db)
-        } catch {
-            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
-            throw error
-        }
+    public var databaseFileName: String {
+        return "Vault.db"
     }
 
-    public func registerMigrations(with migrator: inout DatabaseMigrator) {
-        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-        migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
-        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
-        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
-        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
-        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
-        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
-        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+    let db: DatabaseQueue
+
+    public init(file: URL = DefaultAutofillDatabaseProvider.databaseFilePath(), key: Data) throws {
+        db = try Self.createDatabaseQueue(file: file, key: key) { migrator in
+            migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
+            migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+            migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+            migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+            migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+            migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+            migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+            migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
+            migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+        }
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {

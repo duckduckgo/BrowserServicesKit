@@ -31,14 +31,14 @@ protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
 
 final class ConcreteMockDatabaseProvider: MockDatabaseProvider {
 
+    var databaseFileName: String {
+        return "mock_database.db"
+    }
+
     init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {}
 
     static func recreateDatabase(withKey key: Data) throws -> Self {
         return try ConcreteMockDatabaseProvider(file: URL(string: "https://duckduckgo.com")!, key: Data()) as! Self
-    }
-
-    func registerMigrations(with migrator: inout DatabaseMigrator) {
-        // no-op
     }
 
     var storedData: String?
