@@ -19,9 +19,10 @@
 
 import Foundation
 import WebKit
-import os.log
 import TrackerRadarKit
 import Combine
+import Common
+import os.log
 
 // swiftlint:disable file_length
 // swiftlint:disable type_body_length
@@ -41,14 +42,6 @@ public protocol CompiledRuleListsSource {
 public protocol ContentBlockerRulesCaching: AnyObject {
     var contentRulesCache: [String: Date] { get set }
     var contentRulesCacheInterval: TimeInterval { get }
-}
-
-public protocol ContentBlockerRulesUpdating {
-
-    func rulesManager(_ manager: ContentBlockerRulesManager,
-                      didUpdateRules: [ContentBlockerRulesManager.Rules],
-                      changes: [String: ContentBlockerRulesIdentifier.Difference],
-                      completionTokens: [ContentBlockerRulesManager.CompletionToken])
 }
 
 /**
@@ -90,19 +83,17 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             self.identifier = identifier
         }
         
-        internal init?(task: ContentBlockerRulesManager.CompilationTask) {
-            guard let result = task.result else { return nil }
-
-            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: result.model.tds)
+        internal init(compilationResult: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)) {
+            let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: compilationResult.model.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
 
-            self.init(name: task.rulesList.name,
-                      rulesList: result.compiledRulesList,
-                      trackerData: result.model.tds,
+            self.init(name: compilationResult.model.name,
+                      rulesList: compilationResult.compiledRulesList,
+                      trackerData: compilationResult.model.tds,
                       encodedTrackerData: encodedTrackerData,
-                      etag: result.model.tdsIdentifier,
-                      identifier: result.model.rulesIdentifier)
+                      etag: compilationResult.model.tdsIdentifier,
+                      identifier: compilationResult.model.rulesIdentifier)
         }
     }
 
@@ -129,7 +120,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let logger: OSLog
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
 
     // Public only for tests
     public var sourceManagers = [String: ContentBlockerRulesSourceManager]()
@@ -146,20 +140,23 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 lastCompiledRulesStore: LastCompiledRulesStore? = nil,
                 cache: ContentBlockerRulesCaching? = nil,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                logger: OSLog = .disabled) {
+                log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.rulesSource = rulesSource
         self.exceptionsSource = exceptionsSource
         self.lastCompiledRulesStore = lastCompiledRulesStore
         self.cache = cache
         self.errorReporting = errorReporting
-        self.logger = logger
+        self.getLog = log
 
         workQueue.async {
             _ = self.updateCompilationState(token: "")
-            if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
-                self.startInitialCompilationProcess(with: lastCompiledRules)
-            } else {
-                self.startCompilationProcess()
+
+            if !self.lookupCompiledRules() {
+                if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
+                    self.fetchLastCompiledRules(with: lastCompiledRules)
+                } else {
+                    self.startCompilationProcess()
+                }
             }
         }
     }
@@ -211,7 +208,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
     /// Returns true if the compilation should be executed immediately
     private func updateCompilationState(token: CompletionToken) -> Bool {
-        os_log("Requesting compilation...", log: logger, type: .default)
+        os_log("Requesting compilation...", log: log, type: .default)
         lock.lock()
         guard case .idle = state else {
             if case .recompiling(let tokens) = state {
@@ -229,58 +226,85 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         lock.unlock()
         return true
     }
-    
-    private func startInitialCompilationProcess(with lastCompiledRules: [LastCompiledRules]) {
-        let initialCompilationTask = InitialCompilationTask(sourceRules: rulesSource.contentBlockerRulesLists,
-                                                            lastCompiledRules: lastCompiledRules)
+
+    /*
+     Go through source managers and check if there are already compiled rules in the WebKit rule cache.
+     Returns true if rules were found, false otherwise.
+     */
+    private func lookupCompiledRules() -> Bool {
+        prepareSourceManagers()
+        let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
         let mutex = DispatchSemaphore(value: 0)
-        var result = [InitialCompilationTask.CachedRulesList]()
-        withUnsafeMutablePointer(to: &result) { pointer in
-            Task {
-                pointer.pointee = await initialCompilationTask.start()
-                // Leave context of current thread (most likely Main Thread, cause of await above) as soon as possible.
-                mutex.signal()
-            }
-            // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
-            mutex.wait()
+
+        Task {
+            try? await initialCompilationTask.lookupCachedRulesLists()
+            mutex.signal()
         }
-        
-        let rules = generateRules(from: result)
-        applyRules(rules)
+        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
+        mutex.wait()
+
+        if let result = initialCompilationTask.result {
+            let rules = result.map(Rules.init(compilationResult:))
+            applyRules(rules)
+            return true
+        }
+        return false
+    }
+
+    /*
+     Go through source managers and check if there are already compiled rules in the WebKit rule cache.
+     Returns true if rules were found, false otherwise.
+     */
+    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
+        let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
+                                                                 lastCompiledRules: lastCompiledRules)
+        let mutex = DispatchSemaphore(value: 0)
+        Task {
+            try? await initialCompilationTask.fetchCachedRulesLists()
+            mutex.signal()
+        }
+        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
+        mutex.wait()
+
+        if let rules = initialCompilationTask.getFetchedRules() {
+            applyRules(rules)
+        } else {
+            lock.lock()
+            state = .idle
+            lock.unlock()
+        }
+
+        // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
     }
-    
-    private func generateRules(from result: [InitialCompilationTask.CachedRulesList]) -> [Rules] {
-        result.map {
-            let surrogateTDS = Self.extractSurrogates(from: $0.tds)
-            let encodedData = try? JSONEncoder().encode(surrogateTDS)
-            let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
-            return Rules(name: $0.name,
-                         rulesList: $0.rulesList,
-                         trackerData: $0.tds,
-                         encodedTrackerData: encodedTrackerData,
-                         etag: $0.rulesIdentifier.tdsEtag,
-                         identifier: $0.rulesIdentifier)
-        }
-    }
-    
-    private func startCompilationProcess() {
-        // Prepare compilation tasks based on the sources
-        currentTasks = rulesSource.contentBlockerRulesLists.map { rulesList in
 
+    private func prepareSourceManagers() {
+        rulesSource.contentBlockerRulesLists.forEach { rulesList in
             let sourceManager: ContentBlockerRulesSourceManager
             if let manager = self.sourceManagers[rulesList.name] {
                 // Update rules list
                 manager.rulesList = rulesList
                 sourceManager = manager
             } else {
+                let log = self.log
                 sourceManager = ContentBlockerRulesSourceManager(rulesList: rulesList,
                                                                  exceptionsSource: self.exceptionsSource,
                                                                  errorReporting: self.errorReporting,
-                                                                 log: logger)
+                                                                 log: log)
                 self.sourceManagers[rulesList.name] = sourceManager
             }
-            return CompilationTask(workQueue: workQueue, rulesList: rulesList, sourceManager: sourceManager)
+        }
+    }
+    
+    private func startCompilationProcess() {
+        prepareSourceManagers()
+
+        // Prepare compilation tasks based on the sources
+        currentTasks = sourceManagers.values.map { sourceManager in
+
+            return CompilationTask(workQueue: workQueue,
+                                   rulesList: sourceManager.rulesList,
+                                   sourceManager: sourceManager)
         }
 
         executeNextTask()
@@ -332,10 +356,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         lock.lock()
 
         let newRules: [Rules] = currentTasks.compactMap { task in
-            guard let result = task.result, let rules = Rules(task: task) else {
-                os_log("Failed to complete task %{public}s ", log: self.logger, type: .error, task.rulesList.name)
+            guard let result = task.result else {
+                os_log("Failed to complete task %{public}s ", log: self.log, type: .error, task.rulesList.name)
                 return nil
             }
+            let rules = Rules(compilationResult: result)
 
             let diff: ContentBlockerRulesIdentifier.Difference
             if let id = _currentRules.first(where: {$0.name == task.rulesList.name })?.identifier {
@@ -343,8 +368,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             } else {
                 diff = result.model.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(name: task.rulesList.name,
                                                                                                 tdsEtag: "",
-                                                                                                tempListEtag: nil,
-                                                                                                allowListEtag: nil,
+                                                                                                tempListId: nil,
+                                                                                                allowListId: nil,
                                                                                                 unprotectedSitesHash: nil))
             }
 
@@ -426,40 +451,3 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
 }
-
-extension ContentBlockerRulesManager {
-
-    public convenience init(rulesSource: ContentBlockerRulesListsSource,
-                            exceptionsSource: ContentBlockerRulesExceptionsSource,
-                            lastCompiledRulesStore: LastCompiledRulesStore? = nil,
-                            cache: ContentBlockerRulesCaching? = nil,
-                            updateListener: ContentBlockerRulesUpdating,
-                            errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                            logger: OSLog = .disabled) {
-        self.init(rulesSource: rulesSource,
-                  exceptionsSource: exceptionsSource,
-                  lastCompiledRulesStore: lastCompiledRulesStore,
-                  cache: cache,
-                  errorReporting: errorReporting,
-                  logger: logger)
-
-        var cancellable: AnyCancellable?
-        cancellable = self.updatesPublisher.receive(on: DispatchQueue.main)
-            .sink { [weak self] update in
-                guard let self = self else {
-                    cancellable?.cancel()
-                    return
-                }
-                withExtendedLifetime(cancellable) {
-                    updateListener.rulesManager(self,
-                                                didUpdateRules: update.rules,
-                                                changes: update.changes,
-                                                completionTokens: update.completionTokens)
-                }
-            }
-    }
-
-}
-
-// swiftlint:enable type_body_length
-// swiftlint:enable file_length

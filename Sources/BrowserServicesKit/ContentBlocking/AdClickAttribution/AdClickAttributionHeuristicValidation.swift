@@ -46,7 +46,7 @@ class AdClickAttributionHeuristicValidation {
     }
     
     private func scheduleValidation(for domain: String) {
-        let timer = Timer.scheduledTimer(withTimeInterval: Constants.checkInterval, repeats: false) { _ [weak self] in
+        let timer = Timer.scheduledTimer(withTimeInterval: Constants.checkInterval, repeats: false) { [weak self] _ in
             self?.onTimerFired()
         }
         state = .validating(domain: domain, timer: timer)

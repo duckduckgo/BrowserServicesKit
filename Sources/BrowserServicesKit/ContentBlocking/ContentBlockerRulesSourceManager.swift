@@ -19,7 +19,7 @@
 
 import Foundation
 import TrackerRadarKit
-import os
+import Common
 
 /**
  Encapsulates revision of the Content Blocker Rules source - id/etag of each of the resources used for compilation.
@@ -43,8 +43,8 @@ public class ContentBlockerRulesSourceIdentifiers {
     public var rulesIdentifier: ContentBlockerRulesIdentifier {
         ContentBlockerRulesIdentifier(name: name,
                                       tdsEtag: tdsIdentifier,
-                                      tempListEtag: tempListIdentifier,
-                                      allowListEtag: allowListIdentifier,
+                                      tempListId: tempListIdentifier,
+                                      allowListId: allowListIdentifier,
                                       unprotectedSitesHash: unprotectedSitesIdentifier)
     }
 }
@@ -95,16 +95,19 @@ public class ContentBlockerRulesSourceManager {
     public private(set) var fallbackTDSFailure = false
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let log: OSLog
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
 
     init(rulesList: ContentBlockerRulesList,
          exceptionsSource: ContentBlockerRulesExceptionsSource,
          errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-         log: OSLog = .disabled) {
+         log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.rulesList = rulesList
         self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
-        self.log = log
+        self.getLog = log
     }
 
     /**
@@ -119,8 +122,8 @@ public class ContentBlockerRulesSourceManager {
         }
 
         // Fetch identifiers up-front
-        let tempListIdentifier = exceptionsSource.tempListEtag
-        let allowListIdentifier = exceptionsSource.allowListEtag
+        let tempListIdentifier = exceptionsSource.tempListId
+        let allowListIdentifier = exceptionsSource.allowListId
         let unprotectedSites = exceptionsSource.unprotectedSites
         let unprotectedSitesIdentifier = ContentBlockerRulesIdentifier.hash(domains: unprotectedSites)
 

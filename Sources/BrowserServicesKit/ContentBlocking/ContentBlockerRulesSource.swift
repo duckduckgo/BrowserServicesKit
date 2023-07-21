@@ -33,26 +33,36 @@ public protocol ContentBlockerRulesListsSource {
  */
 public protocol ContentBlockerRulesExceptionsSource {
 
-    var tempListEtag: String { get }
+    var tempListId: String { get }
     var tempList: [String] { get }
-    var allowListEtag: String { get }
+    var allowListId: String { get }
     var allowList: [TrackerException] { get }
     var unprotectedSites: [String] { get }
 }
 
-public struct ContentBlockerRulesList {
+public class ContentBlockerRulesList {
 
-    public let trackerData: TrackerDataManager.DataSet?
-    public let fallbackTrackerData: TrackerDataManager.DataSet
+    private var getTrackerData: (() -> TrackerDataManager.DataSet?)!
+    public lazy var trackerData: TrackerDataManager.DataSet? = {
+        let getTrackerData = self.getTrackerData
+        self.getTrackerData = nil
+        return getTrackerData!()
+    }()
+    private var getFallbackTrackerData: (() -> TrackerDataManager.DataSet)!
+    public lazy var fallbackTrackerData: TrackerDataManager.DataSet = {
+        let getFallbackTrackerData = self.getFallbackTrackerData
+        self.getFallbackTrackerData = nil
+        return getFallbackTrackerData!()
+    }()
 
     public let name: String
     
     public init(name: String,
-                trackerData: TrackerDataManager.DataSet?,
-                fallbackTrackerData: TrackerDataManager.DataSet) {
+                trackerData: @escaping @autoclosure () -> TrackerDataManager.DataSet?,
+                fallbackTrackerData: @escaping @autoclosure () -> TrackerDataManager.DataSet) {
         self.name = name
-        self.trackerData = trackerData
-        self.fallbackTrackerData = fallbackTrackerData
+        self.getTrackerData = trackerData
+        self.getFallbackTrackerData = fallbackTrackerData
     }
 }
 
@@ -70,21 +80,21 @@ open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource
     
     open var contentBlockerRulesLists: [ContentBlockerRulesList] {
         return [ContentBlockerRulesList(name: Constants.trackerDataSetRulesListName,
-                                        trackerData: trackerDataManager.fetchedData,
-                                        fallbackTrackerData: trackerDataManager.embeddedData)]
+                                        trackerData: self.trackerDataManager.fetchedData,
+                                        fallbackTrackerData: self.trackerDataManager.embeddedData)]
     }
 }
 
 public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExceptionsSource {
 
-    let privacyConfigManager: PrivacyConfigurationManager
+    let privacyConfigManager: PrivacyConfigurationManaging
 
-    public init(privacyConfigManager: PrivacyConfigurationManager) {
+    public init(privacyConfigManager: PrivacyConfigurationManaging) {
         self.privacyConfigManager = privacyConfigManager
     }
 
-    public var tempListEtag: String {
-        return privacyConfigManager.privacyConfig.identifier
+    public var tempListId: String {
+        return ContentBlockerRulesIdentifier.hash(domains: tempList)
     }
 
     public var tempList: [String] {
@@ -94,12 +104,12 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
         return tempUnprotected
     }
 
-    public var allowListEtag: String {
-        return privacyConfigManager.privacyConfig.identifier
+    public var allowListId: String {
+        return privacyConfigManager.privacyConfig.trackerAllowlist.hash ?? privacyConfigManager.privacyConfig.identifier
     }
 
     public var allowList: [TrackerException] {
-        return Self.transform(allowList: privacyConfigManager.privacyConfig.trackerAllowlist)
+        return Self.transform(allowList: privacyConfigManager.privacyConfig.trackerAllowlist.entries)
     }
 
     public var unprotectedSites: [String] {

@@ -92,8 +92,7 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       headers: [String: String],
                       parameters: [String: String]?,
                       httpBody: Data?,
-                      timeoutInterval: TimeInterval,
-                      completion: @escaping (Data?, Error?) -> Void)
+                      timeoutInterval: TimeInterval) async throws -> Data
 
     func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError)
     
@@ -104,6 +103,8 @@ public extension Notification.Name {
     static let emailDidSignIn = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignIn")
     static let emailDidSignOut = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignOut")
     static let emailDidGenerateAlias = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidGenerateAlias")
+    static let emailDidIncontextSignup = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidIncontextSignup")
+    static let emailDidCloseEmailProtection = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidCloseEmailProtection")
 }
 
 public enum AliasRequestError: Error {
@@ -133,10 +134,15 @@ public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ 
 public class EmailManager {
     
     private static let emailDomain = "duck.com"
-    
+    private static let inContextEmailSignupPromptDismissedPermanentlyAtKey = "Autofill.InContextEmailSignup.dismissed.permanently.at"
+
     private let storage: EmailManagerStorage
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
     public weak var requestDelegate: EmailManagerRequestDelegate?
+    
+    public enum NotificationParameter {
+        public static let cohort = "cohort"
+    }
     
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
@@ -235,6 +241,17 @@ public class EmailManager {
         guard let username = username else { return nil }
         return username + "@" + EmailManager.emailDomain
     }
+
+    private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
+        get {
+            UserDefaults().object(forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey) as? Double ?? nil
+        }
+
+        set {
+            UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
+        }
+    }
+
     
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
@@ -244,6 +261,9 @@ public class EmailManager {
     }
     
     public func signOut() {
+        // Retrieve the cohort before it gets removed from storage, so that it can be passed as a notification parameter.
+        let currentCohortValue = try? storage.getCohort()
+
         do {
             try storage.deleteAuthenticationState()
         } catch {
@@ -253,8 +273,14 @@ public class EmailManager {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
         }
+        
+        var notificationParameters: [String: String] = [:]
+        
+        if let currentCohortValue = currentCohortValue {
+            notificationParameters[NotificationParameter.cohort] = currentCohortValue
+        }
 
-        NotificationCenter.default.post(name: .emailDidSignOut, object: self)
+        NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
     }
 
     public func emailAddressFor(_ alias: String) -> String {
@@ -270,10 +296,12 @@ public class EmailManager {
         }
     }
 
+    public func resetEmailProtectionInContextPrompt() {
+        UserDefaults().setValue(nil, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
+    }
 }
 
 extension EmailManager: AutofillEmailDelegate {
-
     public func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool {
          return isSignedIn
     }
@@ -354,8 +382,32 @@ extension EmailManager: AutofillEmailDelegate {
     
     public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         storeToken(token, username: username, cohort: cohort)
-        NotificationCenter.default.post(name: .emailDidSignIn, object: self)
+        
+        var notificationParameters: [String: String] = [:]
+        
+        if let cohort = cohort {
+            notificationParameters[NotificationParameter.cohort] = cohort
+        }
+
+        NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
+
+    public func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+        inContextEmailSignupPromptDismissedPermanentlyAt = value
+    }
+
+    public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
+        inContextEmailSignupPromptDismissedPermanentlyAt
+    }
+
+    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
+    }
+
+    public func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript) {
+        NotificationCenter.default.post(name: .emailDidCloseEmailProtection, object: self)
+    }
+
 }
 
 // MARK: - Token Management
@@ -449,29 +501,39 @@ private extension EmailManager {
     }
 
     func fetchAlias(timeoutInterval: TimeInterval = 60.0, completionHandler: AliasCompletion? = nil) {
-        guard isSignedIn else {
+        guard isSignedIn,
+              let requestDelegate else {
             completionHandler?(nil, .signedOut)
             return
         }
         
-        requestDelegate?.emailManager(self,
-                                      requested: aliasAPIURL,
-                                      method: "POST",
-                                      headers: emailHeaders,
-                                      parameters: [:],
-                                      httpBody: nil,
-                                      timeoutInterval: timeoutInterval) { data, error in
-            guard let data = data, error == nil else {
-                completionHandler?(nil, .noDataError)
-                return
-            }
+        Task.detached { [aliasAPIURL, emailHeaders] in
+            let result: Result<String, AliasRequestError>
             do {
-                let decoder = JSONDecoder()
-                let alias = try decoder.decode(EmailAliasResponse.self, from: data).address
-                NotificationCenter.default.post(name: .emailDidGenerateAlias, object: self)
-                completionHandler?(alias, nil)
+                let data = try await requestDelegate.emailManager(self,
+                                                                  requested: aliasAPIURL,
+                                                                  method: "POST",
+                                                                  headers: emailHeaders,
+                                                                  parameters: [:],
+                                                                  httpBody: nil,
+                                                                  timeoutInterval: timeoutInterval)
+                do {
+                    result = .success(try JSONDecoder().decode(EmailAliasResponse.self, from: data).address)
+                } catch {
+                    result = .failure(.invalidResponse)
+                }
             } catch {
-                completionHandler?(nil, .invalidResponse)
+                result = .failure(.noDataError)
+            }
+
+            await MainActor.run {
+                NotificationCenter.default.post(name: .emailDidGenerateAlias, object: self)
+                switch result {
+                case .success(let alias):
+                    completionHandler?(alias, nil)
+                case .failure(let error):
+                    completionHandler?(nil, error)
+                }
             }
         }
     }

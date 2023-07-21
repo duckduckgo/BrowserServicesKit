@@ -21,7 +21,11 @@ import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
 import WebKit
+import Common
 
+// swiftlint:disable type_body_length
+// swiftlint:disable line_length
+// swiftlint:disable unused_closure_parameter
 class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTests {
     
     let firstRules = """
@@ -176,8 +180,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -226,8 +229,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
-                                              errorReporting: errorHandler,
-                                              logger: .disabled)
+                                              errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
         
@@ -263,8 +265,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -297,8 +298,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
 
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
-                                              updateListener: rulesUpdateListener,
-                                              logger: .disabled)
+                                              updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
         
@@ -344,8 +344,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener,
-                                              errorReporting: errorHandler,
-                                              logger: .disabled)
+                                              errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
         

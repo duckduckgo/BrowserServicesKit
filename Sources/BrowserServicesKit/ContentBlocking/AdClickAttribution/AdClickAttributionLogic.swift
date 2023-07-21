@@ -18,8 +18,9 @@
 //
 
 import Foundation
-import os
+import ContentBlocking
 import Common
+import os.log
 
 public protocol AdClickAttributionLogicDelegate: AnyObject {
     
@@ -51,7 +52,10 @@ public class AdClickAttributionLogic {
     private let featureConfig: AdClickAttributing
     private let rulesProvider: AdClickAttributionRulesProviding
     private let tld: TLD
-    private let log: OSLog
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
     private lazy var counter: AdClickAttributionCounter = AdClickAttributionCounter(onSendRequest: { count in
@@ -76,19 +80,19 @@ public class AdClickAttributionLogic {
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
                 errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                log: OSLog = .disabled) {
+                log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.featureConfig = featureConfig
         self.rulesProvider = rulesProvider
         self.tld = tld
         self.eventReporting = eventReporting
         self.errorReporting = errorReporting
-        self.log = log
+        self.getLog = log
     }
 
     public func applyInheritedAttribution(state: State?) {
         guard let state = state else { return }
         
-        if case .noAttribution = state {} else {
+        if case .noAttribution = self.state {} else {
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnInheritedAttribution)
         }
         

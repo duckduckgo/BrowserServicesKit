@@ -32,7 +32,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     // swiftlint:enable identifier_name
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
-        if let accountID = credentials.account.id {
+        if let accountIdString = credentials.account.id, let accountID = Int64(accountIdString) {
             _credentialsDict[accountID] = credentials
             return accountID
         } else {
@@ -50,8 +50,13 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
         return _accounts
     }
 
+    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+        self._forDomain.append(eTLDplus1)
+        return _accounts
+    }
+
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
-        self._accounts = self._accounts.filter { $0.id != accountId }
+        self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
@@ -126,6 +131,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
     var _lastDataToDecrypt: Data?
     var _lastDataToEncrypt: Data?
     var _lastKey: Data?
+    var hashingSalt: Data?
     // swiftlint:enable identifier_name
 
     func generateSecretKey() throws -> Data {
@@ -160,10 +166,24 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
         return data
     }
+    
+    func generateSalt() throws -> Data {
+        return Data()
+    }
+    
+    func hashData(_ data: Data) throws -> String? {
+        return ""
+    }
+
+    func hashData(_ data: Data, salt: Data?) throws -> String? {
+        return ""
+    }
 
 }
 
 internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+
+    var hashingSalt: Data?
 
     func generateSecretKey() throws -> Data {
         return Data()
@@ -187,6 +207,18 @@ internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
 
     func decrypt(_ data: Data, withKey key: Data) throws -> Data {
         return data
+    }
+    
+    func generateSalt() throws -> Data {
+        return Data()
+    }
+
+    func hashData(_ data: Data) throws -> String? {
+        return ""
+    }
+
+    func hashData(_ data: Data, salt: Data?) throws -> String? {
+        return ""
     }
 
 }

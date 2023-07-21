@@ -35,9 +35,11 @@ public protocol PrivacyConfiguration {
     var tempUnprotectedDomains: [String] { get }
 
     /// Trackers that has been allow listed because of site breakage
-    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData { get }
+    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist { get }
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
+
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -47,17 +49,17 @@ public protocol PrivacyConfiguration {
     /// Check the protection status of given domain.
     ///
     /// Returns true if all below is true:
-    ///  - Site is not user unprotected.
-    ///  - Site is not in temp list.
-    ///  - Site is not in an exception list for content blocking feature.
+    ///  - Domain is not user unprotected.
+    ///  - Domain is not in temp list.
+    ///  - Domain is not in an exception list for content blocking feature.
     func isFeature(_ feature: PrivacyFeature, enabledForDomain: String?) -> Bool
 
     /// Check the protection status of given domain.
     ///
     /// Returns true if all below is true:
-    ///  - Site is not user unprotected.
-    ///  - Site is not in temp list.
-    ///  - Site is not in an exception list for content blocking feature.
+    ///  - Domain is not user unprotected.
+    ///  - Domain is not in temp list.
+    ///  - Domain is not in an exception list for content blocking feature.
     func isProtected(domain: String?) -> Bool
 
     /// Check if given domain is locally unprotected.
@@ -88,22 +90,8 @@ public extension PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature) -> Bool {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
-}
 
-public enum PrivacyFeature: String {
-    case contentBlocking
-    case duckPlayer
-    case fingerprintingTemporaryStorage
-    case fingerprintingBattery
-    case fingerprintingScreenSize
-    case gpc
-    case httpsUpgrade = "https"
-    case autoconsent
-    case clickToPlay
-    case autofill
-    case ampLinks
-    case trackingParameters
-    case customUserAgent
-    case referrer
-    case adClickAttribution
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
+        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
+    }
 }

@@ -20,6 +20,8 @@
 import WebKit
 import TrackerRadarKit
 import Common
+import UserScript
+import ContentBlocking
 
 public protocol ContentBlockerRulesUserScriptDelegate: NSObjectProtocol {
 
@@ -204,7 +206,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         return ContentBlockerRulesUserScript.loadJS("contentblockerrules", from: Bundle.module, withReplacements: [
             "$TEMP_UNPROTECTED_DOMAINS$": remoteUnprotectedDomains,
             "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
-            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist)
+            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist.entries)
         ])
     }
 }

@@ -70,4 +70,22 @@ final class StringExtensionTests: XCTestCase {
         XCTAssertEqual("Dax🤔.com".punycodeEncodedHostname, "xn--dax-v153b.com")
         XCTAssertEqual("🤔.com".punycodeEncodedHostname, "xn--wp9h.com")
     }
+
+    func testHashedSuffix() {
+        XCTAssertEqual("http://localhost:8084/#navlink".hashedSuffix, "#navlink")
+        XCTAssertEqual("http://localhost:8084/#navlink#1".hashedSuffix, "#navlink#1")
+        XCTAssertEqual("http://localhost:8084/#".hashedSuffix, "#")
+        XCTAssertEqual("http://localhost:8084/##".hashedSuffix, "##")
+        XCTAssertNil("http://localhost:8084/".hashedSuffix)
+        XCTAssertNil("http://localhost:8084".hashedSuffix)
+    }
+
+    func testDroppingHashedSuffix() {
+        XCTAssertEqual("http://localhost:8084/#navlink".droppingHashedSuffix(), "http://localhost:8084/")
+        XCTAssertEqual("http://localhost:8084/#navlink#1".droppingHashedSuffix(), "http://localhost:8084/")
+        XCTAssertEqual("about://blank/#navlink1".url!.absoluteString.droppingHashedSuffix(), "about://blank/")
+        XCTAssertEqual("about:blank/#navlink1".url!.absoluteString.droppingHashedSuffix(), "about:blank/")
+        XCTAssertEqual("about:blank#navlink1".url!.absoluteString.droppingHashedSuffix(), "about:blank")
+    }
+
 }

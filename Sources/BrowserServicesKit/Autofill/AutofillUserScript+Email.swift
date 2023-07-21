@@ -18,6 +18,7 @@
 //
 
 import WebKit
+import UserScript
 
 public protocol AutofillEmailDelegate: AnyObject {
 
@@ -31,12 +32,15 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScriptDidRequestUserData(_ : AutofillUserScript, completionHandler: @escaping UserDataCompletion)
     func autofillUserScriptDidRequestSignOut(_ : AutofillUserScript)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
-
+    func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double)
+    func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double?
+    func autofillUserScriptDidRequestInContextSignup(_ : AutofillUserScript)
+    func autofillUserScriptDidCompleteInContextSignup(_ : AutofillUserScript)
 }
 
 extension AutofillUserScript {
 
-    func emailCheckSignedInStatus(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func emailCheckSignedInStatus(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         let signedInString = String(signedIn)
         replyHandler("""
@@ -44,7 +48,7 @@ extension AutofillUserScript {
         """)
     }
 
-    func emailStoreToken(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func emailStoreToken(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let token = dict["token"] as? String,
               let username = dict["username"] as? String else { return }
@@ -53,12 +57,12 @@ extension AutofillUserScript {
         replyHandler(nil)
     }
 
-    func emailRemoveToken(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func emailRemoveToken(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestSignOut(self)
         replyHandler(nil)
     }
 
-    func emailGetAlias(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func emailGetAlias(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
@@ -76,12 +80,12 @@ extension AutofillUserScript {
         }
     }
 
-    func emailRefreshAlias(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func emailRefreshAlias(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestRefreshAlias(self)
         replyHandler(nil)
     }
 
-    func emailGetAddresses(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func emailGetAddresses(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestUsernameAndAlias(self) { username, alias, _ in
             let addresses: String
             if let username = username, let alias = alias {
@@ -109,7 +113,7 @@ extension AutofillUserScript {
         public let token: String
     }
 
-    func emailGetUserData(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func emailGetUserData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         emailDelegate?.autofillUserScriptDidRequestUserData(self) { username, alias, token, _ in
             if let username = username, let alias = alias, let token = token {
 
@@ -132,13 +136,46 @@ extension AutofillUserScript {
         public let removeUserData: Bool
     }
 
-    func emailGetDeviceCapabilities(_ message: AutofillMessage, _ replyHandler: @escaping MessageReplyHandler) {
+    func emailGetDeviceCapabilities(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let capabilities = DeviceEmailCapabilities(addUserData: true, getUserData: true, removeUserData: true)
         if let json = try? JSONEncoder().encode(capabilities), let jsonString = String(data: json, encoding: .utf8) {
             replyHandler(jsonString)
         } else {
             replyHandler(nil)
         }
+    }
+
+    // MARK: In Context Email Protection
+
+    func setIncontextSignupPermanentlyDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        guard let body = message.messageBody as? [String: Any],
+              let value = body["value"] as? Double else {
+            return
+        }
+        emailDelegate?.autofillUserScript(self, didRequestSetInContextPromptValue: value)
+        replyHandler(nil)
+    }
+
+    func getIncontextSignupDismissedAt(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
+        let inContextSignupDismissedAt = IncontextSignupDismissedAt(
+            permanentlyDismissedAt: inContextEmailSignupPromptDismissedPermanentlyAt
+        )
+        let response = GetIncontextSignupDismissedAtResponse(success: inContextSignupDismissedAt)
+
+        if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+            replyHandler(jsonString)
+        }
+    }
+
+    func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)
+        replyHandler(nil)
+    }
+
+    func closeEmailProtectionTab(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        emailDelegate?.autofillUserScriptDidCompleteInContextSignup(self)        
+        replyHandler(nil)
     }
 
 }

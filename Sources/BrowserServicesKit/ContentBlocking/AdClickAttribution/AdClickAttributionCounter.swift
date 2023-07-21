@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Persistence
 
 /**
  Class to track and aggregate the number of page loads that have had an active exemption within a specified time period.

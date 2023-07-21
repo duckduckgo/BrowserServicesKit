@@ -18,7 +18,10 @@
 //
 
 import XCTest
+import Common
 @testable import BrowserServicesKit
+@testable import Common
+@testable import RemoteMessaging
 
 // swiftlint:disable line_length
 class RemoteMessagingConfigMatcherTests: XCTestCase {
@@ -94,7 +97,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func testWhenNoMatchingRulesThenReturnFirstNonExcludedMessage() {
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [], exclusionRules: [2]),
                                                    mediumMessage(matchingRules: [], exclusionRules: [3])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 2: [LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)],
                                                 3: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
 
@@ -104,7 +107,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func testWhenMatchingMessageShouldBeExcludedThenReturnNull() {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion(), locale: "en-US"),
+                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
                 userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
                                                            variantManager: MockVariantManager(),
                                                            bookmarksCount: 0,
@@ -114,7 +117,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 2: [LocaleMatchingAttribute(value: ["en-US"], fallback: nil)]])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
@@ -126,10 +129,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2, 3, 4]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2, 4]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [4])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 2: [EmailEnabledMatchingAttribute(value: true, fallback: nil), BookmarksMatchingAttribute(max: 10, fallback: nil)],
                                                 3: [EmailEnabledMatchingAttribute(value: true, fallback: nil), BookmarksMatchingAttribute(max: 10, fallback: nil)],
-                                                4: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                                4: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 5: [EmailEnabledMatchingAttribute(value: true, fallback: nil)]])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
@@ -139,7 +142,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [2]),
                                                    mediumMessage(matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 2: [LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
@@ -147,7 +150,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
 
     func testWhenMessageMatchesAndExclusionRuleFailsThenReturnMessage() {
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 2: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: [2]))
@@ -155,7 +158,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
 
     func testWhenDeviceMatchesMessageRulesThenReturnFirstMatch() {
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)]])
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
     }
@@ -163,7 +166,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func testWhenDeviceMatchesMessageRulesForOneOfMultipleMessagesThenReturnMatch() {
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [2], exclusionRules: []),
                                                    mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)],
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
                                                 2: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1, 2], exclusionRules: []))
@@ -182,7 +185,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
 
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                    mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion(), fallback: nil)]])
+                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(id: "2", matchingRules: [1], exclusionRules: []))
     }
@@ -199,7 +202,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         let os = ProcessInfo().operatingSystemVersion
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion(), locale: "en-US"),
+                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
                 userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
                                                            variantManager: MockVariantManager(),
                                                            bookmarksCount: 0,

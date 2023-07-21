@@ -21,7 +21,7 @@ import Foundation
 
 struct BookmarkMock: Bookmark {
 
-    var url: URL
+    var url: String
     var title: String
     var isFavorite: Bool
 

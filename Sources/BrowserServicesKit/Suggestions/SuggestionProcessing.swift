@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 /// Class encapsulates the whole ordering and filtering algorithm
 /// It takes query, history, bookmarks, and apiResult as input parameters
@@ -103,6 +104,7 @@ final class SuggestionProcessing {
                 default:
                     score = 0
                 }
+                
                 return (item, score)
             }
             // Filter not relevant

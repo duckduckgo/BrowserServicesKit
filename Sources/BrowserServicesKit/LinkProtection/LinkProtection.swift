@@ -17,6 +17,7 @@
 //
 
 import WebKit
+import Common
 
 public struct LinkProtection {
     
@@ -25,8 +26,8 @@ public struct LinkProtection {
     
     private var mainFrameUrl: URL?
     
-    public init(privacyManager: PrivacyConfigurationManager,
-                contentBlockingManager: ContentBlockerRulesManager,
+    public init(privacyManager: PrivacyConfigurationManaging,
+                contentBlockingManager: CompiledRuleListsSource,
                 errorReporting: EventMapping<AMPProtectionDebugEvents>) {
         linkCleaner = LinkCleaner(privacyManager: privacyManager)
         ampExtractor = AMPCanonicalExtractor(linkCleaner: linkCleaner,
@@ -64,7 +65,8 @@ public struct LinkProtection {
             completion(urlToLoad)
         }
     }
-    
+
+    @MainActor
     public func getCleanURL(from url: URL, onStartExtracting: () -> Void, onFinishExtracting: @escaping () -> Void) async -> URL {
         await withCheckedContinuation { continuation in
             getCleanURL(from: url, onStartExtracting: onStartExtracting, onFinishExtracting: onFinishExtracting) { url in
@@ -75,12 +77,11 @@ public struct LinkProtection {
     
     // swiftlint:disable function_parameter_count
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
-                                           navigationAction: WKNavigationAction,
+                                           destinationURL: URL,
                                            onStartExtracting: () -> Void,
                                            onFinishExtracting: @escaping () -> Void,
-                                           onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void,
-                                           policyDecisionHandler: @escaping (WKNavigationActionPolicy) -> Void) -> Bool {
-        let destinationURL = navigationAction.request.url
+                                           onLinkRewrite: @escaping (URL) -> Void,
+                                           policyDecisionHandler: @escaping (Bool) -> Void) -> Bool {
         if let mainFrameUrl = mainFrameUrl, destinationURL != mainFrameUrl {
             // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
             // We do not rewrite redirects due to breakage concerns
@@ -89,42 +90,52 @@ public struct LinkProtection {
         
         var didRewriteLink = false
         if let newURL = linkCleaner.extractCanonicalFromAMPLink(initiator: initiatingURL, destination: destinationURL) {
-            policyDecisionHandler(.cancel)
-            onLinkRewrite(newURL, navigationAction)
+            policyDecisionHandler(false)
+            onLinkRewrite(newURL)
             didRewriteLink = true
         } else if ampExtractor.urlContainsAMPKeyword(destinationURL) {
             onStartExtracting()
             ampExtractor.getCanonicalURL(initiator: initiatingURL, url: destinationURL) { canonical in
                 onFinishExtracting()
                 guard let canonical = canonical, canonical != destinationURL else {
-                    policyDecisionHandler(.allow)
+                    policyDecisionHandler(true)
                     return
                 }
                 
-                policyDecisionHandler(.cancel)
-                onLinkRewrite(canonical, navigationAction)
+                policyDecisionHandler(false)
+                onLinkRewrite(canonical)
             }
             didRewriteLink = true
         } else if let newURL = linkCleaner.cleanTrackingParameters(initiator: initiatingURL, url: destinationURL) {
             if newURL != destinationURL {
-                policyDecisionHandler(.cancel)
-                onLinkRewrite(newURL, navigationAction)
+                policyDecisionHandler(false)
+                onLinkRewrite(newURL)
                 didRewriteLink = true
             }
         }
         
         return didRewriteLink
     }
-    // swiftlint:enable function_parameter_count
-    
+
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            navigationAction: WKNavigationAction,
                                            onStartExtracting: () -> Void,
                                            onFinishExtracting: @escaping () -> Void,
-                                           onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void) async -> WKNavigationActionPolicy? {
+                                           onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void,
+                                           policyDecisionHandler: @escaping (WKNavigationActionPolicy) -> Void) -> Bool {
+        requestTrackingLinkRewrite(initiatingURL: initiatingURL, destinationURL: navigationAction.request.url!, onStartExtracting: onStartExtracting, onFinishExtracting: onFinishExtracting, onLinkRewrite: { onLinkRewrite($0, navigationAction) }, policyDecisionHandler: { policyDecisionHandler($0 ? .allow : .cancel) })
+    }
+    // swiftlint:enable function_parameter_count
+
+    @MainActor
+    public func requestTrackingLinkRewrite(initiatingURL: URL?,
+                                           destinationURL: URL,
+                                           onStartExtracting: () -> Void,
+                                           onFinishExtracting: @escaping () -> Void,
+                                           onLinkRewrite: @escaping (URL) -> Void) async -> Bool? {
         await withCheckedContinuation { continuation in
             let didRewriteLink = requestTrackingLinkRewrite(initiatingURL: initiatingURL,
-                                                            navigationAction: navigationAction,
+                                                            destinationURL: destinationURL,
                                                             onStartExtracting: onStartExtracting,
                                                             onFinishExtracting: onFinishExtracting,
                                                             onLinkRewrite: onLinkRewrite) { navigationActionPolicy in

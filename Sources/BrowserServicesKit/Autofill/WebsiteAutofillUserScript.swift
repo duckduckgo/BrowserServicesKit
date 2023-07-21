@@ -19,6 +19,7 @@
 
 import CoreGraphics
 import Foundation
+import UserScript
 
 /// Handles calls from the website Autofill context to the overlay.
 public protocol ContentOverlayUserScriptDelegate: AnyObject {
@@ -37,6 +38,13 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     /// Last user selected details in the top autofill overlay stored in the child.
     var selectedDetailsData: SelectedDetailsData?
 
+    private enum CredentialsResponse {
+        static let none = "none"
+        static let state = "state"
+        static let stop = "stop"
+        static let ok = "ok"
+    }
+
     public override var messageNames: [String] {
         return WebsiteAutofillMessageName.allCases.map(\.rawValue) + super.messageNames
     }
@@ -47,7 +55,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         case showAutofillParent
     }
 
-    internal override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
+    public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let websiteAutofillMessageName = WebsiteAutofillMessageName(rawValue: messageName) else {
             return super.messageHandlerFor(messageName)
         }
@@ -58,7 +66,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
     }
 
-    func showAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func showAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let left = dict["inputLeft"] as? CGFloat,
               let top = dict["inputTop"] as? CGFloat,
@@ -89,7 +97,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         replyHandler(nil)
     }
 
-    func closeAutofillParent(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
+    func closeAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
         close()
         replyHandler(nil)
     }
@@ -102,14 +110,30 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
     }
 
     /// Called from the child autofill to return referenced credentials
-    func getSelectedCredentials(_ message: AutofillMessage, _ replyHandler: MessageReplyHandler) {
-        var response = GetSelectedCredentialsResponse(type: "none")
-        if lastOpenHost == nil || message.messageHost != lastOpenHost {
-            response = GetSelectedCredentialsResponse(type: "stop")
-        } else if let selectedDetailsData = selectedDetailsData {
-            response = GetSelectedCredentialsResponse(type: "ok", data: selectedDetailsData.data, configType: selectedDetailsData.configType)
-            self.selectedDetailsData = nil
+    func getSelectedCredentials(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
+        var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none)
+
+        let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        if (previousEmailSignedIn == nil) {
+            previousEmailSignedIn = emailSignedIn
         }
+        let hasEmailSignedInStateChanged = previousEmailSignedIn != emailSignedIn
+        let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
+        let hasIncontextSignupStateChanged = previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt
+
+        if (hasEmailSignedInStateChanged || hasIncontextSignupStateChanged) {
+            previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
+            previousEmailSignedIn = emailSignedIn
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.state)
+
+        } else if lastOpenHost == nil || message.messageHost != lastOpenHost {
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.stop)
+
+        } else if let selectedDetailsData = selectedDetailsData {
+            self.selectedDetailsData = nil
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
+        }
+
         if let json = try? JSONEncoder().encode(response),
            let jsonString = String(data: json, encoding: .utf8) {
             replyHandler(jsonString)

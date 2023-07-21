@@ -19,6 +19,7 @@
 
 import Foundation
 import WebKit
+import Common
 
 public class AMPCanonicalExtractor: NSObject {
 
@@ -53,15 +54,15 @@ public class AMPCanonicalExtractor: NSObject {
     private var imageBlockingRules: WKContentRuleList?
     
     private let linkCleaner: LinkCleaner
-    private let privacyManager: PrivacyConfigurationManager
-    private let contentBlockingManager: ContentBlockerRulesManager
+    private let privacyManager: PrivacyConfigurationManaging
+    private let contentBlockingManager: CompiledRuleListsSource
     private let errorReporting: EventMapping<AMPProtectionDebugEvents>?
     
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
     public init(linkCleaner: LinkCleaner,
-                privacyManager: PrivacyConfigurationManager,
-                contentBlockingManager: ContentBlockerRulesManager,
+                privacyManager: PrivacyConfigurationManaging,
+                contentBlockingManager: CompiledRuleListsSource,
                 errorReporting: EventMapping<AMPProtectionDebugEvents>? = nil) {
         self.linkCleaner = linkCleaner
         self.privacyManager = privacyManager
@@ -167,7 +168,8 @@ public class AMPCanonicalExtractor: NSObject {
         }
         
         completionHandler.setCompletionHandler(completion: completion)
-        
+
+        assert(Thread.isMainThread)
         webView = WKWebView(frame: .zero, configuration: makeConfiguration())
         webView?.navigationDelegate = self
         webView?.load(URLRequest(url: url))

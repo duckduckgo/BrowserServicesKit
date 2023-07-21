@@ -17,9 +17,9 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import WebKit
-import os.log
 import TrackerRadarKit
 
 extension ContentBlockerRulesManager {
@@ -32,7 +32,10 @@ extension ContentBlockerRulesManager {
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
-        let logger: OSLog
+        private let getLog: () -> OSLog
+        private var log: OSLog {
+            getLog()
+        }
 
         var isCompleted: Bool { result != nil || compilationImpossible }
         private(set) var compilationImpossible = false
@@ -41,40 +44,41 @@ extension ContentBlockerRulesManager {
         init(workQueue: DispatchQueue,
              rulesList: ContentBlockerRulesList,
              sourceManager: ContentBlockerRulesSourceManager,
-             logger: OSLog = .disabled) {
+             log: @escaping @autoclosure () -> OSLog = .disabled) {
             self.workQueue = workQueue
             self.rulesList = rulesList
             self.sourceManager = sourceManager
-            self.logger = logger
+            self.getLog = log
         }
 
         func start(ignoreCache: Bool = false, completionHandler: @escaping Completion) {
-
-            guard let model = sourceManager.makeModel() else {
-                compilationImpossible = true
-                completionHandler(self, false)
-                return
-            }
-
-            guard !ignoreCache else {
-                workQueue.async {
-                    self.compile(model: model, completionHandler: completionHandler)
+            self.workQueue.async {
+                guard let model = self.sourceManager.makeModel() else {
+                    self.compilationImpossible = true
+                    completionHandler(self, false)
+                    return
                 }
-                return
-            }
-            
-            // Delegate querying to main thread - crashes were observed in background.
-            DispatchQueue.main.async {
-                WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
-                                                                        completionHandler: { ruleList, _ in
-                    if let ruleList = ruleList {
-                        self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
-                    } else {
-                        self.workQueue.async {
-                            self.compile(model: model, completionHandler: completionHandler)
+
+                guard !ignoreCache else {
+                    self.workQueue.async {
+                        self.compile(model: model, completionHandler: completionHandler)
+                    }
+                    return
+                }
+
+                // Delegate querying to main thread - crashes were observed in background.
+                DispatchQueue.main.async {
+                    let identifier = model.rulesIdentifier.stringValue
+                    WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
+                        if let ruleList = ruleList {
+                            self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                        } else {
+                            self.workQueue.async {
+                                self.compile(model: model, completionHandler: completionHandler)
+                            }
                         }
                     }
-                })
+                }
             }
         }
 
@@ -92,7 +96,7 @@ extension ContentBlockerRulesManager {
                                        completionHandler: @escaping Completion) {
             workQueue.async {
                 os_log("Failed to compile %{public}s rules %{public}s",
-                       log: self.logger,
+                       log: self.log,
                        type: .error,
                        self.rulesList.name,
                        error.localizedDescription)
@@ -111,7 +115,7 @@ extension ContentBlockerRulesManager {
 
         private func compile(model: ContentBlockerRulesSourceModel,
                              completionHandler: @escaping Completion) {
-            os_log("Starting CBR compilation for %{public}s", log: logger, type: .default, rulesList.name)
+            os_log("Starting CBR compilation for %{public}s", log: log, type: .default, rulesList.name)
 
             let builder = ContentBlockerRulesBuilder(trackerData: model.tds)
             let rules = builder.buildRules(withExceptions: model.unprotectedSites,
@@ -122,16 +126,16 @@ extension ContentBlockerRulesManager {
             do {
                 data = try JSONEncoder().encode(rules)
             } catch {
-                os_log("Failed to encode content blocking rules %{public}s", log: logger, type: .error, rulesList.name)
+                os_log("Failed to encode content blocking rules %{public}s", log: log, type: .error, rulesList.name)
                 compilationFailed(for: model, with: error, completionHandler: completionHandler)
                 return
             }
-            
+
             let ruleList = String(data: data, encoding: .utf8)!
             DispatchQueue.main.async {
                 WKContentRuleListStore.default().compileContentRuleList(forIdentifier: model.rulesIdentifier.stringValue,
                                                                         encodedContentRuleList: ruleList) { ruleList, error in
-                    
+
                     if let ruleList = ruleList {
                         self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
                     } else if let error = error {

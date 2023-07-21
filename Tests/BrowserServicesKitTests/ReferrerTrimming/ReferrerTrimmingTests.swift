@@ -19,6 +19,7 @@
 import XCTest
 import os.log
 import WebKit
+import Common
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
 import Common
@@ -63,7 +64,8 @@ class ReferrerTrimmingTests: XCTestCase {
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
-                                           localProtection: localProtection)
+                                           localProtection: localProtection,
+                                           internalUserDecider: DefaultInternalUserDecider())
     }
     
     private var contentBlockingManager: ContentBlockerRulesManager {

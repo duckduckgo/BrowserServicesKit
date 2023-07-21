@@ -22,6 +22,7 @@ import WebKit
 import XCTest
 import BrowserServicesKit
 import TrackerRadarKit
+import ContentBlocking
 import Common
 
 final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
@@ -186,7 +187,8 @@ final class WebKitTestHelper {
 
         return AppPrivacyConfiguration(data: privacyData,
                                        identifier: "",
-                                       localProtection: localProtection)
+                                       localProtection: localProtection,
+                                       internalUserDecider: DefaultInternalUserDecider())
     }
 
     static func prepareContentBlockingRules(trackerData: TrackerData,

@@ -19,6 +19,7 @@
 
 import XCTest
 import BrowserServicesKit
+import ContentBlocking
 import Common
 
 final class AdClickAttributionPixelTests: XCTestCase {
@@ -259,7 +260,7 @@ final class AdClickAttributionPixelTests: XCTestCase {
                                                          state: .allowed(reason: .adClickAttribution),
                                                          pageUrl: "test.com"))
         
-        wait(for: [expectation], timeout: 1)
+        await fulfillment(of: [expectation], timeout: 1)
     }
     
 }

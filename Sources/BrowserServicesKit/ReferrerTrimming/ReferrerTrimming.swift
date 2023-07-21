@@ -33,17 +33,17 @@ public class ReferrerTrimming {
         case navigating(destination: URL)
     }
     
-    private let privacyManager: PrivacyConfigurationManager
+    private let privacyManager: PrivacyConfigurationManaging
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
     
-    private let contentBlockingManager: ContentBlockerRulesManager
+    private let contentBlockingManager: CompiledRuleListsSource
     
     private var state: TrimmingState = .idle
     
     private var tld: TLD
     
-    public init(privacyManager: PrivacyConfigurationManager,
-                contentBlockingManager: ContentBlockerRulesManager,
+    public init(privacyManager: PrivacyConfigurationManaging,
+                contentBlockingManager: CompiledRuleListsSource,
                 tld: TLD) {
         self.privacyManager = privacyManager
         self.contentBlockingManager = contentBlockingManager
@@ -100,8 +100,10 @@ public class ReferrerTrimming {
             newReferrer = "\(referrerScheme)://\(referrerHost)/"
         }
 
-        if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerScheme)://\(tld.eTLDplus1(referrerHost) ?? referrerHost)/"
+        if let tracker = trackerData.findTracker(forUrl: destUrl.absoluteString),
+           tracker.defaultAction == .block,
+           !isSameEntity(a: referEntity, b: destEntity) {
+            newReferrer = "\(referrerScheme)://\(referrerHost)/"
         }
         
         if newReferrer == referrerUrl.absoluteString {
@@ -110,9 +112,12 @@ public class ReferrerTrimming {
         
         return newReferrer
     }
-    
+
     public func trimReferrer(forNavigation navigationAction: WKNavigationAction, originUrl: URL?) -> URLRequest? {
-        var request = navigationAction.request
+        return trimReferrer(for: navigationAction.request, originUrl: originUrl)
+    }
+
+    public func trimReferrer(for request: URLRequest, originUrl: URL?) -> URLRequest? {
         guard let originUrl = originUrl else {
             return nil
         }
@@ -142,6 +147,7 @@ public class ReferrerTrimming {
                                                 destUrl: destUrl,
                                                 referrerUrl: URL(string: referrerHeader) ?? nil,
                                                 trackerData: trackerData) {
+            var request = request
             request.setValue(newReferrer, forHTTPHeaderField: Constants.headerName)
             return request
         }

@@ -19,6 +19,7 @@
 
 import XCTest
 import WebKit
+import UserScript
 @testable import BrowserServicesKit
 
 class AutofillEmailUserScriptTests: XCTestCase {
@@ -51,7 +52,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
                 "key": Array(repeating: UInt8(1), count: 32),
                 "secret": userScript.generatedSecret,
                 "methodName": "test-methodName"
-            ]
+            ] as [String: Any]
         ]
     }
 
@@ -60,9 +61,9 @@ class AutofillEmailUserScriptTests: XCTestCase {
         userScript.emailDelegate = mock
 
         let mockWebView = MockWebView()
-        let message = MockAutofillMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams,
+        let message = MockUserScriptMessage(name: "emailHandlerGetAddresses", body: encryptedMessagingParams,
                                           host: "example.com", webView: mockWebView)
-        userScript.processMessage(userContentController, didReceive: message)
+        userScript.processEncryptedMessage(message, from: userContentController)
 
         let expectedReply = "reply".data(using: .utf8)?.withUnsafeBytes {
             $0.map { String($0) }
@@ -228,7 +229,7 @@ class MockWKScriptMessage: WKScriptMessage {
     }
 }
 
-class MockAutofillMessage: AutofillMessage {
+class MockUserScriptMessage: UserScriptMessage {
     
     let mockedName: String
     let mockedBody: Any
@@ -266,6 +267,21 @@ class MockAutofillMessage: AutofillMessage {
 }
 
 class MockAutofillEmailDelegate: AutofillEmailDelegate {
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+
+    }
+
+    func autofillUserScriptDidRequestInContextPromptValue(_: BrowserServicesKit.AutofillUserScript) -> Double? {
+        return nil
+    }
+
+    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+
+    }
+
+    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+
+    }
 
     var signedInCallback: (() -> Void)?
     var signedOutCallback: (() -> Void)?
@@ -321,7 +337,7 @@ class MockWebView: WKWebView {
 
 }
 
-struct MockEncrypter: AutofillEncrypter {
+struct MockEncrypter: UserScriptEncrypter {
 
     var authenticationData: Data = Data()
 
