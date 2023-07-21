@@ -112,7 +112,7 @@ public final class UserScriptMessageBroker: NSObject {
     }
 
     public func messagingConfig() -> WebkitMessagingConfig {
-        var config = WebkitMessagingConfig(
+        let config = WebkitMessagingConfig(
                 webkitMessageHandlerNames: [context],
                 secret: generatedSecret,
                 hasModernWebkitAPI: true
@@ -187,7 +187,7 @@ public final class UserScriptMessageBroker: NSObject {
         }
 
         /// just send empty params if absent
-        var methodParams: Any = [:] as Any
+        var methodParams: Any = [String: Any]()
         if let params = dict["params"] {
             methodParams = params
         }
@@ -215,7 +215,7 @@ public final class UserScriptMessageBroker: NSObject {
             /// As far as the client is concerned, a `notification` is fire-and-forget
         case .notify(let handler, let notification):
             do {
-                try await handler(notification.params, original)
+                _=try await handler(notification.params, original)
             } catch {
                 os_log("UserScriptMessaging: unhandled exception %s", type: .error, String(describing: error.localizedDescription))
             }
@@ -304,7 +304,7 @@ public enum MessageOriginPolicy {
                 case .exact(hostname: let hostname):
                     return hostname == origin
                     /// etldPlus1, like duckduckgo.com to match dev.duckduckgo.com + duckduckgo.com
-                case .etldPlus1(hostname: let hostname):
+                case .etldPlus1(hostname: _):
                     return false // todo - this isn't used yet!
                 }
             }
