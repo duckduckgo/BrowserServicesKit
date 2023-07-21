@@ -53,10 +53,10 @@ class AdClickAttributionCounterTests: XCTestCase {
         // Second use, later, but before sync interval
         counter.onAttributionActive(currentTime: date + 1)
         
-        let count = mockStore.object(forKey: AdClickAttributionCounter.Constants.countKey) as? Int
+        let count = mockStore.object(forKey: AdClickAttributionCounter.Constants.pageLoadsCountKey) as? Int
         XCTAssertEqual(count, 2)
         
-        let storedDate = mockStore.object(forKey: AdClickAttributionCounter.Constants.lastSendDateKey) as? Date
+        let storedDate = mockStore.object(forKey: AdClickAttributionCounter.Constants.lastSendAtKey) as? Date
         XCTAssertEqual(date, storedDate)
     }
     

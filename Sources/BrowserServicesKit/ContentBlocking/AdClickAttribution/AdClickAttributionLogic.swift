@@ -54,8 +54,17 @@ public class AdClickAttributionLogic {
     private let log: OSLog
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
-    
-    public private(set) var state = State.noAttribution
+    private lazy var counter: AdClickAttributionCounter = AdClickAttributionCounter(onSendRequest: { count in
+        self.eventReporting?.fire(.adAttributionPageLoads, parameters: [AdClickAttributionEvents.Parameters.count: String(count)])
+    })
+
+    public private(set) var state = State.noAttribution {
+        didSet {
+            if case .activeAttribution = state {
+                counter.onAttributionActive()
+            }
+        }
+    }
     private var registerFirstActivity = false
     
     private var attributionTimeout: DispatchWorkItem?
@@ -75,7 +84,7 @@ public class AdClickAttributionLogic {
         self.errorReporting = errorReporting
         self.log = log
     }
-    
+
     public func applyInheritedAttribution(state: State?) {
         guard let state = state else { return }
         
