@@ -28,8 +28,8 @@ let package = Package(
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
         .library(name: "NetworkProtection", targets: ["NetworkProtection"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", branch: "shane/email-saving-2"),
+    dependencies: [        
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", branch: "8.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
