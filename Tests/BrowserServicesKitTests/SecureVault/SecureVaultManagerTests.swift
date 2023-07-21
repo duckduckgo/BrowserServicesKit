@@ -61,7 +61,7 @@ class SecureVaultManagerTests: XCTestCase {
 
         let providers = SecureStorageProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)
         
-        self.testVault = DefaultAutofillSecureVault(authExpiry: 30, providers: providers)
+        self.testVault = DefaultAutofillSecureVault(providers: providers)
         self.secureVaultManagerDelegate = MockSecureVaultManagerDelegate()
         self.manager = SecureVaultManager(vault: self.testVault)
         self.manager.delegate = secureVaultManagerDelegate

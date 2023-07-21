@@ -36,7 +36,7 @@ class SecureVaultTests: XCTestCase {
                                                database: mockDatabaseProvider,
                                                keystore: mockKeystoreProvider)
 
-        testVault = DefaultAutofillSecureVault(authExpiry: 1, providers: providers)
+        testVault = DefaultAutofillSecureVault(providers: providers)
 
     }
 

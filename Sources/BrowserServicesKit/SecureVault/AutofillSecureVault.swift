@@ -88,10 +88,9 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         return expiringPassword.expiresAfter
     }
 
-    public required init(authExpiry: TimeInterval,
-                         providers: AutofillDatabaseProviders) {
+    public required init(providers: AutofillDatabaseProviders) {
         self.providers = providers
-        self.expiringPassword = ExpiringValue(expiresAfter: authExpiry)
+        self.expiringPassword = ExpiringValue(expiresAfter: 60 * 60 * 24 * 3)
     }
 
     // MARK: - public interface (protocol candidates)

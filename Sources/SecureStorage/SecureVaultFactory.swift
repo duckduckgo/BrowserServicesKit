@@ -45,21 +45,16 @@ public class SecureVaultFactory<Vault: SecureVault> {
         self.makeDatabaseProvider = makeDatabaseProvider
     }
 
-    /// Returns an initialised SecureVault instance that respects the user password for the specified amount of time.
-    ///
-    /// After this time has expired, the SecureVault will return errors for accessing L2 and above data. The default
-    /// expiry is 72 hours.  This can be overridden so that the user can choose to extend the length between
-    /// password prompts.
+    /// Returns an initialised SecureVault instance that respects the user password.
     ///
     /// The first time this is ever called the following is performed:
     /// * Generates a secret key for L1 encryption and stores in Keychain
     /// * Generates a secret key for L2 encryption
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
-    public func makeVault(errorReporter: SecureVaultErrorReporting?,
-                          authExpiration: TimeInterval = 60 * 60 * 24 * 72) throws -> Vault {
+    public func makeVault(errorReporter: SecureVaultErrorReporting?) throws -> Vault {
 
-        if let vault = self.vault, authExpiration == vault.authExpiry {
+        if let vault = self.vault {
             return vault
         } else {
             lock.lock()
@@ -69,7 +64,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
 
             do {
                 let providers = try makeSecureStorageProviders()
-                let vault = Vault(authExpiry: authExpiration, providers: providers)
+                let vault = Vault(providers: providers)
 
                 self.vault = vault
 

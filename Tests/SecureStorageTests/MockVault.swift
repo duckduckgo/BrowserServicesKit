@@ -67,11 +67,7 @@ final class ConcreteMockSecureVault<T: MockDatabaseProvider>: MockSecureVault {
 
     private let providers: MockStorageProviders
 
-    public var authExpiry: TimeInterval {
-       return 0
-    }
-
-    public required init(authExpiry: TimeInterval, providers: MockStorageProviders) {
+    public required init(providers: MockStorageProviders) {
         self.providers = providers
     }
 

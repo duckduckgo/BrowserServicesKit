@@ -22,8 +22,6 @@ public protocol SecureVault {
 
     associatedtype DatabaseProvider: SecureStorageDatabaseProvider
 
-    var authExpiry: TimeInterval { get }
-
-    init(authExpiry: TimeInterval, providers: SecureStorageProviders<DatabaseProvider>)
+    init(providers: SecureStorageProviders<DatabaseProvider>)
 
 }
