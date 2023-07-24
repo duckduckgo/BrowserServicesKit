@@ -18,7 +18,7 @@
 //
 
 import XCTest
-import BrowserServicesKit
+import Persistence
 
 class MockKeyValueStore: KeyValueStoring {
     
