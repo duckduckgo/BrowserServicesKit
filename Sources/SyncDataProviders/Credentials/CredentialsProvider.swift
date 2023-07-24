@@ -28,7 +28,6 @@ public final class CredentialsProvider: DataProviding {
     public init(secureVaultFactory: SecureVaultFactory = .default, metadataStore: SyncMetadataStore, reloadCredentialsAfterSync: @escaping () -> Void) throws {
         self.secureVaultFactory = secureVaultFactory
         self.metadataStore = metadataStore
-        try self.metadataStore.registerFeature(named: feature.name)
         self.reloadCredentialsAfterSync = reloadCredentialsAfterSync
         syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
@@ -39,17 +38,32 @@ public final class CredentialsProvider: DataProviding {
 
     public let feature: Feature = .init(name: "credentials")
 
+    public var isFeatureRegistered: Bool {
+        metadataStore.isFeatureRegistered(named: feature.name)
+    }
+
+    public func deregisterFeature() throws {
+        try metadataStore.deregisterFeature(named: feature.name)
+    }
+
+    public var featureState: SyncFeatureState {
+        metadataStore.state(forFeatureNamed: feature.name) ?? .needsRemoteDataFetch
+    }
+
     public var lastSyncTimestamp: String? {
         get {
             metadataStore.timestamp(forFeatureNamed: feature.name)
         }
         set {
-            metadataStore.updateTimestamp(newValue, forFeatureNamed: feature.name)
+            if newValue == nil {
+                metadataStore.updateTimestamp(nil, forFeatureNamed: feature.name)
+            } else {
+                metadataStore.update(newValue, .readyToSync, forFeatureNamed: feature.name)
+            }
         }
     }
 
-    public func prepareForFirstSync() throws {
-        lastSyncTimestamp = nil
+    public func prepareForFirstSync(needsRemoteDataFetch: Bool) throws {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         try secureVault.inDatabaseTransaction { database in
 
@@ -84,6 +98,9 @@ public final class CredentialsProvider: DataProviding {
                 }
             }
         }
+
+        try metadataStore.registerFeature(named: feature.name, needsRemoteDataFetch: needsRemoteDataFetch)
+        lastSyncTimestamp = nil
     }
 
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {

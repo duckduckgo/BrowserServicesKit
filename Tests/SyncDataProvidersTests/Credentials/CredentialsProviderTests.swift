@@ -48,7 +48,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         var syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified == nil })
 
-        try provider.prepareForFirstSync()
+        try provider.prepareForFirstSync(needsRemoteDataFetch: false)
 
         XCTAssertNil(provider.lastSyncTimestamp)
 
