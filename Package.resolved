@@ -24,7 +24,7 @@
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
         "branch" : "abrown/ios-incontext-email-promotion",
-        "revision" : "279dbc28241694c05ad4cfe69c5faca902b15cc0"
+        "revision" : "c44d27777b255ffba633ed1af2970abb185b259f"
       }
     },
     {
