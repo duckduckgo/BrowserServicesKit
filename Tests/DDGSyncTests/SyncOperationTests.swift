@@ -95,7 +95,7 @@ class SyncOperationTests: XCTestCase {
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
     }
 
-    func testThatForMultipleDataProvidersRequestsSeparateRequstsAreSentConcurrently() async throws {
+    func testThatForMultipleDataProvidersRequestsSeparateRequestsAreSentConcurrently() async throws {
         var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
         dataProvider1.lastSyncTimestamp = "1234"
         dataProvider1._fetchChangedObjects = { _ in

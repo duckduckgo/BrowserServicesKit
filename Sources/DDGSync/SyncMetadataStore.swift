@@ -21,9 +21,17 @@ import Persistence
 import CoreData
 
 public protocol SyncMetadataStore {
-    func registerFeature(named name: String) throws
+    func isFeatureRegistered(named name: String) -> Bool
+    func registerFeature(named name: String, needsRemoteDataFetch: Bool) throws
+    func deregisterFeature(named name: String) throws
+
     func timestamp(forFeatureNamed name: String) -> String?
     func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String)
+
+    func state(forFeatureNamed name: String) -> SyncFeatureState?
+    func updateState(_ state: SyncFeatureState, forFeatureNamed name: String)
+
+    func update(_ timestamp: String?, _ state: SyncFeatureState, forFeatureNamed name: String)
 }
 
 public final class LocalSyncMetadataStore: SyncMetadataStore {
@@ -36,7 +44,17 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         self.context = context
     }
 
-    public func registerFeature(named name: String) throws {
+    public func isFeatureRegistered(named name: String) -> Bool {
+        var isRegistered = false
+        context.performAndWait {
+            if SyncFeatureUtils.fetchFeature(with: name, in: context) != nil {
+                isRegistered = true
+            }
+        }
+        return isRegistered
+    }
+
+    public func registerFeature(named name: String, needsRemoteDataFetch: Bool) throws {
         var saveError: Error?
 
         context.performAndWait {
@@ -44,7 +62,29 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
                 return
             }
 
-            SyncFeatureEntity.makeFeature(with: name, in: context)
+            let featureState: SyncFeatureState = needsRemoteDataFetch ? .needsRemoteDataFetch : .readyToSync
+            SyncFeatureEntity.makeFeature(with: name, state: featureState, in: context)
+            do {
+                try context.save()
+            } catch {
+                saveError = error
+            }
+        }
+
+        if let saveError {
+            throw saveError
+        }
+    }
+
+    public func deregisterFeature(named name: String) throws {
+        var saveError: Error?
+
+        context.performAndWait {
+            guard let feature = SyncFeatureUtils.fetchFeature(with: name, in: context) else {
+                return
+            }
+
+            context.delete(feature)
             do {
                 try context.save()
             } catch {
@@ -68,7 +108,36 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
 
     public func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String) {
         context.performAndWait {
-            SyncFeatureUtils.updateTimestamp(timestamp, forFeatureNamed: name, in: context)
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            feature?.lastModified = timestamp
+
+            try? context.save()
+        }
+    }
+
+    public func state(forFeatureNamed name: String) -> SyncFeatureState? {
+        var state: SyncFeatureState?
+        context.performAndWait {
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            state = feature?.featureState
+        }
+        return state
+    }
+
+    public func updateState(_ state: SyncFeatureState, forFeatureNamed name: String) {
+        context.performAndWait {
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            feature?.featureState = state
+
+            try? context.save()
+        }
+    }
+
+    public func update(_ timestamp: String?, _ state: SyncFeatureState, forFeatureNamed name: String) {
+        context.performAndWait {
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            feature?.lastModified = timestamp
+            feature?.featureState = state
 
             try? context.save()
         }

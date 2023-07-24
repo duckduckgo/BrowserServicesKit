@@ -95,10 +95,10 @@ class SyncQueue {
             .eraseToAnyPublisher()
     }
 
-    func prepareNewDataModelsForFirstSync() throws {
-        for dataProvider in dataProviders where dataProvider.isPendingFirstSync {
+    func prepareNewDataModelsForFirstSync(needRemoteDataFetch: Bool) throws {
+        for dataProvider in dataProviders where !dataProvider.isFeatureRegistered {
             do {
-                try dataProvider.prepareForFirstSync()
+                try dataProvider.prepareForFirstSync(needsRemoteDataFetch: needRemoteDataFetch)
             } catch {
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)
@@ -107,8 +107,8 @@ class SyncQueue {
         }
     }
 
-    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) {
-        let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
+    func startSync() {
+        let operation = makeSyncOperation()
         operationQueue.addOperation(operation)
     }
 
@@ -125,7 +125,7 @@ class SyncQueue {
 
     // MARK: - Private
 
-    private func makeSyncOperation(firstFetchCompletion: (() -> Void)?) -> SyncOperation {
+    private func makeSyncOperation() -> SyncOperation {
         let operation = SyncOperation(
             dataProviders: dataProviders,
             storage: storage,
@@ -133,7 +133,6 @@ class SyncQueue {
             requestMaker: requestMaker,
             log: self.log
         )
-        operation.didFinishInitialFetch = firstFetchCompletion
         operation.didStart = { [weak self] in
             self?.syncDidStartSubject.send(())
         }

@@ -274,15 +274,25 @@ class DataProvidingMock: DataProviding {
     }
 
     var feature: Feature
-    var lastSyncTimestamp: String?
-    var _prepareForFirstSync: () -> Void = {}
+    var isFeatureRegistered: Bool = false
+    var featureState: SyncFeatureState = .needsRemoteDataFetch
+    var lastSyncTimestamp: String? {
+        didSet {
+            featureState = lastSyncTimestamp == nil ? .needsRemoteDataFetch : .readyToSync
+        }
+    }
+    var _prepareForFirstSync: (Bool) throws -> Void = { _ in }
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
     var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
     var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
     var _handleSyncError: (Error) -> Void = { _ in }
 
-    func prepareForFirstSync() {
-        _prepareForFirstSync()
+    func deregisterFeature() throws {
+        isFeatureRegistered = false
+    }
+
+    func prepareForFirstSync(needsRemoteDataFetch: Bool) throws {
+        try _prepareForFirstSync(needsRemoteDataFetch)
     }
 
     func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {

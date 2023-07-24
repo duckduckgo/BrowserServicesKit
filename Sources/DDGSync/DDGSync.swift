@@ -230,6 +230,7 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
+            try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
             try dependencies.secureStore.removeAccount()
@@ -241,11 +242,9 @@ public class DDGSync: DDGSyncing {
 
         let providers = dataProvidersSource?.makeDataProviders() ?? []
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
-        try syncQueue.prepareNewDataModelsForFirstSync()
+        try syncQueue.prepareNewDataModelsForFirstSync(needRemoteDataFetch: account.state == .addingNewDevice)
 
-        if account.state == .settingUpNewAccount {
-            account = account.updatingState(.active)
-        }
+        account = account.updatingState(.active)
         try dependencies.secureStore.persistAccount(account)
         authState = account.state
         dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
@@ -259,12 +258,7 @@ public class DDGSync: DDGSyncing {
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
-                self?.syncQueue?.startSync() {
-                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
-                        try? self?.dependencies.secureStore.persistAccount(account)
-                        self?.authState = .active
-                    }
-                }
+                self?.syncQueue?.startSync()
             }
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher

@@ -38,16 +38,28 @@ public final class BookmarksProvider: DataProviding {
 
     public let feature: Feature = .init(name: "bookmarks")
 
+    public var isFeatureRegistered: Bool {
+        metadataStore.isFeatureRegistered(named: feature.name)
+    }
+
+    public func deregisterFeature() throws {
+        try metadataStore.deregisterFeature(named: feature.name)
+    }
+
+    public var featureState: SyncFeatureState {
+        metadataStore.state(forFeatureNamed: feature.name) ?? .needsRemoteDataFetch
+    }
+
     public var lastSyncTimestamp: String? {
         get {
             metadataStore.timestamp(forFeatureNamed: feature.name)
         }
         set {
-            metadataStore.updateTimestamp(newValue, forFeatureNamed: feature.name)
+            metadataStore.update(newValue, .readyToSync, forFeatureNamed: feature.name)
         }
     }
 
-    public func prepareForFirstSync() throws {
+    public func prepareForFirstSync(needsRemoteDataFetch: Bool) throws {
         var saveError: Error?
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -70,7 +82,7 @@ public final class BookmarksProvider: DataProviding {
             throw saveError
         }
 
-        try metadataStore.registerFeature(named: feature.name)
+        try metadataStore.registerFeature(named: feature.name, needsRemoteDataFetch: needsRemoteDataFetch)
         lastSyncTimestamp = nil
     }
 

@@ -20,6 +20,10 @@
 import Foundation
 import CoreData
 
+public enum SyncFeatureState: String {
+    case needsRemoteDataFetch, readyToSync
+}
+
 @objc(SyncFeatureEntity)
 public class SyncFeatureEntity: NSManagedObject {
 
@@ -33,15 +37,29 @@ public class SyncFeatureEntity: NSManagedObject {
 
     @NSManaged public var name: String
     @NSManaged public internal(set) var lastModified: String?
+    @NSManaged private var state: String
+
+    public var featureState: SyncFeatureState {
+        get {
+            if let featureState = SyncFeatureState(rawValue: state) {
+                return featureState
+            }
+            return lastModified == nil ? .needsRemoteDataFetch : .readyToSync
+        }
+        set {
+            state = newValue.rawValue
+        }
+    }
 
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: SyncFeatureEntity.entity(in: moc), insertInto: moc)
     }
 
     @discardableResult
-    public static func makeFeature(with name: String, lastModified: String? = nil, in context: NSManagedObjectContext) -> SyncFeatureEntity {
+    public static func makeFeature(with name: String, lastModified: String? = nil, state: SyncFeatureState, in context: NSManagedObjectContext) -> SyncFeatureEntity {
         let object = SyncFeatureEntity(context: context)
         object.name = name
+        object.featureState = state
         object.lastModified = lastModified
         return object
     }
@@ -56,12 +74,6 @@ enum SyncFeatureUtils {
         request.fetchLimit = 1
 
         return try? context.fetch(request).first
-    }
-
-    static func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String, in context: NSManagedObjectContext) {
-        let feature = Self.fetchFeature(with: name, in: context)
-
-        feature?.lastModified = timestamp
     }
 
 }

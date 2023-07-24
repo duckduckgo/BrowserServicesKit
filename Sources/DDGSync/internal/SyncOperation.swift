@@ -29,19 +29,6 @@ class SyncOperation: Operation {
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
 
-    var didFinishInitialFetch: (() -> Void)? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _didFinishInitialFetch
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _didFinishInitialFetch = newValue
-        }
-    }
-
     var didStart: (() -> Void)? {
         get {
             lock.lock()
@@ -107,21 +94,11 @@ class SyncOperation: Operation {
                     return
                 }
 
-                if state == .addingNewDevice {
-                    try await sync(fetchOnly: true)
-                    didFinishInitialFetch?()
-                } else {
-                    let providersPendingFirstSync = dataProviders.filter(\.isPendingFirstSync)
-                    if !providersPendingFirstSync.isEmpty && providersPendingFirstSync.count != dataProviders.count {
-                        os_log(
-                            .debug,
-                            log: log,
-                            "New Syncable Model(s) found: %{public}s",
-                            providersPendingFirstSync.map(\.feature.name).joined(separator: ", ")
-                        )
-                        try await sync(fetchOnly: true, dataProviders: providersPendingFirstSync)
-                    }
+                let providersPendingFirstSync = dataProviders.filter { $0.featureState == .needsRemoteDataFetch }
+                if !providersPendingFirstSync.isEmpty {
+                    try await sync(fetchOnly: true, dataProviders: providersPendingFirstSync)
                 }
+
                 try await sync(fetchOnly: false)
                 didFinish?(nil)
             } catch is CancellationError {
@@ -299,7 +276,6 @@ class SyncOperation: Operation {
     private let lock = NSRecursiveLock()
     private var _isExecuting: Bool = false
     private var _isFinished: Bool = false
-    private var _didFinishInitialFetch: (() -> Void)?
     private var _didStart: (() -> Void)?
     private var _didFinish: ((Error?) -> Void)?
 }
