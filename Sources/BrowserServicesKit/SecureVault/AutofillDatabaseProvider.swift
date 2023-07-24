@@ -52,26 +52,30 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
 }
 
-public final class DefaultAutofillDatabaseProvider: AutofillDatabaseProvider {
+public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
-    public var databaseFileName: String {
-        return "Vault.db"
+    public override class var databaseLocation: (directoryName: String, fileName: String) {
+        return ("Vault", "Vault.db")
     }
 
-    let db: DatabaseQueue
+    public override class var writerType: DatabaseWriterType {
+        return .queue
+    }
 
-    public init(file: URL = DefaultAutofillDatabaseProvider.databaseFilePath(), key: Data) throws {
-        db = try Self.createDatabaseQueue(file: file, key: key) { migrator in
-            migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-            migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
-            migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
-            migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
-            migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
-            migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
-            migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
-            migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-            migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
-        }
+    public override class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
+        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
+        migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
+        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+    }
+
+    public required init(file: URL = DefaultAutofillDatabaseProvider.databaseFilePath(), key: Data) throws {
+        try super.init(file: file, key: key)
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {

@@ -22,18 +22,78 @@ import GRDB
 
 public protocol SecureStorageDatabaseProvider {
 
-    var databaseFileName: String { get }
-
     init(file: URL, key: Data) throws
 
     static func recreateDatabase(withKey key: Data) throws -> Self
 
 }
 
-extension SecureStorageDatabaseProvider {
+open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
+
+    public enum DatabaseWriterType {
+        case queue
+        case pool
+    }
+
+    /// Provides the default database directory and file name.
+    ///
+    /// This is used to derive the database path relative to the application support directory.
+    open class var databaseLocation: (directoryName: String, fileName: String) {
+        fatalError("Must be overridden by a subclass")
+    }
+
+    /// Determines the GRDB DatabaseWriter type.
+    ///
+    /// The available options are `queue` and `pool`, representing a `DatabaseQueue` and `DatabasePool` respectively.
+    open class var writerType: DatabaseWriterType {
+        fatalError("Must be overridden by a subclass")
+    }
+
+    /// Configures the database migrations to use for the subclass of the database provider.
+    ///
+    /// This is called by the database provider's `init` function as a part of setting up the database.
+    open class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
+        fatalError("Must be overridden by a subclass")
+    }
+
+    public let db: DatabaseWriter
+
+    public required init(file: URL, key: Data) throws {
+        var config = Configuration()
+        config.prepareDatabase {
+            try $0.usePassphrase(key)
+        }
+
+        let writer: DatabaseWriter
+
+        do {
+            switch Self.writerType {
+            case .queue: writer = try DatabaseQueue(path: file.path, configuration: config)
+            case .pool: writer = try DatabasePool(path: file.path, configuration: config)
+            }
+        } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
+            os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
+            throw SecureStorageDatabaseError.nonRecoverable(error)
+        } catch {
+            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
+            throw error
+        }
+
+        var migrator = DatabaseMigrator()
+        try Self.registerMigrations(with: &migrator)
+
+        do {
+            try migrator.migrate(writer)
+        } catch {
+            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
+            throw error
+        }
+
+        self.db = writer
+    }
 
     public static func recreateDatabase(withKey key: Data) throws -> Self {
-        let dbFile = self.databaseFilePath()
+        let dbFile = self.databaseFilePath(directoryName: Self.databaseLocation.directoryName, fileName: Self.databaseLocation.fileName)
 
         guard FileManager.default.fileExists(atPath: dbFile.path) else {
             return try Self(file: dbFile, key: key)
@@ -56,9 +116,13 @@ extension SecureStorageDatabaseProvider {
     }
 
     static public func databaseFilePath() -> URL {
+        return databaseFilePath(directoryName: Self.databaseLocation.directoryName, fileName: Self.databaseLocation.fileName)
+    }
+
+    static public func databaseFilePath(directoryName: String, fileName: String) -> URL {
 
         let fm = FileManager.default
-        let subDir = fm.applicationSupportDirectoryForComponent(named: "Vault")
+        let subDir = fm.applicationSupportDirectoryForComponent(named: directoryName)
 
         var isDir: ObjCBool = false
         if !fm.fileExists(atPath: subDir.path, isDirectory: &isDir) {
@@ -74,11 +138,13 @@ extension SecureStorageDatabaseProvider {
             fatalError("Configuration folder at \(subDir.path) is not a directory")
         }
 
-        return subDir.appendingPathComponent("Vault.db")
+        return subDir.appendingPathComponent(fileName)
     }
 
     static internal func nonExistingDBFile(withExtension ext: String) -> URL {
-        let originalPath = Self.databaseFilePath().deletingPathExtension().path
+        let originalPath = Self.databaseFilePath(directoryName: databaseLocation.directoryName, fileName: databaseLocation.fileName)
+            .deletingPathExtension()
+            .path
 
         for i in 0... {
             var path = originalPath
@@ -93,40 +159,6 @@ extension SecureStorageDatabaseProvider {
         }
 
         fatalError()
-    }
-
-    public static func createDatabaseQueue(file: URL, key: Data, registerMigrationsHandler: (inout DatabaseMigrator) -> Void) throws -> DatabaseQueue {
-        var config = Configuration()
-        config.prepareDatabase {
-            try $0.usePassphrase(key)
-        }
-
-        let queue: DatabaseQueue
-
-        do {
-            queue = try DatabaseQueue(path: file.path, configuration: config)
-        } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
-            os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
-            throw SecureStorageDatabaseError.nonRecoverable(error)
-        } catch {
-            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
-            throw error
-        }
-
-        var migrator = DatabaseMigrator()
-        registerMigrationsHandler(&migrator)
-
-        // Add more sync migrations here ...
-        // Note, these migrations will run synchronously on first access to secureVault DB
-
-        do {
-            try migrator.migrate(queue)
-        } catch {
-            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
-            throw error
-        }
-
-        return queue
     }
 
 }
