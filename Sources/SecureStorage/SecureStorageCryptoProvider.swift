@@ -201,7 +201,6 @@ public extension SecureStorageCryptoProvider {
 
 // MARK: - ContiguousBytes Extension
 
-// Can this be made private, or moved into Common? This isn't the ideal location for it, but we're only using it for the crypto provider right now.
 public extension ContiguousBytes {
 
     var dataRepresentation: Data {
