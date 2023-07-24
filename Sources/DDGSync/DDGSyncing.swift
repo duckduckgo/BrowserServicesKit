@@ -25,8 +25,6 @@ public enum SyncAuthState: String, Sendable, Codable {
     case initializing
     /// Sync is not enabled.
     case inactive
-    /// Sync is in progress of registering new account.
-    case settingUpNewAccount
     /// Sync is in progress of adding a new device to an existing account.
     case addingNewDevice
     /// User is logged in to sync.
@@ -277,6 +275,12 @@ public protocol DataProviding {
      */
     var feature: Feature { get }
 
+    var isFeatureRegistered: Bool { get }
+
+    func deregisterFeature() throws
+
+    var featureState: SyncFeatureState { get }
+
     /**
      * Time of last successful sync of a given feature.
      *
@@ -290,7 +294,7 @@ public protocol DataProviding {
      *
      * This function is called before the initial sync is performed.
      */
-    func prepareForFirstSync() throws
+    func prepareForFirstSync(needsRemoteDataFetch: Bool) throws
 
     /**
      * Return objects that have changed since last sync, or all objects in case of the initial sync.

@@ -174,9 +174,14 @@ final class MockDataProvidersSource: DataProvidersSource {
 }
 
 class HTTPRequestingMock: HTTPRequesting {
+
+    init(result: HTTPResult = .init(data: Data(), response: HTTPURLResponse())) {
+        self.result = result
+    }
+
     var executeCallCount = 0
     var error: SyncError?
-    var result: HTTPResult = .init(data: Data(), response: HTTPURLResponse())
+    var result: HTTPResult
 
     func execute() async throws -> HTTPResult {
         executeCallCount += 1
@@ -191,6 +196,7 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     var createRequestCallCount = 0
     var createRequestCallArgs: [CreateRequestCallArgs] = []
     var request: HTTPRequesting = HTTPRequestingMock()
+    var fakeRequests: [URL: HTTPRequestingMock] = [:]
     private let lock = NSLock()
 
     struct CreateRequestCallArgs: Equatable {
@@ -207,7 +213,7 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
         defer { lock.unlock() }
         createRequestCallCount += 1
         createRequestCallArgs.append(CreateRequestCallArgs(url: url, method: method, headers: headers, parameters: parameters, body: body, contentType: contentType))
-        return request
+        return fakeRequests[url] ?? request
     }
 }
 
@@ -261,18 +267,32 @@ struct CryptingMock: CryptingInternal {
 
 }
 
-struct DataProvidingMock: DataProviding {
+class DataProvidingMock: DataProviding {
+
+    init(feature: Feature) {
+        self.feature = feature
+    }
 
     var feature: Feature
-    var lastSyncTimestamp: String?
-    var _prepareForFirstSync: () -> Void = {}
+    var isFeatureRegistered: Bool = false
+    var featureState: SyncFeatureState = .needsRemoteDataFetch
+    var lastSyncTimestamp: String? {
+        didSet {
+            featureState = lastSyncTimestamp == nil ? .needsRemoteDataFetch : .readyToSync
+        }
+    }
+    var _prepareForFirstSync: (Bool) throws -> Void = { _ in }
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
     var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
     var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
-    var handleSyncError: (Error) -> Void = { _ in }
+    var _handleSyncError: (Error) -> Void = { _ in }
 
-    func prepareForFirstSync() {
-        _prepareForFirstSync()
+    func deregisterFeature() throws {
+        isFeatureRegistered = false
+    }
+
+    func prepareForFirstSync(needsRemoteDataFetch: Bool) throws {
+        try _prepareForFirstSync(needsRemoteDataFetch)
     }
 
     func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
@@ -281,13 +301,15 @@ struct DataProvidingMock: DataProviding {
 
     func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
+        lastSyncTimestamp = serverTimestamp
     }
 
     func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
+        lastSyncTimestamp = serverTimestamp
     }
 
     func handleSyncError(_ error: Error) {
-        handleSyncError(error)
+        _handleSyncError(error)
     }
 }
