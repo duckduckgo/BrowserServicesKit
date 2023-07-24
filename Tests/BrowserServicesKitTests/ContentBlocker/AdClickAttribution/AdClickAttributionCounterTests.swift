@@ -19,6 +19,7 @@
 
 import XCTest
 import Persistence
+@testable import BrowserServicesKit
 
 class MockKeyValueStore: KeyValueStoring {
     
@@ -53,10 +54,10 @@ class AdClickAttributionCounterTests: XCTestCase {
         // Second use, later, but before sync interval
         counter.onAttributionActive(currentTime: date + 1)
         
-        let count = mockStore.object(forKey: AdClickAttributionCounter.Constants.pageLoadsCountKey) as? Int
+        let count = mockStore.object(forKey: AdClickAttributionCounter.Constant.pageLoadsCountKey) as? Int
         XCTAssertEqual(count, 2)
         
-        let storedDate = mockStore.object(forKey: AdClickAttributionCounter.Constants.lastSendAtKey) as? Date
+        let storedDate = mockStore.object(forKey: AdClickAttributionCounter.Constant.lastSendAtKey) as? Date
         XCTAssertEqual(date, storedDate)
     }
     
