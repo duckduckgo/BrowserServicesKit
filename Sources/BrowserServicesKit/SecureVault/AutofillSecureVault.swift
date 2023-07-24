@@ -27,8 +27,12 @@ public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory
         return AutofillCryptoProvider()
     }, makeKeyStoreProvider: {
         return AutofillKeyStoreProvider()
-    }, makeDatabaseProvider: { key in
-        return try DefaultAutofillDatabaseProvider(key: key)
+    }, makeDatabaseProvider: { key, recreate in
+        if recreate {
+            return try DefaultAutofillDatabaseProvider.recreateDatabase(withKey: key)
+        } else {
+            return try DefaultAutofillDatabaseProvider(key: key)
+        }
     }
 )
 
@@ -77,18 +81,18 @@ public protocol AutofillSecureVault: SecureVault {
 
 public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSecureVault {
 
-    public typealias AutofillDatabaseProviders = SecureStorageProviders<T>
+    public typealias AutofillStorageProviders = SecureStorageProviders<T>
 
     private let lock = NSLock()
 
-    private let providers: AutofillDatabaseProviders
+    private let providers: AutofillStorageProviders
     private let expiringPassword: ExpiringValue<Data>
 
     public var authExpiry: TimeInterval {
         return expiringPassword.expiresAfter
     }
 
-    public required init(providers: AutofillDatabaseProviders) {
+    public required init(providers: AutofillStorageProviders) {
         self.providers = providers
         self.expiringPassword = ExpiringValue(expiresAfter: 60 * 60 * 24 * 3)
     }
