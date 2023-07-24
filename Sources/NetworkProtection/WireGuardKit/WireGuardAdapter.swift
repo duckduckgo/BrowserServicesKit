@@ -36,6 +36,13 @@ private enum State {
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
 }
 
+public protocol TunnelControl: AnyObject {
+    var reasserting: Bool { get set }
+    var tunnelFileDescriptor: Int32? { get }
+
+    func setTunnelNetworkSettings(_ tunnelNetworkSettings: NETunnelNetworkSettings?, completionHandler: @escaping (Error?) -> Void)
+}
+
 public class WireGuardAdapter {
     public typealias LogHandler = (WireGuardLogLevel, String) -> Void
 
@@ -59,7 +66,7 @@ public class WireGuardAdapter {
     private var networkMonitor: NWPathMonitor?
 
     /// Packet tunnel provider.
-    private weak var packetTunnelProvider: NEPacketTunnelProvider?
+    private weak var packetTunnelProvider: TunnelControl?
 
     /// Log handler closure.
     private let logHandler: LogHandler
@@ -70,6 +77,7 @@ public class WireGuardAdapter {
     /// Adapter state.
     private var state: State = .stopped
 
+    /*
     /// Tunnel device file descriptor.
     private var tunnelFileDescriptor: Int32? {
         var ctlInfo = ctl_info()
@@ -106,6 +114,7 @@ public class WireGuardAdapter {
         }
         return nil
     }
+     */
 
     /// Returns a WireGuard version.
     public class var backendVersion: String {
@@ -118,7 +127,7 @@ public class WireGuardAdapter {
     /// Returns the tunnel device interface name, or nil on error.
     /// - Returns: String.
     public var interfaceName: String? {
-        guard let tunnelFileDescriptor = self.tunnelFileDescriptor else { return nil }
+        guard let tunnelFileDescriptor = packetTunnelProvider?.tunnelFileDescriptor else { return nil }
 
         var buffer = [UInt8](repeating: 0, count: Int(IFNAMSIZ))
 
@@ -147,7 +156,7 @@ public class WireGuardAdapter {
     /// - Parameter packetTunnelProvider: an instance of `NEPacketTunnelProvider`. Internally stored
     ///   as a weak reference.
     /// - Parameter logHandler: a log handler closure.
-    public init(with packetTunnelProvider: NEPacketTunnelProvider, logHandler: @escaping LogHandler) {
+    public init(with packetTunnelProvider: TunnelControl, logHandler: @escaping LogHandler) {
         os_log("[+] WireGuardAdapter", log: .networkProtectionMemoryLog, type: .debug)
 
         self.packetTunnelProvider = packetTunnelProvider
@@ -430,9 +439,9 @@ public class WireGuardAdapter {
     /// Start WireGuard backend.
     /// - Parameter wgConfig: WireGuard configuration
     /// - Throws: an error of type `WireGuardAdapterError`
-    /// - Returns: tunnel handle
+    /// - Returns: tunnel handles
     private func startWireGuardBackend(wgConfig: String) throws -> Int32 {
-        guard let tunnelFileDescriptor = self.tunnelFileDescriptor else {
+        guard let tunnelFileDescriptor = packetTunnelProvider?.tunnelFileDescriptor else {
             throw WireGuardAdapterError.cannotLocateTunnelFileDescriptor
         }
 

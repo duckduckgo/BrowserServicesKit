@@ -21,18 +21,18 @@ import Common
 
 /// Stores information about NetP's tunnel health
 ///
-final class NetworkProtectionTunnelHealthStore {
+public final class NetworkProtectionTunnelHealthStore {
     private static let isHavingConnectivityIssuesKey = "com.duckduckgo.isHavingConnectivityIssues"
     private let userDefaults: UserDefaults
     private let notificationCenter: NetworkProtectionNotificationCenter
 
-    init(userDefaults: UserDefaults = .standard,
+    public init(userDefaults: UserDefaults = .standard,
          notificationCenter: NetworkProtectionNotificationCenter) {
         self.userDefaults = userDefaults
         self.notificationCenter = notificationCenter
     }
 
-    var isHavingConnectivityIssues: Bool {
+    public var isHavingConnectivityIssues: Bool {
         get {
             userDefaults.bool(forKey: Self.isHavingConnectivityIssuesKey)
         }

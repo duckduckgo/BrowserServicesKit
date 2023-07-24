@@ -21,14 +21,14 @@ import Foundation
 import Common
 import Network
 
-protocol LatencyMeasurer: Sendable {
+public protocol LatencyMeasurer: Sendable {
     func ping() async -> Result<Pinger.PingResult, Pinger.PingError>
 }
 extension Pinger: LatencyMeasurer {}
 
-actor NetworkProtectionLatencyReporter {
+public actor NetworkProtectionLatencyReporter {
 
-    struct Configuration {
+    public struct Configuration {
         let firstPingDelay: TimeInterval
         let pingInterval: TimeInterval
 
@@ -46,7 +46,7 @@ actor NetworkProtectionLatencyReporter {
             self.waitForNextConnectionTypeQuery = waitForNextConnectionTypeQuery
         }
 
-        static let `default` = Configuration()
+        public static let `default` = Configuration()
     }
 
     private let configuration: Configuration
@@ -63,16 +63,16 @@ actor NetworkProtectionLatencyReporter {
     }
 
     @MainActor
-    private(set) var currentIP: IPv4Address?
+    private(set) public var currentIP: IPv4Address?
     @MainActor
-    var isStarted: Bool {
+    public var isStarted: Bool {
         task?.isCancelled == false
     }
 
-    typealias PingerFactory = @Sendable (IPv4Address, TimeInterval) -> LatencyMeasurer
+    public typealias PingerFactory = @Sendable (IPv4Address, TimeInterval) -> LatencyMeasurer
     private let pingerFactory: PingerFactory
 
-    init(configuration: Configuration = .default,
+    public init(configuration: Configuration = .default,
          log: @autoclosure @escaping (@Sendable () -> OSLog) = .disabled,
          pingerFactory: PingerFactory? = nil) {
 
@@ -95,7 +95,7 @@ actor NetworkProtectionLatencyReporter {
     }
 
     @MainActor
-    func start(ip: IPv4Address, reportCallback: @escaping @Sendable (TimeInterval, NetworkConnectionType) -> Void) {
+    public func start(ip: IPv4Address, reportCallback: @escaping @Sendable (TimeInterval, NetworkConnectionType) -> Void) {
         let log = { @Sendable [weak self] in self?.getLogger() ?? .disabled }
         let pinger = pingerFactory(ip, configuration.timeout)
         self.currentIP = ip
@@ -127,7 +127,7 @@ actor NetworkProtectionLatencyReporter {
     }
 
     @MainActor
-    func stop() {
+    public func stop() {
         task = nil
     }
 

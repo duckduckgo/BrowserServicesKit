@@ -28,8 +28,8 @@ import Common
 /// the HTTPs port (443) both with and without using the tunnel.  The tunnel connection will be considered to be disconnected
 /// whenever the regular connection works fine but the tunnel connection doesn't.
 ///
-final class NetworkProtectionConnectionTester {
-    enum Result {
+public final class NetworkProtectionConnectionTester {
+    public enum Result {
         case connected
         case reconnected
         case disconnected(failureCount: Int)
@@ -97,7 +97,7 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Init & deinit
 
-    init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result) -> Void) {
+    public init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result) -> Void) {
         self.timerQueue = timerQueue
         self.log = log
         self.resultHandler = resultHandler
@@ -113,7 +113,7 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Starting & Stopping the tester
 
-    func start(tunnelIfName: String) async throws {
+    public func start(tunnelIfName: String) async throws {
         guard await !timerRunCoordinator.isRunning else {
             os_log("Will not start the connection tester as it's already running", log: log, type: .debug)
             return
@@ -126,7 +126,7 @@ final class NetworkProtectionConnectionTester {
         await scheduleTimer()
     }
 
-    func stop() async {
+    public func stop() async {
         os_log("🔴 Stopping connection tester", log: log, type: .debug)
         await stopScheduledTimer()
     }

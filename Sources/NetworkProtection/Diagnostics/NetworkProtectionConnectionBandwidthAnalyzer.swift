@@ -23,7 +23,7 @@ import Common
 ///
 /// This class was designed to be easy to modify to eventually handle more than two snapshots over time.
 ///
-final class NetworkProtectionConnectionBandwidthAnalyzer {
+public final class NetworkProtectionConnectionBandwidthAnalyzer {
     private struct Snapshot {
         let rxBytes: UInt64
         let txBytes: UInt64
@@ -39,6 +39,9 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
     private static let rxThreshold = 100 * 1024 // 100k
     private static let txThreshold = 100 * 1024 // 100k
 
+    public init() {
+    }
+
     private var idle = false {
         didSet {
             os_log("Connection set to idle: %{public}@", log: .networkProtectionBandwidthAnalysis, String(describing: idle))
@@ -47,7 +50,7 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
 
     /// Records an entry with the provided rx and tx values and the current date.
     ///
-    func record(rxBytes: UInt64, txBytes: UInt64) {
+    public func record(rxBytes: UInt64, txBytes: UInt64) {
         let newEntry = Snapshot(rxBytes: rxBytes, txBytes: txBytes, date: Date())
         entries.insert(newEntry, at: 0)
 
@@ -64,7 +67,7 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
     /// One example of where this may be useful is if the code that's meant to record new entries in the bandwidth analyzer cannot
     /// do so for unexpected reasons.
     ///
-    func preventIdle() {
+    public func preventIdle() {
         idle = false
     }
 
@@ -93,13 +96,13 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
         idle = UInt64(rx) < Self.rxThreshold && UInt64(tx) < Self.txThreshold
     }
 
-    func isConnectionIdle() -> Bool {
+    public func isConnectionIdle() -> Bool {
         idle
     }
 
     /// Useful when servers are swapped
     ///
-    func reset() {
+    public func reset() {
         os_log("Bandwidth analyzer reset", log: .networkProtectionBandwidthAnalysis, type: .info)
         entries.removeAll()
     }

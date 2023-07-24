@@ -25,8 +25,52 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
+let CTLIOCGINFO = UInt(0xc0644e03)
+
 // swiftlint:disable:next type_body_length
-open class PacketTunnelProvider: NEPacketTunnelProvider {
+open class PacketTunnelProvider: NEPacketTunnelProvider, TunnelControl {
+
+    /// Tunnel device file descriptor.
+    public var tunnelFileDescriptor: Int32? {
+        var ctlInfo = ctl_info()
+        withUnsafeMutablePointer(to: &ctlInfo.ctl_name) {
+            $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: $0.pointee)) {
+                _ = strcpy($0, "com.apple.net.utun_control")
+            }
+        }
+
+        // We stride backwards since sometimes the OS creates more than one fd and from
+        // our testing the highest fd is always the one that we should use.
+        // Ref: https://app.asana.com/0/1203137811378537/1204887455080246/f
+        for fd: Int32 in stride(from: 1023, through: 1, by: -1) {
+            var addr = sockaddr_ctl()
+            var ret: Int32 = -1
+            var len = socklen_t(MemoryLayout.size(ofValue: addr))
+            withUnsafeMutablePointer(to: &addr) {
+                $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                    ret = getpeername(fd, $0, &len)
+                }
+            }
+            if ret != 0 || addr.sc_family != AF_SYSTEM {
+                continue
+            }
+            if ctlInfo.ctl_id == 0 {
+                ret = ioctl(fd, CTLIOCGINFO, &ctlInfo)
+                if ret != 0 {
+                    continue
+                }
+            }
+            if addr.sc_id == ctlInfo.ctl_id {
+                return fd
+            }
+        }
+        return nil
+    }
+
+    public func setTunnelNetworkSettings(_ tunnelNetworkSettings: NETunnelNetworkSettings?, completionHandler: @escaping (Error?) -> Void) {
+        super.setTunnelNetworkSettings(tunnelNetworkSettings, completionHandler: completionHandler)
+    }
+
 
     public enum Event {
         case userBecameActive
@@ -320,7 +364,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 appLauncher: AppLaunching? = nil) {
-        os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
+        //os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
         self.notificationCenter = notificationCenter
         self.notificationsPresenter = notificationsPresenter
         self.useSystemKeychain = useSystemKeychain
