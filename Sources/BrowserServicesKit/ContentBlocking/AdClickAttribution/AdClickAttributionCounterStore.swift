@@ -22,9 +22,7 @@ import Persistence
 
 public struct AdClickAttributionCounterStore: KeyValueStoring {
 
-    private var userDefaults: UserDefaults? {
-        return UserDefaults(suiteName: "com.duckduckgo.app.adClickAttribution")
-    }
+    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.adClickAttribution") }
 
     public init() {}
 

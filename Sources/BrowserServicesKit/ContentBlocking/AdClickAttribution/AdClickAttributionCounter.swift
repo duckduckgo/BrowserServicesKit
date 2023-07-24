@@ -25,7 +25,7 @@ import Persistence
  */
 public class AdClickAttributionCounter {
     
-    public enum Constants {
+    public enum Constant {
 
         public static let pageLoadsCountKey = "AdClickAttributionCounter_Count"
         public static let lastSendAtKey = "AdClickAttributionCounter_Date"
@@ -38,7 +38,7 @@ public class AdClickAttributionCounter {
     private let sendInterval: Double
     
     public init(store: KeyValueStoring = AdClickAttributionCounterStore(),
-                sendInterval: Double = Constants.sendInterval,
+                sendInterval: Double = Constant.sendInterval,
                 onSendRequest: @escaping (_ count: Int) -> Void) {
         self.store = store
         self.onSend = onSendRequest
@@ -46,13 +46,13 @@ public class AdClickAttributionCounter {
     }
     
     public func onAttributionActive(currentTime: Date = Date()) {
-        store.set(pageLoadsCount + 1, forKey: Constants.pageLoadsCountKey)
+        save(pageLoadsCount: pageLoadsCount + 1)
         sendEventsIfNeeded(currentTime: currentTime)
     }
     
     public func sendEventsIfNeeded(currentTime: Date = Date()) {
         guard let lastSendAt else {
-            store.set(currentTime, forKey: Constants.lastSendAtKey)
+            save(lastSendAt: currentTime)
             return
         }
         
@@ -62,12 +62,25 @@ public class AdClickAttributionCounter {
         }
         
         onSend(pageLoadsCount)
-        
-        store.set(0, forKey: Constants.pageLoadsCountKey)
-        store.set(currentTime, forKey: Constants.lastSendAtKey)
+        resetStats(currentTime: currentTime)
     }
 
-    private var lastSendAt: Date? { store.object(forKey: Constants.lastSendAtKey) as? Date }
-    private var pageLoadsCount: Int { store.object(forKey: Constants.pageLoadsCountKey) as? Int ?? 0 }
+    private func resetStats(currentTime: Date = Date()) {
+        save(pageLoadsCount: 0)
+        save(lastSendAt: currentTime)
+    }
+
+    // MARK: - Store
+
+    private var lastSendAt: Date? { store.object(forKey: Constant.lastSendAtKey) as? Date }
+    private var pageLoadsCount: Int { store.object(forKey: Constant.pageLoadsCountKey) as? Int ?? 0 }
+
+    private func save(lastSendAt: Date) {
+        store.set(lastSendAt, forKey: Constant.lastSendAtKey)
+    }
+
+    private func save(pageLoadsCount: Int) {
+        store.set(pageLoadsCount, forKey: Constant.pageLoadsCountKey)
+    }
 
 }

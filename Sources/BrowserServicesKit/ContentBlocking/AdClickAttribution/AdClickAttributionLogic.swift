@@ -31,10 +31,25 @@ public protocol AdClickAttributionLogicDelegate: AnyObject {
 
 public class AdClickAttributionLogic {
     
-    public enum State {
+    public enum State: Equatable {
+
         case noAttribution
         case preparingAttribution(vendor: String, session: SessionInfo, completionBlocks: [(() -> Void)])
         case activeAttribution(vendor: String, session: SessionInfo, rules: ContentBlockerRulesManager.Rules)
+
+        public static func == (lhs: AdClickAttributionLogic.State, rhs: AdClickAttributionLogic.State) -> Bool {
+            switch (lhs, rhs) {
+            case (.noAttribution, .noAttribution):
+                return true
+            case let (.preparingAttribution(vendor1, _, _), .preparingAttribution(vendor2, _, _)):
+                return vendor1 == vendor2
+            case let (.activeAttribution(vendor1, _, _), .activeAttribution(vendor2, _, _)):
+                return vendor1 == vendor2
+            default:
+                return false
+            }
+        }
+
     }
     
     public struct SessionInfo {
@@ -64,7 +79,7 @@ public class AdClickAttributionLogic {
 
     public private(set) var state = State.noAttribution {
         didSet {
-            if case .activeAttribution = state {
+            if state != oldValue, case .activeAttribution = state {
                 counter.onAttributionActive()
             }
         }
