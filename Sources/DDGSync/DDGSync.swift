@@ -241,11 +241,8 @@ public class DDGSync: DDGSyncing {
 
         let providers = dataProvidersSource?.makeDataProviders() ?? []
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
+        try syncQueue.prepareNewDataModelsForFirstSync()
 
-        let previousState = try dependencies.secureStore.account()?.state
-        if previousState == nil || previousState ==  .inactive {
-            try syncQueue.prepareForFirstSync()
-        }
         if account.state == .settingUpNewAccount {
             account = account.updatingState(.active)
         }

@@ -317,3 +317,9 @@ public protocol DataProviding {
      */
     func handleSyncError(_ error: Error)
 }
+
+extension DataProviding {
+    var isPendingFirstSync: Bool {
+        lastSyncTimestamp == nil
+    }
+}

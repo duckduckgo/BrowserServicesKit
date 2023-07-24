@@ -24,7 +24,7 @@ import os
 
 class SyncOperation: Operation {
 
-    let dataProviders: [Feature: DataProviding]
+    let dataProviders: [DataProviding]
     let storage: SecureStoring
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
@@ -68,28 +68,8 @@ class SyncOperation: Operation {
         }
     }
 
-    convenience init(
-        dataProviders: [DataProviding],
-        storage: SecureStoring,
-        crypter: Crypting,
-        requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled
-    ) {
-        let dataProvidersMap: [Feature: DataProviding] = dataProviders.reduce(into: .init(), { partialResult, provider in
-            partialResult[provider.feature] = provider
-        })
-
-        self.init(
-            dataProviders: dataProvidersMap,
-            storage: storage,
-            crypter: crypter,
-            requestMaker: requestMaker,
-            log: log()
-        )
-    }
-
     init(
-        dataProviders: [Feature: DataProviding],
+        dataProviders: [DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
@@ -130,6 +110,17 @@ class SyncOperation: Operation {
                 if state == .addingNewDevice {
                     try await sync(fetchOnly: true)
                     didFinishInitialFetch?()
+                } else {
+                    let providersPendingFirstSync = dataProviders.filter(\.isPendingFirstSync)
+                    if !providersPendingFirstSync.isEmpty && providersPendingFirstSync.count != dataProviders.count {
+                        os_log(
+                            .debug,
+                            log: log,
+                            "New Syncable Model(s) found: %{public}s",
+                            providersPendingFirstSync.map(\.feature.name).joined(separator: ", ")
+                        )
+                        try await sync(fetchOnly: true, dataProviders: providersPendingFirstSync)
+                    }
                 }
                 try await sync(fetchOnly: false)
                 didFinish?(nil)
@@ -142,18 +133,22 @@ class SyncOperation: Operation {
     }
 
     func sync(fetchOnly: Bool) async throws {
+        try await sync(fetchOnly: fetchOnly, dataProviders: dataProviders)
+    }
+
+    func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
             os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
         }
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for (feature, dataProvider) in dataProviders {
+            for dataProvider in dataProviders {
                 group.addTask { [weak self] in
                     guard let self else {
                         return
                     }
-                    os_log(.debug, log: self.log, "Syncing %{public}s", feature.name)
+                    os_log(.debug, log: self.log, "Syncing %{public}s", dataProvider.feature.name)
 
                     do {
                         try checkCancellation()
@@ -170,7 +165,7 @@ class SyncOperation: Operation {
                                 throw SyncError.noResponseBody
                             }
                             os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
-                                   feature.name,
+                                   dataProvider.feature.name,
                                    String(data: data, encoding: .utf8) ?? "")
                             let syncResult = try self.decodeResponse(with: data, request: syncRequest)
                             try checkCancellation()
@@ -182,11 +177,11 @@ class SyncOperation: Operation {
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch is CancellationError {
-                        os_log(.debug, log: self.log, "Syncing %{public}s cancelled", feature.name)
+                        os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)
                     } catch {
-                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
+                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", dataProvider.feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error)
-                        throw FeatureError(feature: feature, underlyingError: error)
+                        throw FeatureError(feature: dataProvider.feature, underlyingError: error)
                     }
                 }
             }

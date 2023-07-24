@@ -49,9 +49,13 @@ final class DDGSyncTests: XCTestCase {
 
         dataProvidersSource = MockDataProvidersSource()
         dependencies = MockSyncDepenencies()
+        (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [
+            URL(string: "https://dev.null/sync/credentials")! : HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            URL(string: "https://dev.null/sync/bookmarks")! : HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            URL(string: "https://dev.null/sync/data")! : HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
+        ]
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
-        dependencies.request.result = .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())
     }
 
     override func tearDownWithError() throws {
@@ -177,6 +181,58 @@ final class DDGSyncTests: XCTestCase {
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 4)
         XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH])
+    }
+
+    /// Test initial fetch for newly added models.
+    ///
+    /// Start with:
+    /// * Sync in active state
+    /// * bookmarks provider that has been synced
+    /// * credentials provider that hasn't been synced
+    ///
+    /// Request sync twice and test that:
+    /// * the first sync operation calls 3 requests: initial for credentials, and regular for bookmarks and credentials
+    /// * the second sync operation calls 2 request: regular sync for bookmarks and credentials
+    func testThatWhenNewModelIsAddedThenItPerformsInitialFetch() {
+        (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
+        var bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        bookmarksDataProvider.lastSyncTimestamp = "1234"
+        bookmarksDataProvider._fetchChangedObjects = { crypter in
+            [.init(jsonObject: ["id": UUID().uuidString])]
+        }
+
+        var credentialsDataProvider = DataProvidingMock(feature: .init(name: "credentials"))
+        credentialsDataProvider._fetchChangedObjects = { crypter in
+            [.init(jsonObject: ["id": UUID().uuidString])]
+        }
+        setUpDataProviderCallbacks(for: &credentialsDataProvider)
+        setUpExpectations(started: 2, fetch: 2, handleResponse: 2, finished: 2)
+
+        dataProvidersSource.dataProviders = [bookmarksDataProvider, credentialsDataProvider]
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+        bindInProgressPublisher(for: syncService)
+
+        syncService.scheduler.requestSyncImmediately()
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 1)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .fetch(1),
+            .handleResponse(1),
+            .finished(1),
+            .started(2),
+            .fetch(2),
+            .handleResponse(2),
+            .finished(2)
+        ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertEqual(api.createRequestCallCount, 5)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH, .PATCH])
+        XCTAssertEqual(api.createRequestCallArgs[0].url.lastPathComponent, "credentials")
     }
 
     func testWhenSyncOperationIsCancelledThenCurrentOperationReturnsEarlyAndOtherScheduledOperationsDoNotEmitSyncStarted() {

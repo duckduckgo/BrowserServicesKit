@@ -56,7 +56,7 @@ struct SyncResult {
 
 class SyncQueue {
 
-    let dataProviders: [Feature: DataProviding]
+    let dataProviders: [DataProviding]
     let storage: SecureStoring
     let isSyncInProgressPublisher: AnyPublisher<Bool, Never>
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
@@ -82,9 +82,7 @@ class SyncQueue {
         endpoints: Endpoints,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
-        self.dataProviders = dataProviders.reduce(into: .init(), { partialResult, provider in
-            partialResult[provider.feature] = provider
-        })
+        self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.getLog = log
@@ -97,8 +95,8 @@ class SyncQueue {
             .eraseToAnyPublisher()
     }
 
-    func prepareForFirstSync() throws {
-        for dataProvider in dataProviders.values {
+    func prepareNewDataModelsForFirstSync() throws {
+        for dataProvider in dataProviders where dataProvider.isPendingFirstSync {
             do {
                 try dataProvider.prepareForFirstSync()
             } catch {

@@ -28,7 +28,6 @@ public final class BookmarksProvider: DataProviding {
     public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) throws {
         self.database = database
         self.metadataStore = metadataStore
-        try self.metadataStore.registerFeature(named: feature.name)
         self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
         syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
@@ -49,8 +48,6 @@ public final class BookmarksProvider: DataProviding {
     }
 
     public func prepareForFirstSync() throws {
-        lastSyncTimestamp = nil
-
         var saveError: Error?
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -72,6 +69,9 @@ public final class BookmarksProvider: DataProviding {
         if let saveError {
             throw saveError
         }
+
+        try metadataStore.registerFeature(named: feature.name)
+        lastSyncTimestamp = nil
     }
 
     public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
