@@ -244,7 +244,9 @@ public class DDGSync: DDGSyncing {
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
         try syncQueue.prepareDataModelsForSync(needsRemoteDataFetch: account.state == .addingNewDevice)
 
-        account = account.updatingState(.active)
+        if account.state != .active {
+            account = account.updatingState(.active)
+        }
         try dependencies.secureStore.persistAccount(account)
         authState = account.state
         dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
