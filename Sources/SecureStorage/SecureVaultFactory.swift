@@ -27,7 +27,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
 
     public typealias CryptoProviderInitialization = () -> SecureStorageCryptoProvider
     public typealias KeyStoreProviderInitialization = () -> SecureStorageKeyStoreProvider
-    public typealias DatabaseProviderInitialization = (_ key: Data) throws -> Vault.DatabaseProvider
+    public typealias DatabaseProviderInitialization = (_ key: Data, _ recreateDatabase: Bool) throws -> Vault.DatabaseProvider
 
     private var lock = NSLock()
     private var vault: Vault?
@@ -95,9 +95,9 @@ public class SecureVaultFactory<Vault: SecureVault> {
         do {
 
             do {
-                databaseProvider = try self.makeDatabaseProvider(existingL1Key)
+                databaseProvider = try self.makeDatabaseProvider(existingL1Key, false)
             } catch SecureStorageDatabaseError.nonRecoverable {
-                databaseProvider = try Vault.DatabaseProvider.recreateDatabase(withKey: existingL1Key)
+                databaseProvider = try self.makeDatabaseProvider(existingL1Key, true)
             }
 
         } catch {

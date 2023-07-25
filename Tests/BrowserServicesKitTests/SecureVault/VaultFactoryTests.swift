@@ -30,7 +30,7 @@ class VaultFactoryTests: XCTestCase {
                 let provider = MockKeystoreProvider()
                 provider._l1Key = "samplekey".data(using: .utf8)
                 return provider
-            }, makeDatabaseProvider: { key in
+            }, makeDatabaseProvider: { key, _ in
                 return try MockDatabaseProvider()
             }
         )

@@ -25,10 +25,6 @@ import GRDB
 
 private class TestGRDBDatabaseProvider: GRDBSecureStorageDatabaseProvider {
 
-    override class var writerType: DatabaseWriterType {
-        return .queue
-    }
-
     override class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
     }

@@ -20,33 +20,13 @@ import Foundation
 import Common
 import GRDB
 
-public protocol SecureStorageDatabaseProvider {
-
-    init(file: URL, key: Data) throws
-
-    static func recreateDatabase(withKey key: Data) throws -> Self
-
-}
+public protocol SecureStorageDatabaseProvider {}
 
 open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
     public enum DatabaseWriterType {
         case queue
         case pool
-    }
-
-    /// Provides the default database directory and file name.
-    ///
-    /// This is used to derive the database path relative to the application support directory.
-    open class var databaseLocation: (directoryName: String, fileName: String) {
-        fatalError("Must be overridden by a subclass")
-    }
-
-    /// Determines the GRDB DatabaseWriter type.
-    ///
-    /// The available options are `queue` and `pool`, representing a `DatabaseQueue` and `DatabasePool` respectively.
-    open class var writerType: DatabaseWriterType {
-        fatalError("Must be overridden by a subclass")
     }
 
     /// Configures the database migrations to use for the subclass of the database provider.
@@ -58,7 +38,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
     public let db: DatabaseWriter
 
-    public required init(file: URL, key: Data) throws {
+    public required init(file: URL, key: Data, writerType: DatabaseWriterType = .queue) throws {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -67,7 +47,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         let writer: DatabaseWriter
 
         do {
-            switch Self.writerType {
+            switch writerType {
             case .queue: writer = try DatabaseQueue(path: file.path, configuration: config)
             case .pool: writer = try DatabasePool(path: file.path, configuration: config)
             }
@@ -92,31 +72,25 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         self.db = writer
     }
 
-    public static func recreateDatabase(withKey key: Data) throws -> Self {
-        let dbFile = self.databaseFilePath(directoryName: Self.databaseLocation.directoryName, fileName: Self.databaseLocation.fileName)
-
-        guard FileManager.default.fileExists(atPath: dbFile.path) else {
-            return try Self(file: dbFile, key: key)
+    public static func recreateDatabase(withKey key: Data, databaseURL: URL) throws -> Self {
+        guard FileManager.default.fileExists(atPath: databaseURL.path) else {
+            return try Self(file: databaseURL, key: key)
         }
 
         // make sure we can create an empty db first and release it then
-        let newDbFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension)
+        let newDbFile = self.nonExistingDBFile(withExtension: databaseURL.pathExtension, originalURL: databaseURL)
         try autoreleasepool {
             try _=Self(file: newDbFile, key: key)
         }
 
         // backup old db file
-        let backupFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension + ".bak")
-        try FileManager.default.moveItem(at: dbFile, to: backupFile)
+        let backupFile = self.nonExistingDBFile(withExtension: databaseURL.pathExtension + ".bak", originalURL: databaseURL)
+        try FileManager.default.moveItem(at: databaseURL, to: backupFile)
 
         // place just created new db in place of dbFile
-        try FileManager.default.moveItem(at: newDbFile, to: dbFile)
+        try FileManager.default.moveItem(at: newDbFile, to: databaseURL)
 
-        return try Self(file: dbFile, key: key)
-    }
-
-    static public func databaseFilePath() -> URL {
-        return databaseFilePath(directoryName: Self.databaseLocation.directoryName, fileName: Self.databaseLocation.fileName)
+        return try Self(file: databaseURL, key: key)
     }
 
     static public func databaseFilePath(directoryName: String, fileName: String) -> URL {
@@ -141,8 +115,8 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         return subDir.appendingPathComponent(fileName)
     }
 
-    static internal func nonExistingDBFile(withExtension ext: String) -> URL {
-        let originalPath = Self.databaseFilePath(directoryName: databaseLocation.directoryName, fileName: databaseLocation.fileName)
+    static internal func nonExistingDBFile(withExtension ext: String, originalURL: URL) -> URL {
+        let originalPath = originalURL
             .deletingPathExtension()
             .path
 

@@ -54,14 +54,6 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
-    public override class var databaseLocation: (directoryName: String, fileName: String) {
-        return ("Vault", "Vault.db")
-    }
-
-    public override class var writerType: DatabaseWriterType {
-        return .queue
-    }
-
     public override class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
         migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
@@ -74,8 +66,14 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
     }
 
-    public required init(file: URL = DefaultAutofillDatabaseProvider.databaseFilePath(), key: Data) throws {
-        try super.init(file: file, key: key)
+    public static func defaultDatabaseURL() -> URL {
+        return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
+    }
+
+    public required init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(),
+                         key: Data,
+                         writerType: DatabaseWriterType = .queue) throws {
+        try super.init(file: file, key: key, writerType: writerType)
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {

@@ -27,8 +27,13 @@ public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory
         return AutofillCryptoProvider()
     }, makeKeyStoreProvider: {
         return AutofillKeyStoreProvider()
-    }, makeDatabaseProvider: { key in
-        return try DefaultAutofillDatabaseProvider(key: key)
+    }, makeDatabaseProvider: { key, recreateDatabase in
+        if recreateDatabase {
+            let databaseURL = DefaultAutofillDatabaseProvider.defaultDatabaseURL()
+            return try DefaultAutofillDatabaseProvider.recreateDatabase(withKey: key, databaseURL: databaseURL)
+        } else {
+            return try DefaultAutofillDatabaseProvider(key: key)
+        }
     }
 )
 

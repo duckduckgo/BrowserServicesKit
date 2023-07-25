@@ -28,7 +28,7 @@ class DatabaseProviderTests: XCTestCase {
 
     private func deleteDbFile() throws {
         do {
-            let dbFile = DefaultAutofillDatabaseProvider.databaseFilePath()
+            let dbFile = DefaultAutofillDatabaseProvider.defaultDatabaseURL()
             let dbFileContainer = dbFile.deletingLastPathComponent()
             for file in try FileManager.default.contentsOfDirectory(atPath: dbFileContainer.path) {
                 guard ["db", "bak"].contains((file as NSString).pathExtension) else { continue }
@@ -187,13 +187,15 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_database_is_corrupt_then_it_can_be_recreated_with_backup() throws {
+        let databaseURL = DefaultAutofillDatabaseProvider.defaultDatabaseURL()
+
         do {
-            try! "asdf".data(using: .utf8)!.write(to: DefaultAutofillDatabaseProvider.databaseFilePath())
+            try! "asdf".data(using: .utf8)!.write(to: databaseURL)
             try _ = DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
             XCTFail("should throw an error at this point")
         } catch {
-            let database = try DefaultAutofillDatabaseProvider.recreateDatabase(withKey: simpleL1Key)
-            let backupURL = DefaultAutofillDatabaseProvider.databaseFilePath().appendingPathExtension("bak")
+            let database = try DefaultAutofillDatabaseProvider.recreateDatabase(withKey: simpleL1Key, databaseURL: databaseURL)
+            let backupURL = databaseURL.appendingPathExtension("bak")
             XCTAssertEqual(try! Data(contentsOf: backupURL), "asdf".data(using: .utf8))
 
             let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")

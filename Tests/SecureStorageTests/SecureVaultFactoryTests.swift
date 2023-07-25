@@ -85,7 +85,7 @@ let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
         let provider = MockKeyStoreProvider()
         provider._l1Key = "key".data(using: .utf8)
         return provider
-    }, makeDatabaseProvider: { key in
+    }, makeDatabaseProvider: { key, _ in
         return try ConcreteMockDatabaseProvider(key: key)
     }
 )
