@@ -102,7 +102,8 @@ class SyncQueue {
 
         for dataProvider in unregisteredDataProviders {
             do {
-                try dataProvider.prepareForFirstSync(needsRemoteDataFetch: shouldPerformRemoteDataFetchForNewModels)
+                try dataProvider.prepareForFirstSync()
+                try dataProvider.registerFeature(needsRemoteDataFetch: shouldPerformRemoteDataFetchForNewModels)
             } catch {
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)

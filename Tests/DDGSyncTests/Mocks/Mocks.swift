@@ -267,49 +267,79 @@ struct CryptingMock: CryptingInternal {
 
 }
 
-class DataProvidingMock: DataProviding {
-
-    init(feature: Feature) {
-        self.feature = feature
+class SyncMetadataStoreMock: SyncMetadataStore {
+    struct FeatureInfo: Equatable {
+        var timestamp: String?
+        var state: SyncFeatureState
     }
 
-    var feature: Feature
-    var isFeatureRegistered: Bool = false
-    var featureState: SyncFeatureState = .needsRemoteDataFetch
-    var lastSyncTimestamp: String? {
-        didSet {
-            featureState = lastSyncTimestamp == nil ? .needsRemoteDataFetch : .readyToSync
-        }
+    var features: [String: FeatureInfo] = [:]
+
+    func isFeatureRegistered(named name: String) -> Bool {
+        features.keys.contains(name)
     }
-    var _prepareForFirstSync: (Bool) throws -> Void = { _ in }
+
+    func registerFeature(named name: String, needsRemoteDataFetch: Bool) throws {
+        features[name] = .init(state: needsRemoteDataFetch ? .needsRemoteDataFetch : .readyToSync)
+    }
+
+    func deregisterFeature(named name: String) throws {
+        features.removeValue(forKey: name)
+    }
+
+    func timestamp(forFeatureNamed name: String) -> String? {
+        features[name]?.timestamp
+    }
+
+    func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String) {
+        features[name]?.timestamp = timestamp
+    }
+
+    func state(forFeatureNamed name: String) -> SyncFeatureState? {
+        features[name]?.state
+    }
+
+    func updateState(_ state: SyncFeatureState, forFeatureNamed name: String) {
+        features[name]?.state = state
+    }
+
+    func update(_ timestamp: String?, _ state: SyncFeatureState, forFeatureNamed name: String) {
+        features[name]?.state = state
+        features[name]?.timestamp = timestamp
+    }
+}
+
+class DataProvidingMock: DataProvider {
+
+    init(feature: Feature, syncDidUpdateData: @escaping () -> Void = {}) {
+        super.init(feature: feature, metadataStore: SyncMetadataStoreMock(), syncDidUpdateData: syncDidUpdateData)
+    }
+
+    var _prepareForFirstSync: () throws -> Void = {}
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
     var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
     var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
     var _handleSyncError: (Error) -> Void = { _ in }
 
-    func deregisterFeature() throws {
-        isFeatureRegistered = false
+    override func prepareForFirstSync() throws {
+        try _prepareForFirstSync()
     }
 
-    func prepareForFirstSync(needsRemoteDataFetch: Bool) throws {
-        try _prepareForFirstSync(needsRemoteDataFetch)
-    }
-
-    func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+    override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         try await _fetchChangedObjects(crypter)
     }
 
-    func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
         lastSyncTimestamp = serverTimestamp
     }
 
-    func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
         lastSyncTimestamp = serverTimestamp
     }
 
-    func handleSyncError(_ error: Error) {
+    override func handleSyncError(_ error: Error) {
         _handleSyncError(error)
     }
 }

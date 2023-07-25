@@ -32,7 +32,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
-        try provider.prepareForFirstSync(needsRemoteDataFetch: false)
+        try provider.registerFeature(needsRemoteDataFetch: false)
         provider.lastSyncTimestamp = "12345"
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
     }
@@ -57,7 +57,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         provider.lastSyncTimestamp = "12345"
-        try provider.prepareForFirstSync(needsRemoteDataFetch: false)
+        try provider.prepareForFirstSync()
         XCTAssertNil(provider.lastSyncTimestamp)
 
         context.performAndWait {
@@ -92,7 +92,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        try provider.prepareForFirstSync(needsRemoteDataFetch: false)
+        try provider.prepareForFirstSync()
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         XCTAssertEqual(

@@ -23,43 +23,16 @@ import CoreData
 import DDGSync
 import Persistence
 
-public final class BookmarksProvider: DataProviding {
+public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) throws {
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) throws {
         self.database = database
-        self.metadataStore = metadataStore
-        self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
-        syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
-
-    public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     // MARK: - DataProviding
 
-    public let feature: Feature = .init(name: "bookmarks")
-
-    public var isFeatureRegistered: Bool {
-        metadataStore.isFeatureRegistered(named: feature.name)
-    }
-
-    public func deregisterFeature() throws {
-        try metadataStore.deregisterFeature(named: feature.name)
-    }
-
-    public var featureState: SyncFeatureState {
-        metadataStore.state(forFeatureNamed: feature.name) ?? .needsRemoteDataFetch
-    }
-
-    public var lastSyncTimestamp: String? {
-        get {
-            metadataStore.timestamp(forFeatureNamed: feature.name)
-        }
-        set {
-            metadataStore.update(newValue, .readyToSync, forFeatureNamed: feature.name)
-        }
-    }
-
-    public func prepareForFirstSync(needsRemoteDataFetch: Bool) throws {
+    public override func prepareForFirstSync() throws {
         var saveError: Error?
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -81,12 +54,9 @@ public final class BookmarksProvider: DataProviding {
         if let saveError {
             throw saveError
         }
-
-        try metadataStore.registerFeature(named: feature.name, needsRemoteDataFetch: needsRemoteDataFetch)
-        lastSyncTimestamp = nil
     }
 
-    public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+    public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         var syncableBookmarks: [Syncable] = []
@@ -98,16 +68,12 @@ public final class BookmarksProvider: DataProviding {
         return syncableBookmarks
     }
 
-    public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
-    public func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
-    }
-
-    public func handleSyncError(_ error: Error) {
-        syncErrorSubject.send(error)
     }
 
     // MARK: - Internal
@@ -160,7 +126,7 @@ public final class BookmarksProvider: DataProviding {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            reloadBookmarksAfterSync()
+            syncDidUpdateData()
         }
     }
 
@@ -227,9 +193,6 @@ public final class BookmarksProvider: DataProviding {
     }
 
     private let database: CoreDataDatabase
-    private let metadataStore: SyncMetadataStore
-    private let reloadBookmarksAfterSync: () -> Void
-    private let syncErrorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {
         static let maxContextSaveRetries = 5

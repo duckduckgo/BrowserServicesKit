@@ -194,9 +194,10 @@ final class DDGSyncTests: XCTestCase {
     /// Request sync twice and test that:
     /// * the first sync operation calls 3 requests: initial for credentials, and regular for bookmarks and credentials
     /// * the second sync operation calls 2 request: regular sync for bookmarks and credentials
-    func testThatWhenNewModelIsAddedThenItPerformsInitialFetch() {
+    func testThatWhenNewModelIsAddedThenItPerformsInitialFetch() throws {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        try bookmarksDataProvider.registerFeature(needsRemoteDataFetch: false)
         bookmarksDataProvider.lastSyncTimestamp = "1234"
         bookmarksDataProvider._fetchChangedObjects = { crypter in
             [.init(jsonObject: ["id": UUID().uuidString])]
