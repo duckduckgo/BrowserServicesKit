@@ -20,10 +20,6 @@
 import Foundation
 import CoreData
 
-public enum SyncFeatureState: String {
-    case needsRemoteDataFetch, readyToSync
-}
-
 @objc(SyncFeatureEntity)
 public class SyncFeatureEntity: NSManagedObject {
 
@@ -39,9 +35,9 @@ public class SyncFeatureEntity: NSManagedObject {
     @NSManaged public internal(set) var lastModified: String?
     @NSManaged private var state: String
 
-    public var featureState: SyncFeatureState {
+    public var featureState: FeatureSetupState {
         get {
-            if let featureState = SyncFeatureState(rawValue: state) {
+            if let featureState = FeatureSetupState(rawValue: state) {
                 return featureState
             }
             return lastModified == nil ? .needsRemoteDataFetch : .readyToSync
@@ -56,7 +52,7 @@ public class SyncFeatureEntity: NSManagedObject {
     }
 
     @discardableResult
-    public static func makeFeature(with name: String, lastModified: String? = nil, state: SyncFeatureState, in context: NSManagedObjectContext) -> SyncFeatureEntity {
+    public static func makeFeature(with name: String, lastModified: String? = nil, state: FeatureSetupState, in context: NSManagedObjectContext) -> SyncFeatureEntity {
         let object = SyncFeatureEntity(context: context)
         object.name = name
         object.featureState = state

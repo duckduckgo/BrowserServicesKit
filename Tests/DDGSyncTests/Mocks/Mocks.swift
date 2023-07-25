@@ -270,7 +270,7 @@ struct CryptingMock: CryptingInternal {
 class SyncMetadataStoreMock: SyncMetadataStore {
     struct FeatureInfo: Equatable {
         var timestamp: String?
-        var state: SyncFeatureState
+        var state: FeatureSetupState
     }
 
     var features: [String: FeatureInfo] = [:]
@@ -279,8 +279,8 @@ class SyncMetadataStoreMock: SyncMetadataStore {
         features.keys.contains(name)
     }
 
-    func registerFeature(named name: String, needsRemoteDataFetch: Bool) throws {
-        features[name] = .init(state: needsRemoteDataFetch ? .needsRemoteDataFetch : .readyToSync)
+    func registerFeature(named name: String, setupState: FeatureSetupState) throws {
+        features[name] = .init(state: setupState)
     }
 
     func deregisterFeature(named name: String) throws {
@@ -295,15 +295,11 @@ class SyncMetadataStoreMock: SyncMetadataStore {
         features[name]?.timestamp = timestamp
     }
 
-    func state(forFeatureNamed name: String) -> SyncFeatureState? {
-        features[name]?.state
+    func state(forFeatureNamed name: String) -> FeatureSetupState {
+        features[name]?.state ?? .readyToSync
     }
 
-    func updateState(_ state: SyncFeatureState, forFeatureNamed name: String) {
-        features[name]?.state = state
-    }
-
-    func update(_ timestamp: String?, _ state: SyncFeatureState, forFeatureNamed name: String) {
+    func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String) {
         features[name]?.state = state
         features[name]?.timestamp = timestamp
     }

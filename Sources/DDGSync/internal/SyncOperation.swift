@@ -94,7 +94,7 @@ class SyncOperation: Operation {
                     return
                 }
 
-                let providersPendingFirstSync = dataProviders.filter { $0.featureState == .needsRemoteDataFetch }
+                let providersPendingFirstSync = dataProviders.filter { $0.featureSyncSetupState == .needsRemoteDataFetch }
                 if !providersPendingFirstSync.isEmpty {
                     try await sync(fetchOnly: true, dataProviders: providersPendingFirstSync)
                 }

@@ -97,13 +97,17 @@ class SyncQueue {
 
     func prepareDataModelsForSync(needsRemoteDataFetch: Bool) throws {
         let unregisteredDataProviders = dataProviders.filter { !$0.isFeatureRegistered }
+        guard !unregisteredDataProviders.isEmpty else {
+            return
+        }
+
         let hasRegisteredDataProviders = unregisteredDataProviders.count != dataProviders.count
-        let shouldPerformRemoteDataFetchForNewModels = needsRemoteDataFetch || hasRegisteredDataProviders
+        let setupState: FeatureSetupState = (needsRemoteDataFetch || hasRegisteredDataProviders) ? .needsRemoteDataFetch : .readyToSync
 
         for dataProvider in unregisteredDataProviders {
             do {
                 try dataProvider.prepareForFirstSync()
-                try dataProvider.registerFeature(needsRemoteDataFetch: shouldPerformRemoteDataFetchForNewModels)
+                try dataProvider.registerFeature(withState: setupState)
             } catch {
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)

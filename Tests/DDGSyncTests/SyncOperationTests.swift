@@ -97,7 +97,7 @@ class SyncOperationTests: XCTestCase {
 
     func testThatForMultipleDataProvidersRequestsSeparateRequestsAreSentConcurrently() async throws {
         let dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
-        try dataProvider1.registerFeature(needsRemoteDataFetch: false)
+        try dataProvider1.registerFeature(withState: .readyToSync)
         dataProvider1.lastSyncTimestamp = "1234"
         dataProvider1._fetchChangedObjects = { _ in
             [
@@ -106,7 +106,7 @@ class SyncOperationTests: XCTestCase {
             ]
         }
         let dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
-        try dataProvider2.registerFeature(needsRemoteDataFetch: false)
+        try dataProvider2.registerFeature(withState: .readyToSync)
         dataProvider2.lastSyncTimestamp = "5678"
         dataProvider2._fetchChangedObjects = { _ in
             [
@@ -115,7 +115,7 @@ class SyncOperationTests: XCTestCase {
             ]
         }
         let dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
-        try dataProvider3.registerFeature(needsRemoteDataFetch: false)
+        try dataProvider3.registerFeature(withState: .readyToSync)
         dataProvider3.lastSyncTimestamp = "9012"
         dataProvider3._fetchChangedObjects = { _ in
             [

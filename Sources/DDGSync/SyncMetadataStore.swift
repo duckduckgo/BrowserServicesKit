@@ -22,16 +22,15 @@ import CoreData
 
 public protocol SyncMetadataStore {
     func isFeatureRegistered(named name: String) -> Bool
-    func registerFeature(named name: String, needsRemoteDataFetch: Bool) throws
+    func registerFeature(named name: String, setupState: FeatureSetupState) throws
     func deregisterFeature(named name: String) throws
 
     func timestamp(forFeatureNamed name: String) -> String?
     func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String)
 
-    func state(forFeatureNamed name: String) -> SyncFeatureState?
-    func updateState(_ state: SyncFeatureState, forFeatureNamed name: String)
+    func state(forFeatureNamed name: String) -> FeatureSetupState
 
-    func update(_ timestamp: String?, _ state: SyncFeatureState, forFeatureNamed name: String)
+    func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String)
 }
 
 public final class LocalSyncMetadataStore: SyncMetadataStore {
@@ -54,7 +53,7 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         return isRegistered
     }
 
-    public func registerFeature(named name: String, needsRemoteDataFetch: Bool) throws {
+    public func registerFeature(named name: String, setupState: FeatureSetupState) throws {
         var saveError: Error?
 
         context.performAndWait {
@@ -62,8 +61,7 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
                 return
             }
 
-            let featureState: SyncFeatureState = needsRemoteDataFetch ? .needsRemoteDataFetch : .readyToSync
-            SyncFeatureEntity.makeFeature(with: name, state: featureState, in: context)
+            SyncFeatureEntity.makeFeature(with: name, state: setupState, in: context)
             do {
                 try context.save()
             } catch {
@@ -115,25 +113,16 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         }
     }
 
-    public func state(forFeatureNamed name: String) -> SyncFeatureState? {
-        var state: SyncFeatureState?
+    public func state(forFeatureNamed name: String) -> FeatureSetupState {
+        var state: FeatureSetupState?
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
             state = feature?.featureState
         }
-        return state
+        return state ?? .readyToSync
     }
 
-    public func updateState(_ state: SyncFeatureState, forFeatureNamed name: String) {
-        context.performAndWait {
-            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
-            feature?.featureState = state
-
-            try? context.save()
-        }
-    }
-
-    public func update(_ timestamp: String?, _ state: SyncFeatureState, forFeatureNamed name: String) {
+    public func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String) {
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
             feature?.lastModified = timestamp

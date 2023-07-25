@@ -32,7 +32,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
-        try provider.registerFeature(needsRemoteDataFetch: false)
+        try provider.registerFeature(withState: .readyToSync)
         provider.lastSyncTimestamp = "12345"
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
     }

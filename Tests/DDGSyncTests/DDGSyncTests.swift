@@ -184,6 +184,76 @@ final class DDGSyncTests: XCTestCase {
         XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH])
     }
 
+    func testWhenNewSyncAccountIsCreatedWithMultipleModelsThenInitialFetchDoesNotHappen() throws {
+        (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
+        let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        bookmarksDataProvider._fetchChangedObjects = { crypter in
+            [.init(jsonObject: ["id": UUID().uuidString])]
+        }
+
+        let credentialsDataProvider = DataProvidingMock(feature: .init(name: "credentials"))
+        credentialsDataProvider._fetchChangedObjects = { crypter in
+            [.init(jsonObject: ["id": UUID().uuidString])]
+        }
+        setUpDataProviderCallbacks(for: credentialsDataProvider)
+        setUpExpectations(started: 1, fetch: 1, handleResponse: 1, finished: 1)
+
+        dataProvidersSource.dataProviders = [bookmarksDataProvider, credentialsDataProvider]
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+        bindInProgressPublisher(for: syncService)
+
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 1)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .fetch(1),
+            .handleResponse(1),
+            .finished(1)
+        ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertEqual(api.createRequestCallCount, 2)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH, .PATCH])
+    }
+
+    func testWhenDeviceIsAddedToExistingSyncAccountWithMultipleModelsThenInitialFetchHappens() throws {
+        (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.addingNewDevice)
+        let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        bookmarksDataProvider._fetchChangedObjects = { crypter in
+            [.init(jsonObject: ["id": UUID().uuidString])]
+        }
+
+        let credentialsDataProvider = DataProvidingMock(feature: .init(name: "credentials"))
+        credentialsDataProvider._fetchChangedObjects = { crypter in
+            [.init(jsonObject: ["id": UUID().uuidString])]
+        }
+        setUpDataProviderCallbacks(for: credentialsDataProvider)
+        setUpExpectations(started: 1, fetch: 1, handleResponse: 1, finished: 1)
+
+        dataProvidersSource.dataProviders = [bookmarksDataProvider, credentialsDataProvider]
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded(isInternalUser: false)
+        bindInProgressPublisher(for: syncService)
+
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 1)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .fetch(1),
+            .handleResponse(1),
+            .finished(1)
+        ])
+
+        let api = dependencies.api as! RemoteAPIRequestCreatingMock
+        XCTAssertEqual(api.createRequestCallCount, 4)
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .GET, .PATCH, .PATCH])
+    }
+
     /// Test initial fetch for newly added models.
     ///
     /// Start with:
@@ -197,7 +267,7 @@ final class DDGSyncTests: XCTestCase {
     func testThatWhenNewModelIsAddedThenItPerformsInitialFetch() throws {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        try bookmarksDataProvider.registerFeature(needsRemoteDataFetch: false)
+        try bookmarksDataProvider.registerFeature(withState: .readyToSync)
         bookmarksDataProvider.lastSyncTimestamp = "1234"
         bookmarksDataProvider._fetchChangedObjects = { crypter in
             [.init(jsonObject: ["id": UUID().uuidString])]
