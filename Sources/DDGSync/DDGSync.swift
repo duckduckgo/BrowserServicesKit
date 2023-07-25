@@ -242,7 +242,7 @@ public class DDGSync: DDGSyncing {
 
         let providers = dataProvidersSource?.makeDataProviders() ?? []
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
-        try syncQueue.prepareNewDataModelsForFirstSync(needRemoteDataFetch: account.state == .addingNewDevice)
+        try syncQueue.prepareDataModelsForSync(needsRemoteDataFetch: account.state == .addingNewDevice)
 
         account = account.updatingState(.active)
         try dependencies.secureStore.persistAccount(account)

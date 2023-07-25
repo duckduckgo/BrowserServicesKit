@@ -95,14 +95,14 @@ class SyncQueue {
             .eraseToAnyPublisher()
     }
 
-    func prepareNewDataModelsForFirstSync(needRemoteDataFetch: Bool) throws {
+    func prepareDataModelsForSync(needsRemoteDataFetch: Bool) throws {
         let unregisteredDataProviders = dataProviders.filter { !$0.isFeatureRegistered }
-        let didAddNewModelsToSync = unregisteredDataProviders.count != dataProviders.count
-        let needsRemoteDataFetch = needRemoteDataFetch || didAddNewModelsToSync
+        let hasRegisteredDataProviders = unregisteredDataProviders.count != dataProviders.count
+        let shouldPerformRemoteDataFetchForNewModels = needsRemoteDataFetch || hasRegisteredDataProviders
 
         for dataProvider in unregisteredDataProviders {
             do {
-                try dataProvider.prepareForFirstSync(needsRemoteDataFetch: needsRemoteDataFetch)
+                try dataProvider.prepareForFirstSync(needsRemoteDataFetch: shouldPerformRemoteDataFetchForNewModels)
             } catch {
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)
