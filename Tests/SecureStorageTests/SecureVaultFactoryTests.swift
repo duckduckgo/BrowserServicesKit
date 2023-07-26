@@ -30,8 +30,12 @@ protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
 }
 
 final class ConcreteMockDatabaseProvider: MockDatabaseProvider {
+    
+    var db: GRDB.DatabaseWriter
 
-    init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {}
+    init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
+        self.db = try! DatabaseQueue(named: "MockQueue")
+    }
 
     static func recreateDatabase(withKey key: Data) throws -> Self {
         return try ConcreteMockDatabaseProvider(file: URL(string: "https://duckduckgo.com")!, key: Data()) as! Self
@@ -85,7 +89,7 @@ let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
         let provider = MockKeyStoreProvider()
         provider._l1Key = "key".data(using: .utf8)
         return provider
-    }, makeDatabaseProvider: { key, _ in
+    }, makeDatabaseProvider: { key in
         return try ConcreteMockDatabaseProvider(key: key)
     }
 )

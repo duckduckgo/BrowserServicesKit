@@ -80,7 +80,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 .fetchAll($0)
         }
     }
-    
+
     public func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read {
             return try SecureVaultModels.WebsiteAccount
@@ -186,7 +186,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
 
                 return SecureVaultModels.WebsiteCredentials(account: account,
                                                 password: result[SecureVaultModels.WebsiteCredentials.Columns.password.name])
-                
+
             }
             return nil
         }

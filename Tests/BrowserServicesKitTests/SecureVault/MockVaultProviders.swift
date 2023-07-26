@@ -33,7 +33,11 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     var _note: SecureVaultModels.Note?
     // swiftlint:enable identifier_name
 
-    required init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {}
+    var db: DatabaseWriter
+
+    required init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
+        self.db = try! DatabaseQueue(named: "TestQueue")
+    }
 
     static func recreateDatabase(withKey key: Data) throws -> Self {
         return try MockDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self

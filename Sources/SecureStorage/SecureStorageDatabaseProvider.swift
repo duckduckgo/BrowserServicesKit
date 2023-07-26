@@ -68,7 +68,6 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
             os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
             throw SecureStorageDatabaseError.nonRecoverable(error)
         } catch {
-            // TODO: Handle recreate database here
             os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
             throw error
         }
@@ -86,7 +85,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         return writer
     }
 
-    public static func recreateDatabase(withKey key: Data, databaseURL: URL) throws {
+    private static func recreateDatabase(withKey key: Data, databaseURL: URL) throws {
         guard FileManager.default.fileExists(atPath: databaseURL.path) else {
             return
         }
@@ -102,7 +101,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         try FileManager.default.moveItem(at: newDbFile, to: databaseURL)
     }
 
-    static public func databaseFilePath(directoryName: String, fileName: String) -> URL {
+    public static func databaseFilePath(directoryName: String, fileName: String) -> URL {
 
         let fm = FileManager.default
         let subDir = fm.applicationSupportDirectoryForComponent(named: directoryName)
@@ -124,7 +123,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         return subDir.appendingPathComponent(fileName)
     }
 
-    static internal func nonExistingDBFile(withExtension ext: String, originalURL: URL) -> URL {
+    internal static func nonExistingDBFile(withExtension ext: String, originalURL: URL) -> URL {
         let originalPath = originalURL
             .deletingPathExtension()
             .path

@@ -73,6 +73,7 @@ public protocol AutofillSecureVault: SecureVault {
     @discardableResult
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardFor(cardId: Int64) throws
+
 }
 
 public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSecureVault {

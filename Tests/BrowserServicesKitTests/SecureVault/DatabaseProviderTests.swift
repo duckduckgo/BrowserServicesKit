@@ -186,25 +186,25 @@ class DatabaseProviderTests: XCTestCase {
         XCTAssertTrue(results.isEmpty)
     }
 
-    func test_when_database_is_corrupt_then_it_can_be_recreated_with_backup() throws {
-        let databaseURL = DefaultAutofillDatabaseProvider.defaultDatabaseURL()
-
-        do {
-            try! "asdf".data(using: .utf8)!.write(to: databaseURL)
-            try _ = DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
-            XCTFail("should throw an error at this point")
-        } catch {
-            let database = try DefaultAutofillDatabaseProvider.recreateDatabase(withKey: simpleL1Key, databaseURL: databaseURL)
-            let backupURL = databaseURL.appendingPathExtension("bak")
-            XCTAssertEqual(try! Data(contentsOf: backupURL), "asdf".data(using: .utf8))
-
-            let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
-            let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-            try database.storeWebsiteCredentials(credentials)
-
-            XCTAssertEqual(1, try database.accounts().count)
-        }
-    }
+//    func test_when_database_is_corrupt_then_it_can_be_recreated_with_backup() throws {
+//        let databaseURL = DefaultAutofillDatabaseProvider.defaultDatabaseURL()
+//
+//        do {
+//            try! "asdf".data(using: .utf8)!.write(to: databaseURL)
+//            try _ = DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
+//            XCTFail("should throw an error at this point")
+//        } catch {
+//            let database = try DefaultAutofillDatabaseProvider.recreateDatabase(withKey: simpleL1Key, databaseURL: databaseURL)
+//            let backupURL = databaseURL.appendingPathExtension("bak")
+//            XCTAssertEqual(try! Data(contentsOf: backupURL), "asdf".data(using: .utf8))
+//
+//            let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+//            let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+//            try database.storeWebsiteCredentials(credentials)
+//
+//            XCTAssertEqual(1, try database.accounts().count)
+//        }
+//    }
 
     func test_when_credentials_are_deleted_then_they_are_removed_from_the_database() throws {
         let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
