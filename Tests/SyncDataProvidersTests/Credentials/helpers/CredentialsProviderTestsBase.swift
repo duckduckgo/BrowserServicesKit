@@ -81,7 +81,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
         provider = try CredentialsProvider(
             secureVaultFactory: secureVaultFactory,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            reloadCredentialsAfterSync: {}
+            syncDidUpdateData: {}
         )
     }
 

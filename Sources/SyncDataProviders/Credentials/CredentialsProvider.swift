@@ -23,32 +23,16 @@ import Combine
 import DDGSync
 import GRDB
 
-public final class CredentialsProvider: DataProviding {
+public final class CredentialsProvider: DataProvider {
 
-    public init(secureVaultFactory: SecureVaultFactory = .default, metadataStore: SyncMetadataStore, reloadCredentialsAfterSync: @escaping () -> Void) throws {
+    public init(secureVaultFactory: SecureVaultFactory = .default, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) throws {
         self.secureVaultFactory = secureVaultFactory
-        self.metadataStore = metadataStore
-        try self.metadataStore.registerFeature(named: feature.name)
-        self.reloadCredentialsAfterSync = reloadCredentialsAfterSync
-        syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
+        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
-
-    public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     // MARK: - DataProviding
 
-    public let feature: Feature = .init(name: "credentials")
-
-    public var lastSyncTimestamp: String? {
-        get {
-            metadataStore.timestamp(forFeatureNamed: feature.name)
-        }
-        set {
-            metadataStore.updateTimestamp(newValue, forFeatureNamed: feature.name)
-        }
-    }
-
-    public func prepareForFirstSync() throws {
+    public override func prepareForFirstSync() throws {
         lastSyncTimestamp = nil
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         try secureVault.inDatabaseTransaction { database in
@@ -77,7 +61,7 @@ public final class CredentialsProvider: DataProviding {
             if accountIdsSet.count > 0 {
                 assertionFailure("Syncable Credentials metadata objects not present for all Website Account objects")
 
-                self.syncErrorSubject.send(SyncError.credentialsMetadataMissingBeforeFirstSync)
+                self.handleSyncError(SyncError.credentialsMetadataMissingBeforeFirstSync)
 
                 for accountId in accountIdsSet {
                     try SecureVaultModels.SyncableCredentialsRecord(objectId: accountId, lastModified: Date()).insert(database)
@@ -86,7 +70,7 @@ public final class CredentialsProvider: DataProviding {
         }
     }
 
-    public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+    public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
@@ -98,16 +82,12 @@ public final class CredentialsProvider: DataProviding {
         }
     }
 
-    public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
-    public func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
-    }
-
-    public func handleSyncError(_ error: Error) {
-        syncErrorSubject.send(error)
     }
 
     // MARK: - Internal
@@ -173,7 +153,7 @@ public final class CredentialsProvider: DataProviding {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            reloadCredentialsAfterSync()
+            syncDidUpdateData()
         }
     }
 
@@ -222,9 +202,6 @@ public final class CredentialsProvider: DataProviding {
     // MARK: - Private
 
     private let secureVaultFactory: SecureVaultFactory
-    private let metadataStore: SyncMetadataStore
-    private let reloadCredentialsAfterSync: () -> Void
-    private let syncErrorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {
         static let maxContextSaveRetries = 5

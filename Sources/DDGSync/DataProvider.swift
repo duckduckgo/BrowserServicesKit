@@ -53,6 +53,14 @@ public struct Syncable {
     public init(jsonObject: [String: Any]) {
         payload = jsonObject
     }
+
+    public var uuid: String? {
+        payload["id"] as? String
+    }
+
+    public var isDeleted: Bool {
+        payload["deleted"] != nil
+    }
 }
 
 /**
