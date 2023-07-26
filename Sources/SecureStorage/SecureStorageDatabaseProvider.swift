@@ -20,7 +20,11 @@ import Foundation
 import Common
 import GRDB
 
-public protocol SecureStorageDatabaseProvider {}
+public protocol SecureStorageDatabaseProvider {
+
+    var db: DatabaseWriter { get }
+
+}
 
 open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
@@ -38,7 +42,16 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
     public let db: DatabaseWriter
 
-    public required init(file: URL, key: Data, writerType: DatabaseWriterType = .queue) throws {
+    public init(file: URL, key: Data, writerType: DatabaseWriterType = .queue) throws {
+        do {
+            self.db = try Self.createDatabase(file: file, key: key, writerType: writerType)
+        } catch SecureStorageDatabaseError.nonRecoverable {
+            try Self.recreateDatabase(withKey: key, databaseURL: file)
+            self.db = try Self.createDatabase(file: file, key: key, writerType: writerType)
+        }
+    }
+
+    private static func createDatabase(file: URL, key: Data, writerType: DatabaseWriterType) throws -> DatabaseWriter {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -55,6 +68,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
             os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
             throw SecureStorageDatabaseError.nonRecoverable(error)
         } catch {
+            // TODO: Handle recreate database here
             os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
             throw error
         }
@@ -69,19 +83,16 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
             throw error
         }
 
-        self.db = writer
+        return writer
     }
 
-    public static func recreateDatabase(withKey key: Data, databaseURL: URL) throws -> Self {
+    public static func recreateDatabase(withKey key: Data, databaseURL: URL) throws {
         guard FileManager.default.fileExists(atPath: databaseURL.path) else {
-            return try Self(file: databaseURL, key: key)
+            return
         }
 
-        // make sure we can create an empty db first and release it then
+        // create a new database file path
         let newDbFile = self.nonExistingDBFile(withExtension: databaseURL.pathExtension, originalURL: databaseURL)
-        try autoreleasepool {
-            try _=Self(file: newDbFile, key: key)
-        }
 
         // backup old db file
         let backupFile = self.nonExistingDBFile(withExtension: databaseURL.pathExtension + ".bak", originalURL: databaseURL)
@@ -89,8 +100,6 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
         // place just created new db in place of dbFile
         try FileManager.default.moveItem(at: newDbFile, to: databaseURL)
-
-        return try Self(file: databaseURL, key: key)
     }
 
     static public func databaseFilePath(directoryName: String, fileName: String) -> URL {

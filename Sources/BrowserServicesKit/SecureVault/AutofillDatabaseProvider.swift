@@ -70,10 +70,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
     }
 
-    public required init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(),
-                         key: Data,
-                         writerType: DatabaseWriterType = .queue) throws {
-        try super.init(file: file, key: key, writerType: writerType)
+    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data) throws {
+        try super.init(file: file, key: key, writerType: .queue)
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {

@@ -27,7 +27,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
 
     public typealias CryptoProviderInitialization = () -> SecureStorageCryptoProvider
     public typealias KeyStoreProviderInitialization = () -> SecureStorageKeyStoreProvider
-    public typealias DatabaseProviderInitialization = (_ key: Data, _ recreateDatabase: Bool) throws -> Vault.DatabaseProvider
+    public typealias DatabaseProviderInitialization = (_ key: Data) throws -> Vault.DatabaseProvider
 
     private var lock = NSLock()
     private var vault: Vault?
@@ -90,21 +90,12 @@ public class SecureVaultFactory<Vault: SecureVault> {
         }
         guard let existingL1Key = try keystoreProvider.l1Key() else { throw SecureStorageError.noL1Key }
 
-        let databaseProvider: Vault.DatabaseProvider
-
         do {
-
-            do {
-                databaseProvider = try self.makeDatabaseProvider(existingL1Key, false)
-            } catch SecureStorageDatabaseError.nonRecoverable {
-                databaseProvider = try self.makeDatabaseProvider(existingL1Key, true)
-            }
-
+            let databaseProvider = try self.makeDatabaseProvider(existingL1Key)
+            return SecureStorageProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
         } catch {
             throw SecureStorageError.failedToOpenDatabase(cause: error)
         }
-
-        return SecureStorageProviders(crypto: cryptoProvider, database: databaseProvider, keystore: keystoreProvider)
     }
     
     public func createAndInitializeEncryptionProviders() throws -> (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider) {
