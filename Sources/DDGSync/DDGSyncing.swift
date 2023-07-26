@@ -25,8 +25,6 @@ public enum SyncAuthState: String, Sendable, Codable {
     case initializing
     /// Sync is not enabled.
     case inactive
-    /// Sync is in progress of registering new account.
-    case settingUpNewAccount
     /// Sync is in progress of adding a new device to an existing account.
     case addingNewDevice
     /// User is logged in to sync.
@@ -232,96 +230,4 @@ public protocol Scheduling {
     func cancelSyncAndSuspendSyncQueue()
     /// This should be called when sync can be resumed, e.g. in response to app going to foreground.
     func resumeSyncQueue()
-}
-
-/**
- * Defines sync feature, i.e. type of synced data.
- */
-public struct Feature: Hashable {
-    public var name: String
-
-    public init(name: String) {
-        self.name = name
-    }
-}
-
-/**
- * Describes a data model that is supported by Sync.
- *
- * Any data model that is passed to Sync is supposed to be encrypted as needed.
- */
-public struct Syncable {
-    public var payload: [String: Any]
-
-    public init(jsonObject: [String: Any]) {
-        payload = jsonObject
-    }
-
-    public var uuid: String? {
-        payload["id"] as? String
-    }
-
-    public var isDeleted: Bool {
-        payload["deleted"] != nil
-    }
-}
-
-/**
- * Describes data source for objects to be synced with the server.
- */
-public protocol DataProviding {
-    /**
-     * Feature that is supported by this provider.
-     *
-     * This is passed to `GET /{types_csv}`.
-     */
-    var feature: Feature { get }
-
-    /**
-     * Time of last successful sync of a given feature.
-     *
-     * Note that it's a String as this is the server timestamp and should not be treated as date
-     * and as such used in comparing timestamps. It's merely an identifier of the last sync operation.
-     */
-    var lastSyncTimestamp: String? { get }
-
-    /**
-     * Prepare data models for first sync.
-     *
-     * This function is called before the initial sync is performed.
-     */
-    func prepareForFirstSync() throws
-
-    /**
-     * Return objects that have changed since last sync, or all objects in case of the initial sync.
-     */
-    func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable]
-
-    /**
-     * Apply initial sync operation response.
-     *
-     * - Parameter received: Objects that were received from the server.
-     * - Parameter clientTimestamp: Local timestamp of the sync network request.
-     * - Parameter serverTimestamp: Server timestamp describing server data validity.
-     * - Parameter crypter: Crypter object to decrypt received data.
-     */
-    func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws
-
-    /**
-     * Apply sync operation result.
-     *
-     * - Parameter sent: Objects that were sent to the server.
-     * - Parameter received: Objects that were received from the server.
-     * - Parameter clientTimestamp: Local timestamp of the sync network request.
-     * - Parameter serverTimestamp: Server timestamp describing server data validity.
-     * - Parameter crypter: Crypter object to decrypt sent and received data.
-     */
-    func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws
-
-    /**
-     * Called when sync operation fails.
-     *
-     * - Parameter error: Sync operation error.
-     */
-    func handleSyncError(_ error: Error)
 }
