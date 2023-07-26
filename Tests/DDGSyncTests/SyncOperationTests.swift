@@ -95,8 +95,9 @@ class SyncOperationTests: XCTestCase {
         XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
     }
 
-    func testThatForMultipleDataProvidersRequestsSeparateRequstsAreSentConcurrently() async throws {
-        var dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
+    func testThatForMultipleDataProvidersRequestsSeparateRequestsAreSentConcurrently() async throws {
+        let dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
+        try dataProvider1.registerFeature(withState: .readyToSync)
         dataProvider1.lastSyncTimestamp = "1234"
         dataProvider1._fetchChangedObjects = { _ in
             [
@@ -104,7 +105,8 @@ class SyncOperationTests: XCTestCase {
                 Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
             ]
         }
-        var dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
+        let dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
+        try dataProvider2.registerFeature(withState: .readyToSync)
         dataProvider2.lastSyncTimestamp = "5678"
         dataProvider2._fetchChangedObjects = { _ in
             [
@@ -112,7 +114,8 @@ class SyncOperationTests: XCTestCase {
                 Syncable(jsonObject: ["key": "setting-b", "value": "value-b"])
             ]
         }
-        var dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
+        let dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
+        try dataProvider3.registerFeature(withState: .readyToSync)
         dataProvider3.lastSyncTimestamp = "9012"
         dataProvider3._fetchChangedObjects = { _ in
             [
@@ -190,17 +193,17 @@ class SyncOperationTests: XCTestCase {
         }
 
         let feature1 = Feature(name: "bookmarks")
-        var dataProvider1 = DataProvidingMock(feature: feature1)
+        let dataProvider1 = DataProvidingMock(feature: feature1)
         dataProvider1.lastSyncTimestamp = "1234"
         dataProvider1._fetchChangedObjects = { _ in throw DataProviderError(feature: feature1) }
 
         let feature2 = Feature(name: "settings")
-        var dataProvider2 = DataProvidingMock(feature: feature2)
+        let dataProvider2 = DataProvidingMock(feature: feature2)
         dataProvider2.lastSyncTimestamp = "5678"
         dataProvider2._fetchChangedObjects = { _ in throw DataProviderError(feature: feature2) }
 
         let feature3 = Feature(name: "autofill")
-        var dataProvider3 = DataProvidingMock(feature: feature3)
+        let dataProvider3 = DataProvidingMock(feature: feature3)
         dataProvider3.lastSyncTimestamp = "9012"
         dataProvider3._fetchChangedObjects = { _ in [] }
 
