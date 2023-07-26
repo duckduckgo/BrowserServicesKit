@@ -40,6 +40,13 @@ final class MockEventMapper: EventMapping<CredentialsCleanupError> {
     }
 }
 
+final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
+    var _secureVaultInitFailed: (SecureVaultError) -> Void = { _ in }
+    func secureVaultInitFailed(_ error: SecureVaultError) {
+        _secureVaultInitFailed(error)
+    }
+}
+
 final class CredentialsDatabaseCleanerTests: XCTestCase {
     let simpleL1Key = "simple-key".data(using: .utf8)!
     var databaseLocation: URL!
@@ -70,7 +77,11 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
     }
 
     func testWhenThereAreNoConflictsThenCleanerContextIsSavedOnce() throws {
-        databaseCleaner = CredentialsDatabaseCleaner(secureVaultFactory: secureVaultFactory, errorEvents: eventMapper)
+        databaseCleaner = CredentialsDatabaseCleaner(
+            secureVaultFactory: secureVaultFactory,
+            secureVaultErrorReporter: MockSecureVaultErrorReporter(),
+            errorEvents: eventMapper
+        )
 
         try secureVault.storeCredentials(domain: "1", username: "1")
         try secureVault.storeCredentials(domain: "2", username: "2")

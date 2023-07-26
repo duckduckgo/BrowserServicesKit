@@ -31,11 +31,13 @@ public final class CredentialsDatabaseCleaner {
 
     public init(
         secureVaultFactory: SecureVaultFactory,
+        secureVaultErrorReporter: SecureVaultErrorReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
         log: @escaping @autoclosure () -> OSLog = .disabled,
         removeSyncMetadataPendingDeletion: ((Database) throws -> Int)? = nil
     ) {
         self.secureVaultFactory = secureVaultFactory
+        self.secureVaultErrorReporter = secureVaultErrorReporter
         self.errorEvents = errorEvents
         self.getLog = log
         if let removeSyncMetadataPendingDeletion {
@@ -72,7 +74,7 @@ public final class CredentialsDatabaseCleaner {
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
         do {
-            let secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+            let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
 
             while true {
                 do {
@@ -126,6 +128,7 @@ public final class CredentialsDatabaseCleaner {
 
     private let errorEvents: EventMapping<CredentialsCleanupError>?
     private let secureVaultFactory: SecureVaultFactory
+    private let secureVaultErrorReporter: SecureVaultErrorReporting
     private let triggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "CredentialsDatabaseCleaner queue", qos: .userInitiated)
 

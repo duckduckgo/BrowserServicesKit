@@ -25,6 +25,13 @@ import Persistence
 @testable import BrowserServicesKit
 @testable import SyncDataProviders
 
+final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
+    var _secureVaultInitFailed: (SecureVaultError) -> Void = { _ in }
+    func secureVaultInitFailed(_ error: SecureVaultError) {
+        _secureVaultInitFailed(error)
+    }
+}
+
 internal class CredentialsProviderTestsBase: XCTestCase {
 
     let simpleL1Key = "simple-key".data(using: .utf8)!
@@ -80,6 +87,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
 
         provider = try CredentialsProvider(
             secureVaultFactory: secureVaultFactory,
+            secureVaultErrorReporter: MockSecureVaultErrorReporter(),
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
             syncDidUpdateData: {}
         )
