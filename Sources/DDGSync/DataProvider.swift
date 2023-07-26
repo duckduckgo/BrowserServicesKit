@@ -174,7 +174,6 @@ public protocol DataProviding: AnyObject {
 open class DataProvider: DataProviding {
 
     public let feature: Feature
-    public let metadataStore: SyncMetadataStore
     public let syncDidUpdateData: () -> Void
     public let syncErrorPublisher: AnyPublisher<Error, Never>
 
@@ -238,4 +237,5 @@ open class DataProvider: DataProviding {
     // MARK: - Private
 
     private let syncErrorSubject = PassthroughSubject<Error, Never>()
+    private let metadataStore: SyncMetadataStore
 }
