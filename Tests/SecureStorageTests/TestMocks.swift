@@ -19,6 +19,7 @@
 
 import Foundation
 import SecureStorage
+import GRDB
 
 internal class MockCryptoProvider: SecureStorageCryptoProvider {
 
@@ -73,60 +74,6 @@ internal class MockCryptoProvider: SecureStorageCryptoProvider {
             throw SecureStorageError.invalidPassword
         }
 
-        return data
-    }
-
-    func generateSalt() throws -> Data {
-        return Data()
-    }
-
-    func hashData(_ data: Data) throws -> String? {
-        return ""
-    }
-
-    func hashData(_ data: Data, salt: Data?) throws -> String? {
-        return ""
-    }
-
-}
-
-internal class NoOpCryptoProvider: SecureStorageCryptoProvider {
-
-    var passwordSalt: Data {
-        return Data()
-    }
-
-    var keychainServiceName: String {
-        return "service"
-    }
-
-    var keychainAccountName: String {
-        return "account"
-    }
-
-    var hashingSalt: Data?
-
-    func generateSecretKey() throws -> Data {
-        return Data()
-    }
-
-    func generatePassword() throws -> Data {
-        return Data()
-    }
-
-    func deriveKeyFromPassword(_ password: Data) throws -> Data {
-        return password
-    }
-
-    func generateNonce() throws -> Data {
-        return Data()
-    }
-
-    func encrypt(_ data: Data, withKey key: Data) throws -> Data {
-        return data
-    }
-
-    func decrypt(_ data: Data, withKey key: Data) throws -> Data {
         return data
     }
 
@@ -201,3 +148,60 @@ internal class MockKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
 }
+
+protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
+
+    func storeSomeData(string: String) throws
+
+    func getStoredData() throws -> String?
+
+}
+
+final class ConcreteMockDatabaseProvider: MockDatabaseProvider {
+
+    var db: GRDB.DatabaseWriter
+
+    init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
+        self.db = try! DatabaseQueue(named: "MockQueue")
+    }
+
+    var storedData: String?
+
+    func storeSomeData(string: String) throws {
+        self.storedData = string
+    }
+
+    func getStoredData() throws -> String? {
+        return self.storedData
+    }
+
+}
+
+protocol MockSecureVault: SecureVault {
+
+    func storeSomeData(string: String) throws
+
+    func getStoredData() throws -> String?
+
+}
+
+final class ConcreteMockSecureVault<T: MockDatabaseProvider>: MockSecureVault {
+
+    public typealias MockStorageProviders = SecureStorageProviders<T>
+
+    private let providers: MockStorageProviders
+
+    public required init(providers: MockStorageProviders) {
+        self.providers = providers
+    }
+
+    func storeSomeData(string: String) throws {
+        try self.providers.database.storeSomeData(string: string)
+    }
+
+    func getStoredData() throws -> String? {
+        return try self.providers.database.getStoredData()
+    }
+}
+
+typealias MockVaultFactory = SecureVaultFactory<ConcreteMockSecureVault<ConcreteMockDatabaseProvider>>

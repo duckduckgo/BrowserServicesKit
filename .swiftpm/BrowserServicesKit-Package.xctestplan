@@ -1,0 +1,108 @@
+{
+  "configurations" : [
+    {
+      "id" : "32648498-F6A1-46A3-8CD4-1D321ADE866A",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "BookmarksTests",
+        "name" : "BookmarksTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "BrowserServicesKitTests",
+        "name" : "BrowserServicesKitTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CommonTests",
+        "name" : "CommonTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "ConfigurationTests",
+        "name" : "ConfigurationTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DDGSyncCryptoTests",
+        "name" : "DDGSyncCryptoTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DDGSyncTests",
+        "name" : "DDGSyncTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "NavigationTests",
+        "name" : "NavigationTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "NetworkProtectionTests",
+        "name" : "NetworkProtectionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "NetworkingTests",
+        "name" : "NetworkingTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PersistenceTests",
+        "name" : "PersistenceTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SecureStorageTests",
+        "name" : "SecureStorageTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SyncDataProvidersTests",
+        "name" : "SyncDataProvidersTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "UserScriptTests",
+        "name" : "UserScriptTests"
+      }
+    }
+  ],
+  "version" : 1
+}

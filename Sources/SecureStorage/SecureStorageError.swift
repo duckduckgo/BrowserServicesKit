@@ -20,11 +20,11 @@ import Foundation
 import GRDB
 
 public enum SecureStorageDatabaseError: Error {
-    case nonRecoverable(DatabaseError)
+    case corruptedDatabase(DatabaseError)
 
     var databaseError: DatabaseError {
         switch self {
-        case .nonRecoverable(let dbError): return dbError
+        case .corruptedDatabase(let dbError): return dbError
         }
     }
 }

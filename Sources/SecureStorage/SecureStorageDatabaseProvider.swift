@@ -45,7 +45,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
     public init(file: URL, key: Data, writerType: DatabaseWriterType = .queue) throws {
         do {
             self.db = try Self.createDatabase(file: file, key: key, writerType: writerType)
-        } catch SecureStorageDatabaseError.nonRecoverable {
+        } catch SecureStorageDatabaseError.corruptedDatabase {
             try Self.recreateDatabase(withKey: key, databaseURL: file)
             self.db = try Self.createDatabase(file: file, key: key, writerType: writerType)
         }
@@ -66,7 +66,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
             }
         } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
             os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
-            throw SecureStorageDatabaseError.nonRecoverable(error)
+            throw SecureStorageDatabaseError.corruptedDatabase(error)
         } catch {
             os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
             throw error

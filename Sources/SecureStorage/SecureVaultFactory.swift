@@ -53,7 +53,6 @@ public class SecureVaultFactory<Vault: SecureVault> {
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
     public func makeVault(errorReporter: SecureVaultErrorReporting?) throws -> Vault {
-
         if let vault = self.vault {
             return vault
         } else {
@@ -78,7 +77,6 @@ public class SecureVaultFactory<Vault: SecureVault> {
                 throw SecureStorageError.initFailed(cause: error)
             }
         }
-
     }
     
     public func makeSecureStorageProviders() throws -> SecureStorageProviders<Vault.DatabaseProvider> {

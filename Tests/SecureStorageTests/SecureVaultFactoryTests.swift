@@ -21,67 +21,6 @@ import XCTest
 import GRDB
 import SecureStorage
 
-protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
-
-    func storeSomeData(string: String) throws
-
-    func getStoredData() throws -> String?
-
-}
-
-final class ConcreteMockDatabaseProvider: MockDatabaseProvider {
-    
-    var db: GRDB.DatabaseWriter
-
-    init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
-        self.db = try! DatabaseQueue(named: "MockQueue")
-    }
-
-    static func recreateDatabase(withKey key: Data) throws -> Self {
-        return try ConcreteMockDatabaseProvider(file: URL(string: "https://duckduckgo.com")!, key: Data()) as! Self
-    }
-
-    var storedData: String?
-
-    func storeSomeData(string: String) throws {
-        self.storedData = string
-    }
-
-    func getStoredData() throws -> String? {
-        return self.storedData
-    }
-
-}
-
-protocol MockSecureVault: SecureVault {
-
-    func storeSomeData(string: String) throws
-
-    func getStoredData() throws -> String?
-
-}
-
-final class ConcreteMockSecureVault<T: MockDatabaseProvider>: MockSecureVault {
-
-    public typealias MockStorageProviders = SecureStorageProviders<T>
-
-    private let providers: MockStorageProviders
-
-    public required init(providers: MockStorageProviders) {
-        self.providers = providers
-    }
-
-    func storeSomeData(string: String) throws {
-        try self.providers.database.storeSomeData(string: string)
-    }
-
-    func getStoredData() throws -> String? {
-        return try self.providers.database.getStoredData()
-    }
-}
-
-typealias MockVaultFactory = SecureVaultFactory<ConcreteMockSecureVault<ConcreteMockDatabaseProvider>>
-
 let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
     makeCryptoProvider: {
         return MockCryptoProvider()

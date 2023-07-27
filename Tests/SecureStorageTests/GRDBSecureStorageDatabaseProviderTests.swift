@@ -92,10 +92,38 @@ final class GRDBSecureStorageDatabaseProviderTests: XCTestCase {
         XCTAssertEqual(testModel, modelFromDatabase)
     }
 
+    func testWhenDatabaseIsCorrupt_ThenItIsRecreated_AndTheCorruptDatabaseIsMovedToABackup() throws {
+        let temporaryDatabaseURL = createTemporaryFileURL()
+        let keyData = SymmetricKey(size: .bits256).dataRepresentation
+        let backupURL = temporaryDatabaseURL.appendingPathExtension("bak")
+
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: backupURL)
+        }
+
+        do {
+            try! "asdf".data(using: .utf8)!.write(to: temporaryDatabaseURL)
+            _ = try TestGRDBDatabaseProvider(file: temporaryDatabaseURL, key: keyData)
+
+            XCTFail("Successfully created database provider even through an error was expected")
+        } catch {
+            // Check that the original file was moved to a backup file:
+            let database = try TestGRDBDatabaseProvider(file: temporaryDatabaseURL, key: keyData)
+            XCTAssertEqual(try! Data(contentsOf: backupURL), "asdf".data(using: .utf8))
+
+            // Check that the database can now be used:
+            let testModel = TestGRDBModel(id: 1, username: "dax")
+            try database.insert(testModel: testModel)
+            let modelFromDatabase = try database.fetchTestModels().first
+
+            XCTAssertEqual(testModel, modelFromDatabase)
+        }
+    }
+
     func createTemporaryFileURL() -> URL {
         let directory = NSTemporaryDirectory()
         let filename = UUID().uuidString
-        let fileURL = URL(fileURLWithPath: directory).appendingPathComponent(filename)
+        let fileURL = URL(fileURLWithPath: directory).appendingPathComponent(filename).appendingPathExtension("db")
 
         // Add a teardown block to delete any file at `fileURL`.
         addTeardownBlock {
