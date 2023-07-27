@@ -56,6 +56,7 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        self._credentialsDict.removeValue(forKey: accountId)        
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 
