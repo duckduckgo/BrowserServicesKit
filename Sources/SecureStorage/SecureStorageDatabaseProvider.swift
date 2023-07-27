@@ -33,25 +33,21 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         case pool
     }
 
-    /// Configures the database migrations to use for the subclass of the database provider.
-    ///
-    /// This is called by the database provider's `init` function as a part of setting up the database.
-    open class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
-        fatalError("Must be overridden by a subclass")
-    }
-
     public let db: DatabaseWriter
 
-    public init(file: URL, key: Data, writerType: DatabaseWriterType = .queue) throws {
+    public init(file: URL, key: Data, writerType: DatabaseWriterType = .queue, registerMigrationsHandler: (inout DatabaseMigrator) throws -> Void) throws {
         do {
-            self.db = try Self.createDatabase(file: file, key: key, writerType: writerType)
+            self.db = try Self.createDatabase(file: file, key: key, writerType: writerType, registerMigrationsHandler: registerMigrationsHandler)
         } catch SecureStorageDatabaseError.corruptedDatabase {
             try Self.recreateDatabase(withKey: key, databaseURL: file)
-            self.db = try Self.createDatabase(file: file, key: key, writerType: writerType)
+            self.db = try Self.createDatabase(file: file, key: key, writerType: writerType, registerMigrationsHandler: registerMigrationsHandler)
         }
     }
 
-    private static func createDatabase(file: URL, key: Data, writerType: DatabaseWriterType) throws -> DatabaseWriter {
+    private static func createDatabase(file: URL,
+                                       key: Data,
+                                       writerType: DatabaseWriterType,
+                                       registerMigrationsHandler: (inout DatabaseMigrator) throws -> Void) throws -> DatabaseWriter {
         var config = Configuration()
         config.prepareDatabase {
             try $0.usePassphrase(key)
@@ -73,7 +69,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         }
 
         var migrator = DatabaseMigrator()
-        try Self.registerMigrations(with: &migrator)
+        try registerMigrationsHandler(&migrator)
 
         do {
             try migrator.migrate(writer)

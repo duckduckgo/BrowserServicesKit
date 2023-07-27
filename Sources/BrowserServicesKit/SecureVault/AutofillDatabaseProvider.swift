@@ -54,24 +54,22 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
-    public override class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
-        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-        migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
-        migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
-        migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
-        migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
-        migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
-        migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
-        migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-        migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
-    }
-
     public static func defaultDatabaseURL() -> URL {
         return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
     }
 
     public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data) throws {
-        try super.init(file: file, key: key, writerType: .queue)
+        try super.init(file: file, key: key, writerType: .queue) { migrator in
+            migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
+            migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+            migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+            migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+            migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+            migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+            migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+            migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
+            migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+        }
     }
 
     public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {

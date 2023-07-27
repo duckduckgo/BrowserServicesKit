@@ -25,14 +25,16 @@ import GRDB
 
 private class TestGRDBDatabaseProvider: GRDBSecureStorageDatabaseProvider {
 
-    override class func registerMigrations(with migrator: inout DatabaseMigrator) throws {
-        migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-    }
-
     static func migrateV1(database: Database) throws {
         try database.create(table: TestGRDBModel.databaseTableName) {
             $0.column(TestGRDBModel.Columns.id.name, .integer)
             $0.column(TestGRDBModel.Columns.username.name, .text)
+        }
+    }
+
+    init(file: URL, key: Data) throws {
+        try super.init(file: file, key: key) { databaseMigrator in
+            databaseMigrator.registerMigration("v1", migrate: Self.migrateV1(database:))
         }
     }
 
