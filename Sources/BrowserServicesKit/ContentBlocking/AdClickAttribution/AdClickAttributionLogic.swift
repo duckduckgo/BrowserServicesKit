@@ -77,13 +77,8 @@ public class AdClickAttributionLogic {
         self.eventReporting?.fire(.adAttributionPageLoads, parameters: [AdClickAttributionEvents.Parameters.count: String(count)])
     })
 
-    public private(set) var state = State.noAttribution {
-        didSet {
-            if state != oldValue, case .activeAttribution = state {
-                counter.onAttributionActive()
-            }
-        }
-    }
+    public private(set) var state = State.noAttribution
+
     private var registerFirstActivity = false
     
     private var attributionTimeout: DispatchWorkItem?
@@ -196,6 +191,10 @@ public class AdClickAttributionLogic {
     public func onDidFinishNavigation(host: String?, currentTime: Date = Date()) {
         guard case .activeAttribution(let vendor, let session, let rules) = state else {
             return
+        }
+
+        if tld.eTLDplus1(host) == vendor {
+            counter.onAttributionActive()
         }
         
         if currentTime.timeIntervalSince(session.attributionStartedAt) >= featureConfig.totalExpiration {

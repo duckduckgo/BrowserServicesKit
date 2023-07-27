@@ -20,9 +20,7 @@
 import Foundation
 import Persistence
 
-/**
- Class to track and aggregate the number of page loads that have had an active exemption within a specified time period.
- */
+/// This class aggregates detected Ad Attributions on a websites and stores that count over a certain time interval.
 public class AdClickAttributionCounter {
     
     public enum Constant {
@@ -55,14 +53,15 @@ public class AdClickAttributionCounter {
             save(lastSendAt: currentTime)
             return
         }
-        
-        guard abs(currentTime.timeIntervalSince(lastSendAt)) > sendInterval,
-              pageLoadsCount > 0 else {
-            return
+
+        if abs(currentTime.timeIntervalSince(lastSendAt)) > sendInterval {
+            if pageLoadsCount > 0 {
+                onSend(pageLoadsCount)
+                resetStats(currentTime: currentTime)
+            } else {
+                save(lastSendAt: currentTime)
+            }
         }
-        
-        onSend(pageLoadsCount)
-        resetStats(currentTime: currentTime)
     }
 
     private func resetStats(currentTime: Date = Date()) {

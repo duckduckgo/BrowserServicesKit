@@ -104,4 +104,27 @@ class AdClickAttributionCounterTests: XCTestCase {
         
         waitForExpectations(timeout: 1, handler: nil)
     }
+
+    func testWhenTimeIntervalHasPassedAndCounterIsZeroThenCurrentTimeIsReset() {
+        let interval: Double = 60 * 60
+        let mockStore = MockKeyValueStore()
+        let counter = AdClickAttributionCounter(store: mockStore, sendInterval: interval) {_ in }
+
+        var storedDate: Date? { mockStore.object(forKey: AdClickAttributionCounter.Constant.lastSendAtKey) as? Date }
+
+        let date = Date()
+        counter.onAttributionActive(currentTime: date)
+        XCTAssertEqual(date, storedDate)
+
+        let sendDate = date + interval + 1
+        counter.sendEventsIfNeeded(currentTime: sendDate)
+        XCTAssertEqual(sendDate, storedDate)
+
+        let nextSendDate = sendDate + interval + 1
+        counter.sendEventsIfNeeded(currentTime: nextSendDate)
+        XCTAssertEqual(nextSendDate, storedDate)
+    }
+
+
+
 }
