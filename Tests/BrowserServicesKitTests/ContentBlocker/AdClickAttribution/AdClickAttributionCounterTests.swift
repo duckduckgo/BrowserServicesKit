@@ -125,6 +125,4 @@ class AdClickAttributionCounterTests: XCTestCase {
         XCTAssertEqual(nextSendDate, storedDate)
     }
 
-
-
 }
