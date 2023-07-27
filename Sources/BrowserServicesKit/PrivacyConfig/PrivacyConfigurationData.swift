@@ -116,14 +116,14 @@ public struct PrivacyConfigurationData {
             }
             
             public struct Rollout {
-                public let percent: Int
+                public let percent: Double
                 
                 enum CodingKeys: String {
                     case percent
                 }
                 
                 public init(json: [String: Any]) {
-                    self.percent = json[CodingKeys.percent.rawValue] as? Int ?? 0
+                    self.percent = json[CodingKeys.percent.rawValue] as? Double ?? 0
                 }
             }
             

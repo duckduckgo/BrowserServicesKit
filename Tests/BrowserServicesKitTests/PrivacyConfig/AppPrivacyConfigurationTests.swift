@@ -472,11 +472,11 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let config = manager.privacyConfig
 
         let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
         let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
         let futureVersionProvider = MockAppVersionProvider(appVersion: "2.16.0")
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: futureVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: futureVersionProvider, randomizer: Double.random(in:)))
     }
 
     let exampleDisabledFeatureStateOverridingSubfeatureConfig =
@@ -543,11 +543,11 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
         XCTAssertFalse(config.isEnabled(featureKey: .autofill, versionProvider: oldVersionProvider))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
 
         let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
         XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
     }
     
     let exampleSubfeatureWithRolloutsConfig =
@@ -561,7 +561,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
                     "credentialsSaving": {
                         "state": "enabled",
                         "rollouts": [{
-                            "percent": 5
+                            "percent": 5.0
                         }]
                     }
                 },
@@ -573,7 +573,12 @@ class AppPrivacyConfigurationTests: XCTestCase {
     
     func clearRolloutData(feature: String, subFeature: String) {
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")
-        UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).lastRolloutSize")
+        UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).lastRolloutCount")
+    }
+    
+    var mockRandomValue: Double = 0.0
+    func mockRandom(in range: Range<Double>) -> Double {
+        return mockRandomValue
     }
     
     func testWhenCheckingSubfeatureState_SubfeatureIsEnabledWithSingleRolloutProbability() {
@@ -586,18 +591,15 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let config = manager.privacyConfig
         
-        let testIterations = 100
-        let testTolerance = 2
-        let testTarget = 5 // Should be same as test config
+        mockRandomValue = 7.0
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
         
-        var enabledCount = 0
-        for _ in 0..<testIterations {
-            clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
-            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving) ? 1 : 0
-        }
-        
-        print("Feature Enabled: \(enabledCount) times")
-        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance))
+        mockRandomValue = 2.0
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertTrue(enabled, "Feature should be enabled if selected value below rollout")
     }
     
     let exampleSubfeatureWithMultipleRolloutsConfig =
@@ -611,19 +613,19 @@ class AppPrivacyConfigurationTests: XCTestCase {
                     "credentialsSaving": {
                         "state": "enabled",
                         "rollouts": [{
-                            "percent": 5
+                            "percent": 5.0
                         }, {
-                            "percent": 15,
+                            "percent": 15.0
                         }]
                     },
                     "credentialsAutofill": {
                         "state": "enabled",
                         "rollouts": [{
-                            "percent": 5
+                            "percent": 5.0
                         }, {
-                            "percent": 15,
+                            "percent": 15.0
                         }, {
-                            "percent": 25
+                            "percent": 25.0
                         }]
                     },
                 },
@@ -643,30 +645,25 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let config = manager.privacyConfig
         
-        let testIterations = 100
-        var testTolerance = 4
-        var testTarget = 11 // Should be same as test config, Note: Effective probability is (y - x)/(100 - y) with a rollouts array of [x, y]
+        mockRandomValue = 0.37
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
         
-        var enabledCount = 0
-        for _ in 0..<testIterations {
-            clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
-            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving) ? 1 : 0
-        }
-
-        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance),
-                  "Subfeature enabled \(enabledCount) times (\(testTarget) target) outside of \(testTolerance)% tolerance range.")
+        mockRandomValue = 0.1 // Effective probability of 11.7% in test config
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
         
-        testTolerance = 5
-        testTarget = 25 // Should be same as test config, Note: Effective probability is (y - x)/(100 - y) with a rollouts array of [x, y]
+        mockRandomValue = 0.37
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+        XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
         
-        enabledCount = 0
-        for _ in 0..<testIterations {
-            clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
-            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill) ? 1 : 0
-        }
-
-        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance),
-                  "Subfeature enabled \(enabledCount) times (\(testTarget) target) outside of \(testTolerance)% tolerance range.")
+        mockRandomValue = 0.12 // Effective probability of 13.3% in test config
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+        XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
     }
     
     func testWhenCheckingSubfeatureStateAndRolloutSizeChanges_SubfeatureIsEnabledWithMultipleRolloutProbability() {
@@ -679,22 +676,35 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let config = manager.privacyConfig
         
-        let testIterations = 100
-        let testTolerance = 5
-        let testTarget = 25 // Should be same as test config, Note: Effective probability is (z - y)/(100 - z) with a rollouts array of [x, y, z]
-        
-        var enabledCount = 0
-        for _ in 0..<testIterations {
-            clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
-            
-            // Mock that the user has previously seen the rollout and was not chosen
-            UserDefaults().set(2, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
-            
-            enabledCount += config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill) ? 1 : 0
-        }
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        mockRandomValue = 0.12
+        // Mock that the user has previously seen the rollout and was not chosen
+        UserDefaults().set(2, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
+        var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
 
-        XCTAssert(enabledCount >= (testTarget - testTolerance) && enabledCount <= (testTarget + testTolerance),
-                  "Subfeature enabled \(enabledCount) times (\(testTarget) target) outside of \(testTolerance)% tolerance range.")
+        XCTAssert(enabled, "Subfeature should be enabled when rollout count changes")
+        
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        // Mock that the user has previously seen the rollout and was not chosen
+        UserDefaults().set(3, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+
+        XCTAssertFalse(enabled, "Subfeature should not be enabled when rollout count does not changes")
+    }
+    
+    func testWhenCheckingSubfeatureStateAndUserIsInARollout_SubfeatureIsEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+        
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        UserDefaults().set(true, forKey: "config.autofill.credentialsAutofill.enabled")
+        XCTAssert(config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill), "Subfeature should be enabled if the user has already been selected in a rollout")
     }
 
     func exampleTrackerAllowlistConfig(with state: String) -> Data {

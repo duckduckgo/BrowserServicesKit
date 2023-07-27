@@ -97,7 +97,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
     
-    private func rolloutEnabled(subfeature: any PrivacySubfeature, rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout]) -> Bool {
+    private func rolloutEnabled(subfeature: any PrivacySubfeature,
+                                rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout],
+                                randomizer: (Range<Double>) -> Double) -> Bool {
         let defsPrefix = "config.\(subfeature.parent.rawValue).\(subfeature.rawValue)"
         if userDefaults.bool(forKey: "\(defsPrefix).\(Constants.enabledKey)") {
             return true
@@ -111,23 +113,23 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             
             // If the user has seen the rollout before, and the rollout count has changed
             // Try again with the new probability
-            let y = Double(rollouts[rollouts.count - 1].percent)
-            let x = Double(rollouts[rollouts.count - 2].percent)
+            let y = rollouts[rollouts.count - 1].percent
+            let x = rollouts[rollouts.count - 2].percent
             let prob = (y - x) / (100.0 - y)
-            if Double.random(in: 0..<1) < prob {
+            if randomizer(0..<1) < prob {
                 // enable the feature
                 willEnable = true
             }
         } else if rollouts.count == 1 {
             // First time user sees feature, and only one rollout
-            willEnable = Int.random(in: 0..<100) < rollouts.first!.percent
+            willEnable = randomizer(0..<100) < rollouts.first!.percent
         } else {
             // First time user sees feature, and multiple rollouts
             for i in 1..<rollouts.count {
-                let y = Double(rollouts[i].percent)
-                let x = Double(rollouts[i - 1].percent)
+                let y = rollouts[i].percent
+                let x = rollouts[i - 1].percent
                 let prob = (y - x) / (100.0 - y)
-                if Double.random(in: 0..<1) < prob {
+                if randomizer(0..<1) < prob {
                     willEnable = true
                     break
                 }
@@ -144,7 +146,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return true
     }
 
-    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool {
+    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool {
         guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
             return false
         }
@@ -154,7 +156,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         
         // Handle Rollouts
         if let rollouts = subfeatureData?.rollouts, !rollouts.isEmpty {
-            if !rolloutEnabled(subfeature: subfeature, rollouts: rollouts) {
+            if !rolloutEnabled(subfeature: subfeature, rollouts: rollouts, randomizer: randomizer) {
                 return false
             }
         }
