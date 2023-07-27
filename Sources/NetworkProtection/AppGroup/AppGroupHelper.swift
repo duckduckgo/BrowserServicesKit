@@ -23,7 +23,7 @@ import Foundation
 public final class AppGroupHelper {
     public static let shared = AppGroupHelper()
 
-    let appGroup: String
+    public let appGroup: String
 
     /// Apps that want to use this class need set the app group in their Info.plist.
     ///
