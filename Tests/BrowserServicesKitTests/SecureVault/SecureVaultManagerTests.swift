@@ -743,6 +743,10 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultInitFailed(_ error: SecureVaultError) {}
 
+    func secureVaultManagerShouldSaveData(_: BrowserServicesKit.SecureVaultManager) -> Bool {
+        true
+    }
+
     func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String) {}
 
     func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String) {}
@@ -750,5 +754,5 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String) {}
 
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel) {}
-    
+
 }

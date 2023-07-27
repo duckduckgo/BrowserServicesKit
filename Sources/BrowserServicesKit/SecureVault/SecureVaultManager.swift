@@ -38,6 +38,8 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
     
     func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
 
+    func secureVaultManagerShouldSaveData(_: SecureVaultManager) -> Bool
+
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToStoreAutofillData data: AutofillData,
                             withTrigger trigger: AutofillUserScript.GetTriggerType?)
@@ -180,6 +182,11 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestStoreDataForDomain domain: String,
                                    data: AutofillUserScript.DetectedAutofillData) {
         do {
+
+            // We don't want to store data in special cases (Fire Window)
+            guard delegate?.secureVaultManagerShouldSaveData(self) ?? false else {
+                return
+            }
 
             var autofilldata = data
             let vault = try? self.vault ?? SecureVaultFactory.default.makeVault(errorReporter: self.delegate)
