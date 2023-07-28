@@ -24,6 +24,18 @@ public typealias OSLog = os.OSLog
 
 extension OSLog {
 
+    /// "exporting" `OSLog.disabled` symbol without needing to `import os.log` to disambiguate `os_log` wrapper calls and suppress "implicit import" warning
+    /// this declaration shadows the real `OSLog.disabled`
+    public static let disabled: OSLog = {
+        // the `OSLog` object returned by `OSLog.disabled` is in fact an `os_log_t *` pointer returned by `_os_log_disabled` C function
+        guard let disabledLog = dlsym(/*RTLD_DEFAULT*/ UnsafeMutableRawPointer(bitPattern: -2), "_os_log_disabled") else {
+            // just in case it fails for whatever reason (but it shouldn‘t) - return some log object
+            assertionFailure("_os_log_disabled symbol not found")
+            return .init(subsystem: "", category: "")
+        }
+        return unsafeBitCast(disabledLog, to: OSLog.self)
+    }()
+
     public enum Categories: String, CaseIterable {
         case userScripts = "User Scripts"
         case passwordManager = "Password Manager"
@@ -97,6 +109,10 @@ extension ProcessInfo {
 
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType) {
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
     os.os_log(message, log: log, type: type)
 }
 
@@ -108,30 +124,55 @@ public func os_log(_ message: StaticString, log: OSLog) {
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1())
 }
 
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2())
 }
 
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3())
 }
 
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4())
 }
 
 @inlinable
 public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogType = .default, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg, _ arg5: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
 }
 
@@ -139,13 +180,23 @@ public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogTy
 @_disfavoredOverload
 public func os_log(_ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
     guard log != .disabled else { return }
-    os_log("%s", log: log, type: type, message())
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
+    os_log("%{public}s", log: log, type: type, message())
 }
 
 // MARK: - type first
 
 @inlinable
 public func os_log(_ type: OSLogType, log: OSLog = .default, _ message: StaticString) {
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type)
 }
 
@@ -162,30 +213,55 @@ public func os_log(_ message: StaticString) {
 @inlinable
 public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1())
 }
 
 @inlinable
 public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2())
 }
 
 @inlinable
 public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3())
 }
 
 @inlinable
 public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4())
 }
 
 @inlinable
 public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: StaticString, _ arg1: @autoclosure () -> some CVarArg, _ arg2: @autoclosure () -> some CVarArg, _ arg3: @autoclosure () -> some CVarArg, _ arg4: @autoclosure () -> some CVarArg, _ arg5: @autoclosure () -> some CVarArg) {
     guard log != .disabled else { return }
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
 }
 
@@ -193,7 +269,12 @@ public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ messag
 @_disfavoredOverload
 public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: @autoclosure () -> String) {
     guard log != .disabled else { return }
-    os_log("%s", log: log, type: type, message())
+#if DEBUG
+    // enable .debug/.info logging in DEBUG builds
+    let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
+#endif
+
+    os_log("%{public}s", log: log, type: type, message())
 }
 
 // swiftlint:enable line_length

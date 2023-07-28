@@ -20,7 +20,6 @@ import Foundation
 import Combine
 import DDGSyncCrypto
 import Common
-import os.log
 
 public class DDGSync: DDGSyncing {
 

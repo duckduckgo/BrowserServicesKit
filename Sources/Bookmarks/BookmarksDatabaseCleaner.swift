@@ -21,7 +21,6 @@ import Foundation
 import Combine
 import Common
 import CoreData
-import os.log
 import Persistence
 
 public struct BookmarksCleanupError: Error {
