@@ -228,7 +228,7 @@ extension AutofillUserScript {
         }
 
         public let identity: SecureVaultModels.Identity?
-        public let credentials: IncomingCredentials?
+        public var credentials: IncomingCredentials?
         public let creditCard: SecureVaultModels.CreditCard?
         public let trigger: GetTriggerType?
         
