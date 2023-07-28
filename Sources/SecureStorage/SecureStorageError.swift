@@ -1,7 +1,7 @@
 //
-//  SecureVaultError.swift
+//  SecureStorageError.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,7 +19,17 @@
 import Foundation
 import GRDB
 
-public enum SecureVaultError: Error {
+public enum SecureStorageDatabaseError: Error {
+    case corruptedDatabase(DatabaseError)
+
+    var databaseError: DatabaseError {
+        switch self {
+        case .corruptedDatabase(let dbError): return dbError
+        }
+    }
+}
+
+public enum SecureStorageError: Error {
 
     case initFailed(cause: Error)
     case authRequired
@@ -36,8 +46,9 @@ public enum SecureVaultError: Error {
     case encodingFailed
 }
 
-extension SecureVaultError: CustomNSError {
+extension SecureStorageError: CustomNSError {
 
+    /// Uses the legacy "SecureVaultError" name to avoid causing issues with metrics after this was renamed to `SecureStorageError`.
     public static var errorDomain: String { "SecureVaultError" }
 
     public var errorCode: Int {
@@ -63,12 +74,12 @@ extension SecureVaultError: CustomNSError {
         switch self {
         case .initFailed(cause: let error), .authError(cause: let error),
              .failedToOpenDatabase(cause: let error), .databaseError(cause: let error):
-            if let secureVaultError = error as? SecureVaultError {
+            if let secureVaultError = error as? SecureStorageError {
                 return secureVaultError.errorUserInfo
             }
 
             errorUserInfo["NSUnderlyingError"] = error as NSError
-            if let sqliteError = error as? DatabaseError ?? (error as? DefaultDatabaseProvider.DbError)?.databaseError {
+            if let sqliteError = error as? DatabaseError ?? (error as? SecureStorageDatabaseError)?.databaseError {
                 errorUserInfo["SQLiteResultCode"] = NSNumber(value: sqliteError.resultCode.rawValue)
                 errorUserInfo["SQLiteExtendedResultCode"] = NSNumber(value: sqliteError.extendedResultCode.rawValue)
             }

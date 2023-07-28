@@ -1,5 +1,5 @@
 //
-//  GRDBExtensions.swift
+//  AutofillCryptoProvider.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +17,27 @@
 //
 
 import Foundation
-import GRDB
+import CommonCrypto
+import CryptoKit
+import Security
+import SecureStorage
 
-extension Database {
+final class AutofillCryptoProvider: SecureStorageCryptoProvider {
 
-    func dropIndexIfExists(_ name: String) throws {
-        try execute(sql: "DROP INDEX IF EXISTS \(name.quotedDatabaseIdentifier)")
+    var keychainAccountName: String {
+#if os(iOS)
+        return "com.duckduckgo.mobile.ios"
+#else
+        return Bundle.main.bundleIdentifier ?? "com.duckduckgo.macos.browser"
+#endif
+    }
+
+    var keychainServiceName: String {
+        return "DuckDuckGo Secure Vault Hash"
+    }
+
+    var passwordSalt: Data {
+        return "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
     }
 
 }
