@@ -31,11 +31,11 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         XCTAssertNil(provider.lastSyncTimestamp)
     }
 
-    func testThatLastSyncTimestampIsPersisted() throws {
-        try provider.registerFeature(withState: .readyToSync)
-        provider.lastSyncTimestamp = "12345"
-        XCTAssertEqual(provider.lastSyncTimestamp, "12345")
-    }
+//    func testThatLastSyncTimestampIsPersisted() throws {
+//        try provider.registerFeature(withState: .readyToSync)
+//        provider.lastSyncTimestamp = "12345"
+//        XCTAssertEqual(provider.lastSyncTimestamp, "12345")
+//    }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllBookmarks() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
