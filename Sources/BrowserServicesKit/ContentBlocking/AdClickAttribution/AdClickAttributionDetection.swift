@@ -30,8 +30,10 @@ public protocol AdClickAttributionDetectionDelegate: AnyObject {
 public class AdClickAttributionDetection {
     
     enum State {
+
         case idle // Waiting for detection to start
         case detecting(String?) // Detection is in progress, parameter is vendor obtained from domain detection mechanism
+
     }
     
     private let attributionFeature: AdClickAttributing
