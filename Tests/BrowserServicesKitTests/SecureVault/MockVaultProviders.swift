@@ -17,10 +17,11 @@
 //
 
 import Foundation
+import SecureStorage
 import GRDB
 @testable import BrowserServicesKit
 
-internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
+internal class MockDatabaseProvider: AutofillDatabaseProvider {
 
     // swiftlint:disable identifier_name
     var _accounts = [SecureVaultModels.WebsiteAccount]()
@@ -31,6 +32,16 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
     var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
     var _note: SecureVaultModels.Note?
     // swiftlint:enable identifier_name
+
+    var db: DatabaseWriter
+
+    required init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
+        self.db = try! DatabaseQueue(named: "TestQueue")
+    }
+
+    static func recreateDatabase(withKey key: Data) throws -> Self {
+        return try MockDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self
+    }
 
     func hasAccountFor(username: String?, domain: String?) throws -> Bool {
         false
@@ -172,7 +183,19 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
 
 }
 
-internal class MockCryptoProvider: SecureVaultCryptoProvider {
+internal class MockCryptoProvider: SecureStorageCryptoProvider {
+
+    var passwordSalt: Data {
+        return Data()
+    }
+
+    var keychainServiceName: String {
+        return "service"
+    }
+
+    var keychainAccountName: String {
+        return "account"
+    }
 
     // swiftlint:disable identifier_name
     var _derivedKey: Data?
@@ -210,7 +233,7 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
         _lastKey = key
 
         guard let data = _decryptedData else {
-            throw SecureVaultError.invalidPassword
+            throw SecureStorageError.invalidPassword
         }
 
         return data
@@ -230,7 +253,19 @@ internal class MockCryptoProvider: SecureVaultCryptoProvider {
 
 }
 
-internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
+internal class NoOpCryptoProvider: SecureStorageCryptoProvider {
+    
+    var passwordSalt: Data {
+        return Data()
+    }
+
+    var keychainServiceName: String {
+        return "service"
+    }
+
+    var keychainAccountName: String {
+        return "account"
+    }
 
     var hashingSalt: Data?
 
@@ -272,7 +307,7 @@ internal class NoOpCryptoProvider: SecureVaultCryptoProvider {
 
 }
 
-internal class MockKeystoreProvider: SecureVaultKeyStoreProvider {
+internal class MockKeystoreProvider: SecureStorageKeyStoreProvider {
 
     // swiftlint:disable identifier_name
     var _l1Key: Data?
@@ -281,6 +316,26 @@ internal class MockKeystoreProvider: SecureVaultKeyStoreProvider {
     var _generatedPasswordCleared = false
     var _lastEncryptedL2Key: Data?
     // swiftlint:enable identifier_name
+
+    var generatedPasswordEntryName: String {
+        return ""
+    }
+
+    var l1KeyEntryName: String {
+        return ""
+    }
+
+    var l2KeyEntryName: String {
+        return ""
+    }
+
+    var keychainServiceName: String {
+        return ""
+    }
+
+    func attributesForEntry(named: String, serviceName: String) -> [String : Any] {
+        return [:]
+    }
 
     func storeGeneratedPassword(_ password: Data) throws {
     }

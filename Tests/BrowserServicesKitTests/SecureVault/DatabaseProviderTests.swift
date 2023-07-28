@@ -21,13 +21,14 @@ import Foundation
 import XCTest
 @testable import BrowserServicesKit
 import GRDB
+import SecureStorage
 
 // swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {
 
     private func deleteDbFile() throws {
         do {
-            let dbFile = DefaultDatabaseProvider.dbFile()
+            let dbFile = DefaultAutofillDatabaseProvider.defaultDatabaseURL()
             let dbFileContainer = dbFile.deletingLastPathComponent()
             for file in try FileManager.default.contentsOfDirectory(atPath: dbFileContainer.path) {
                 guard ["db", "bak"].contains((file as NSString).pathExtension) else { continue }
@@ -55,7 +56,7 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_account_delete_then_credential_is_deleted() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key)
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key)
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         let accountId = try database.storeWebsiteCredentials(credentials)
@@ -69,7 +70,7 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_credentials_stored_then_is_included_in_list_of_accounts() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
         for i in 0 ..< 10 {
             let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example\(i).com")
             let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
@@ -80,7 +81,7 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_password_stored_then_password_can_be_retrieved() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
 
         // The db stores whatever Data it is given so it will alredy be encrypted by this point
@@ -96,14 +97,14 @@ class DatabaseProviderTests: XCTestCase {
     func test_when_database_reopened_then_existing_data_still_exists() throws {
 
         func insert() throws {
-            let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+            let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
             let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
             let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
             try database.storeWebsiteCredentials(credentials)
         }
 
         func query() throws {
-            let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+            let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
             let results = try database.websiteAccountsForDomain("example.com")
             XCTAssertEqual(results.count, 1)
         }
@@ -114,7 +115,7 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_none_duplicate_records_stored_then_no_error_thrown() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
         for i in 0 ..< 1000 {
             let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example\(i).com")
             let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
@@ -122,8 +123,27 @@ class DatabaseProviderTests: XCTestCase {
         }
     }
 
+    func test_when_duplicate_record_stored_then_error_thrown() throws {
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
+        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        XCTAssertEqual(1, try database.storeWebsiteCredentials(credentials))
+
+        do {
+            let id = try database.storeWebsiteCredentials(credentials)
+            XCTFail("No exception for duplicate record, id: \(id)")
+        } catch {
+            switch error {
+            case SecureStorageError.duplicateRecord: break
+            default:
+                XCTFail("Unexected exception \(error)")
+            }
+        }
+
+    }
+
     func test_when_existing_record_stored_then_last_updated_date_is_updated() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
         let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         try database.storeWebsiteCredentials(credentials)
@@ -145,7 +165,7 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_record_stored_then_can_be_retrieved_and_is_allocated_id_and_dates() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
         let account = SecureVaultModels.WebsiteAccount(title: "Example Title", username: "brindy", domain: "example.com")
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
         try database.storeWebsiteCredentials(credentials)
@@ -161,31 +181,13 @@ class DatabaseProviderTests: XCTestCase {
     }
 
     func test_when_database_is_new_then_no_records() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
         let results = try database.websiteAccountsForDomain("example.com")
         XCTAssertTrue(results.isEmpty)
     }
 
-    func test_when_database_is_corrupt_then_it_can_be_recreated_with_backup() throws {
-        do {
-            try! "asdf".data(using: .utf8)!.write(to: DefaultDatabaseProvider.dbFile())
-            try _=DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
-            XCTFail("should throw an error at this point")
-        } catch {
-            let database = try DefaultDatabaseProvider.recreateDatabase(withKey: simpleL1Key)
-            let backupURL = DefaultDatabaseProvider.dbFile().appendingPathExtension("bak")
-            XCTAssertEqual(try! Data(contentsOf: backupURL), "asdf".data(using: .utf8))
-
-            let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
-            let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-            try database.storeWebsiteCredentials(credentials)
-
-            XCTAssertEqual(1, try database.accounts().count)
-        }
-    }
-
     func test_when_credentials_are_deleted_then_they_are_removed_from_the_database() throws {
-        let database = try DefaultDatabaseProvider(key: simpleL1Key) as SecureVaultDatabaseProvider
+        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
 
         let firstAccount = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example1.com")
         let firstAccountCredentials = SecureVaultModels.WebsiteCredentials(account: firstAccount, password: "password".data(using: .utf8)!)

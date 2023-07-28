@@ -26,7 +26,8 @@ let package = Package(
         .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
-        .library(name: "NetworkProtection", targets: ["NetworkProtection"])
+        .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
+        .library(name: "SecureStorage", targets: ["SecureStorage"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
@@ -47,12 +48,12 @@ let package = Package(
                 .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
                 "UserScript",
-                "ContentBlocking"
+                "ContentBlocking",
+                "SecureStorage"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -192,11 +193,18 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common"
+            ]),
+        .target(
+            name: "SecureStorage",
+            dependencies: [
+                "Common",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
         .target(name: "WireGuardC"),
 
-        // MARK: - Test targets
+        // MARK: - Test Targets
+
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
@@ -286,7 +294,13 @@ let package = Package(
                 .copy("Resources/servers-original-endpoint.json"),
                 .copy("Resources/servers-updated-endpoint.json")
             ]
-        )
+        ),
+        .testTarget(
+            name: "SecureStorageTests",
+            dependencies: [
+                "SecureStorage"
+            ]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )

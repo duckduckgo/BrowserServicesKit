@@ -1,5 +1,5 @@
 //
-//  SecureVault.swift
+//  AutofillSecureVault.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -19,6 +19,19 @@
 import Foundation
 import Common
 import GRDB
+import SecureStorage
+
+public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
+
+public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault>(
+    makeCryptoProvider: {
+        return AutofillCryptoProvider()
+    }, makeKeyStoreProvider: {
+        return AutofillKeyStoreProvider()
+    }, makeDatabaseProvider: { key in
+        return try DefaultAutofillDatabaseProvider(key: key)
+    }
+)
 
 /// A vault that supports storing data at various levels.
 ///
@@ -28,7 +41,7 @@ import GRDB
 /// * L3 - user password is required at time of request.  Currently no data at this level, but later e.g, credit cards.
 ///
 /// Data always goes in and comes out unencrypted.
-public protocol SecureVault {
+public protocol AutofillSecureVault: SecureVault {
 
     func getHashingSalt() throws -> Data?
 
@@ -36,8 +49,9 @@ public protocol SecureVault {
     func encrypt(_ data: Data, using key: Data) throws -> Data
     func decrypt(_ data: Data, using key: Data) throws -> Data
 
-    func authWith(password: Data) throws -> SecureVault
+    func authWith(password: Data) throws -> any AutofillSecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
+    
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
@@ -94,54 +108,45 @@ public protocol SecureVault {
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
 }
 
-/// Protocols can't be nested, but classes can.  This struct provides a 'namespace' for the default implementations of the providers to keep it clean for other things going on in this library.
-internal struct SecureVaultProviders {
+public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSecureVault {
 
-    var crypto: SecureVaultCryptoProvider
-    var database: SecureVaultDatabaseProvider
-    var keystore: SecureVaultKeyStoreProvider
-
-}
-
-class DefaultSecureVault: SecureVault {
+    public typealias AutofillStorageProviders = SecureStorageProviders<T>
 
     private let lock = NSLock()
-    private let queue = DispatchQueue(label: "Secure Vault")
 
-    private let providers: SecureVaultProviders
+    private let providers: AutofillStorageProviders
     private let expiringPassword: ExpiringValue<Data>
 
-    var authExpiry: TimeInterval {
+    public var authExpiry: TimeInterval {
         return expiringPassword.expiresAfter
     }
 
-    internal init(authExpiry: TimeInterval,
-                  providers: SecureVaultProviders) {
+    public required init(providers: AutofillStorageProviders) {
         self.providers = providers
-        self.expiringPassword = ExpiringValue(expiresAfter: authExpiry)
+        self.expiringPassword = ExpiringValue(expiresAfter: 60 * 60 * 24 * 3)
     }
 
     // MARK: - public interface (protocol candidates)
 
-    func getHashingSalt() throws -> Data? {
+    public func getHashingSalt() throws -> Data? {
         providers.crypto.hashingSalt
     }
 
-    func getEncryptionKey() throws -> Data {
+    public func getEncryptionKey() throws -> Data {
         let password = try passwordInUse()
         return try l2KeyFrom(password: password)
     }
 
-    func encrypt(_ data: Data, using key: Data) throws -> Data {
+    public func encrypt(_ data: Data, using key: Data) throws -> Data {
         try providers.crypto.encrypt(data, withKey: key)
     }
 
-    func decrypt(_ data: Data, using key: Data) throws -> Data {
+    public func decrypt(_ data: Data, using key: Data) throws -> Data {
         try providers.crypto.decrypt(data, withKey: key)
     }
 
     /// Sets the password which is retained for the given amount of time. Call this is you receive a `authRequired` error.
-    public func authWith(password: Data) throws -> SecureVault {
+    public func authWith(password: Data) throws -> any AutofillSecureVault {
         lock.lock()
         defer {
             lock.unlock()
@@ -152,7 +157,7 @@ class DefaultSecureVault: SecureVault {
             self.expiringPassword.value = password
             return self
         } catch {
-            let error = error as? SecureVaultError ?? .authError(cause: error)
+            let error = error as? SecureStorageError ?? .authError(cause: error)
             throw error
         }
     }
@@ -170,7 +175,7 @@ class DefaultSecureVault: SecureVault {
             // Use the provided old password if provided, or the stored generated password
             let generatedPassword = try self.providers.keystore.generatedPassword()
             guard let oldPassword = oldPassword ?? generatedPassword else {
-                throw SecureVaultError.invalidPassword
+                throw SecureStorageError.invalidPassword
             }
 
             // get decrypted l2key using old password
@@ -190,10 +195,10 @@ class DefaultSecureVault: SecureVault {
 
         } catch {
 
-            if let error = error as? SecureVaultError {
+            if let error = error as? SecureStorageError {
                 throw error
             } else {
-                throw SecureVaultError.databaseError(cause: error)
+                throw SecureStorageError.databaseError(cause: error)
             }
 
         }
@@ -209,7 +214,7 @@ class DefaultSecureVault: SecureVault {
         do {
             return try self.providers.database.accounts()
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -230,7 +235,7 @@ class DefaultSecureVault: SecureVault {
             }
             return []
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -242,11 +247,11 @@ class DefaultSecureVault: SecureVault {
         do {
             return try self.providers.database.websiteAccountsForTopLevelDomain(eTLDplus1)
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
-    func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+    public func hasAccountFor(username: String?, domain: String?) throws -> Bool {
         lock.lock()
         defer {
             lock.unlock()
@@ -254,7 +259,7 @@ class DefaultSecureVault: SecureVault {
         do {
             return try self.providers.database.hasAccountFor(username: username, domain: domain)
         } catch {
-            throw SecureVaultError.databaseError(cause: error)
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -279,7 +284,7 @@ class DefaultSecureVault: SecureVault {
 
             return decryptedCredentials
         } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
     }
@@ -303,12 +308,12 @@ class DefaultSecureVault: SecureVault {
             let encryptedCredentials = try encryptPassword(for: credentials)
             return try self.providers.database.storeWebsiteCredentials(encryptedCredentials)
         } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
     }
 
-    func storeSyncableCredentials(
+    public func storeSyncableCredentials(
         _ syncableCredentials: SecureVaultModels.SyncableCredentials,
         in database: Database,
         encryptedUsing l2Key: Data,
@@ -333,16 +338,16 @@ class DefaultSecureVault: SecureVault {
             let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!, using: l2Key)
             return .init(account: creds.account, password: encryptedPassword)
         } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
     }
 
-    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+    public func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         try self.providers.database.deleteSyncableCredentials(syncableCredentials, in: database)
     }
 
-    func deleteWebsiteCredentialsFor(accountId: Int64) throws {
+    public func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
         }
@@ -350,25 +355,25 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Notes
 
-    func notes() throws -> [SecureVaultModels.Note] {
+    public func notes() throws -> [SecureVaultModels.Note] {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.notes()
         }
     }
 
-    func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
+    public func noteFor(id: Int64) throws -> SecureVaultModels.Note? {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.noteForNoteId(id)
         }
     }
 
-    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+    public func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeNote(note)
         }
     }
 
-    func deleteNoteFor(noteId: Int64) throws {
+    public func deleteNoteFor(noteId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteNoteForNoteId(noteId)
         }
@@ -376,32 +381,32 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Identities
 
-    func identities() throws -> [SecureVaultModels.Identity] {
+    public func identities() throws -> [SecureVaultModels.Identity] {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.identities()
         }
     }
 
-    func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
+    public func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.identityForIdentityId(id)
         }
     }
 
     @discardableResult
-    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+    public func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.storeIdentity(identity)
         }
     }
 
-    func deleteIdentityFor(identityId: Int64) throws {
+    public func deleteIdentityFor(identityId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteIdentityForIdentityId(identityId)
         }
     }
     
-    func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
+    public func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
         let identities = try self.identities()
         
         return identities.first { existingIdentity in
@@ -411,7 +416,7 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Credit Cards
 
-    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+    public func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try executeThrowingDatabaseOperation {
             let cards =  try self.providers.database.creditCards()
             
@@ -426,7 +431,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
+    public func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard? {
         return try executeThrowingDatabaseOperation {
             guard var card = try self.providers.database.creditCardForCardId(id) else {
                 return nil
@@ -438,7 +443,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
     
-    func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
+    public func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
         let cards = try self.creditCards()
         
         return cards.first { existingCard in
@@ -447,7 +452,7 @@ class DefaultSecureVault: SecureVault {
     }
 
     @discardableResult
-    func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
+    public func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             var mutableCard = card
             
@@ -458,7 +463,7 @@ class DefaultSecureVault: SecureVault {
         }
     }
 
-    func deleteCreditCardFor(cardId: Int64) throws {
+    public func deleteCreditCardFor(cardId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteCreditCardForCreditCardId(cardId)
         }
@@ -466,13 +471,13 @@ class DefaultSecureVault: SecureVault {
 
     // MARK: - Sync Support
 
-    func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws {
+    public func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.inTransaction(block)
         }
     }
 
-    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
+    public func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         lock.lock()
         defer {
             lock.unlock()
@@ -490,16 +495,16 @@ class DefaultSecureVault: SecureVault {
 
             return syncableCredentials
         } catch {
-            let error = error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
     }
 
-    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         try self.providers.database.syncableCredentialsForSyncIds(syncIds, in: database)
     }
 
-    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+    public func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
         try self.providers.database.syncableCredentialsForAccountId(accountId, in: database)
     }
 
@@ -514,7 +519,7 @@ class DefaultSecureVault: SecureVault {
         do {
             return try operation()
         } catch {
-            throw error as? SecureVaultError ?? SecureVaultError.databaseError(cause: error)
+            throw error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -527,13 +532,13 @@ class DefaultSecureVault: SecureVault {
             return userPassword
         }
 
-        throw SecureVaultError.authRequired
+        throw SecureStorageError.authRequired
     }
 
     private func l2KeyFrom(password: Data) throws -> Data {
         let decryptionKey = try providers.crypto.deriveKeyFromPassword(password)
         guard let encryptedL2Key = try providers.keystore.encryptedL2Key() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }

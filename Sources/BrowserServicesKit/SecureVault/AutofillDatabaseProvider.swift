@@ -1,5 +1,5 @@
 //
-//  SecureVaultDatabaseProvider.swift
+//  AutofillDatabaseProvider.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -19,8 +19,9 @@
 import Common
 import Foundation
 import GRDB
+import SecureStorage
 
-protocol SecureVaultDatabaseProvider {
+public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
@@ -65,40 +66,14 @@ protocol SecureVaultDatabaseProvider {
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 }
 
-final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
+public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
-    enum DbError: Error {
-        case nonRecoverable(DatabaseError)
-
-        var databaseError: DatabaseError {
-            switch self {
-            case .nonRecoverable(let dbError): return dbError
-            }
-        }
+    public static func defaultDatabaseURL() -> URL {
+        return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
     }
 
-    let db: DatabaseQueue
-
-    init(file: URL = DefaultDatabaseProvider.dbFile(), key: Data, customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
-        var config = Configuration()
-        config.prepareDatabase {
-            try $0.usePassphrase(key)
-        }
-
-        do {
-            db = try DatabaseQueue(path: file.path, configuration: config)
-        } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
-            os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
-            throw DbError.nonRecoverable(error)
-        } catch {
-            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
-            throw error
-        }
-
-        var migrator = DatabaseMigrator()
-        if let customMigrations {
-            customMigrations(&migrator)
-        } else {
+    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data) throws {
+        try super.init(file: file, key: key, writerType: .queue) { migrator in
             migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
             migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
             migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
@@ -109,56 +84,16 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
             migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
             migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
-            // Add more sync migrations here ...
-            // Note, these migrations will run synchronously on first access to secureVault DB
-        }
-
-        do {
-            try migrator.migrate(db)
-        } catch {
-            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
-            throw error
         }
     }
 
-    static func recreateDatabase(withKey key: Data) throws -> DefaultDatabaseProvider {
-        let dbFile = self.dbFile()
-
-        guard FileManager.default.fileExists(atPath: dbFile.path) else {
-            return try Self(file: dbFile, key: key)
-        }
-
-        // make sure we can create an empty db first and release it then
-        let newDbFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension)
-        try autoreleasepool {
-            try _=Self(file: newDbFile, key: key)
-        }
-
-        // backup old db file
-        let backupFile = self.nonExistingDBFile(withExtension: dbFile.pathExtension + ".bak")
-        try FileManager.default.moveItem(at: dbFile, to: backupFile)
-
-        // place just created new db in place of dbFile
-        try FileManager.default.moveItem(at: newDbFile, to: dbFile)
-
-        return try Self(file: dbFile, key: key)
-    }
-
-    func inTransaction(_ block: @escaping (Database) throws -> Void) throws {
-        try db.inTransaction { database in
-            try block(database)
-            return .commit
+    public func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
+        try db.read {
+            try SecureVaultModels.WebsiteAccount.fetchAll($0)
         }
     }
 
-    func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
-        return try db.read {
-            return try SecureVaultModels.WebsiteAccount
-                .fetchAll($0)
-        }
-    }
-
-    func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+    public func hasAccountFor(username: String?, domain: String?) throws -> Bool {
         let account = try db.read {
             try SecureVaultModels.WebsiteAccount
                 .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain) &&
@@ -168,7 +103,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         return account != nil
     }
 
-    func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
+    public func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         try db.read {
             try websiteAccountsForDomain(domain, in: $0)
         }
@@ -180,7 +115,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             .fetchAll(database)
     }
 
-    func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
+    public func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         return try db.read { db in
             let query = SecureVaultModels.WebsiteAccount
                 .filter(Column(SecureVaultModels.WebsiteAccount.Columns.domain.name) == eTLDplus1 ||
@@ -190,13 +125,25 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         try db.write {
             try storeWebsiteCredentials(credentials, in: $0)
         }
     }
 
-    func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+    @discardableResult
+    public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
+
+        if let stringId = credentials.account.id, let id = Int64(stringId) {
+            try updateWebsiteCredentials(in: database, credentials, usingId: id)
+            return id
+        } else {
+            return try insertWebsiteCredentials(in: database, credentials)
+        }
+    }
+
+
+    public func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         guard var credentials = syncableCredentials.credentials else {
             assertionFailure("Nil credentials passed to \(#function)")
             return
@@ -211,32 +158,21 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             try updatedSyncableCredentials.metadata.save(database)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                throw SecureVaultError.duplicateRecord
+                throw SecureStorageError.duplicateRecord
             } else {
                 throw error
             }
         }
     }
 
-    @discardableResult
-    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
-
-        if let stringId = credentials.account.id, let id = Int64(stringId) {
-            try updateWebsiteCredentials(in: database, credentials, usingId: id)
-            return id
-        } else {
-            return try insertWebsiteCredentials(in: database, credentials)
-        }
-    }
-
-    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+    public func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         if let accountId = syncableCredentials.metadata.objectId {
             try deleteWebsiteCredentialsForAccountId(accountId, in: database)
         }
         try syncableCredentials.metadata.delete(database)
     }
 
-    func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+    public func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
         try db.write {
             try deleteWebsiteCredentialsForAccountId(accountId, in: $0)
         }
@@ -267,7 +203,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName, objectId: id, timestamp: timestamp)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                throw SecureVaultError.duplicateRecord
+                throw SecureStorageError.duplicateRecord
             } else {
                 throw error
             }
@@ -296,14 +232,14 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
             return id
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
-                throw SecureVaultError.duplicateRecord
+                throw SecureStorageError.duplicateRecord
             } else {
                 throw error
             }
         }
     }
 
-    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
+    public func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         try db.read { database in
             try SecureVaultModels.SyncableCredentials.query
                 .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified != nil)
@@ -311,19 +247,19 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         try SecureVaultModels.SyncableCredentials.query
             .filter(syncIds.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
             .fetchAll(database)
     }
 
-    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+    public func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
         try SecureVaultModels.SyncableCredentials.query
             .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.objectId == accountId)
             .fetchOne(database)
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
+    public func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
         guard let account = try SecureVaultModels.WebsiteAccount.fetchOne(database, key: accountId) else {
             return nil
         }
@@ -346,7 +282,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         return nil
     }
 
-    func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
+    public func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         try db.read {
             try websiteCredentialsForAccountId(accountId, in: $0)
         }
@@ -354,13 +290,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: Notes
 
-    func notes() throws -> [SecureVaultModels.Note] {
+    public func notes() throws -> [SecureVaultModels.Note] {
         return try db.read {
             return try SecureVaultModels.Note.fetchAll($0)
         }
     }
 
-    func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note? {
+    public func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note? {
         try db.read {
             return try SecureVaultModels.Note.fetchOne($0, sql: """
                 SELECT
@@ -373,7 +309,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
+    public func storeNote(_ note: SecureVaultModels.Note) throws -> Int64 {
         if let id = note.id {
             try updateNote(note, usingId: id)
             return id
@@ -382,7 +318,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteNoteForNoteId(_ noteId: Int64) throws {
+    public func deleteNoteForNoteId(_ noteId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -408,13 +344,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: Identities
 
-    func identities() throws -> [SecureVaultModels.Identity] {
+    public func identities() throws -> [SecureVaultModels.Identity] {
         return try db.read {
             return try SecureVaultModels.Identity.fetchAll($0)
         }
     }
 
-    func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
+    public func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
         try db.read {
             return try SecureVaultModels.Identity.fetchOne($0, sql: """
                 SELECT
@@ -428,7 +364,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
+    public func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64 {
         if let id = identity.id {
             try updateIdentity(identity, usingId: id)
             return id
@@ -437,7 +373,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteIdentityForIdentityId(_ identityId: Int64) throws {
+    public func deleteIdentityForIdentityId(_ identityId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -463,13 +399,13 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: Credit Cards
 
-    func creditCards() throws -> [SecureVaultModels.CreditCard] {
+    public func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try db.read {
             return try SecureVaultModels.CreditCard.fetchAll($0)
         }
     }
 
-    func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
+    public func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
         try db.read {
             return try SecureVaultModels.CreditCard.fetchOne($0, sql: """
                 SELECT
@@ -483,7 +419,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
     }
 
     @discardableResult
-    func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
+    public func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64 {
         if let id = creditCard.id {
             try updateCreditCard(creditCard)
             return id
@@ -492,7 +428,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
         }
     }
 
-    func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
+    public func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
         try db.write {
             try $0.execute(sql: """
                 DELETE FROM
@@ -518,7 +454,7 @@ final class DefaultDatabaseProvider: SecureVaultDatabaseProvider {
 
     // MARK: - Sync
 
-    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date? = Date()) throws {
+    public func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date? = Date()) throws {
         try database.execute(sql: """
             UPDATE
                 \(tableName)
@@ -559,7 +495,7 @@ extension Date {
 
 // MARK: - Database Migrations
 
-extension DefaultDatabaseProvider {
+extension DefaultAutofillDatabaseProvider {
 
     static func migrateV1(database: Database) throws {
 
@@ -637,7 +573,8 @@ extension DefaultDatabaseProvider {
         try database.drop(table: Account.databaseTableName + "Old")
         try database.drop(table: Credentials.databaseTableName + "Old")
 
-        try database.dropIndexIfExists(Account.databaseTableName + "_unique")
+        let indexName = (Account.databaseTableName + "_unique").quotedDatabaseIdentifier
+        try database.execute(sql: "DROP INDEX IF EXISTS \(indexName)")
 
         // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
         try database.create(index: Account.databaseTableName + "_unique",
@@ -712,8 +649,8 @@ extension DefaultDatabaseProvider {
             $0.add(column: SecureVaultModels.Identity.Columns.addressStreet2.name, .text)
         }
 
-        let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
-        let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
+        let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
 
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
         // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
@@ -874,8 +811,8 @@ extension DefaultDatabaseProvider {
     // Refresh password comparison hashes
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
-        let cryptoProvider: SecureVaultCryptoProvider = SecureVaultFactory.default.makeCryptoProvider()
-        let keyStoreProvider: SecureVaultKeyStoreProvider = SecureVaultFactory.default.makeKeyStoreProvider()
+        let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
         let salt = cryptoProvider.hashingSalt
 
         while let accountRow = try accountRows.next() {
@@ -928,17 +865,17 @@ extension DefaultDatabaseProvider {
 
 struct MigrationUtility {
     
-    static func l2encrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureVaultKeyStoreProvider) throws -> Data {
-        let (crypto, keyStore) = try SecureVaultFactory.default.createAndInitializeEncryptionProviders()
+    static func l2encrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
+        let (crypto, keyStore) = try AutofillSecureVaultFactory.createAndInitializeEncryptionProviders()
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
 
         guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
@@ -946,65 +883,21 @@ struct MigrationUtility {
         return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
     
-    static func l2decrypt(data: Data, cryptoProvider: SecureVaultCryptoProvider, keyStoreProvider: SecureVaultKeyStoreProvider) throws -> Data {
+    static func l2decrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = (cryptoProvider, keyStoreProvider)
         
         guard let generatedPassword = try keyStore.generatedPassword() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptionKey = try crypto.deriveKeyFromPassword(generatedPassword)
 
         guard let encryptedL2Key = try keyStore.encryptedL2Key() else {
-            throw SecureVaultError.noL2Key
+            throw SecureStorageError.noL2Key
         }
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
         return try crypto.decrypt(data, withKey: decryptedL2Key)
-    }
-
-}
-
-extension DefaultDatabaseProvider {
-
-    static internal func dbFile() -> URL {
-
-        let fm = FileManager.default
-        let subDir = fm.applicationSupportDirectoryForComponent(named: "Vault")
-
-        var isDir: ObjCBool = false
-        if !fm.fileExists(atPath: subDir.path, isDirectory: &isDir) {
-            do {
-                try fm.createDirectory(at: subDir, withIntermediateDirectories: true, attributes: nil)
-                isDir = true
-            } catch {
-                fatalError("Failed to create directory at \(subDir.path)")
-            }
-        }
-
-        if !isDir.boolValue {
-            fatalError("Configuration folder at \(subDir.path) is not a directory")
-        }
-
-        return subDir.appendingPathComponent("Vault.db")
-    }
-
-    static internal func nonExistingDBFile(withExtension ext: String) -> URL {
-        let originalPath = Self.dbFile().deletingPathExtension().path
-
-        for i in 0... {
-            var path = originalPath
-            if i > 0 {
-                path += "_\(i)"
-            }
-            path += "." + ext
-
-            if !FileManager.default.fileExists(atPath: path) {
-                return URL(fileURLWithPath: path)
-            }
-        }
-
-        fatalError()
     }
 
 }
