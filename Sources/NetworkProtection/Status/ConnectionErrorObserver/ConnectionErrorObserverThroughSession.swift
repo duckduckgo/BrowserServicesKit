@@ -94,22 +94,9 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
     // MARK: - Obtaining the NetP VPN status
 
     private func updateTunnelErrorMessage(session: NETunnelProviderSession) throws {
-        let request = Data([ExtensionMessage.getLastErrorMessage.rawValue])
-        try session.sendProviderMessage(request) { [weak self] data in
-            guard let self = self else {
-                return
-            }
-
-            guard let data = data else {
-                publisher.send(nil)
-                return
-            }
-
-            let errorMessage = String(data: data, encoding: ExtensionMessage.preferredStringEncoding)
-
-            if errorMessage != self.publisher.value {
-                self.publisher.send(errorMessage)
-            }
+        try session.sendProviderMessage(.getLastErrorMessage) { [weak self] (errorMessage: ExtensionMessageString?) in
+            guard errorMessage?.value != self?.publisher.value else { return }
+            self?.publisher.send(errorMessage?.value)
         }
     }
 }

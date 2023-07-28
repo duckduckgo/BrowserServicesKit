@@ -239,10 +239,10 @@ final class NetworkProtectionConnectionTester {
             }
 
             if onlyVPNIsDown {
-                os_log("👎", log: log, type: .debug)
+                os_log("👎 VPN is DOWN", log: log, type: .debug)
                 await handleDisconnected()
             } else {
-                os_log("👍", log: log, type: .debug)
+                os_log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")", log: log, type: .debug)
                 await handleConnected()
             }
         }

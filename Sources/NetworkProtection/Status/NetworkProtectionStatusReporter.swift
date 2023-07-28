@@ -149,22 +149,11 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
     /// Queries the extension for connectivity issues and updates the state locally.
     ///
     private func updateConnectivityIssues(session: NETunnelProviderSession) throws {
-        let request = Data([ExtensionMessage.isHavingConnectivityIssues.rawValue])
-        try session.sendProviderMessage(request) { [weak self] data in
-            guard let self = self,
-                  let data = data else {
-                return
-            }
+        try session.sendProviderMessage(.isHavingConnectivityIssues) { [weak self] (response: ExtensionMessageBool?) in
+            guard let isHavingConnectivityIssues = response?.value,
+                  isHavingConnectivityIssues != self?.connectivityIssuesPublisher.value else { return }
 
-            // This is a quick solution for now to decode a bool from the data, which
-            // indicates whether there are connection issues or not.
-            // A more appropriate solution when we have time would be to use proper encoding
-            // maybe using a JSON encoder.
-            let isHavingConnectivityIssues = data[0] == 1
-
-            if isHavingConnectivityIssues != self.connectivityIssuesPublisher.value {
-                self.connectivityIssuesPublisher.send(isHavingConnectivityIssues)
-            }
+            self?.connectivityIssuesPublisher.send(isHavingConnectivityIssues)
         }
     }
 
