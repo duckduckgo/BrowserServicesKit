@@ -22,12 +22,13 @@ import Common
 import DDGSync
 import GRDB
 import Persistence
+import SecureStorage
 @testable import BrowserServicesKit
 @testable import SyncDataProviders
 
 final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
-    var _secureVaultInitFailed: (SecureVaultError) -> Void = { _ in }
-    func secureVaultInitFailed(_ error: SecureVaultError) {
+    var _secureVaultInitFailed: (SecureStorageError) -> Void = { _ in }
+    func secureVaultInitFailed(_ error: SecureStorageError) {
         _secureVaultInitFailed(error)
     }
 }
@@ -36,7 +37,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
 
     let simpleL1Key = "simple-key".data(using: .utf8)!
     var databaseLocation: URL!
-    var databaseProvider: DefaultDatabaseProvider!
+    var databaseProvider: DefaultAutofillDatabaseProvider!
 
     var metadataDatabase: CoreDataDatabase!
     var metadataDatabaseLocation: URL!
@@ -44,8 +45,8 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     var crypter = CryptingMock()
     var provider: CredentialsProvider!
 
-    var secureVaultFactory: SecureVaultFactory!
-    var secureVault: SecureVault!
+    var secureVaultFactory: AutofillVaultFactory!
+    var secureVault: (any AutofillSecureVault)!
 
     func setUpSyncMetadataDatabase() {
         metadataDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -79,8 +80,8 @@ internal class CredentialsProviderTestsBase: XCTestCase {
         try super.setUpWithError()
 
         databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
-        databaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
-        secureVaultFactory = TestSecureVaultFactory(databaseProvider: databaseProvider)
+        databaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        secureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: databaseProvider)
         try makeSecureVault()
 
         setUpSyncMetadataDatabase()
@@ -125,7 +126,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     }
 }
 
-extension SecureVault {
+extension AutofillSecureVault {
     func storeCredentials(domain: String? = nil, username: String? = nil, password: String? = nil, notes: String? = nil) throws {
         let passwordData = password.flatMap { $0.data(using: .utf8) }
         let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, notes: notes)

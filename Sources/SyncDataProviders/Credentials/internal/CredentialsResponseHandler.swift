@@ -25,7 +25,7 @@ import GRDB
 final class CredentialsResponseHandler {
     let clientTimestamp: Date
     let received: [Syncable]
-    let secureVault: SecureVault
+    let secureVault: any AutofillSecureVault
     let database: Database
     let shouldDeduplicateEntities: Bool
 
@@ -34,7 +34,7 @@ final class CredentialsResponseHandler {
 
     private let decrypt: (String) throws -> String
 
-    init(received: [Syncable], clientTimestamp: Date, secureVault: SecureVault, database: Database, crypter: Crypting, deduplicateEntities: Bool) throws {
+    init(received: [Syncable], clientTimestamp: Date, secureVault: any AutofillSecureVault, database: Database, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
         self.received = received
         self.secureVault = secureVault

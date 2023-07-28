@@ -21,6 +21,7 @@ import Foundation
 import Combine
 import Common
 import GRDB
+import SecureStorage
 import os.log
 
 public struct CredentialsCleanupError: Error {
@@ -30,7 +31,7 @@ public struct CredentialsCleanupError: Error {
 public final class CredentialsDatabaseCleaner {
 
     public init(
-        secureVaultFactory: SecureVaultFactory,
+        secureVaultFactory: AutofillVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
         log: @escaping @autoclosure () -> OSLog = .disabled,
@@ -89,7 +90,7 @@ public final class CredentialsDatabaseCleaner {
                     }
                     break
                 } catch {
-                    if case SecureVaultError.databaseError(let cause) = error, let databaseError = cause as? DatabaseError {
+                    if case SecureStorageError.databaseError(let cause) = error, let databaseError = cause as? DatabaseError {
                         switch databaseError {
                         case .SQLITE_BUSY, .SQLITE_LOCKED:
                             saveAttemptsLeft -= 1
@@ -127,7 +128,7 @@ public final class CredentialsDatabaseCleaner {
     }
 
     private let errorEvents: EventMapping<CredentialsCleanupError>?
-    private let secureVaultFactory: SecureVaultFactory
+    private let secureVaultFactory: AutofillVaultFactory
     private let secureVaultErrorReporter: SecureVaultErrorReporting
     private let triggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "CredentialsDatabaseCleaner queue", qos: .userInitiated)

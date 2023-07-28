@@ -22,11 +22,12 @@ import BrowserServicesKit
 import Combine
 import DDGSync
 import GRDB
+import SecureStorage
 
 public final class CredentialsProvider: DataProvider {
 
     public init(
-        secureVaultFactory: SecureVaultFactory = .default,
+        secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
         syncDidUpdateData: @escaping () -> Void
@@ -121,7 +122,6 @@ public final class CredentialsProvider: DataProvider {
                         sent,
                         receivedUUIDs: Set(responseHandler.allReceivedIDs),
                         clientTimestamp: clientTimestampMilliseconds,
-                        secureVault: secureVault,
                         in: database
                     )
 
@@ -131,11 +131,11 @@ public final class CredentialsProvider: DataProvider {
 #endif
 
                     let uuids = idsOfItemsToClearModifiedAt.union(responseHandler.allReceivedIDs)
-                    try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestampMilliseconds, secureVault: secureVault, in: database)
+                    try self.clearModifiedAt(uuids: uuids, clientTimestamp: clientTimestampMilliseconds, in: database)
                 }
                 break
             } catch {
-                if case SecureVaultError.databaseError(let cause) = error, let databaseError = cause as? DatabaseError {
+                if case SecureStorageError.databaseError(let cause) = error, let databaseError = cause as? DatabaseError {
                     switch databaseError {
                     case .SQLITE_BUSY, .SQLITE_LOCKED:
                         saveAttemptsLeft -= 1
@@ -163,7 +163,7 @@ public final class CredentialsProvider: DataProvider {
         }
     }
 
-    func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws -> Set<String> {
+    func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in database: Database) throws -> Set<String> {
         if sent.isEmpty {
             return []
         }
@@ -190,7 +190,7 @@ public final class CredentialsProvider: DataProvider {
         return idsOfItemsToClearModifiedAt
     }
 
-    private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, secureVault: SecureVault, in database: Database) throws {
+    private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date, in database: Database) throws {
 
         let request = SecureVaultModels.SyncableCredentialsRecord
             .filter(uuids.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
@@ -207,7 +207,7 @@ public final class CredentialsProvider: DataProvider {
 
     // MARK: - Private
 
-    private let secureVaultFactory: SecureVaultFactory
+    private let secureVaultFactory: AutofillVaultFactory
     private let secureVaultErrorReporter: SecureVaultErrorReporting
 
     enum Const {

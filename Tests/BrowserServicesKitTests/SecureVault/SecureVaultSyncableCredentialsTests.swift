@@ -25,12 +25,12 @@ class SecureVaultSyncableCredentialsTests: XCTestCase {
 
     let simpleL1Key = "simple-key".data(using: .utf8)!
     var databaseLocation: URL!
-    var provider: DefaultDatabaseProvider!
+    var provider: DefaultAutofillDatabaseProvider!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
-        provider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        provider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
     }
 
     override func tearDownWithError() throws {

@@ -72,18 +72,28 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
     }
 
-    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data) throws {
+    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data, customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
         try super.init(file: file, key: key, writerType: .queue) { migrator in
-            migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
-            migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
-            migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
-            migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
-            migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
-            migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
-            migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
-            migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
-            migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
-            migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
+            if let customMigrations {
+                customMigrations(&migrator)
+            } else {
+                migrator.registerMigration("v1", migrate: Self.migrateV1(database:))
+                migrator.registerMigration("v2", migrate: Self.migrateV2(database:))
+                migrator.registerMigration("v3", migrate: Self.migrateV3(database:))
+                migrator.registerMigration("v4", migrate: Self.migrateV4(database:))
+                migrator.registerMigration("v5", migrate: Self.migrateV5(database:))
+                migrator.registerMigration("v6", migrate: Self.migrateV6(database:))
+                migrator.registerMigration("v7", migrate: Self.migrateV7(database:))
+                migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
+                migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
+                migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
+            }
+        }
+    }
+
+    public func inTransaction(_ block: @escaping (GRDB.Database) throws -> Void) throws {
+        try db.write { database in
+            try block(database)
         }
     }
 
@@ -796,7 +806,8 @@ extension DefaultAutofillDatabaseProvider {
             """, arguments: [UUID().uuidString, accountId])
         }
 
-        try database.dropIndexIfExists(Account.databaseTableName + "_unique")
+        let indexName = (Account.databaseTableName + "_unique").quotedDatabaseIdentifier
+        try database.execute(sql: "DROP INDEX IF EXISTS \(indexName)")
 
         // ifNotExists: false will throw an error if this exists already, which is ok as this shouldn't get called more than once
         try database.create(

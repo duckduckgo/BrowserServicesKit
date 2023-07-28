@@ -180,7 +180,8 @@ let package = Package(
                 "BrowserServicesKit",
                 "DDGSync",
                 .product(name: "GRDB", package: "GRDB.swift"),
-                "Persistence"
+                "Persistence",
+                "SecureStorage"
             ]),
         .target(
             name: "TestUtils",

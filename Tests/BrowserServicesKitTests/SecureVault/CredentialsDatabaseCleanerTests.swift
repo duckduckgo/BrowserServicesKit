@@ -20,6 +20,7 @@
 import XCTest
 import Common
 import GRDB
+import SecureStorage
 @testable import BrowserServicesKit
 
 final class MockEventMapper: EventMapping<CredentialsCleanupError> {
@@ -41,19 +42,34 @@ final class MockEventMapper: EventMapping<CredentialsCleanupError> {
 }
 
 final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
-    var _secureVaultInitFailed: (SecureVaultError) -> Void = { _ in }
-    func secureVaultInitFailed(_ error: SecureVaultError) {
+    var _secureVaultInitFailed: (SecureStorageError) -> Void = { _ in }
+    func secureVaultInitFailed(_ error: SecureStorageError) {
         _secureVaultInitFailed(error)
+    }
+}
+
+extension AutofillVaultFactory {
+    static func testFactory(databaseProvider: DefaultAutofillDatabaseProvider) -> AutofillVaultFactory {
+        AutofillVaultFactory(makeCryptoProvider: {
+            NoOpCryptoProvider()
+        }, makeKeyStoreProvider: {
+            let provider = MockKeystoreProvider()
+            provider._l1Key = "l1".data(using: .utf8)
+            provider._encryptedL2Key = "encrypted".data(using: .utf8)
+            return provider
+        }, makeDatabaseProvider: { _ in
+            databaseProvider
+        })
     }
 }
 
 final class CredentialsDatabaseCleanerTests: XCTestCase {
     let simpleL1Key = "simple-key".data(using: .utf8)!
     var databaseLocation: URL!
-    var databaseProvider: DefaultDatabaseProvider!
+    var databaseProvider: DefaultAutofillDatabaseProvider!
 
-    var secureVaultFactory: SecureVaultFactory!
-    var secureVault: SecureVault!
+    var secureVaultFactory: AutofillVaultFactory!
+    var secureVault: (any AutofillSecureVault)!
 
     var location: URL!
     var databaseCleaner: CredentialsDatabaseCleaner!
@@ -63,8 +79,8 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
         try super.setUpWithError()
 
         databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
-        databaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
-        secureVaultFactory = TestSecureVaultFactory(databaseProvider: databaseProvider)
+        databaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        secureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: databaseProvider)
         secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
 
@@ -128,33 +144,7 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
     }
 }
 
-class TestSecureVaultFactory: SecureVaultFactory {
-
-    var mockCryptoProvider = NoOpCryptoProvider()
-    var mockKeystoreProvider = MockKeystoreProvider()
-    var databaseProvider: DefaultDatabaseProvider
-
-    init(databaseProvider: DefaultDatabaseProvider) {
-        self.databaseProvider = databaseProvider
-        mockKeystoreProvider._l1Key = "l1".data(using: .utf8)
-        mockKeystoreProvider._encryptedL2Key = "encrypted".data(using: .utf8)
-        super.init()
-    }
-
-    override func makeCryptoProvider() -> SecureVaultCryptoProvider {
-        mockCryptoProvider
-    }
-
-    override func makeKeyStoreProvider() -> SecureVaultKeyStoreProvider {
-        mockKeystoreProvider
-    }
-
-    override func makeDatabaseProvider(key: Data) throws -> SecureVaultDatabaseProvider {
-        databaseProvider
-    }
-}
-
-extension SecureVault {
+extension AutofillSecureVault {
     func storeCredentials(domain: String? = nil, username: String? = nil, password: String? = nil, notes: String? = nil) throws {
         let passwordData = password.flatMap { $0.data(using: .utf8) }
         let account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, notes: notes)

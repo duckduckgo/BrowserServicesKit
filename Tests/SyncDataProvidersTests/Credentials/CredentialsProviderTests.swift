@@ -170,8 +170,8 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
     func testWhenDatabaseIsLockedDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
 
-        let localDatabaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
-        let localSecureVaultFactory = TestSecureVaultFactory(databaseProvider: localDatabaseProvider)
+        let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        let localSecureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: localDatabaseProvider)
         let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
         _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
 
@@ -280,8 +280,8 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
     func testWhenDatabaseIsLockedDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
 
-        let localDatabaseProvider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key)
-        let localSecureVaultFactory = TestSecureVaultFactory(databaseProvider: localDatabaseProvider)
+        let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
+        let localSecureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: localDatabaseProvider)
         let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
         _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
 

@@ -25,22 +25,22 @@ class SecureVaultSyncableCredentialsMigrationPerformanceTests: XCTestCase {
 
     let simpleL1Key = "simple-key".data(using: .utf8)!
     var databaseLocation: URL!
-    var provider: DefaultDatabaseProvider!
+    var provider: DefaultAutofillDatabaseProvider!
 
     func testV10Migration() throws {
         measureMetrics([.wallClockTime], automaticallyStartMeasuring: false) {
             do {
                 databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
-                provider = try DefaultDatabaseProvider(file: databaseLocation, key: simpleL1Key, customMigrations: { migrator in
-                    migrator.registerMigration("v1", migrate: DefaultDatabaseProvider.migrateV1(database:))
-                    migrator.registerMigration("v2", migrate: DefaultDatabaseProvider.migrateV2(database:))
-                    migrator.registerMigration("v3", migrate: DefaultDatabaseProvider.migrateV3(database:))
-                    migrator.registerMigration("v4", migrate: DefaultDatabaseProvider.migrateV4(database:))
-                    migrator.registerMigration("v5", migrate: DefaultDatabaseProvider.migrateV5(database:))
-                    migrator.registerMigration("v6", migrate: DefaultDatabaseProvider.migrateV6(database:))
-                    migrator.registerMigration("v7", migrate: DefaultDatabaseProvider.migrateV7(database:))
-                    migrator.registerMigration("v8", migrate: DefaultDatabaseProvider.migrateV8(database:))
-                    migrator.registerMigration("v9", migrate: DefaultDatabaseProvider.migrateV9(database:))
+                provider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key, customMigrations: { migrator in
+                    migrator.registerMigration("v1", migrate: DefaultAutofillDatabaseProvider.migrateV1(database:))
+                    migrator.registerMigration("v2", migrate: DefaultAutofillDatabaseProvider.migrateV2(database:))
+                    migrator.registerMigration("v3", migrate: DefaultAutofillDatabaseProvider.migrateV3(database:))
+                    migrator.registerMigration("v4", migrate: DefaultAutofillDatabaseProvider.migrateV4(database:))
+                    migrator.registerMigration("v5", migrate: DefaultAutofillDatabaseProvider.migrateV5(database:))
+                    migrator.registerMigration("v6", migrate: DefaultAutofillDatabaseProvider.migrateV6(database:))
+                    migrator.registerMigration("v7", migrate: DefaultAutofillDatabaseProvider.migrateV7(database:))
+                    migrator.registerMigration("v8", migrate: DefaultAutofillDatabaseProvider.migrateV8(database:))
+                    migrator.registerMigration("v9", migrate: DefaultAutofillDatabaseProvider.migrateV9(database:))
                 })
 
                 try provider.db.write { database in
@@ -55,10 +55,11 @@ class SecureVaultSyncableCredentialsMigrationPerformanceTests: XCTestCase {
                 }
 
                 var migrator = DatabaseMigrator()
-                migrator.registerMigration("v10", migrate: DefaultDatabaseProvider.migrateV10(database:))
+                migrator.registerMigration("v10", migrate: DefaultAutofillDatabaseProvider.migrateV10(database:))
 
+                let databaseQueue = try XCTUnwrap(provider.db as? DatabaseQueue)
                 startMeasuring()
-                try migrator.migrate(provider.db)
+                try migrator.migrate(databaseQueue)
                 stopMeasuring()
 
                 let syncableCredentials = try provider.db.read { database in
