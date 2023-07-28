@@ -18,6 +18,10 @@
 
 import Foundation
 
+/// Represents a generic vault.
+///
+/// To build a feature-specific vault, you should define a new protocol and conform it to this protocol. For example, `protocol SomeFeatureVault: SecureVault`.
+/// Note that this protocol has an associated type for its database provider, since the provider may change in cases where you provide a mock database provider over a concrete one.
 public protocol SecureVault {
 
     associatedtype DatabaseProvider: SecureStorageDatabaseProvider

@@ -26,6 +26,10 @@ public protocol SecureStorageDatabaseProvider {
 
 }
 
+/// Provides a concrete implementation of a GRDB database that uses SQLCipher for at-rest encryption.
+///
+/// Users of this class are intended to subclass it, so that they can extend their implementation with logic to read/write to and from the database.
+/// Please see `DefaultAutofillDatabaseProvider` in the `BrowserServicesKit` module for an example of how you could implement a concrete database provider using GRDB.
 open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
     public enum DatabaseWriterType {
