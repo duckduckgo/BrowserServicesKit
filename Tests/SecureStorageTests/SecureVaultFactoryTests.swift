@@ -20,6 +20,7 @@ import Foundation
 import XCTest
 import GRDB
 import SecureStorage
+import SecureStorageTestsUtils
 
 let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
     makeCryptoProvider: {

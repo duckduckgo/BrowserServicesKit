@@ -202,6 +202,12 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
+        .target(
+            name: "SecureStorageTestsUtils",
+            dependencies: [
+                "SecureStorage"
+            ]
+        ),
         .target(name: "WireGuardC"),
 
         // MARK: - Test Targets
@@ -216,7 +222,8 @@ let package = Package(
             name: "BrowserServicesKitTests",
             dependencies: [
                 "BrowserServicesKit",
-                "RemoteMessaging" // Move tests later (lots of test dependencies in BSK)
+                "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
+                "SecureStorageTestsUtils"
             ],
             resources: [
                 .copy("Resources")
@@ -283,6 +290,7 @@ let package = Package(
             name: "SyncDataProvidersTests",
             dependencies: [
                 "BookmarksTestsUtils",
+                "SecureStorageTestsUtils",
                 "SyncDataProviders"
             ]
         ),
@@ -299,7 +307,8 @@ let package = Package(
         .testTarget(
             name: "SecureStorageTests",
             dependencies: [
-                "SecureStorage"
+                "SecureStorage",
+                "SecureStorageTestsUtils"
             ]
         ),
     ],

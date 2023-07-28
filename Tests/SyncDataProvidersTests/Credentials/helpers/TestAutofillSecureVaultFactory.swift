@@ -19,7 +19,7 @@
 
 import Foundation
 import SecureStorage
-@testable import BrowserServicesKit
+import SecureStorageTestsUtils
 
 extension AutofillVaultFactory {
     static func testFactory(databaseProvider: DefaultAutofillDatabaseProvider) -> AutofillVaultFactory {

@@ -21,6 +21,7 @@ import XCTest
 import Common
 import GRDB
 import SecureStorage
+import SecureStorageTestsUtils
 @testable import BrowserServicesKit
 
 final class MockEventMapper: EventMapping<CredentialsCleanupError> {
