@@ -136,6 +136,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
         var body = encryptedMessagingParams
         body["requiresUserPermission"] = false
         body["shouldConsumeAliasIfProvided"] = false
+        body["isIncontextSignupAvailable "] = false
         let mockWebView = MockWebView()
         let message = MockWKScriptMessage(name: "emailHandlerGetAlias", body: body, webView: mockWebView)
         userScript.userContentController(userContentController, didReceive: message)
