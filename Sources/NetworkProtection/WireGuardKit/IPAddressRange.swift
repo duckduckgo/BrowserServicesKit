@@ -22,10 +22,15 @@ extension IPAddressRange: Hashable {
     }
 }
 
-extension IPAddressRange: ExpressibleByStringLiteral {
+extension IPAddressRange: ExpressibleByStringLiteral, CustomStringConvertible {
+
+    static let `default`: IPAddressRange = "0.0.0.0/0"
 
     public var stringRepresentation: String {
         return "\(address)/\(networkPrefixLength)"
+    }
+    public var description: String {
+        stringRepresentation
     }
 
     public init(stringLiteral string: String) {

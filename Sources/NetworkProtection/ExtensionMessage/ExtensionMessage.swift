@@ -33,6 +33,7 @@ public enum ExtensionMessage: RawRepresentable {
         case setKeyValidity
         case triggerTestNotification
         case setExcludedRoutes
+        case setIncludedRoutes
         case simulateTunnelFailure
     }
 
@@ -48,10 +49,12 @@ public enum ExtensionMessage: RawRepresentable {
     case setKeyValidity(TimeInterval?)
     case triggerTestNotification
     case setExcludedRoutes([IPAddressRange])
+    case setIncludedRoutes([IPAddressRange])
     case simulateTunnelFailure
 
     public init?(rawValue data: Data) {
-        switch data.first.flatMap(Name.init(rawValue:)) {
+        let name = data.first.flatMap(Name.init(rawValue:))
+        switch name {
         case .resetAllState:
             self = .resetAllState
         case .getRuntimeConfiguration:
@@ -83,10 +86,11 @@ public enum ExtensionMessage: RawRepresentable {
         case .triggerTestNotification:
             self = .triggerTestNotification
 
-        case .setExcludedRoutes:
+        case .setExcludedRoutes,
+             .setIncludedRoutes:
             do {
-                let excludedRoutes = data.count > 1 ? try JSONDecoder().decode([IPAddressRange].self, from: data[1...]) : []
-                self = .setExcludedRoutes(excludedRoutes)
+                let routes = data.count > 1 ? try JSONDecoder().decode([IPAddressRange].self, from: data[1...]) : []
+                self = (name == .setExcludedRoutes) ? .setExcludedRoutes(routes) : .setIncludedRoutes(routes)
             } catch {
                 assertionFailure("\(error)")
                 return nil
@@ -115,6 +119,7 @@ public enum ExtensionMessage: RawRepresentable {
         case .setKeyValidity: return .setKeyValidity
         case .triggerTestNotification: return .triggerTestNotification
         case .setExcludedRoutes: return .setExcludedRoutes
+        case .setIncludedRoutes: return .setIncludedRoutes
         case .simulateTunnelFailure: return .simulateTunnelFailure
         }
     }
@@ -132,13 +137,14 @@ public enum ExtensionMessage: RawRepresentable {
                     data.append(Data(buffer))
                 }
             }
-        case .setExcludedRoutes(let excludedRoutes):
-            guard !excludedRoutes.isEmpty else { break }
+        case .setExcludedRoutes(let routes),
+             .setIncludedRoutes(let routes):
+            guard !routes.isEmpty else { break }
             encoder = {
                 do {
-                    try $0.append(JSONEncoder().encode(excludedRoutes))
+                    try $0.append(JSONEncoder().encode(routes))
                 } catch {
-                    assertionFailure("could not encode excludedRoutes: \(error)")
+                    assertionFailure("could not encode routes: \(error)")
                 }
             }
         case .setSelectedServer(.none),

@@ -103,7 +103,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public var isKillSwitchEnabled: Bool {
         guard #available(macOS 11.0, iOS 14.2, *) else { return false }
-        return self.protocolConfiguration.enforceRoutes
+        return self.protocolConfiguration.enforceRoutes || self.protocolConfiguration.includeAllNetworks
     }
 
     // MARK: - Server Selection
@@ -118,6 +118,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>.init(nil)
 
+    private var includedRoutes: [IPAddressRange]?
     private var excludedRoutes: [IPAddressRange]?
 
     // MARK: - User Notifications
@@ -226,6 +227,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     // MARK: - Connection tester
+
+    private var isConnectionTesterEnabled: Bool = true
 
     private lazy var connectionTester: NetworkProtectionConnectionTester = {
         NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] result in
@@ -344,7 +347,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             throw MissingProviderConfiguration()
         }
 
-        loadExcludedRoutes(from: vendorOptions)
+        loadRoutes(from: vendorOptions)
+        self.isConnectionTesterEnabled = vendorOptions[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
     }
 
     private func loadKeyValidity(from options: [String: AnyObject]) {
@@ -372,7 +376,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try tokenStore.store(authToken)
     }
 
-    private func loadExcludedRoutes(from options: [String: Any]) {
+    private func loadRoutes(from options: [String: Any]) {
+        self.includedRoutes = (options[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:))
         self.excludedRoutes = (options[NetworkProtectionOptionKey.excludedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:))
     }
 
@@ -437,7 +442,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
-                let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod, excludedRoutes: excludedRoutes ?? [])
+                let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
+                                                                                includedRoutes: includedRoutes ?? [],
+                                                                                excludedRoutes: excludedRoutes ?? [])
                 startTunnel(with: tunnelConfiguration, completionHandler: completionHandler)
                 os_log("🔵 Done generating tunnel config", log: .networkProtection, type: .info)
             } catch {
@@ -547,7 +554,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public func updateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
 
-        let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod, excludedRoutes: excludedRoutes ?? [])
+        let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
+                                                                        includedRoutes: includedRoutes ?? [],
+                                                                        excludedRoutes: excludedRoutes ?? [])
 
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             guard let self = self else {
@@ -570,7 +579,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod, excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
+    private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
 
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
 
@@ -579,7 +588,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                keyStore: keyStore,
                                                                errorEvents: debugEvents)
 
-            configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
+            configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
             throw TunnelError.couldNotGenerateTunnelConfiguration(internalError: error)
         }
@@ -629,6 +638,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleTriggerTestNotification(completionHandler: completionHandler)
         case .setExcludedRoutes(let excludedRoutes):
             setExcludedRoutes(excludedRoutes, completionHandler: completionHandler)
+        case .setIncludedRoutes(let includedRoutes):
+            setIncludedRoutes(includedRoutes, completionHandler: completionHandler)
         case .simulateTunnelFailure:
             simulateTunnelFailure(completionHandler: completionHandler)
         }
@@ -722,6 +733,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
+        Task {
+            self.includedRoutes = includedRoutes
+            try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
+            completionHandler?(nil)
+        }
+    }
+
     private func simulateTunnelFailure(completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             os_log("Simulating tunnel failure", log: .networkProtection, type: .info)
@@ -752,14 +771,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
 
-        if let interfaceName = adapter.interfaceName {
+        if isConnectionTesterEnabled, let interfaceName = adapter.interfaceName {
             do {
                 try await connectionTester.start(tunnelIfName: interfaceName)
             } catch {
                 os_log("🔵 Error: the VPN connection tester could not be started: %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
             }
-        } else {
+        } else if isConnectionTesterEnabled {
             os_log("🔵 Error: the VPN connection tester could not be started since we could not retrieve the tunnel interface name", log: .networkProtection, type: .error)
+        } else {
+            os_log("🔵 VPN connection tester disabled", log: .networkProtection, type: .error)
         }
     }
 

@@ -7,16 +7,18 @@ import Network
 public struct InterfaceConfiguration: Equatable {
     public var privateKey: PrivateKey
     public var addresses = [IPAddressRange]()
-    public var exclusions = [IPAddressRange]()
+    public var includedRoutes = [IPAddressRange]()
+    public var excludedRoutes = [IPAddressRange]()
     public var listenPort: UInt16?
     public var mtu: UInt16?
     public var dns = [DNSServer]()
     public var dnsSearch = [String]()
 
-    public init(privateKey: PrivateKey, addresses: [IPAddressRange], exclusions: [IPAddressRange], listenPort: UInt16? = nil, mtu: UInt16? = nil, dns: [DNSServer] = [], dnsSearch: [String] = []) {
+    public init(privateKey: PrivateKey, addresses: [IPAddressRange], includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange], listenPort: UInt16? = nil, mtu: UInt16? = nil, dns: [DNSServer] = [], dnsSearch: [String] = []) {
         self.privateKey = privateKey
         self.addresses = addresses
-        self.exclusions = exclusions
+        self.includedRoutes = includedRoutes
+        self.excludedRoutes = excludedRoutes
         self.listenPort = listenPort
         self.mtu = mtu
         self.dns = dns
