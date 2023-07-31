@@ -22,8 +22,7 @@ import Foundation
 ///
 public final class AppGroupHelper {
     public static let shared = AppGroupHelper()
-
-    public let appGroup: String
+    public var appGroup: String
 
     /// Apps that want to use this class need set the app group in their Info.plist.
     ///
@@ -35,6 +34,8 @@ public final class AppGroupHelper {
         guard let appGroup = Bundle.main.object(forInfoDictionaryKey: infoPlistKey) as? String else {
             fatalError("Make sure key \(infoPlistKey) is defined in info.plist")
         }
+
+        assert(!appGroup.isEmpty)
 
         self.appGroup = appGroup
     }
