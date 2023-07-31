@@ -176,15 +176,27 @@ public func os_log(_ message: StaticString, log: OSLog = .default, type: OSLogTy
     os.os_log(message, log: log, type: type, arg1(), arg2(), arg3(), arg4(), arg5())
 }
 
+public enum LogVisibility {
+    case `private`
+    case `public`
+}
+
 @inlinable
 @_disfavoredOverload
-public func os_log(_ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
+public func os_log(_ visibility: LogVisibility = .private, _ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
     guard log != .disabled else { return }
 #if DEBUG
     // enable .debug/.info logging in DEBUG builds
     let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
 #endif
 
+#if !DEBUG
+    if visibility == .private {
+        os_log("%s", log: log, type: type, message())
+        return
+    }
+#endif
+    // always log to Console app (public) in DEBUG
     os_log("%{public}s", log: log, type: type, message())
 }
 
@@ -267,13 +279,20 @@ public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ messag
 
 @inlinable
 @_disfavoredOverload
-public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: @autoclosure () -> String) {
+public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
     guard log != .disabled else { return }
 #if DEBUG
     // enable .debug/.info logging in DEBUG builds
     let type = OSLogType(min(type.rawValue, OSLogType.default.rawValue))
 #endif
 
+#if !DEBUG
+    if visibility == .private {
+        os_log("%s", log: log, type: type, message())
+        return
+    }
+#endif
+    // always log to Console app (public) in DEBUG
     os_log("%{public}s", log: log, type: type, message())
 }
 
