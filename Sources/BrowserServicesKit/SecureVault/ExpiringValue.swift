@@ -1,7 +1,7 @@
 //
 //  ExpiringValue.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@
 
 import Foundation
 
-final class ExpiringValue<T> {
+public final class ExpiringValue<T> {
 
     private var workItem: DispatchWorkItem?
 
-    var value: T? {
+    public var value: T? {
         didSet {
             workItem?.cancel()
             if value != nil {
@@ -35,9 +35,9 @@ final class ExpiringValue<T> {
         }
     }
 
-    let expiresAfter: TimeInterval
+    public let expiresAfter: TimeInterval
 
-    init(expiresAfter: TimeInterval) {
+    public init(expiresAfter: TimeInterval) {
         self.expiresAfter = expiresAfter
     }
 

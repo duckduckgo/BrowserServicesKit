@@ -18,13 +18,16 @@
 
 import XCTest
 import UserScript
+import SecureStorage
 @testable import BrowserServicesKit
 
 class SecureVaultManagerTests: XCTestCase {
     
     private var mockCryptoProvider = NoOpCryptoProvider()
-    private var mockDatabaseProvider = MockDatabaseProvider()
     private var mockKeystoreProvider = MockKeystoreProvider()
+    private var mockDatabaseProvider: MockDatabaseProvider = {
+        return try! MockDatabaseProvider()
+    }()
     
     private let mockAutofillUserScript: AutofillUserScript = {
         let embeddedConfig =
@@ -46,7 +49,7 @@ class SecureVaultManagerTests: XCTestCase {
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
     
-    private var testVault: SecureVault!
+    private var testVault: (any AutofillSecureVault)!
     private var secureVaultManagerDelegate: MockSecureVaultManagerDelegate!
     private var manager: SecureVaultManager!
 
@@ -56,9 +59,9 @@ class SecureVaultManagerTests: XCTestCase {
         mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
 
-        let providers = SecureVaultProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)
+        let providers = SecureStorageProviders(crypto: mockCryptoProvider, database: mockDatabaseProvider, keystore: mockKeystoreProvider)
         
-        self.testVault = DefaultSecureVault(authExpiry: 30, providers: providers)
+        self.testVault = DefaultAutofillSecureVault(providers: providers)
         self.secureVaultManagerDelegate = MockSecureVaultManagerDelegate()
         self.manager = SecureVaultManager(vault: self.testVault)
         self.manager.delegate = secureVaultManagerDelegate
@@ -362,7 +365,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void) {}
     
-    func secureVaultInitFailed(_ error: SecureVaultError) {}
+    func secureVaultInitFailed(_ error: SecureStorageError) {}
     
     func secureVaultManagerShouldAutomaticallyUpdateCredentialsWithoutUsername(_: SecureVaultManager, shouldSilentlySave: Bool) -> Bool {
         return true

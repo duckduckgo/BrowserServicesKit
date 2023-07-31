@@ -1,7 +1,7 @@
 //
-//  SecureVaultCryptoProvider.swift
+//  SecureStorageCryptoProvider.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@
 import Foundation
 import CommonCrypto
 import CryptoKit
-import Security
 
-protocol SecureVaultCryptoProvider {
+public protocol SecureStorageCryptoProvider {
 
     func generateSecretKey() throws -> Data
 
@@ -37,56 +36,42 @@ protocol SecureVaultCryptoProvider {
 
     func hashData(_ data: Data, salt: Data?) throws -> String?
 
+    var passwordSalt: Data { get }
+
     var hashingSalt: Data? { get }
 
+    var keychainServiceName: String { get }
+
+    var keychainAccountName: String { get } 
+
 }
 
-extension SecureVaultCryptoProvider {
-    func hashData(_ data: Data) throws -> String? {
-        guard let salt = hashingSalt else { return nil }
-        return try hashData(data, salt: salt)
-    }
+// MARK: - SecureStorageCryptoProvider Default Implementation
+
+private enum SecureStorageCryptoProviderConstants {
+    public static let keySizeInBytes = 256 / 8
 }
 
-final class DefaultCryptoProvider: SecureVaultCryptoProvider {
-        
-    enum Constants {
-        #if os(iOS)
-            static let hashAccount = "com.duckduckgo.mobile.ios"
-        #else
-            static let hashAccount = Bundle.main.bundleIdentifier ?? "com.duckduckgo.macos.browser"
-        #endif
-        static let hashService = "DuckDuckGo Secure Vault Hash"
-    }
-
-    static let passwordSalt = "33EF1524-0DEA-4201-9B51-19230121EADB".data(using: .utf8)!
-    static let keySizeInBytes = 256 / 8
-
-    var hashingSalt: Data? {
-        guard let salt = getSaltFromKeyChain() else {
-            return generateSalt()
-        }
-        return salt
-    }
+public extension SecureStorageCryptoProvider {
 
     func generateSecretKey() throws -> Data {
         return SymmetricKey(size: .bits256).dataRepresentation
     }
 
     func generatePassword() throws -> Data {
-        var data = Data(count: Self.keySizeInBytes)
+        var data = Data(count: SecureStorageCryptoProviderConstants.keySizeInBytes)
         let result = data.withUnsafeMutableBytes {
-            return SecRandomCopyBytes(kSecRandomDefault, Self.keySizeInBytes, $0.baseAddress!)
+            return SecRandomCopyBytes(kSecRandomDefault, SecureStorageCryptoProviderConstants.keySizeInBytes, $0.baseAddress!)
         }
         guard result == errSecSuccess else {
-            throw SecureVaultError.secError(status: result)
+            throw SecureStorageError.secError(status: result)
         }
         return data
     }
 
     func deriveKeyFromPassword(_ password: Data) throws -> Data {
-        let salt = Self.passwordSalt
-        var key = Data(repeating: 0, count: Self.keySizeInBytes)
+        let salt = self.passwordSalt
+        var key = Data(repeating: 0, count: SecureStorageCryptoProviderConstants.keySizeInBytes)
         let keyLength = key.count
         let status: OSStatus = key.withUnsafeMutableBytes { derivedKeyBytes in
             let derivedKeyRawBytes = derivedKeyBytes.bindMemory(to: UInt8.self).baseAddress
@@ -109,7 +94,7 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         }
 
         guard status == kCCSuccess else {
-            throw SecureVaultError.secError(status: status)
+            throw SecureStorageError.secError(status: status)
         }
 
         return key
@@ -119,7 +104,7 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         let symmetricKey = SymmetricKey(data: key)
         let sealedData = try AES.GCM.seal(data, using: symmetricKey)
         guard let data = sealedData.combined else {
-            throw SecureVaultError.generalCryptoError
+            throw SecureStorageError.generalCryptoError
         }
         return data
     }
@@ -131,18 +116,43 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
             return try AES.GCM.open(sealedBox, using: symmetricKey)
         } catch {
             if case CryptoKitError.authenticationFailure = error {
-                throw SecureVaultError.invalidPassword
+                throw SecureStorageError.invalidPassword
             } else {
                 throw error
             }
         }
     }
-    
+
+    func hashData(_ data: Data) throws -> String? {
+        guard let salt = hashingSalt else { return nil }
+        return try hashData(data, salt: salt)
+    }
+
+    func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
+        guard let salt = salt ?? hashingSalt else {
+            return nil
+        }
+
+        let saltedData = salt + data
+        let hashedData = SHA256.hash(data: saltedData)
+        let base64String = hashedData.dataRepresentation.base64EncodedString(options: [])
+        return base64String
+    }
+
+    var hashingSalt: Data? {
+        guard let salt = getSaltFromKeyChain() else {
+            return generateSalt()
+        }
+        return salt
+    }
+
+    // MARK: - Generic Private Functions For Salt Generation
+
     private func getSaltFromKeyChain() -> Data? {
         let query: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Constants.hashService as CFString,
-            kSecAttrAccount: Constants.hashAccount as CFString,
+            kSecAttrService: self.keychainServiceName as CFString,
+            kSecAttrAccount: self.keychainAccountName as CFString,
             kSecReturnData: kCFBooleanTrue!,
             kSecMatchLimit: kSecMatchLimitOne
         ]
@@ -175,8 +185,8 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
 
         let addQuery: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: Constants.hashService as CFString,
-            kSecAttrAccount: Constants.hashAccount as CFString,
+            kSecAttrService: self.keychainServiceName as CFString,
+            kSecAttrAccount: self.keychainAccountName as CFString,
             kSecValueData: base64Data
         ]
 
@@ -187,19 +197,11 @@ final class DefaultCryptoProvider: SecureVaultCryptoProvider {
         return data
     }
 
-    func hashData(_ data: Data, salt: Data? = nil) throws -> String? {
-        guard let salt = salt ?? hashingSalt else {
-            return nil
-        }
-        let saltedData = salt + data
-        let hashedData = SHA256.hash(data: saltedData)
-        let base64String = hashedData.dataRepresentation.base64EncodedString(options: [])
-        return base64String
-    }
-
 }
 
-fileprivate extension ContiguousBytes {
+// MARK: - ContiguousBytes Extension
+
+public extension ContiguousBytes {
 
     var dataRepresentation: Data {
         return self.withUnsafeBytes { bytes in
