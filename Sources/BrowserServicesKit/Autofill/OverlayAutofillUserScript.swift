@@ -70,7 +70,7 @@ public class OverlayAutofillUserScript: AutofillUserScript {
     }
 
     func closeAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
-        guard let websiteAutofillInstance = websiteAutofillInstance else { return }
+        guard websiteAutofillInstance != nil else { return }
         closeAutofillParent()
         replyHandler(nil)
     }
