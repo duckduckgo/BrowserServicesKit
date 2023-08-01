@@ -645,7 +645,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let config = manager.privacyConfig
         
-        mockRandomValue = 0.37
+        mockRandomValue = 37
         clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
         var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
         XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
@@ -655,7 +655,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
         XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
         
-        mockRandomValue = 0.37
+        mockRandomValue = 37
         clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
         enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
         XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")

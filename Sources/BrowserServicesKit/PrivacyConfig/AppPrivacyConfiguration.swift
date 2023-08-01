@@ -126,15 +126,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             willEnable = randomizer(0..<100) < rollouts.first!.percent
         } else {
             // First time user sees feature, and multiple rollouts
-            for i in 1..<rollouts.count {
-                let y = rollouts[i].percent
-                let x = rollouts[i - 1].percent
-                let prob = (y - x) / (100.0 - x)
-                if randomizer(0..<1) < prob {
-                    willEnable = true
-                    break
-                }
-            }
+            willEnable = randomizer(0..<100) < rollouts.last!.percent
         }
 
         
