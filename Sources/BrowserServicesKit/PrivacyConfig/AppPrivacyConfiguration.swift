@@ -106,8 +106,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
         
         var willEnable = false
+        var rollouts = rollouts.sorted(by: { $0.percent < $1.percent })
         if let rolloutSize = userDefaults.value(forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)") as? Int {
-            guard rolloutSize != rollouts.count else { return false }
+            guard rolloutSize < rollouts.count else { return false }
             // Sanity check as we need at least two values to compute the new probability
             guard rollouts.count > 1 else { return false }
             
@@ -115,7 +116,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             // Try again with the new probability
             let y = rollouts[rollouts.count - 1].percent
             let x = rollouts[rollouts.count - 2].percent
-            let prob = (y - x) / (100.0 - y)
+            let prob = (y - x) / (100.0 - x)
             if randomizer(0..<1) < prob {
                 // enable the feature
                 willEnable = true
@@ -128,7 +129,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             for i in 1..<rollouts.count {
                 let y = rollouts[i].percent
                 let x = rollouts[i - 1].percent
-                let prob = (y - x) / (100.0 - y)
+                let prob = (y - x) / (100.0 - x)
                 if randomizer(0..<1) < prob {
                     willEnable = true
                     break

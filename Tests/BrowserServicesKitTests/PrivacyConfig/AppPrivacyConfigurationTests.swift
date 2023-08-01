@@ -650,7 +650,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
         XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
         
-        mockRandomValue = 0.1 // Effective probability of 11.7% in test config
+        mockRandomValue = 0.1 // Effective probability of 10.5% in test config
         clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
         enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
         XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
@@ -660,7 +660,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
         XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
         
-        mockRandomValue = 0.12 // Effective probability of 13.3% in test config
+        mockRandomValue = 0.10 // Effective probability of 11.7% in test config
         clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
         enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
         XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
@@ -677,7 +677,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let config = manager.privacyConfig
         
         clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
-        mockRandomValue = 0.12
+        mockRandomValue = 0.10
         // Mock that the user has previously seen the rollout and was not chosen
         UserDefaults().set(2, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
         var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
