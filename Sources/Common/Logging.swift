@@ -182,8 +182,7 @@ public enum LogVisibility {
 }
 
 @inlinable
-@_disfavoredOverload
-public func os_log(_ visibility: LogVisibility = .private, _ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
+public func os_log(_ visibility: LogVisibility, _ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
     guard log != .disabled else { return }
 #if DEBUG
     // enable .debug/.info logging in DEBUG builds
@@ -198,6 +197,12 @@ public func os_log(_ visibility: LogVisibility = .private, _ message: @autoclosu
 #endif
     // always log to Console app (public) in DEBUG
     os_log("%{public}s", log: log, type: type, message())
+}
+
+@inlinable
+@_disfavoredOverload
+public func os_log(_ message: @autoclosure () -> String, log: OSLog = .default, type: OSLogType = .default) {
+    os_log(.private, message(), log: log, type: type)
 }
 
 // MARK: - type first
@@ -279,7 +284,7 @@ public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ messag
 
 @inlinable
 @_disfavoredOverload
-public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
+public func os_log(_ type: OSLogType, log: OSLog, _ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
     guard log != .disabled else { return }
 #if DEBUG
     // enable .debug/.info logging in DEBUG builds
@@ -294,6 +299,24 @@ public func os_log(_ type: OSLogType = .default, log: OSLog = .default, _ messag
 #endif
     // always log to Console app (public) in DEBUG
     os_log("%{public}s", log: log, type: type, message())
+}
+
+@inlinable
+@_disfavoredOverload
+public func os_log(log: OSLog, _ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
+    os_log(.default, log: log, message(), visibility)
+}
+
+@inlinable
+@_disfavoredOverload
+public func os_log(_ type: OSLogType, _ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
+    os_log(type, log: .default, message(), visibility)
+}
+
+@inlinable
+@_disfavoredOverload
+public func os_log(_ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
+    os_log(.default, log: .default, message(), visibility)
 }
 
 // swiftlint:enable line_length
