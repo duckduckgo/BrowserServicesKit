@@ -27,7 +27,9 @@ import Common
 /// Observes the tunnel status through Distributed Notifications.
 ///
 public class ConnectionStatusObserverThroughDistributedNotifications: ConnectionStatusObserver {
-    public let publisher = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
+    public lazy var publisher: AnyPublisher<ConnectionStatus, Never> = subject.eraseToAnyPublisher()
+
+    private let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 
     // MARK: - Network Path Monitoring
 
@@ -98,7 +100,7 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
         lastStatusChangeTimestamp = statusChange.timestamp
         logStatusChanged(status: statusChange.status)
 
-        publisher.send(statusChange.status)
+        subject.send(statusChange.status)
     }
 
     private func handleDidWake(_ notification: Notification) {
@@ -136,7 +138,7 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
             try? await Task.sleep(interval: Self.timeoutOnNetworkChanges)
 
             if lastStatusResponseTimestamp < requestDate {
-                publisher.send(.disconnected)
+                subject.send(.disconnected)
             }
         }
     }

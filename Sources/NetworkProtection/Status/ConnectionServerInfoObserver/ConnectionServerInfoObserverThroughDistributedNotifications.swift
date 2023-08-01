@@ -27,7 +27,8 @@ import NotificationCenter
 /// Observes the server info through Distributed Notifications and an IPC connection.
 ///
 public class ConnectionServerInfoObserverThroughDistributedNotifications: ConnectionServerInfoObserver {
-    public let publisher = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
+    private let subject = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
+    public let publisher = subject.eraseToAnyPublisher()
 
     // MARK: - Notifications
 
@@ -68,7 +69,7 @@ public class ConnectionServerInfoObserverThroughDistributedNotifications: Connec
             return
         }
 
-        publisher.send(serverInfo)
+        subject.send(serverInfo)
     }
 }
 

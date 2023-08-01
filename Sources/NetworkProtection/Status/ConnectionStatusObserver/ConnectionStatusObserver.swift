@@ -21,5 +21,5 @@ import Foundation
 import NetworkExtension
 
 public protocol ConnectionStatusObserver {
-    var publisher: CurrentValueSubject<ConnectionStatus, Never> { get }
+    var publisher: AnyPublisher<ConnectionStatus, Never> { get }
 }
