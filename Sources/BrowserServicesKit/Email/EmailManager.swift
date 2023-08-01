@@ -404,21 +404,13 @@ extension EmailManager: AutofillEmailDelegate {
     }
 
     public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript, completionHandler: @escaping SignUpCompletion) {
-        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
-
-        guard let delegate = self.aliasPermissionDelegate else {
-            assertionFailure("EmailUserScript requires permission to provide Alias")
-            completionHandler(false, .permissionDelegateNil)
-            return
+        if let delegate = self.aliasPermissionDelegate {
+            delegate.emailManager(self, didRequestInContextSignUp: { success in
+                completionHandler(success, nil)
+            })
+        } else {
+            NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
         }
-
-        delegate.emailManager(self, didRequestInContextSignUp: { success in
-            completionHandler(success, nil)
-        })
-    }
-
-    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript) {
-        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
     }
 
     public func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript) {
