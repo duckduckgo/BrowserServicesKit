@@ -100,20 +100,6 @@ public final class Pinger: @unchecked Sendable {
         self.getLogger = log
     }
 
-    public func ping(completion: @escaping (Result<PingResult, PingError>) -> Void) {
-        func mainQueueCompletion(_ r: Result<PingResult, PingError>) {
-            DispatchQueue.main.async {
-                completion(r)
-            }
-        }
-        queue.async { [weak self] in
-            guard let self else { return mainQueueCompletion(.failure(.cancelled)) }
-
-            let r = self.ping_unsafe()
-            mainQueueCompletion(r)
-        }
-    }
-
     public func ping() async -> Result<PingResult, PingError> {
         await withUnsafeContinuation { continuation in
             queue.async { [self /* held by async call */] in
