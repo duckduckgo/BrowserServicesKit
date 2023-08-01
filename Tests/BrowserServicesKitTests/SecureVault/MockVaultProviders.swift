@@ -36,8 +36,9 @@ internal class MockDatabaseProvider: SecureVaultDatabaseProvider {
             _credentialsDict[accountID] = credentials
             return accountID
         } else {
-            _credentialsDict[-1] = credentials
-            return -1
+            let id = Int64(_credentialsDict.count + 1)
+            _credentialsDict[id] = credentials
+            return id
         }
     }
 

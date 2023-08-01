@@ -243,7 +243,7 @@ class SecureVaultManagerTests: XCTestCase {
         var incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        var credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        var credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "xdt7r90@duck.com")
         XCTAssertEqual(credentials?.password, Data())
 
@@ -251,7 +251,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .passwordGeneration)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "xdt7r90@duck.com")
         XCTAssertEqual(credentials?.password, Data("xtewq311".utf8))
 
@@ -259,7 +259,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "xdas871@duck.com")
         XCTAssertEqual(credentials?.password, Data("xtewq311".utf8))
 
@@ -273,7 +273,7 @@ class SecureVaultManagerTests: XCTestCase {
         var incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .passwordGeneration)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        var credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        var credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "")
         XCTAssertEqual(credentials?.password, Data("sdfljk23".utf8))
 
@@ -281,7 +281,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "a23x123@duck.com")
         XCTAssertEqual(credentials?.password, Data("sdfljk23".utf8))
 
@@ -289,7 +289,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "xdas879@duck.com")
         XCTAssertEqual(credentials?.password, Data("sdfljk23".utf8))
 
@@ -306,7 +306,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        let credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "xdt7r91@duck.com")
         XCTAssertEqual(credentials?.password, Data("09akjyuasd".utf8))
 
@@ -323,7 +323,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        let credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "l9rb3zxh@example.com")
         XCTAssertEqual(credentials?.password, Data("DC$z5SLYo47iDzwq1ZFV".utf8))
 
@@ -345,7 +345,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        let credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "aslkrdiu11@duck.com")
         XCTAssertEqual(credentials?.password, Data("-8!4KNW!_RJN.a-ADaFpZG".utf8))
 
@@ -379,23 +379,31 @@ class SecureVaultManagerTests: XCTestCase {
 
     }
 
-    // When generating an email and then changing it to something else, credentials should not be autosaved (prompt should be presented instead)
-    func testWhenGeneratedUsernameIsManuallyChanged_ThenDataIsNotAutosaved() {
+    // When generating an email and then changing to personal duck address input, credentials should not be autosaved (prompt should be presented instead)    
+    func testWhenGeneratedUsernameIsChangedToPersonalDuckAddress_ThenDataIsNotAutosaved() {
         var incomingCredentials = AutofillUserScript.IncomingCredentials(username: "xkaaka99@duck.com", password: "", autogenerated: true)
         var incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
+        // Email should be saved
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
+        XCTAssertEqual(credentials?.account.username , "xkaaka99@duck.com")
+        XCTAssertEqual(credentials?.password ,  Data("".utf8))        
+
+        // Select Private Email address and submit        
         incomingCredentials = AutofillUserScript.IncomingCredentials(username: "john1@duck.com", password: "", autogenerated: false)
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
-        // Autofill prompted data tests
         incomingCredentials = AutofillUserScript.IncomingCredentials(username: "john1@duck.com", password: "QNKs6k4a-axYX@aRQW", autogenerated: true)
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
         let entries = try? manager.existingEntries(for: "fill.dev", autofillData: incomingData)
+        
+        // Confirm autofill entries are present
         XCTAssertEqual(entries?.credentials?.account.username, "john1@duck.com")
         XCTAssertEqual(entries?.credentials?.password, Data("QNKs6k4a-axYX@aRQW".utf8))
 
+        // Confirm data prompt
         incomingCredentials = AutofillUserScript.IncomingCredentials(username: "john1@duck.com", password: "QNKs6k4a-axYX@aRQW", autogenerated: true)
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
@@ -404,11 +412,70 @@ class SecureVaultManagerTests: XCTestCase {
         XCTAssertNotNil(secureVaultManagerDelegate.promptedAutofillData)
         XCTAssertEqual(secureVaultManagerDelegate.promptedAutofillData?.credentials?.account.username, "john1@duck.com")
         XCTAssertEqual(secureVaultManagerDelegate.promptedAutofillData?.credentials?.password, Data("QNKs6k4a-axYX@aRQW".utf8))
-
+        
+    }
+    
+    // When generating an email and then changing to manual input, credentials should not be autosaved (prompt should be presented instead)    
+    func testWhenGeneratedUsernameIsChangedToManualInput_ThenDataIsNotAutosaved() {
+        var incomingCredentials = AutofillUserScript.IncomingCredentials(username: "akla11@duck.com", password: "", autogenerated: true)
+        var incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
+        
+        // Email should be saved
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
+        XCTAssertEqual(credentials?.account.username , "akla11@duck.com")
+        XCTAssertEqual(credentials?.password ,  Data("".utf8))        
+        
+        // Autofill prompted data tests
+        incomingCredentials = AutofillUserScript.IncomingCredentials(username: "example@duck.com", password: "QNKs6k212aYX@aRQW", autogenerated: true)
+        incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
+        let entries = try? manager.existingEntries(for: "fill.dev", autofillData: incomingData)
+        XCTAssertEqual(entries?.credentials?.account.username, "example@duck.com")
+        XCTAssertEqual(entries?.credentials?.password, Data("QNKs6k212aYX@aRQW".utf8))
+        
+        incomingCredentials = AutofillUserScript.IncomingCredentials(username: "john1@duck.com", password: "QNKs6k4a-axYX@aRQW", autogenerated: true)
+        incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
+       
+        let creds = try? testVault?.websiteCredentialsFor(accountId: 1)
+        XCTAssertNil(creds)
+        
+        // Prompted data should be there
+        XCTAssertNotNil(secureVaultManagerDelegate.promptedAutofillData)
+        XCTAssertEqual(secureVaultManagerDelegate.promptedAutofillData?.credentials?.account.username, "john1@duck.com")
+        XCTAssertEqual(secureVaultManagerDelegate.promptedAutofillData?.credentials?.password, Data("QNKs6k4a-axYX@aRQW".utf8))
+        
+        
+    }
+    
+    // When generating an email and then changing to manual input, credentials should not be autosaved (prompt should be presented instead)    
+    func testWhenGeneratedUsernameIsManuallyChanged_ThenDataIsNotAutosaved() {
+        var incomingCredentials = AutofillUserScript.IncomingCredentials(username: "xkaaka99@duck.com", password: "", autogenerated: true)
+        var incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
+        
+        // Autofill prompted data tests
+        incomingCredentials = AutofillUserScript.IncomingCredentials(username: "john1@duck.com", password: "QNKs6k4a-axYX@aRQW", autogenerated: true)
+        incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
+        let entries = try? manager.existingEntries(for: "fill.dev", autofillData: incomingData)
+        XCTAssertEqual(entries?.credentials?.account.username, "john1@duck.com")
+        XCTAssertEqual(entries?.credentials?.password, Data("QNKs6k4a-axYX@aRQW".utf8))
+        
+        // Submit the form
+        incomingCredentials = AutofillUserScript.IncomingCredentials(username: "john1@duck.com", password: "QNKs6k4a-axYX@aRQW", autogenerated: true)
+        incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .formSubmission)
+        manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
+        
         // No data should be saved
-        let credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertNil(credentials)
-
+        
+        // Prompted data should be there
+        XCTAssertNotNil(secureVaultManagerDelegate.promptedAutofillData)
+        XCTAssertEqual(secureVaultManagerDelegate.promptedAutofillData?.credentials?.account.username, "john1@duck.com")
+        XCTAssertEqual(secureVaultManagerDelegate.promptedAutofillData?.credentials?.password, Data("QNKs6k4a-axYX@aRQW".utf8))
+                
+        
     }
 
     // When generating and entering a manual password, then deleting the automatically saved login
@@ -425,12 +492,12 @@ class SecureVaultManagerTests: XCTestCase {
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
 
         // Delete the created login
-        var credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        var credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "xdt7r711@duck.com")
         XCTAssertEqual(credentials?.password, Data("epWFZ6!xowA-s2aZw7".utf8))
 
-        try? testVault?.deleteWebsiteCredentialsFor(accountId: -1)
-        credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        try? testVault?.deleteWebsiteCredentialsFor(accountId: 1)
+        credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertNil(credentials)
 
         // Use a manually entered username (or private email address)
@@ -438,7 +505,7 @@ class SecureVaultManagerTests: XCTestCase {
         incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .emailProtection)
 
         // No data should be saved
-        credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertNil(credentials)
 
     }
@@ -467,7 +534,7 @@ class SecureVaultManagerTests: XCTestCase {
         let incomingData = AutofillUserScript.DetectedAutofillData(identity: nil, credentials: incomingCredentials, creditCard: nil, trigger: .passwordGeneration)
         manager.autofillUserScript(mockAutofillUserScript, didRequestStoreDataForDomain: "fill.dev", data: incomingData)
         
-        let credentials = try? testVault?.websiteCredentialsFor(accountId: -1)
+        let credentials = try? testVault?.websiteCredentialsFor(accountId: 1)
         XCTAssertEqual(credentials?.account.username, "asdlkj11@example.com")
         XCTAssertEqual(credentials?.password, Data("sAWLzqYHrC!J7QPCfw".utf8))
     }
