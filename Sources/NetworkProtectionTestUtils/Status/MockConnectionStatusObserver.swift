@@ -21,6 +21,7 @@ import Foundation
 import NetworkProtection
 
 public final class MockConnectionStatusObserver: ConnectionStatusObserver {
+    public init() {}
     public let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
     lazy public var publisher = subject.eraseToAnyPublisher()
 }

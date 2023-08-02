@@ -21,6 +21,8 @@ import Foundation
 import NetworkProtection
 
 public final class MockTunnelController: TunnelController {
+    public init() {}
+
     public var didCallStart = false
     public func start() async {
         didCallStart = true
