@@ -27,7 +27,7 @@ extension OSLog {
     /// "exporting" `OSLog.disabled` symbol without needing to `import os.log` to disambiguate `os_log` wrapper calls and suppress "implicit import" warning
     /// this declaration shadows the real `OSLog.disabled`
     public static let disabled: OSLog = {
-        // the `OSLog` object returned by `OSLog.disabled` is in fact an `os_log_t *` pointer returned by `_os_log_disabled` C function
+        // the `OSLog` object returned by `OSLog.disabled` is in fact an `os_log_t *` pointer defined by C `_os_log_disabled` symbol
         guard let disabledLog = dlsym(/*RTLD_DEFAULT*/ UnsafeMutableRawPointer(bitPattern: -2), "_os_log_disabled") else {
             // just in case it fails for whatever reason (but it shouldn‘t) - return some log object
             assertionFailure("_os_log_disabled symbol not found")
