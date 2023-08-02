@@ -750,10 +750,6 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
         true
     }
 
-    func secureVaultManagerShouldSaveData(_: BrowserServicesKit.SecureVaultManager) -> Bool {
-        true
-    }
-
     func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String) {}
 
     func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String) {}

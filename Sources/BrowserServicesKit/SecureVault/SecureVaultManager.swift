@@ -594,26 +594,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     
     private func existingCredentials(with autofillData: AutofillUserScript.DetectedAutofillData,
                                      domain: String,
-                                     automaticallySavedCredentials: Bool,
-                                     shouldSilentlySave: Bool,
                                      vault: any AutofillSecureVault) throws -> SecureVaultModels.WebsiteCredentials? {
-        if let credentials = autofillData.credentials, let passwordData = credentials.password.data(using: .utf8) {
-            let accounts = try vault.accountsFor(domain: domain)
-            if let account = accounts.first(where: { $0.username == credentials.username ?? "" }) {
-                if let existingAccountID = account.id,
-                   let existingCredentials = try vault.websiteCredentialsFor(accountId: existingAccountID),
-                   existingCredentials.password == passwordData {
-                    if automaticallySavedCredentials || shouldSilentlySave {
-                        os_log("Found duplicate credentials which were just saved, notifying user", log: .passwordManager)
-                        return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                    } else {
-                        os_log("Found duplicate credentials which were previously saved, avoid notifying user", log: .passwordManager)
-                        return nil
-                    }
-                } else {
-                    os_log("Found existing credentials to update", log: .passwordManager)
-                    return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
-                }
 
         guard let credentials = autofillData.credentials,
             let passwordData = credentials.password?.data(using: .utf8) else {
@@ -731,7 +712,6 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     private func existingCredentialsInPasswordManager(with autofillData: AutofillUserScript.DetectedAutofillData,
                                                       domain: String,
-                                                      automaticallySavedCredentials: Bool,
                                                       vault: any AutofillSecureVault) -> SecureVaultModels.WebsiteCredentials? {
         guard let passwordManager = passwordManager, passwordManager.isEnabled else {
             return nil
