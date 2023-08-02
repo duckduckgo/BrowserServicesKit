@@ -1,5 +1,6 @@
 //
-//  TunnelController.swift
+//  MockTunnelController.swift
+//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,18 +18,16 @@
 //
 
 import Foundation
+import NetworkProtection
 
-/// This protocol offers an interface to control the tunnel.
-/// 
-public protocol TunnelController {
+public final class MockTunnelController: TunnelController {
+    public var didCallStart = false
+    public func start() async {
+        didCallStart = true
+    }
 
-    // MARK: - Starting & Stopping the VPN
-
-    /// Starts the VPN connection used for Network Protection
-    ///
-    func start() async
-
-    /// Stops the VPN connection used for Network Protection
-    ///
-    func stop() async
+    public var didCallStop = false
+    public func stop() async {
+        didCallStop = true
+    }
 }
