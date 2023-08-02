@@ -260,8 +260,6 @@ public class EmailManager {
         return username + "@" + EmailManager.emailDomain
     }
 
-    // Whethe we should autosave email addresses in the vault
-    private var shouldAutosave: Bool = true
 
     private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
         get {
