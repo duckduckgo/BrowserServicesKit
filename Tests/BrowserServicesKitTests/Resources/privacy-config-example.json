@@ -14,13 +14,6 @@
         "duckPlayer": {
             "state": "enabled"
         },
-        "newTabContinueSetUp": {
-            "state": "enabled",
-            "settings": {
-                "surveyCardDay0": "enabled",
-                "surveyCardDay7": "enabled"
-            }
-        },
         "trackingCookies3p": {
             "state": "enabled",
             "exceptions": [
