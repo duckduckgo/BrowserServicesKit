@@ -224,8 +224,8 @@ final class NetworkProtectionConnectionTester {
 
         Task {
             // This is a bit ugly, but it's a quick way to run the tests in parallel without a task group.
-            async let vpnConnected = Self.testConnection(name: "VPN", parameters: vpnParameters)
-            async let localConnected = Self.testConnection(name: "Local", parameters: localParameters)
+            async let vpnConnected = testConnection(name: "VPN", parameters: vpnParameters)
+            async let localConnected = testConnection(name: "Local", parameters: localParameters)
             let vpnIsConnected = await vpnConnected
             let localIsConnected = await localConnected
 
@@ -248,21 +248,29 @@ final class NetworkProtectionConnectionTester {
         }
     }
 
-    private static func testConnection(name: String, parameters: NWParameters) async -> Bool {
+    private func testConnection(name: String, parameters: NWParameters) async -> Bool {
         let connection = NWConnection(to: Self.endpoint, using: parameters)
-        var didConnect = false
-
-        connection.stateUpdateHandler = { state in
-            if case .ready = state {
-                didConnect = true
-            }
-        }
+        let stateUpdateStream = connection.stateUpdateStream
 
         connection.start(queue: Self.connectionTestQueue)
-        try? await Task.sleep(interval: connectionTimeout)
-        connection.cancel()
+        defer {
+            connection.cancel()
+        }
 
-        return didConnect
+        do {
+            // await for .ready connection state and consider working
+            return try await withTimeout(Self.connectionTimeout) {
+                for await state in stateUpdateStream {
+                    if case .ready = state {
+                        return true
+                    }
+                }
+                return false
+            }
+        } catch {
+            // timeout
+            return false
+        }
     }
 
     // MARK: - Result handling
