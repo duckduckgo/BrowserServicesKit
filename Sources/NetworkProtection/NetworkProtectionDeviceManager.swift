@@ -306,6 +306,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     }
 
     func interfaceConfiguration(privateKey: PrivateKey, addressRange: IPAddressRange, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange], isKillSwitchEnabled: Bool) -> InterfaceConfiguration {
+        // TO BE moved out to config
         let dns = [
             DNSServer(from: "10.11.12.1")!
         ]
