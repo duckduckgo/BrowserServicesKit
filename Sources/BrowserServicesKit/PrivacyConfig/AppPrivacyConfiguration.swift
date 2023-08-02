@@ -97,9 +97,12 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
     
-    private func rolloutEnabled(subfeature: any PrivacySubfeature,
+    private func isRolloutEnabled(subfeature: any PrivacySubfeature,
                                 rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout],
                                 randomizer: (Range<Double>) -> Double) -> Bool {
+        // Empty rollouts should be default enabled
+        guard !rollouts.isEmpty else { return true }
+        
         let defsPrefix = "config.\(subfeature.parent.rawValue).\(subfeature.rawValue)"
         if userDefaults.bool(forKey: "\(defsPrefix).\(Constants.enabledKey)") {
             return true
@@ -121,16 +124,14 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 // enable the feature
                 willEnable = true
             }
-        } else if rollouts.count == 1 {
-            // First time user sees feature, and only one rollout
-            willEnable = randomizer(0..<100) < rollouts.first!.percent
         } else {
-            // First time user sees feature, and multiple rollouts
-            willEnable = randomizer(0..<100) < rollouts.last!.percent
+            // First time user sees feature
+            let probability = (rollouts.count > 1 ? rollouts.last?.percent : rollouts.first?.percent) ?? 0.0
+            willEnable = randomizer(0..<100) < probability
         }
 
         
-        if !willEnable {
+        guard willEnable else {
             userDefaults.set(rollouts.count, forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)")
             return false
         }
@@ -148,8 +149,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
         
         // Handle Rollouts
-        if let rollouts = subfeatureData?.rollouts, !rollouts.isEmpty {
-            if !rolloutEnabled(subfeature: subfeature, rollouts: rollouts, randomizer: randomizer) {
+        if let rollouts = subfeatureData?.rollouts {
+            if !isRolloutEnabled(subfeature: subfeature, rollouts: rollouts, randomizer: randomizer) {
                 return false
             }
         }

@@ -628,7 +628,19 @@ class AppPrivacyConfigurationTests: XCTestCase {
                             "percent": 25.0
                         }]
                     },
-                },
+                    "inlineIconCredentials": {
+                        "state": "enabled",
+                        "rollouts": []
+                    },
+                    "accessCredentialManagement": {
+                        "state": "diabled",
+                        "rollouts": [{
+                            "percent": 5.0
+                        }, {
+                            "percent": 15.0
+                        }]
+                    }
+                }
             }
         },
         "unprotectedTemporary": []
@@ -705,6 +717,34 @@ class AppPrivacyConfigurationTests: XCTestCase {
         clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
         UserDefaults().set(true, forKey: "config.autofill.credentialsAutofill.enabled")
         XCTAssert(config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill), "Subfeature should be enabled if the user has already been selected in a rollout")
+    }
+    
+    func testWhenCheckingSubfeatureStateAndRolloutsIsEmpty_SubfeatrueIsEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+        
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "inlineIconCredentials")
+        XCTAssert(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials), "Subfeature should be enabled if rollouts array is empty")
+    }
+    
+    func testWhenCheckingSubfeatureStateWithRolloutsAndSubfeatureDisabled_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+        
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "accessCredentialManagement")
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement), "Subfeature should be enabled if rollouts array is empty")
     }
 
     func exampleTrackerAllowlistConfig(with state: String) -> Data {
