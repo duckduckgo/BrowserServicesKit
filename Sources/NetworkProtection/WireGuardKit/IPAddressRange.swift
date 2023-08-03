@@ -24,8 +24,6 @@ extension IPAddressRange: Hashable {
 
 extension IPAddressRange: ExpressibleByStringLiteral, CustomStringConvertible {
 
-    static let `default`: IPAddressRange = "0.0.0.0/0"
-
     public var stringRepresentation: String {
         return "\(address)/\(networkPrefixLength)"
     }

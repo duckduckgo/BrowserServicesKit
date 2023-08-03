@@ -342,13 +342,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
-        guard let vendorOptions = provider?.providerConfiguration else {
-            os_log("🔵 Provider is nil, or providerConfiguration is not set", log: .networkProtection)
-            throw MissingProviderConfiguration()
-        }
+        let vendorOptions = provider?.providerConfiguration
 
         loadRoutes(from: vendorOptions)
-        self.isConnectionTesterEnabled = vendorOptions[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
+        self.isConnectionTesterEnabled = vendorOptions?[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
     }
 
     private func loadKeyValidity(from options: [String: AnyObject]) {
@@ -376,9 +373,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try tokenStore.store(authToken)
     }
 
-    private func loadRoutes(from options: [String: Any]) {
-        self.includedRoutes = (options[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:))
-        self.excludedRoutes = (options[NetworkProtectionOptionKey.excludedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:))
+    private func loadRoutes(from options: [String: Any]?) {
+        self.includedRoutes = (options?[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:)) ?? []
+
+        self.excludedRoutes = (options?[NetworkProtectionOptionKey.excludedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:))
+        ?? [ // fallback to default local network exclusions
+            "10.0.0.0/8",     // 255.0.0.0
+            "172.16.0.0/12",  // 255.240.0.0
+            "192.168.0.0/16", // 255.255.0.0
+            "169.254.0.0/16", // 255.255.0.0 : Link-local
+            "127.0.0.0/8",    // 255.0.0.0 : Loopback
+            "224.0.0.0/4",    // 240.0.0.0 : Multicast
+            "100.64.0.0/16",  // 255.255.0.0 : Shared Address Space
+        ]
     }
 
     // MARK: - Tunnel Start

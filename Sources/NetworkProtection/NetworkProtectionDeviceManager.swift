@@ -311,9 +311,10 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             DNSServer(from: "10.11.12.1")!
         ]
         var includedRoutes = includedRoutes
-        // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP is in includedRoutes
+        // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP/addressRange is in includedRoutes
         if !isKillSwitchEnabled {
             includedRoutes.append(contentsOf: dns.map { IPAddressRange(address: $0.address, networkPrefixLength: 32) })
+            includedRoutes.append(addressRange)
         }
         return InterfaceConfiguration(privateKey: privateKey, addresses: [addressRange], includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, listenPort: 51821, dns: dns)
     }

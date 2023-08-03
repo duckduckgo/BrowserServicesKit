@@ -114,7 +114,8 @@ final class PacketTunnelSettingsGenerator {
         }
 
         let addresses = Self.routes(from: tunnelConfiguration.interface.addresses)
-        let includedRoutes = Self.routes(from: tunnelConfiguration.interface.includedRoutes)
+        let includedRoutes = Self.routes(from: tunnelConfiguration.interface.includedRoutes
+                                               + tunnelConfiguration.peers.reduce([]) { $0 + $1.allowedIPs })
         let excludedRoutes = Self.routes(from: tunnelConfiguration.interface.excludedRoutes)
 
         let ipv4Settings = NEIPv4Settings(addresses: addresses.ipv4.map { $0.destinationAddress }, subnetMasks: addresses.ipv4.map { $0.destinationSubnetMask })
