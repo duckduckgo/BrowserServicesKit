@@ -109,7 +109,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
         
         var willEnable = false
-        let rollouts = rollouts.sorted(by: { $0.percent < $1.percent })
+        let rollouts = Array(Set(rollouts.filter({ $0.percent >= 0.0 && $0.percent <= 100.0 }))).sorted(by: { $0.percent < $1.percent })
         if let rolloutSize = userDefaults.value(forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)") as? Int {
             guard rolloutSize < rollouts.count else { return false }
             // Sanity check as we need at least two values to compute the new probability

@@ -115,7 +115,7 @@ public struct PrivacyConfigurationData {
                 case rollouts
             }
             
-            public struct Rollout {
+            public struct Rollout: Hashable {
                 public let percent: Double
                 
                 enum CodingKeys: String {
