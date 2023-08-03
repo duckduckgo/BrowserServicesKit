@@ -106,7 +106,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     }
 
     func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnGettingServers_deletesToken() async {
-        let server = NetworkProtectionServer.mockRegisteredServer
+        let _ = NetworkProtectionServer.mockRegisteredServer
         let keyStore = NetworkProtectionKeyStoreMock()
         let temporaryURL = temporaryFileURL()
         let serverListStore = NetworkProtectionServerListFileSystemStore(fileURL: temporaryURL, errorEvents: nil)

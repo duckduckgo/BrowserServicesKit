@@ -300,9 +300,9 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
-                            completionHandler: @escaping AliasCompletion) {
+                            completionHandler: @escaping AliasAutosaveCompletion) {
         requestAliasCallback?()
-        completionHandler("alias", nil)
+        completionHandler("alias", true, nil)
     }
     
     func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {

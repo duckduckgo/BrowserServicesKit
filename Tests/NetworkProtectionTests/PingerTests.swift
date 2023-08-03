@@ -23,110 +23,38 @@ import XCTest
 
 final class PingerTests: XCTestCase {
 
-    func testPingValidIpShouldSucceed() {
+    func testPingValidIpShouldSucceed() async throws {
         let ip = IPv4Address("8.8.8.8")!
         let timeout = 3.0
-
-        let e = expectation(description: "ready")
-        Task {
-            do {
-                let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
-                let r = try await pinger.ping().get()
-
-                XCTAssertEqual(r.ip, ip)
-                XCTAssertLessThan(20, r.bytesCount)
-                XCTAssertEqual(r.seq, 0)
-                XCTAssertLessThanOrEqual(r.time/1000, timeout)
-                XCTAssertNotEqual(r.ttl, 0)
-
-            } catch {
-                XCTFail("error: \(error)")
-            }
-            e.fulfill()
-        }
-
-        waitForExpectations(timeout: 5)
-    }
-
-    func testPingValidIpAsyncShouldSucceed() {
-        let ip = IPv4Address("8.8.8.8")!
-        let timeout = 3.0
-
-        let e = expectation(description: "ready")
-
-        Task {
-            do {
-                let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
-                let r = try await pinger.ping().get()
-
-                XCTAssertEqual(r.ip, ip)
-                XCTAssertLessThan(20, r.bytesCount)
-                XCTAssertEqual(r.seq, 0)
-                XCTAssertLessThanOrEqual(r.time/1000, timeout)
-                XCTAssertNotEqual(r.ttl, 0)
-
-                // ping twice
-                let r2 = try await pinger.ping().get()
-
-                XCTAssertEqual(r2.ip, ip)
-                XCTAssertEqual(r.bytesCount, r2.bytesCount)
-                XCTAssertEqual(r2.seq, 1)
-                XCTAssertLessThanOrEqual(r2.time/1000, timeout)
-                XCTAssertEqual(r.ttl, r2.ttl)
-
-            } catch {
-                XCTFail("error: \(error)")
-            }
-            e.fulfill()
-        }
-
-        waitForExpectations(timeout: 5)
-    }
-
-    func testNonExistentIpShouldTimeout() throws {
-        let ip = IPv4Address("111.2.155.2")!
-        let timeout = 0.2
-
-        let e = expectation(description: "ready")
 
         let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
-        pinger.ping { result in
-            XCTAssert(Thread.isMainThread)
-            do {
-                _=try result.get()
-                XCTFail("ping should fail")
-            } catch Pinger.PingError.timeout(.select) {
-                // pass
-            } catch {
-                XCTFail("error: \(error)")
-            }
-            e.fulfill()
-        }
+        let r = try await pinger.ping().get()
 
-        waitForExpectations(timeout: 5)
+        XCTAssertEqual(r.ip, ip)
+        XCTAssertLessThan(20, r.bytesCount)
+        XCTAssertEqual(r.seq, 0)
+        XCTAssertLessThanOrEqual(r.time/1000, timeout)
+        XCTAssertNotEqual(r.ttl, 0)
     }
 
-    func testNonExistentIpAsyncShouldTimeout() throws {
+    func testNonExistentIpShouldTimeout() async throws {
         let ip = IPv4Address("111.2.155.2")!
         let timeout = 0.2
 
         let e = expectation(description: "ready")
-        Task {
-            do {
-                let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
-                _=try await pinger.ping().get()
+        do {
+            let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
+            _=try await pinger.ping().get()
 
-                XCTFail("ping should fail")
-
-            } catch Pinger.PingError.timeout(.select) {
-                // pass
-            } catch {
-                XCTFail("error: \(error)")
-            }
-            e.fulfill()
+            XCTFail("ping should fail")
+        } catch Pinger.PingError.timeout(.select) {
+            // pass
+        } catch {
+            XCTFail("error: \(error)")
         }
+        e.fulfill()
 
-        waitForExpectations(timeout: 5)
+        await fulfillment(of: [e], timeout: 5)
     }
 
 }

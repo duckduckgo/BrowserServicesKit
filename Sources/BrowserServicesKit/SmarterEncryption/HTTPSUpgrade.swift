@@ -20,7 +20,6 @@
 import Common
 import Foundation
 import BloomFilterWrapper
-import os.log
 
 public enum HTTPSUpgradeError: Error {
     case badUrl

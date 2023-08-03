@@ -20,7 +20,6 @@
 import Foundation
 import Combine
 import Common
-import os
 
 class SyncOperation: Operation {
 
