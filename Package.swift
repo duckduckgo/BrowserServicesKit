@@ -27,7 +27,8 @@ let package = Package(
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
         .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
-        .library(name: "SecureStorage", targets: ["SecureStorage"]),
+        .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
+        .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
@@ -200,6 +201,12 @@ let package = Package(
             ]
         ),
         .target(name: "WireGuardC"),
+        .target(
+            name: "NetworkProtectionTestUtils",
+            dependencies: [
+                "NetworkProtection"
+            ]
+        ),
 
         // MARK: - Test Targets
 
