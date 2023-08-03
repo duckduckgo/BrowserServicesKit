@@ -70,10 +70,15 @@ public class OverlayAutofillUserScript: AutofillUserScript {
     }
 
     func closeAutofillParent(_ message: UserScriptMessage, _ replyHandler: MessageReplyHandler) {
+        guard websiteAutofillInstance != nil else { return }
+        closeAutofillParent()
+        replyHandler(nil)
+    }
+
+    public func closeAutofillParent() {
         guard let websiteAutofillInstance = websiteAutofillInstance else { return }
         self.contentOverlay?.overlayAutofillUserScript(self, requestResizeToSize: CGSize(width: 0, height: 0))
         websiteAutofillInstance.overlayAutofillUserScriptClose(self)
-        replyHandler(nil)
     }
 
     /// Used to create a top autofill context script for injecting into a ContentOverlay

@@ -31,13 +31,16 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
 
     private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
+    private let localSubject = PassthroughSubject<Void, Never>()
     public var externalUpdates: AnyPublisher<Void, Never>
-    
+    public var localUpdates: AnyPublisher<Void, Never>
+
     private let errorEvents: EventMapping<BookmarksModelError>?
 
     public init(bookmarksDatabase: CoreDataDatabase,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
+        self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
@@ -68,7 +71,13 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             }
         }
     }
-    
+
+    public func reloadData() {
+        context.performAndWait {
+            self.refresh()
+        }
+    }
+
     private func refresh() {
         guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
             errorEvents?.fire(.fetchingRootItemFailed(.favorites))
@@ -76,7 +85,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             return
         }
         
-        favorites = favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoritesFolder)
     }
 
     public func favorite(at index: Int) -> BookmarkEntity? {
@@ -98,7 +107,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
 
         save()
         
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoriteFolder)
     }
     
     public func moveFavorite(_ favorite: BookmarkEntity,
@@ -109,35 +118,50 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             return
         }
         
-        guard let children = favoriteFolder.favorites,
-              fromIndex < children.count,
-              toIndex < children.count else {
+        let visibleChildren = favoriteFolder.favoritesArray
+
+        guard fromIndex < visibleChildren.count,
+              toIndex < visibleChildren.count else {
             errorEvents?.fire(.indexOutOfRange(.favorites))
             return
         }
         
-        guard let actualFavorite = children[fromIndex] as? BookmarkEntity,
-              actualFavorite == favorite else {
+        guard visibleChildren[fromIndex] == favorite else {
             errorEvents?.fire(.favoritesListIndexNotMatchingBookmark)
             return
         }
         
+        // Take into account bookmarks that are pending deletion
         let mutableChildrenSet = favoriteFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.favorites))
-        
-        mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
+
+        let actualFromIndex = mutableChildrenSet.index(of: favorite)
+        let actualToIndex = mutableChildrenSet.index(of: visibleChildren[toIndex])
+
+        guard actualFromIndex != NSNotFound, actualToIndex != NSNotFound else {
+            assertionFailure("Favorite: position could not be determined")
+            refresh()
+            return
+        }
+
+        mutableChildrenSet.moveObjects(at: IndexSet(integer: actualFromIndex), to: actualToIndex)
         
         save()
         
-        favorites = favoriteFolder.favorites?.array as? [BookmarkEntity] ?? []
+        readFavorites(with: favoriteFolder)
     }
     
     private func save() {
         do {
             try context.save()
+            localSubject.send()
         } catch {
             context.rollback()
             errorEvents?.fire(.saveFailed(.favorites), error: error)
         }
     }
 
+    private func readFavorites(with favoritesFolder: BookmarkEntity) {
+        favorites = (favoritesFolder.favorites?.array as? [BookmarkEntity] ?? [])
+            .filter { !$0.isPendingDeletion }
+    }
 }

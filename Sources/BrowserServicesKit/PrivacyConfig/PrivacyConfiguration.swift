@@ -35,7 +35,7 @@ public protocol PrivacyConfiguration {
     var tempUnprotectedDomains: [String] { get }
 
     /// Trackers that has been allow listed because of site breakage
-    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData { get }
+    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist { get }
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 

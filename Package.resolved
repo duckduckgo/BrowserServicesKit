@@ -1,12 +1,21 @@
 {
   "pins" : [
     {
+      "identity" : "bloom_cpp",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/duckduckgo/bloom_cpp.git",
+      "state" : {
+        "revision" : "8076199456290b61b4544bf2f4caf296759906a0",
+        "version" : "3.0.0"
+      }
+    },
+    {
       "identity" : "content-scope-scripts",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "801b7f23476f797c6eaa72b070e6c80abb82801a",
-        "version" : "4.4.4"
+        "revision" : "a4f35ad23ac4a0eb9b36b94f1f2aa0f0ebf2855d",
+        "version" : "4.30.0"
       }
     },
     {
@@ -14,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "revision" : "8f403fad4f6ccf18a3900fc560f43067a527ac9f",
-        "version" : "6.5.1"
+        "branch" : "8.0.0",
+        "revision" : "b1160df954eea20cd4cdf9356afc369751981b16"
       }
     },
     {
@@ -23,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/GRDB.swift.git",
       "state" : {
-        "revision" : "4475888676cfe1aabb1a35f379cd079ea692da1e",
-        "version" : "2.1.1"
+        "revision" : "77d9a83191a74e319a5cfa27b0e3145d15607573",
+        "version" : "2.2.0"
       }
     },
     {
@@ -79,6 +88,15 @@
       "state" : {
         "revision" : "4684440d03304e7638a2c8086895367e90987463",
         "version" : "1.2.1"
+      }
+    },
+    {
+      "identity" : "wireguard-apple",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/duckduckgo/wireguard-apple",
+      "state" : {
+        "revision" : "cf3c0f5132dbb8de08c46155a1bbd5e5bb6a47c1",
+        "version" : "1.1.0"
       }
     }
   ],

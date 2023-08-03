@@ -23,7 +23,7 @@ struct AccountManager: AccountManaging {
 
     let endpoints: Endpoints
     let api: RemoteAPIRequestCreating
-    let crypter: Crypting
+    let crypter: CryptingInternal
 
     func createAccount(deviceName: String, deviceType: String) async throws -> SyncAccount {
         let deviceId = UUID().uuidString
@@ -68,7 +68,8 @@ struct AccountManager: AccountManaging {
                            userId: userId,
                            primaryKey: Data(accountKeys.primaryKey),
                            secretKey: Data(accountKeys.secretKey),
-                           token: result.token)
+                           token: result.token,
+                           state: .active)
     }
 
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> LoginResult {
@@ -203,7 +204,8 @@ struct AccountManager: AccountManaging {
                 userId: info.userId,
                 primaryKey: info.primaryKey,
                 secretKey: secretKey,
-                token: token
+                token: token,
+                state: .addingNewDevice
             ),
             devices: try result.devices.map {
                 RegisteredDevice(
@@ -274,14 +276,14 @@ struct AccountManager: AccountManaging {
 
 extension SyncAccount {
 
-    func updatingDeviceName(_ deviceName: String) -> SyncAccount {
+    func updatingState(_ state: SyncAuthState) -> SyncAccount {
         SyncAccount(deviceId: self.deviceId,
-                    deviceName: deviceName,
+                    deviceName: self.deviceName,
                     deviceType: self.deviceType,
                     userId: self.userId,
                     primaryKey: self.primaryKey,
                     secretKey: self.secretKey,
-                    token: self.token)
+                    token: self.token,
+                    state: state)
     }
-
 }

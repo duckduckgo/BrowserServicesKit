@@ -267,6 +267,21 @@ class MockUserScriptMessage: UserScriptMessage {
 }
 
 class MockAutofillEmailDelegate: AutofillEmailDelegate {
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+
+    }
+
+    func autofillUserScriptDidRequestInContextPromptValue(_: BrowserServicesKit.AutofillUserScript) -> Double? {
+        return nil
+    }
+
+    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+
+    }
+
+    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+
+    }
 
     var signedInCallback: (() -> Void)?
     var signedOutCallback: (() -> Void)?
@@ -284,9 +299,9 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
-                            completionHandler: @escaping AliasCompletion) {
+                            completionHandler: @escaping AliasAutosaveCompletion) {
         requestAliasCallback?()
-        completionHandler("alias", nil)
+        completionHandler("alias", true, nil)
     }
     
     func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {

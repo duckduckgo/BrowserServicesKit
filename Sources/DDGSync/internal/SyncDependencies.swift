@@ -17,22 +17,23 @@
 //
 
 import Foundation
+import Combine
+import Common
 
 protocol SyncDependencies {
 
     var endpoints: Endpoints { get }
     var account: AccountManaging { get }
     var api: RemoteAPIRequestCreating { get }
+    var keyValueStore: KeyValueStoring { get }
     var secureStore: SecureStoring { get }
-    var responseHandler: ResponseHandling { get }
-    var crypter: Crypting { get }
+    var crypter: CryptingInternal { get }
+    var scheduler: SchedulingInternal { get }
+    var errorEvents: EventMapping<SyncError> { get }
+    var log: OSLog { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
-
-    func createUpdatesSender(_ persistence: LocalDataPersisting) throws -> UpdatesSending
-    func createUpdatesFetcher(_ persistence: LocalDataPersisting) throws -> UpdatesFetching
-
 }
 
 protocol AccountManaging {
@@ -49,27 +50,19 @@ protocol AccountManaging {
 
 }
 
+protocol KeyValueStoring {
+
+    func object(forKey: String) -> Any?
+    func set(_ value: Any?, forKey: String)
+}
+
 protocol SecureStoring {
     func persistAccount(_ account: SyncAccount) throws
     func account() throws -> SyncAccount?
     func removeAccount() throws
 }
 
-protocol ResponseHandling {
-    func handleUpdates(_ data: Data) async throws
-}
-
-protocol UpdatesFetching {
-    func fetch() async throws
-}
-
-public protocol Crypting {
-
-    func encryptAndBase64Encode(_ value: String) throws -> String
-    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String
-    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String
+protocol CryptingInternal: Crypting {
 
     func seal(_ data: Data, secretKey: Data) throws -> Data
     func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data
@@ -83,16 +76,6 @@ public protocol Crypting {
 
     func prepareForConnect() throws -> ConnectInfo
 
-}
-
-extension Crypting {
-    func encryptAndBase64Encode(_ value: String) throws -> String {
-        try encryptAndBase64Encode(value, using: nil)
-    }
-
-    func base64DecodeAndDecrypt(_ value: String) throws -> String {
-        try base64DecodeAndDecrypt(value, using: nil)
-    }
 }
 
 enum HTTPRequestMethod: String {

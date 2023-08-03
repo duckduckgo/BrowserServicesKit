@@ -20,22 +20,74 @@ import Foundation
 import DDGSyncCrypto
 import Combine
 
+public enum SyncAuthState: String, Sendable, Codable {
+    /// Sync engine is not initialized.
+    case initializing
+    /// Sync is not enabled.
+    case inactive
+    /// Sync is in progress of adding a new device to an existing account.
+    case addingNewDevice
+    /// User is logged in to sync.
+    case active
+}
+
+/**
+ This protocol should be implemented by clients to feed DDGSync with the list of syncable data providers.
+ */
+public protocol DataProvidersSource: AnyObject {
+    /**
+     Clients should implement this method and return data providers for all types of syncable data.
+
+     This function is called whenever sync account setup is finished
+     and initial sync operation is ready to be performed.
+     */
+    func makeDataProviders() -> [DataProviding]
+}
+
 public protocol DDGSyncing {
 
-    /**
-     This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
-     */
-    var isAuthenticated: Bool { get }
+    var dataProvidersSource: DataProvidersSource? { get set }
 
     /**
-     This client is authenticated if there is an account and a non-null token. If the token is invalidated remotely subsequent requests will set the token to nil and throw an exception.
+     Describes current state of sync account.
+
+     Must be different than `initializing` to guarantee that querying state info works as expected.
      */
-    var isAuthenticatedPublisher: AnyPublisher<Bool, Never> { get }
+    var authState: SyncAuthState { get }
+
+    /**
+     Emits changes to current state of sync account.
+     */
+    var authStatePublisher: AnyPublisher<SyncAuthState, Never> { get }
 
     /**
      The currently logged in sync account. Returns nil if client is not authenticated
      */
     var account: SyncAccount? { get }
+
+    /**
+     Used to trigger Sync by the client app.
+
+     Sync is not started directly, but instead its schedule is handled internally based on input events.
+     Clients should use `scheduler` and `Scheduling` API to notify Sync about app events, such as making
+     changes to syncable data or lifecycle-related events.
+     */
+    var scheduler: Scheduling { get }
+
+    /**
+     Returns true if there is an ongoing sync operation.
+     */
+    var isSyncInProgress: Bool { get }
+
+    /**
+     Emits boolean values representing current sync operation status.
+     */
+    var isSyncInProgressPublisher: AnyPublisher<Bool, Never> { get }
+
+    /**
+     Initializes Sync object, loads account info and prepares internal state.
+     */
+    func initializeIfNeeded(isInternalUser: Bool)
 
     /**
      Creates an account.
@@ -56,7 +108,7 @@ public protocol DDGSyncing {
     /**
      Logs in to an existing account using a recovery key.
      */
-    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws
+    func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice]
 
     /**
     Returns a device id and temporary secret key ready for display and allows callers attempt to fetch the transmitted recovery key.
@@ -69,21 +121,6 @@ public protocol DDGSyncing {
     func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws
 
     /**
-    Creates an atomic sender.  Add items to the sender and then call send to send them all in a single PATCH.  Will automatically re-try if there is a network failure.
-     */
-    func sender() throws -> UpdatesSending
-
-    /**
-    Call this to call the server and get latest updated.
-     */
-    func fetchLatest() async throws
-
-    /**
-     Call this to fetch everything again.
-    */
-    func fetchEverything() async throws
-
-    /**
      Disconnect this client from the sync service. Removes all local info, but leaves in places bookmarks, etc.
      */
     func disconnect() async throws
@@ -91,7 +128,7 @@ public protocol DDGSyncing {
     /**
      Disconnect the specified device from the sync service.
 
-     @param deviceId ID of the device to be disconnected.
+     - Parameter deviceId: ID of the device to be disconnected.
     */
     func disconnect(deviceId: String) async throws
 
@@ -112,75 +149,59 @@ public protocol DDGSyncing {
 
 }
 
-public protocol UpdatesSending {
 
-    func persistingBookmark(_ bookmark: SavedSiteItem) throws -> UpdatesSending
-    func persistingBookmarkFolder(_ folder: SavedSiteFolder) throws -> UpdatesSending
-    func deletingBookmark(_ bookmark: SavedSiteItem) throws -> UpdatesSending
-    func deletingBookmarkFolder(_ folder: SavedSiteFolder) throws -> UpdatesSending
+public protocol Crypting {
 
-    func send() async throws
+    /**
+     * Retrieves secret key from Sync account data stored in keychain.
+     *
+     * The key can be cached locally and used as `secretKey` when passed to
+     * `encryptAndBase64Encode` and `base64DecodeAndDecrypt` functions.
+     *
+     * This function throws an error if Sync account is not present
+     * (or can't be retrieved from keychain).
+     */
+    func fetchSecretKey() throws -> Data
 
+    /**
+     * Encrypts `value` using provided `secretKey` and encodes it using Base64 encoding.
+     *
+     * Throws an error if value cannot be encrypted.
+     */
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data) throws -> String
+
+    /**
+     * Decodes Base64-encoded `value` and decrypts it using provided `secretKey`.
+     *
+     * Throws an error if value is not a valid Base64-encoded string or when decryption fails.
+     */
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String
+
+    /**
+     * Encrypts `value` and encodes it using Base64 encoding.
+     *
+     * This is a convenience function for calling `encryptAndBase64Encode(_:secretKey:)`
+     * as it calls `fetchSecretKey` internally to retrieve encryption key.
+     * Fetching key may be an expensive operation and should be avoided when the function
+     * is called multiple times (e.g. to encrypt a collection of values). In this scenario,
+     * fetching key upfront with `fetchSecretKey` and passing it to `encryptAndBase64Encode(_:secretKey:)`
+     * is preferred.
+     */
+    func encryptAndBase64Encode(_ value: String) throws -> String
+
+    /**
+     * Decodes Base64-encoded `value` and decrypts it.
+     *
+     * This is a convenience function for calling `base64DecodeAndDecrypt(_:secretKey:)`
+     * as it calls `fetchSecretKey` internally to retrieve decryption key.
+     * Fetching key may be an expensive operation and should be avoided when the function
+     * is called multiple times (e.g. to decrypt a collection of values). In this scenario,
+     * fetching key upfront with `fetchSecretKey` and passing it to `base64DecodeAndDecrypt(_:secretKey:)`
+     * is preferred.
+     */
+    func base64DecodeAndDecrypt(_ value: String) throws -> String
 }
 
-public enum SyncEvent {
-
-    case bookmarkUpdated(SavedSiteItem)
-    case bookmarkFolderUpdated(SavedSiteFolder)
-    case bookmarkDeleted(id: String)
-
-}
-
-public struct SavedSiteItem: Codable {
-
-    public let id: String
-
-    public let title: String
-    public let url: String
-
-    public let isFavorite: Bool
-    public let nextFavorite: String?
-
-    public let nextItem: String?
-    public let parent: String?
-
-    public init(id: String,
-                title: String,
-                url: String,
-                isFavorite: Bool,
-                nextFavorite: String?,
-                nextItem: String?,
-                parent: String?) {
-
-        self.id = id
-        self.title = title
-        self.url = url
-        self.isFavorite = isFavorite
-        self.nextFavorite = nextFavorite
-        self.nextItem = nextItem
-        self.parent = parent
-
-    }
-
-}
-
-public struct SavedSiteFolder: Codable {
-
-    public let id: String
-
-    public let title: String
-
-    public let nextItem: String?
-    public let parent: String?
-
-    public init(id: String, title: String, nextItem: String?, parent: String?) {
-        self.id = id
-        self.title = title
-        self.nextItem = nextItem
-        self.parent = parent
-    }
-
-}
 
 public protocol RemoteConnecting {
 
@@ -190,4 +211,23 @@ public protocol RemoteConnecting {
 
     func stopPolling()
 
+}
+
+/**
+ * Describes Sync scheduler.
+ *
+ * Client apps can call scheduler API directly to notify about events
+ * that should trigger sync.
+ */
+public protocol Scheduling {
+    /// This should be called whenever any syncable object changes.
+    func notifyDataChanged()
+    /// This should be called on application launch and when the app becomes active.
+    func notifyAppLifecycleEvent()
+    /// This should be called from externally scheduled background jobs that trigger sync periodically.
+    func requestSyncImmediately()
+    /// This should be called when sync needs to be cancelled, e.g. in response to app going to background.
+    func cancelSyncAndSuspendSyncQueue()
+    /// This should be called when sync can be resumed, e.g. in response to app going to foreground.
+    func resumeSyncQueue()
 }

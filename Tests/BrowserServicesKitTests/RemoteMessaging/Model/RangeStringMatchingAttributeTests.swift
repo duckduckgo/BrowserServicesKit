@@ -20,6 +20,7 @@
 import XCTest
 import Foundation
 @testable import BrowserServicesKit
+@testable import RemoteMessaging
 
 class RangeStringMatchingAttributeTests: XCTestCase {
 

@@ -17,24 +17,26 @@
 //
 
 import XCTest
+import Common
+import SecureStorage
 @testable import BrowserServicesKit
 
 class SecureVaultTests: XCTestCase {
 
     var mockCryptoProvider = MockCryptoProvider()
-    var mockDatabaseProvider = MockDatabaseProvider()
+    var mockDatabaseProvider = (try! MockDatabaseProvider())
     var mockKeystoreProvider = MockKeystoreProvider()
-    var testVault: SecureVault!
+    var testVault: (any AutofillSecureVault)!
+    var tld = TLD()
 
     override func setUp() {
         super.setUp()
 
-        let providers = SecureVaultProviders(crypto: mockCryptoProvider,
-                                             database: mockDatabaseProvider,
-                                             keystore: mockKeystoreProvider)
+        let providers = SecureStorageProviders(crypto: mockCryptoProvider,
+                                               database: mockDatabaseProvider,
+                                               keystore: mockKeystoreProvider)
 
-        testVault = DefaultSecureVault(authExpiry: 1,
-                                       providers: providers)
+        testVault = DefaultAutofillSecureVault(providers: providers)
 
     }
 
@@ -114,7 +116,7 @@ class SecureVaultTests: XCTestCase {
         do {
             _ = try testVault.authWith(password: "password".data(using: .utf8)!)
         } catch {
-            if case SecureVaultError.invalidPassword = error {
+            if case SecureStorageError.invalidPassword = error {
                 // no-op
             } else {
                 XCTFail("Unexepected error \(error)")
@@ -170,7 +172,7 @@ class SecureVaultTests: XCTestCase {
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
         
         try testVault.storeWebsiteCredentials(credentials)
-    
+
         let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
         XCTAssertNotNil(fetchedCredentials)
         XCTAssertNotNil(fetchedCredentials?.password)
@@ -214,7 +216,7 @@ class SecureVaultTests: XCTestCase {
         do {
             _ = try testVault.websiteCredentialsFor(accountId: 1)
         } catch {
-            if case SecureVaultError.authRequired = error {
+            if case SecureStorageError.authRequired = error {
                 // no-op
             } else {
                 XCTFail("Unexepected error \(error)")
@@ -223,4 +225,3 @@ class SecureVaultTests: XCTestCase {
     }
 
 }
-    

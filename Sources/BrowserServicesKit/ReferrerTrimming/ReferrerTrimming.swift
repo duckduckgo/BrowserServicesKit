@@ -100,8 +100,10 @@ public class ReferrerTrimming {
             newReferrer = "\(referrerScheme)://\(referrerHost)/"
         }
 
-        if trackerData.findTracker(forUrl: destUrl.absoluteString) != nil && !isSameEntity(a: referEntity, b: destEntity) {
-            newReferrer = "\(referrerScheme)://\(tld.eTLDplus1(referrerHost) ?? referrerHost)/"
+        if let tracker = trackerData.findTracker(forUrl: destUrl.absoluteString),
+           tracker.defaultAction == .block,
+           !isSameEntity(a: referEntity, b: destEntity) {
+            newReferrer = "\(referrerScheme)://\(referrerHost)/"
         }
         
         if newReferrer == referrerUrl.absoluteString {

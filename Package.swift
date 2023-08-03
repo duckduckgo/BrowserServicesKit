@@ -23,17 +23,24 @@ let package = Package(
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
+        .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
         .library(name: "Navigation", targets: ["Navigation"]),
+        .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
+        .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
+        .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
+        .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "6.5.1"),
-        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
+    dependencies: [        
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", branch: "8.0.0"),
+        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.4.4"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.30.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
+        .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.0")
     ],
     targets: [
         .target(
@@ -42,12 +49,12 @@ let package = Package(
                 .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
                 "UserScript",
-                "ContentBlocking"
+                "ContentBlocking",
+                "SecureStorage"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -74,14 +81,15 @@ let package = Package(
             ]
         ),
         .target(
+            name: "BookmarksTestsUtils",
+            dependencies: [
+                "Bookmarks"
+            ]
+        ),
+         .target(
             name: "BloomFilterWrapper",
             dependencies: [
-                "BloomFilter"
-            ]),
-        .target(
-            name: "BloomFilter",
-            resources: [
-                .process("CMakeLists.txt")
+                .product(name: "BloomFilter", package: "bloom_cpp")
             ]),
         .target(
             name: "Crashes"
@@ -94,6 +102,7 @@ let package = Package(
                 "Networking"
             ],
             resources: [
+                .process("SyncMetadata.xcdatamodeld"),
                 .process("SyncPDFTemplate.png")
             ]
         ),
@@ -130,7 +139,10 @@ let package = Package(
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
             ]),
         .target(
-            name: "UserScript"
+            name: "UserScript",
+            dependencies: [
+                "Common"
+            ]
         ),
         .target(
             name: "PrivacyDashboard",
@@ -156,16 +168,59 @@ let package = Package(
                 "Common"
             ]),
         .target(
+            name: "RemoteMessaging",
+            dependencies: [
+                "Common",
+                "BrowserServicesKit"
+            ]
+        ),
+        .target(
+            name: "SyncDataProviders",
+            dependencies: [
+                "Bookmarks",
+                "DDGSync",
+                "Persistence"
+            ]),
+        .target(
             name: "TestUtils",
             dependencies: [
                 "Networking"
             ]),
-        
-        // MARK: - Test targets
+        .target(
+            name: "NetworkProtection",
+            dependencies: [
+                .target(name: "WireGuardC"),
+                .product(name: "WireGuard", package: "wireguard-apple"),
+                "Common"
+            ]),
+        .target(
+            name: "SecureStorage",
+            dependencies: [
+                "Common",
+                .product(name: "GRDB", package: "GRDB.swift")
+            ]
+        ),
+        .target(name: "WireGuardC"),
+        .target(
+            name: "NetworkProtectionTestUtils",
+            dependencies: [
+                "NetworkProtection"
+            ]
+        ),
+
+        // MARK: - Test Targets
+
+        .testTarget(
+            name: "BookmarksTests",
+            dependencies: [
+                "Bookmarks",
+                "BookmarksTestsUtils"
+            ]),
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "RemoteMessaging" // Move tests later (lots of test dependencies in BSK)
             ],
             resources: [
                 .copy("Resources")
@@ -227,7 +282,30 @@ let package = Package(
                 "Configuration",
                 "TestUtils"
             ]
-        )
+        ),
+        .testTarget(
+            name: "SyncDataProvidersTests",
+            dependencies: [
+                "BookmarksTestsUtils",
+                "SyncDataProviders"
+            ]
+        ),
+        .testTarget(
+            name: "NetworkProtectionTests",
+            dependencies: [
+                "NetworkProtection"
+            ],
+            resources: [
+                .copy("Resources/servers-original-endpoint.json"),
+                .copy("Resources/servers-updated-endpoint.json")
+            ]
+        ),
+        .testTarget(
+            name: "SecureStorageTests",
+            dependencies: [
+                "SecureStorage"
+            ]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )

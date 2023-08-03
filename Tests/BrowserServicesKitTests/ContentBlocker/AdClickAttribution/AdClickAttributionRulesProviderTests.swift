@@ -62,23 +62,23 @@ class AdClickAttributionRulesProviderTests: XCTestCase {
         
         compiledRulesSource.currentMainRules = await ContentBlockingRulesHelper().makeFakeRules(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
                                                                                                 tdsEtag: "tdsEtag",
-                                                                                                tempListEtag: "tempEtag",
-                                                                                                allowListEtag: nil,
+                                                                                                tempListId: "tempEtag",
+                                                                                                allowListId: nil,
                                                                                                 unprotectedSitesHash: nil)
         
         let attributionName = AdClickAttributionRulesSplitter.blockingAttributionRuleListName(forListNamed: compiledRulesSource.currentMainRules!.name)
         compiledRulesSource.currentAttributionRules = await ContentBlockingRulesHelper().makeFakeRules(name: attributionName,
                                                                                                        tdsEtag: "tdsEtag",
-                                                                                                       tempListEtag: "tempEtag",
-                                                                                                       allowListEtag: nil,
+                                                                                                       tempListId: "tempEtag",
+                                                                                                       allowListId: nil,
                                                                                                        unprotectedSitesHash: nil)
         XCTAssertNotNil(compiledRulesSource.currentMainRules)
         XCTAssertNotNil(compiledRulesSource.currentAttributionRules)
         
         fakeNewRules = await ContentBlockingRulesHelper().makeFakeRules(name: compiledRulesSource.currentAttributionRules!.name,
                                                                         tdsEtag: "updatedEtag",
-                                                                        tempListEtag: "updatedEtag",
-                                                                        allowListEtag: nil,
+                                                                        tempListId: "updatedEtag",
+                                                                        allowListId: nil,
                                                                         unprotectedSitesHash: nil)
         let log: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "Test", category: "DDG Test")
         provider = AdClickAttributionRulesProvider(config: feature,

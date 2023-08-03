@@ -17,33 +17,24 @@
 //
 
 import XCTest
+import SecureStorage
 @testable import BrowserServicesKit
 
 class VaultFactoryTests: XCTestCase {
 
-    class VaultFactoryTestHarness: SecureVaultFactory {
-
-        var mockCryptoProvider = MockCryptoProvider()
-        var mockKeystoreProvider = MockKeystoreProvider()
-        var mockDatabaseProvider = MockDatabaseProvider()
-
-        override func makeCryptoProvider() -> SecureVaultCryptoProvider {
-            return mockCryptoProvider
-        }
-
-        override func makeKeyStoreProvider() -> SecureVaultKeyStoreProvider {
-            return mockKeystoreProvider
-        }
-
-        override func makeDatabaseProvider(key: Data) throws -> SecureVaultDatabaseProvider {
-            return mockDatabaseProvider
-        }
-
-    }
-
     func test() throws {
-        let testHarness = VaultFactoryTestHarness()
-        testHarness.mockKeystoreProvider._l1Key = "samplekey".data(using: .utf8)
+        let testHarness = SecureVaultFactory<DefaultAutofillSecureVault>(
+            makeCryptoProvider: {
+                return MockCryptoProvider()
+            }, makeKeyStoreProvider: {
+                let provider = MockKeystoreProvider()
+                provider._l1Key = "samplekey".data(using: .utf8)
+                return provider
+            }, makeDatabaseProvider: { key in
+                return try MockDatabaseProvider()
+            }
+        )
+
         _ = try testHarness.makeVault(errorReporter: nil)
     }
 
