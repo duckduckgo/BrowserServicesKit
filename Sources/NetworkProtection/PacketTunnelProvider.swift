@@ -337,10 +337,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try loadAuthToken(from: options)
     }
 
-    public struct MissingProviderConfiguration: Error {
-        public init() {}
-    }
-
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
         let vendorOptions = provider?.providerConfiguration
 
