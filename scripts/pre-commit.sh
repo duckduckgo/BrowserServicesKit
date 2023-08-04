@@ -3,18 +3,16 @@
 # Get the path to the git hooks directory
 HOOK_DIR="$(git rev-parse --show-toplevel)/.git/hooks"
 HOOK_PATH="$HOOK_DIR/pre-commit"
+LINTER_SCRIPT_PATH="$(git rev-parse --show-toplevel)/lint.sh"
 
 install_hook() {
   # Define the hook
   HOOK_SCRIPT="
-  #!/bin/sh
+  #!/bin/sh  
 
-  if ! command -v swiftlint >/dev/null; then
-    echo 'error: SwiftLint not installed, download from https://github.com/realm/SwiftLint'
-    exit 1
-  fi
+  # Run the linter script
+  sh \"$LINTER_SCRIPT_PATH\" --fix
 
-  swiftlint --fix
   git add .
   echo 'SwiftLint finished fixing files. Proceeding with commit...'
   "
