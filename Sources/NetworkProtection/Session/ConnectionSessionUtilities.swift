@@ -48,3 +48,31 @@ public class ConnectionSessionUtilities {
         return session
     }
 }
+
+public extension NETunnelProviderSession {
+
+    func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage, responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
+        try sendProviderMessage(message.rawValue) { response in
+            responseHandler(response.flatMap(T.init(rawValue:)))
+        }
+    }
+
+    func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage) async throws -> T? where T.RawValue == Data {
+        try await withCheckedThrowingContinuation { continuation in
+            do {
+                try sendProviderMessage(message) { response in
+                    continuation.resume(returning: response)
+                }
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
+    func sendProviderMessage(_ message: ExtensionMessage, completionHandler: (() -> Void)? = nil) throws {
+        try sendProviderMessage(message.rawValue) { _ in
+            completionHandler?()
+        }
+    }
+
+}
