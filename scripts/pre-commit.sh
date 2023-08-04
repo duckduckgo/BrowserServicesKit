@@ -6,7 +6,8 @@ HOOK_PATH="$HOOK_DIR/pre-commit"
 
 install_hook() {
   # Define the hook
-  HOOK_SCRIPT="#!/bin/sh
+  HOOK_SCRIPT="
+  #!/bin/sh
 
   if ! command -v swiftlint >/dev/null; then
     echo 'error: SwiftLint not installed, download from https://github.com/realm/SwiftLint'
