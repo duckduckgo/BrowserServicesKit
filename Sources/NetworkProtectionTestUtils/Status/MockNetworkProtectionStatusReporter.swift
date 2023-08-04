@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import NetworkExtension
 import Common
@@ -55,3 +57,5 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
         
     }
 }
+
+#endif
