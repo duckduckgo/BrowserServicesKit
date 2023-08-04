@@ -22,4 +22,5 @@ import NetworkExtension
 
 public protocol ConnectionStatusObserver {
     var publisher: AnyPublisher<ConnectionStatus, Never> { get }
+    var recentValue: ConnectionStatus { get }
 }

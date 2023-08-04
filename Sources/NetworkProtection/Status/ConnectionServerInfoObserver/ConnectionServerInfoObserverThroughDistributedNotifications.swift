@@ -27,8 +27,12 @@ import NotificationCenter
 /// Observes the server info through Distributed Notifications and an IPC connection.
 ///
 public class ConnectionServerInfoObserverThroughDistributedNotifications: ConnectionServerInfoObserver {
+    public lazy var publisher = subject.eraseToAnyPublisher()
+    public var recentValue: NetworkProtectionStatusServerInfo {
+        subject.value
+    }
+
     private let subject = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
-    public let publisher = subject.eraseToAnyPublisher()
 
     // MARK: - Notifications
 

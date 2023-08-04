@@ -109,7 +109,7 @@ public final class ConnectionStatusTransitionAwaiter {
         var count = 0
 
         while await !expect(targetStatus, within: transitionTimeout) {
-            let currentStatus = statusObserver.publisher.value
+            let currentStatus = statusObserver.recentValue
 
             if targetStatus.sameStatus(as: currentStatus) {
                 return

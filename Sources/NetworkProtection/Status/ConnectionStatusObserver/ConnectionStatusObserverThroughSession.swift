@@ -27,6 +27,9 @@ import Common
 ///
 public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     public lazy var publisher: AnyPublisher<ConnectionStatus, Never> = subject.eraseToAnyPublisher()
+    public var recentValue: ConnectionStatus {
+        subject.value
+    }
 
     private let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 

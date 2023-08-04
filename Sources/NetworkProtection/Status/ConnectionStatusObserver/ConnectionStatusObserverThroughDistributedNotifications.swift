@@ -27,7 +27,10 @@ import Common
 /// Observes the tunnel status through Distributed Notifications.
 ///
 public class ConnectionStatusObserverThroughDistributedNotifications: ConnectionStatusObserver {
-    public lazy var publisher: AnyPublisher<ConnectionStatus, Never> = subject.eraseToAnyPublisher()
+    public lazy var publisher = subject.eraseToAnyPublisher()
+    public var recentValue: ConnectionStatus {
+        subject.value
+    }
 
     private let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 

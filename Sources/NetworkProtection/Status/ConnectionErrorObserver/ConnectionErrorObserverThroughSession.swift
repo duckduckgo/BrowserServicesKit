@@ -25,7 +25,11 @@ import Common
 /// NEVPNStatusDidChange notifications or tunnel session.
 ///
 public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
-    public let publisher = CurrentValueSubject<String?, Never>(nil)
+    public lazy var publisher: AnyPublisher<String?, Never> = subject.eraseToAnyPublisher()
+    public var recentValue: String? {
+        subject.value
+    }
+    private let subject = CurrentValueSubject<String?, Never>(nil)
 
     // MARK: - Notifications
 
@@ -95,8 +99,8 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
 
     private func updateTunnelErrorMessage(session: NETunnelProviderSession) throws {
         try session.sendProviderMessage(.getLastErrorMessage) { [weak self] (errorMessage: ExtensionMessageString?) in
-            guard errorMessage?.value != self?.publisher.value else { return }
-            self?.publisher.send(errorMessage?.value)
+            guard errorMessage?.value != self?.subject.value else { return }
+            self?.subject.send(errorMessage?.value)
         }
     }
 }
