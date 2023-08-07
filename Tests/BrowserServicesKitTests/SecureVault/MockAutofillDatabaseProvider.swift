@@ -52,8 +52,9 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
             _credentialsDict[accountID] = credentials
             return accountID
         } else {
-            _credentialsDict[-1] = credentials
-            return -1
+            let id = Int64(_credentialsDict.count + 1)
+            _credentialsDict[id] = credentials
+            return id
         }
     }
 
@@ -72,6 +73,7 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        self._credentialsDict.removeValue(forKey: accountId)        
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 

@@ -94,7 +94,7 @@ extension Suggestion {
 
     init(key: String, value: String) {
         if key == Self.phraseKey {
-            self = .phrase(phrase: value.droppingWwwPrefix())
+            self = .phrase(phrase: value)
         } else {
             self = .unknown(value: value)
         }

@@ -1,7 +1,7 @@
 //
 //  NetworkProtectionDeviceManager.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import NetworkExtension
 
 public enum NetworkProtectionServerSelectionMethod {
     case automatic
@@ -27,7 +28,7 @@ public enum NetworkProtectionServerSelectionMethod {
 
 public protocol NetworkProtectionDeviceManagement {
 
-    func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo)
+    func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange], isKillSwitchEnabled: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo)
 
 }
 
@@ -144,12 +145,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// 2. If the key is new, register it with all backend servers and return a tunnel configuration + its server info
     /// 3. If the key already existed, look up the stored set of backend servers and check if the preferred server is registered. If not, register it, and return the tunnel configuration + server info.
     ///
-    public func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
+    public func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange], isKillSwitchEnabled: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
 
         let (selectedServer, keyPair) = try await register(selectionMethod: selectionMethod)
 
         do {
-            let configuration = try tunnelConfiguration(interfacePrivateKey: keyPair.privateKey, server: selectedServer)
+            let configuration = try tunnelConfiguration(interfacePrivateKey: keyPair.privateKey, server: selectedServer, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
             return (configuration, selectedServer.serverInfo)
         } catch let error as NetworkProtectionError {
             errorEvents?.fire(error)
@@ -267,7 +268,10 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     }
 
     func tunnelConfiguration(interfacePrivateKey: PrivateKey,
-                             server: NetworkProtectionServer) throws -> TunnelConfiguration {
+                             server: NetworkProtectionServer,
+                             includedRoutes: [IPAddressRange],
+                             excludedRoutes: [IPAddressRange],
+                             isKillSwitchEnabled: Bool) throws -> TunnelConfiguration {
 
         guard let allowedIPs = server.allowedIPs else {
             throw NetworkProtectionError.noServerRegistrationInfo
@@ -287,7 +291,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
-        let interface = interfaceConfiguration(privateKey: interfacePrivateKey, addressRange: interfaceAddressRange)
+        let interface = interfaceConfiguration(privateKey: interfacePrivateKey, addressRange: interfaceAddressRange, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
 
         return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])
     }
@@ -301,14 +305,18 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         return peerConfiguration
     }
 
-    func interfaceConfiguration(privateKey: PrivateKey, addressRange: IPAddressRange) -> InterfaceConfiguration {
-        var interface = InterfaceConfiguration(privateKey: privateKey)
-
-        interface.listenPort = 51821
-        interface.dns = [DNSServer(from: "10.11.12.1")!]
-        interface.addresses = [addressRange]
-
-        return interface
+    func interfaceConfiguration(privateKey: PrivateKey, addressRange: IPAddressRange, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange], isKillSwitchEnabled: Bool) -> InterfaceConfiguration {
+        // TO BE moved out to config
+        let dns = [
+            DNSServer(from: "10.11.12.1")!
+        ]
+        var includedRoutes = includedRoutes
+        // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP/addressRange is in includedRoutes
+        if !isKillSwitchEnabled {
+            includedRoutes.append(contentsOf: dns.map { IPAddressRange(address: $0.address, networkPrefixLength: 32) })
+            includedRoutes.append(addressRange)
+        }
+        return InterfaceConfiguration(privateKey: privateKey, addresses: [addressRange], includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, listenPort: 51821, dns: dns)
     }
 
     private func handle(clientError: NetworkProtectionClientError) {
