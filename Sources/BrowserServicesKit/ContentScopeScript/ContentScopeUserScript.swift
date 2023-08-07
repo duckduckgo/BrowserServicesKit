@@ -30,6 +30,9 @@ public final class ContentScopeProperties: Encodable {
     public let sessionKey: String
     public let platform = ContentScopePlatform()
     public let features: [String: ContentScopeFeature]
+#if os(macOS)
+    public let updateVersion: Int = 1
+#endif
 
     public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
