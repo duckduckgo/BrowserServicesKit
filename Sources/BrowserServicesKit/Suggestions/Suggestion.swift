@@ -93,7 +93,6 @@ extension Suggestion {
     static let phraseKey = "phrase"
 
     init(key: String, value: String) {
-        print(value)
         if key == Self.phraseKey {
             self = .phrase(phrase: value)
         } else {
