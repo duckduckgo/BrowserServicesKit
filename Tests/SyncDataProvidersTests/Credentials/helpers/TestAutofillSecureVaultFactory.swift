@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import Foundation
 import SecureStorage
 import SecureStorageTestsUtils

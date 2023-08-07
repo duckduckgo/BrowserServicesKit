@@ -22,7 +22,6 @@ import Combine
 import Common
 import GRDB
 import SecureStorage
-import os.log
 
 public struct CredentialsCleanupError: Error {
     public let cleanupError: Error
