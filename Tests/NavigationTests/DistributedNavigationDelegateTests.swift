@@ -23,13 +23,9 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable line_length
-// swiftlint:disable function_body_length
 // swiftlint:disable unused_closure_parameter
-// swiftlint:disable type_body_length
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
-// swiftlint:disable identifier_name
 
 @available(macOS 12.0, iOS 15.0, *)
 class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase {
@@ -1666,10 +1662,6 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
 }
 
-// swiftlint:enable line_length
-// swiftlint:enable function_body_length
 // swiftlint:enable unused_closure_parameter
-// swiftlint:enable type_body_length
 // swiftlint:enable trailing_comma
 // swiftlint:enable opening_brace
-// swiftlint:enable identifier_name

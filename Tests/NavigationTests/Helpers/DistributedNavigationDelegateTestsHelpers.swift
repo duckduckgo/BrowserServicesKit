@@ -23,10 +23,6 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable line_length
-// swiftlint:disable file_length
-// swiftlint:disable identifier_name
-
 @available(macOS 12.0, iOS 15.0, *)
 class DistributedNavigationDelegateTestsBase: XCTestCase {
 

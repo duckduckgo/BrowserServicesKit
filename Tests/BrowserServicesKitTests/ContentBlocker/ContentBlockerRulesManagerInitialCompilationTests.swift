@@ -32,7 +32,6 @@ final class CountedFulfillmentTestExpectation: XCTestExpectation {
     }
 }
 
-// swiftlint:disable line_length
 final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
     
     private static let fakeEmbeddedDataSet = ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules, etag: "\"\(UUID().uuidString)\"")
@@ -113,7 +112,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         wait(for: [exp], timeout: 15.0)
         
         func assertRules(_ rules: [ContentBlockerRulesManager.Rules]) {
-            guard let rules = rules.first else { XCTFail(); return }
+            guard let rules = rules.first else { XCTFail("Couldn't get rules"); return }
             XCTAssertEqual(cachedRules.etag, rules.etag)
             XCTAssertEqual(cachedRules.name, rules.name)
             XCTAssertEqual(cachedRules.trackerData, rules.trackerData)
@@ -172,7 +171,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         rulesUpdateListener.onRulesUpdated = { rules in
             expNext.fulfill()
 
-            guard let rules = rules.first else { XCTFail(); return }
+            guard let rules = rules.first else { XCTFail("Couldn't get rules"); return }
             XCTAssertNotEqual(cachedRules.name, rules.name)
             XCTAssertEqual(newListName, rules.name)
         }
