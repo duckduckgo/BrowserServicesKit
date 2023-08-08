@@ -273,3 +273,8 @@ class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase 
     }
 
 }
+
+// swiftlint:enable line_length
+// swiftlint:enable unused_closure_parameter
+// swiftlint:enable trailing_comma
+// swiftlint:enable opening_brace
