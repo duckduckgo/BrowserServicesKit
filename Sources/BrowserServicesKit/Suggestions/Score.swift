@@ -91,7 +91,11 @@ extension Score {
     }
 
     init(historyEntry: HistoryEntry, query: Query, queryTokens: [Query]? = nil) {
-        self.init(title: historyEntry.title ?? "", url: historyEntry.url, visitCount: historyEntry.numberOfVisits, query: query, queryTokens: queryTokens)
+        self.init(title: historyEntry.title ?? "",
+                  url: historyEntry.url,
+                  visitCount: historyEntry.numberOfVisits,
+                  query: query,
+                  queryTokens: queryTokens)
     }
 
     static func tokens(from query: Query) -> [Query] {

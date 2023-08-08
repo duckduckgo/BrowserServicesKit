@@ -136,7 +136,11 @@ struct JsonToRemoteMessageModelMapper {
                 return nil
             }
 
-            return .promoSingleAction(titleText: content.titleText, descriptionText: content.descriptionText, placeholder: mapToPlaceholder(content.placeholder), actionText: actionText, action: action)
+            return .promoSingleAction(titleText: content.titleText,
+                                      descriptionText: content.descriptionText,
+                                      placeholder: mapToPlaceholder(content.placeholder),
+                                      actionText: actionText,
+                                      action: action)
 
         case .none:
             return nil

@@ -182,6 +182,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         delegate?.secureVaultManager(self, didRequestPasswordManagerForDomain: domain)
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestStoreDataForDomain domain: String,
                                    data: AutofillUserScript.DetectedAutofillData) {
