@@ -24,10 +24,6 @@ import WebKit
 import Combine
 import Common
 
-// swiftlint:disable file_length
-// swiftlint:disable function_body_length
-// swiftlint:disable identifier_name
-
 class ContentBlockerRulesManagerTests: XCTestCase {
     
     static let validRules = """
