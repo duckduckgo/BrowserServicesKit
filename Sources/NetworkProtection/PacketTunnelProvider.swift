@@ -25,7 +25,7 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable:next type_body_length
+// swiftlint:disable type_body_length line_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -837,3 +837,4 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     }
 
 }
+// swiftlint:enable type_body_length line_length

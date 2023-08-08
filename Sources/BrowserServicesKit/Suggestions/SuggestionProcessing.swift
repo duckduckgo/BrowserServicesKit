@@ -253,8 +253,8 @@ final class SuggestionProcessing {
     static let minimumNumberInSuggestionGroup = 5
 
     private func makeResult(topHits: [Suggestion],
-                    duckduckgoSuggestions: [Suggestion],
-                    historyAndBookmarks: [Suggestion]) -> SuggestionResult {
+                            duckduckgoSuggestions: [Suggestion],
+                            historyAndBookmarks: [Suggestion]) -> SuggestionResult {
         // Top Hits
         let topHits = Array(topHits.prefix(2))
         var total = topHits.count

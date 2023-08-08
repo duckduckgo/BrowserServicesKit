@@ -180,7 +180,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     ///
     /// - Throws:`NetworkProtectionError`
     ///
-    private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer, keyPair: KeyPair) {
+    private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
+                                                                                                    keyPair: KeyPair) {
 
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
 
@@ -200,7 +201,9 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         var keyPair = keyStore.currentKeyPair()
-        let registeredServersResult = await networkClient.register(authToken: token, publicKey: keyPair.publicKey, withServerNamed: selectedServerName)
+        let registeredServersResult = await networkClient.register(authToken: token,
+                                                                   publicKey: keyPair.publicKey,
+                                                                   withServerNamed: selectedServerName)
         let selectedServer: NetworkProtectionServer
 
         switch registeredServersResult {
@@ -336,7 +339,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             includedRoutes.append(contentsOf: dns.map { IPAddressRange(address: $0.address, networkPrefixLength: 32) })
             includedRoutes.append(addressRange)
         }
-        return InterfaceConfiguration(privateKey: privateKey, addresses: [addressRange], includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, listenPort: 51821, dns: dns)
+        return InterfaceConfiguration(privateKey: privateKey,
+                                      addresses: [addressRange],
+                                      includedRoutes: includedRoutes,
+                                      excludedRoutes: excludedRoutes,
+                                      listenPort: 51821,
+                                      dns: dns)
     }
 
     private func handle(clientError: NetworkProtectionClientError) {
