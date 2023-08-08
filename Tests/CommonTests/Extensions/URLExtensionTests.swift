@@ -19,8 +19,7 @@
 import XCTest
 @testable import Common
 
-// swiftlint:disable line_length
-// swiftlint:disable type_body_length
+// swiftlint:disable line_length type_body_length
 
 final class URLExtensionTests: XCTestCase {
 
@@ -478,3 +477,5 @@ extension URL {
         return self.removingParameters(named: [name])
     }
 }
+
+// swiftlint:enable line_length type_body_length
