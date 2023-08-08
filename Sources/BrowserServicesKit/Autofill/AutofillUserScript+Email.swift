@@ -69,22 +69,21 @@ extension AutofillUserScript {
               let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool,
               let isIncontextSignupAvailable = dict["isIncontextSignupAvailable"] as? Bool else { return }
 
-        let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-
-        if isIncontextSignupAvailable, !signedIn {
-            emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, error in
-                if success {
-                    self?.requestAlias(message, requiresUserPermission: requiresUserPermission,
-                                       shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
-                        replyHandler(reply)
-                    }
-                } else {
-                    replyHandler(nil)
-                }
-            }
-        } else {
+        guard isIncontextSignupAvailable, let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self), !signedIn else {
             requestAlias(message, requiresUserPermission: requiresUserPermission, shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
                 replyHandler(reply)
+            }
+            return
+        }
+
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, error in
+            if success {
+                self?.requestAlias(message, requiresUserPermission: requiresUserPermission,
+                                   shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
+                    replyHandler(reply)
+                }
+            } else {
+                replyHandler(nil)
             }
         }
     }
