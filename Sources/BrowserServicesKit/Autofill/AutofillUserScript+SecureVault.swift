@@ -49,7 +49,9 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain: String,
                             subType: AutofillUserScript.GetAutofillDataSubType,
                             trigger: AutofillUserScript.GetTriggerType,
-                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider, RequestVaultCredentialsAction) -> Void)
+                            completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?,
+                                                          SecureVaultModels.CredentialsProvider,
+                                                          RequestVaultCredentialsAction) -> Void)
     
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForAccount accountId: String,
                             completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void)
@@ -247,7 +249,10 @@ extension AutofillUserScript {
             }
         }
         
-        init(identity: SecureVaultModels.Identity?, credentials: AutofillUserScript.IncomingCredentials?, creditCard: SecureVaultModels.CreditCard?, trigger: GetTriggerType?) {
+        init(identity: SecureVaultModels.Identity?,
+             credentials: AutofillUserScript.IncomingCredentials?,
+             creditCard: SecureVaultModels.CreditCard?,
+             trigger: GetTriggerType?) {
             self.identity = identity
             self.credentials = credentials
             self.creditCard = creditCard
@@ -408,7 +413,10 @@ extension AutofillUserScript {
                                                               action: RequestVaultCredentialsAction) -> Self {
             let credential: CredentialResponse?
             if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
-                credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password, credentialsProvider: credentialsProvider.name.rawValue)
+                credential = CredentialResponse(id: String(id),
+                                                username: credentials.account.username,
+                                                password: password,
+                                                credentialsProvider: credentialsProvider.name.rawValue)
             } else {
                 credential = nil
             }
@@ -482,10 +490,15 @@ extension AutofillUserScript {
         }
 
         let domain = hostForMessage(message)
-        if request.mainType == .credentials, request.subType == .password, let generatedPassword = request.generatedPassword?.value, !generatedPassword.isEmpty {
+        if request.mainType == .credentials,
+           request.subType == .password,
+           let generatedPassword = request.generatedPassword?.value,
+           !generatedPassword.isEmpty {
                 vaultDelegate?.autofillUserScriptDidOfferGeneratedPassword(self, password: generatedPassword) { useGeneratedPassword in
                 let action = useGeneratedPassword ? RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.acceptGeneratedPassword : RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.rejectGeneratedPassword
-                let response = RequestGeneratedPasswordResponse(success: RequestGeneratedPasswordResponse.GeneratedPasswordResponseContents(action: action))
+                let response = RequestGeneratedPasswordResponse(
+                    success: RequestGeneratedPasswordResponse.GeneratedPasswordResponseContents(action: action)
+                )
                 if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                     replyHandler(jsonString)
                 }
@@ -496,9 +509,9 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self,
                                           didRequestCredentialsForDomain: domain,
                                           subType: request.subType,
-                                          trigger: request.trigger) { credentials, credentialsProvider, action in
+                                          trigger: request.trigger) { credentials, credsProvider, action in
             let response = RequestVaultCredentialsForDomainResponse.responseFromSecureVaultWebsiteCredentials(credentials,
-                                                                                                              credentialsProvider: credentialsProvider,
+                                                                                                              credentialsProvider: credsProvider,
                                                                                                               action: action)
 
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
@@ -547,7 +560,10 @@ extension AutofillUserScript {
         var credentials: [CredentialObject] = []
         credentials.append(contentsOf: accounts.compactMap {
             guard let id = $0.id else { return nil }
-            return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue, origin: CredentialObject.CredentialOrigin(url: $0.domain, partialMatch: false))
+            return CredentialObject(id: id,
+                                    username: $0.username,
+                                    credentialsProvider: credentialsProvider.name.rawValue,
+                                    origin: CredentialObject.CredentialOrigin(url: $0.domain, partialMatch: false))
         })
         return credentials
     }
@@ -596,7 +612,9 @@ extension AutofillUserScript {
                   let id = credential.account.id,
                   let password = String(data: credential.password, encoding: .utf8),
                   let tld = self.vaultDelegate?.tld,
-                  self.autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: requestingDomain, savedSite: credential.account.domain, tld: tld) else {
+                  self.autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: requestingDomain,
+                                                                          savedSite: credential.account.domain,
+                                                                          tld: tld) else {
                 replyHandler("{}")
                 return
             }
@@ -897,7 +915,9 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
         }
 
         let availableInputTypes = availableInputTypesResponse.success
-        let success = AutofillUserScript.AskToUnlockProviderResponse.AskToUnlockProviderResponseContents(status: status, credentials: credentialsArray, availableInputTypes: availableInputTypes)
+        let success = AutofillUserScript.AskToUnlockProviderResponse.AskToUnlockProviderResponseContents(status: status,
+                                                                                                         credentials: credentialsArray,
+                                                                                                         availableInputTypes: availableInputTypes)
         self.init(success: success)
     }
 
