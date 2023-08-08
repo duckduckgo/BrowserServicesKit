@@ -21,6 +21,7 @@ import UserScript
 import SecureStorage
 @testable import BrowserServicesKit
 
+// swiftlint:disable line_length
 class SecureVaultManagerTests: XCTestCase {
     
     private var mockCryptoProvider = NoOpCryptoProvider()
@@ -756,3 +757,4 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel) {}
 
 }
+// swiftlint:enable line_length
