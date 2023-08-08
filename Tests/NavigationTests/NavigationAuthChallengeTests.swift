@@ -298,4 +298,3 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 // swiftlint:enable unused_closure_parameter
 // swiftlint:enable opening_brace
 // swiftlint:enable trailing_comma
-

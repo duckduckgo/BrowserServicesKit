@@ -151,7 +151,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             let identities = try vault.identities()
             let cards = try vault.creditCards()
 
-            getAccounts(for: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+            getAccounts(for: domain,
+                        from: vault,
+                        or: passwordManager,
+                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
                     os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
@@ -309,7 +312,9 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestCredentialsForDomain domain: String,
                                    subType: AutofillUserScript.GetAutofillDataSubType,
                                    trigger: AutofillUserScript.GetTriggerType,
-                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider, RequestVaultCredentialsAction) -> Void) {
+                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?,
+                                                                 SecureVaultModels.CredentialsProvider,
+                                                                 RequestVaultCredentialsAction) -> Void) {
         do {
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
 
@@ -337,7 +342,9 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     return
                 }
 
-                self.delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain, withAccounts: accounts, withTrigger: trigger) { [weak self] account in
+                self.delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain,
+                                                  withAccounts: accounts,
+                                                  withTrigger: trigger) { [weak self] account in
                     guard let self = self else { return }
                     guard let accountID = account?.id else {
                         completionHandler(nil, self.credentialsProvider, .none)
@@ -363,7 +370,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForAccount accountId: String,
-                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?, SecureVaultModels.CredentialsProvider) -> Void) {
+                                   completionHandler: @escaping (SecureVaultModels.WebsiteCredentials?,
+                                                                 SecureVaultModels.CredentialsProvider) -> Void) {
 
         do {
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
@@ -451,7 +459,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
     }
 
-    public func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain domain: String, completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials], SecureVaultModels.CredentialsProvider) -> Void) {
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestCredentialsForDomain domain: String,
+                                   completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
+                                                                 SecureVaultModels.CredentialsProvider) -> Void) {
         if let passwordManager = passwordManager, passwordManager.isEnabled {
             passwordManager.websiteCredentialsFor(domain: domain) { [weak self] credentials, error in
                 guard let self = self else { return }
@@ -691,8 +702,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     private func getCredentials(for accountId: String,
                                 from vault: any AutofillSecureVault,
-                        or passwordManager: PasswordManager?,
-                        completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void) {
+                                or passwordManager: PasswordManager?,
+                                completion: @escaping (SecureVaultModels.WebsiteCredentials?, Error?) -> Void) {
         if let passwordManager = passwordManager,
            passwordManager.isEnabled {
             passwordManager.websiteCredentialsFor(accountId: accountId, completion: completion)
