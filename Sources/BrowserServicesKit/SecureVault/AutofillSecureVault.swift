@@ -20,8 +20,11 @@ import Foundation
 import Common
 import SecureStorage
 
+// swiftlint:disable file_length type_body_length
+
 public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
 
+// swiftlint:disable:next identifier_name
 public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault>(
     makeCryptoProvider: {
         return AutofillCryptoProvider()
@@ -415,3 +418,5 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
 }
+
+// swiftlint:enable file_length type_body_length

@@ -22,6 +22,8 @@ import Combine
 import Common
 import SecureStorage
 
+// swiftlint:disable file_length
+
 public enum AutofillType {
     case password
     case card
@@ -57,7 +59,6 @@ public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
 
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: String)
 
-    // swiftlint:disable:next identifier_name
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
 
     func secureVaultManager(_: SecureVaultManager, didRequestCreditCardsManagerForDomain domain: String)
@@ -759,3 +760,5 @@ fileprivate extension AutofillSecureVault {
     }
 
 }
+
+// swiftlint:enable file_length

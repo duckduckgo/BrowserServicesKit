@@ -52,6 +52,7 @@ public enum ExtensionMessage: RawRepresentable {
     case setIncludedRoutes([IPAddressRange])
     case simulateTunnelFailure
 
+    // swiftlint:disable:next cyclomatic_complexity
     public init?(rawValue data: Data) {
         let name = data.first.flatMap(Name.init(rawValue:))
         switch name {

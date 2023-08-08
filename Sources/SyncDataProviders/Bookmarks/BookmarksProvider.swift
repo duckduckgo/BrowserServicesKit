@@ -69,7 +69,7 @@ public final class BookmarksProvider: DataProvider {
         return syncableBookmarks
     }
 
-    public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleInitialSyncResponse(received: [Syncable],clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
@@ -79,6 +79,7 @@ public final class BookmarksProvider: DataProvider {
 
     // MARK: - Internal
 
+    // swiftlint:disable:next function_parameter_count
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         var saveError: Error?
 

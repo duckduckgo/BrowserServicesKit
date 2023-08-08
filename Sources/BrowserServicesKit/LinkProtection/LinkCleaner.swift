@@ -33,10 +33,8 @@ public class LinkCleaner {
     
     public func ampFormat(matching url: URL) -> String? {
         let ampFormats = TrackingLinkSettings(fromConfig: privacyConfig).ampLinkFormats
-        for format in ampFormats {
-            if url.absoluteString.matches(pattern: format) {
-                return format
-            }
+        for format in ampFormats where url.absoluteString.matches(pattern: format) {
+            return format
         }
         
         return nil

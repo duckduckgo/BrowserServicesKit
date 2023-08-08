@@ -42,7 +42,11 @@ extension BookmarkEntity {
 
     static func fetchBookmark(withTitle title: String?, url: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@ AND %K == %@", #keyPath(BookmarkEntity.title), title ?? "", #keyPath(BookmarkEntity.url), url ?? "")
+        request.predicate = NSPredicate(
+            format: "%K == %@ AND %K == %@",
+            #keyPath(BookmarkEntity.title), title ?? "",
+            #keyPath(BookmarkEntity.url), url ?? ""
+        )
         request.fetchLimit = 1
 
         return (try? context.fetch(request))?.first
@@ -50,7 +54,11 @@ extension BookmarkEntity {
 
     static func fetchFolder(withTitle title: String?, parentUUID: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.title), title ?? "")
+        request.predicate = NSPredicate(
+            format: "%K == YES AND %K == %@",
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.title), title ?? ""
+        )
         request.returnsObjectsAsFaults = false
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
 
@@ -60,7 +68,11 @@ extension BookmarkEntity {
 
     static func fetchFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.uuid), uuid)
+        request.predicate = NSPredicate(
+            format: "%K == YES AND %K == %@",
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.uuid), uuid
+)
         request.returnsObjectsAsFaults = true
         request.fetchLimit = 1
 

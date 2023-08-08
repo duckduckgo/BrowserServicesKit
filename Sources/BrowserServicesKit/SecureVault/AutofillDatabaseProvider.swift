@@ -21,6 +21,8 @@ import Foundation
 import GRDB
 import SecureStorage
 
+// swiftlint:disable file_length
+
 public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
@@ -636,10 +638,14 @@ extension DefaultAutofillDatabaseProvider {
             if let credentialRow = credentialRow {
 
                 var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
-                decryptedCredentials = .init(account: account,
-                                             password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name],
-                                                                                      cryptoProvider: cryptoProvider,
-                                                                                      keyStoreProvider: keyStoreProvider))
+                decryptedCredentials = .init(
+                    account: account,
+                    password: try MigrationUtility.l2decrypt(
+                        data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name],
+                        cryptoProvider: cryptoProvider,
+                        keyStoreProvider: keyStoreProvider
+                    )
+                )
 
                 guard let accountHash = decryptedCredentials?.account.hashValue,
                       let password = decryptedCredentials?.password else {
@@ -919,3 +925,5 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
     public static var databaseTableName: String = "identities"
 
 }
+
+// swiftlint:enable file_length

@@ -73,26 +73,26 @@ extension SecureStorageError: CustomNSError {
         var errorUserInfo = [String: Any]()
         switch self {
         case .initFailed(cause: let error), .authError(cause: let error),
-             .failedToOpenDatabase(cause: let error), .databaseError(cause: let error):
+                .failedToOpenDatabase(cause: let error), .databaseError(cause: let error):
             if let secureVaultError = error as? SecureStorageError {
                 return secureVaultError.errorUserInfo
             }
-
+            
             errorUserInfo["NSUnderlyingError"] = error as NSError
             if let sqliteError = error as? DatabaseError ?? (error as? SecureStorageDatabaseError)?.databaseError {
                 errorUserInfo["SQLiteResultCode"] = NSNumber(value: sqliteError.resultCode.rawValue)
                 errorUserInfo["SQLiteExtendedResultCode"] = NSNumber(value: sqliteError.extendedResultCode.rawValue)
             }
-
+            
         case .keystoreError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreError", code: Int(code), userInfo: nil)
         case .secError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "secError", code: Int(code), userInfo: nil)
-
-            case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError, .encodingFailed:
+            
+        case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError, .encodingFailed:
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "\(self)", code: 0, userInfo: nil)
         }
         return errorUserInfo
     }
-
+    
 }

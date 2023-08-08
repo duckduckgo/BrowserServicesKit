@@ -495,7 +495,9 @@ extension AutofillUserScript {
            let generatedPassword = request.generatedPassword?.value,
            !generatedPassword.isEmpty {
                 vaultDelegate?.autofillUserScriptDidOfferGeneratedPassword(self, password: generatedPassword) { useGeneratedPassword in
-                let action = useGeneratedPassword ? RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.acceptGeneratedPassword : RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.rejectGeneratedPassword
+                let action = useGeneratedPassword ?
+                    RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.acceptGeneratedPassword :
+                    RequestGeneratedPasswordResponse.GeneratedPasswordResponseAction.rejectGeneratedPassword
                 let response = RequestGeneratedPasswordResponse(
                     success: RequestGeneratedPasswordResponse.GeneratedPasswordResponseContents(action: action)
                 )

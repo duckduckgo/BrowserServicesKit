@@ -36,6 +36,7 @@ public extension NetworkProtectionCodeRedemptionCoordinator {
         return NetworkProtectionCodeRedemptionCoordinator(networkClient: client, tokenStore: tokenStore, errorEvents: errorEvents)
     }
 
+    // swiftlint:disable:next line_length
     class func whereRedeemFails(returning error: NetworkProtectionClientError = .failedToEncodeRedeemRequest) -> NetworkProtectionCodeRedemptionCoordinator {
         let client = MockNetworkProtectionClient()
         client.stubRedeem = .failure(error)

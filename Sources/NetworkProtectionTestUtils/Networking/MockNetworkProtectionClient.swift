@@ -20,6 +20,7 @@
 import Foundation
 import NetworkProtection
 
+// swiftlint:disable line_length
 public final class MockNetworkProtectionClient: NetworkProtectionClient {
     public var spyRedeemInviteCode: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
@@ -45,3 +46,4 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         return stubRegister
     }
 }
+// swiftlint:enable line_length
