@@ -1076,7 +1076,6 @@ extension URLResponse {
     }
 }
 
-
 #if !_FRAME_HANDLE_ENABLED
 
 struct FrameHandle: Equatable {

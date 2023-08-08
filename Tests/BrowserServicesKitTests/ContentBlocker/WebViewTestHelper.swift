@@ -38,7 +38,7 @@ final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
     }
 }
 
-final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate  {
+final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate {
 
     var shouldProcessTrackers = true
     var onTrackerDetected: ((DetectedRequest) -> Void)?

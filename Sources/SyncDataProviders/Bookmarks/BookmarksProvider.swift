@@ -205,4 +205,3 @@ public final class BookmarksProvider: DataProvider {
 #endif
 
 }
-

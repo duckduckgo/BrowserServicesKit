@@ -59,13 +59,12 @@ final class GPCReferenceTests: XCTestCase {
 
         for test in referenceTests.gpcHeader.tests {
             
-            if test.exceptPlatforms.contains("ios-browser") || test.exceptPlatforms.contains("macos-browser")  {
+            if test.exceptPlatforms.contains("ios-browser") || test.exceptPlatforms.contains("macos-browser") {
                 os_log("Skipping test, ignore platform for [%s]", type: .info, test.name)
                 continue
             }
             
             os_log("Testing [%s]", type: .info, test.name)
-            
             
             let factory = GPCRequestFactory()
             var testRequest = URLRequest(url: URL(string: test.requestURL)!)
@@ -131,7 +130,6 @@ final class GPCReferenceTests: XCTestCase {
         let request = URLRequest(url: siteURL)
         let webView = createWebViewForUserScripTests(gpcEnabled: test.gpcUserSettingOn, privacyConfig: privacyManager.privacyConfig)
         
-        
         WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
                                                           WKWebsiteDataTypeMemoryCache,
                                                           WKWebsiteDataTypeOfflineWebApplicationCache],
@@ -171,7 +169,7 @@ final class GPCReferenceTests: XCTestCase {
         
         let properties = ContentScopeProperties(gpcEnabled: gpcEnabled,
                                                 sessionKey: UUID().uuidString,
-                                                featureToggles: ContentScopeFeatureToggles.allTogglesOn);
+                                                featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         
         let contentScopeScript = ContentScopeUserScript(privacyManager,
                                                         properties: properties)
@@ -183,7 +181,6 @@ final class GPCReferenceTests: XCTestCase {
                                 configuration: configuration)
         webView.navigationDelegate = self.navigationDelegateMock
         
-        
         for messageName in contentScopeScript.messageNames {
             configuration.userContentController.add(contentScopeScript, name: messageName)
         }
@@ -191,7 +188,6 @@ final class GPCReferenceTests: XCTestCase {
         configuration.userContentController.addUserScript(WKUserScript(source: contentScopeScript.source,
                                                                        injectionTime: .atDocumentStart,
                                                                        forMainFrameOnly: false))
-        
         
         return webView
     }

@@ -40,6 +40,6 @@ public class HTTPSExcludedDomain: NSManagedObject {
 
 }
 
-extension HTTPSExcludedDomain : Identifiable {
+extension HTTPSExcludedDomain: Identifiable {
 
 }

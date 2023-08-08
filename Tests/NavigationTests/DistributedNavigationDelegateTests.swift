@@ -1265,7 +1265,6 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     // MARK: - Local file requests
 
-
 //    #selector(loadSimulatedRequest(_:response:responseData:)): #selector(navigation_loadSimulatedRequest(_:response:responseData:)),
 
     @MainActor

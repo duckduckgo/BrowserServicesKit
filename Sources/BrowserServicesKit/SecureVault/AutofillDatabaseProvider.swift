@@ -627,7 +627,6 @@ extension DefaultAutofillDatabaseProvider {
                                                            created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
                                                            lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
 
-
             // Query the credentials
             let credentialRow = try Row.fetchOne(database, sql: """
                 SELECT * FROM \(SecureVaultModels.WebsiteCredentials.databaseTableName)

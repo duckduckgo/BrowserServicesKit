@@ -21,8 +21,8 @@ import Common
 import WebKit
 import UserScript
 
-var previousIncontextSignupPermanentlyDismissedAt: Double? = nil
-var previousEmailSignedIn: Bool? = nil
+var previousIncontextSignupPermanentlyDismissedAt: Double?
+var previousEmailSignedIn: Bool?
 
 public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncryption {
     internal enum MessageName: String, CaseIterable {

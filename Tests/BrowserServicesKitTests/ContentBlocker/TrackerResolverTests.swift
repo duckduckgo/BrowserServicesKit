@@ -22,7 +22,6 @@ import TrackerRadarKit
 import Common
 import ContentBlocking
 @testable import BrowserServicesKit
-import Common
 
 // swiftlint:disable type_body_length
 // swiftlint:disable function_body_length
@@ -130,7 +129,7 @@ class TrackerResolverTests: XCTestCase {
                             domains: ["tracker.com"],
                             prevalence: 0.1)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": entity],
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
@@ -182,7 +181,7 @@ class TrackerResolverTests: XCTestCase {
                             domains: ["tracker.com"],
                             prevalence: 0.1)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": entity],
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
@@ -205,7 +204,6 @@ class TrackerResolverTests: XCTestCase {
         XCTAssertEqual(blockedImgUrl?.entityName, entity.displayName)
         XCTAssertEqual(blockedImgUrl?.category, tracker.category)
         XCTAssertEqual(blockedImgUrl?.prevalence, tracker.prevalence)
-        
         
         let ignoredTrackerRuleOption = resolver.trackerFromUrl("https://tracker.com/ignore/s.js",
                                                                pageUrlString: "https://exception.com",
@@ -293,7 +291,7 @@ class TrackerResolverTests: XCTestCase {
                             domains: ["tracker.com"],
                             prevalence: 0.1)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": entity],
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: [:])
@@ -351,7 +349,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com", "example.com"],
                                                                prevalence: 0.1)],
@@ -386,7 +384,7 @@ class TrackerResolverTests: XCTestCase {
                             domains: ["tracker.com"],
                             prevalence: 0.1)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": entity],
                               domains: ["tracker.com": "Tracker Inc"],
                               cnames: ["cnamed.com": "tracker.com"])
@@ -432,8 +430,8 @@ class TrackerResolverTests: XCTestCase {
                                    domains: ["another.com"],
                                    prevalence: 0.1)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker,
-                                         "another.com" : another],
+        let tds = TrackerData(trackers: ["tracker.com": tracker,
+                                         "another.com": another],
                               entities: ["Tracker Inc": trackerEntity,
                                          "Another Inc": anotherEntity],
                               domains: ["tracker.com": "Tracker Inc",
@@ -463,7 +461,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1)],
@@ -492,7 +490,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1)],
@@ -522,7 +520,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1)],
@@ -551,7 +549,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1)],
@@ -580,7 +578,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1)],
@@ -607,7 +605,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1)],
@@ -634,7 +632,7 @@ class TrackerResolverTests: XCTestCase {
                                    categories: nil,
                                    rules: nil)
         
-        let tds = TrackerData(trackers: ["tracker.com" : tracker],
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker Inc": Entity(displayName: "Tracker Inc company",
                                                                domains: ["tracker.com"],
                                                                prevalence: 0.1),

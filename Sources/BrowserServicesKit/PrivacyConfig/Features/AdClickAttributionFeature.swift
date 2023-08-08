@@ -161,12 +161,5 @@ public class AdClickAttributionFeature: AdClickAttributing {
     private struct LinkFormat {
         let url: URL
         let adDomainParameterName: String?
-        
-        init(url: URL,
-             adDomainParameterName: String?) {
-            
-            self.url = url
-            self.adDomainParameterName = adDomainParameterName
-        }
     }
 }

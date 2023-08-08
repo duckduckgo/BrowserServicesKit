@@ -30,7 +30,7 @@ struct SyncOperationError: Error {
     let perFeatureErrors: [Feature: Error]
 
     init(featureErrors: [FeatureError]) {
-        perFeatureErrors = featureErrors.reduce(into: .init() , { partialResult, featureError in
+        perFeatureErrors = featureErrors.reduce(into: .init(), { partialResult, featureError in
             partialResult[featureError.feature] = featureError.underlyingError
         })
     }

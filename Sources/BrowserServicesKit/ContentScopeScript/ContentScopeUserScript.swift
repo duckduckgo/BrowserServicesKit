@@ -125,7 +125,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
                 isIsolated: Bool = false
     ) {
         self.isIsolated = isIsolated
-        let contextName = self.isIsolated ? "contentScopeScriptsIsolated" : "contentScopeScripts";
+        let contextName = self.isIsolated ? "contentScopeScriptsIsolated" : "contentScopeScripts"
 
         broker = UserScriptMessageBroker(context: contextName)
 

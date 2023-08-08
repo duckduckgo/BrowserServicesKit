@@ -21,7 +21,7 @@ import XCTest
 
 final class SuggestionProcessingTests: XCTestCase {
 
-    static let simpleUrlFactory: (String) -> URL? = { string in return nil }
+    static let simpleUrlFactory: (String) -> URL? = { _ in return nil }
 
     func testWhenDuplicatesAreInSourceArrays_ThenTheOneWithTheBiggestInformationValueIsUsed() {
         let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)

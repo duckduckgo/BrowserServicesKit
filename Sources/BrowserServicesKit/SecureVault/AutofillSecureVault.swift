@@ -415,4 +415,3 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
 }
-

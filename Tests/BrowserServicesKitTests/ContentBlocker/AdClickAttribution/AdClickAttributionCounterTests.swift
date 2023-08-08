@@ -23,7 +23,7 @@ import Persistence
 
 class MockKeyValueStore: KeyValueStoring {
     
-    var store = Dictionary<String, Any?>()
+    var store = [String: Any?]()
     
     func object(forKey defaultName: String) -> Any? {
         return store[defaultName] as Any?

@@ -125,7 +125,7 @@ public enum ExtensionMessage: RawRepresentable {
     }
 
     public var rawValue: Data {
-        var encoder: (inout Data) -> () = { _ in }
+        var encoder: (inout Data) -> Void = { _ in }
         switch self {
         case .setSelectedServer(.some(let serverName)):
             encoder = {

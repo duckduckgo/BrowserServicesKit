@@ -304,7 +304,7 @@ public enum MessageOriginPolicy {
                 case .exact(hostname: let hostname):
                     return hostname == origin
                     /// etldPlus1, like duckduckgo.com to match dev.duckduckgo.com + duckduckgo.com
-                case .etldPlus1(hostname: _):
+                case .etldPlus1:
                     return false // todo - this isn't used yet!
                 }
             }
