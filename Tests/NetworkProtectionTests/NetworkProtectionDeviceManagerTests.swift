@@ -166,3 +166,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     }
 
 }
+
+extension NetworkProtectionDeviceManager {
+
+    func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
+        try await generateTunnelConfiguration(selectionMethod: selectionMethod, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: false)
+    }
+
+}

@@ -87,17 +87,4 @@ extension Endpoint {
             fatalError()
         }
     }
-
-    public func hostname() -> String? {
-        switch host {
-        case .name(let hostname, _):
-            return hostname
-        case .ipv4:
-            return nil
-        case .ipv6:
-            return nil
-        @unknown default:
-            fatalError()
-        }
-    }
 }
