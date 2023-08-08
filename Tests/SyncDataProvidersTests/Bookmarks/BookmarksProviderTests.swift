@@ -25,6 +25,7 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
+// swiftlint:disable force_try
 internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
@@ -693,3 +694,4 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 }
+// swiftlint:enable force_try
