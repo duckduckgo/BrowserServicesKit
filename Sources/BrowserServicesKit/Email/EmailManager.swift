@@ -74,14 +74,12 @@ public enum EmailManagerPermittedAddressType {
     case none
 }
 
-// swiftlint:disable identifier_name
 public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
     func emailManager(_ emailManager: EmailManager,
                       didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType, _ autosave: Bool) -> Void)
 
 }
-// swiftlint:enable identifier_name
 
 public enum EmailManagerRequestDelegateError: Error {
     case serverError(statusCode: Int)
@@ -607,9 +605,9 @@ private extension EmailManager {
               let requestDelegate else {
             throw AliasRequestError.signedOut
         }
-        
+
         let data: Data
-        
+
         do {
             let url = aliasAPIURL
             data = try await requestDelegate.emailManager(self,
@@ -648,7 +646,10 @@ private extension EmailManager {
                                                               requested: url,
                                                               method: Constants.RequestMethods.put,
                                                               headers: emailHeaders,
-                                                              parameters: [Constants.RequestParameters.address: alias, Constants.RequestParameters.status: "\(active)"],
+                                                              parameters: [
+                                                                Constants.RequestParameters.address: alias,
+                                                                Constants.RequestParameters.status: "\(active)"
+                                                              ],
                                                               httpBody: nil,
                                                               timeoutInterval: timeoutInterval)
             let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
