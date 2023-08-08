@@ -30,7 +30,6 @@ import XCTest
 // swiftlint:disable type_body_length
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
-// swiftlint:disable force_try
 
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
@@ -1433,3 +1432,11 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
     }
 
 }
+
+// swiftlint:enable file_length
+// swiftlint:enable line_length
+// swiftlint:enable function_body_length
+// swiftlint:enable unused_closure_parameter
+// swiftlint:enable type_body_length
+// swiftlint:enable trailing_comma
+// swiftlint:enable opening_brace
