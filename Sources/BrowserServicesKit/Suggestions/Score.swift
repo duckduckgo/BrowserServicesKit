@@ -22,7 +22,8 @@ import Common
 typealias Score = Int
 
 extension Score {
-    
+
+    // swiftlint:disable:next cyclomatic_complexity
     init(title: String?, url: URL, visitCount: Int, query: Query, queryTokens: [Query]? = nil) {
         // To optimize, query tokens can be precomputed
         let queryTokens = queryTokens ?? Self.tokens(from: query)

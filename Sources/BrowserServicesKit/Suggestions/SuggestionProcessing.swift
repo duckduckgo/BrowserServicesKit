@@ -80,7 +80,6 @@ final class SuggestionProcessing {
     // MARK: - DuckDuckGo Suggestions
 
     private func duckDuckGoSuggestions(from result: APIResult?) throws -> [Suggestion]? {
-        // TODO add query as duckduckgo suggestion
         return result?.items
             .joined()
             .map { Suggestion(key: $0.key, value: $0.value) }

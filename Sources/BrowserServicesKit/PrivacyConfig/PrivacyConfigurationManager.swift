@@ -87,6 +87,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 data = embedded
             } else {
                 let jsonData = embeddedDataProvider.embeddedData
+                // swiftlint:disable:next force_try
                 let configData = try! PrivacyConfigurationData(data: jsonData)
                 _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData

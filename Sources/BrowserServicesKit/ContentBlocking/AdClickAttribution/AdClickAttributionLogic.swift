@@ -28,6 +28,7 @@ public protocol AdClickAttributionLogicDelegate: AnyObject {
                           forVendor vendor: String?)
 }
 
+// swiftlint:disable:next type_body_length
 public class AdClickAttributionLogic {
     
     public enum State {

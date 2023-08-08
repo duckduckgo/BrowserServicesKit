@@ -37,7 +37,7 @@ public struct AutofillData {
     public var automaticallySavedCredentials: Bool
 }
 
-public protocol SecureVaultManagerDelegate: SecureVaultErrorReporting {
+public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting {
     
     func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
 

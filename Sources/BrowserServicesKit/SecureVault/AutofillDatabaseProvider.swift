@@ -54,6 +54,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
 }
 
+// swiftlint:disable:next type_body_length
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
     public static func defaultDatabaseURL() -> URL {
@@ -507,7 +508,8 @@ extension DefaultAutofillDatabaseProvider {
         }
 
     }
-    
+
+    // swiftlint:disable:next function_body_length
     static func migrateV6(database: Database) throws {
 
         try database.alter(table: SecureVaultModels.Identity.databaseTableName) {
