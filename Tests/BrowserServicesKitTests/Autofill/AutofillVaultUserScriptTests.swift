@@ -25,9 +25,7 @@ import UserScript
 import Common
 @testable import BrowserServicesKit
 
-// swiftlint:disable type_body_length
-// swiftlint:disable file_length
-
+// swiftlint:disable type_body_length file_length line_length
 class AutofillVaultUserScriptTests: XCTestCase {
 
     lazy var hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()
@@ -665,5 +663,4 @@ struct MockHostProvider: UserScriptHostProvider {
     }
 }
 
-// swiftlint:enable type_body_length
-// swiftlint:enable file_length
+// swiftlint:enable type_body_length file_length line_length
