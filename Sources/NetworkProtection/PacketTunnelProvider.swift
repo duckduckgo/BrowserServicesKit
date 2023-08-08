@@ -25,7 +25,7 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable type_body_length line_length
+// swiftlint:disable file_length type_body_length line_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -778,10 +778,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 try await connectionTester.start(tunnelIfName: interfaceName)
             } catch {
-                os_log("🔵 Error: the VPN connection tester could not be started: %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
+                os_log("🔵 Error: the VPN connection tester could not be started: %{public}@",
+                       log: .networkProtection,
+                       type: .error,
+                       error.localizedDescription)
             }
         } else if isConnectionTesterEnabled {
-            os_log("🔵 Error: the VPN connection tester could not be started since we could not retrieve the tunnel interface name", log: .networkProtection, type: .error)
+            os_log("🔵 Error: the VPN connection tester could not be started since we could not retrieve the tunnel interface name",
+                   log: .networkProtection,
+                   type: .error)
         } else {
             os_log("🔵 VPN connection tester disabled", log: .networkProtection, type: .error)
         }
@@ -837,4 +842,4 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     }
 
 }
-// swiftlint:enable type_body_length line_length
+// swiftlint:enable file_length type_body_length line_length

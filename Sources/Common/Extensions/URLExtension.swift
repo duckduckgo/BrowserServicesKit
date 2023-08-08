@@ -18,6 +18,7 @@
 
 import Foundation
 
+// swiftlint:disable file_length
 extension URL {
 
     public static let empty = (NSURL(string: "") ?? NSURL()) as URL
@@ -389,7 +390,11 @@ extension URL {
         guard let host, let scheme else {
             return nil
         }
-        return URLProtectionSpace(host: host, port: port ?? navigationalScheme?.defaultPort ?? 0, protocol: scheme, realm: nil, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
+        return URLProtectionSpace(host: host,
+                                  port: port ?? navigationalScheme?.defaultPort ?? 0,
+                                  protocol: scheme,
+                                  realm: nil,
+                                  authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
     }
 
     public func matches(_ protectionSpace: URLProtectionSpace) -> Bool {
@@ -430,3 +435,4 @@ extension URLQueryItem {
     }
 
 }
+// swiftlint:enable file_length

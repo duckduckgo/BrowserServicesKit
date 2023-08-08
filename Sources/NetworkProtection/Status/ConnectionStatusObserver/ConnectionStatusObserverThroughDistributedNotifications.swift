@@ -31,6 +31,7 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
 
     // MARK: - Network Path Monitoring
 
+    // swiftlint:disable:next line_length
     private static let monitorDispatchQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtection.ConnectionStatusObserverThroughDistributedNotifications.monitorDispatchQueue", qos: .background)
     private let monitor = NWPathMonitor()
     private static let timeoutOnNetworkChanges: TimeInterval = .seconds(3)
@@ -86,7 +87,10 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
         do {
             statusChange = try ConnectionStatusChangeDecoder().decodeObject(from: notification)
         } catch {
-            os_log("Could not decode .statusDidChange distributed notification object: %{public}@", log: log, type: .error, String(describing: notification.object))
+            os_log("Could not decode .statusDidChange distributed notification object: %{public}@",
+                   log: log,
+                   type: .error,
+                   String(describing: notification.object))
             assertionFailure("Could not decode .statusDidChange distributed notification object: \(String(describing: notification.object))")
             return
         }
