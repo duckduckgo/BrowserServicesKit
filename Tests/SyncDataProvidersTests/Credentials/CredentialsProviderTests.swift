@@ -67,7 +67,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
             try self.secureVault.storeSyncableCredentials("4", in: database)
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableCredentialsAdapter.init)
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
@@ -86,7 +86,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
         try secureVault.deleteWebsiteCredentialsFor(accountId: 2)
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableCredentialsAdapter.init)
 
         XCTAssertEqual(changedObjects.count, 1)
 

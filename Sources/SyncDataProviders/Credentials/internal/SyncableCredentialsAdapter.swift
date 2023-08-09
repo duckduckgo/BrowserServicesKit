@@ -1,5 +1,5 @@
 //
-//  Syncable+Credentials.swift
+//  SyncableCredentialsAdapter.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -21,27 +21,44 @@ import BrowserServicesKit
 import DDGSync
 import Foundation
 
-extension Syncable {
+struct SyncableCredentialsAdapter {
+
+    let syncable: Syncable
+
+    init(syncable: Syncable) {
+        self.syncable = syncable
+    }
+
+    var uuid: String? {
+        syncable.payload["id"] as? String
+    }
+
+    var isDeleted: Bool {
+        syncable.isDeleted
+    }
 
     var encryptedDomain: String? {
-        payload["domain"] as? String
+        syncable.payload["domain"] as? String
     }
 
     var encryptedTitle: String? {
-        payload["title"] as? String
+        syncable.payload["title"] as? String
     }
 
     var encryptedUsername: String? {
-        payload["username"] as? String
+        syncable.payload["username"] as? String
     }
 
     var encryptedPassword: String? {
-        payload["password"] as? String
+        syncable.payload["password"] as? String
     }
 
     var encryptedNotes: String? {
-        payload["notes"] as? String
+        syncable.payload["notes"] as? String
     }
+}
+
+extension Syncable {
 
     init(syncableCredentials: SecureVaultModels.SyncableCredentials, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]

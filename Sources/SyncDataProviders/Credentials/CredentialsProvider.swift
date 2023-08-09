@@ -168,7 +168,7 @@ public final class CredentialsProvider: DataProvider {
             return []
         }
 
-        let identifiers = sent.compactMap(\.uuid)
+        let identifiers = sent.compactMap { SyncableCredentialsAdapter(syncable: $0).uuid }
         var idsOfItemsToClearModifiedAt = Set<String>()
 
         let syncableCredentialsRecords = try SecureVaultModels.SyncableCredentialsRecord

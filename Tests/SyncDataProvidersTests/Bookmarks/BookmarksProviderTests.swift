@@ -93,7 +93,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         try provider.prepareForFirstSync()
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
@@ -128,7 +128,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),

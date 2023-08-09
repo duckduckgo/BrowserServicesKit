@@ -54,10 +54,6 @@ public struct Syncable {
         payload = jsonObject
     }
 
-    public var uuid: String? {
-        payload["id"] as? String
-    }
-
     public var isDeleted: Bool {
         payload["deleted"] != nil
     }

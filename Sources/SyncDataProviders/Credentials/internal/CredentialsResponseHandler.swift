@@ -24,7 +24,7 @@ import GRDB
 
 final class CredentialsResponseHandler {
     let clientTimestamp: Date
-    let received: [Syncable]
+    let received: [SyncableCredentialsAdapter]
     let secureVault: any AutofillSecureVault
     let database: Database
     let shouldDeduplicateEntities: Bool
@@ -36,7 +36,7 @@ final class CredentialsResponseHandler {
 
     init(received: [Syncable], clientTimestamp: Date, secureVault: any AutofillSecureVault, database: Database, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
-        self.received = received
+        self.received = received.map(SyncableCredentialsAdapter.init)
         self.secureVault = secureVault
         self.database = database
         self.shouldDeduplicateEntities = deduplicateEntities
@@ -44,14 +44,12 @@ final class CredentialsResponseHandler {
         let secretKey = try crypter.fetchSecretKey()
         self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
 
-        var syncablesByUUID: [String: Syncable] = [:]
         var allUUIDs: Set<String> = []
 
-        received.forEach { syncable in
+        self.received.forEach { syncable in
             guard let uuid = syncable.uuid else {
                 return
             }
-            syncablesByUUID[uuid] = syncable
             allUUIDs.insert(uuid)
         }
 
@@ -75,7 +73,7 @@ final class CredentialsResponseHandler {
 
     // MARK: - Private
 
-    private func processEntity(with syncable: Syncable, secureVaultEncryptionKey: Data, secureVaultHashingSalt: Data?) throws {
+    private func processEntity(with syncable: SyncableCredentialsAdapter, secureVaultEncryptionKey: Data, secureVaultHashingSalt: Data?) throws {
         guard let syncableUUID = syncable.uuid else {
             throw SyncError.accountAlreadyExists // todo
         }
@@ -115,7 +113,7 @@ final class CredentialsResponseHandler {
         }
     }
 
-    private func deduplicatedCredentials(with syncable: Syncable, secureVaultEncryptionKey: Data) throws -> SecureVaultModels.SyncableCredentials? {
+    private func deduplicatedCredentials(with syncable: SyncableCredentialsAdapter, secureVaultEncryptionKey: Data) throws -> SecureVaultModels.SyncableCredentials? {
 
         guard !syncable.isDeleted else {
             return nil
@@ -158,7 +156,7 @@ final class CredentialsResponseHandler {
 
 extension SecureVaultModels.SyncableCredentials {
 
-    init(syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
+    init(syncable: SyncableCredentialsAdapter, decryptedUsing decrypt: (String) throws -> String) throws {
         guard let uuid = syncable.uuid else {
             throw SyncError.accountAlreadyExists
         }
@@ -174,7 +172,7 @@ extension SecureVaultModels.SyncableCredentials {
         self.init(uuid: uuid, credentials: credentials, lastModified: nil)
     }
 
-    mutating func update(with syncable: Syncable, decryptedUsing decrypt: (String) throws -> String) throws {
+    mutating func update(with syncable: SyncableCredentialsAdapter, decryptedUsing decrypt: (String) throws -> String) throws {
         let title = try syncable.encryptedTitle.flatMap(decrypt)
         let domain = try syncable.encryptedDomain.flatMap(decrypt)
         let username = try syncable.encryptedUsername.flatMap(decrypt)
