@@ -479,7 +479,6 @@ extension AutofillUserScript {
         let value: String
     }
 
-
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
     func getAutofillData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let request: GetAutofillDataRequest = DecodableHelper.decode(from: message.messageBody) else {
@@ -521,8 +520,8 @@ extension AutofillUserScript {
             } else {
                 guard let autofillWebsiteAccountMatcher = self.vaultDelegate?.autofillWebsiteAccountMatcher else {
                     credentials = accounts.compactMap {
-                        guard let id = $0.id, let username = $0.username else { return nil }
-                        return CredentialObject(id: id, username: username, credentialsProvider: credentialsProvider.name.rawValue)
+                        guard let id = $0.id else { return nil }
+                        return CredentialObject(id: id, username: $0.username ?? "", credentialsProvider: credentialsProvider.name.rawValue)
                     }
                     return
                 }
@@ -903,7 +902,7 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
 
             return AutofillUserScript.CredentialResponse(id: String(id),
                                                          username: username,
-                                                         password: String(data: password, encoding:.utf8) ?? "",
+                                                         password: String(data: password, encoding: .utf8) ?? "",
                                                          credentialsProvider: credentialsProvider.name.rawValue)
         }
 
