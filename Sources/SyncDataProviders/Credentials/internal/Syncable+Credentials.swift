@@ -27,6 +27,10 @@ extension Syncable {
         payload["domain"] as? String
     }
 
+    var encryptedTitle: String? {
+        payload["title"] as? String
+    }
+
     var encryptedUsername: String? {
         payload["username"] as? String
     }

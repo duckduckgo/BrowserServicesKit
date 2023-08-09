@@ -164,7 +164,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
         let changedFolder = try XCTUnwrap(changedObjects.first(where: { $0.uuid == "2"}))
 
         XCTAssertEqual(Set(changedObjects.compactMap(\.uuid)), Set(["2", "4"]))
