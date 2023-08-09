@@ -21,5 +21,6 @@ import Foundation
 import NetworkExtension
 
 public protocol ConnectionErrorObserver {
-    var publisher: CurrentValueSubject<String?, Never> { get }
+    var publisher: AnyPublisher<String?, Never> { get }
+    var recentValue: String? { get }
 }

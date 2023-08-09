@@ -26,8 +26,13 @@ import Common
 /// NEVPNStatusDidChange notifications or tunnel session.
 ///
 public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObserver {
-    public let publisher = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
+    public lazy var publisher = subject.eraseToAnyPublisher()
+    public var recentValue: NetworkProtectionStatusServerInfo {
+        subject.value
+    }
 
+    private let subject = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
+    
     // MARK: - Notifications
 
     private let notificationCenter: NotificationCenter
@@ -98,7 +103,7 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
         let newServerInfo = NetworkProtectionStatusServerInfo(serverLocation: serverLocation, serverAddress: serverAddress)
 
-        publisher.send(newServerInfo)
+        subject.send(newServerInfo)
     }
 
     private func serverAddress(from session: NETunnelProviderSession) async -> String? {

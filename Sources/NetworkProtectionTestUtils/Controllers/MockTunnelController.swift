@@ -1,5 +1,6 @@
 //
-//  ConnectionStatusObserver.swift
+//  MockTunnelController.swift
+//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -16,11 +17,19 @@
 //  limitations under the License.
 //
 
-import Combine
 import Foundation
-import NetworkExtension
+import NetworkProtection
 
-public protocol ConnectionStatusObserver {
-    var publisher: AnyPublisher<ConnectionStatus, Never> { get }
-    var recentValue: ConnectionStatus { get }
+public final class MockTunnelController: TunnelController {
+    public init() {}
+
+    public var didCallStart = false
+    public func start() async {
+        didCallStart = true
+    }
+
+    public var didCallStop = false
+    public func stop() async {
+        didCallStop = true
+    }
 }
