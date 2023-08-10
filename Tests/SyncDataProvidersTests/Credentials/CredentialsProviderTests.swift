@@ -136,15 +136,17 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
     func testThatInitialSyncClearsModifiedAtFromDeduplicatedCredential() async throws {
 
+        let date = Date().withMillisecondPrecision
+
         try secureVault.inDatabaseTransaction { database in
-            try self.secureVault.storeSyncableCredentials("1", lastModified: Date().withMillisecondPrecision, in: database)
+            try self.secureVault.storeSyncableCredentials("1", lastModified: date, in: database)
         }
 
         let received: [Syncable] = [
             .credentials("1", id: "2", domain: "1", username: "1", password: "1", notes: "1")
         ]
 
-        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: date.addingTimeInterval(1), serverTimestamp: "1234", crypter: crypter)
 
         let syncableCredentials = try fetchAllSyncableCredentials()
         let credential = try XCTUnwrap(syncableCredentials.first)
