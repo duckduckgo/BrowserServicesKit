@@ -1,5 +1,5 @@
 //
-//  ConnectionStatusObserver.swift
+//  MockConnectionStatusObserver.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,9 +18,13 @@
 
 import Combine
 import Foundation
-import NetworkExtension
+import NetworkProtection
 
-public protocol ConnectionStatusObserver {
-    var publisher: AnyPublisher<ConnectionStatus, Never> { get }
-    var recentValue: ConnectionStatus { get }
+public final class MockConnectionStatusObserver: ConnectionStatusObserver {
+    public init() {}
+    public let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
+    lazy public var publisher = subject.eraseToAnyPublisher()
+    public var recentValue: ConnectionStatus {
+        subject.value
+    }
 }

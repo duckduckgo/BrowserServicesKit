@@ -1,5 +1,5 @@
 //
-//  ConnectionErrorObserverThroughDistributedNotifications.swift
+//  ControllerErrorMesssageObserverThroughDistributedNotifications.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,11 +21,14 @@
 import Combine
 import Foundation
 import NetworkExtension
+import NotificationCenter
 import Common
 
-/// Observes the server info through Distributed Notifications and an IPC connection.
+/// Observes the tunnel status through Distributed Notifications.
 ///
-public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionErrorObserver {
+public class ControllerErrorMesssageObserverThroughDistributedNotifications: ControllerErrorMesssageObserver {
+    public typealias Value = ConnectionStatus
+
     public lazy var publisher: AnyPublisher<String?, Never> = subject.eraseToAnyPublisher()
     public var recentValue: String? {
         subject.value
@@ -36,7 +39,7 @@ public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionE
     // MARK: - Notifications
 
     private let distributedNotificationCenter: DistributedNotificationCenter
-    private var tunnelErrorChangedCancellable: AnyCancellable!
+    private var cancellable: AnyCancellable?
 
     // MARK: - Logging
 
@@ -45,7 +48,7 @@ public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionE
     // MARK: - Initialization
 
     public init(distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                log: OSLog = .networkProtection) {
+                log: OSLog = .networkProtectionStatusReporterLog) {
 
         self.distributedNotificationCenter = distributedNotificationCenter
         self.log = log
@@ -53,19 +56,28 @@ public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionE
         start()
     }
 
-    func start() {
-        tunnelErrorChangedCancellable = distributedNotificationCenter.publisher(for: .tunnelErrorChanged).sink { [weak self] notification in
-            self?.handleTunnelErrorStatusChanged(notification)
+    private func start() {
+        cancellable = distributedNotificationCenter.publisher(for: .controllerErrorChanged).sink { [weak self] notification in
+            self?.handleControllerErrorStatusChanged(notification)
         }
     }
 
-    // MARK: - Handling Notifications
+    // MARK: - Updating controller errors
 
-    private func handleTunnelErrorStatusChanged(_ notification: Notification) {
+    private func handleControllerErrorStatusChanged(_ notification: Notification) {
         let errorMessage = notification.object as? String
+        logErrorChanged(isShowingError: errorMessage != nil)
 
-        if errorMessage != recentValue {
-            subject.send(errorMessage)
+        subject.send(errorMessage)
+    }
+
+    // MARK: - Logging
+
+    private func logErrorChanged(isShowingError: Bool) {
+        if isShowingError {
+            os_log("%{public}@: error message set", log: log, type: .debug, String(describing: self))
+        } else {
+            os_log("%{public}@: error message cleared", log: log, type: .debug, String(describing: self))
         }
     }
 }
