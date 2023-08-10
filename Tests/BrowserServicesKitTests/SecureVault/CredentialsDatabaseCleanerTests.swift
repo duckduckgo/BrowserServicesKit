@@ -33,10 +33,6 @@ final class MockEventMapper: EventMapping<CredentialsCleanupError> {
         }
     }
 
-    deinit {
-        Self.errors = []
-    }
-
     override init(mapping: @escaping EventMapping<CredentialsCleanupError>.Mapping) {
         fatalError("Use init()")
     }
@@ -86,6 +82,7 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
 
         eventMapper = MockEventMapper()
+        MockEventMapper.errors.removeAll()
     }
 
     override func tearDownWithError() throws {
@@ -93,11 +90,35 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
         try super.tearDownWithError()
     }
 
+    func testWhenSyncIsActiveThenCleanupIsCancelled() throws {
+        let expectation = expectation(description: "removeSyncMetadataPendingDeletion")
+        expectation.isInverted = true
+        let removeSyncMetadataPendingDeletion: (Database) throws -> Int = { _ in
+            expectation.fulfill()
+            return 0
+        }
+
+        databaseCleaner = CredentialsDatabaseCleaner(
+            secureVaultFactory: secureVaultFactory,
+            secureVaultErrorReporter: MockSecureVaultErrorReporter(),
+            errorEvents: eventMapper,
+            isSyncActive: { true },
+            removeSyncMetadataPendingDeletion: removeSyncMetadataPendingDeletion
+        )
+
+        databaseCleaner.removeSyncableCredentialsMetadataPendingDeletion()
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(MockEventMapper.errors.count, 1)
+        let error = try XCTUnwrap(MockEventMapper.errors.first)
+        XCTAssertTrue(error is CredentialsCleanupCancelledError)
+    }
+
     func testWhenThereAreNoConflictsThenCleanerContextIsSavedOnce() throws {
         databaseCleaner = CredentialsDatabaseCleaner(
             secureVaultFactory: secureVaultFactory,
             secureVaultErrorReporter: MockSecureVaultErrorReporter(),
-            errorEvents: eventMapper
+            errorEvents: eventMapper,
+            isSyncActive: { false }
         )
 
         try secureVault.storeCredentials(domain: "1", username: "1")

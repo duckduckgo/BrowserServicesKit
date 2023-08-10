@@ -25,26 +25,45 @@ import SecureStorage
 
 public struct CredentialsCleanupError: Error {
     public let cleanupError: Error
+
+    public static let syncActive: CredentialsCleanupError = .init(cleanupError: CredentialsCleanupCancelledError())
 }
+
+public struct CredentialsCleanupCancelledError: Error {}
 
 public final class CredentialsDatabaseCleaner {
 
-    public init(
+    public convenience init(
         secureVaultFactory: AutofillVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
+        isSyncActive: @escaping () -> Bool,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
+        self.init(
+            secureVaultFactory: secureVaultFactory,
+            secureVaultErrorReporter: secureVaultErrorReporter,
+            errorEvents: errorEvents,
+            isSyncActive: isSyncActive,
+            log: log(),
+            removeSyncMetadataPendingDeletion: Self.removeSyncMetadataPendingDeletion(in:)
+        )
+    }
+
+    init(
+        secureVaultFactory: AutofillVaultFactory,
+        secureVaultErrorReporter: SecureVaultErrorReporting,
+        errorEvents: EventMapping<CredentialsCleanupError>?,
+        isSyncActive: @escaping () -> Bool,
         log: @escaping @autoclosure () -> OSLog = .disabled,
-        removeSyncMetadataPendingDeletion: ((Database) throws -> Int)? = nil
+        removeSyncMetadataPendingDeletion: @escaping ((Database) throws -> Int)
     ) {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.errorEvents = errorEvents
         self.getLog = log
-        if let removeSyncMetadataPendingDeletion {
-            self.removeSyncMetadataPendingDeletion = removeSyncMetadataPendingDeletion
-        } else {
-            self.removeSyncMetadataPendingDeletion = Self.removeSyncMetadataPendingDeletion(in:)
-        }
+        self.isSyncActive = isSyncActive
+        self.removeSyncMetadataPendingDeletion = removeSyncMetadataPendingDeletion
 
         cleanupCancellable = triggerSubject
             .receive(on: workQueue)
@@ -70,6 +89,11 @@ public final class CredentialsDatabaseCleaner {
     }
 
     func removeSyncableCredentialsMetadataPendingDeletion() {
+        guard !isSyncActive() else {
+            errorEvents?.fire(.syncActive)
+            return
+        }
+
         var cleanupError: Error?
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
@@ -134,6 +158,7 @@ public final class CredentialsDatabaseCleaner {
 
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
+    private let isSyncActive: () -> Bool
     private let removeSyncMetadataPendingDeletion: (Database) throws -> Int
 
     private let getLog: () -> OSLog

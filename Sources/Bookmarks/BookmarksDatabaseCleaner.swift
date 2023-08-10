@@ -24,20 +24,26 @@ import CoreData
 import Persistence
 
 public struct BookmarksCleanupError: Error {
-    public let coreDataError: Error
+    public let cleanupError: Error
+
+    public static let syncActive: BookmarksCleanupError = .init(cleanupError: BookmarksCleanupCancelledError())
 }
+
+public struct BookmarksCleanupCancelledError: Error {}
 
 public final class BookmarkDatabaseCleaner {
 
     public init(
         bookmarkDatabase: CoreDataDatabase,
         errorEvents: EventMapping<BookmarksCleanupError>?,
+        isSyncActive: @escaping () -> Bool,
         log: @escaping @autoclosure () -> OSLog = .disabled,
         fetchBookmarksPendingDeletion: @escaping (NSManagedObjectContext) -> [BookmarkEntity] = BookmarkUtils.fetchBookmarksPendingDeletion
     ) {
         self.database = bookmarkDatabase
         self.errorEvents = errorEvents
         self.getLog = log
+        self.isSyncActive = isSyncActive
         self.fetchBookmarksPendingDeletion = fetchBookmarksPendingDeletion
 
         cleanupCancellable = triggerSubject
@@ -64,6 +70,11 @@ public final class BookmarkDatabaseCleaner {
     }
 
     func removeBookmarksPendingDeletion() {
+        guard !isSyncActive() else {
+            errorEvents?.fire(.syncActive)
+            return
+        }
+
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
@@ -101,7 +112,7 @@ public final class BookmarkDatabaseCleaner {
             }
 
             if let saveError {
-                errorEvents?.fire(.init(coreDataError: saveError))
+                errorEvents?.fire(.init(cleanupError: saveError))
             }
         }
     }
@@ -118,6 +129,7 @@ public final class BookmarkDatabaseCleaner {
 
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
+    private let isSyncActive: () -> Bool
     private let fetchBookmarksPendingDeletion: (NSManagedObjectContext) -> [BookmarkEntity]
 
     private let getLog: () -> OSLog

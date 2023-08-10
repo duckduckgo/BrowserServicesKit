@@ -27,12 +27,8 @@ final class MockEventMapper: EventMapping<BookmarksCleanupError> {
 
     public init() {
         super.init { event, _, _, _ in
-            Self.errors.append(event.coreDataError)
+            Self.errors.append(event.cleanupError)
         }
-    }
-
-    deinit {
-        Self.errors = []
     }
 
     override init(mapping: @escaping EventMapping<BookmarksCleanupError>.Mapping) {
@@ -60,6 +56,7 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         bookmarksDatabase.loadStore()
 
         eventMapper = MockEventMapper()
+        MockEventMapper.errors.removeAll()
     }
 
     override func tearDown() {
@@ -68,6 +65,28 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         try? bookmarksDatabase.tearDown(deleteStores: true)
         bookmarksDatabase = nil
         try? FileManager.default.removeItem(at: location)
+    }
+
+    func testWhenSyncIsActiveThenCleanupIsCancelled() throws {
+        let expectation = expectation(description: "fetchBookmarksPendingDeletion")
+        expectation.isInverted = true
+
+        databaseCleaner = BookmarkDatabaseCleaner(
+            bookmarkDatabase: bookmarksDatabase,
+            errorEvents: eventMapper,
+            isSyncActive: { true },
+            fetchBookmarksPendingDeletion: { _ in
+                expectation.fulfill()
+                return []
+            }
+        )
+
+        databaseCleaner.removeBookmarksPendingDeletion()
+
+        waitForExpectations(timeout: 1)
+        XCTAssertEqual(MockEventMapper.errors.count, 1)
+        let error = try XCTUnwrap(MockEventMapper.errors.first)
+        XCTAssertTrue(error is BookmarksCleanupCancelledError)
     }
 
     func testWhenThereAreNoConflictsThenCleanerContextIsSavedOnce() {
@@ -101,6 +120,7 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         databaseCleaner = BookmarkDatabaseCleaner(
             bookmarkDatabase: bookmarksDatabase,
             errorEvents: eventMapper,
+            isSyncActive: { false },
             fetchBookmarksPendingDeletion: { cleanerContext in
                 fetchBookmarksPendingDeletionCallCount += 1
                 return BookmarkUtils.fetchBookmarksPendingDeletion(cleanerContext)
@@ -144,6 +164,7 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         databaseCleaner = BookmarkDatabaseCleaner(
             bookmarkDatabase: bookmarksDatabase,
             errorEvents: eventMapper,
+            isSyncActive: { false },
             fetchBookmarksPendingDeletion: { [weak self] cleanerContext in
                 fetchBookmarksPendingDeletionCallCount += 1
                 let bookmarks = BookmarkUtils.fetchBookmarksPendingDeletion(cleanerContext)
