@@ -94,7 +94,7 @@ final class CredentialsResponseHandler {
                 }
                 return modifiedAt > clientTimestamp
             }()
-            if !isModifiedAfterSyncTimestamp {
+            if !isModifiedAfterSyncTimestamp || syncable.isDeleted {
                 if syncable.isDeleted {
                     try secureVault.deleteSyncableCredentials(existingEntity, in: database)
                 } else {

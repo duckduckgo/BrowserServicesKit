@@ -596,6 +596,41 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
+    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteDeletionIsApplied() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: []),
+            .bookmark("test2", id: "1", isDeleted: true)
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        context.performAndWait {
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
+            bookmark.title = "test3"
+            try! context.save()
+        }
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {})
+        }
+    }
+
     func testWhenBookmarkIsMovedBetweenFoldersRemotelyAndUpdatedLocallyAfterStartingSyncThenItsModifiedAtIsNotCleared() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 

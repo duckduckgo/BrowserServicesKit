@@ -278,6 +278,32 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         XCTAssertEqual(updatedCredential.credentialsRecord?.password, credentials.password)
     }
 
+    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteDeletionIsApplied() async throws {
+
+        let modifiedAt = Date().withMillisecondPrecision
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeSyncableCredentials("1", lastModified: modifiedAt, in: database)
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let received: [Syncable] = [
+            .credentials(id: "1", username: "2", isDeleted: true)
+        ]
+
+        var credentials = try XCTUnwrap(try secureVault.websiteCredentialsFor(accountId: 1))
+        credentials.password = "updated".data(using: .utf8)
+        try secureVault.storeWebsiteCredentials(credentials)
+        try secureVault.inDatabaseTransaction({ database in
+            _ = try self.secureVault.syncableCredentialsForAccountId(1, in: database)
+        })
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        XCTAssertTrue(syncableCredentials.isEmpty)
+    }
+
     func testWhenDatabaseIsLockedDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
 
         let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
