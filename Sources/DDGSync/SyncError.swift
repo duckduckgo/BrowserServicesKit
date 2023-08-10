@@ -51,4 +51,5 @@ public enum SyncError: Error, Equatable {
     case failedToRemoveSecureStore(status: OSStatus)
 
     case credentialsMetadataMissingBeforeFirstSync
+    case receivedCredentialsWithoutUUID
 }

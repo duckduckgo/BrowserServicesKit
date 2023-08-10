@@ -75,7 +75,7 @@ final class CredentialsResponseHandler {
 
     private func processEntity(with syncable: SyncableCredentialsAdapter, secureVaultEncryptionKey: Data, secureVaultHashingSalt: Data?) throws {
         guard let syncableUUID = syncable.uuid else {
-            throw SyncError.accountAlreadyExists // todo
+            throw SyncError.receivedCredentialsWithoutUUID
         }
 
         if shouldDeduplicateEntities, var deduplicatedEntity = try deduplicatedCredentials(with: syncable, secureVaultEncryptionKey: secureVaultEncryptionKey) {
