@@ -102,9 +102,10 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
             secureVaultFactory: secureVaultFactory,
             secureVaultErrorReporter: MockSecureVaultErrorReporter(),
             errorEvents: eventMapper,
-            isSyncActive: { true },
             removeSyncMetadataPendingDeletion: removeSyncMetadataPendingDeletion
         )
+
+        databaseCleaner.isSyncActive = { true }
 
         databaseCleaner.removeSyncableCredentialsMetadataPendingDeletion()
         waitForExpectations(timeout: 1)
@@ -117,8 +118,7 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
         databaseCleaner = CredentialsDatabaseCleaner(
             secureVaultFactory: secureVaultFactory,
             secureVaultErrorReporter: MockSecureVaultErrorReporter(),
-            errorEvents: eventMapper,
-            isSyncActive: { false }
+            errorEvents: eventMapper
         )
 
         try secureVault.storeCredentials(domain: "1", username: "1")

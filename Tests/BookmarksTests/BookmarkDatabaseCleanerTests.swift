@@ -74,12 +74,13 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         databaseCleaner = BookmarkDatabaseCleaner(
             bookmarkDatabase: bookmarksDatabase,
             errorEvents: eventMapper,
-            isSyncActive: { true },
             fetchBookmarksPendingDeletion: { _ in
                 expectation.fulfill()
                 return []
             }
         )
+
+        databaseCleaner.isSyncActive = { true }
 
         databaseCleaner.removeBookmarksPendingDeletion()
 
@@ -120,7 +121,6 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         databaseCleaner = BookmarkDatabaseCleaner(
             bookmarkDatabase: bookmarksDatabase,
             errorEvents: eventMapper,
-            isSyncActive: { false },
             fetchBookmarksPendingDeletion: { cleanerContext in
                 fetchBookmarksPendingDeletionCallCount += 1
                 return BookmarkUtils.fetchBookmarksPendingDeletion(cleanerContext)
@@ -164,7 +164,6 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
         databaseCleaner = BookmarkDatabaseCleaner(
             bookmarkDatabase: bookmarksDatabase,
             errorEvents: eventMapper,
-            isSyncActive: { false },
             fetchBookmarksPendingDeletion: { [weak self] cleanerContext in
                 fetchBookmarksPendingDeletionCallCount += 1
                 let bookmarks = BookmarkUtils.fetchBookmarksPendingDeletion(cleanerContext)

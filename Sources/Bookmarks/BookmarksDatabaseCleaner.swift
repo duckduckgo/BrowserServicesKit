@@ -33,17 +33,17 @@ public struct BookmarksCleanupCancelledError: Error {}
 
 public final class BookmarkDatabaseCleaner {
 
+    public var isSyncActive: () -> Bool = { false }
+
     public init(
         bookmarkDatabase: CoreDataDatabase,
         errorEvents: EventMapping<BookmarksCleanupError>?,
-        isSyncActive: @escaping () -> Bool,
         log: @escaping @autoclosure () -> OSLog = .disabled,
         fetchBookmarksPendingDeletion: @escaping (NSManagedObjectContext) -> [BookmarkEntity] = BookmarkUtils.fetchBookmarksPendingDeletion
     ) {
         self.database = bookmarkDatabase
         self.errorEvents = errorEvents
         self.getLog = log
-        self.isSyncActive = isSyncActive
         self.fetchBookmarksPendingDeletion = fetchBookmarksPendingDeletion
 
         cleanupCancellable = triggerSubject
@@ -129,7 +129,6 @@ public final class BookmarkDatabaseCleaner {
 
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
-    private let isSyncActive: () -> Bool
     private let fetchBookmarksPendingDeletion: (NSManagedObjectContext) -> [BookmarkEntity]
 
     private let getLog: () -> OSLog

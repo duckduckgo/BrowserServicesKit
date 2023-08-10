@@ -33,18 +33,18 @@ public struct CredentialsCleanupCancelledError: Error {}
 
 public final class CredentialsDatabaseCleaner {
 
+    public var isSyncActive: () -> Bool = { false }
+
     public convenience init(
         secureVaultFactory: AutofillVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
-        isSyncActive: @escaping () -> Bool,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.init(
             secureVaultFactory: secureVaultFactory,
             secureVaultErrorReporter: secureVaultErrorReporter,
             errorEvents: errorEvents,
-            isSyncActive: isSyncActive,
             log: log(),
             removeSyncMetadataPendingDeletion: Self.removeSyncMetadataPendingDeletion(in:)
         )
@@ -54,7 +54,6 @@ public final class CredentialsDatabaseCleaner {
         secureVaultFactory: AutofillVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
-        isSyncActive: @escaping () -> Bool,
         log: @escaping @autoclosure () -> OSLog = .disabled,
         removeSyncMetadataPendingDeletion: @escaping ((Database) throws -> Int)
     ) {
@@ -62,7 +61,6 @@ public final class CredentialsDatabaseCleaner {
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.errorEvents = errorEvents
         self.getLog = log
-        self.isSyncActive = isSyncActive
         self.removeSyncMetadataPendingDeletion = removeSyncMetadataPendingDeletion
 
         cleanupCancellable = triggerSubject
@@ -158,7 +156,6 @@ public final class CredentialsDatabaseCleaner {
 
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
-    private let isSyncActive: () -> Bool
     private let removeSyncMetadataPendingDeletion: (Database) throws -> Int
 
     private let getLog: () -> OSLog
