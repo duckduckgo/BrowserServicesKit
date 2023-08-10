@@ -143,6 +143,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
 
     @discardableResult
     public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
+        assert(database.isInsideTransaction)
 
         if let stringId = credentials.account.id, let id = Int64(stringId) {
             try updateWebsiteCredentials(in: database, credentials, usingId: id)
@@ -152,8 +153,9 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
-
     public func storeSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        assert(database.isInsideTransaction)
+
         guard var credentials = syncableCredentials.credentials else {
             assertionFailure("Nil credentials passed to \(#function)")
             return
@@ -176,6 +178,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     }
 
     public func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        assert(database.isInsideTransaction)
+
         if let accountId = syncableCredentials.metadata.objectId {
             try deleteWebsiteCredentialsForAccountId(accountId, in: database)
         }
@@ -189,6 +193,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     }
 
     private func deleteWebsiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws {
+        assert(database.isInsideTransaction)
+
         try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName, objectId: accountId)
         try database.execute(sql: """
             DELETE FROM
@@ -199,6 +205,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     }
 
     func updateWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64, timestamp: Date? = Date()) throws {
+        assert(database.isInsideTransaction)
+
         do {
             try credentials.account.update(database)
             try database.execute(sql: """
@@ -221,6 +229,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     }
 
     func insertWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, timestamp: Date? = Date()) throws -> Int64 {
+        assert(database.isInsideTransaction)
+
         do {
             try credentials.account.insert(database)
             let id = database.lastInsertedRowID
@@ -258,18 +268,24 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     }
 
     public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
-        try SecureVaultModels.SyncableCredentials.query
+        assert(database.isInsideTransaction)
+
+        return try SecureVaultModels.SyncableCredentials.query
             .filter(syncIds.contains(SecureVaultModels.SyncableCredentialsRecord.Columns.uuid))
             .fetchAll(database)
     }
 
     public func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
-        try SecureVaultModels.SyncableCredentials.query
+        assert(database.isInsideTransaction)
+
+        return try SecureVaultModels.SyncableCredentials.query
             .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.objectId == accountId)
             .fetchOne(database)
     }
 
     public func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
+        assert(database.isInsideTransaction)
+
         guard let account = try SecureVaultModels.WebsiteAccount.fetchOne(database, key: accountId) else {
             return nil
         }
@@ -465,6 +481,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     // MARK: - Sync
 
     public func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date? = Date()) throws {
+        assert(database.isInsideTransaction)
+
         try database.execute(sql: """
             UPDATE
                 \(tableName)
@@ -832,7 +850,6 @@ extension DefaultAutofillDatabaseProvider {
                                                            domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
                                                            created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
                                                            lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
-
 
             // Query the credentials
             let credentialRow = try Row.fetchOne(database, sql: """
