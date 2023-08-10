@@ -1,5 +1,5 @@
 //
-//  ConnectionStatusObserver.swift
+//  ConnectivityIssueObserver.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import Combine
 import Foundation
 import NetworkExtension
 
-public protocol ConnectionStatusObserver {
-    var publisher: AnyPublisher<ConnectionStatus, Never> { get }
-    var recentValue: ConnectionStatus { get }
+public protocol ConnectivityIssueObserver {
+    var publisher: AnyPublisher<Bool, Never> { get }
+    var recentValue: Bool { get }
 }

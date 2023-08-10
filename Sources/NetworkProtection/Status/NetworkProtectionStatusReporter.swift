@@ -23,11 +23,11 @@ import Common
 /// Classes that implement this protocol are in charge of relaying status changes.
 ///
 public protocol NetworkProtectionStatusReporter {
-    var statusPublisher: CurrentValueSubject<ConnectionStatus, Never> { get }
-    var connectivityIssuesPublisher: CurrentValueSubject<Bool, Never> { get }
-    var serverInfoPublisher: CurrentValueSubject<NetworkProtectionStatusServerInfo, Never> { get }
-    var connectionErrorPublisher: CurrentValueSubject<String?, Never> { get }
-    var controllerErrorMessagePublisher: CurrentValueSubject<String?, Never> { get }
+    var statusObserver: ConnectionStatusObserver { get }
+    var serverInfoObserver: ConnectionServerInfoObserver { get }
+    var connectionErrorObserver: ConnectionErrorObserver { get }
+    var connectivityIssuesObserver: ConnectivityIssueObserver { get }
+    var controllerErrorMessageObserver: ControllerErrorMesssageObserver { get }
 
     func forceRefresh()
 }
@@ -57,50 +57,33 @@ public struct NetworkProtectionStatusServerInfo: Codable, Equatable {
 ///
 public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStatusReporter {
 
-    // MARK: - Logging
-
-    /// The logger that this object will use for errors that are handled by this class.
-    ///
-    private let log: OSLog
-
     // MARK: - Notifications
 
     private let distributedNotificationCenter: DistributedNotificationCenter
 
-    // MARK: - Notifications: Observation Tokens
-
-    private var cancellables = Set<AnyCancellable>()
-
     // MARK: - Publishers
 
-    private let statusObserver: ConnectionStatusObserver
-    public var statusPublisher: CurrentValueSubject<ConnectionStatus, Never> {
-        statusObserver.publisher
-    }
-    public let connectivityIssuesPublisher = CurrentValueSubject<Bool, Never>(false)
-    private let serverInfoObserver: ConnectionServerInfoObserver
-    public var serverInfoPublisher: CurrentValueSubject<NetworkProtectionStatusServerInfo, Never> {
-        serverInfoObserver.publisher
-    }
-    private let connectionErrorObserver: ConnectionErrorObserver
-    public var connectionErrorPublisher: CurrentValueSubject<String?, Never> {
-        connectionErrorObserver.publisher
-    }
-    public let controllerErrorMessagePublisher = CurrentValueSubject<String?, Never>(nil)
+    public let statusObserver: ConnectionStatusObserver
+    public let serverInfoObserver: ConnectionServerInfoObserver
+    public let connectionErrorObserver: ConnectionErrorObserver
+    public let connectivityIssuesObserver: ConnectivityIssueObserver
+    public let controllerErrorMessageObserver: ControllerErrorMesssageObserver
 
     // MARK: - Init & deinit
 
     public init(statusObserver: ConnectionStatusObserver,
                 serverInfoObserver: ConnectionServerInfoObserver,
                 connectionErrorObserver: ConnectionErrorObserver,
-                distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                log: OSLog = .networkProtectionStatusReporterLog) {
+                connectivityIssuesObserver: ConnectivityIssueObserver,
+                controllerErrorMessageObserver: ControllerErrorMesssageObserver,
+                distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.statusObserver = statusObserver
         self.serverInfoObserver = serverInfoObserver
         self.connectionErrorObserver = connectionErrorObserver
+        self.connectivityIssuesObserver = connectivityIssuesObserver
+        self.controllerErrorMessageObserver = controllerErrorMessageObserver
         self.distributedNotificationCenter = distributedNotificationCenter
-        self.log = log
 
         start()
     }
@@ -108,26 +91,6 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
     // MARK: - Starting & Stopping
 
     private func start() {
-        distributedNotificationCenter.publisher(for: .controllerErrorChanged).sink { [weak self] notification in
-            self?.handleControllerErrorStatusChanged(notification)
-        }.store(in: &cancellables)
-
-        // swiftlint:disable:next unused_capture_list
-        distributedNotificationCenter.publisher(for: .issuesStarted).sink { [weak self] _ in
-            guard let self else { return }
-
-            logIssuesChanged(isHavingIssues: true)
-            connectivityIssuesPublisher.send(true)
-        }.store(in: &cancellables)
-
-        // swiftlint:disable:next unused_capture_list
-        distributedNotificationCenter.publisher(for: .issuesResolved).sink { [weak self] _ in
-            guard let self else { return }
-
-            logIssuesChanged(isHavingIssues: false)
-            connectivityIssuesPublisher.send(false)
-        }.store(in: &cancellables)
-
         forceRefresh()
     }
 
@@ -135,44 +98,6 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
 
     public func forceRefresh() {
         distributedNotificationCenter.post(.requestStatusUpdate)
-    }
-
-    // MARK: - Updating controller errors
-
-    private func handleControllerErrorStatusChanged(_ notification: Notification) {
-        let errorMessage = notification.object as? String
-        logErrorChanged(isShowingError: errorMessage != nil)
-
-        controllerErrorMessagePublisher.send(errorMessage)
-    }
-
-    /// Queries the extension for connectivity issues and updates the state locally.
-    ///
-    private func updateConnectivityIssues(session: NETunnelProviderSession) throws {
-        try session.sendProviderMessage(.isHavingConnectivityIssues) { [weak self] (response: ExtensionMessageBool?) in
-            guard let isHavingConnectivityIssues = response?.value,
-                  isHavingConnectivityIssues != self?.connectivityIssuesPublisher.value else { return }
-
-            self?.connectivityIssuesPublisher.send(isHavingConnectivityIssues)
-        }
-    }
-
-    // MARK: - Logging
-
-    private func logErrorChanged(isShowingError: Bool) {
-        if isShowingError {
-            os_log("%{public}@: error message set", log: log, type: .debug, String(describing: self))
-        } else {
-            os_log("%{public}@: error message cleared", log: log, type: .debug, String(describing: self))
-        }
-    }
-
-    private func logIssuesChanged(isHavingIssues: Bool) {
-        if isHavingIssues {
-            os_log("%{public}@: issues started", log: log, type: .debug, String(describing: self))
-        } else {
-            os_log("%{public}@: issues stopped", log: log, type: .debug, String(describing: self))
-        }
     }
 }
 

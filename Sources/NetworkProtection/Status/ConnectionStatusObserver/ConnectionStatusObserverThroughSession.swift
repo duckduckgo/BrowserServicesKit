@@ -26,10 +26,14 @@ import Common
 /// NEVPNStatusDidChange notifications or tunnel session.
 ///
 public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
-    public let publisher = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
+    public lazy var publisher: AnyPublisher<ConnectionStatus, Never> = subject.eraseToAnyPublisher()
+    public var recentValue: ConnectionStatus {
+        subject.value
+    }
+
+    private let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 
     // MARK: - Notifications
-
     private let notificationCenter: NotificationCenter
     private let platformNotificationCenter: NotificationCenter
     private let platformDidWakeNotification: Notification.Name
@@ -120,7 +124,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     private func handleStatusChange(in session: NETunnelProviderSession) {
         let status = self.connectionStatus(from: session)
         logStatusChanged(status: status)
-        publisher.send(status)
+        subject.send(status)
     }
 
     // MARK: - Obtaining the NetP VPN status
