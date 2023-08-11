@@ -28,4 +28,3 @@ public final class MockConnectivityIssueObserver: ConnectivityIssueObserver {
         subject.value
     }
 }
-

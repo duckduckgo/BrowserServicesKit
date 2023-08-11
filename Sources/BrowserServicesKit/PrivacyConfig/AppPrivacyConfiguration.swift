@@ -129,7 +129,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             let probability = (rollouts.count > 1 ? rollouts.last?.percent : rollouts.first?.percent) ?? 0.0
             willEnable = randomizer(0..<100) < probability
         }
-
         
         guard willEnable else {
             userDefaults.set(rollouts.count, forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)")

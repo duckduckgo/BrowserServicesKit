@@ -63,7 +63,6 @@ public class DefaultFeatureFlagger: FeatureFlagger {
     }
 }
 
-
 /// To be implemented by the FeatureFlag enum type in the respective app. The source corresponds to
 /// where the final value should come from.
 ///

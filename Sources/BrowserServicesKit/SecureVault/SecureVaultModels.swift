@@ -477,9 +477,9 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         typealias AccountGroup = [String: [SecureVaultModels.WebsiteAccount]]
 
         let accountGroups = self.reduce(into: AccountGroup()) { result, account in
-            if account.domain == targetDomain    {
+            if account.domain == targetDomain {
                 result["exactMatches", default: []].append(account)
-            } else if account.domain == targetTLD || account.domain == "www.\(targetTLD)"  {
+            } else if account.domain == targetTLD || account.domain == "www.\(targetTLD)" {
                 result["tldMatches", default: []].append(account)
             } else {
                 result["other", default: []].append(account)
@@ -487,8 +487,8 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         }
 
         let exactMatches = accountGroups["exactMatches"]?.sorted { compareAccount( $0, $1 ) } ?? []
-        let tldMatches = accountGroups["tldMatches"]?.sorted{ compareAccount( $0, $1 ) } ?? []
-        let other = accountGroups["other"]?.sorted{ compareAccount( $0, $1 ) } ?? []
+        let tldMatches = accountGroups["tldMatches"]?.sorted { compareAccount( $0, $1 ) } ?? []
+        let other = accountGroups["other"]?.sorted { compareAccount( $0, $1 ) } ?? []
         let result = exactMatches + tldMatches + other
 
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }

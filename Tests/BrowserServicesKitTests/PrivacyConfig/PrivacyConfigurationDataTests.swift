@@ -109,7 +109,6 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertNotNil(newTabContinueSetUp)
         XCTAssertEqual(newTabContinueSetUp?.state, "enabled")
 
-
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
         XCTAssertEqual(gpcFeature?.state, "enabled")

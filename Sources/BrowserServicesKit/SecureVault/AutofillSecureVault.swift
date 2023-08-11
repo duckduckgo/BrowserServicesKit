@@ -565,4 +565,3 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         return try providers.crypto.decrypt(data, withKey: key)
     }
 }
-

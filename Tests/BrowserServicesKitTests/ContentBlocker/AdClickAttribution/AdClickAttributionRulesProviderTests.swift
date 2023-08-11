@@ -23,7 +23,6 @@ import os
 
 class MockCompiledRuleListSource: CompiledRuleListsSource {
     
-    
     var currentRules: [ContentBlockerRulesManager.Rules] {
         [currentMainRules, currentAttributionRules].compactMap { $0 }
     }
