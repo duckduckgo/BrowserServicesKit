@@ -105,7 +105,7 @@ final class ClickToLoadRulesMutatorTests: XCTestCase {
         XCTAssertEqual(trackerData, mutatedTrackerData)
     }
 
-    func testAddingExceptionToTracker() {
+    func testAddingExceptionWithFBOptionToTrackerWithDefaultCTLFBAction() {
         // given
         let trackers = ["tracker1": ClickToLoadHelper.makeKnownTracker(withName: "example1.com", ownerName: "Example1", defaultAction: .block),
                         "tracker2": ClickToLoadHelper.makeKnownTracker(withName: "example2.com", ownerName: "Example2", defaultAction: .ctlfb),
@@ -122,10 +122,38 @@ final class ClickToLoadRulesMutatorTests: XCTestCase {
 
         // when
         let mutator = ClickToLoadRulesMutator(trackerData: trackerData)
-        let mutatedTrackerData = mutator.addExceptions(forDomain: "example2.com", for: .fb)
+        let mutatedTrackerData = mutator.addExceptions(forDomain: "exception.com", for: .fb)
 
         // then
-        XCTAssertEqual(trackerData, mutatedTrackerData)
+        XCTAssertNotEqual(trackerData, mutatedTrackerData)
+        XCTAssertEqual(mutatedTrackerData.trackers["tracker2.com"]?.rules?.first?.exceptions?.domains, ["exception.com"])
+        XCTAssertEqual(mutatedTrackerData.trackers["tracker2.com"]?.rules?.first?.rule, ["example2\\.com(:[0-9]+)?/.*"])
     }
+
+    func testAddingExceptionWithFBOptionToTrackerWithCTLFBActionRule() {
+        // given
+        let trackers = ["tracker1": ClickToLoadHelper.makeKnownTracker(withName: "example1.com", ownerName: "Example1", defaultAction: .block),
+                        "tracker2": ClickToLoadHelper.makeKnownTracker(withName: "example2.com", ownerName: "Example2", defaultAction: .ctlfb),
+                        "tracker3": ClickToLoadHelper.makeKnownTracker(withName: "example3.com",
+                                                     ownerName: "Example3",
+                                                     defaultAction: .block,
+                                                     rules: [.init(rule: "example3.com/test",
+                                                                   surrogate: nil,
+                                                                   action: .ctlfb,
+                                                                   options: nil,
+                                                                   exceptions: nil)])]
+        let trackerData = TrackerData(trackers: trackers, entities: [:], domains: [:], cnames: nil)
+
+
+        // when
+        let mutator = ClickToLoadRulesMutator(trackerData: trackerData)
+        let mutatedTrackerData = mutator.addExceptions(forDomain: "exception.com", for: .fb)
+
+        // then
+        XCTAssertNotEqual(trackerData, mutatedTrackerData)
+        XCTAssertEqual(mutatedTrackerData.trackers["tracker3.com"]?.rules?.first?.exceptions?.domains, ["exception.com"])
+        XCTAssertEqual(mutatedTrackerData.trackers["tracker3.com"]?.rules?.first?.rule, ["example3.com"]
+    }
+                       
 
 }

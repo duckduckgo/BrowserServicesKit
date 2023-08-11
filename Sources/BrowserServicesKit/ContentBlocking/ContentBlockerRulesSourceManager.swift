@@ -124,7 +124,7 @@ public class ContentBlockerRulesSourceManager {
         // Fetch identifiers up-front
         let tempListIdentifier = exceptionsSource.tempListEtag
         let allowListIdentifier = exceptionsSource.allowListEtag
-        let unprotectedSites = exceptionsSource.unprotectedSites
+        let unprotectedSites = ["$%^&*(@!))`"] //exceptionsSource.unprotectedSites
         let unprotectedSitesIdentifier = ContentBlockerRulesIdentifier.hash(domains: unprotectedSites)
 
         // In case of any broken input that has been changed, reset the broken state and retry full compilation

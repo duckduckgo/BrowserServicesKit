@@ -22,24 +22,17 @@ import UserScript
 import Common
 import WebKit
 
-protocol ClickToLoadUserScriptDelegate: AnyObject {
-
-}
-
 public final class ClickToLoadUserScript: Subfeature {
 
-    weak public var broker: UserScriptMessageBroker?
-    weak var delegate: ClickToLoadUserScriptDelegate?
-    weak var webView: WKWebView?
+    public weak var broker: UserScriptMessageBroker?
+    public weak var webView: WKWebView?
 
     public let messageOriginPolicy: MessageOriginPolicy = .all
     public let featureName: String = "clickToLoad"
 
-    public init() {
-        
-    }
+    private var shouldBlockCTL = true
 
-    // MARK: - Subfeature
+    public init() {}
 
     public func with(broker: UserScriptMessageBroker) {
         self.broker = broker
@@ -50,20 +43,38 @@ public final class ClickToLoadUserScript: Subfeature {
     enum MessageNames: String, CaseIterable {
         case getClickToLoadState
         case displayClickToLoadPlaceholders
+        case unblockClickToLoadContent
     }
 
     public func handler(forMethodNamed methodName: String) -> Handler? {
         switch MessageNames(rawValue: methodName) {
         case .getClickToLoadState:
-            return nil
+            return handleGetClickToLoadState
+        case .unblockClickToLoadContent:
+            return handleUnblockClickToLoadContent
         default:
-            assertionFailure("YoutubeOverlayUserScript: Failed to parse User Script message: \(methodName)")
+            assertionFailure("ClickToLoadUserScript: Failed to parse User Script message: \(methodName)")
             return nil
         }
     }
 
     private func handleGetClickToLoadState(params: Any, message: UserScriptMessage) -> Encodable? {
-        nil
+        [
+            "devMode": true,
+            "youtubePreviewsEnabled": false
+        ]
+    }
+
+    private func handleUnblockClickToLoadContent(params: Any, message: UserScriptMessage) -> Encodable? {
+        shouldBlockCTL = false
+        webView?.reload()
+        return nil
+    }
+
+    public func displayClickToLoadPlaceholders() {
+        if let webView = webView {
+            broker?.push(method: MessageNames.displayClickToLoadPlaceholders.rawValue, params: ["ruleAction": ["block"]], for: self, into: webView)
+        }
     }
 
     

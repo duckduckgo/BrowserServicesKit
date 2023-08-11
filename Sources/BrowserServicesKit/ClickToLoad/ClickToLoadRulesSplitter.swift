@@ -55,8 +55,8 @@ struct ClickToLoadRulesSplitter {
 
         if !trackersWithBlockCTL.isEmpty {
             let trackersWithoutBlockCTL = filterTrackersByBlockCTLAction(trackerData.tds.trackers, hasBlockCTL: false)
-            let trackerDataWithoutBlockCTL = makeTrackerData(using: trackersWithoutBlockCTL)
-            let trackerDataWithBlockCTL = makeTrackerData(using: trackersWithBlockCTL)
+            let trackerDataWithoutBlockCTL = makeTrackerData(using: trackersWithoutBlockCTL, originalTDS: trackerData.tds)
+            let trackerDataWithBlockCTL = makeTrackerData(using: trackersWithBlockCTL, originalTDS: trackerData.tds)
 
             return (
                 (tds: trackerDataWithoutBlockCTL, etag: Constant.clickToLoadRuleListPrefix + trackerData.etag),
@@ -66,26 +66,20 @@ struct ClickToLoadRulesSplitter {
         return nil
     }
 
-    private func makeTrackerData(using trackers: [String: KnownTracker]) -> TrackerData {
-        let entities = extractEntities(for: trackers)
-        let domains = extractDomains(for: entities)
+    private func makeTrackerData(using trackers: [String: KnownTracker], originalTDS: TrackerData) -> TrackerData {
+        let entities = originalTDS.extractEntities(for: trackers)
+        let domains = extractDomains(from: entities)
         return TrackerData(trackers: trackers,
                            entities: entities,
                            domains: domains,
-                           cnames: rulesList.trackerData?.tds.cnames)
+                           cnames: originalTDS.cnames)
     }
 
     private func filterTrackersByBlockCTLAction(_ trackers: [String: KnownTracker], hasBlockCTL: Bool) -> [String: KnownTracker] {
         trackers.filter { (_, tracker) in tracker.containsCTLActions == hasBlockCTL }
     }
 
-    private func extractEntities(for trackers: [String: KnownTracker]) -> [String: Entity] {
-        let trackerOwners = Set(trackers.values.compactMap { $0.owner?.name })
-        let entities = rulesList.trackerData?.tds.entities.filter { trackerOwners.contains($0.key) } ?? [:]
-        return entities
-    }
-
-    private func extractDomains(for entities: [String: Entity]) -> [String: String] {
+    private func extractDomains(from entities: [String: Entity]) -> [String: String] {
         var domains = [String: String]()
         for entity in entities {
             for domain in entity.value.domains ?? [] {
@@ -93,6 +87,16 @@ struct ClickToLoadRulesSplitter {
             }
         }
         return domains
+    }
+
+}
+
+private extension TrackerData {
+
+    func extractEntities(for trackers: [String: KnownTracker]) -> [String: Entity] {
+        let trackerOwners = Set(trackers.values.compactMap { $0.owner?.name })
+        let entities = entities.filter { trackerOwners.contains($0.key) }
+        return entities
     }
 
 }

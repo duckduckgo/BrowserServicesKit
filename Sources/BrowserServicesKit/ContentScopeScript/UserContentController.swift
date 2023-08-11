@@ -68,6 +68,7 @@ final public class UserContentController: WKUserContentController {
             self.removeAllUserScripts()
         }
     }
+
     private func installContentBlockingAssets(_ contentBlockingAssets: ContentBlockingAssets) {
         // don‘t install ContentBlockingAssets (especially Message Handlers retaining `self`) after cleanUpBeforeClosing was called
         guard assetsPublisherCancellable != nil else { return }

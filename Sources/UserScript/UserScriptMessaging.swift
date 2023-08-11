@@ -132,7 +132,7 @@ public final class UserScriptMessageBroker: NSObject {
         }
         if #available(macOS 11.0, iOS 14.0, *) {
             if !self.requiresRunInPageContentWorld {
-                webView.evaluateJavaScript(js, in: nil, in: WKContentWorld.defaultClient)
+                webView.evaluateJavaScript(js, in: nil, in: WKContentWorld.page)
             } else {
                 webView.evaluateJavaScript(js)
             }
