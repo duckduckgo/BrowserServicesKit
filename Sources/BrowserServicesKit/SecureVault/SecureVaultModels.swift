@@ -502,19 +502,41 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
 
     // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
-        if !(account1.username ?? "").isEmpty && (account2.username ?? "").isEmpty {
+        let username1 = account1.username ?? ""
+        let username2 = account2.username ?? ""
+
+        if !username1.isEmpty && username2.isEmpty {
             return true
-        } else if (account1.username ?? "").isEmpty && !(account2.username ?? "").isEmpty {
-            return false
-        } else if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
-            return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
-        } else if let domain1 = account1.domain, let domain2 = account2.domain, domain1 != domain2 {
-            return domain1 < domain2
-        } else if let username1 = account1.username, let username2 = account2.username, !username1.isEmpty && !username2.isEmpty {
-            return username1 < username2
-        } else {
-            return !(account1.username ?? "").isEmpty && (account2.username ?? "").isEmpty
         }
+
+        if username1.isEmpty && !username2.isEmpty {
+            return false
+        }
+
+        if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
+            return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
+        }
+
+        let domain1 = account1.domain ?? ""
+        let domain2 = account2.domain ?? ""
+
+        if !domain1.isEmpty && domain2.isEmpty {
+            return true
+        }
+
+        if domain1.isEmpty && !domain2.isEmpty {
+            return false
+        }
+
+        if domain1 != domain2 {
+            return domain1 < domain2
+        }
+
+        if !username1.isEmpty && !username2.isEmpty {
+            return username1 < username2
+        }
+
+        return false
     }
 
     // Receives a sorted Array, and removes duplicate based signatures
