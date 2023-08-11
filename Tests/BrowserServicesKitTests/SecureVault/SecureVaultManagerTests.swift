@@ -19,6 +19,7 @@
 import XCTest
 import UserScript
 import SecureStorage
+import SecureStorageTestsUtils
 @testable import BrowserServicesKit
 
 // swiftlint:disable line_length
@@ -26,8 +27,8 @@ class SecureVaultManagerTests: XCTestCase {
     
     private var mockCryptoProvider = NoOpCryptoProvider()
     private var mockKeystoreProvider = MockKeystoreProvider()
-    private var mockDatabaseProvider: MockDatabaseProvider = {
-        return try! MockDatabaseProvider()
+    private var mockDatabaseProvider: MockAutofillDatabaseProvider = {
+        return try! MockAutofillDatabaseProvider()
     }()
     
     private let mockAutofillUserScript: AutofillUserScript = {

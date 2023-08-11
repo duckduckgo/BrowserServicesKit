@@ -134,7 +134,7 @@ public final class BookmarksProvider: DataProvider {
         if sent.isEmpty {
             return []
         }
-        let identifiers = sent.compactMap(\.uuid)
+        let identifiers = sent.compactMap { SyncableBookmarkAdapter(syncable: $0).uuid }
         let bookmarks = BookmarkEntity.fetchBookmarks(with: identifiers, in: context)
 
         var idsOfItemsToClearModifiedAt = Set<String>()

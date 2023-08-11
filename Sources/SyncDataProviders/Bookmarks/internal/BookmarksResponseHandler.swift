@@ -24,15 +24,15 @@ import Foundation
 
 final class BookmarksResponseHandler {
     let clientTimestamp: Date?
-    let received: [Syncable]
+    let received: [SyncableBookmarkAdapter]
     let context: NSManagedObjectContext
     let shouldDeduplicateEntities: Bool
 
-    let receivedByUUID: [String: Syncable]
+    let receivedByUUID: [String: SyncableBookmarkAdapter]
     let allReceivedIDs: Set<String>
 
-    let topLevelFoldersSyncables: [Syncable]
-    let bookmarkSyncablesWithoutParent: [Syncable]
+    let topLevelFoldersSyncables: [SyncableBookmarkAdapter]
+    let bookmarkSyncablesWithoutParent: [SyncableBookmarkAdapter]
     let favoritesUUIDs: [String]
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
@@ -43,20 +43,20 @@ final class BookmarksResponseHandler {
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
-        self.received = received
+        self.received = received.map(SyncableBookmarkAdapter.init)
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
 
         let secretKey = try crypter.fetchSecretKey()
         self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
 
-        var syncablesByUUID: [String: Syncable] = [:]
+        var syncablesByUUID: [String: SyncableBookmarkAdapter] = [:]
         var allUUIDs: Set<String> = []
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]
         var favoritesUUIDs: [String] = []
 
-        received.forEach { syncable in
+        self.received.forEach { syncable in
             guard let uuid = syncable.uuid else {
                 return
             }
@@ -136,7 +136,7 @@ final class BookmarksResponseHandler {
 
     // MARK: - Private
 
-    private func processTopLevelFolder(_ topLevelFolderSyncable: Syncable) throws {
+    private func processTopLevelFolder(_ topLevelFolderSyncable: SyncableBookmarkAdapter) throws {
         guard let topLevelFolderUUID = topLevelFolderSyncable.uuid else {
             return
         }
@@ -190,7 +190,7 @@ final class BookmarksResponseHandler {
         }
     }
 
-    private func processEntity(with syncable: Syncable, parent: BookmarkEntity? = nil) throws {
+    private func processEntity(with syncable: SyncableBookmarkAdapter, parent: BookmarkEntity? = nil) throws {
         guard let syncableUUID = syncable.uuid else {
             return
         }
