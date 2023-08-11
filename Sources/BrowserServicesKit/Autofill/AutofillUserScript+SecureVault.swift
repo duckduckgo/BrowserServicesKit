@@ -407,8 +407,12 @@ extension AutofillUserScript {
                                                               credentialsProvider: SecureVaultModels.CredentialsProvider,
                                                               action: RequestVaultCredentialsAction) -> Self {
             let credential: CredentialResponse?
-            if let credentials = credentials, let id = credentials.account.id, let password = String(data: credentials.password, encoding: .utf8) {
-                credential = CredentialResponse(id: String(id), username: credentials.account.username, password: password, credentialsProvider: credentialsProvider.name.rawValue)
+            if let credentials = credentials,
+                let id = credentials.account.id,
+                let username = credentials.account.username,
+                let password = credentials.password.flatMap({ String(data: $0, encoding: .utf8) }) {
+
+                credential = CredentialResponse(id: String(id), username: username, password: password, credentialsProvider: credentialsProvider.name.rawValue)
             } else {
                 credential = nil
             }
@@ -475,7 +479,6 @@ extension AutofillUserScript {
         let value: String
     }
 
-
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
     func getAutofillData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let request: GetAutofillDataRequest = DecodableHelper.decode(from: message.messageBody) else {
@@ -518,7 +521,7 @@ extension AutofillUserScript {
                 guard let autofillWebsiteAccountMatcher = self.vaultDelegate?.autofillWebsiteAccountMatcher else {
                     credentials = accounts.compactMap {
                         guard let id = $0.id else { return nil }
-                        return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                        return CredentialObject(id: id, username: $0.username ?? "", credentialsProvider: credentialsProvider.name.rawValue)
                     }
                     return
                 }
@@ -547,8 +550,8 @@ extension AutofillUserScript {
                                         credentialsProvider: SecureVaultModels.CredentialsProvider) -> [CredentialObject] {
         var credentials: [CredentialObject] = []
         credentials.append(contentsOf: accounts.compactMap {
-            guard let id = $0.id else { return nil }
-            return CredentialObject(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue, origin: CredentialObject.CredentialOrigin(url: $0.domain, partialMatch: false))
+            guard let id = $0.id, let username = $0.username, let domain = $0.domain else { return nil }
+            return CredentialObject(id: id, username: username, credentialsProvider: credentialsProvider.name.rawValue, origin: CredentialObject.CredentialOrigin(url: domain, partialMatch: false))
         })
         return credentials
     }
@@ -572,8 +575,8 @@ extension AutofillUserScript {
 
         vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: hostForMessage(message)) { credentials, credentialsProvider  in
             let credentials: [CredentialObject] = credentials.compactMap {
-                guard let id = $0.id else { return nil }
-                return .init(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+                guard let id = $0.id, let username = $0.username else { return nil }
+                return .init(id: id, username: username, credentialsProvider: credentialsProvider.name.rawValue)
             }
 
             let response = RequestVaultAccountsResponse(success: credentials)
@@ -595,15 +598,18 @@ extension AutofillUserScript {
         vaultDelegate?.autofillUserScript(self, didRequestCredentialsForAccount: id) { credentials, credentialsProvider in
             guard let credential = credentials,
                   let id = credential.account.id,
-                  let password = String(data: credential.password, encoding: .utf8),
+                  let passwordData = credential.password,
+                  let password = String(data: passwordData, encoding: .utf8),
                   let tld = self.vaultDelegate?.tld,
-                  self.autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: requestingDomain, savedSite: credential.account.domain, tld: tld) else {
+                  let domain = credential.account.domain,
+                  let username = credential.account.username,
+                  self.autofillDomainNameUrlMatcher.isMatchingForAutofill(currentSite: requestingDomain, savedSite: domain, tld: tld) else {
                 replyHandler("{}")
                 return
             }
 
             let response = RequestVaultCredentialsForAccountResponse(success: .init(id: id,
-                                                                                    username: credential.account.username,
+                                                                                    username: username,
                                                                                     password: password,
                                                                                     credentialsProvider: credentialsProvider.name.rawValue))
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
@@ -768,8 +774,8 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
         let credentialObjects: [AutofillUserScript.CredentialObject] = accounts.compactMap {
-            guard let id = $0.id else { return nil }
-            return .init(id: id, username: $0.username, credentialsProvider: credentialsProvider.name.rawValue)
+            guard let id = $0.id, let username = $0.username else { return nil }
+            return .init(id: id, username: username, credentialsProvider: credentialsProvider.name.rawValue)
         }
         let username = credentialsProvider.locked || credentialObjects.filter({ !$0.username.isEmpty }).count > 0
         let password = credentialsProvider.locked || credentialObjects.count > 0
@@ -791,7 +797,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
-        let username = credentialsProvider.locked || credentials.filter({ !$0.account.username.isEmpty }).count > 0
+        let username = credentialsProvider.locked || credentials.filter({ $0.account.username?.isEmpty == false }).count > 0
         let password = credentialsProvider.locked || credentials.count > 0
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
         let success = AutofillUserScript.AvailableInputTypesSuccess(
@@ -886,14 +892,17 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
                                                                              email: email,
                                                                              credentialsProvider: credentialsProvider)
         let status = credentialsProvider.locked ? AutofillUserScript.CredentialProviderStatus.locked : .unlocked
-        let credentialsArray:[AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in
-            guard let id = credential.account.id else {
+        let credentialsArray: [AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in
+            guard let id = credential.account.id,
+                  let username = credential.account.username,
+                  let password = credential.password
+            else {
                 return nil
             }
 
             return AutofillUserScript.CredentialResponse(id: String(id),
-                                                         username: credential.account.username,
-                                                         password: String(data: credential.password, encoding:.utf8) ?? "",
+                                                         username: username,
+                                                         password: String(data: password, encoding: .utf8) ?? "",
                                                          credentialsProvider: credentialsProvider.name.rawValue)
         }
 

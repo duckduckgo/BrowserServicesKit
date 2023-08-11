@@ -31,28 +31,27 @@ public struct SecureVaultModels {
     public struct WebsiteCredentials {
 
         public var account: WebsiteAccount
-        public var password: Data
+        public var password: Data?
 
-        public init(account: WebsiteAccount, password: Data) {
+        public init(account: WebsiteAccount, password: Data?) {
             self.account = account
             self.password = password
         }
-
     }
 
     /// The username associated with a domain.
-    public struct WebsiteAccount: Equatable {
+    public struct WebsiteAccount: Equatable, Decodable {
 
         public var id: String?
         public var title: String?
-        public var username: String
-        public var domain: String
+        public var username: String?
+        public var domain: String?
         public var signature: String?
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
 
-        public init(title: String? = nil, username: String, domain: String, signature: String? = nil, notes: String? = nil) {
+        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
             self.id = nil
             self.title = title
             self.username = username
@@ -63,7 +62,7 @@ public struct SecureVaultModels {
             self.lastUpdated = self.created
         }
 
-        public init(id: String, title: String? = nil, username: String, domain: String, signature: String? = nil, notes: String? = nil, created: Date, lastUpdated: Date) {
+        public init(id: String, title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil, created: Date, lastUpdated: Date) {
             self.id = id
             self.title = title
             self.username = username
@@ -75,7 +74,10 @@ public struct SecureVaultModels {
         }
 
         private var tld: String {
-            let components = self.domain.split(separator: ".")
+            guard let domain else {
+                return ""
+            }
+            let components = domain.split(separator: ".")
             if components.count >= 2 {
                 let tldIndex = components.count - 2
                 let baseTLD = components[tldIndex]
@@ -87,7 +89,7 @@ public struct SecureVaultModels {
         // djb2 hash from the account
         var hashValue: Data {
             var hash = 5381
-            for char in "\(username)\(tld)".utf8 {
+            for char in "\(username ?? "")\(tld)".utf8 {
                 hash = ((hash << 5) &+ hash) &+ Int(char)
             }
             let hashString = String(format: "%02x", hash)
@@ -489,7 +491,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         let other = accountGroups["other"]?.sorted{ compareAccount( $0, $1 ) } ?? []
         let result = exactMatches + tldMatches + other
 
-        return (removeDuplicates ? result.removeDuplicates() : result).filter { !$0.domain.isEmpty }
+        return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
     private func extractTLD(domain: String, tld: TLD) -> String? {
@@ -500,19 +502,41 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
 
     // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
-        if !account1.username.isEmpty && account2.username.isEmpty {
+        let username1 = account1.username ?? ""
+        let username2 = account2.username ?? ""
+
+        if !username1.isEmpty && username2.isEmpty {
             return true
-        } else if account1.username.isEmpty && !account2.username.isEmpty {
-            return false
-        } else if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
-            return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
-        } else if account1.domain != account2.domain {
-            return account1.domain < account2.domain
-        } else if !account1.username.isEmpty && !account2.username.isEmpty {
-            return account1.username < account2.username
-        } else {
-            return !account1.username.isEmpty && account2.username.isEmpty
         }
+
+        if username1.isEmpty && !username2.isEmpty {
+            return false
+        }
+
+        if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
+            return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
+        }
+
+        let domain1 = account1.domain ?? ""
+        let domain2 = account2.domain ?? ""
+
+        if !domain1.isEmpty && domain2.isEmpty {
+            return true
+        }
+
+        if domain1.isEmpty && !domain2.isEmpty {
+            return false
+        }
+
+        if domain1 != domain2 {
+            return domain1 < domain2
+        }
+
+        if !username1.isEmpty && !username2.isEmpty {
+            return username1 < username2
+        }
+
+        return false
     }
 
     // Receives a sorted Array, and removes duplicate based signatures
