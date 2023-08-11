@@ -174,4 +174,3 @@ extension AutofillSecureVault {
         try storeWebsiteCredentials(credentials)
     }
 }
-

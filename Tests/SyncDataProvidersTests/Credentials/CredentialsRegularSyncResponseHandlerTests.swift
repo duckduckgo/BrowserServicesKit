@@ -44,7 +44,6 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
         XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
     }
 
-
     func testWhenDeletedCredentialIsReceivedThenItIsDeletedLocally() async throws {
         try secureVault.inDatabaseTransaction { database in
             try self.secureVault.storeSyncableCredentials("1", in: database)

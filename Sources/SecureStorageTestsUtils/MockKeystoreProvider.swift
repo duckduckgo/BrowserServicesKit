@@ -48,7 +48,7 @@ public class MockKeystoreProvider: SecureStorageKeyStoreProvider {
         return ""
     }
 
-    public func attributesForEntry(named: String, serviceName: String) -> [String : Any] {
+    public func attributesForEntry(named: String, serviceName: String) -> [String: Any] {
         return [:]
     }
 
