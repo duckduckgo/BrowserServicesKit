@@ -23,7 +23,6 @@ import XCTest
 import GRDB
 import SecureStorage
 
-// swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {
 
     private func deleteDbFile() throws {
@@ -188,4 +187,3 @@ class DatabaseProviderTests: XCTestCase {
     }
 
 }
-// swiftlint:enable force_try

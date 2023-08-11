@@ -27,6 +27,7 @@ public struct TimeoutError: Error, LocalizedError, CustomDebugStringConvertible 
     public let file: StaticString
     public let line: UInt
 
+    // swiftlint:disable:next line_length
     public var errorDescription: String? {
         "TimeoutError(started: \(date), \(interval != nil ? "timeout: \(interval!)s, " : "")\(description != nil ? " description: " + description! : "") at \(file):\(line))"
     }

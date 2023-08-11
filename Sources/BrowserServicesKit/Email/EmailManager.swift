@@ -623,15 +623,15 @@ private extension EmailManager {
             return response.active ? .active : .inactive
         } catch let error {
             switch error {
-                case EmailManagerRequestDelegateError.serverError(let code):
-                    switch code {
-                        case 404:
-                            return .notFound
-                        default:
-                            return .error
-                    }
+            case EmailManagerRequestDelegateError.serverError(let code):
+                switch code {
+                case 404:
+                    return .notFound
                 default:
                     return .error
+                }
+            default:
+                return .error
             }
         }
     }
@@ -655,15 +655,15 @@ private extension EmailManager {
             return response.active ? .active : .inactive
         } catch let error {
             switch error {
-                case EmailManagerRequestDelegateError.serverError(let code):
-                    switch code {
-                        case 404:
-                            return .notFound
-                        default:
-                            return .error
-                    }
+            case EmailManagerRequestDelegateError.serverError(let code):
+                switch code {
+                case 404:
+                    return .notFound
                 default:
                     return .error
+                }
+            default:
+                return .error
             }
         }
     }

@@ -30,7 +30,6 @@ enum EmailManagerTestEvent {
 
 var events = [EmailManagerTestEvent]()
 
-// swiftlint:disable type_body_length
 class EmailManagerTests: XCTestCase {
 
     func getAutofillScript() -> AutofillUserScript {
@@ -383,8 +382,8 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     // swiftlint:disable function_parameter_count
     func emailManager(_ emailManager: EmailManager, requested url: URL, method: String, headers: [String: String], parameters: [String: String]?, httpBody: Data?, timeoutInterval: TimeInterval) async throws -> Data {
         switch url.absoluteString {
-            case EmailUrls.Url.emailAlias: return try processMockAliasRequest().get()
-            default: fatalError("\(#file): Unsupported URL passed to mock request delegate: \(url)")
+        case EmailUrls.Url.emailAlias: return try processMockAliasRequest().get()
+        default: fatalError("\(#file): Unsupported URL passed to mock request delegate: \(url)")
         }
     }
     // swiftlint:enable function_parameter_count

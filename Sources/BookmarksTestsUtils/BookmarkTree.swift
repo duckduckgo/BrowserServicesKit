@@ -22,6 +22,7 @@ import CoreData
 import Foundation
 import XCTest
 
+// swiftlint:disable line_length
 public struct ModifiedAtConstraint {
     var check: (Date?) -> Void
 
@@ -355,3 +356,4 @@ public extension XCTestCase {
         }
     }
 }
+// swiftlint:enable line_length

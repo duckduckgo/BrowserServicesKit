@@ -19,9 +19,6 @@
 import XCTest
 @testable import Common
 
-// swiftlint:disable line_length
-// swiftlint:disable type_body_length
-
 final class URLExtensionTests: XCTestCase {
 
     func test_external_urls_are_valid() {

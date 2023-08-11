@@ -23,11 +23,8 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable function_body_length
 // swiftlint:disable unused_closure_parameter
-// swiftlint:disable type_body_length
 // swiftlint:disable opening_brace
-// swiftlint:disable force_try
 
 @available(macOS 12.0, iOS 15.0, *)
 class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
@@ -434,3 +431,6 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
     }
 
 }
+
+// swiftlint:enable unused_closure_parameter
+// swiftlint:enable opening_brace
