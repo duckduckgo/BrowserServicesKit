@@ -24,10 +24,16 @@ import CoreData
 import Persistence
 
 public struct BookmarksCleanupError: Error {
-    public let coreDataError: Error
+    public let cleanupError: Error
+
+    public static let syncActive: BookmarksCleanupError = .init(cleanupError: BookmarksCleanupCancelledError())
 }
 
+public struct BookmarksCleanupCancelledError: Error {}
+
 public final class BookmarkDatabaseCleaner {
+
+    public var isSyncActive: () -> Bool = { false }
 
     public init(
         bookmarkDatabase: CoreDataDatabase,
@@ -64,6 +70,11 @@ public final class BookmarkDatabaseCleaner {
     }
 
     func removeBookmarksPendingDeletion() {
+        guard !isSyncActive() else {
+            errorEvents?.fire(.syncActive)
+            return
+        }
+
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
@@ -101,7 +112,7 @@ public final class BookmarkDatabaseCleaner {
             }
 
             if let saveError {
-                errorEvents?.fire(.init(coreDataError: saveError))
+                errorEvents?.fire(.init(cleanupError: saveError))
             }
         }
     }

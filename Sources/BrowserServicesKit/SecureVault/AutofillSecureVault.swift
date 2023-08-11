@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import GRDB
 import SecureStorage
 
 public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
@@ -42,12 +43,19 @@ public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory
 /// Data always goes in and comes out unencrypted.
 public protocol AutofillSecureVault: SecureVault {
 
+    func getHashingSalt() throws -> Data?
+
+    func getEncryptionKey() throws -> Data
+    func encrypt(_ data: Data, using key: Data) throws -> Data
+    func decrypt(_ data: Data, using key: Data) throws -> Data
+
     func authWith(password: Data) throws -> any AutofillSecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
     
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
@@ -74,6 +82,30 @@ public protocol AutofillSecureVault: SecureVault {
     func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64
     func deleteCreditCardFor(cardId: Int64) throws
 
+    // MARK: - Import Support
+
+    @discardableResult
+    func storeWebsiteCredentials(
+        _ credentials: SecureVaultModels.WebsiteCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws -> Int64
+
+    // MARK: - Sync Support
+
+    func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
+    func storeSyncableCredentials(
+        _ syncableCredentials: SecureVaultModels.SyncableCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws
+
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
 }
 
 public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSecureVault {
@@ -95,6 +127,23 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
     // MARK: - public interface (protocol candidates)
+
+    public func getHashingSalt() throws -> Data? {
+        providers.crypto.hashingSalt
+    }
+
+    public func getEncryptionKey() throws -> Data {
+        let password = try passwordInUse()
+        return try l2KeyFrom(password: password)
+    }
+
+    public func encrypt(_ data: Data, using key: Data) throws -> Data {
+        try providers.crypto.encrypt(data, withKey: key)
+    }
+
+    public func decrypt(_ data: Data, using key: Data) throws -> Data {
+        try providers.crypto.decrypt(data, withKey: key)
+    }
 
     /// Sets the password which is retained for the given amount of time. Call this is you receive a `authRequired` error.
     public func authWith(password: Data) throws -> any AutofillSecureVault {
@@ -202,6 +251,18 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
+    public func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        do {
+            return try self.providers.database.hasAccountFor(username: username, domain: domain)
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
     // MARK: - Credentials
 
     public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
@@ -213,8 +274,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         do {
             var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
             if let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
-                decryptedCredentials = .init(account: credentials.account,
-                                             password: try self.l2Decrypt(data: credentials.password))
+                if let password = credentials.password {
+                    decryptedCredentials = .init(account: credentials.account,
+                                                 password: try self.l2Decrypt(data: password))
+                } else {
+                    decryptedCredentials = credentials
+                }
             }
 
             return decryptedCredentials
@@ -224,25 +289,62 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
+    public func storeWebsiteCredentials(
+        _ credentials: SecureVaultModels.WebsiteCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws -> Int64 {
+        let encryptedCredentials = try encryptPassword(for: credentials, key: l2Key, salt: salt)
+        return try self.providers.database.storeWebsiteCredentials(encryptedCredentials, in: database)
+    }
+
     public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         lock.lock()
         defer {
             lock.unlock()
         }
         do {
-            // Generate a new signature
-            guard credentials.account.username.data(using: .utf8) != nil else {
-                throw SecureStorageError.generalCryptoError
-            }
-            let hashData = credentials.account.hashValue + credentials.password
-            var creds = credentials
-            creds.account.signature = try providers.crypto.hashData(hashData)
-            let encryptedPassword = try self.l2Encrypt(data: credentials.password)
-            return try self.providers.database.storeWebsiteCredentials(.init(account: creds.account, password: encryptedPassword))
+            let encryptedCredentials = try encryptPassword(for: credentials)
+            return try self.providers.database.storeWebsiteCredentials(encryptedCredentials)
         } catch {
             let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
         }
+    }
+
+    public func storeSyncableCredentials(
+        _ syncableCredentials: SecureVaultModels.SyncableCredentials,
+        in database: Database,
+        encryptedUsing l2Key: Data,
+        hashedUsing salt: Data?
+    ) throws {
+        guard let credentials = syncableCredentials.credentials else {
+            assertionFailure("nil credentials passed to \(#function)")
+            return
+        }
+        let encryptedCredentials = try encryptPassword(for: credentials, key: l2Key, salt: salt)
+        var syncableCredentialsToStore = syncableCredentials
+        syncableCredentialsToStore.credentials = encryptedCredentials
+        try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
+    }
+
+    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials, key l2Key: Data? = nil, salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
+        do {
+            // Generate a new signature
+            let hashData = credentials.account.hashValue + (credentials.password ?? Data())
+            var creds = credentials
+            creds.account.signature = try providers.crypto.hashData(hashData, salt: salt)
+            let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!, using: l2Key)
+            return .init(account: creds.account, password: encryptedPassword)
+        } catch {
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        try self.providers.database.deleteSyncableCredentials(syncableCredentials, in: database)
     }
 
     public func deleteWebsiteCredentialsFor(accountId: Int64) throws {
@@ -367,6 +469,45 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
+    // MARK: - Sync Support
+
+    public func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.inTransaction(block)
+        }
+    }
+
+    public func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            var syncableCredentials = try providers.database.modifiedSyncableCredentials()
+            let key = try getEncryptionKey()
+            for i in 0..<syncableCredentials.count {
+                guard let password = syncableCredentials[i].credentials?.password else {
+                    continue
+                }
+                syncableCredentials[i].credentials?.password = try decrypt(password, using: key)
+            }
+
+            return syncableCredentials
+        } catch {
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+        try self.providers.database.syncableCredentialsForSyncIds(syncIds, in: database)
+    }
+
+    public func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+        try self.providers.database.syncableCredentialsForAccountId(accountId, in: database)
+    }
+
     // MARK: - Private
 
     private func executeThrowingDatabaseOperation<DatabaseResult>(_ operation: () throws -> DatabaseResult) throws -> DatabaseResult {
@@ -402,16 +543,25 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }
     
-    private func l2Encrypt(data: Data) throws -> Data {
-        let password = try passwordInUse()
-        let l2Key = try l2KeyFrom(password: password)
-        return try providers.crypto.encrypt(data, withKey: l2Key)
+    private func l2Encrypt(data: Data, using l2Key: Data? = nil) throws -> Data {
+        let key: Data = try {
+            if let l2Key {
+                return l2Key
+            }
+            let password = try passwordInUse()
+            return try l2KeyFrom(password: password)
+        }()
+        return try providers.crypto.encrypt(data, withKey: key)
     }
 
-    private func l2Decrypt(data: Data) throws -> Data {
-        let password = try passwordInUse()
-        let l2Key = try l2KeyFrom(password: password)
-        return try providers.crypto.decrypt(data, withKey: l2Key)
+    private func l2Decrypt(data: Data, using l2Key: Data? = nil) throws -> Data {
+        let key: Data = try {
+            if let l2Key {
+                return l2Key
+            }
+            let password = try passwordInUse()
+            return try l2KeyFrom(password: password)
+        }()
+        return try providers.crypto.decrypt(data, withKey: key)
     }
-
 }
