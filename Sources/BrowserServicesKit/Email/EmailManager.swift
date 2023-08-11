@@ -607,9 +607,9 @@ private extension EmailManager {
               let requestDelegate else {
             throw AliasRequestError.signedOut
         }
-        
+
         let data: Data
-        
+
         do {
             let url = aliasAPIURL
             data = try await requestDelegate.emailManager(self,
