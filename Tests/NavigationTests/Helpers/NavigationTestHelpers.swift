@@ -22,7 +22,6 @@ import Foundation
 import Navigation
 import WebKit
 
-// swiftlint:disable line_length
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable implicit_getter
 // swiftlint:disable large_tuple
@@ -1093,7 +1092,6 @@ extension FrameInfo {
 
 #endif
 
-// swiftlint:enable line_length
 // swiftlint:enable cyclomatic_complexity
 // swiftlint:enable implicit_getter
 // swiftlint:enable large_tuple

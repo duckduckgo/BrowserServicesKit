@@ -23,8 +23,6 @@ import Common
 import ContentBlocking
 @testable import BrowserServicesKit
 
-// swiftlint:disable type_body_length
-// swiftlint:disable function_body_length
 class TrackerResolverTests: XCTestCase {
     
     let tld = TLD()

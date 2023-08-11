@@ -30,7 +30,7 @@ class MockCompiledRuleListSource: CompiledRuleListsSource {
     var currentMainRules: ContentBlockerRulesManager.Rules?
     
     var onCurrentRulesQueried: () -> Void = { }
-    // swiftlint:disable:next identifier_name
+
     var _currentAttributionRules: ContentBlockerRulesManager.Rules?
     var currentAttributionRules: ContentBlockerRulesManager.Rules? {
         get {

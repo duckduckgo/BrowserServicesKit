@@ -23,7 +23,6 @@ import Foundation
 @testable import BrowserServicesKit
 @testable import RemoteMessaging
 
-// swiftlint:disable line_length
 class AppAttributeMatcherTests: XCTestCase {
 
     private var matcher: AppAttributeMatcher!

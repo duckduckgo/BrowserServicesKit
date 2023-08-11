@@ -182,7 +182,6 @@ final class RulesUpdateListener: ContentBlockerRulesUpdating {
     }
 }
 
-// swiftlint:disable type_body_length
 class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
     private let rulesUpdateListener = RulesUpdateListener()
@@ -1097,8 +1096,6 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
     }
 
 }
-
-// swiftlint:enable type_body_length
 
 class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
     

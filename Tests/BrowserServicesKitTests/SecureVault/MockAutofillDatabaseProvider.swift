@@ -23,7 +23,6 @@ import GRDB
 
 internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
-    // swiftlint:disable identifier_name
     var _accounts = [SecureVaultModels.WebsiteAccount]()
     var _notes = [SecureVaultModels.Note]()
     var _identities = [Int64: SecureVaultModels.Identity]()
@@ -31,7 +30,6 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     var _forDomain = [String]()
     var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
     var _note: SecureVaultModels.Note?
-    // swiftlint:enable identifier_name
 
     var db: DatabaseWriter
 

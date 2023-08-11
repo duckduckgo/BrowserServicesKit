@@ -32,7 +32,6 @@ final class CountedFulfillmentTestExpectation: XCTestExpectation {
     }
 }
 
-// swiftlint:disable line_length
 final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
     
     private static let fakeEmbeddedDataSet = ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules, etag: "\"\(UUID().uuidString)\"")
