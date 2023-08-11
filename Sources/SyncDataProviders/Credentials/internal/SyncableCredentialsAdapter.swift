@@ -71,7 +71,6 @@ extension Syncable {
             return
         }
 
-        print("Syncable init \(syncableCredentials.metadata.uuid)")
         if let title = credential.account.title {
             payload["title"] = try encrypt(title)
         }
