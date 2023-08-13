@@ -181,7 +181,7 @@ public class EmailManager {
         }
     }
 
-    private var token: String? {
+    public var token: String? {
         do {
             return try storage.getToken()
         } catch {
@@ -457,7 +457,7 @@ extension EmailManager: AutofillEmailDelegate {
 
 // MARK: - Token Management
 
-private extension EmailManager {
+public extension EmailManager {
     func storeToken(_ token: String, username: String, cohort: String?) {
         do {
             try storage.store(token: token, username: username, cohort: cohort)

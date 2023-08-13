@@ -32,14 +32,14 @@ public class SyncableSettingsMetadata: NSManagedObject {
     }
 
     @NSManaged public var key: String
-    @NSManaged public internal(set) var lastModified: String?
+    @NSManaged public internal(set) var lastModified: Date?
 
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: SyncableSettingsMetadata.entity(in: moc), insertInto: moc)
     }
 
     @discardableResult
-    public static func makeSettingsMetadata(with key: String, lastModified: String? = nil, in context: NSManagedObjectContext) -> SyncableSettingsMetadata {
+    public static func makeSettingsMetadata(with key: String, lastModified: Date? = nil, in context: NSManagedObjectContext) -> SyncableSettingsMetadata {
         let object = SyncableSettingsMetadata(context: context)
         object.key = key
         object.lastModified = lastModified
@@ -47,9 +47,9 @@ public class SyncableSettingsMetadata: NSManagedObject {
     }
 }
 
-enum SyncableSettingsMetadataUtils {
+public enum SyncableSettingsMetadataUtils {
 
-    static func fetchSettingsMetadata(with key: String, in context: NSManagedObjectContext) -> SyncableSettingsMetadata? {
+    public static func fetchSettingsMetadata(with key: String, in context: NSManagedObjectContext) -> SyncableSettingsMetadata? {
         let request = SyncableSettingsMetadata.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(SyncableSettingsMetadata.key), key)
         request.returnsObjectsAsFaults = true
@@ -58,4 +58,10 @@ enum SyncableSettingsMetadataUtils {
         return try? context.fetch(request).first
     }
 
+    public static func fetchMetadataForSettingsPendingSync(in context: NSManagedObjectContext) throws -> [SyncableSettingsMetadata] {
+        let request = SyncableSettingsMetadata.fetchRequest()
+        request.predicate = NSPredicate(format: "%K != nil", #keyPath(SyncableSettingsMetadata.lastModified))
+
+        return try context.fetch(request)
+    }
 }
