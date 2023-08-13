@@ -149,7 +149,6 @@ public protocol DDGSyncing {
 
 }
 
-
 public protocol Crypting {
 
     /**
@@ -201,7 +200,6 @@ public protocol Crypting {
      */
     func base64DecodeAndDecrypt(_ value: String) throws -> String
 }
-
 
 public protocol RemoteConnecting {
 

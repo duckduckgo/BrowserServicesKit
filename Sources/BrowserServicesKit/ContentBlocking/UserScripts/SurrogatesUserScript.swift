@@ -22,7 +22,6 @@ import TrackerRadarKit
 import UserScript
 import ContentBlocking
 import Common
-import UserScript
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     
@@ -155,7 +154,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
         // Construct a JavaScript object for function lookup
         let surrogatesOut = surrogateScripts.map { (surrogate) -> String in
             var codeLines = surrogate.split(separator: "\n")
-            if (codeLines.isEmpty) {
+            if codeLines.isEmpty {
                 return ""
             }
             let instructionsRow = codeLines.removeFirst()

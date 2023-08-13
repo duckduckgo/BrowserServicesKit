@@ -50,9 +50,9 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource = MockDataProvidersSource()
         dependencies = MockSyncDepenencies()
         (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [
-            URL(string: "https://dev.null/sync/credentials")! : HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
-            URL(string: "https://dev.null/sync/bookmarks")! : HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
-            URL(string: "https://dev.null/sync/data")! : HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
+            URL(string: "https://dev.null/sync/credentials")!: HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            URL(string: "https://dev.null/sync/bookmarks")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            URL(string: "https://dev.null/sync/data")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
         ]
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
@@ -187,12 +187,12 @@ final class DDGSyncTests: XCTestCase {
     func testWhenNewSyncAccountIsCreatedWithMultipleModelsThenInitialFetchDoesNotHappen() throws {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        bookmarksDataProvider._fetchChangedObjects = { crypter in
+        bookmarksDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
 
         let credentialsDataProvider = DataProvidingMock(feature: .init(name: "credentials"))
-        credentialsDataProvider._fetchChangedObjects = { crypter in
+        credentialsDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
         setUpDataProviderCallbacks(for: credentialsDataProvider)
@@ -222,12 +222,12 @@ final class DDGSyncTests: XCTestCase {
     func testWhenDeviceIsAddedToExistingSyncAccountWithMultipleModelsThenInitialFetchHappens() throws {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.addingNewDevice)
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        bookmarksDataProvider._fetchChangedObjects = { crypter in
+        bookmarksDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
 
         let credentialsDataProvider = DataProvidingMock(feature: .init(name: "credentials"))
-        credentialsDataProvider._fetchChangedObjects = { crypter in
+        credentialsDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
         setUpDataProviderCallbacks(for: credentialsDataProvider)
@@ -269,12 +269,12 @@ final class DDGSyncTests: XCTestCase {
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         try bookmarksDataProvider.registerFeature(withState: .readyToSync)
         bookmarksDataProvider.lastSyncTimestamp = "1234"
-        bookmarksDataProvider._fetchChangedObjects = { crypter in
+        bookmarksDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
 
         let credentialsDataProvider = DataProvidingMock(feature: .init(name: "credentials"))
-        credentialsDataProvider._fetchChangedObjects = { crypter in
+        credentialsDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
         setUpDataProviderCallbacks(for: credentialsDataProvider)

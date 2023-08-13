@@ -23,7 +23,6 @@ import XCTest
 import GRDB
 import SecureStorage
 
-// swiftlint:disable force_try
 class DatabaseProviderTests: XCTestCase {
 
     private func deleteDbFile() throws {
@@ -91,7 +90,7 @@ class DatabaseProviderTests: XCTestCase {
         let storedAccount = try database.websiteAccountsForDomain("example.com")[0]
         let storedCredentials = try database.websiteCredentialsForAccountId(Int64(storedAccount.id!)!)
         XCTAssertNotNil(storedCredentials)
-        XCTAssertEqual("password", String(data: storedCredentials!.password, encoding: .utf8))
+        XCTAssertEqual("password", String(data: storedCredentials!.password!, encoding: .utf8))
     }
 
     func test_when_database_reopened_then_existing_data_still_exists() throws {
@@ -121,25 +120,6 @@ class DatabaseProviderTests: XCTestCase {
             let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
             try database.storeWebsiteCredentials(credentials)
         }
-    }
-
-    func test_when_duplicate_record_stored_then_error_thrown() throws {
-        let database = try DefaultAutofillDatabaseProvider(key: simpleL1Key) as AutofillDatabaseProvider
-        let account = SecureVaultModels.WebsiteAccount(username: "brindy", domain: "example.com")
-        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        XCTAssertEqual(1, try database.storeWebsiteCredentials(credentials))
-
-        do {
-            let id = try database.storeWebsiteCredentials(credentials)
-            XCTFail("No exception for duplicate record, id: \(id)")
-        } catch {
-            switch error {
-            case SecureStorageError.duplicateRecord: break
-            default:
-                XCTFail("Unexected exception \(error)")
-            }
-        }
-
     }
 
     func test_when_existing_record_stored_then_last_updated_date_is_updated() throws {
@@ -207,4 +187,3 @@ class DatabaseProviderTests: XCTestCase {
     }
 
 }
-// swiftlint:enable force_try

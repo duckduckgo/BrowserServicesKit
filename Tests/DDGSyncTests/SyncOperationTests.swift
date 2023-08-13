@@ -62,7 +62,7 @@ class SyncOperationTests: XCTestCase {
         await assertThrowsAnyError({
             try await syncOperation.sync(fetchOnly: false)
         }, errorHandler: { error in
-            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
+            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else {
                 XCTFail("Unexpected error thrown: \(error)")
                 return
             }
@@ -85,7 +85,7 @@ class SyncOperationTests: XCTestCase {
         await assertThrowsAnyError({
             try await syncOperation.sync(fetchOnly: false)
         }, errorHandler: { error in
-            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else  {
+            guard let syncOperationError = error as? SyncOperationError, let featureError = syncOperationError.perFeatureErrors[feature] as? SyncError else {
                 XCTFail("Unexpected error thrown: \(error)")
                 return
             }

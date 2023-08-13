@@ -23,17 +23,17 @@ import DDGSync
 import Foundation
 
 struct ReceivedBookmarksIndex {
-    let receivedByUUID: [String: Syncable]
+    let receivedByUUID: [String: SyncableBookmarkAdapter]
     let allReceivedIDs: Set<String>
 
-    let topLevelFoldersSyncables: [Syncable]
-    let bookmarkSyncablesWithoutParent: [Syncable]
+    let topLevelFoldersSyncables: [SyncableBookmarkAdapter]
+    let bookmarkSyncablesWithoutParent: [SyncableBookmarkAdapter]
     let favoritesUUIDs: [String]
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
 
-    init(received: [Syncable], in context: NSManagedObjectContext) {
-        var syncablesByUUID: [String: Syncable] = [:]
+    init(received: [SyncableBookmarkAdapter], in context: NSManagedObjectContext) {
+        var syncablesByUUID: [String: SyncableBookmarkAdapter] = [:]
         var allUUIDs: Set<String> = []
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]

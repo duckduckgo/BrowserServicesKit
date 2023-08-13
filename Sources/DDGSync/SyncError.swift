@@ -49,5 +49,7 @@ public enum SyncError: Error, Equatable {
     case failedToWriteSecureStore(status: OSStatus)
     case failedToReadSecureStore(status: OSStatus)
     case failedToRemoveSecureStore(status: OSStatus)
-    
+
+    case credentialsMetadataMissingBeforeFirstSync
+    case receivedCredentialsWithoutUUID
 }

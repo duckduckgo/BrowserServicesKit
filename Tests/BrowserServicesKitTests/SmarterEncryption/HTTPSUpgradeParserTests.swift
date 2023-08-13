@@ -20,7 +20,6 @@
 import XCTest
 import Common
 @testable import BrowserServicesKit
-import Common
 
 final class HTTPSUpgradeParserTests: XCTestCase {
     

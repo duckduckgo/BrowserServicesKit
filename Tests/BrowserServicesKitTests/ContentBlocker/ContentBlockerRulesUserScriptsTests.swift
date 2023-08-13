@@ -23,8 +23,6 @@ import BrowserServicesKit
 import TrackerRadarKit
 import Common
 
-// swiftlint:disable file_length
-// swiftlint:disable type_body_length
 class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
     static let exampleRules = """
@@ -555,5 +553,3 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
         self.wait(for: [websiteLoaded], timeout: 30)
     }
 }
-// swiftlint:enable type_body_length
-// swiftlint:enable file_length
