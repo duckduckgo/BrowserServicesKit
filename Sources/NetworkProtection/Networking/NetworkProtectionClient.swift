@@ -75,7 +75,8 @@ struct RedeemResponse: Decodable {
 public final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     enum Constants {
-        static let developmentEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
+        static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
+        static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
     }
 
     private enum DecoderError: Error {
@@ -83,15 +84,15 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }
 
     var serversURL: URL {
-        Constants.developmentEndpoint.appending("/servers")
+        Constants.productionEndpoint.appending("/servers")
     }
 
     var registerKeyURL: URL {
-        Constants.developmentEndpoint.appending("/register")
+        Constants.productionEndpoint.appending("/register")
     }
 
     var redeemURL: URL {
-        Constants.developmentEndpoint.appending("/redeem")
+        Constants.productionEndpoint.appending("/redeem")
     }
 
     private let decoder: JSONDecoder = {
