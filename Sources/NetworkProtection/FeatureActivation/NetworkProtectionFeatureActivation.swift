@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionFeatureVisibility.swift
+//  NetworkProtectionFeatureActivation.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,14 +18,14 @@
 
 import Foundation
 
-public protocol NetworkProtectionFeatureVisibility {
+public protocol NetworkProtectionFeatureActivation {
 
     /// Has the invite code flow been completed and an oAuth token stored?
     ///
     var isFeatureActivated: Bool { get }
 }
 
-extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureVisibility {
+extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureActivation {
     public var isFeatureActivated: Bool {
         do {
             return try fetchToken() != nil
