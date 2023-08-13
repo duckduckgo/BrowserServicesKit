@@ -32,7 +32,7 @@ public class SyncableSettingsMetadata: NSManagedObject {
     }
 
     @NSManaged public var key: String
-    @NSManaged public internal(set) var lastModified: Date?
+    @NSManaged public var lastModified: Date?
 
     public convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: SyncableSettingsMetadata.entity(in: moc), insertInto: moc)
@@ -56,6 +56,13 @@ public enum SyncableSettingsMetadataUtils {
         request.fetchLimit = 1
 
         return try? context.fetch(request).first
+    }
+
+    public static func fetchSettingsMetadata(for keys: any Sequence & CVarArg, in context: NSManagedObjectContext) throws -> [SyncableSettingsMetadata] {
+        let request = SyncableSettingsMetadata.fetchRequest()
+        request.predicate = NSPredicate(format: "%K IN %@", #keyPath(SyncableSettingsMetadata.key), keys)
+
+        return try context.fetch(request)
     }
 
     public static func fetchMetadataForSettingsPendingSync(in context: NSManagedObjectContext) throws -> [SyncableSettingsMetadata] {

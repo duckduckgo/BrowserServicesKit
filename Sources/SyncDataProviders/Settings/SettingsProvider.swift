@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import BrowserServicesKit
 import Combine
 import DDGSync
 import Persistence
@@ -28,12 +29,26 @@ public final class SettingsProvider: DataProvider {
         case duckAddress
     }
 
+    public convenience init(
+        metadataDatabase: CoreDataDatabase,
+        metadataStore: SyncMetadataStore,
+        emailManager: EmailManager,
+        syncDidUpdateData: @escaping () -> Void
+    ) {
+        self.init(
+            metadataDatabase: metadataDatabase,
+            metadataStore: metadataStore,
+            settingsAdapters: [.duckAddress: DuckAddressAdapter(emailManager: emailManager)],
+            syncDidUpdateData: syncDidUpdateData
+        )
+    }
+
     public init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsAdapters: [Setting: any SettingsSyncAdapter],
         syncDidUpdateData: @escaping () -> Void
-    ) throws {
+    ) {
         self.metadataDatabase = metadataDatabase
         self.settingsAdapters = settingsAdapters
         super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
@@ -42,29 +57,72 @@ public final class SettingsProvider: DataProvider {
     // MARK: - DataProviding
 
     public override func prepareForFirstSync() throws {
-        lastSyncTimestamp = nil
-        // todo: set last modified on all settings to current date
+        var saveError: Error?
+
+        let keys = settingsAdapters.keys.map(\.rawValue)
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let currentTimestamp = Date()
+
+        context.performAndWait {
+            do {
+                let allMetadataObjectsRequest = SyncableSettingsMetadata.fetchRequest()
+                let allMetadataObjects = try context.fetch(allMetadataObjectsRequest)
+                for metadataObject in allMetadataObjects {
+                    context.delete(metadataObject)
+                }
+
+                for key in settingsAdapters.keys.map(\.rawValue) {
+                    let metadataObject = SyncableSettingsMetadata(context: context)
+                    metadataObject.key = key
+                    metadataObject.lastModified = currentTimestamp
+                }
+                try context.save()
+
+            } catch {
+                saveError = error
+            }
+        }
+
+        if let saveError {
+            throw saveError
+        }
     }
 
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        let modifiedSettings = try SyncableSettingsMetadataUtils.fetchMetadataForSettingsPendingSync(in: context)
+        var syncableSettings = [Syncable]()
+        var fetchError: Error?
 
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let encryptionKey = try crypter.fetchSecretKey()
 
-        return try modifiedSettings.compactMap { modifiedSetting -> Syncable? in
-            guard let setting = Setting(rawValue: modifiedSetting.key), let adapter = settingsAdapters[setting] else {
-                // todo: error
-                return nil
+        context.performAndWait {
+            do {
+                let modifiedSettings = try SyncableSettingsMetadataUtils.fetchMetadataForSettingsPendingSync(in: context)
+                for modifiedSetting in modifiedSettings {
+                    guard let setting = Setting(rawValue: modifiedSetting.key), let adapter = settingsAdapters[setting] else {
+                        // todo: error
+                        continue
+                    }
+                    let value = try adapter.getValue()
+                    syncableSettings.append(
+                        try Syncable(
+                            setting: setting,
+                            value: value,
+                            lastModified: modifiedSetting.lastModified,
+                            encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
+                        )
+                    )
+                }
+            } catch {
+                fetchError = error
             }
-            let value = try adapter.getValue()
-            return try Syncable(
-                setting: setting,
-                value: value,
-                lastModified: modifiedSetting.lastModified,
-                encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}
-            )
         }
+
+        if let fetchError {
+            throw fetchError
+        }
+
+        return syncableSettings
     }
 
     public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
