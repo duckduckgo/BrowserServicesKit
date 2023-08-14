@@ -140,6 +140,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool {
+        // TODO: Do not ship this - temporary, only for testing
+        if let networkProtectionSubfeature = subfeature as? NetworkProtectionSubfeature, networkProtectionSubfeature == NetworkProtectionSubfeature.waitlist {
+            return true
+        }
+
         guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
             return false
         }
