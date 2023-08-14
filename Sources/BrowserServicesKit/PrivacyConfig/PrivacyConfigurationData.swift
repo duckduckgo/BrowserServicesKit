@@ -112,15 +112,37 @@ public struct PrivacyConfigurationData {
             enum CodingKeys: String {
                 case state
                 case minSupportedVersion
+                case rollouts
             }
+            
+            public struct Rollout: Hashable {
+                public let percent: Double
+                
+                enum CodingKeys: String {
+                    case percent
+                }
+                
+                public init(json: [String: Any]) {
+                    self.percent = json[CodingKeys.percent.rawValue] as? Double ?? 0
+                }
+            }
+            
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
+            public let rollouts: [Rollout]?
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
                     return nil
                 }
                 self.state = state
                 self.minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String
+                var rollouts = [Rollout]()
+                if let rolloutArr = json[CodingKeys.rollouts.rawValue] as? [[String: Any]] {
+                    for rollout in rolloutArr {
+                        rollouts.append(Rollout(json: rollout))
+                    }
+                }
+                self.rollouts = rollouts
             }
         }
 

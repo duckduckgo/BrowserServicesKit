@@ -1,7 +1,7 @@
 //
-//  GRDBExtensions.swift
+//  MockConnectionStatusObserver.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,13 +16,15 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
-import GRDB
+import NetworkProtection
 
-extension Database {
-
-    func dropIndexIfExists(_ name: String) throws {
-        try execute(sql: "DROP INDEX IF EXISTS \(name.quotedDatabaseIdentifier)")
+public final class MockConnectionStatusObserver: ConnectionStatusObserver {
+    public init() {}
+    public let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
+    lazy public var publisher = subject.eraseToAnyPublisher()
+    public var recentValue: ConnectionStatus {
+        subject.value
     }
-
 }

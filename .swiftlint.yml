@@ -1,5 +1,6 @@
 disabled_rules:
   - trailing_whitespace
+  - trailing_comma
   - nesting
 
 line_length:

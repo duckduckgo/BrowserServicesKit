@@ -26,15 +26,17 @@ let package = Package(
         .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
-        .library(name: "NetworkProtection", targets: ["NetworkProtection"])
+        .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
+        .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
+        .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
-    dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
+    dependencies: [        
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.1.2"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit.git", exact: "1.2.1"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.5"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.30.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -47,12 +49,12 @@ let package = Package(
                 .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
                 "UserScript",
-                "ContentBlocking"
+                "ContentBlocking",
+                "SecureStorage"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -190,11 +192,24 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common"
+            ]),
+        .target(
+            name: "SecureStorage",
+            dependencies: [
+                "Common",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
         .target(name: "WireGuardC"),
+        .target(
+            name: "NetworkProtectionTestUtils",
+            dependencies: [
+                "NetworkProtection"
+            ]
+        ),
 
-        // MARK: - Test targets
+        // MARK: - Test Targets
+
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
@@ -284,7 +299,13 @@ let package = Package(
                 .copy("Resources/servers-original-endpoint.json"),
                 .copy("Resources/servers-updated-endpoint.json")
             ]
-        )
+        ),
+        .testTarget(
+            name: "SecureStorageTests",
+            dependencies: [
+                "SecureStorage"
+            ]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )

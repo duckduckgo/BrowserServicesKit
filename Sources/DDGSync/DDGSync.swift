@@ -20,7 +20,6 @@ import Foundation
 import Combine
 import DDGSyncCrypto
 import Common
-import os.log
 
 public class DDGSync: DDGSyncing {
 
@@ -230,6 +229,7 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
+            try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
             try dependencies.secureStore.removeAccount()
@@ -241,12 +241,9 @@ public class DDGSync: DDGSyncing {
 
         let providers = dataProvidersSource?.makeDataProviders() ?? []
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
+        try syncQueue.prepareDataModelsForSync(needsRemoteDataFetch: account.state == .addingNewDevice)
 
-        let previousState = try dependencies.secureStore.account()?.state
-        if previousState == nil || previousState ==  .inactive {
-            try syncQueue.prepareForFirstSync()
-        }
-        if account.state == .settingUpNewAccount {
+        if account.state != .active {
             account = account.updatingState(.active)
         }
         try dependencies.secureStore.persistAccount(account)
@@ -262,12 +259,7 @@ public class DDGSync: DDGSyncing {
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
-                self?.syncQueue?.startSync() {
-                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
-                        try? self?.dependencies.secureStore.persistAccount(account)
-                        self?.authState = .active
-                    }
-                }
+                self?.syncQueue?.startSync()
             }
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher

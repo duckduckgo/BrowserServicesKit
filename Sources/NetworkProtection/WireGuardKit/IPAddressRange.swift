@@ -22,9 +22,17 @@ extension IPAddressRange: Hashable {
     }
 }
 
-extension IPAddressRange {
+extension IPAddressRange: ExpressibleByStringLiteral, CustomStringConvertible {
+
     public var stringRepresentation: String {
         return "\(address)/\(networkPrefixLength)"
+    }
+    public var description: String {
+        stringRepresentation
+    }
+
+    public init(stringLiteral string: String) {
+        self.init(from: string)!
     }
 
     public init?(from string: String) {
@@ -107,4 +115,21 @@ extension IPAddressRange {
         }
         fatalError()
     }
+}
+
+extension IPAddressRange: Codable {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let stringValue = try container.decode(String.self)
+        self = try .init(from: stringValue) ?? {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Could not decode \(stringValue)")
+        }()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.stringRepresentation)
+    }
+
 }
