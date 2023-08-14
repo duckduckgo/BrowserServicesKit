@@ -19,7 +19,7 @@
 
 import Foundation
 
-extension JSONDecoder {
+public extension JSONDecoder {
     static var snakeCaseKeys: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -28,7 +28,7 @@ extension JSONDecoder {
     }()
 }
 
-extension JSONEncoder {
+ public extension JSONEncoder {
     static var snakeCaseKeys: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase

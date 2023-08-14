@@ -27,7 +27,7 @@ import Persistence
 public final class SettingsProvider: DataProvider {
 
     public enum Setting: String, CaseIterable {
-        case duckAddress
+        case emailProtectionGeneration = "email_protection_generation"
     }
 
     public convenience init(
@@ -39,7 +39,7 @@ public final class SettingsProvider: DataProvider {
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsAdapters: [.duckAddress: DuckAddressAdapter(emailManager: emailManager, metadataDatabase: metadataDatabase)],
+            settingsAdapters: [.emailProtectionGeneration: EmailProtectionSettingsAdapter(emailManager: emailManager, metadataDatabase: metadataDatabase)],
             syncDidUpdateData: syncDidUpdateData
         )
     }

@@ -23,11 +23,11 @@ import Combine
 import DDGSync
 import Persistence
 
-class DuckAddressAdapter: SettingsSyncAdapter {
+class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
 
     struct Payload: Codable {
-        let user: String
-        let token: String
+        let mainDuckAddress: String
+        let personalAccessToken: String
     }
 
     init(emailManager: EmailManager, metadataDatabase: CoreDataDatabase) {
@@ -52,7 +52,8 @@ class DuckAddressAdapter: SettingsSyncAdapter {
         guard let token = emailManager.token else {
             throw SyncError.duckAddressTokenMissing
         }
-        return "{\"user\":\"\(user)\",\"token\":\"\(token)\"}"
+        let data = try JSONEncoder.snakeCaseKeys.encode(Payload(mainDuckAddress: user, personalAccessToken: token))
+        return String(bytes: data, encoding: .utf8)
     }
 
     func setValue(_ value: String?) throws {
@@ -61,15 +62,15 @@ class DuckAddressAdapter: SettingsSyncAdapter {
             return
         }
 
-        let payload = try JSONDecoder().decode(Payload.self, from: valueData)
-        emailManager.storeToken(payload.token, username: emailManager.aliasFor(payload.user), cohort: nil)
+        let payload = try JSONDecoder.snakeCaseKeys.decode(Payload.self, from: valueData)
+        emailManager.storeToken(payload.personalAccessToken, username: emailManager.aliasFor(payload.mainDuckAddress), cohort: nil)
     }
 
     private func updateDuckAddressTimestamp() {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
             do {
-                SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWith: SettingsProvider.Setting.duckAddress.rawValue, in: context)
+                SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWith: SettingsProvider.Setting.emailProtectionGeneration.rawValue, in: context)
                 try context.save()
             } catch {
                 // todo: error
