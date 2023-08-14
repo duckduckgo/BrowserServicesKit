@@ -427,14 +427,6 @@ extension EmailManager: AutofillEmailDelegate {
     
     public func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         storeToken(token, username: username, cohort: cohort)
-        
-        var notificationParameters: [String: String] = [:]
-        
-        if let cohort = cohort {
-            notificationParameters[NotificationParameter.cohort] = cohort
-        }
-
-        NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
 
     public func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
@@ -461,6 +453,15 @@ public extension EmailManager {
     func storeToken(_ token: String, username: String, cohort: String?) {
         do {
             try storage.store(token: token, username: username, cohort: cohort)
+
+            var notificationParameters: [String: String] = [:]
+
+            if let cohort = cohort {
+                notificationParameters[NotificationParameter.cohort] = cohort
+            }
+
+            NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
+
         } catch {
             if let error = error as? EmailKeychainAccessError {
                 requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeTokenUsernameCohort, error: error)

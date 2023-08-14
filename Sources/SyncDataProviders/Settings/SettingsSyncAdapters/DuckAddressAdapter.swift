@@ -19,17 +19,30 @@
 
 import Foundation
 import BrowserServicesKit
+import Combine
 import DDGSync
+import Persistence
 
-struct DuckAddressAdapter: SettingsSyncAdapter {
+class DuckAddressAdapter: SettingsSyncAdapter {
 
     struct Payload: Codable {
         let user: String
         let token: String
     }
 
-    init(emailManager: EmailManager) {
+    init(emailManager: EmailManager, metadataDatabase: CoreDataDatabase) {
         self.emailManager = emailManager
+        self.metadataDatabase = metadataDatabase
+
+        emailProtectionStatusDidChangeCancellable = Publishers.Merge(
+            NotificationCenter.default.publisher(for: .emailDidSignIn),
+            NotificationCenter.default.publisher(for: .emailDidSignOut)
+        )
+        .sink { [weak self] notification in
+            if let object = notification.object as? AnyObject, object !== emailManager {
+                self?.updateDuckAddressTimestamp()
+            }
+        }
     }
 
     func getValue() throws -> String? {
@@ -39,8 +52,7 @@ struct DuckAddressAdapter: SettingsSyncAdapter {
         guard let token = emailManager.token else {
             throw SyncError.duckAddressTokenMissing
         }
-        let data = try JSONEncoder().encode(Payload(user: user, token: token))
-        return String(bytes: data, encoding: .utf8)
+        return "{\"user\":\"\(user)\",\"token\":\"\(token)\"}"
     }
 
     func setValue(_ value: String?) throws {
@@ -50,8 +62,23 @@ struct DuckAddressAdapter: SettingsSyncAdapter {
         }
 
         let payload = try JSONDecoder().decode(Payload.self, from: valueData)
-        emailManager.storeToken(payload.token, username: emailManager.emailAddressFor(payload.user), cohort: nil)
+        emailManager.storeToken(payload.token, username: emailManager.aliasFor(payload.user), cohort: nil)
+    }
+
+    private func updateDuckAddressTimestamp() {
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            do {
+                SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWith: SettingsProvider.Setting.duckAddress.rawValue, in: context)
+                try context.save()
+            } catch {
+                // todo: error
+                print("ERROR in \(#function): \(error.localizedDescription)")
+            }
+        }
     }
 
     private let emailManager: EmailManager
+    private let metadataDatabase: CoreDataDatabase
+    private var emailProtectionStatusDidChangeCancellable: AnyCancellable?
 }

@@ -20,6 +20,7 @@
 import Foundation
 import BrowserServicesKit
 import Combine
+import CoreData
 import DDGSync
 import Persistence
 
@@ -38,7 +39,7 @@ public final class SettingsProvider: DataProvider {
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsAdapters: [.duckAddress: DuckAddressAdapter(emailManager: emailManager)],
+            settingsAdapters: [.duckAddress: DuckAddressAdapter(emailManager: emailManager, metadataDatabase: metadataDatabase)],
             syncDidUpdateData: syncDidUpdateData
         )
     }
@@ -59,7 +60,6 @@ public final class SettingsProvider: DataProvider {
     public override func prepareForFirstSync() throws {
         var saveError: Error?
 
-        let keys = settingsAdapters.keys.map(\.rawValue)
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let currentTimestamp = Date()
 
@@ -136,13 +136,95 @@ public final class SettingsProvider: DataProvider {
     // MARK: - Internal
 
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+        var saveError: Error?
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        var saveAttemptsLeft = Const.maxContextSaveRetries
+
+        context.performAndWait {
+            while true {
+
+                do {
+                    let responseHandler = try SettingsResponseHandler(
+                        received: received,
+                        clientTimestamp: clientTimestamp,
+                        settingsAdapters: settingsAdapters,
+                        context: context,
+                        crypter: crypter,
+                        deduplicateEntities: isInitial
+                    )
+                    let idsOfItemsToClearModifiedAt = try cleanUpSentItems(sent, receivedKeys: Set(responseHandler.receivedByKey.keys), clientTimestamp: clientTimestamp, in: context)
+                    try responseHandler.processReceivedSettings()
+
+                    let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys))
+                    try clearModifiedAtAndSaveContext(keys: keys, clientTimestamp: clientTimestamp, in: context)
+                    break
+                } catch {
+                    if (error as NSError).code == NSManagedObjectMergeError {
+                        context.reset()
+                        saveAttemptsLeft -= 1
+                        if saveAttemptsLeft == 0 {
+                            saveError = error
+                            break
+                        }
+                    } else {
+                        saveError = error
+                        break
+                    }
+                }
+
+            }
+        }
+        if let saveError {
+            throw saveError
+        }
+
+        if let serverTimestamp {
+            lastSyncTimestamp = serverTimestamp
+            syncDidUpdateData()
+        }
     }
 
-    func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date) throws -> Set<String> {
-        []
+    func cleanUpSentItems(_ sent: [Syncable], receivedKeys: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws -> Set<String> {
+        if sent.isEmpty {
+            return []
+        }
+        let keys = sent.compactMap { SyncableSettingAdapter(syncable: $0).uuid }
+        let settingsMetadata = try SyncableSettingsMetadataUtils.fetchSettingsMetadata(for: keys, in: context)
+
+        var idsOfItemsToClearModifiedAt = Set<String>()
+
+        for metadata in settingsMetadata {
+            guard let setting = Setting(rawValue: metadata.key), let adapter = settingsAdapters[setting] else {
+                continue
+            }
+
+            if let lastModified = metadata.lastModified, lastModified > clientTimestamp {
+                continue
+            }
+            let isLocalChangeRejectedBySync: Bool = receivedKeys.contains(metadata.key)
+            let isPendingDeletion = try adapter.getValue() == nil
+            if isPendingDeletion, !isLocalChangeRejectedBySync {
+                try adapter.setValue(nil)
+                context.delete(metadata)
+            } else {
+                context.delete(metadata)
+                idsOfItemsToClearModifiedAt.insert(metadata.key)
+            }
+        }
+
+        return idsOfItemsToClearModifiedAt
     }
 
-    private func clearModifiedAt(uuids: Set<String>, clientTimestamp: Date) throws {
+    private func clearModifiedAtAndSaveContext(keys: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
+        let settingsMetadata = try SyncableSettingsMetadataUtils.fetchSettingsMetadata(for: keys, in: context)
+        for metadata in settingsMetadata {
+            if let lastModified = metadata.lastModified, lastModified < clientTimestamp {
+                context.delete(metadata)
+            }
+        }
+
+        try context.save()
     }
 
     // MARK: - Private

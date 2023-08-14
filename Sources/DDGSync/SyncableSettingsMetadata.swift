@@ -52,10 +52,26 @@ public enum SyncableSettingsMetadataUtils {
     public static func fetchSettingsMetadata(with key: String, in context: NSManagedObjectContext) -> SyncableSettingsMetadata? {
         let request = SyncableSettingsMetadata.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(SyncableSettingsMetadata.key), key)
-        request.returnsObjectsAsFaults = true
         request.fetchLimit = 1
 
         return try? context.fetch(request).first
+    }
+
+    @discardableResult
+    public static func setLastModified(_ lastModified: Date, forSettingWith key: String, in context: NSManagedObjectContext) -> SyncableSettingsMetadata? {
+        let request = SyncableSettingsMetadata.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(SyncableSettingsMetadata.key), key)
+        request.fetchLimit = 1
+
+        if let metadata = try? context.fetch(request).first {
+            metadata.lastModified = lastModified
+            return metadata
+        }
+
+        let metadata = SyncableSettingsMetadata(context: context)
+        metadata.key = key
+        metadata.lastModified = lastModified
+        return metadata
     }
 
     public static func fetchSettingsMetadata(for keys: any Sequence & CVarArg, in context: NSManagedObjectContext) throws -> [SyncableSettingsMetadata] {
