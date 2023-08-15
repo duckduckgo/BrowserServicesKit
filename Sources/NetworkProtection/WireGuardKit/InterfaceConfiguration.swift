@@ -14,7 +14,14 @@ public struct InterfaceConfiguration: Equatable {
     public var dns = [DNSServer]()
     public var dnsSearch = [String]()
 
-    public init(privateKey: PrivateKey, addresses: [IPAddressRange], includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange], listenPort: UInt16? = nil, mtu: UInt16? = nil, dns: [DNSServer] = [], dnsSearch: [String] = []) {
+    public init(privateKey: PrivateKey,
+                addresses: [IPAddressRange],
+                includedRoutes: [IPAddressRange],
+                excludedRoutes: [IPAddressRange],
+                listenPort: UInt16? = nil,
+                mtu: UInt16? = nil,
+                dns: [DNSServer] = [],
+                dnsSearch: [String] = []) {
         self.privateKey = privateKey
         self.addresses = addresses
         self.includedRoutes = includedRoutes

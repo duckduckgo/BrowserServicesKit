@@ -305,11 +305,11 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         completionHandler("alias", true, nil)
     }
     
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {
+    func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         refreshAliasCallback?()
     }
     
-    func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         requestStoreTokenCallback!(token, username, cohort)
     }
 

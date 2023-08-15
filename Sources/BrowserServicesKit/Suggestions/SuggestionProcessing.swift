@@ -201,7 +201,7 @@ final class SuggestionProcessing {
             case .historyEntry:
                 // If there is a historyEntry and bookmark with the same URL, suggest the bookmark
                 newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .bookmark(title: _, url: _, isFavorite: _, allowedInTopHits: _):
+            case .bookmark:
                 newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
             case .phrase, .website, .unknown:
                 break

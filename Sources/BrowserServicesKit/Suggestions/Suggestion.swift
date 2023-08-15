@@ -46,7 +46,7 @@ public enum Suggestion: Equatable {
                 return title
             case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _):
                 return title
-            case .phrase, .website,.unknown:
+            case .phrase, .website, .unknown:
                 return nil
             }
         }

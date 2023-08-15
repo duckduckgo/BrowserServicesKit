@@ -1,5 +1,5 @@
 //
-//  Syncable+Bookmarks.swift
+//  SyncableBookmarkAdapter.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -21,38 +21,47 @@ import Bookmarks
 import DDGSync
 import Foundation
 
-extension Syncable {
+struct SyncableBookmarkAdapter {
 
-    enum SyncableBookmarkError: Error {
-        case bookmarkEntityMissingUUID
+    let syncable: Syncable
+
+    init(syncable: Syncable) {
+        self.syncable = syncable
     }
 
     var uuid: String? {
-        payload["id"] as? String
+        syncable.payload["id"] as? String
+    }
+
+    var isDeleted: Bool {
+        syncable.isDeleted
     }
 
     var encryptedTitle: String? {
-        payload["title"] as? String
+        syncable.payload["title"] as? String
     }
 
     var encryptedUrl: String? {
-        let page = payload["page"] as? [String: Any]
+        let page = syncable.payload["page"] as? [String: Any]
         return page?["url"] as? String
     }
 
     var isFolder: Bool {
-        payload["folder"] != nil
+        syncable.payload["folder"] != nil
     }
 
     var children: [String] {
-        guard let folder = payload["folder"] as? [String: Any], let folderChildren = folder["children"] as? [String] else {
+        guard let folder = syncable.payload["folder"] as? [String: Any], let folderChildren = folder["children"] as? [String] else {
             return []
         }
         return folderChildren
     }
+}
 
-    var isDeleted: Bool {
-        payload["deleted"] != nil
+extension Syncable {
+
+    enum SyncableBookmarkError: Error {
+        case bookmarkEntityMissingUUID
     }
 
     init(bookmark: BookmarkEntity, encryptedUsing encrypt: (String) throws -> String) throws {
@@ -92,4 +101,5 @@ extension Syncable {
     private static var dateFormatter: ISO8601DateFormatter {
         ISO8601DateFormatter()
     }
+
 }

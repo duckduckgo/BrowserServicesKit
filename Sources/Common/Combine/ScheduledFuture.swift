@@ -35,8 +35,7 @@ public final class ScheduledFuture<Output, Failure: Error>: Publisher {
     }
 
     public func receive<Downstream: Subscriber>(subscriber: Downstream)
-        where Output == Downstream.Input, Failure == Downstream.Failure
-    {
+        where Output == Downstream.Input, Failure == Downstream.Failure {
         future.receive(subscriber: subscriber)
     }
 

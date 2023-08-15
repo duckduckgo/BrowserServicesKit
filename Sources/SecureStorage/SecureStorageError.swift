@@ -69,8 +69,8 @@ extension SecureStorageError: CustomNSError {
         }
     }
 
-    public var errorUserInfo: [String : Any] {
-        var errorUserInfo = [String : Any]()
+    public var errorUserInfo: [String: Any] {
+        var errorUserInfo = [String: Any]()
         switch self {
         case .initFailed(cause: let error), .authError(cause: let error),
              .failedToOpenDatabase(cause: let error), .databaseError(cause: let error):

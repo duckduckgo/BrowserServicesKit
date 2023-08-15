@@ -86,7 +86,6 @@ final class SuggestionTests: XCTestCase {
         let url = URL.aURL
         let title = "Title"
 
-
         let historyEntry = HistoryEntryMock(identifier: UUID(), url: url, title: title, numberOfVisits: 1, lastVisit: Date(), failedToLoad: false, isDownload: false)
         let suggestion = Suggestion(historyEntry: historyEntry)
 
@@ -102,7 +101,6 @@ final class SuggestionTests: XCTestCase {
     func testWhenInitFromBookmark_ThenBookmarkSuggestionIsInitialized() {
         let url = URL.aURL
         let title = "Title"
-
 
         let bookmark = BookmarkMock(url: url.absoluteString, title: title, isFavorite: true)
         let suggestion = Suggestion(bookmark: bookmark)

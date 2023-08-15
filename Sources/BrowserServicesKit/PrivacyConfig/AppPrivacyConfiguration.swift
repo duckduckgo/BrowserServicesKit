@@ -115,25 +115,25 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         default: return false
         }
     }
-
+    
     private func isRolloutEnabled(subfeature: any PrivacySubfeature,
                                 rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout],
                                 randomizer: (Range<Double>) -> Double) -> Bool {
         // Empty rollouts should be default enabled
         guard !rollouts.isEmpty else { return true }
-
+        
         let defsPrefix = "config.\(subfeature.parent.rawValue).\(subfeature.rawValue)"
         if userDefaults.bool(forKey: "\(defsPrefix).\(Constants.enabledKey)") {
             return true
         }
-
+        
         var willEnable = false
         let rollouts = Array(Set(rollouts.filter({ $0.percent >= 0.0 && $0.percent <= 100.0 }))).sorted(by: { $0.percent < $1.percent })
         if let rolloutSize = userDefaults.value(forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)") as? Int {
             guard rolloutSize < rollouts.count else { return false }
             // Sanity check as we need at least two values to compute the new probability
             guard rollouts.count > 1 else { return false }
-
+            
             // If the user has seen the rollout before, and the rollout count has changed
             // Try again with the new probability
             let y = rollouts[rollouts.count - 1].percent
@@ -149,12 +149,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             willEnable = randomizer(0..<100) < probability
         }
 
-
         guard willEnable else {
             userDefaults.set(rollouts.count, forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)")
             return false
         }
-
+        
         userDefaults.set(true, forKey: "\(defsPrefix).\(Constants.enabledKey)")
         return true
     }
@@ -166,14 +165,14 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let subfeatures = subfeatures(for: subfeature.parent)
         let subfeatureData = subfeatures[subfeature.rawValue]
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
-
+        
         // Handle Rollouts
         if let rollouts = subfeatureData?.rollouts {
             if !isRolloutEnabled(subfeature: subfeature, rollouts: rollouts, randomizer: randomizer) {
                 return false
             }
         }
-
+        
         switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
         case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion

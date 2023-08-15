@@ -45,8 +45,6 @@ private struct HTTPSUpgradesRefTests: Decodable {
     let subrequests: HTTPSUpgradesTests
 }
 
-// swiftlint:disable force_try
-// swiftlint:disable force_cast
 final class HTTPSUpgradeReferenceTests: XCTestCase {
     
     private enum Resource {

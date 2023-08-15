@@ -74,7 +74,6 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             self.observer = nil
         }
     }
-
     
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,

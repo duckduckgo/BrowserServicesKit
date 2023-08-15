@@ -132,7 +132,7 @@ public struct RecoveryPDFGenerator {
 
 #if os(macOS)
 
-fileprivate struct Helper: PDFGeneratorHelping {
+private struct Helper: PDFGeneratorHelping {
 
     let qrCodeYOffset: Int = 335
     let textCodeYOffset: Int = -480
@@ -162,7 +162,7 @@ fileprivate struct Helper: PDFGeneratorHelping {
 
 #if os(iOS)
 
-fileprivate struct Helper: PDFGeneratorHelping {
+private struct Helper: PDFGeneratorHelping {
 
     let qrCodeYOffset: Int = 280
     let textCodeYOffset: Int = 280

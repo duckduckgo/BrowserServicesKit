@@ -32,11 +32,10 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScriptDidRequestUserData(_ : AutofillUserScript, completionHandler: @escaping UserDataCompletion)
     func autofillUserScriptDidRequestSignOut(_ : AutofillUserScript)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
-    func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double)
-    func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double?
-    func autofillUserScriptDidRequestInContextSignup(_ : AutofillUserScript,
-                                                     completionHandler: @escaping SignUpCompletion)
-    func autofillUserScriptDidCompleteInContextSignup(_ : AutofillUserScript)
+    func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double)
+    func autofillUserScriptDidRequestInContextPromptValue(_: AutofillUserScript) -> Double?
+    func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript, completionHandler: @escaping SignUpCompletion)
+    func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript)
 }
 
 extension AutofillUserScript {

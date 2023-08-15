@@ -31,7 +31,6 @@ class SecureVaultModelTests: XCTestCase {
         XCTAssertEqual(identity.autofillEqualityAddressStreet, "addressstreet")
     }
 
-
     func testWhenCreatingIdentities_AndTheyHaveCachedAutofillProperties_ThenMutatingThePropertiesUpdatesTheCachedVersions() {
         var identity = identity(named: ("First", "Middle", "Last"), addressStreet: "Address Street")
 
@@ -329,6 +328,5 @@ class SecureVaultModelTests: XCTestCase {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
-
 
 }
