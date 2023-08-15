@@ -371,6 +371,108 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
     }
 
+    let exampleInstalledDaysConfig =
+            """
+            {
+                "features": {
+                    "gpc": {
+                        "state": "enabled",
+                        "exceptions": [
+                            {
+                                "domain": "example.com",
+                                "reason": "site breakage"
+                            }
+                        ]
+                    },
+                    "incontextSignup": {
+                        "exceptions": [],
+                        "state": "enabled",
+                        "minSupportedVersion": "7.82.0",
+                        "settings": {
+                            "installedDays": 21
+                        }
+                    },
+                    "trackingParameters": {
+                        "state": "enabled",
+                        "minSupportedVersion": "7.82.0",
+                        "exceptions": [],
+                        "settings": {
+                            "installedDays": "a"
+                        }
+
+                    }
+                },
+                "unprotectedTemporary": [
+                    {
+                        "domain": "unp.com",
+                        "reason": "site breakage"
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+
+    func createPrivacyConfigWithInstallDate(_ mockEmbeddedData: MockEmbeddedDataProvider, _ mockProtectionStore: MockDomainsProtectionStore, installDate: Date?) -> PrivacyConfiguration {
+        return PrivacyConfigurationManager(fetchedETag: nil,
+                                           fetchedData: nil,
+                                           embeddedDataProvider: mockEmbeddedData,
+                                           localProtection: mockProtectionStore,
+                                           internalUserDecider: DefaultInternalUserDecider(),
+                                           installDate: installDate).privacyConfig
+    }
+
+    func testInstalledDaysCheckReturnsCorrectly() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleInstalledDaysConfig, etag: "test")
+        let mockProtectionStore = MockDomainsProtectionStore()
+        let appVersion = MockAppVersionProvider(appVersion: "7.82.0")
+
+        // When installedDays key not present
+        var config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: nil)
+        XCTAssertTrue(config.isEnabled(featureKey: .gpc, versionProvider: appVersion))
+
+        // When valid number of installed days (less than or equal to 21):
+
+        // 0 days
+        let installDate0DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 0)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate0DaysAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 1 day
+        let installDate1DayAgo = Date().addingTimeInterval(-60 * 60 * 24 * 1)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate1DayAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 20 days (1 day less than config)
+        let installDate20DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 20)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate20DaysAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 21 days (same as config)
+        let installDate21DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 21)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate21DaysAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+
+        // When invalid number of installed days (> 21 days):
+
+        // 22 days (1 day more than config)
+        let installDate22DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 22)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate22DaysAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 444 days (many days more than config)
+        let installDate444DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 444)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate444DaysAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+
+        // When no install date for user
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: nil)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+
+        // When invalid days format in json for trackingParameters feature
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate1DayAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+
+        // When valid install days but invalid app version
+        let appVersionInvalid = MockAppVersionProvider(appVersion: "7.81.0")
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate1DayAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersionInvalid))
+    }
+
     let exampleInternalConfig =
     """
     {

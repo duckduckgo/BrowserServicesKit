@@ -55,7 +55,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let localProtection: DomainsProtectionStore
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let internalUserDecider: InternalUserDecider
-    
+    private let installDate: Date?
+
     private let updatesSubject = PassthroughSubject<Void, Never>()
     public var updatesPublisher: AnyPublisher<Void, Never> {
         updatesSubject.eraseToAnyPublisher()
@@ -106,11 +107,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 embeddedDataProvider: EmbeddedDataProvider,
                 localProtection: DomainsProtectionStore,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                internalUserDecider: InternalUserDecider) {
+                internalUserDecider: InternalUserDecider,
+                installDate: Date? = nil
+    ) {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
         self.internalUserDecider = internalUserDecider
+        self.installDate = installDate
 
         reload(etag: fetchedETag, data: fetchedData)
     }
@@ -120,13 +124,15 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
             return AppPrivacyConfiguration(data: fetchedData.data,
                                            identifier: fetchedData.etag,
                                            localProtection: localProtection,
-                                           internalUserDecider: internalUserDecider)
+                                           internalUserDecider: internalUserDecider,
+                                           installDate: installDate)
         }
 
         return AppPrivacyConfiguration(data: embeddedConfigData.data,
                                        identifier: embeddedConfigData.etag,
                                        localProtection: localProtection,
-                                       internalUserDecider: internalUserDecider)
+                                       internalUserDecider: internalUserDecider,
+                                       installDate: installDate)
     }
     
     public var currentConfig: Data {
