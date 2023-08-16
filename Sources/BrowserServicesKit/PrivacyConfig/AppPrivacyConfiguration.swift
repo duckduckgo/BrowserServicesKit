@@ -87,6 +87,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
+        if featureKey == .incrementalRolloutTest {
+            print("TEST")
+        }
         guard let feature = data.features[featureKey.rawValue] else { return false }
 
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
@@ -149,6 +152,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         
         // Handle Rollouts
         if let rollouts = subfeatureData?.rollouts {
+            print("DEBUG: Got some rollouts for subfeature \(subfeature): \(rollouts)")
             if !isRolloutEnabled(subfeature: subfeature, rollouts: rollouts, randomizer: randomizer) {
                 return false
             }

@@ -112,7 +112,7 @@ public struct PrivacyConfigurationData {
             enum CodingKeys: String {
                 case state
                 case minSupportedVersion
-                case rollouts
+                case rollouts = "rollout"
             }
             
             public struct Rollout: Hashable {
@@ -138,9 +138,12 @@ public struct PrivacyConfigurationData {
                 self.minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String
                 var rollouts = [Rollout]()
                 if let rolloutArr = json[CodingKeys.rollouts.rawValue] as? [[String: Any]] {
+                    print("DEBUG: Creating rollouts from array \(rolloutArr)")
                     for rollout in rolloutArr {
                         rollouts.append(Rollout(json: rollout))
                     }
+                } else {
+                    print("DEBUG: Could not get rollout array!")
                 }
                 self.rollouts = rollouts
             }
