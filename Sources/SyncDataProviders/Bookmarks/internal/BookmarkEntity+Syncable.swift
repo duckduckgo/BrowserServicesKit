@@ -104,7 +104,9 @@ extension BookmarkEntity {
         return fetchBookmark(withTitle: title, url: url, in: context)
     }
 
-    func update(with syncable: SyncableBookmarkAdapter, in context: NSManagedObjectContext, decryptedUsing decrypt: (String) throws -> String) throws {
+    func update(with syncable: SyncableBookmarkAdapter,
+                in context: NSManagedObjectContext,
+                decryptedUsing decrypt: (String) throws -> String) throws {
         guard !syncable.isDeleted else {
             context.delete(self)
             return

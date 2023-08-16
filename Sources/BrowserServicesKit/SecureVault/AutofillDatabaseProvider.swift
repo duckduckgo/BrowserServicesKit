@@ -75,7 +75,9 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
     }
 
-    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data, customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
+    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(),
+                key: Data,
+                customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
         try super.init(file: file, key: key, writerType: .queue) { migrator in
             if let customMigrations {
                 customMigrations(&migrator)
@@ -207,7 +209,10 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
             """, arguments: [accountId])
     }
 
-    func updateWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64, timestamp: Date? = Date()) throws {
+    func updateWebsiteCredentials(in database: Database,
+                                  _ credentials: SecureVaultModels.WebsiteCredentials,
+                                  usingId id: Int64,
+                                  timestamp: Date? = Date()) throws {
         assert(database.isInsideTransaction)
 
         do {
@@ -221,7 +226,10 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                     \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
             """, arguments: [credentials.password, id])
 
-            try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName, objectId: id, timestamp: timestamp)
+            try updateSyncTimestamp(in: database,
+                                    tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName,
+                                    objectId: id,
+                                    timestamp: timestamp)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
                 throw SecureStorageError.duplicateRecord
@@ -231,7 +239,9 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
-    func insertWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, timestamp: Date? = Date()) throws -> Int64 {
+    func insertWebsiteCredentials(in database: Database,
+                                  _ credentials: SecureVaultModels.WebsiteCredentials,
+                                  timestamp: Date? = Date()) throws -> Int64 {
         assert(database.isInsideTransaction)
 
         do {
@@ -270,7 +280,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
-    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>,
+                                              in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         assert(database.isInsideTransaction)
 
         return try SecureVaultModels.SyncableCredentials.query

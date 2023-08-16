@@ -64,7 +64,14 @@ public struct SecureVaultModels {
             self.lastUpdated = self.created
         }
 
-        public init(id: String, title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil, created: Date, lastUpdated: Date) {
+        public init(id: String,
+                    title: String? = nil,
+                    username: String?,
+                    domain: String?,
+                    signature: String? = nil,
+                    notes: String? = nil,
+                    created: Date,
+                    lastUpdated: Date) {
             self.id = id
             self.title = title
             self.username = username

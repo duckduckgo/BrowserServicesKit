@@ -433,5 +433,4 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
 }
 
 // swiftlint:enable unused_closure_parameter
-// swiftlint:enable type_body_length
 // swiftlint:enable opening_brace
