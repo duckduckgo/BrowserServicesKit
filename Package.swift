@@ -28,7 +28,8 @@ let package = Package(
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
         .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
-        .library(name: "SecureStorage", targets: ["SecureStorage"])
+        .library(name: "SecureStorage", targets: ["SecureStorage"]),
+        .library(name: "UserAgent", targets: ["UserAgent"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.1.2"),
@@ -214,6 +215,12 @@ let package = Package(
             name: "NetworkProtectionTestUtils",
             dependencies: [
                 "NetworkProtection"
+            ]
+        ),
+        .target(
+            name: "UserAgent",
+            dependencies: [
+                "BrowserServicesKit"
             ]
         ),
 
