@@ -98,7 +98,19 @@ public struct SecureVaultModels {
             }
             return hash
         }
-
+        
+        public func name(tld: TLD, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher) -> String {
+            if let title = self.title, !title.isEmpty {
+                return title
+            } else {
+                return autofillDomainNameUrlMatcher.normalizeUrlForWeb(domain ?? "")
+            }
+        }
+        
+        public func firstTLDLetter(tld: TLD, autofillDomainNameUrlSort: AutofillDomainNameUrlSort) -> String? {
+            return autofillDomainNameUrlSort.firstCharacterForGrouping(self, tld: tld)?.uppercased()
+        }
+  
     }
 
     public struct CreditCard {
