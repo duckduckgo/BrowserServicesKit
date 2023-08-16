@@ -227,7 +227,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 if autosaveAccount != nil, let credentials = autoSavedCredentials {
 
                     let existingUsername = credentials.account.username
-                    let existingPassword =  String(decoding: credentials.password, as: UTF8.self)
+                    let existingPassword =  credentials.password.flatMap { String(decoding: $0, as: UTF8.self) }
                     let submittedUserName = data.credentials?.username
                     let submittedPassword = data.credentials?.password
                     
@@ -332,7 +332,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
                 let accounts = accounts.filter {
                     // don't show accounts without usernames if the user interacted with the 'username' field
-                    if subType == .username && $0.username.isEmpty {
+                    if subType == .username && ($0.username ?? "").isEmpty {
                         return false
                     }
                     return true

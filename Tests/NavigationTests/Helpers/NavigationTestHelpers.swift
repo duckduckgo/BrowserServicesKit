@@ -1093,3 +1093,4 @@ extension FrameInfo {
 
 // swiftlint:enable cyclomatic_complexity
 // swiftlint:enable implicit_getter
+// swiftlint:enable large_tuple

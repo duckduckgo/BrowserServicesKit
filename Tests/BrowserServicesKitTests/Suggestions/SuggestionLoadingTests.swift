@@ -161,10 +161,7 @@ fileprivate extension Data {
 
     static var anAPIResultData: Data {
         let encoder = JSONEncoder()
-
-        // swiftlint:disable force_try
         return try! encoder.encode(APIResult.anAPIResult.items)
-        // swiftlint:enable force_try
     }
 
 }
