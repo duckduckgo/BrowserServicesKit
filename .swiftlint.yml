@@ -20,3 +20,4 @@ type_name:
 
 excluded:
   - .build
+  - scripts/
