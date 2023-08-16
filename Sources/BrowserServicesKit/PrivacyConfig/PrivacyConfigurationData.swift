@@ -112,15 +112,34 @@ public struct PrivacyConfigurationData {
             enum CodingKeys: String {
                 case state
                 case minSupportedVersion
-                case rollouts = "rollout"
+                case rollout
             }
-            
+
             public struct Rollout: Hashable {
-                public let percent: Double
-                
+                enum CodingKeys: String {
+                    case steps
+                }
+
+                public let steps: [RolloutStep]
+
+                public init(json: [String: Any]) {
+                    var rolloutSteps = [RolloutStep]()
+                    if let steps = json[CodingKeys.steps.rawValue] as? [[String: Any]] {
+                        for step in steps {
+                            rolloutSteps.append(RolloutStep(json: step))
+                        }
+                    }
+
+                    self.steps = rolloutSteps
+                }
+            }
+
+            public struct RolloutStep: Hashable {
                 enum CodingKeys: String {
                     case percent
                 }
+
+                public let percent: Double
                 
                 public init(json: [String: Any]) {
                     self.percent = json[CodingKeys.percent.rawValue] as? Double ?? 0
@@ -129,23 +148,21 @@ public struct PrivacyConfigurationData {
             
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
-            public let rollouts: [Rollout]?
+            public let rollout: Rollout?
+
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
                     return nil
                 }
+
                 self.state = state
                 self.minSupportedVersion = json[CodingKeys.minSupportedVersion.rawValue] as? String
-                var rollouts = [Rollout]()
-                if let rolloutArr = json[CodingKeys.rollouts.rawValue] as? [[String: Any]] {
-                    print("DEBUG: Creating rollouts from array \(rolloutArr)")
-                    for rollout in rolloutArr {
-                        rollouts.append(Rollout(json: rollout))
-                    }
+
+                if let rollout = json[CodingKeys.rollout.rawValue] as? [String: Any] {
+                    self.rollout = Rollout(json: rollout)
                 } else {
-                    print("DEBUG: Could not get rollout array!")
+                    self.rollout = nil
                 }
-                self.rollouts = rollouts
             }
         }
 
