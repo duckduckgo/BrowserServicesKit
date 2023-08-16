@@ -95,5 +95,5 @@ extension SecureStorageError: CustomNSError {
 
         return errorUserInfo
     }
-    
+
 }
