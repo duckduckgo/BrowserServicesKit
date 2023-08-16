@@ -23,6 +23,16 @@ import Combine
 import DDGSync
 import Persistence
 
+protocol EmailProtectionSyncSupporting: AnyObject {
+    var userEmail: String? { get }
+    var token: String? { get }
+    var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
+
+    func signIn(userEmail: String, token: String)
+    func signOut()
+
+}
+
 class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
 
     struct Payload: Codable {
@@ -30,19 +40,14 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         let personalAccessToken: String
     }
 
-    init(emailManager: EmailManager, metadataDatabase: CoreDataDatabase) {
+    init(emailManager: EmailProtectionSyncSupporting, metadataDatabase: CoreDataDatabase) {
         self.emailManager = emailManager
         self.metadataDatabase = metadataDatabase
 
-        emailProtectionStatusDidChangeCancellable = Publishers.Merge(
-            NotificationCenter.default.publisher(for: .emailDidSignIn),
-            NotificationCenter.default.publisher(for: .emailDidSignOut)
-        )
-        .sink { [weak self] notification in
-            if let object = notification.object as? AnyObject, object !== emailManager {
+        emailProtectionStatusDidChangeCancellable = emailManager.userDidToggleEmailProtectionPublisher
+            .sink { [weak self] in
                 self?.updateDuckAddressTimestamp()
             }
-        }
     }
 
     func getValue() throws -> String? {
@@ -63,7 +68,7 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         }
 
         let payload = try JSONDecoder.snakeCaseKeys.decode(Payload.self, from: valueData)
-        emailManager.storeToken(payload.personalAccessToken, username: emailManager.aliasFor(payload.mainDuckAddress), cohort: nil)
+        emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
     }
 
     private func updateDuckAddressTimestamp() {
@@ -79,7 +84,7 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         }
     }
 
-    private let emailManager: EmailManager
+    private let emailManager: EmailProtectionSyncSupporting
     private let metadataDatabase: CoreDataDatabase
     private var emailProtectionStatusDidChangeCancellable: AnyCancellable?
 }
