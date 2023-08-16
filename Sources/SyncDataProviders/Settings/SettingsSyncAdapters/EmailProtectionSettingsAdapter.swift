@@ -23,7 +23,7 @@ import Combine
 import DDGSync
 import Persistence
 
-protocol EmailProtectionSyncSupporting: AnyObject {
+public protocol EmailProtectionSyncSupporting: AnyObject {
     var userEmail: String? { get }
     var token: String? { get }
     var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
@@ -44,7 +44,7 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         self.emailManager = emailManager
         self.metadataDatabase = metadataDatabase
 
-        emailProtectionStatusDidChangeCancellable = emailManager.userDidToggleEmailProtectionPublisher
+        emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
             .sink { [weak self] in
                 self?.updateDuckAddressTimestamp()
             }
@@ -75,7 +75,11 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
             do {
-                SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWith: SettingsProvider.Setting.emailProtectionGeneration.rawValue, in: context)
+                try SyncableSettingsMetadataUtils.setLastModified(
+                    Date(),
+                    forSettingWithKey: SettingsProvider.Setting.emailProtectionGeneration.rawValue,
+                    in: context
+                )
                 try context.save()
             } catch {
                 // todo: error

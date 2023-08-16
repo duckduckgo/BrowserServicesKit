@@ -22,13 +22,13 @@ import Combine
 import Foundation
 
 extension EmailManager: EmailProtectionSyncSupporting {
-    var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> {
+    public var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> {
         Publishers.Merge(
             NotificationCenter.default.publisher(for: .emailDidSignIn),
             NotificationCenter.default.publisher(for: .emailDidSignOut)
         )
-        .filter { notification in
-            guard let object = notification.object as? EmailManager else {
+        .filter { [weak self] notification in
+            guard let self, let object = notification.object as? EmailManager else {
                 return false
             }
             return object !== self
@@ -37,7 +37,7 @@ extension EmailManager: EmailProtectionSyncSupporting {
         .eraseToAnyPublisher()
     }
 
-    func signIn(userEmail: String, token: String) {
+    public func signIn(userEmail: String, token: String) {
         storeToken(token, username: aliasFor(userEmail), cohort: nil)
     }
 }

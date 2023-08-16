@@ -33,7 +33,7 @@ public final class SettingsProvider: DataProvider {
     public convenience init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        emailManager: EmailManager,
+        emailManager: EmailProtectionSyncSupporting,
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.init(
