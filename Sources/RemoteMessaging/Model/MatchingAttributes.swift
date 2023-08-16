@@ -535,11 +535,6 @@ struct RangeIntMatchingAttribute: Equatable {
     var min: Int
     var max: Int
 
-    init(min: Int, max: Int) {
-        self.min = min
-        self.max = max
-    }
-
     func matches(value: Int) -> EvaluationResult {
         return EvaluationResultModel.result(value: (value >= self.min) && (value <= self.max))
     }
@@ -584,11 +579,6 @@ struct StringArrayMatchingAttribute: Equatable {
 struct RangeStringNumericMatchingAttribute: Equatable {
     var min: String
     var max: String
-
-    init(min: String, max: String) {
-        self.min = min
-        self.max = max
-    }
 
     func matches(value: String) -> EvaluationResult {
         if !value.matches(pattern: "[0-9]+(\\.[0-9]+)*") {

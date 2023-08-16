@@ -68,7 +68,7 @@ extension BookmarkEntity {
     }
 
     static func deduplicatedEntity(
-        with syncable: Syncable,
+        with syncable: SyncableBookmarkAdapter,
         parentUUID: String?,
         in context: NSManagedObjectContext,
         decryptedUsing decrypt: (String) throws -> String
@@ -92,9 +92,8 @@ extension BookmarkEntity {
         return fetchBookmark(withTitle: title, url: url, in: context)
     }
 
-    func update(with syncable: Syncable, in context: NSManagedObjectContext, decryptedUsing decrypt: (String) throws -> String) throws {
-        let payload = syncable.payload
-        guard payload["deleted"] == nil else {
+    func update(with syncable: SyncableBookmarkAdapter, in context: NSManagedObjectContext, decryptedUsing decrypt: (String) throws -> String) throws {
+        guard !syncable.isDeleted else {
             context.delete(self)
             return
         }
@@ -102,12 +101,12 @@ extension BookmarkEntity {
         cancelDeletion()
         modifiedAt = nil
 
-        if let encryptedTitle = payload["title"] as? String {
+        if let encryptedTitle = syncable.encryptedTitle {
             title = try decrypt(encryptedTitle)
         }
 
         if !isFolder {
-            if let page = payload["page"] as? [String: Any], let encryptedUrl = page["url"] as? String {
+            if let encryptedUrl = syncable.encryptedUrl {
                 url = try decrypt(encryptedUrl)
             }
         }

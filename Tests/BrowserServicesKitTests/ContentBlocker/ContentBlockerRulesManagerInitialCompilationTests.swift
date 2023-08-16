@@ -32,7 +32,6 @@ final class CountedFulfillmentTestExpectation: XCTestExpectation {
     }
 }
 
-// swiftlint:disable line_length
 final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
     
     private static let fakeEmbeddedDataSet = ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules, etag: "\"\(UUID().uuidString)\"")
@@ -141,7 +140,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         mockLastCompiledRulesStore.rules = [cachedRules]
 
         let expInitial = CountedFulfillmentTestExpectation(description: "Initial Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { rules in
+        rulesUpdateListener.onRulesUpdated = { _ in
             expInitial.fulfill()
         }
 
@@ -221,7 +220,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                        updateListener: rulesUpdateListener)
 
         let expOld = CountedFulfillmentTestExpectation(description: "Old Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { rules in
+        rulesUpdateListener.onRulesUpdated = { _ in
             expOld.fulfill()
 
             _ = ContentBlockerRulesManager(rulesSource: mockUpdatedRulesSource,
@@ -238,7 +237,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         }
 
         let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { rules in
+        rulesUpdateListener.onRulesUpdated = { _ in
             expRecompiled.fulfill()
         }
 

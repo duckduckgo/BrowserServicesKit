@@ -260,7 +260,6 @@ public class EmailManager {
         return username + "@" + EmailManager.emailDomain
     }
 
-
     private var inContextEmailSignupPromptDismissedPermanentlyAt: Double? {
         get {
             UserDefaults().object(forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey) as? Double ?? nil
@@ -270,7 +269,6 @@ public class EmailManager {
             UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
         }
     }
-
     
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
@@ -329,8 +327,7 @@ public class EmailManager {
     public func getStatusFor(email: String, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
         do {
             return try await fetchStatusFor(alias: aliasFor(email), timeoutInterval: timeoutInterval)
-        }
-        catch {
+        } catch {
             throw error
         }
     }
@@ -338,8 +335,7 @@ public class EmailManager {
     public func setStatusFor(email: String, active: Bool, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
         do {
             return try await setStatusFor(alias: aliasFor(email), active: active)
-        }
-        catch {
+        } catch {
             throw error
         }
     }
@@ -429,7 +425,7 @@ extension EmailManager: AutofillEmailDelegate {
         self.consumeAliasAndReplace()
     }
     
-    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+    public func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         storeToken(token, username: username, cohort: cohort)
         
         var notificationParameters: [String: String] = [:]
@@ -441,11 +437,11 @@ extension EmailManager: AutofillEmailDelegate {
         NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
 
-    public func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+    public func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
         inContextEmailSignupPromptDismissedPermanentlyAt = value
     }
 
-    public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
+    public func autofillUserScriptDidRequestInContextPromptValue(_: AutofillUserScript) -> Double? {
         inContextEmailSignupPromptDismissedPermanentlyAt
     }
 
@@ -627,15 +623,15 @@ private extension EmailManager {
             return response.active ? .active : .inactive
         } catch let error {
             switch error {
-                case EmailManagerRequestDelegateError.serverError(let code):
-                    switch code {
-                        case 404:
-                            return .notFound
-                        default:
-                            return .error
-                    }
+            case EmailManagerRequestDelegateError.serverError(let code):
+                switch code {
+                case 404:
+                    return .notFound
                 default:
                     return .error
+                }
+            default:
+                return .error
             }
         }
     }
@@ -659,15 +655,15 @@ private extension EmailManager {
             return response.active ? .active : .inactive
         } catch let error {
             switch error {
-                case EmailManagerRequestDelegateError.serverError(let code):
-                    switch code {
-                        case 404:
-                            return .notFound
-                        default:
-                            return .error
-                    }
+            case EmailManagerRequestDelegateError.serverError(let code):
+                switch code {
+                case 404:
+                    return .notFound
                 default:
                     return .error
+                }
+            default:
+                return .error
             }
         }
     }

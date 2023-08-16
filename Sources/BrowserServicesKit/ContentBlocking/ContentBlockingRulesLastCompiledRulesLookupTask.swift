@@ -35,7 +35,7 @@ extension ContentBlockerRulesManager {
         private let sourceRules: [ContentBlockerRulesList]
         private let lastCompiledRules: [LastCompiledRules]
 
-        private var result: [CachedRulesList]? = nil
+        private var result: [CachedRulesList]?
 
         init(sourceRules: [ContentBlockerRulesList], lastCompiledRules: [LastCompiledRules]) {
             self.sourceRules = sourceRules

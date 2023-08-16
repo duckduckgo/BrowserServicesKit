@@ -19,12 +19,13 @@
 import XCTest
 import Common
 import SecureStorage
+import SecureStorageTestsUtils
 @testable import BrowserServicesKit
 
 class SecureVaultTests: XCTestCase {
 
     var mockCryptoProvider = MockCryptoProvider()
-    var mockDatabaseProvider = (try! MockDatabaseProvider())
+    var mockDatabaseProvider = (try! MockAutofillDatabaseProvider())
     var mockKeystoreProvider = MockKeystoreProvider()
     var testVault: (any AutofillSecureVault)!
     var tld = TLD()

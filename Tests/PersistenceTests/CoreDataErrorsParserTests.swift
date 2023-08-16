@@ -49,7 +49,7 @@ class CoreDataErrorsParserTests: XCTestCase {
         entity.name = "TestEntity"
         entity.managedObjectClassName = TestEntity.name
 
-        var properties = Array<NSPropertyDescription>()
+        var properties = [NSPropertyDescription]()
 
         let attribute = NSAttributeDescription()
         attribute.name = "attribute"

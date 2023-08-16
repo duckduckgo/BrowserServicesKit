@@ -177,7 +177,7 @@ final class FingerprintingReferenceTests: XCTestCase {
         
         navigationDelegateMock.onDidFinishNavigation = { [weak self] in
             
-            self!.webView.evaluateJavaScript(test.property) { result, error in
+            self!.webView.evaluateJavaScript(test.property) { result, _ in
                 if let result = result as? String {
                     XCTAssertEqual(result, test.expectPropertyValue, "Values should be equal for test: \(test.name)")
                 } else if let result = result as? Bool {
@@ -207,7 +207,6 @@ final class FingerprintingReferenceTests: XCTestCase {
                                 configuration: configuration)
         webView.navigationDelegate = self.navigationDelegateMock
         
-        
         let configFeatureToggle = ContentScopeFeatureToggles(emailProtection: false,
                                                              emailProtectionIncontextSignup: false,
                                                              credentialsAutofill: false,
@@ -229,7 +228,6 @@ final class FingerprintingReferenceTests: XCTestCase {
                                                                        injectionTime: .atDocumentStart,
                                                                        forMainFrameOnly: false))
         
-        
         configuration.userContentController.addUserScript(WKUserScript(source: contentScopeScript.source,
                                                                        injectionTime: .atDocumentStart,
                                                                        forMainFrameOnly: false))
@@ -242,7 +240,6 @@ final class FingerprintingReferenceTests: XCTestCase {
         
     }
 }
-
 
 // MARK: - TestData
 private struct TestData: Codable {
