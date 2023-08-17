@@ -98,8 +98,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
     
     private func isRolloutEnabled(subfeature: any PrivacySubfeature,
-                                rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout],
-                                randomizer: (Range<Double>) -> Double) -> Bool {
+                                  rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout],
+                                  randomizer: (Range<Double>) -> Double) -> Bool {
         // Empty rollouts should be default enabled
         guard !rollouts.isEmpty else { return true }
         
@@ -139,7 +139,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return true
     }
 
-    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool {
+    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature,
+                                    versionProvider: AppVersionProvider,
+                                    randomizer: (Range<Double>) -> Double) -> Bool {
         guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
             return false
         }

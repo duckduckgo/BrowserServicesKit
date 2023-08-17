@@ -80,7 +80,6 @@ final class SuggestionProcessing {
     // MARK: - DuckDuckGo Suggestions
 
     private func duckDuckGoSuggestions(from result: APIResult?) throws -> [Suggestion]? {
-        // TODO add query as duckduckgo suggestion
         return result?.items
             .joined()
             .map { Suggestion(key: $0.key, value: $0.value) }
@@ -130,6 +129,7 @@ final class SuggestionProcessing {
 
     // The point of this method is to prioritise duplicates that
     // provide a higher value or replace history suggestions with bookmark suggestions
+    // swiftlint:disable:next function_body_length
     private func merge(_ suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
 
         // Finds a duplicate with the same URL and available title
@@ -253,8 +253,8 @@ final class SuggestionProcessing {
     static let minimumNumberInSuggestionGroup = 5
 
     private func makeResult(topHits: [Suggestion],
-                    duckduckgoSuggestions: [Suggestion],
-                    historyAndBookmarks: [Suggestion]) -> SuggestionResult {
+                            duckduckgoSuggestions: [Suggestion],
+                            historyAndBookmarks: [Suggestion]) -> SuggestionResult {
         // Top Hits
         let topHits = Array(topHits.prefix(2))
         var total = topHits.count

@@ -22,7 +22,7 @@ import CoreData
 import Foundation
 import XCTest
 
-// swiftlint:disable line_length
+// swiftlint:disable cyclomatic_complexity function_body_length line_length
 public struct ModifiedAtConstraint {
     var check: (Date?) -> Void
 
@@ -198,6 +198,7 @@ public struct BookmarkTree {
         return (rootFolder, orphans)
     }
 
+    // swiftlint:disable large_tuple
     @discardableResult
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -220,6 +221,7 @@ public struct BookmarkTree {
         }
         return (rootFolder, orphans, modifiedAtConstraints)
     }
+    // swiftlint:enable large_tuple
 
     let modifiedAt: Date?
     let modifiedAtConstraint: ModifiedAtConstraint?
@@ -356,4 +358,4 @@ public extension XCTestCase {
         }
     }
 }
-// swiftlint:enable line_length
+// swiftlint:enable cyclomatic_complexity function_body_length line_length

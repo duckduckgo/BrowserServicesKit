@@ -67,6 +67,7 @@ public class ConnectionServerInfoObserverThroughDistributedNotifications: Connec
         do {
             serverInfo = try ServerSelectedNotificationObjectDecoder().decodeObject(from: notification)
         } catch {
+            // swiftlint:disable:next compiler_protocol_init
             let error = StaticString(stringLiteral: "Could not decode .serverSelected distributed notification object")
             assertionFailure("\(error)")
             os_log(error, log: log, type: .error)

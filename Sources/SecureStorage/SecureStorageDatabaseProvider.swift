@@ -39,7 +39,10 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
 
     public let db: DatabaseWriter
 
-    public init(file: URL, key: Data, writerType: DatabaseWriterType = .queue, registerMigrationsHandler: (inout DatabaseMigrator) throws -> Void) throws {
+    public init(file: URL,
+                key: Data,
+                writerType: DatabaseWriterType = .queue,
+                registerMigrationsHandler: (inout DatabaseMigrator) throws -> Void) throws {
         do {
             self.db = try Self.createDatabase(file: file, key: key, writerType: writerType, registerMigrationsHandler: registerMigrationsHandler)
         } catch SecureStorageDatabaseError.corruptedDatabase {

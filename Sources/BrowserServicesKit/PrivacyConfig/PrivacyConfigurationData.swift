@@ -176,7 +176,12 @@ public struct PrivacyConfigurationData {
             self.hash = json[CodingKeys.hash.rawValue] as? String
         }
 
-        public init(state: FeatureState, exceptions: [ExceptionEntry], settings: [String: Any] = [:], features: Features = [:], minSupportedVersion: String? = nil, hash: String? = nil) {
+        public init(state: FeatureState,
+                    exceptions: [ExceptionEntry],
+                    settings: [String: Any] = [:],
+                    features: Features = [:],
+                    minSupportedVersion: String? = nil,
+                    hash: String? = nil) {
             self.state = state
             self.exceptions = exceptions
             self.settings = settings

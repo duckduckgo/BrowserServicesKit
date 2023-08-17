@@ -390,3 +390,4 @@ extension NavigationIdentity: CustomStringConvertible {
         "WKNavigation: " + (value?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "nil")
     }
 }
+// swiftlint:enable line_length

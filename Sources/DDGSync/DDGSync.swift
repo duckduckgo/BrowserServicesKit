@@ -57,7 +57,9 @@ public class DDGSync: DDGSyncing {
     public weak var dataProvidersSource: DataProvidersSource?
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(dataProvidersSource: DataProvidersSource, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public convenience init(dataProvidersSource: DataProvidersSource,
+                            errorEvents: EventMapping<SyncError>,
+                            log: @escaping @autoclosure () -> OSLog = .disabled) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, errorEvents: errorEvents, log: log())
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
@@ -287,6 +289,7 @@ public class DDGSync: DDGSyncing {
             try updateAccount(nil)
             dependencies.errorEvents.fire(syncError)
         } catch {
+            // swiftlint:disable:next line_length
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
             if let syncError = error as? SyncError {
                 dependencies.errorEvents.fire(syncError)

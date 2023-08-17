@@ -22,7 +22,8 @@ import Common
 typealias Score = Int
 
 extension Score {
-    
+
+    // swiftlint:disable:next cyclomatic_complexity
     init(title: String?, url: URL, visitCount: Int, query: Query, queryTokens: [Query]? = nil) {
         // To optimize, query tokens can be precomputed
         let queryTokens = queryTokens ?? Self.tokens(from: query)
@@ -91,7 +92,11 @@ extension Score {
     }
 
     init(historyEntry: HistoryEntry, query: Query, queryTokens: [Query]? = nil) {
-        self.init(title: historyEntry.title ?? "", url: historyEntry.url, visitCount: historyEntry.numberOfVisits, query: query, queryTokens: queryTokens)
+        self.init(title: historyEntry.title ?? "",
+                  url: historyEntry.url,
+                  visitCount: historyEntry.numberOfVisits,
+                  query: query,
+                  queryTokens: queryTokens)
     }
 
     static func tokens(from query: Query) -> [Query] {

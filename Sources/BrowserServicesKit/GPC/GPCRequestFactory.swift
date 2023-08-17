@@ -52,8 +52,8 @@ public struct GPCRequestFactory {
     }
     
     public func requestForGPC(basedOn incomingRequest: URLRequest,
-                       config: PrivacyConfiguration,
-                       gpcEnabled: Bool) -> URLRequest? {
+                              config: PrivacyConfiguration,
+                              gpcEnabled: Bool) -> URLRequest? {
         
         func removingHeader(fromRequest incomingRequest: URLRequest) -> URLRequest? {
             var request = incomingRequest
