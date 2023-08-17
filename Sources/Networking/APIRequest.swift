@@ -100,7 +100,7 @@ public struct APIRequest {
         }
         
         if requirements.contains(.requireETagHeader), httpResponse.etag == nil {
-            // throw APIRequest.Error.missingEtagInResponse
+            throw APIRequest.Error.missingEtagInResponse
         }
         
         return (data, httpResponse)
