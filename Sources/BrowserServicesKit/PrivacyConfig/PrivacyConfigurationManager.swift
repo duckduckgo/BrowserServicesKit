@@ -47,7 +47,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     enum ParsingError: Error {
         case dataMismatch
     }
-    
+
+    // swiftlint:disable:next large_tuple
     public typealias ConfigurationData = (rawData: Data, data: PrivacyConfigurationData, etag: String)
     
     private let lock = NSLock()

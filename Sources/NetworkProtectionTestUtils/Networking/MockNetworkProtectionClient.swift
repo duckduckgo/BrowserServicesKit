@@ -38,6 +38,7 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         return stubGetServers
     }
 
+    // swiftlint:disable:next large_tuple
     public var spyRegister: (authToken: String, publicKey: NetworkProtection.PublicKey, serverName: String?)?
     public var stubRegister: Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> = .success([])
 

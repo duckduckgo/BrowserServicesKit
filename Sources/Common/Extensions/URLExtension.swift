@@ -224,6 +224,7 @@ extension URL {
         self.init(string: url)
     }
 
+    // swiftlint:disable:next large_tuple
     private static func fixupAndSplitURLString(_ s: String) -> (authData: String.SubSequence?, domainAndPath: String.SubSequence, query: String)? {
         let urlAndFragment = s.split(separator: "#", maxSplits: 1)
         guard !urlAndFragment.isEmpty else { return nil }
