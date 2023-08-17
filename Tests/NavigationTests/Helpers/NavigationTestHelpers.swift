@@ -25,6 +25,7 @@ import WebKit
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable implicit_getter
 
+// swiftlint:disable:next large_tuple
 typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, navigationResponses: UnsafeMutablePointer<[NavigationResponse]>, responderResponses: [NavResponse], history: [UInt64: HistoryItemIdentity])
 extension TestsNavigationEvent {
 
