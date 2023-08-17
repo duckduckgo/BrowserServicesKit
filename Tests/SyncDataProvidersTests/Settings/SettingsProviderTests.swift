@@ -60,7 +60,6 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         otherEmailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        try setLastModified(for: .emailProtectionGeneration, to: Date(), in: context)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableSettingAdapter.init)
 
@@ -131,40 +130,42 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertTrue(settingsMetadata.isEmpty)
     }
 
-//
-//    func testWhenDatabaseIsLockedDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
-//
-//        let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
-//        let localSecureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: localDatabaseProvider)
-//        let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
-//        _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
-//
-//        let received: [Syncable] = [
-//            .credentials(id: "1")
-//        ]
-//
-//        var numberOfAttempts = 0
-//        var didThrowError = false
-//
-//        provider.willSaveContextAfterApplyingSyncResponse = {
-//            numberOfAttempts += 1
-//            if !didThrowError {
-//                didThrowError = true
-//                throw DatabaseError(resultCode: .SQLITE_LOCKED)
-//            }
-//        }
-//
-//        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
-//
-//        XCTAssertEqual(numberOfAttempts, 2)
-//
-//        let syncableCredentials = try fetchAllSyncableCredentials()
-//        let credential = try XCTUnwrap(syncableCredentials.first)
-//        XCTAssertEqual(credential.account?.title, "1")
-//        XCTAssertNil(credential.metadata.lastModified)
-//    }
-//
-//    // MARK: - Regular Sync
+    func testWhenThereIsMergeConflictDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let emailManager = EmailManager(storage: emailManagerStorage)
+        emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
+
+        let received: [Syncable] = [
+            .emailProtection(userEmail: "dax", token: "secret-token")
+        ]
+
+        var willSaveCallCount = 0
+
+        var emailProtectionModificationDate: Date?
+        provider.willSaveContextAfterApplyingSyncResponse = {
+            willSaveCallCount += 1
+            if emailProtectionModificationDate != nil {
+                return
+            }
+            emailManager.signOut()
+            context.performAndWait {
+                emailProtectionModificationDate = SyncableSettingsMetadataUtils
+                    .fetchSettingsMetadata(with: SettingsProvider.Setting.emailProtectionGeneration.rawValue, in: context)?
+                    .lastModified
+            }
+        }
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        XCTAssertEqual(willSaveCallCount, 2)
+
+        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
+        XCTAssertTrue(settingsMetadata.isEmpty)
+        XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
+        XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
+    }
+
+    // MARK: - Regular Sync
 
     func testWhenEmailProtectionDeleteIsSentAndUpdateIsReceivedThenEmailProtectionIsNotDeleted() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
@@ -184,121 +185,111 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token2")
     }
-//
-//    func testWhenObjectWasSentAndThenDeletedLocallyAndAnUpdateIsReceivedThenTheObjectIsDeleted() async throws {
-//
-//        let modifiedAt = Date().withMillisecondPrecision
-//
-//        try secureVault.inDatabaseTransaction { database in
-//            try self.secureVault.storeSyncableCredentials("1", lastModified: modifiedAt, in: database)
-//        }
-//
-//        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-//
-//        try secureVault.deleteWebsiteCredentialsFor(accountId: 1)
-//
-//        let received: [Syncable] = [
-//            .credentials(id: "1", username: "2")
-//        ]
-//
-//        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
-//
-//        let syncableCredentials = try fetchAllSyncableCredentials()
-//        let deletedCredential = try XCTUnwrap(syncableCredentials.first)
-//        XCTAssertNotNil(deletedCredential.metadata.lastModified)
-//        XCTAssertNil(deletedCredential.metadata.objectId)
-//    }
-//
-//    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
-//
-//        let modifiedAt = Date().withMillisecondPrecision
-//
-//        try secureVault.inDatabaseTransaction { database in
-//            try self.secureVault.storeSyncableCredentials("1", lastModified: modifiedAt, in: database)
-//        }
-//
-//        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-//        let received: [Syncable] = [
-//            .credentials(id: "1", username: "2")
-//        ]
-//
-//        var credentials = try XCTUnwrap(try secureVault.websiteCredentialsFor(accountId: 1))
-//        credentials.password = "updated".data(using: .utf8)
-//        try secureVault.storeWebsiteCredentials(credentials)
-//        var updateTimestamp: Date?
-//        try secureVault.inDatabaseTransaction({ database in
-//            updateTimestamp = try self.secureVault.syncableCredentialsForAccountId(1, in: database)?.metadata.lastModified
-//        })
-//
-//        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
-//
-//        let syncableCredentials = try fetchAllSyncableCredentials()
-//        let updatedCredential = try XCTUnwrap(syncableCredentials.first)
-//        XCTAssertEqual(updatedCredential.metadata.lastModified, updateTimestamp)
-//        XCTAssertEqual(updatedCredential.account?.username, "1")
-//        XCTAssertEqual(updatedCredential.credentialsRecord?.password, credentials.password)
-//    }
-//
-//    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteDeletionIsApplied() async throws {
-//
-//        let modifiedAt = Date().withMillisecondPrecision
-//
-//        try secureVault.inDatabaseTransaction { database in
-//            try self.secureVault.storeSyncableCredentials("1", lastModified: modifiedAt, in: database)
-//        }
-//
-//        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-//        let received: [Syncable] = [
-//            .credentials(id: "1", username: "2", isDeleted: true)
-//        ]
-//
-//        var credentials = try XCTUnwrap(try secureVault.websiteCredentialsFor(accountId: 1))
-//        credentials.password = "updated".data(using: .utf8)
-//        try secureVault.storeWebsiteCredentials(credentials)
-//        try secureVault.inDatabaseTransaction({ database in
-//            _ = try self.secureVault.syncableCredentialsForAccountId(1, in: database)
-//        })
-//
-//        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: modifiedAt.advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
-//
-//        let syncableCredentials = try fetchAllSyncableCredentials()
-//        XCTAssertTrue(syncableCredentials.isEmpty)
-//    }
-//
-//    func testWhenDatabaseIsLockedDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
-//
-//        let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
-//        let localSecureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: localDatabaseProvider)
-//        let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
-//        _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
-//
-//        try secureVault.inDatabaseTransaction { database in
-//            try self.secureVault.storeSyncableCredentials("1", lastModified: Date(), in: database)
-//        }
-//
-//        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-//        let received: [Syncable] = [
-//            .credentials(id: "1")
-//        ]
-//
-//        var numberOfAttempts = 0
-//        var didThrowError = false
-//
-//        provider.willSaveContextAfterApplyingSyncResponse = {
-//            numberOfAttempts += 1
-//            if !didThrowError {
-//                didThrowError = true
-//                throw DatabaseError(resultCode: .SQLITE_LOCKED)
-//            }
-//        }
-//
-//        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
-//
-//        XCTAssertEqual(numberOfAttempts, 2)
-//
-//        let syncableCredentials = try fetchAllSyncableCredentials()
-//        let credential = try XCTUnwrap(syncableCredentials.first)
-//        XCTAssertEqual(credential.account?.title, "1")
-//        XCTAssertNil(credential.metadata.lastModified)
-//    }
+
+    func testWhenEmailProtectionWasSentAndThenDisabledLocallyAndAnUpdateIsReceivedThenEmailProtectionIsDisabled() async throws {
+
+        let emailManager = EmailManager(storage: emailManagerStorage)
+        emailManager.signIn(userEmail: "dax", token: "secret-token")
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        emailManager.signOut()
+
+        let received: [Syncable] = [
+            .emailProtection(userEmail: "dax2", token: "secret-token2")
+        ]
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertNil(emailManagerStorage.mockUsername)
+        XCTAssertNil(emailManagerStorage.mockToken)
+    }
+
+    func testWhenEmailProtectionWasEnabledLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        let emailManager = EmailManager(storage: emailManagerStorage)
+        emailManager.signIn(userEmail: "dax", token: "secret-token")
+
+        let received: [Syncable] = [
+            .emailProtection(userEmail: "dax2", token: "secret-token2")
+        ]
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
+        XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
+    }
+
+    func testWhenEmailProtectionWasEnabledLocallyAfterStartingSyncThenRemoteDisableIsDropped() async throws {
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        let emailManager = EmailManager(storage: emailManagerStorage)
+        emailManager.signIn(userEmail: "dax", token: "secret-token")
+
+        let received: [Syncable] = [
+            .emailProtectionDeleted()
+        ]
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
+        XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
+    }
+
+    func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let emailManager = EmailManager(storage: emailManagerStorage)
+        emailManager.signIn(userEmail: "dax", token: "secret-token-local")
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        let received: [Syncable] = [
+            .emailProtection(userEmail: "dax", token: "secret-token")
+        ]
+
+        var willSaveCallCount = 0
+
+        var emailProtectionModificationDate: Date?
+        provider.willSaveContextAfterApplyingSyncResponse = {
+            willSaveCallCount += 1
+            if emailProtectionModificationDate != nil {
+                return
+            }
+            emailManager.signOut()
+            context.performAndWait {
+                emailProtectionModificationDate = SyncableSettingsMetadataUtils
+                    .fetchSettingsMetadata(with: SettingsProvider.Setting.emailProtectionGeneration.rawValue, in: context)?
+                    .lastModified
+            }
+        }
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        XCTAssertEqual(willSaveCallCount, 2)
+
+        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertNil(emailManagerStorage.mockUsername)
+        XCTAssertNil(emailManagerStorage.mockToken)
+    }
 }

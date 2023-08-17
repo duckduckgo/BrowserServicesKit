@@ -42,4 +42,8 @@ extension Syncable {
         let value = "encrypted_\(String(data: data, encoding: .utf8)!)"
         return Self.settings(SettingsProvider.Setting.emailProtectionGeneration, value: value, lastModified: lastModified, isDeleted: isDeleted)
     }
+
+    static func emailProtectionDeleted() -> Syncable {
+        return Self.settings(SettingsProvider.Setting.emailProtectionGeneration, value: nil, isDeleted: true)
+    }
 }

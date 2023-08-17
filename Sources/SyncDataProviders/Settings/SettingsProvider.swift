@@ -156,6 +156,9 @@ public final class SettingsProvider: DataProvider {
                     let idsOfItemsToClearModifiedAt = try cleanUpSentItems(sent, receivedKeys: Set(responseHandler.receivedByKey.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedSettings()
 
+#if DEBUG
+                    willSaveContextAfterApplyingSyncResponse()
+#endif
                     let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys))
                     try clearModifiedAtAndSaveContext(keys: keys, clientTimestamp: clientTimestamp, in: context)
                     break
@@ -235,4 +238,9 @@ public final class SettingsProvider: DataProvider {
         static let maxContextSaveRetries = 5
     }
 
+    // MARK: - Test Support
+
+#if DEBUG
+    var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
+#endif
 }
