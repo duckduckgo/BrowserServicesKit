@@ -31,6 +31,8 @@ final class SettingsResponseHandler {
     let receivedByKey: [String: SyncableSettingAdapter]
     var metadataByKey: [String: SyncableSettingsMetadata] = [:]
 
+    var idsOfItemsThatRetainModifiedAt = Set<String>()
+
     private let decrypt: (String) throws -> String
 
     init(
@@ -102,7 +104,21 @@ final class SettingsResponseHandler {
         }
 
         if shouldDeduplicateEntities {
-            try update(setting, with: syncable)
+            guard let settingAdapter = settingsAdapters[setting] else {
+                return
+            }
+            if syncable.isDeleted {
+                if settingAdapter.shouldApplyRemoteDeleteOnInitialSync {
+                    try update(setting, with: syncable)
+                } else {
+                    let currentValue = try settingAdapter.getValue()
+                    if currentValue != nil {
+                        idsOfItemsThatRetainModifiedAt.insert(syncableKey)
+                    }
+                }
+            } else {
+                try update(setting, with: syncable)
+            }
 
         } else if let existingMetadata = metadataByKey[syncableKey] {
             let isModifiedAfterSyncTimestamp: Bool = {

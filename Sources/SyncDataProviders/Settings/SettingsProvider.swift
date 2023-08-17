@@ -159,7 +159,7 @@ public final class SettingsProvider: DataProvider {
 #if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
 #endif
-                    let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys))
+                    let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
                     try clearModifiedAtAndSaveContext(keys: keys, clientTimestamp: clientTimestamp, in: context)
                     break
                 } catch {

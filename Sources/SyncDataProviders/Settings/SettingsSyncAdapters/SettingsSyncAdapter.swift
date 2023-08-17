@@ -22,4 +22,6 @@ import Foundation
 public protocol SettingsSyncAdapter {
     func getValue() throws -> String?
     func setValue(_ value: String?) throws
+
+    var shouldApplyRemoteDeleteOnInitialSync: Bool { get }
 }

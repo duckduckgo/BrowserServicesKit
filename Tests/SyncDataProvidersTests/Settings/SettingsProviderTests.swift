@@ -59,8 +59,6 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let otherEmailManager = EmailManager(storage: MockEmailManagerStorage())
         otherEmailManager.signIn(userEmail: "dax", token: "secret-token")
 
-        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableSettingAdapter.init)
 
         XCTAssertEqual(

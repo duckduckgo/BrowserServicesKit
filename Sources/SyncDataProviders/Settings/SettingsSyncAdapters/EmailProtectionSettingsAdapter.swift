@@ -50,6 +50,8 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
             }
     }
 
+    let shouldApplyRemoteDeleteOnInitialSync: Bool = false
+
     func getValue() throws -> String? {
         guard let user = emailManager.userEmail else {
             return nil
