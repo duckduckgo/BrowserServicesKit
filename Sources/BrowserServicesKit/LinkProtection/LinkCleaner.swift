@@ -42,6 +42,7 @@ public class LinkCleaner {
     
     public func isURLExcluded(url: URL, feature: PrivacyFeature = .ampLinks) -> Bool {
         guard let host = url.host else { return true }
+        guard url.scheme == "http" || url.scheme == "https" else { return true }
         
         return !privacyConfig.isFeature(feature, enabledForDomain: host)
     }
