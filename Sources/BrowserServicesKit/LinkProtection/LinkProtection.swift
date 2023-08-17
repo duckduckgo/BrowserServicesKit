@@ -123,7 +123,12 @@ public struct LinkProtection {
                                            onFinishExtracting: @escaping () -> Void,
                                            onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void,
                                            policyDecisionHandler: @escaping (WKNavigationActionPolicy) -> Void) -> Bool {
-        requestTrackingLinkRewrite(initiatingURL: initiatingURL, destinationURL: navigationAction.request.url!, onStartExtracting: onStartExtracting, onFinishExtracting: onFinishExtracting, onLinkRewrite: { onLinkRewrite($0, navigationAction) }, policyDecisionHandler: { policyDecisionHandler($0 ? .allow : .cancel) })
+        requestTrackingLinkRewrite(initiatingURL: initiatingURL,
+                                   destinationURL: navigationAction.request.url!,
+                                   onStartExtracting: onStartExtracting,
+                                   onFinishExtracting: onFinishExtracting,
+                                   onLinkRewrite: { onLinkRewrite($0, navigationAction) },
+                                   policyDecisionHandler: { policyDecisionHandler($0 ? .allow : .cancel) })
     }
     // swiftlint:enable function_parameter_count
 

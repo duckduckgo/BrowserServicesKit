@@ -230,7 +230,11 @@ open class DataProvider: DataProviding {
         assertionFailure("\(#function) is not implemented")
     }
 
-    open func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    open func handleSyncResponse(sent: [Syncable],
+                                 received: [Syncable],
+                                 clientTimestamp: Date,
+                                 serverTimestamp: String?,
+                                 crypter: Crypting) async throws {
         assertionFailure("\(#function) is not implemented")
     }
 

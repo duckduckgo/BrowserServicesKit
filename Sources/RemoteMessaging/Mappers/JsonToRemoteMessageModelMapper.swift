@@ -79,7 +79,7 @@ struct JsonToRemoteMessageModelMapper {
         return remoteMessages
     }
 
-    // swiftlint:disable function_body_length
+    // swiftlint:disable cyclomatic_complexity function_body_length
     static func mapToContent(content: RemoteMessageResponse.JsonContent) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {
         case .small:
@@ -136,13 +136,17 @@ struct JsonToRemoteMessageModelMapper {
                 return nil
             }
 
-            return .promoSingleAction(titleText: content.titleText, descriptionText: content.descriptionText, placeholder: mapToPlaceholder(content.placeholder), actionText: actionText, action: action)
+            return .promoSingleAction(titleText: content.titleText,
+                                      descriptionText: content.descriptionText,
+                                      placeholder: mapToPlaceholder(content.placeholder),
+                                      actionText: actionText,
+                                      action: action)
 
         case .none:
             return nil
         }
     }
-    // swiftlint:enable function_body_length
+    // swiftlint:enable cyclomatic_complexity function_body_length
 
     static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?) -> RemoteAction? {
         guard let jsonAction = jsonAction else {

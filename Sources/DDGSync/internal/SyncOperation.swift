@@ -112,6 +112,7 @@ class SyncOperation: Operation {
         try await sync(fetchOnly: fetchOnly, dataProviders: dataProviders)
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
@@ -148,7 +149,10 @@ class SyncOperation: Operation {
                             try await self.handleResponse(for: dataProvider, syncResult: syncResult, fetchOnly: fetchOnly, timestamp: clientTimestamp)
                         case 204, 304:
                             try checkCancellation()
-                            try await self.handleResponse(for: dataProvider, syncResult: .noData(with: syncRequest), fetchOnly: fetchOnly, timestamp: clientTimestamp)
+                            try await self.handleResponse(for: dataProvider,
+                                                          syncResult: .noData(with: syncRequest),
+                                                          fetchOnly: fetchOnly,
+                                                          timestamp: clientTimestamp)
                         default:
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }

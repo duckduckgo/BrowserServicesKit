@@ -21,7 +21,7 @@ import WebKit
 import Common
 import UserScript
 
-// swiftlint:disable file_length
+// swiftlint:disable line_length file_length
 
 public enum RequestVaultCredentialsAction: String, Codable {
     case none
@@ -913,4 +913,4 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
 
 }
 
-// swiftlint:enable file_length
+// swiftlint:enable line_length file_length
