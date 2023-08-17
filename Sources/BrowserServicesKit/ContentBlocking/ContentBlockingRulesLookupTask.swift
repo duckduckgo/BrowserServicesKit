@@ -29,7 +29,7 @@ extension ContentBlockerRulesManager {
 
         private let sourceManagers: [ContentBlockerRulesSourceManager]
 
-        public private(set) var result: [LookupResult]? = nil
+        public private(set) var result: [LookupResult]?
 
         init(sourceManagers: [ContentBlockerRulesSourceManager]) {
             self.sourceManagers = sourceManagers

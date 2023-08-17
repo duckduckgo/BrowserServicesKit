@@ -22,6 +22,7 @@ import CoreData
 import Foundation
 import XCTest
 
+// swiftlint:disable line_length
 public struct ModifiedAtConstraint {
     var check: (Date?) -> Void
 
@@ -183,7 +184,6 @@ public struct BookmarkTreeBuilder {
     }
 }
 
-
 public struct BookmarkTree {
 
     public init(modifiedAt: Date? = nil, modifiedAtConstraint: ModifiedAtConstraint? = nil, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
@@ -204,7 +204,7 @@ public struct BookmarkTree {
         rootFolder.modifiedAt = modifiedAt
         let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
         var orphans = [BookmarkEntity]()
-        var modifiedAtConstraints = [String:ModifiedAtConstraint]()
+        var modifiedAtConstraints = [String: ModifiedAtConstraint]()
         if let modifiedAtConstraint {
             modifiedAtConstraints[BookmarkEntity.Constants.rootFolderID] = modifiedAtConstraint
         }
@@ -213,7 +213,7 @@ public struct BookmarkTree {
             if bookmarkTreeNode.isOrphaned {
                 orphans.append(entity)
             }
-            modifiedAtConstraints.merge(checks) { (lhs, rhs) in
+            modifiedAtConstraints.merge(checks) { (_, rhs) in
                 assertionFailure("duplicate keys found")
                 return rhs
             }
@@ -238,7 +238,7 @@ public extension BookmarkEntity {
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
         var parents: [BookmarkEntity] = [rootFolder]
-        var modifiedAtConstraints = [String:ModifiedAtConstraint]()
+        var modifiedAtConstraints = [String: ModifiedAtConstraint]()
 
         while !queues.isEmpty {
             var queue = queues.removeFirst()
@@ -293,7 +293,6 @@ public extension BookmarkEntity {
         return (entity, modifiedAtConstraints)
     }
 }
-
 
 public extension XCTestCase {
     func assertEquivalent(withTimestamps: Bool = true, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
@@ -357,3 +356,4 @@ public extension XCTestCase {
         }
     }
 }
+// swiftlint:enable line_length

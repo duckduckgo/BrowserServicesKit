@@ -26,8 +26,13 @@ import Common
 /// NEVPNStatusDidChange notifications or tunnel session.
 ///
 public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObserver {
-    public let publisher = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
+    public lazy var publisher = subject.eraseToAnyPublisher()
+    public var recentValue: NetworkProtectionStatusServerInfo {
+        subject.value
+    }
 
+    private let subject = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
+    
     // MARK: - Notifications
 
     private let notificationCenter: NotificationCenter
@@ -98,21 +103,14 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
         let newServerInfo = NetworkProtectionStatusServerInfo(serverLocation: serverLocation, serverAddress: serverAddress)
 
-        publisher.send(newServerInfo)
+        subject.send(newServerInfo)
     }
 
     private func serverAddress(from session: NETunnelProviderSession) async -> String? {
         await withCheckedContinuation { continuation in
             do {
-                let request = Data([ExtensionMessage.getServerAddress.rawValue])
-                try session.sendProviderMessage(request) { data in
-                    guard let data = data else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-
-                    let serverAddress = String(data: data, encoding: ExtensionMessage.preferredStringEncoding)
-                    continuation.resume(returning: serverAddress)
+                try session.sendProviderMessage(.getServerAddress) { (serverAddress: ExtensionMessageString?) in
+                    continuation.resume(returning: serverAddress?.value)
                 }
             } catch {
                 // Cannot communicate with session, this is acceptable in case the session is down
@@ -123,17 +121,9 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
     private func serverLocation(from session: NETunnelProviderSession) async -> String? {
         await withCheckedContinuation { continuation in
-            let request = Data([ExtensionMessage.getServerLocation.rawValue])
-
             do {
-                try session.sendProviderMessage(request) { data in
-                    guard let data = data else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-
-                    let serverLocation = String(data: data, encoding: ExtensionMessage.preferredStringEncoding)
-                    continuation.resume(returning: serverLocation)
+                try session.sendProviderMessage(.getServerLocation) { (serverLocation: ExtensionMessageString?) in
+                    continuation.resume(returning: serverLocation?.value)
                 }
             } catch {
                 // Cannot communicate with session, this is acceptable in case the session is down

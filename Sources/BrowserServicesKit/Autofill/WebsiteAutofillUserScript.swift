@@ -114,14 +114,14 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none)
 
         let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        if (previousEmailSignedIn == nil) {
+        if previousEmailSignedIn == nil {
             previousEmailSignedIn = emailSignedIn
         }
         let hasEmailSignedInStateChanged = previousEmailSignedIn != emailSignedIn
         let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
         let hasIncontextSignupStateChanged = previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt
 
-        if (hasEmailSignedInStateChanged || hasIncontextSignupStateChanged) {
+        if hasEmailSignedInStateChanged || hasIncontextSignupStateChanged {
             previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
             previousEmailSignedIn = emailSignedIn
             response = GetSelectedCredentialsResponse(type: CredentialsResponse.state)

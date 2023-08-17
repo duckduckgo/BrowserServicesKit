@@ -67,7 +67,6 @@ class AdClickAttributionFeatureTests: XCTestCase {
 }
 """.data(using: .utf8)!
     
-    
     func testDomainMatching() {
 
         let dataProvider = MockEmbeddedDataProvider(data: exampleConfig, etag: "empty")

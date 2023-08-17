@@ -20,7 +20,6 @@
 import Foundation
 import TrackerRadarKit
 import Common
-import os.log
 
 public protocol AdClickAttributionRulesProviding {
     
@@ -170,7 +169,7 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
                "Returning attribution rules for vendor  %{private}s to %{public}d caller(s)",
                attributionTask.vendor, matchingTasks.count)
         
-        var rules: ContentBlockerRulesManager.Rules? = nil
+        var rules: ContentBlockerRulesManager.Rules?
         if let result = compilationTask.result {
             rules = .init(compilationResult: result)
         }

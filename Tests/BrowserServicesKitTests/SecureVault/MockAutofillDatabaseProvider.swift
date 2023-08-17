@@ -21,9 +21,8 @@ import SecureStorage
 import GRDB
 @testable import BrowserServicesKit
 
-internal class MockDatabaseProvider: AutofillDatabaseProvider {
+internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
-    // swiftlint:disable identifier_name
     var _accounts = [SecureVaultModels.WebsiteAccount]()
     var _notes = [SecureVaultModels.Note]()
     var _identities = [Int64: SecureVaultModels.Identity]()
@@ -31,7 +30,6 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     var _forDomain = [String]()
     var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
     var _note: SecureVaultModels.Note?
-    // swiftlint:enable identifier_name
 
     var db: DatabaseWriter
 
@@ -40,7 +38,11 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     }
 
     static func recreateDatabase(withKey key: Data) throws -> Self {
-        return try MockDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self
+        return try MockAutofillDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self
+    }
+
+    func hasAccountFor(username: String?, domain: String?) throws -> Bool {
+        false
     }
 
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
@@ -48,8 +50,9 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
             _credentialsDict[accountID] = credentials
             return accountID
         } else {
-            _credentialsDict[-1] = credentials
-            return -1
+            let id = Int64(_credentialsDict.count + 1)
+            _credentialsDict[id] = credentials
+            return id
         }
     }
 
@@ -68,6 +71,7 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
+        self._credentialsDict.removeValue(forKey: accountId)        
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 
@@ -133,186 +137,48 @@ internal class MockDatabaseProvider: AutofillDatabaseProvider {
     func deleteCreditCardForCreditCardId(_ cardId: Int64) throws {
         _creditCards.removeValue(forKey: cardId)
     }
-}
 
-internal class MockCryptoProvider: SecureStorageCryptoProvider {
-
-    var passwordSalt: Data {
-        return Data()
+    func inTransaction(_ block: @escaping (Database) throws -> Void) throws {
     }
 
-    var keychainServiceName: String {
-        return "service"
+    func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws {
     }
 
-    var keychainAccountName: String {
-        return "account"
+    func modifiedWebsiteCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
+        []
     }
 
-    // swiftlint:disable identifier_name
-    var _derivedKey: Data?
-    var _decryptedData: Data?
-    var _lastDataToDecrypt: Data?
-    var _lastDataToEncrypt: Data?
-    var _lastKey: Data?
-    var hashingSalt: Data?
-    // swiftlint:enable identifier_name
-
-    func generateSecretKey() throws -> Data {
-        return Data()
+    func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
+        try storeWebsiteCredentials(credentials)
     }
 
-    func generatePassword() throws -> Data {
-        return Data()
-    }
-
-    func deriveKeyFromPassword(_ password: Data) throws -> Data {
-        return _derivedKey!
-    }
-
-    func generateNonce() throws -> Data {
-        return Data()
-    }
-
-    func encrypt(_ data: Data, withKey key: Data) throws -> Data {
-        _lastDataToEncrypt = data
-        _lastKey = key
-        return data
-    }
-
-    func decrypt(_ data: Data, withKey key: Data) throws -> Data {
-        _lastDataToDecrypt = data
-        _lastKey = key
-
-        guard let data = _decryptedData else {
-            throw SecureStorageError.invalidPassword
+    func deleteSyncableCredentials(_ metadata: SecureVaultModels.SyncableCredentials, in database: Database) throws {
+        if let accountId = metadata.metadata.objectId {
+            try deleteWebsiteCredentialsForAccountId(accountId)
         }
-
-        return data
-    }
-    
-    func generateSalt() throws -> Data {
-        return Data()
-    }
-    
-    func hashData(_ data: Data) throws -> String? {
-        return ""
     }
 
-    func hashData(_ data: Data, salt: Data?) throws -> String? {
-        return ""
+    func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+        []
     }
 
-}
-
-internal class NoOpCryptoProvider: SecureStorageCryptoProvider {
-    
-    var passwordSalt: Data {
-        return Data()
+    func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials? {
+        try websiteCredentialsForAccountId(accountId)
     }
 
-    var keychainServiceName: String {
-        return "service"
+    func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials? {
+        nil
     }
 
-    var keychainAccountName: String {
-        return "account"
+    func websiteAccountsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteAccount] {
+        try websiteAccountsForDomain(domain)
     }
 
-    var hashingSalt: Data?
-
-    func generateSecretKey() throws -> Data {
-        return Data()
+    func storeSyncableCredentials(_ metadata: SecureVaultModels.SyncableCredentials, in database: GRDB.Database) throws {
     }
 
-    func generatePassword() throws -> Data {
-        return Data()
-    }
-
-    func deriveKeyFromPassword(_ password: Data) throws -> Data {
-        return password
-    }
-
-    func generateNonce() throws -> Data {
-        return Data()
-    }
-
-    func encrypt(_ data: Data, withKey key: Data) throws -> Data {
-        return data
-    }
-
-    func decrypt(_ data: Data, withKey key: Data) throws -> Data {
-        return data
-    }
-    
-    func generateSalt() throws -> Data {
-        return Data()
-    }
-
-    func hashData(_ data: Data) throws -> String? {
-        return ""
-    }
-
-    func hashData(_ data: Data, salt: Data?) throws -> String? {
-        return ""
-    }
-
-}
-
-internal class MockKeystoreProvider: SecureStorageKeyStoreProvider {
-
-    // swiftlint:disable identifier_name
-    var _l1Key: Data?
-    var _encryptedL2Key: Data?
-    var _generatedPassword: Data?
-    var _generatedPasswordCleared = false
-    var _lastEncryptedL2Key: Data?
-    // swiftlint:enable identifier_name
-
-    var generatedPasswordEntryName: String {
-        return ""
-    }
-
-    var l1KeyEntryName: String {
-        return ""
-    }
-
-    var l2KeyEntryName: String {
-        return ""
-    }
-
-    var keychainServiceName: String {
-        return ""
-    }
-
-    func attributesForEntry(named: String, serviceName: String) -> [String : Any] {
-        return [:]
-    }
-
-    func storeGeneratedPassword(_ password: Data) throws {
-    }
-
-    func generatedPassword() throws -> Data? {
-        return _generatedPassword
-    }
-
-    func clearGeneratedPassword() throws {
-        _generatedPasswordCleared = true
-    }
-
-    func storeL1Key(_ data: Data) throws {
-    }
-
-    func l1Key() throws -> Data? {
-        return _l1Key
-    }
-
-    func storeEncryptedL2Key(_ data: Data) throws {
-        _lastEncryptedL2Key = data
-    }
-
-    func encryptedL2Key() throws -> Data? {
-        return _encryptedL2Key
+    func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
+        []
     }
 
 }

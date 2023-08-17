@@ -50,7 +50,6 @@ public struct GPCRequestFactory {
 
         return false
     }
-
     
     public func requestForGPC(basedOn incomingRequest: URLRequest,
                        config: PrivacyConfiguration,

@@ -313,8 +313,8 @@ class DataProvidingMock: DataProvider {
 
     var _prepareForFirstSync: () throws -> Void = {}
     var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
-    var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
-    var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
+    var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _, _, _, _ in }
+    var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _, _, _, _, _ in }
     var _handleSyncError: (Error) -> Void = { _ in }
 
     override func prepareForFirstSync() throws {

@@ -26,7 +26,12 @@ import Common
 /// Observes the server info through Distributed Notifications and an IPC connection.
 ///
 public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionErrorObserver {
-    public let publisher = CurrentValueSubject<String?, Never>(nil)
+    public lazy var publisher: AnyPublisher<String?, Never> = subject.eraseToAnyPublisher()
+    public var recentValue: String? {
+        subject.value
+    }
+
+    private let subject = CurrentValueSubject<String?, Never>(nil)
 
     // MARK: - Notifications
 
@@ -59,8 +64,8 @@ public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionE
     private func handleTunnelErrorStatusChanged(_ notification: Notification) {
         let errorMessage = notification.object as? String
 
-        if errorMessage != publisher.value {
-            publisher.send(errorMessage)
+        if errorMessage != recentValue {
+            subject.send(errorMessage)
         }
     }
 }

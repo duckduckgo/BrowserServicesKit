@@ -78,13 +78,20 @@ public enum EmailManagerPermittedAddressType {
 public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
     func emailManager(_ emailManager: EmailManager,
-                      didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType) -> Void)
+                      didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType, _ autosave: Bool) -> Void)
 
 }
 // swiftlint:enable identifier_name
 
+public enum EmailManagerRequestDelegateError: Error {
+    case serverError(statusCode: Int)
+    case decodingError
+}
+
 // swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
+
+    var activeTask: URLSessionTask? { get set }
 
     func emailManager(_ emailManager: EmailManager,
                       requested url: URL,
@@ -113,11 +120,13 @@ public enum AliasRequestError: Error {
     case invalidResponse
     case userRefused
     case permissionDelegateNil
+    case invalidToken
+    case notFound
 }
 
 public struct EmailUrls {
     struct Url {
-        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
+        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"        
     }
 
     var emailAliasAPI: URL {
@@ -128,12 +137,21 @@ public struct EmailUrls {
 }
 
 public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
+public typealias AliasAutosaveCompletion = (String?, _ autosave: Bool, AliasRequestError?) -> Void
 public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
 public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ token: String?, AliasRequestError?) -> Void
 
+public enum EmailAliasStatus {
+    case active
+    case inactive
+    case notFound
+    case error
+    case unknown
+}
+
 public class EmailManager {
     
-    private static let emailDomain = "duck.com"
+    public static let emailDomain = "duck.com"
     private static let inContextEmailSignupPromptDismissedPermanentlyAtKey = "Autofill.InContextEmailSignup.dismissed.permanently.at"
 
     private let storage: EmailManagerStorage
@@ -143,7 +161,7 @@ public class EmailManager {
     public enum NotificationParameter {
         public static let cohort = "cohort"
     }
-    
+
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
 
@@ -251,7 +269,6 @@ public class EmailManager {
             UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
         }
     }
-
     
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
@@ -287,12 +304,39 @@ public class EmailManager {
         return alias + "@" + Self.emailDomain
     }
 
+    public func aliasFor(_ email: String) -> String {
+        return email.lowercased().replacingOccurrences(of: "@" + Self.emailDomain, with: "")
+    }
+
+    public func isPrivateEmail(email: String) -> Bool {
+        if email != userEmail?.lowercased() && email.lowercased().hasSuffix(Self.emailDomain) {
+            return true
+        }
+        return false
+    }
+
     public func getAliasIfNeededAndConsume(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         getAliasIfNeeded(timeoutInterval: timeoutInterval) { [weak self] newAlias, error in
             completionHandler(newAlias, error)
             if error == nil {
                 self?.consumeAliasAndReplace()
             }
+        }
+    }
+
+    public func getStatusFor(email: String, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
+        do {
+            return try await fetchStatusFor(alias: aliasFor(email), timeoutInterval: timeoutInterval)
+        } catch {
+            throw error
+        }
+    }
+
+    public func setStatusFor(email: String, active: Bool, timeoutInterval: TimeInterval = 4.0) async throws -> EmailAliasStatus {
+        do {
+            return try await setStatusFor(alias: aliasFor(email), active: active)
+        } catch {
+            throw error
         }
     }
 
@@ -335,40 +379,41 @@ extension EmailManager: AutofillEmailDelegate {
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                                    shouldConsumeAliasIfProvided: Bool,
-                                   completionHandler: @escaping AliasCompletion) {
+                                   completionHandler: @escaping AliasAutosaveCompletion) {
             
         getAliasIfNeeded { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil, let self = self else {
-                completionHandler(nil, error)
+                completionHandler(nil, false, error)
                 return
             }
             
             if requiresUserPermission {
                 guard let delegate = self.aliasPermissionDelegate else {
                     assertionFailure("EmailUserScript requires permission to provide Alias")
-                    completionHandler(nil, .permissionDelegateNil)
+                    completionHandler(nil, false, .permissionDelegateNil)
                     return
                 }
                 
-                delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType in
+                delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType, autosave in
                     switch permissionType {
                     case .user:
                         if let username = self?.username {
-                            completionHandler(username, nil)
+                            completionHandler(username, autosave, nil)
                         } else {
-                            completionHandler(nil, .userRefused)
+                            completionHandler(nil, false, .userRefused)
                         }
                     case .generated:
-                        completionHandler(newAlias, nil)
+                        // Only generated addresses should be autosaved
+                        completionHandler(newAlias, autosave, nil)
                         if shouldConsumeAliasIfProvided {
                             self?.consumeAliasAndReplace()
                         }
                     case .none:
-                        completionHandler(nil, .userRefused)
+                        completionHandler(nil, false, .userRefused)
                     }
                 })
             } else {
-                completionHandler(newAlias, nil)
+                completionHandler(newAlias, true, nil)
                 if shouldConsumeAliasIfProvided {
                     self.consumeAliasAndReplace()
                 }
@@ -380,7 +425,7 @@ extension EmailManager: AutofillEmailDelegate {
         self.consumeAliasAndReplace()
     }
     
-    public func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+    public func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         storeToken(token, username: username, cohort: cohort)
         
         var notificationParameters: [String: String] = [:]
@@ -392,11 +437,11 @@ extension EmailManager: AutofillEmailDelegate {
         NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
     }
 
-    public func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
+    public func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
         inContextEmailSignupPromptDismissedPermanentlyAt = value
     }
 
-    public func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double? {
+    public func autofillUserScriptDidRequestInContextPromptValue(_: AutofillUserScript) -> Double? {
         inContextEmailSignupPromptDismissedPermanentlyAt
     }
 
@@ -431,9 +476,28 @@ private extension EmailManager {
 // MARK: - Alias Management
 
 private extension EmailManager {
-    
+
+    enum Constants {
+
+        enum RequestMethods {
+            static let get = "GET"
+            static let put = "PUT"
+            static let post = "POST"
+        }
+
+        enum RequestParameters {
+            static let token = "token"
+            static let status = "active"
+            static let address = "address"
+        }
+    }
+
     struct EmailAliasResponse: Decodable {
         let address: String
+    }
+
+    struct EmailAliasStatusResponse: Decodable {
+        let active: Bool
     }
     
     typealias HTTPHeaders = [String: String]
@@ -512,7 +576,7 @@ private extension EmailManager {
             do {
                 let data = try await requestDelegate.emailManager(self,
                                                                   requested: aliasAPIURL,
-                                                                  method: "POST",
+                                                                  method: Constants.RequestMethods.post,
                                                                   headers: emailHeaders,
                                                                   parameters: [:],
                                                                   httpBody: nil,
@@ -534,6 +598,72 @@ private extension EmailManager {
                 case .failure(let error):
                     completionHandler?(nil, error)
                 }
+            }
+        }
+    }
+
+    func fetchStatusFor(alias: String, timeoutInterval: TimeInterval = 5.0) async throws -> EmailAliasStatus {
+        guard isSignedIn,
+              let requestDelegate else {
+            throw AliasRequestError.signedOut
+        }
+
+        let data: Data
+
+        do {
+            let url = aliasAPIURL
+            data = try await requestDelegate.emailManager(self,
+                                                          requested: url,
+                                                          method: Constants.RequestMethods.get,
+                                                          headers: emailHeaders,
+                                                          parameters: [Constants.RequestParameters.address: alias],
+                                                          httpBody: nil,
+                                                          timeoutInterval: timeoutInterval)
+            let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
+            return response.active ? .active : .inactive
+        } catch let error {
+            switch error {
+            case EmailManagerRequestDelegateError.serverError(let code):
+                switch code {
+                case 404:
+                    return .notFound
+                default:
+                    return .error
+                }
+            default:
+                return .error
+            }
+        }
+    }
+
+    func setStatusFor(alias: String, active: Bool, timeoutInterval: TimeInterval = 5.0) async throws -> EmailAliasStatus {
+        guard isSignedIn,
+              let requestDelegate else {
+            throw AliasRequestError.signedOut
+        }
+
+        do {
+            let url = aliasAPIURL
+            let data = try await requestDelegate.emailManager(self,
+                                                              requested: url,
+                                                              method: Constants.RequestMethods.put,
+                                                              headers: emailHeaders,
+                                                              parameters: [Constants.RequestParameters.address: alias, Constants.RequestParameters.status: "\(active)"],
+                                                              httpBody: nil,
+                                                              timeoutInterval: timeoutInterval)
+            let response: EmailAliasStatusResponse = try JSONDecoder().decode(EmailAliasStatusResponse.self, from: data)
+            return response.active ? .active : .inactive
+        } catch let error {
+            switch error {
+            case EmailManagerRequestDelegateError.serverError(let code):
+                switch code {
+                case 404:
+                    return .notFound
+                default:
+                    return .error
+                }
+            default:
+                return .error
             }
         }
     }

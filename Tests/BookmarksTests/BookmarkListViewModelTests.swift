@@ -26,7 +26,7 @@ import XCTest
 class MockBookmarksModelErrorEventMapping: EventMapping<BookmarksModelError> {
 
     init(didFireEvent: @escaping (BookmarksModelError) -> Void) {
-        super.init { event, error, _, _ in
+        super.init { event, _, _, _ in
             didFireEvent(event)
         }
     }

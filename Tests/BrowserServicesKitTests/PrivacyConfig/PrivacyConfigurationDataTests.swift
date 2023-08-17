@@ -44,6 +44,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         XCTAssertNotNil(windowsDownloadLinkFeature)
         XCTAssertEqual(windowsDownloadLinkFeature?.state, "disabled")
 
+        let newTabContinueSetUp = configData.features["newTabContinueSetUp"]
+        XCTAssertNotNil(newTabContinueSetUp)
+        XCTAssertEqual(newTabContinueSetUp?.state, "enabled")
+
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)
         XCTAssertEqual(gpcFeature?.state, "enabled")
@@ -100,6 +104,10 @@ class PrivacyConfigurationDataTests: XCTestCase {
         let windowsDownloadLinkFeature = configData.features["windowsDownloadLink"]
         XCTAssertNotNil(windowsDownloadLinkFeature)
         XCTAssertEqual(windowsDownloadLinkFeature?.state, "disabled")
+
+        let newTabContinueSetUp = configData.features["newTabContinueSetUp"]
+        XCTAssertNotNil(newTabContinueSetUp)
+        XCTAssertEqual(newTabContinueSetUp?.state, "enabled")
 
         let gpcFeature = configData.features["contentBlocking"]
         XCTAssertNotNil(gpcFeature)

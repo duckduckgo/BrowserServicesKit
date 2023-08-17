@@ -23,7 +23,6 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable line_length
 // swiftlint:disable unused_closure_parameter
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
@@ -273,3 +272,7 @@ class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase 
     }
 
 }
+
+// swiftlint:enable unused_closure_parameter
+// swiftlint:enable trailing_comma
+// swiftlint:enable opening_brace

@@ -113,25 +113,30 @@ final class PacketTunnelSettingsGenerator {
             networkSettings.mtu = NSNumber(value: mtu)
         }
 
-        let (ipv4Addresses, ipv6Addresses) = addresses()
-        let (ipv4IncludedRoutes, ipv6IncludedRoutes) = includedRoutes()
+        let addresses = Self.routes(from: tunnelConfiguration.interface.addresses)
+        let includedRoutes = Self.routes(from: tunnelConfiguration.interface.includedRoutes
+                                               + tunnelConfiguration.peers.reduce([]) { $0 + $1.allowedIPs })
+        let excludedRoutes = Self.routes(from: tunnelConfiguration.interface.excludedRoutes)
 
-        let ipv4Settings = NEIPv4Settings(addresses: ipv4Addresses.map { $0.destinationAddress }, subnetMasks: ipv4Addresses.map { $0.destinationSubnetMask })
-        ipv4Settings.includedRoutes = ipv4IncludedRoutes
-        ipv4Settings.excludedRoutes = Self.ipv4ExcludedRoutes
+        let ipv4Settings = NEIPv4Settings(addresses: addresses.ipv4.map { $0.destinationAddress },
+                                          subnetMasks: addresses.ipv4.map { $0.destinationSubnetMask })
+        ipv4Settings.includedRoutes = includedRoutes.ipv4
+        ipv4Settings.excludedRoutes = excludedRoutes.ipv4
         networkSettings.ipv4Settings = ipv4Settings
 
-        let ipv6Settings = NEIPv6Settings(addresses: ipv6Addresses.map { $0.destinationAddress }, networkPrefixLengths: ipv6Addresses.map { $0.destinationNetworkPrefixLength })
-        ipv6Settings.includedRoutes = ipv6IncludedRoutes
+        let ipv6Settings = NEIPv6Settings(addresses: addresses.ipv6.map { $0.destinationAddress },
+                                          networkPrefixLengths: addresses.ipv6.map { $0.destinationNetworkPrefixLength })
+        ipv6Settings.includedRoutes = includedRoutes.ipv6
+        ipv6Settings.excludedRoutes = excludedRoutes.ipv6
         networkSettings.ipv6Settings = ipv6Settings
 
         return networkSettings
     }
 
-    private func addresses() -> ([NEIPv4Route], [NEIPv6Route]) {
+    private static func routes(from addresses: [IPAddressRange]) -> (ipv4: [NEIPv4Route], ipv6: [NEIPv6Route]) {
         var ipv4Routes = [NEIPv4Route]()
         var ipv6Routes = [NEIPv6Route]()
-        for addressRange in tunnelConfiguration.interface.addresses {
+        for addressRange in addresses {
             if addressRange.address is IPv4Address {
                 ipv4Routes.append(NEIPv4Route(destinationAddress: "\(addressRange.address)", subnetMask: "\(addressRange.subnetMask())"))
             } else if addressRange.address is IPv6Address {
@@ -140,50 +145,11 @@ final class PacketTunnelSettingsGenerator {
                  * very bad, if various network parameters were actually relying on that subnet being
                  * intentionally small.
                  */
-                ipv6Routes.append(NEIPv6Route(destinationAddress: "\(addressRange.address)", networkPrefixLength: NSNumber(value: min(120, addressRange.networkPrefixLength))))
+                ipv6Routes.append(NEIPv6Route(destinationAddress: "\(addressRange.address)",
+                                              networkPrefixLength: NSNumber(value: min(120, addressRange.networkPrefixLength))))
             }
         }
         return (ipv4Routes, ipv6Routes)
-    }
-
-    private static let ipv4ExcludedRoutes = [
-        NEIPv4Route(destinationAddress: "10.0.0.0", subnetMask: "255.0.0.0"),
-        NEIPv4Route(destinationAddress: "169.254.0.0", subnetMask: "255.255.0.0"),
-        NEIPv4Route(destinationAddress: "172.16.0.0", subnetMask: "255.240.0.0"),
-        NEIPv4Route(destinationAddress: "192.168.0.0", subnetMask: "255.255.0.0"),
-        NEIPv4Route(destinationAddress: "127.0.0.0", subnetMask: "255.0.0.0"),
-        NEIPv4Route(destinationAddress: "224.0.0.0", subnetMask: "15.255.255.255"),
-        NEIPv4Route(destinationAddress: "100.64.0.0", subnetMask: "255.255.0.0")
-    ]
-
-    private func includedRoutes() -> ([NEIPv4Route], [NEIPv6Route]) {
-        var ipv4IncludedRoutes = [NEIPv4Route]()
-        var ipv6IncludedRoutes = [NEIPv6Route]()
-
-        ipv4IncludedRoutes.append(NEIPv4Route(destinationAddress: "10.11.12.1", subnetMask: "255.255.255.255"))
-
-        for addressRange in tunnelConfiguration.interface.addresses {
-            if addressRange.address is IPv4Address {
-                let route = NEIPv4Route(destinationAddress: "\(addressRange.maskedAddress())", subnetMask: "\(addressRange.subnetMask())")
-                route.gatewayAddress = "\(addressRange.address)"
-                ipv4IncludedRoutes.append(route)
-            } else if addressRange.address is IPv6Address {
-                let route = NEIPv6Route(destinationAddress: "\(addressRange.maskedAddress())", networkPrefixLength: NSNumber(value: addressRange.networkPrefixLength))
-                route.gatewayAddress = "\(addressRange.address)"
-                ipv6IncludedRoutes.append(route)
-            }
-        }
-
-        for peer in tunnelConfiguration.peers {
-            for addressRange in peer.allowedIPs {
-                if addressRange.address is IPv4Address {
-                    ipv4IncludedRoutes.append(NEIPv4Route(destinationAddress: "\(addressRange.address)", subnetMask: "\(addressRange.subnetMask())"))
-                } else if addressRange.address is IPv6Address {
-                    ipv6IncludedRoutes.append(NEIPv6Route(destinationAddress: "\(addressRange.address)", networkPrefixLength: NSNumber(value: addressRange.networkPrefixLength)))
-                }
-            }
-        }
-        return (ipv4IncludedRoutes, ipv6IncludedRoutes)
     }
 
     private class func reresolveEndpoint(endpoint: Endpoint) -> EndpointResolutionResult {

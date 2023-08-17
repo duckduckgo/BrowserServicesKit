@@ -20,18 +20,17 @@ import Foundation
 import Combine
 import DDGSyncCrypto
 import Common
-import os.log
 
 public class DDGSync: DDGSyncing {
 
     public static let bundle = Bundle.module
 
     enum Constants {
-        //#if DEBUG
+        // #if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        //#else
+        // #else
         //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-        //#endif
+        // #endif
 
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }

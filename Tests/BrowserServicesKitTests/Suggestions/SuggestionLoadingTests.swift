@@ -59,7 +59,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
         func suggestionLoading(_ suggestionLoading: SuggestionLoading,
                                suggestionDataFromUrl url: URL,
-                               withParameters parameters: [String : String],
+                               withParameters parameters: [String: String],
                                completion: @escaping (Data?, Error?) -> Void) {
             dataCallCount += 1
             if let asyncDelay = asyncDelay {
@@ -161,10 +161,7 @@ fileprivate extension Data {
 
     static var anAPIResultData: Data {
         let encoder = JSONEncoder()
-
-        // swiftlint:disable force_try
         return try! encoder.encode(APIResult.anAPIResult.items)
-        // swiftlint:enable force_try
     }
 
 }

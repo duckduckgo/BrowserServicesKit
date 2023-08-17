@@ -23,9 +23,6 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable line_length
-// swiftlint:disable function_body_length
-
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationValuesTests: DistributedNavigationDelegateTestsBase {
 

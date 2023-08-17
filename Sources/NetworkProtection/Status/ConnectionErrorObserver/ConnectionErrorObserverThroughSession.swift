@@ -25,7 +25,11 @@ import Common
 /// NEVPNStatusDidChange notifications or tunnel session.
 ///
 public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
-    public let publisher = CurrentValueSubject<String?, Never>(nil)
+    public lazy var publisher: AnyPublisher<String?, Never> = subject.eraseToAnyPublisher()
+    public var recentValue: String? {
+        subject.value
+    }
+    private let subject = CurrentValueSubject<String?, Never>(nil)
 
     // MARK: - Notifications
 
@@ -94,22 +98,9 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
     // MARK: - Obtaining the NetP VPN status
 
     private func updateTunnelErrorMessage(session: NETunnelProviderSession) throws {
-        let request = Data([ExtensionMessage.getLastErrorMessage.rawValue])
-        try session.sendProviderMessage(request) { [weak self] data in
-            guard let self = self else {
-                return
-            }
-
-            guard let data = data else {
-                publisher.send(nil)
-                return
-            }
-
-            let errorMessage = String(data: data, encoding: ExtensionMessage.preferredStringEncoding)
-
-            if errorMessage != self.publisher.value {
-                self.publisher.send(errorMessage)
-            }
+        try session.sendProviderMessage(.getLastErrorMessage) { [weak self] (errorMessage: ExtensionMessageString?) in
+            guard errorMessage?.value != self?.subject.value else { return }
+            self?.subject.send(errorMessage?.value)
         }
     }
 }

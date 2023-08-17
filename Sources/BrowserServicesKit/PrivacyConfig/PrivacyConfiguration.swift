@@ -39,7 +39,7 @@ public protocol PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> Bool
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -91,7 +91,7 @@ public extension PrivacyConfiguration {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature) -> Bool {
-        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider())
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Bool {
+        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
 }

@@ -275,11 +275,11 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         return nil
     }
 
-    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) {
 
     }
 
-    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) {
 
     }
 
@@ -299,16 +299,16 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
-                            completionHandler: @escaping AliasCompletion) {
+                            completionHandler: @escaping AliasAutosaveCompletion) {
         requestAliasCallback?()
-        completionHandler("alias", nil)
+        completionHandler("alias", true, nil)
     }
     
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {
+    func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         refreshAliasCallback?()
     }
     
-    func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         requestStoreTokenCallback!(token, username, cohort)
     }
 

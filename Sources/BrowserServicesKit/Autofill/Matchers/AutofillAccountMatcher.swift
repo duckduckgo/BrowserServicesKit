@@ -60,15 +60,18 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         let currentUrlComponents = autofillUrlMatcher.normalizeSchemeForAutofill(url)
 
         for account in accounts {
-            if let savedUrlComponents = autofillUrlMatcher.normalizeSchemeForAutofill(account.domain) {
-                if !autofillUrlMatcher.isMatchingForAutofill(currentSite: url, savedSite: account.domain, tld: tld) {
+            guard let domain = account.domain else {
+                continue
+            }
+            if let savedUrlComponents = autofillUrlMatcher.normalizeSchemeForAutofill(domain) {
+                if !autofillUrlMatcher.isMatchingForAutofill(currentSite: url, savedSite: domain, tld: tld) {
                     continue
                 }
 
                 if currentUrlComponents?.subdomain(tld: tld) == savedUrlComponents.subdomain(tld: tld) {
                     perfectMatches.append(account)
                 } else {
-                    partialMatches[account.domain, default: []].append(account)
+                    partialMatches[domain, default: []].append(account)
                 }
             }
         }
@@ -82,10 +85,8 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         return AccountMatches(perfectMatches: sortedPerfectMatches, partialMatches: partialMatches)
     }
 
-
     public func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> [SecureVaultModels.WebsiteAccount] {
         return accounts.sortedForDomain(url, tld: tld, removeDuplicates: true)
     }
 
 }
-

@@ -27,15 +27,16 @@ let package = Package(
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
         .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
-        .library(name: "SecureStorage", targets: ["SecureStorage"]),
+        .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
+        .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.1.2"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit.git", exact: "1.2.1"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.5"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.32.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -177,8 +178,11 @@ let package = Package(
             name: "SyncDataProviders",
             dependencies: [
                 "Bookmarks",
+                "BrowserServicesKit",
                 "DDGSync",
-                "Persistence"
+                .product(name: "GRDB", package: "GRDB.swift"),
+                "Persistence",
+                "SecureStorage"
             ]),
         .target(
             name: "TestUtils",
@@ -199,7 +203,19 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
+        .target(
+            name: "SecureStorageTestsUtils",
+            dependencies: [
+                "SecureStorage"
+            ]
+        ),
         .target(name: "WireGuardC"),
+        .target(
+            name: "NetworkProtectionTestUtils",
+            dependencies: [
+                "NetworkProtection"
+            ]
+        ),
 
         // MARK: - Test Targets
 
@@ -213,7 +229,8 @@ let package = Package(
             name: "BrowserServicesKitTests",
             dependencies: [
                 "BrowserServicesKit",
-                "RemoteMessaging" // Move tests later (lots of test dependencies in BSK)
+                "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
+                "SecureStorageTestsUtils"
             ],
             resources: [
                 .copy("Resources")
@@ -280,6 +297,7 @@ let package = Package(
             name: "SyncDataProvidersTests",
             dependencies: [
                 "BookmarksTestsUtils",
+                "SecureStorageTestsUtils",
                 "SyncDataProviders"
             ]
         ),
@@ -296,7 +314,8 @@ let package = Package(
         .testTarget(
             name: "SecureStorageTests",
             dependencies: [
-                "SecureStorage"
+                "SecureStorage",
+                "SecureStorageTestsUtils"
             ]
         ),
     ],
