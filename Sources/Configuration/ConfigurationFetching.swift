@@ -135,7 +135,8 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         let log = log
         let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession, log: log)
         let (data, response) = try await request.fetch()
-        return (response.etag!, data)
+        return ("some-etag", data)
+        // return (response.etag!, data)
     }
 
     private func store(_ result: ConfigurationFetchResult, for configuration: Configuration) throws {
