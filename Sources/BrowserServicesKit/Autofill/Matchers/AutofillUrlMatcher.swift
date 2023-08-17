@@ -33,7 +33,8 @@ public struct AutofillDomainNameUrlMatcher: AutofillUrlMatcher {
     public func normalizeUrlForWeb(_ url: String) -> String {
         let trimmedUrl = url.trimmingWhitespace()
 
-        guard let urlComponents = normalizeSchemeForAutofill(trimmedUrl), let host = urlComponents.host else {
+        guard let urlComponents = normalizeSchemeForAutofill(trimmedUrl),
+                let host = urlComponents.host else {
             return url
         }
 
