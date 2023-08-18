@@ -1349,7 +1349,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testStopLoadingAfterWillStart() throws {
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        navigationDelegate.setRespo nders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         server.middleware = [{ [data] request in
             return .ok(.data(data.html))
