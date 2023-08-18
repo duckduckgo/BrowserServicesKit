@@ -79,7 +79,7 @@ jobs:
     name: Create Asana Task
     needs: [swiftlint, unit-tests]
 
-    if: failure() 
+    if: failure() && github.ref_name == 'main'
     
     env:
       WORKFLOW_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
