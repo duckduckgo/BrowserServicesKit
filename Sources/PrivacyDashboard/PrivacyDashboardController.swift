@@ -29,7 +29,8 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch isEnabled: Bool)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
 
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
@@ -38,9 +39,14 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
 #if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetPermission permissionName: String, to state: PermissionAuthorizationState)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, setPermission permissionName: String, paused: Bool)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didSetPermission permissionName: String,
+                                    to state: PermissionAuthorizationState)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    setPermission permissionName: String,
+                                    paused: Bool)
 #endif
     
 }

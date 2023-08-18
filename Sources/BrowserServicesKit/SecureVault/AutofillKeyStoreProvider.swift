@@ -56,36 +56,36 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         var query = attributesForEntry(named: name, serviceName: serviceName)
         query[kSecReturnData as String] = true
         query[kSecAttrService as String] = serviceName
-
+        
         var item: CFTypeRef?
-
+        
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         switch status {
-            case errSecSuccess:
-                if serviceName == Constants.defaultServiceName {
-                    guard let itemData = item as? Data,
-                          let itemString = String(data: itemData, encoding: .utf8),
-                          let decodedData = Data(base64Encoded: itemString) else {
-                        throw SecureStorageError.keystoreError(status: status)
-                    }
-                    return decodedData
-                } else {
-                    guard let data = item as? Data else {
-                        throw SecureStorageError.keystoreError(status: status)
-                    }
-                    return data
+        case errSecSuccess:
+            if serviceName == Constants.defaultServiceName {
+                guard let itemData = item as? Data,
+                      let itemString = String(data: itemData, encoding: .utf8),
+                      let decodedData = Data(base64Encoded: itemString) else {
+                    throw SecureStorageError.keystoreError(status: status)
                 }
-
-            case errSecItemNotFound:
-
-                // Look for an older key and try to migrate
-                if serviceName == Constants.defaultServiceName {
-                    return try? migrateV1Key(name: name)
+                return decodedData
+            } else {
+                guard let data = item as? Data else {
+                    throw SecureStorageError.keystoreError(status: status)
                 }
-                return nil
-
-            default:
-                throw SecureStorageError.keystoreError(status: status)
+                return data
+            }
+            
+        case errSecItemNotFound:
+            
+            // Look for an older key and try to migrate
+            if serviceName == Constants.defaultServiceName {
+                return try? migrateV1Key(name: name)
+            }
+            return nil
+            
+        default:
+            throw SecureStorageError.keystoreError(status: status)
         }
     }
 

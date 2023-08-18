@@ -155,6 +155,7 @@ class SecureVaultModelTests: XCTestCase {
 
     // MARK: - Test Utilities
 
+    // swiftlint:disable:next large_tuple
     private func identity(named name: (String, String, String), addressStreet: String?) -> SecureVaultModels.Identity {
         return SecureVaultModels.Identity(id: nil,
                                           title: nil,

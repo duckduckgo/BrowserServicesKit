@@ -98,10 +98,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
     
     private func isRolloutEnabled(subfeature: any PrivacySubfeature,
-                                rollouts: [PrivacyConfigurationData.PrivacyFeature.Feature.Rollout],
-                                randomizer: (Range<Double>) -> Double) -> Bool {
+                                  rolloutSteps: [PrivacyConfigurationData.PrivacyFeature.Feature.RolloutStep],
+                                  randomizer: (Range<Double>) -> Double) -> Bool {
         // Empty rollouts should be default enabled
-        guard !rollouts.isEmpty else { return true }
+        guard !rolloutSteps.isEmpty else { return true }
         
         let defsPrefix = "config.\(subfeature.parent.rawValue).\(subfeature.rawValue)"
         if userDefaults.bool(forKey: "\(defsPrefix).\(Constants.enabledKey)") {
@@ -109,7 +109,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
         
         var willEnable = false
-        let rollouts = Array(Set(rollouts.filter({ $0.percent >= 0.0 && $0.percent <= 100.0 }))).sorted(by: { $0.percent < $1.percent })
+        let rollouts = Array(Set(rolloutSteps.filter({ $0.percent >= 0.0 && $0.percent <= 100.0 }))).sorted(by: { $0.percent < $1.percent })
         if let rolloutSize = userDefaults.value(forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)") as? Int {
             guard rolloutSize < rollouts.count else { return false }
             // Sanity check as we need at least two values to compute the new probability
@@ -139,7 +139,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return true
     }
 
-    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool {
+    public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature,
+                                    versionProvider: AppVersionProvider,
+                                    randomizer: (Range<Double>) -> Double) -> Bool {
         guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
             return false
         }
@@ -148,8 +150,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
         
         // Handle Rollouts
-        if let rollouts = subfeatureData?.rollouts {
-            if !isRolloutEnabled(subfeature: subfeature, rollouts: rollouts, randomizer: randomizer) {
+        if let rollout = subfeatureData?.rollout {
+            if !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
                 return false
             }
         }

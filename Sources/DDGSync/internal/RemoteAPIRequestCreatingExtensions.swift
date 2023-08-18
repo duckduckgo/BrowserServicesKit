@@ -21,7 +21,10 @@ import Foundation
 
 extension RemoteAPIRequestCreating {
 
-    func createAuthenticatedGetRequest(url: URL, authToken: String, headers: [String: String] = [:], parameters: [String: String] = [:]) -> HTTPRequesting {
+    func createAuthenticatedGetRequest(url: URL,
+                                       authToken: String,
+                                       headers: [String: String] = [:],
+                                       parameters: [String: String] = [:]) -> HTTPRequesting {
         var headers = headers
         headers["Authorization"] = "Bearer \(authToken)"
         return createRequest(
@@ -34,7 +37,12 @@ extension RemoteAPIRequestCreating {
         )
     }
 
-    func createAuthenticatedJSONRequest(url: URL, method: HTTPRequestMethod, authToken: String, json: Data, headers: [String: String] = [:], parameters: [String: String] = [:]) -> HTTPRequesting {
+    func createAuthenticatedJSONRequest(url: URL,
+                                        method: HTTPRequestMethod,
+                                        authToken: String,
+                                        json: Data,
+                                        headers: [String: String] = [:],
+                                        parameters: [String: String] = [:]) -> HTTPRequesting {
         var headers = headers
         headers["Authorization"] = "Bearer \(authToken)"
         return createRequest(
@@ -47,7 +55,11 @@ extension RemoteAPIRequestCreating {
         )
     }
 
-    func createUnauthenticatedJSONRequest(url: URL, method: HTTPRequestMethod, json: Data, headers: [String: String] = [:], parameters: [String: String] = [:]) -> HTTPRequesting {
+    func createUnauthenticatedJSONRequest(url: URL,
+                                          method: HTTPRequestMethod,
+                                          json: Data,
+                                          headers: [String: String] = [:],
+                                          parameters: [String: String] = [:]) -> HTTPRequesting {
          return createRequest(
             url: url,
             method: method,
