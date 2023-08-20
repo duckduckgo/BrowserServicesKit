@@ -127,7 +127,7 @@ public final class CredentialsDatabaseCleaner {
                     }
                 }
             }
-        } catch  {
+        } catch {
             cleanupError = error
         }
 

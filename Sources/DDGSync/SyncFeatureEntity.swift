@@ -52,7 +52,10 @@ public class SyncFeatureEntity: NSManagedObject {
     }
 
     @discardableResult
-    public static func makeFeature(with name: String, lastModified: String? = nil, state: FeatureSetupState, in context: NSManagedObjectContext) -> SyncFeatureEntity {
+    public static func makeFeature(with name: String,
+                                   lastModified: String? = nil,
+                                   state: FeatureSetupState,
+                                   in context: NSManagedObjectContext) -> SyncFeatureEntity {
         let object = SyncFeatureEntity(context: context)
         object.name = name
         object.featureState = state

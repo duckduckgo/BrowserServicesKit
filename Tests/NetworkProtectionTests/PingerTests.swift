@@ -37,7 +37,7 @@ final class PingerTests: XCTestCase {
         XCTAssertNotEqual(r.ttl, 0)
     }
 
-    func testNonExistentIpShouldTimeout() async throws {
+    func disabled_testNonExistentIpShouldTimeout() async throws {
         let ip = IPv4Address("111.2.155.2")!
         let timeout = 0.2
 

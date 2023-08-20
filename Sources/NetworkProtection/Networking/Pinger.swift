@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-// swiftlint:disable identifier_name
+// swiftlint:disable file_length identifier_name
 
 import Darwin
 import Foundation
@@ -359,7 +359,9 @@ extension Pinger {
                     return self.ip
                 }()
                 let r = PingResult(ip: srcIp, bytesCount: bytesCount, seq: Int(response.index), ttl: Int(ip.ip_ttl), time: end - icmp.timestamp)
-                os_log("%d bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms", log: log, r.bytesCount, r.ip.debugDescription, r.seq, r.ttl, r.time * 1000)
+                os_log("%d bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms",
+                       log: log,
+                       r.bytesCount, r.ip.debugDescription, r.seq, r.ttl, r.time * 1000)
 
                 return .success(r)
 
@@ -624,4 +626,4 @@ struct Socket {
 
 }
 
-// swiftlint:enable identifier_name
+// swiftlint:enable file_length identifier_name

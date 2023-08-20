@@ -19,6 +19,8 @@
 import Foundation
 import Common
 
+// swiftlint:disable file_length type_body_length
+
 /// The models used by the secure vault.
 /// 
 /// Future models include:
@@ -62,7 +64,14 @@ public struct SecureVaultModels {
             self.lastUpdated = self.created
         }
 
-        public init(id: String, title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil, created: Date, lastUpdated: Date) {
+        public init(id: String,
+                    title: String? = nil,
+                    username: String?,
+                    domain: String?,
+                    signature: String? = nil,
+                    notes: String? = nil,
+                    created: Date,
+                    lastUpdated: Date) {
             self.id = id
             self.title = title
             self.username = username
@@ -98,7 +107,19 @@ public struct SecureVaultModels {
             }
             return hash
         }
-
+        
+        public func name(tld: TLD, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher) -> String {
+            if let title = self.title, !title.isEmpty {
+                return title
+            } else {
+                return autofillDomainNameUrlMatcher.normalizeUrlForWeb(domain ?? "")
+            }
+        }
+        
+        public func firstTLDLetter(tld: TLD, autofillDomainNameUrlSort: AutofillDomainNameUrlSort) -> String? {
+            return autofillDomainNameUrlSort.firstCharacterForGrouping(self, tld: tld)?.uppercased()
+        }
+  
     }
 
     public struct CreditCard {
@@ -559,3 +580,5 @@ private extension Date {
         return calendar.date(from: dateComponents) ?? self
     }
 }
+
+// swiftlint:enable file_length type_body_length

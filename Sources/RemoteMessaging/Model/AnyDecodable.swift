@@ -30,11 +30,13 @@ import Foundation
     }
 }
 
+// swiftlint:disable type_name
 @usableFromInline
 protocol _AnyDecodable {
     var value: Any { get }
     init<T>(_ value: T?)
 }
+// swiftlint:enable type_name
 
 extension AnyDecodable: _AnyDecodable {}
 
