@@ -21,26 +21,22 @@ import Foundation
 /// A convenience enum to unify the logic for selecting the right keychain through the query attributes.
 ///
 public enum KeychainType {
+    case dataProtection(_ accessGroup: AccessGroup)
+
     /// Uses the system keychain.
     ///
     case system
 
-    /// Uses the data protection keychain for the specified access group (to which the app must have access to).
-    ///
-    case accessGroup(_ accessGroup: AccessGroup)
-
     public enum AccessGroup {
-        case any
+        case unspecified
         case named(_ name: String)
     }
 
     func queryAttributes() -> [CFString: Any] {
         switch self {
-        case .system:
-            return [kSecUseDataProtectionKeychain: false]
-        case .accessGroup(let accessGroup):
+        case .dataProtection(let accessGroup):
             switch accessGroup {
-            case .any:
+            case .unspecified:
                 return [kSecUseDataProtectionKeychain: true]
             case .named(let accessGroup):
                 return [
@@ -48,6 +44,8 @@ public enum KeychainType {
                     kSecAttrAccessGroup: accessGroup
                 ]
             }
+        case .system:
+            return [kSecUseDataProtectionKeychain: false]
         }
     }
 }
