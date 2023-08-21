@@ -18,6 +18,7 @@
 
 import Foundation
 import Punycode
+import Network
 
 public typealias RegEx = NSRegularExpression
 
@@ -28,9 +29,6 @@ public func regex(_ pattern: String, _ options: NSRegularExpression.Options = []
 extension RegEx {
     // from https://stackoverflow.com/a/25717506/73479
     static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
-    // from https://stackoverflow.com/a/30023010/73479
-    static let ipAddress = regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
-                                 .caseInsensitive)
 }
 
 public extension String {
@@ -104,7 +102,10 @@ public extension String {
     }
 
     var isValidIpHost: Bool {
-        return matches(.ipAddress)
+        if IPv4Address(self) != nil || IPv6Address(self) != nil {
+            return true
+        }
+        return false
     }
 
     func matches(_ regex: NSRegularExpression) -> Bool {
