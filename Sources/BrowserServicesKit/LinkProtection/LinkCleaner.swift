@@ -33,10 +33,8 @@ public class LinkCleaner {
     
     public func ampFormat(matching url: URL) -> String? {
         let ampFormats = TrackingLinkSettings(fromConfig: privacyConfig).ampLinkFormats
-        for format in ampFormats {
-            if url.absoluteString.matches(pattern: format) {
-                return format
-            }
+        for format in ampFormats where url.absoluteString.matches(pattern: format) {
+            return format
         }
         
         return nil
@@ -44,6 +42,7 @@ public class LinkCleaner {
     
     public func isURLExcluded(url: URL, feature: PrivacyFeature = .ampLinks) -> Bool {
         guard let host = url.host else { return true }
+        guard url.scheme == "http" || url.scheme == "https" else { return true }
         
         return !privacyConfig.isFeature(feature, enabledForDomain: host)
     }

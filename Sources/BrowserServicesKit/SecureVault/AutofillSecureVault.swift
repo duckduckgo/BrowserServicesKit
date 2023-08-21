@@ -21,8 +21,11 @@ import Common
 import GRDB
 import SecureStorage
 
+// swiftlint:disable file_length type_body_length
+
 public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
 
+// swiftlint:disable:next identifier_name
 public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault>(
     makeCryptoProvider: {
         return AutofillCryptoProvider()
@@ -329,7 +332,9 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
     }
 
-    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials, key l2Key: Data? = nil, salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
+    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
+                                 key l2Key: Data? = nil,
+                                 salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
             // Generate a new signature
             let hashData = credentials.account.hashValue + (credentials.password ?? Data())
@@ -500,7 +505,8 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
-    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>,
+                                              in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         try self.providers.database.syncableCredentialsForSyncIds(syncIds, in: database)
     }
 
@@ -565,3 +571,5 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         return try providers.crypto.decrypt(data, withKey: key)
     }
 }
+
+// swiftlint:enable file_length type_body_length

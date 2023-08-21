@@ -63,7 +63,11 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
         getLog()
     }
 
-    public init(database: CoreDataDatabase, bloomFilterDataURL: URL, embeddedResources: EmbeddedBloomFilterResources, errorEvents: EventMapping<ErrorEvents>?, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public init(database: CoreDataDatabase,
+                bloomFilterDataURL: URL,
+                embeddedResources: EmbeddedBloomFilterResources,
+                errorEvents: EventMapping<ErrorEvents>?,
+                log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.bloomFilterDataURL = bloomFilterDataURL
         self.embeddedResources = embeddedResources
         self.errorEvents = errorEvents

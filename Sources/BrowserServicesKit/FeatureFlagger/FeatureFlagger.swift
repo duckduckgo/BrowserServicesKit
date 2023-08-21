@@ -67,24 +67,26 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 /// where the final value should come from.
 ///
 /// Example:
-//
-// public enum FeatureFlag: FeatureFlagSourceProviding {
-//    case sync
-//    case autofill
-//    case cookieConsent
-//    case duckPlayer
-//
-//    var source: FeatureFlagSource {
-//        case .sync:
-//            return .disabled
-//        case .cookieConsent:
-//            return .internalOnly
-//        case .credentialsAutofill:
-//            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
-//        case .duckPlayer:
-//            return .remoteReleasable(.feature(.duckPlayer))
-//    }
-// }
+///
+/// ```
+/// public enum FeatureFlag: FeatureFlagSourceProviding {
+///    case sync
+///    case autofill
+///    case cookieConsent
+///    case duckPlayer
+///
+///    var source: FeatureFlagSource {
+///        case .sync:
+///            return .disabled
+///        case .cookieConsent:
+///            return .internalOnly
+///        case .credentialsAutofill:
+///            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
+///        case .duckPlayer:
+///            return .remoteReleasable(.feature(.duckPlayer))
+///    }
+/// }
+/// ```
 public protocol FeatureFlagSourceProviding {
     var source: FeatureFlagSource { get }
 }

@@ -18,6 +18,7 @@
 
 import Foundation
 
+// swiftlint:disable file_length
 extension URL {
 
     public static let empty = (NSURL(string: "") ?? NSURL()) as URL
@@ -223,6 +224,7 @@ extension URL {
         self.init(string: url)
     }
 
+    // swiftlint:disable:next large_tuple
     private static func fixupAndSplitURLString(_ s: String) -> (authData: String.SubSequence?, domainAndPath: String.SubSequence, query: String)? {
         let urlAndFragment = s.split(separator: "#", maxSplits: 1)
         guard !urlAndFragment.isEmpty else { return nil }
@@ -389,7 +391,11 @@ extension URL {
         guard let host, let scheme else {
             return nil
         }
-        return URLProtectionSpace(host: host, port: port ?? navigationalScheme?.defaultPort ?? 0, protocol: scheme, realm: nil, authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
+        return URLProtectionSpace(host: host,
+                                  port: port ?? navigationalScheme?.defaultPort ?? 0,
+                                  protocol: scheme,
+                                  realm: nil,
+                                  authenticationMethod: NSURLAuthenticationMethodHTTPBasic)
     }
 
     public func matches(_ protectionSpace: URLProtectionSpace) -> Bool {
@@ -430,3 +436,4 @@ extension URLQueryItem {
     }
 
 }
+// swiftlint:enable file_length

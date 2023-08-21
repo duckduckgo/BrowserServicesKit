@@ -26,7 +26,9 @@ public protocol OverlayAutofillUserScriptDelegate: AnyObject {
     /// Represents the last tab host, is used to verify messages origin from and selecting of credentials
     var overlayAutofillUserScriptLastOpenHost: String? { get }
     /// Handles filling the credentials back from the top autofill into the child
-    func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, messageSelectedCredential: [String: String], _ configType: String)
+    func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript,
+                                   messageSelectedCredential: [String: String],
+                                   _ configType: String)
     /// Closes the overlay
     func overlayAutofillUserScriptClose(_ overlayAutofillUserScript: OverlayAutofillUserScript)
 }

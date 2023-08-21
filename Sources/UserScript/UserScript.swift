@@ -98,7 +98,10 @@ extension UserScript {
                                              requiresRunInPageContentWorld: Bool = false) -> WKUserScriptBox {
         if #available(macOS 11.0, iOS 14.0, *) {
             let contentWorld = getContentWorld(requiresRunInPageContentWorld)
-            return .init(wkUserScript: WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld))
+            return .init(wkUserScript: WKUserScript(source: source,
+                                                    injectionTime: injectionTime,
+                                                    forMainFrameOnly: forMainFrameOnly,
+                                                    in: contentWorld))
         } else {
             return .init(wkUserScript: WKUserScript(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly))
         }
@@ -126,7 +129,9 @@ extension StaticUserScript {
 
     @MainActor
     public static func makeWKUserScript() -> WKUserScript {
-        return makeWKUserScript(from: prepareScriptSource(from: source), injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly).wkUserScript
+        return makeWKUserScript(from: prepareScriptSource(from: source),
+                                injectionTime: injectionTime,
+                                forMainFrameOnly: forMainFrameOnly).wkUserScript
     }
 
 }

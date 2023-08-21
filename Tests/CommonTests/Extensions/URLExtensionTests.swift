@@ -61,6 +61,11 @@ final class URLExtensionTests: XCTestCase {
             .init("sheep%2B:P%40%24swrd@xn--ls8h.la/?arg=b#1"),
             .init("https://sheep%2B:P%40%24swrd@💩.la"),
             .init("data:text/vnd-example+xyz;foo=bar;base64,R0lGODdh"),
+            .init("http://192.168.0.1"),
+            .init("http://203.0.113.0"),
+            .init("http://[2001:0db8:85a3:0000:0000:8a2e:0370:7334]"),
+            .init("http://[2001:0db8::1]"),
+            .init("http://[::]:8080")
         ]
         for item in urls {
             XCTAssertTrue(item.url!.isValid, item.rawValue, line: item.line)
