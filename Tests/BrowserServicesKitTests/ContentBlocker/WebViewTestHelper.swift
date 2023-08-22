@@ -94,6 +94,7 @@ final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDele
     }
 }
 
+//todo: move to utils
 final class MockDomainsProtectionStore: DomainsProtectionStore {
     var unprotectedDomains = Set<String>()
 

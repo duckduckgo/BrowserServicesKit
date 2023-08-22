@@ -20,6 +20,7 @@
 import XCTest
 import BrowserServicesKit
 
+//todo move to common utils tests
 class MockEmbeddedDataProvider: EmbeddedDataProvider {
     var embeddedDataEtag: String
 
