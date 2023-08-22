@@ -141,11 +141,16 @@ public final class SettingsProvider: DataProvider {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
+        var originalValues: [Setting: String] = [:]
+        var originalNilValues: Set<Setting> = []
+
         context.performAndWait {
             while true {
 
+                var responseHandler: SettingsResponseHandler!
+
                 do {
-                    let responseHandler = try SettingsResponseHandler(
+                    responseHandler = try SettingsResponseHandler(
                         received: received,
                         clientTimestamp: clientTimestamp,
                         settingsAdapters: settingsAdapters,
@@ -153,11 +158,21 @@ public final class SettingsProvider: DataProvider {
                         crypter: crypter,
                         deduplicateEntities: isInitial
                     )
+                    originalValues = try responseHandler.receivedByKey.reduce(into: [Setting: String]()) { partialResult, element in
+                        guard let setting = Setting(rawValue: element.key), let settingAdapter = settingsAdapters[setting] else {
+                            return
+                        }
+                        if let value = try settingAdapter.getValue() {
+                            partialResult[setting] = value
+                        } else {
+                            originalNilValues.insert(setting)
+                        }
+                    }
                     let idsOfItemsToClearModifiedAt = try cleanUpSentItems(sent, receivedKeys: Set(responseHandler.receivedByKey.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedSettings()
 
 #if DEBUG
-                    willSaveContextAfterApplyingSyncResponse()
+                    try willSaveContextAfterApplyingSyncResponse()
 #endif
                     let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
                     try clearModifiedAtAndSaveContext(keys: keys, clientTimestamp: clientTimestamp, in: context)
@@ -165,6 +180,18 @@ public final class SettingsProvider: DataProvider {
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
                         context.reset()
+                        do {
+                            for key in responseHandler.keysForUpdatedSettings {
+                                if let originalValue = originalValues[key] {
+                                    try settingsAdapters[key]?.setValue(originalValue)
+                                } else if originalNilValues.contains(key) {
+                                    try settingsAdapters[key]?.setValue(nil)
+                                }
+                            }
+                        } catch {
+                            saveError = error
+                            break
+                        }
                         saveAttemptsLeft -= 1
                         if saveAttemptsLeft == 0 {
                             saveError = error
@@ -241,6 +268,6 @@ public final class SettingsProvider: DataProvider {
     // MARK: - Test Support
 
 #if DEBUG
-    var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
+    var willSaveContextAfterApplyingSyncResponse: () throws -> Void = {}
 #endif
 }

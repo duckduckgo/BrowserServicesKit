@@ -29,9 +29,10 @@ final class SettingsResponseHandler {
     let shouldDeduplicateEntities: Bool
 
     let receivedByKey: [String: SyncableSettingAdapter]
-    var metadataByKey: [String: SyncableSettingsMetadata] = [:]
+    private(set) var metadataByKey: [String: SyncableSettingsMetadata] = [:]
+    private(set) var keysForUpdatedSettings = Set<SettingsProvider.Setting>()
 
-    var idsOfItemsThatRetainModifiedAt = Set<String>()
+    private(set) var idsOfItemsThatRetainModifiedAt = Set<String>()
 
     private let decrypt: (String) throws -> String
 
@@ -84,20 +85,6 @@ final class SettingsResponseHandler {
 
     // MARK: - Private
 
-    private func update(_ setting: SettingsProvider.Setting, with syncable: SyncableSettingAdapter) throws {
-        if syncable.isDeleted {
-            try settingsAdapters[setting]?.setValue(nil)
-        } else {
-            let value = try syncable.encryptedValue.flatMap { try decrypt($0) }
-            try settingsAdapters[setting]?.setValue(value)
-        }
-        if let metadata = metadataByKey[setting.rawValue] {
-            metadata.lastModified = nil
-            context.delete(metadata)
-            metadataByKey.removeValue(forKey: setting.rawValue)
-        }
-    }
-
     private func processEntity(with syncable: SyncableSettingAdapter) throws {
         guard let syncableKey = syncable.uuid, let setting = SettingsProvider.Setting(rawValue: syncableKey) else {
             return
@@ -132,6 +119,21 @@ final class SettingsResponseHandler {
             }
         } else {
             try update(setting, with: syncable)
+        }
+    }
+
+    private func update(_ setting: SettingsProvider.Setting, with syncable: SyncableSettingAdapter) throws {
+        if syncable.isDeleted {
+            try settingsAdapters[setting]?.setValue(nil)
+        } else {
+            let value = try syncable.encryptedValue.flatMap { try decrypt($0) }
+            try settingsAdapters[setting]?.setValue(value)
+        }
+        keysForUpdatedSettings.insert(setting)
+        if let metadata = metadataByKey[setting.rawValue] {
+            metadata.lastModified = nil
+            context.delete(metadata)
+            metadataByKey.removeValue(forKey: setting.rawValue)
         }
     }
 
