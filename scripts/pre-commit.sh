@@ -3,22 +3,22 @@
 # Get the path to the git hooks directory
 HOOK_DIR="$(git rev-parse --show-toplevel)/.git/hooks"
 HOOK_PATH="$HOOK_DIR/pre-commit"
-LINTER_SCRIPT_PATH="$(git rev-parse --show-toplevel)/lint.sh"
+LINTER_SCRIPT_PATH="lint.sh"
 
 install_hook() {
+  # Remove any pre-commit hook that might already be installed
+  rm -f "${HOOK_PATH}"
+
   # Define the hook
-  HOOK_SCRIPT="
-  #!/bin/sh  
+  cat > "${HOOK_PATH}" <<- EOF
+  #!/bin/sh
 
   # Run the linter script
-  sh \"$LINTER_SCRIPT_PATH\" --fix
+  sh $LINTER_SCRIPT_PATH --fix
 
-  git add .
+  git add -u
   echo 'SwiftLint finished fixing files. Proceeding with commit...'
-  "
-
-  # Create the pre-commit file
-  echo "$HOOK_SCRIPT" > "$HOOK_PATH"
+  EOF
 
   # Make the file executable
   chmod +x "$HOOK_PATH"
