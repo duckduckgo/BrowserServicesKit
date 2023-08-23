@@ -40,7 +40,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.0")
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1")
     ],
     targets: [
         .target(

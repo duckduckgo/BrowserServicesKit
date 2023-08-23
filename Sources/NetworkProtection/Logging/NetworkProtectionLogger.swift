@@ -27,6 +27,7 @@ public final class DefaultNetworkProtectionLogger: NetworkProtectionLogger {
     public init() {}
 
     public func log(_ error: Error) {
+        // swiftlint:disable:next compiler_protocol_init
         let format = StaticString(stringLiteral: "🔴 %{public}@")
         os_log(format, type: .error, error.localizedDescription)
     }

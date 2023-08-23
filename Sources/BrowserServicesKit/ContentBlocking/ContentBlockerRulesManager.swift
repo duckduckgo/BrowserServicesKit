@@ -23,8 +23,7 @@ import TrackerRadarKit
 import Combine
 import Common
 
-// swiftlint:disable file_length
-// swiftlint:disable type_body_length
+// swiftlint:disable file_length type_body_length
 
 public protocol CompiledRuleListsSource {
     
@@ -337,11 +336,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         var cnames = [TrackerData.CnameDomain: TrackerData.TrackerDomain]()
         if let tdsCnames = tds.cnames {
             for pair in tdsCnames {
-                for domain in domains.keys {
-                    if pair.value.hasSuffix(domain) {
-                        cnames[pair.key] = pair.value
-                        break
-                    }
+                for domain in domains.keys where pair.value.hasSuffix(domain) {
+                    cnames[pair.key] = pair.value
+                    break
                 }
             }
         }
@@ -450,3 +447,5 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
 }
+
+// swiftlint:enable file_length type_body_length

@@ -88,7 +88,10 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
 
         let (rx, tx) = bytesPerSecond(newer: newer, older: older)
 
-        os_log("Bytes per second in last time-interval: (rx: %{public}@, tx: %{public}@)", log: .networkProtectionBandwidthAnalysis, type: .info, String(describing: rx), String(describing: tx))
+        os_log("Bytes per second in last time-interval: (rx: %{public}@, tx: %{public}@)",
+               log: .networkProtectionBandwidthAnalysis,
+               type: .info,
+               String(describing: rx), String(describing: tx))
 
         idle = UInt64(rx) < Self.rxThreshold && UInt64(tx) < Self.txThreshold
     }

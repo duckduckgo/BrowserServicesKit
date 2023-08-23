@@ -89,17 +89,40 @@ public final class CredentialsProvider: DataProvider {
         }
     }
 
-    public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
-        try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
+    public override func handleInitialSyncResponse(received: [Syncable],
+                                                   clientTimestamp: Date,
+                                                   serverTimestamp: String?,
+                                                   crypter: Crypting) async throws {
+        try await handleSyncResponse(isInitial: true,
+                                     sent: [],
+                                     received: received,
+                                     clientTimestamp: clientTimestamp,
+                                     serverTimestamp: serverTimestamp,
+                                     crypter: crypter)
     }
 
-    public override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
-        try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
+    public override func handleSyncResponse(sent: [Syncable],
+                                            received: [Syncable],
+                                            clientTimestamp: Date,
+                                            serverTimestamp: String?,
+                                            crypter: Crypting) async throws {
+        try await handleSyncResponse(isInitial: false,
+                                     sent: sent,
+                                     received: received,
+                                     clientTimestamp: clientTimestamp,
+                                     serverTimestamp: serverTimestamp,
+                                     crypter: crypter)
     }
 
     // MARK: - Internal
 
-    func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    // swiftlint:disable:next function_body_length function_parameter_count
+    func handleSyncResponse(isInitial: Bool,
+                            sent: [Syncable],
+                            received: [Syncable],
+                            clientTimestamp: Date,
+                            serverTimestamp: String?,
+                            crypter: Crypting) async throws {
         var saveError: Error?
 
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
@@ -145,7 +168,6 @@ public final class CredentialsProvider: DataProvider {
                         }
                     default:
                         saveError = error
-                        break
                     }
                 } else {
                     saveError = error

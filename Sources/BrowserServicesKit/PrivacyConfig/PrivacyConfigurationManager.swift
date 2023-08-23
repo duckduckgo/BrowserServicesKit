@@ -52,7 +52,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     enum ParsingError: Error {
         case dataMismatch
     }
-    
+
+    // swiftlint:disable:next large_tuple
     public typealias ConfigurationData = (rawData: Data, data: PrivacyConfigurationData, etag: String)
     
     private let lock = NSLock()
@@ -92,6 +93,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 data = embedded
             } else {
                 let jsonData = embeddedDataProvider.embeddedData
+                // swiftlint:disable:next force_try
                 let configData = try! PrivacyConfigurationData(data: jsonData)
                 _embeddedConfigData = (jsonData, configData, embeddedDataProvider.embeddedDataEtag)
                 data = _embeddedConfigData

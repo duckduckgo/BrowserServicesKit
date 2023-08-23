@@ -24,7 +24,10 @@ extension Publisher {
     ///
     /// The difference with `timeout(_:tolerance:scheduler:)` is that receiving new values does not reset the timeout.
     ///
-    func stopAfter<S>(_ interval: S.SchedulerTimeType.Stride, tolerance: S.SchedulerTimeType.Stride? = nil, scheduler: S, options: S.SchedulerOptions? = nil) -> AnyPublisher<Output, Failure> where S: Scheduler {
+    func stopAfter<S>(_ interval: S.SchedulerTimeType.Stride,
+                      tolerance: S.SchedulerTimeType.Stride? = nil,
+                      scheduler: S,
+                      options: S.SchedulerOptions? = nil) -> AnyPublisher<Output, Failure> where S: Scheduler {
         prefix(untilOutputFrom: Just(()).delay(for: interval, tolerance: tolerance, scheduler: scheduler, options: nil))
             .eraseToAnyPublisher()
     }

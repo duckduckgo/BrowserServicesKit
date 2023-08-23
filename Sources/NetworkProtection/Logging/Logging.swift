@@ -62,6 +62,7 @@ extension OSLog {
     }
 }
 
+// swiftlint:disable line_length
 struct Logging {
 
     static let subsystem = "com.duckduckgo.macos.browser.network-protection"
@@ -97,3 +98,4 @@ struct Logging {
     fileprivate static let networkProtectionSleepLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Sleep and Wake")
 
 }
+// swiftlint:enable line_length
