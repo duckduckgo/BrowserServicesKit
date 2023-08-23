@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Common
 
 // swiftlint:disable file_length
 
@@ -277,27 +278,29 @@ public class EmailManager {
         dateFormatter.timeZone = TimeZone(identifier: "America/New_York") // Use ET time zone
     }
     
-    public func signOut() {
+    public func signOut() throws {
         // Retrieve the cohort before it gets removed from storage, so that it can be passed as a notification parameter.
         let currentCohortValue = try? storage.getCohort()
 
         do {
             try storage.deleteAuthenticationState()
+
+            var notificationParameters: [String: String] = [:]
+
+            if let currentCohortValue = currentCohortValue {
+                notificationParameters[NotificationParameter.cohort] = currentCohortValue
+            }
+
+            NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
+
         } catch {
             if let error = error as? EmailKeychainAccessError {
                 self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAuthenticationState, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
+            throw error
         }
-        
-        var notificationParameters: [String: String] = [:]
-        
-        if let currentCohortValue = currentCohortValue {
-            notificationParameters[NotificationParameter.cohort] = currentCohortValue
-        }
-
-        NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
     }
 
     public func emailAddressFor(_ alias: String) -> String {
@@ -373,7 +376,7 @@ extension EmailManager: AutofillEmailDelegate {
     }
 
     public func autofillUserScriptDidRequestSignOut(_: AutofillUserScript) {
-        self.signOut()
+        try? self.signOut()
     }
     
     public func autofillUserScript(_: AutofillUserScript,
@@ -426,7 +429,7 @@ extension EmailManager: AutofillEmailDelegate {
     }
     
     public func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
-        storeToken(token, username: username, cohort: cohort)
+        try? storeToken(token, username: username, cohort: cohort)
     }
 
     public func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
@@ -450,7 +453,7 @@ extension EmailManager: AutofillEmailDelegate {
 // MARK: - Token Management
 
 public extension EmailManager {
-    func storeToken(_ token: String, username: String, cohort: String?) {
+    func storeToken(_ token: String, username: String, cohort: String?) throws {
         do {
             try storage.store(token: token, username: username, cohort: cohort)
 
@@ -468,6 +471,7 @@ public extension EmailManager {
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
+            throw error
         }
 
         fetchAndStoreAlias()

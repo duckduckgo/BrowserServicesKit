@@ -162,7 +162,7 @@ public final class SettingsProvider: DataProvider {
                     try responseHandler.processReceivedSettings()
 
 #if DEBUG
-                    willSaveContextAfterApplyingSyncResponse()
+                    try willSaveContextAfterApplyingSyncResponse()
 #endif
                     let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
                     try clearModifiedAtAndSaveContext(keys: keys, clientTimestamp: clientTimestamp, in: context)
@@ -246,6 +246,6 @@ public final class SettingsProvider: DataProvider {
     // MARK: - Test Support
 
 #if DEBUG
-    var willSaveContextAfterApplyingSyncResponse: () -> Void = {}
+    var willSaveContextAfterApplyingSyncResponse: () throws -> Void = {}
 #endif
 }

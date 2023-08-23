@@ -37,7 +37,7 @@ extension EmailManager: EmailProtectionSyncSupporting {
         .eraseToAnyPublisher()
     }
 
-    public func signIn(userEmail: String, token: String) {
-        storeToken(token, username: aliasFor(userEmail), cohort: nil)
+    public func signIn(userEmail: String, token: String) throws {
+        try storeToken(token, username: aliasFor(userEmail), cohort: nil)
     }
 }

@@ -29,7 +29,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionEnabledStateIsAppliedLocally() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        emailManager.signOut()
+        try emailManager.signOut()
 
         let received: [Syncable] = [
             .emailProtection(userEmail: "dax", token: "secret-token")
@@ -46,7 +46,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionDisabledStateIsIgnoredWhenLocallyIsDisabled() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        emailManager.signOut()
+        try emailManager.signOut()
 
         let received: [Syncable] = [
             .emailProtectionDeleted()
@@ -63,7 +63,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionDisabledStateIsIgnoredWhenLocallyIsEnabled() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let received: [Syncable] = [
             .emailProtectionDeleted()
@@ -82,7 +82,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
+        try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
 
         let received: [Syncable] = [
             .emailProtection(userEmail: "dax-remote", token: "secret-token-remote")
@@ -99,7 +99,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionStateIsDeduplicated() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let received: [Syncable] = [
             .emailProtection(userEmail: "dax", token: "secret-token")

@@ -28,8 +28,8 @@ public protocol EmailProtectionSyncSupporting: AnyObject {
     var token: String? { get }
     var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
 
-    func signIn(userEmail: String, token: String)
-    func signOut()
+    func signIn(userEmail: String, token: String) throws
+    func signOut() throws
 
 }
 
@@ -71,12 +71,12 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
 
     func setValue(_ value: String?) throws {
         guard let value, let valueData = value.data(using: .utf8) else {
-            emailManager.signOut()
+            try emailManager.signOut()
             return
         }
 
         let payload = try JSONDecoder.snakeCaseKeys.decode(Payload.self, from: valueData)
-        emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
+        try emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
     }
 
     private func updateMetadataTimestamp() {
