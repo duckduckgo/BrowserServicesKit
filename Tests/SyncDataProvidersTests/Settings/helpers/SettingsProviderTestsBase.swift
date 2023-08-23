@@ -169,7 +169,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
     func setLastModified(for setting: SettingsProvider.Setting, to timestamp: Date, in context: NSManagedObjectContext) throws {
         context.performAndWait {
             do {
-                try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.rawValue, in: context)
+                try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
                 try context.save()
             } catch {
                 XCTFail("Failed to save context")

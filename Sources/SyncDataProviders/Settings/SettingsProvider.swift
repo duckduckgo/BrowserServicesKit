@@ -26,8 +26,12 @@ import Persistence
 
 public final class SettingsProvider: DataProvider {
 
-    public enum Setting: String, CaseIterable {
-        case emailProtectionGeneration = "email_protection_generation"
+    public struct Setting: Hashable {
+        let key: String
+
+        init(key: String) {
+            self.key = key
+        }
     }
 
     public convenience init(
@@ -71,7 +75,7 @@ public final class SettingsProvider: DataProvider {
                     context.delete(metadataObject)
                 }
 
-                for key in settingsAdapters.keys.map(\.rawValue) {
+                for key in settingsAdapters.keys.map(\.key) {
                     let metadataObject = SyncableSettingsMetadata(context: context)
                     metadataObject.key = key
                     metadataObject.lastModified = currentTimestamp
@@ -99,7 +103,8 @@ public final class SettingsProvider: DataProvider {
             do {
                 let modifiedSettings = try SyncableSettingsMetadataUtils.fetchMetadataForSettingsPendingSync(in: context)
                 for modifiedSetting in modifiedSettings {
-                    guard let setting = Setting(rawValue: modifiedSetting.key), let adapter = settingsAdapters[setting] else {
+                    let setting = Setting(key: modifiedSetting.key)
+                    guard let adapter = settingsAdapters[setting] else {
                         // todo: error
                         continue
                     }
@@ -198,7 +203,7 @@ public final class SettingsProvider: DataProvider {
         var idsOfItemsToClearModifiedAt = Set<String>()
 
         for metadata in settingsMetadata {
-            guard let setting = Setting(rawValue: metadata.key), let adapter = settingsAdapters[setting] else {
+            guard let adapter = settingsAdapters[Setting(key: metadata.key)] else {
                 continue
             }
 

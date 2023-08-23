@@ -23,5 +23,6 @@ public protocol SettingsSyncAdapter {
     func getValue() throws -> String?
     func setValue(_ value: String?) throws
 
+    var setting: SettingsProvider.Setting { get }
     var shouldApplyRemoteDeleteOnInitialSync: Bool { get }
 }

@@ -33,7 +33,13 @@ public protocol EmailProtectionSyncSupporting: AnyObject {
 
 }
 
+extension SettingsProvider.Setting {
+    static let emailProtectionGeneration = SettingsProvider.Setting(key: "email_protection_generation")
+}
+
 class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
+
+    let setting: SettingsProvider.Setting = .emailProtectionGeneration
 
     struct Payload: Codable {
         let mainDuckAddress: String
@@ -46,7 +52,7 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
 
         emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
             .sink { [weak self] in
-                self?.updateDuckAddressTimestamp()
+                self?.updateMetadataTimestamp()
             }
     }
 
@@ -73,15 +79,11 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
     }
 
-    private func updateDuckAddressTimestamp() {
+    private func updateMetadataTimestamp() {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
             do {
-                try SyncableSettingsMetadataUtils.setLastModified(
-                    Date(),
-                    forSettingWithKey: SettingsProvider.Setting.emailProtectionGeneration.rawValue,
-                    in: context
-                )
+                try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
                 try context.save()
             } catch {
                 // todo: error

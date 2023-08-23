@@ -74,7 +74,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let settingsMetadata = try fetchAllSettingsMetadata(in: context)
         XCTAssertEqual(settingsMetadata.count, 1)
-        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.key)
         XCTAssertNotNil(settingsMetadata.first?.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")

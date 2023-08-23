@@ -91,17 +91,19 @@ final class SettingsResponseHandler {
             let value = try syncable.encryptedValue.flatMap { try decrypt($0) }
             try settingsAdapters[setting]?.setValue(value)
         }
-        if let metadata = metadataByKey[setting.rawValue] {
+        if let metadata = metadataByKey[setting.key] {
             metadata.lastModified = nil
             context.delete(metadata)
-            metadataByKey.removeValue(forKey: setting.rawValue)
+            metadataByKey.removeValue(forKey: setting.key)
         }
     }
 
     private func processEntity(with syncable: SyncableSettingAdapter) throws {
-        guard let syncableKey = syncable.uuid, let setting = SettingsProvider.Setting(rawValue: syncableKey) else {
+        guard let syncableKey = syncable.uuid else {
             return
         }
+
+        let setting = SettingsProvider.Setting(key: syncableKey)
 
         if shouldDeduplicateEntities {
             guard let settingAdapter = settingsAdapters[setting] else {

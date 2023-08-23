@@ -63,7 +63,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
-            Set([SettingsProvider.Setting.emailProtectionGeneration.rawValue])
+            Set([SettingsProvider.Setting.emailProtectionGeneration.key])
         )
     }
 
@@ -79,7 +79,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let syncable = try XCTUnwrap(changedObjects.first)
 
         XCTAssertTrue(syncable.isDeleted)
-        XCTAssertEqual(syncable.uuid, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertEqual(syncable.uuid, SettingsProvider.Setting.emailProtectionGeneration.key)
     }
 
     func testThatSentItemsAreProperlyCleanedUp() async throws {
@@ -149,7 +149,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
             emailManager.signOut()
             context.performAndWait {
                 emailProtectionModificationDate = SyncableSettingsMetadataUtils
-                    .fetchSettingsMetadata(with: SettingsProvider.Setting.emailProtectionGeneration.rawValue, in: context)?
+                    .fetchSettingsMetadata(with: SettingsProvider.Setting.emailProtectionGeneration.key, in: context)?
                     .lastModified
             }
         }
@@ -202,7 +202,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let settingsMetadata = try fetchAllSettingsMetadata(in: context)
         XCTAssertEqual(settingsMetadata.count, 1)
-        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.key)
         XCTAssertNotNil(settingsMetadata.first?.lastModified)
         XCTAssertNil(emailManagerStorage.mockUsername)
         XCTAssertNil(emailManagerStorage.mockToken)
@@ -224,7 +224,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let settingsMetadata = try fetchAllSettingsMetadata(in: context)
         XCTAssertEqual(settingsMetadata.count, 1)
-        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.key)
         XCTAssertNotNil(settingsMetadata.first?.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
@@ -246,7 +246,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let settingsMetadata = try fetchAllSettingsMetadata(in: context)
         XCTAssertEqual(settingsMetadata.count, 1)
-        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.key)
         XCTAssertNotNil(settingsMetadata.first?.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
@@ -275,7 +275,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
             emailManager.signOut()
             context.performAndWait {
                 emailProtectionModificationDate = SyncableSettingsMetadataUtils
-                    .fetchSettingsMetadata(with: SettingsProvider.Setting.emailProtectionGeneration.rawValue, in: context)?
+                    .fetchSettingsMetadata(with: SettingsProvider.Setting.emailProtectionGeneration.key, in: context)?
                     .lastModified
             }
         }
@@ -285,7 +285,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
         let settingsMetadata = try fetchAllSettingsMetadata(in: context)
         XCTAssertEqual(settingsMetadata.count, 1)
-        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.rawValue)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.key)
         XCTAssertNotNil(settingsMetadata.first?.lastModified)
         XCTAssertNil(emailManagerStorage.mockUsername)
         XCTAssertNil(emailManagerStorage.mockToken)

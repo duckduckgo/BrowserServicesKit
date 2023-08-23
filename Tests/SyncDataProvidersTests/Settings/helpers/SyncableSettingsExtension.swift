@@ -26,7 +26,7 @@ extension Syncable {
 
     static func settings(_ key: SettingsProvider.Setting, value: String? = nil, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
         var json: [String: Any] = [
-            "key": key.rawValue,
+            "key": key.key,
             "value": value as Any,
             "client_last_modified": "1234"
         ]

@@ -47,7 +47,7 @@ extension Syncable {
     init(setting: SettingsProvider.Setting, value: String?, lastModified: Date?, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
-        payload["key"] = setting.rawValue
+        payload["key"] = setting.key
 
         guard let value else {
             payload["deleted"] = ""
