@@ -42,6 +42,7 @@ public enum EmailKeychainAccessError: Error, Equatable {
     case keychainSaveFailure(OSStatus)
     case keychainDeleteFailure(OSStatus)
     case keychainLookupFailure(OSStatus)
+    case keychainFailedToSaveUsernameAfterSavingToken(OSStatus)
     
     public var errorDescription: String {
         switch self {
@@ -51,6 +52,7 @@ public enum EmailKeychainAccessError: Error, Equatable {
         case .keychainSaveFailure: return "keychainSaveFailure"
         case .keychainDeleteFailure: return "keychainDeleteFailure"
         case .keychainLookupFailure: return "keychainLookupFailure"
+        case .keychainFailedToSaveUsernameAfterSavingToken: return "keychainFailedtoSaveUsernameAfterSavingToken"
         }
     }
 }
