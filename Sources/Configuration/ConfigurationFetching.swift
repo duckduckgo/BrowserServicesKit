@@ -54,7 +54,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         let validator = ConfigurationValidator(eventMapping: eventMapping)
         self.init(store: store, validator: validator, log: log())
     }
-    
+
     init(store: ConfigurationStoring,
          validator: ConfigurationValidating,
          urlSession: URLSession = .shared,
