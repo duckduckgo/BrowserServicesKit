@@ -46,11 +46,11 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         static let tokenStoreName = "com.duckduckgo.networkprotection.token"
     }
 
-    public init(useSystemKeychain: Bool,
+    public init(keychainType: KeychainType,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: Defaults.tokenStoreService,
-                                                       useSystemKeychain: useSystemKeychain)
+                                                       keychainType: keychainType)
         self.errorEvents = errorEvents
     }
 

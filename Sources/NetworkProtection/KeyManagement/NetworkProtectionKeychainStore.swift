@@ -39,23 +39,23 @@ enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertib
 final class NetworkProtectionKeychainStore {
     private let label: String
     private let serviceName: String
-    private let useSystemKeychain: Bool
+    private let keychainType: KeychainType
 
     init(label: String,
-         serviceName: String,
-         useSystemKeychain: Bool) {
+                serviceName: String,
+                keychainType: KeychainType) {
 
         self.label = label
         self.serviceName = serviceName
-        self.useSystemKeychain = useSystemKeychain
+        self.keychainType = keychainType
     }
 
     // MARK: - Keychain Interaction
 
     func readData(named name: String) throws -> Data? {
         var query = defaultAttributes()
-        query[kSecAttrAccount as String] = name
-        query[kSecReturnData as String] = true
+        query[kSecAttrAccount] = name
+        query[kSecReturnData] = true
 
         var item: CFTypeRef?
 
@@ -77,9 +77,9 @@ final class NetworkProtectionKeychainStore {
 
     func writeData(_ data: Data, named name: String) throws {
         var query = defaultAttributes()
-        query[kSecAttrAccount as String] = name
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
-        query[kSecValueData as String] = data
+        query[kSecAttrAccount] = name
+        query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
+        query[kSecValueData] = data
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
@@ -93,7 +93,7 @@ final class NetworkProtectionKeychainStore {
 #if os(macOS)
         // This line causes the delete to error with status -50 on iOS. Needs investigation but, for now, just delete the first item
         // https://app.asana.com/0/1203512625915051/1205009181378521
-        query[kSecMatchLimit as String] = kSecMatchLimitAll
+        query[kSecMatchLimit] = kSecMatchLimitAll
 #endif
 
         let status = SecItemDelete(query as CFDictionary)
@@ -105,13 +105,16 @@ final class NetworkProtectionKeychainStore {
         }
     }
 
-    private func defaultAttributes() -> [String: Any] {
-        return [
+    private func defaultAttributes() -> [CFString: Any] {
+        var attributes: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecUseDataProtectionKeychain: !useSystemKeychain,
             kSecAttrSynchronizable: false,
             kSecAttrLabel: label,
             kSecAttrService: serviceName
-        ] as [String: Any]
+        ]
+
+        attributes.merge(keychainType.queryAttributes()) { $1 }
+
+        return attributes
     }
 }
