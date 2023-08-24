@@ -1,5 +1,5 @@
 //
-//  EmailManager+EmailProtectionSyncSupporting.swift
+//  EmailManager+SyncSupporting.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -21,7 +21,7 @@ import BrowserServicesKit
 import Combine
 import Foundation
 
-extension EmailManager: EmailProtectionSyncSupporting {
+extension EmailManager: EmailManagerSyncSupporting {
     public var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> {
         Publishers.Merge(
             NotificationCenter.default.publisher(for: .emailDidSignIn),

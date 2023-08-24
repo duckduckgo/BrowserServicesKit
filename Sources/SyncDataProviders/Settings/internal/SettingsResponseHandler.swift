@@ -38,7 +38,7 @@ final class SettingsResponseHandler {
     init(
         received: [Syncable],
         clientTimestamp: Date? = nil,
-        settingsAdapters: [SettingsProvider.Setting: any SettingsSyncAdapter],
+        settingsHandlers: [SettingsProvider.Setting: any SettingsSyncHandling],
         context: NSManagedObjectContext,
         crypter: Crypting,
         deduplicateEntities: Bool
@@ -46,7 +46,7 @@ final class SettingsResponseHandler {
 
         self.clientTimestamp = clientTimestamp
         self.received = received.map(SyncableSettingAdapter.init)
-        self.settingsAdapters = settingsAdapters
+        self.settingsHandlers = settingsHandlers
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
 
@@ -86,10 +86,10 @@ final class SettingsResponseHandler {
 
     private func update(_ setting: SettingsProvider.Setting, with syncable: SyncableSettingAdapter) throws {
         if syncable.isDeleted {
-            try settingsAdapters[setting]?.setValue(nil)
+            try settingsHandlers[setting]?.setValue(nil)
         } else {
             let value = try syncable.encryptedValue.flatMap { try decrypt($0) }
-            try settingsAdapters[setting]?.setValue(value)
+            try settingsHandlers[setting]?.setValue(value)
         }
         if let metadata = metadataByKey[setting.key] {
             metadata.lastModified = nil
@@ -106,7 +106,7 @@ final class SettingsResponseHandler {
         let setting = SettingsProvider.Setting(key: syncableKey)
 
         if shouldDeduplicateEntities {
-            guard let settingAdapter = settingsAdapters[setting] else {
+            guard let settingAdapter = settingsHandlers[setting] else {
                 return
             }
             if syncable.isDeleted {
@@ -137,5 +137,5 @@ final class SettingsResponseHandler {
         }
     }
 
-    private let settingsAdapters: [SettingsProvider.Setting: any SettingsSyncAdapter]
+    private let settingsHandlers: [SettingsProvider.Setting: any SettingsSyncHandling]
 }

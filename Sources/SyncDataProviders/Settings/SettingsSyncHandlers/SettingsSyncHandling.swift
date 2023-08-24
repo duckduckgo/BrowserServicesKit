@@ -1,5 +1,5 @@
 //
-//  SettingsSyncAdapter.swift
+//  SettingsSyncHandling.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,7 +19,7 @@
 
 import Foundation
 
-public protocol SettingsSyncAdapter {
+public protocol SettingsSyncHandling {
     func getValue() throws -> String?
     func setValue(_ value: String?) throws
 

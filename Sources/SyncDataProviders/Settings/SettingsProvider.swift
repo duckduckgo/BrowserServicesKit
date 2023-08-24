@@ -37,13 +37,13 @@ public final class SettingsProvider: DataProvider {
     public convenience init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        emailManager: EmailProtectionSyncSupporting,
+        emailManager: EmailManagerSyncSupporting,
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsAdapters: [.emailProtectionGeneration: EmailProtectionSettingsAdapter(emailManager: emailManager, metadataDatabase: metadataDatabase)],
+            settingsHandlers: [.emailProtectionGeneration: EmailProtectionSyncHandler(emailManager: emailManager, metadataDatabase: metadataDatabase)],
             syncDidUpdateData: syncDidUpdateData
         )
     }
@@ -51,11 +51,11 @@ public final class SettingsProvider: DataProvider {
     public init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        settingsAdapters: [Setting: any SettingsSyncAdapter],
+        settingsHandlers: [Setting: any SettingsSyncHandling],
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
-        self.settingsAdapters = settingsAdapters
+        self.settingsHandlers = settingsHandlers
         super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
@@ -75,7 +75,7 @@ public final class SettingsProvider: DataProvider {
                     context.delete(metadataObject)
                 }
 
-                for key in settingsAdapters.keys.map(\.key) {
+                for key in settingsHandlers.keys.map(\.key) {
                     let metadataObject = SyncableSettingsMetadata(context: context)
                     metadataObject.key = key
                     metadataObject.lastModified = currentTimestamp
@@ -104,11 +104,11 @@ public final class SettingsProvider: DataProvider {
                 let modifiedSettings = try SyncableSettingsMetadataUtils.fetchMetadataForSettingsPendingSync(in: context)
                 for modifiedSetting in modifiedSettings {
                     let setting = Setting(key: modifiedSetting.key)
-                    guard let adapter = settingsAdapters[setting] else {
-                        // todo: error
+                    guard let settingHandler = settingsHandlers[setting] else {
+                        // setting metadata object is not supported by the provider
                         continue
                     }
-                    let value = try adapter.getValue()
+                    let value = try settingHandler.getValue()
                     syncableSettings.append(
                         try Syncable(
                             setting: setting,
@@ -153,7 +153,7 @@ public final class SettingsProvider: DataProvider {
                     let responseHandler = try SettingsResponseHandler(
                         received: received,
                         clientTimestamp: clientTimestamp,
-                        settingsAdapters: settingsAdapters,
+                        settingsHandlers: settingsHandlers,
                         context: context,
                         crypter: crypter,
                         deduplicateEntities: isInitial
@@ -203,7 +203,7 @@ public final class SettingsProvider: DataProvider {
         var idsOfItemsToClearModifiedAt = Set<String>()
 
         for metadata in settingsMetadata {
-            guard let adapter = settingsAdapters[Setting(key: metadata.key)] else {
+            guard let adapter = settingsHandlers[Setting(key: metadata.key)] else {
                 continue
             }
 
@@ -237,7 +237,7 @@ public final class SettingsProvider: DataProvider {
 
     // MARK: - Private
     private let metadataDatabase: CoreDataDatabase
-    private let settingsAdapters: [Setting: any SettingsSyncAdapter]
+    private let settingsHandlers: [Setting: any SettingsSyncHandling]
 
     enum Const {
         static let maxContextSaveRetries = 5

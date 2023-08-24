@@ -37,7 +37,7 @@ extension Syncable {
     }
 
     static func emailProtection(userEmail: String, token: String, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
-        let payload = EmailProtectionSettingsAdapter.Payload(mainDuckAddress: userEmail, personalAccessToken: token)
+        let payload = EmailProtectionSyncHandler.Payload(mainDuckAddress: userEmail, personalAccessToken: token)
         let data = try! JSONEncoder.snakeCaseKeys.encode(payload)
         let value = "encrypted_\(String(data: data, encoding: .utf8)!)"
         return Self.settings(SettingsProvider.Setting.emailProtectionGeneration, value: value, lastModified: lastModified, isDeleted: isDeleted)

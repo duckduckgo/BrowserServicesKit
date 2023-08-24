@@ -1,5 +1,5 @@
 //
-//  DuckAddressAdapter.swift
+//  EmailProtectionSyncHandler.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -23,7 +23,7 @@ import Combine
 import DDGSync
 import Persistence
 
-public protocol EmailProtectionSyncSupporting: AnyObject {
+public protocol EmailManagerSyncSupporting: AnyObject {
     var userEmail: String? { get }
     var token: String? { get }
     var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
@@ -37,24 +37,14 @@ extension SettingsProvider.Setting {
     static let emailProtectionGeneration = SettingsProvider.Setting(key: "email_protection_generation")
 }
 
-class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
-
-    let setting: SettingsProvider.Setting = .emailProtectionGeneration
+class EmailProtectionSyncHandler: SettingsSyncHandling {
 
     struct Payload: Codable {
         let mainDuckAddress: String
         let personalAccessToken: String
     }
 
-    init(emailManager: EmailProtectionSyncSupporting, metadataDatabase: CoreDataDatabase) {
-        self.emailManager = emailManager
-        self.metadataDatabase = metadataDatabase
-
-        emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
-            .sink { [weak self] in
-                self?.updateMetadataTimestamp()
-            }
-    }
+    let setting: SettingsProvider.Setting = .emailProtectionGeneration
 
     let shouldApplyRemoteDeleteOnInitialSync: Bool = false
 
@@ -79,6 +69,16 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         try emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
     }
 
+    init(emailManager: EmailManagerSyncSupporting, metadataDatabase: CoreDataDatabase) {
+        self.emailManager = emailManager
+        self.metadataDatabase = metadataDatabase
+
+        emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
+            .sink { [weak self] in
+                self?.updateMetadataTimestamp()
+            }
+    }
+
     private func updateMetadataTimestamp() {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
@@ -92,7 +92,7 @@ class EmailProtectionSettingsAdapter: SettingsSyncAdapter {
         }
     }
 
-    private let emailManager: EmailProtectionSyncSupporting
+    private let emailManager: EmailManagerSyncSupporting
     private let metadataDatabase: CoreDataDatabase
     private var emailProtectionStatusDidChangeCancellable: AnyCancellable?
 }
