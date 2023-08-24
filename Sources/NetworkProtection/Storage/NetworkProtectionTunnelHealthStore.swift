@@ -30,7 +30,7 @@ public final class NetworkProtectionTunnelHealthStore {
     private let notificationCenter: NetworkProtectionNotificationCenter
 
     public init(userDefaults: UserDefaults = .standard,
-         notificationCenter: NetworkProtectionNotificationCenter) {
+                notificationCenter: NetworkProtectionNotificationCenter) {
         self.userDefaults = userDefaults
         self.notificationCenter = notificationCenter
     }

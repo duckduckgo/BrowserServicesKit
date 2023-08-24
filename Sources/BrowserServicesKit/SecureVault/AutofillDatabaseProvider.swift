@@ -21,6 +21,8 @@ import Foundation
 import GRDB
 import SecureStorage
 
+// swiftlint:disable file_length
+
 public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
@@ -66,13 +68,16 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 }
 
+// swiftlint:disable:next type_body_length
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
     public static func defaultDatabaseURL() -> URL {
         return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
     }
 
-    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(), key: Data, customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
+    public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(),
+                key: Data,
+                customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
         try super.init(file: file, key: key, writerType: .queue) { migrator in
             if let customMigrations {
                 customMigrations(&migrator)
@@ -204,7 +209,10 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
             """, arguments: [accountId])
     }
 
-    func updateWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, usingId id: Int64, timestamp: Date? = Date()) throws {
+    func updateWebsiteCredentials(in database: Database,
+                                  _ credentials: SecureVaultModels.WebsiteCredentials,
+                                  usingId id: Int64,
+                                  timestamp: Date? = Date()) throws {
         assert(database.isInsideTransaction)
 
         do {
@@ -218,7 +226,10 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                     \(SecureVaultModels.WebsiteCredentials.Columns.id.name) = ?
             """, arguments: [credentials.password, id])
 
-            try updateSyncTimestamp(in: database, tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName, objectId: id, timestamp: timestamp)
+            try updateSyncTimestamp(in: database,
+                                    tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName,
+                                    objectId: id,
+                                    timestamp: timestamp)
         } catch let error as DatabaseError {
             if error.extendedResultCode == .SQLITE_CONSTRAINT_UNIQUE {
                 throw SecureStorageError.duplicateRecord
@@ -228,7 +239,9 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
-    func insertWebsiteCredentials(in database: Database, _ credentials: SecureVaultModels.WebsiteCredentials, timestamp: Date? = Date()) throws -> Int64 {
+    func insertWebsiteCredentials(in database: Database,
+                                  _ credentials: SecureVaultModels.WebsiteCredentials,
+                                  timestamp: Date? = Date()) throws -> Int64 {
         assert(database.isInsideTransaction)
 
         do {
@@ -267,7 +280,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
-    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
+    public func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>,
+                                              in database: Database) throws -> [SecureVaultModels.SyncableCredentials] {
         assert(database.isInsideTransaction)
 
         return try SecureVaultModels.SyncableCredentials.query
@@ -670,7 +684,8 @@ extension DefaultAutofillDatabaseProvider {
         }
 
     }
-    
+
+    // swiftlint:disable:next function_body_length
     static func migrateV6(database: Database) throws {
 
         try database.alter(table: SecureVaultModels.Identity.databaseTableName) {
@@ -860,10 +875,14 @@ extension DefaultAutofillDatabaseProvider {
             if let credentialRow = credentialRow {
 
                 var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
-                decryptedCredentials = .init(account: account,
-                                             password: try MigrationUtility.l2decrypt(data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name],
-                                                                                      cryptoProvider: cryptoProvider,
-                                                                                      keyStoreProvider: keyStoreProvider))
+                decryptedCredentials = .init(
+                    account: account,
+                    password: try MigrationUtility.l2decrypt(
+                        data: credentialRow[SecureVaultModels.WebsiteCredentials.Columns.password.name],
+                        cryptoProvider: cryptoProvider,
+                        keyStoreProvider: keyStoreProvider
+                    )
+                )
 
                 guard let accountHash = decryptedCredentials?.account.hashValue,
                       let password = decryptedCredentials?.password else {
@@ -1143,3 +1162,5 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
     public static var databaseTableName: String = "identities"
 
 }
+
+// swiftlint:enable file_length

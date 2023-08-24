@@ -161,7 +161,7 @@ class CoreDataErrorsParserTests: XCTestCase {
     func testWhenStoreIsReadOnlyThenErrorIsIdentified() {
         
         guard let url = db.coordinator.persistentStores.first?.url else {
-            XCTFail()
+            XCTFail("Failed to get persistent store URL")
             return
         }
         let ro = CoreDataDatabase(name: "Test",

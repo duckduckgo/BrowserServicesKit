@@ -23,6 +23,7 @@ import CoreData
 import DDGSync
 import Persistence
 
+// swiftlint:disable line_length
 public final class BookmarksProvider: DataProvider {
 
     public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) {
@@ -78,6 +79,7 @@ public final class BookmarksProvider: DataProvider {
 
     // MARK: - Internal
 
+    // swiftlint:disable:next function_parameter_count
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         var saveError: Error?
 
@@ -205,3 +207,4 @@ public final class BookmarksProvider: DataProvider {
 #endif
 
 }
+// swiftlint:enable line_length

@@ -80,10 +80,14 @@ public struct MessageErrorResponse: Encodable {
     public let error: MessageError
 
     public static func forRequest(request: RequestMessage, error: ResponseError) -> Self {
-        MessageErrorResponse(context: request.context, featureName: request.featureName, id: request.id, error: MessageError(message: error.localizedDescription))
+        MessageErrorResponse(context: request.context,
+                             featureName: request.featureName,
+                             id: request.id,
+                             error: MessageError(message: error.localizedDescription))
     }
 
     public func toJSON() -> String {
+        // swiftlint:disable:next force_try
         let jsonData = try! JSONEncoder().encode(self)
         let jsonString = String(data: jsonData, encoding: .utf8)!
         return jsonString

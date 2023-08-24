@@ -36,10 +36,15 @@ fileprivate extension Bundle {
 extension DistributedNotificationCenter {
     // MARK: - Logging
 
-    private func logPost(_ notification: NetworkProtectionNotification, object: String? = nil, log: OSLog = .networkProtectionDistributedNotificationsLog) {
+    private func logPost(_ notification: NetworkProtectionNotification,
+                         object: String? = nil,
+                         log: OSLog = .networkProtectionDistributedNotificationsLog) {
 
         if let string = object {
-            os_log("%{public}@: Distributed notification posted: %{public}@ (%{public}@)", log: log, type: .debug, String(describing: Thread.current), notification.name.rawValue, string)
+            os_log("%{public}@: Distributed notification posted: %{public}@ (%{public}@)",
+                   log: log,
+                   type: .debug,
+                   String(describing: Thread.current), notification.name.rawValue, string)
         } else {
             os_log("Distributed notification posted: %{public}@", log: log, type: .debug, notification.name.rawValue)
         }
@@ -47,7 +52,9 @@ extension DistributedNotificationCenter {
 }
 
 extension DistributedNotificationCenter: NetworkProtectionNotificationPosting {
-    public func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String? = nil, log: OSLog = .networkProtectionDistributedNotificationsLog) {
+    public func post(_ networkProtectionNotification: NetworkProtectionNotification,
+                     object: String? = nil,
+                     log: OSLog = .networkProtectionDistributedNotificationsLog) {
         logPost(networkProtectionNotification, object: object, log: log)
 
         postNotificationName(networkProtectionNotification.name, object: object, options: [.deliverImmediately, .postToAllSessions])
@@ -69,12 +76,15 @@ public typealias NetworkProtectionNotificationCenter = NotificationCenter & Netw
 extension NotificationCenter {
     static let preferredStringEncoding = String.Encoding.utf8
 
-    public func addObserver(for networkProtectionNotification: NetworkProtectionNotification, object: Any?, queue: OperationQueue?, using block: @escaping @Sendable (Notification) -> Void) -> NSObjectProtocol {
-
+    public func addObserver(for networkProtectionNotification: NetworkProtectionNotification,
+                            object: Any?,
+                            queue: OperationQueue?,
+                            using block: @escaping @Sendable (Notification) -> Void) -> NSObjectProtocol {
         addObserver(forName: networkProtectionNotification.name, object: object, queue: queue, using: block)
     }
 
-    public func publisher(for networkProtectionNotification: NetworkProtectionNotification, object: AnyObject? = nil) -> NotificationCenter.Publisher {
+    public func publisher(for networkProtectionNotification: NetworkProtectionNotification,
+                          object: AnyObject? = nil) -> NotificationCenter.Publisher {
         self.publisher(for: networkProtectionNotification.name)
     }
 }
