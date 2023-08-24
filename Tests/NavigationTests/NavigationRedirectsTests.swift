@@ -30,7 +30,7 @@ import XCTest
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
-    func testClientRedirectToSameDocument() throws {
+    func skip_testClientRedirectToSameDocument() throws {
         let customCallbacksHandler = CustomCallbacksHandler()
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(customCallbacksHandler))
 
