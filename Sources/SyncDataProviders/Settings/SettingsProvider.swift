@@ -40,12 +40,18 @@ public final class SettingsProvider: DataProvider {
         emailManager: EmailManagerSyncSupporting,
         syncDidUpdateData: @escaping () -> Void
     ) {
+        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager, metadataDatabase: metadataDatabase)
+
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsHandlers: [.emailProtectionGeneration: EmailProtectionSyncHandler(emailManager: emailManager, metadataDatabase: metadataDatabase)],
+            settingsHandlers: [
+                .emailProtectionGeneration: emailProtectionSyncHandler
+            ],
             syncDidUpdateData: syncDidUpdateData
         )
+
+        register(errorPublisher: emailProtectionSyncHandler.errorPublisher)
     }
 
     public init(

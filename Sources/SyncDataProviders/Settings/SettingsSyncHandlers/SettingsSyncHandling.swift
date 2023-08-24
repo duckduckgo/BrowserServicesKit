@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
 
 public protocol SettingsSyncHandling {
@@ -25,4 +26,5 @@ public protocol SettingsSyncHandling {
 
     var setting: SettingsProvider.Setting { get }
     var shouldApplyRemoteDeleteOnInitialSync: Bool { get }
+    var errorPublisher: AnyPublisher<Error, Never> { get }
 }

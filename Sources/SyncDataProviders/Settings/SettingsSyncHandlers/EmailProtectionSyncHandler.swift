@@ -48,6 +48,8 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
 
     let shouldApplyRemoteDeleteOnInitialSync: Bool = false
 
+    let errorPublisher: AnyPublisher<Error, Never>
+
     func getValue() throws -> String? {
         guard let user = emailManager.userEmail else {
             return nil
@@ -72,6 +74,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
     init(emailManager: EmailManagerSyncSupporting, metadataDatabase: CoreDataDatabase) {
         self.emailManager = emailManager
         self.metadataDatabase = metadataDatabase
+        errorPublisher = errorSubject.eraseToAnyPublisher()
 
         emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
             .sink { [weak self] in
@@ -86,8 +89,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
                 try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
                 try context.save()
             } catch {
-                // todo: error
-                print("ERROR in \(#function): \(error.localizedDescription)")
+                errorSubject.send(error)
             }
         }
     }
@@ -95,4 +97,5 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
     private let emailManager: EmailManagerSyncSupporting
     private let metadataDatabase: CoreDataDatabase
     private var emailProtectionStatusDidChangeCancellable: AnyCancellable?
+    private let errorSubject = PassthroughSubject<Error, Never>()
 }
