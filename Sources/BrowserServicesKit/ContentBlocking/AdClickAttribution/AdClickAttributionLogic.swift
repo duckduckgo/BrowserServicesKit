@@ -91,13 +91,13 @@ public class AdClickAttributionLogic {
         
         if case .noAttribution = self.state {} else {
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnInheritedAttribution)
+            assertionFailure("unexpected initial attribution state \(self.state)")
         }
         
         switch state {
         case .noAttribution:
             self.state = state
         case .preparingAttribution(let vendor, let info, _):
-            cancelAttributedRulesCompilationIfNeeded()
             requestAttribution(forVendor: vendor,
                                attributionStartedAt: info.attributionStartedAt)
         case .activeAttribution(_, let sessionInfo, _):
@@ -202,14 +202,12 @@ public class AdClickAttributionLogic {
                disableAttribution()
            } else if tld.eTLDplus1(host) == vendor {
                os_log(.debug, log: log, "Refreshing navigational duration for attribution")
-               cancelAttributedRulesCompilationIfNeeded()
                state = .activeAttribution(vendor: vendor,
                                           session: SessionInfo(start: session.attributionStartedAt),
                                           rules: rules)
            }
         } else if tld.eTLDplus1(host) != vendor {
             os_log(.debug, log: log, "Leaving attribution context")
-            cancelAttributedRulesCompilationIfNeeded()
             state = .activeAttribution(vendor: vendor,
                                        session: SessionInfo(start: session.attributionStartedAt,
                                                             leftContextAt: Date()),
