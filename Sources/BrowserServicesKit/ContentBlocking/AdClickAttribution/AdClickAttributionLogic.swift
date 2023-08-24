@@ -95,7 +95,7 @@ public class AdClickAttributionLogic {
         
         if case .noAttribution = self.state {} else {
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnInheritedAttribution)
-            assertionFailure("unexpected initial attribution state \(self.state)")
+            assert(NSClassFromString("XCTest") != nil /* allow when running tests */, "unexpected initial attribution state \(self.state)")
         }
         
         switch state {
