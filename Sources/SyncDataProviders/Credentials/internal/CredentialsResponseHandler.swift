@@ -34,7 +34,12 @@ final class CredentialsResponseHandler {
 
     private let decrypt: (String) throws -> String
 
-    init(received: [Syncable], clientTimestamp: Date, secureVault: any AutofillSecureVault, database: Database, crypter: Crypting, deduplicateEntities: Bool) throws {
+    init(received: [Syncable],
+         clientTimestamp: Date,
+         secureVault: any AutofillSecureVault,
+         database: Database,
+         crypter: Crypting,
+         deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
         self.received = received.map(SyncableCredentialsAdapter.init)
         self.secureVault = secureVault
@@ -78,11 +83,15 @@ final class CredentialsResponseHandler {
             throw SyncError.receivedCredentialsWithoutUUID
         }
 
-        if shouldDeduplicateEntities, var deduplicatedEntity = try deduplicatedCredentials(with: syncable, secureVaultEncryptionKey: secureVaultEncryptionKey) {
+        if shouldDeduplicateEntities,
+           var deduplicatedEntity = try deduplicatedCredentials(with: syncable, secureVaultEncryptionKey: secureVaultEncryptionKey) {
             let oldUUID = deduplicatedEntity.metadata.uuid
             deduplicatedEntity.account?.title = try syncable.encryptedTitle.flatMap(decrypt)
             deduplicatedEntity.metadata.uuid = syncableUUID
-            try secureVault.storeSyncableCredentials(deduplicatedEntity, in: database, encryptedUsing: secureVaultEncryptionKey, hashedUsing: secureVaultHashingSalt)
+            try secureVault.storeSyncableCredentials(deduplicatedEntity,
+                                                     in: database,
+                                                     encryptedUsing: secureVaultEncryptionKey,
+                                                     hashedUsing: secureVaultHashingSalt)
 
             credentialsByUUID.removeValue(forKey: oldUUID)
             credentialsByUUID[syncableUUID] = deduplicatedEntity
@@ -100,7 +109,10 @@ final class CredentialsResponseHandler {
                 } else {
                     try existingEntity.update(with: syncable, decryptedUsing: decrypt)
                     existingEntity.metadata.lastModified = nil
-                    try secureVault.storeSyncableCredentials(existingEntity, in: database, encryptedUsing: secureVaultEncryptionKey, hashedUsing: secureVaultHashingSalt)
+                    try secureVault.storeSyncableCredentials(existingEntity,
+                                                             in: database,
+                                                             encryptedUsing: secureVaultEncryptionKey,
+                                                             hashedUsing: secureVaultHashingSalt)
                 }
             }
 
@@ -108,12 +120,16 @@ final class CredentialsResponseHandler {
 
             let newEntity = try SecureVaultModels.SyncableCredentials(syncable: syncable, decryptedUsing: decrypt)
             assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
-            try secureVault.storeSyncableCredentials(newEntity, in: database, encryptedUsing: secureVaultEncryptionKey, hashedUsing: secureVaultHashingSalt)
+            try secureVault.storeSyncableCredentials(newEntity,
+                                                     in: database,
+                                                     encryptedUsing: secureVaultEncryptionKey,
+                                                     hashedUsing: secureVaultHashingSalt)
             credentialsByUUID[syncableUUID] = newEntity
         }
     }
 
-    private func deduplicatedCredentials(with syncable: SyncableCredentialsAdapter, secureVaultEncryptionKey: Data) throws -> SecureVaultModels.SyncableCredentials? {
+    private func deduplicatedCredentials(with syncable: SyncableCredentialsAdapter,
+                                         secureVaultEncryptionKey: Data) throws -> SecureVaultModels.SyncableCredentials? {
 
         guard !syncable.isDeleted else {
             return nil

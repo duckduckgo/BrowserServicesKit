@@ -662,9 +662,11 @@ class AppPrivacyConfigurationTests: XCTestCase {
                 "features": {
                     "credentialsSaving": {
                         "state": "enabled",
-                        "rollouts": [{
-                            "percent": 5.0
-                        }]
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }]
+                        }
                     }
                 },
             }
@@ -714,33 +716,41 @@ class AppPrivacyConfigurationTests: XCTestCase {
                 "features": {
                     "credentialsSaving": {
                         "state": "enabled",
-                        "rollouts": [{
-                            "percent": 5.0
-                        }, {
-                            "percent": 15.0
-                        }]
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }, {
+                                "percent": 15.0
+                            }]
+                        }
                     },
                     "credentialsAutofill": {
                         "state": "enabled",
-                        "rollouts": [{
-                            "percent": 5.0
-                        }, {
-                            "percent": 15.0
-                        }, {
-                            "percent": 25.0
-                        }]
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }, {
+                                "percent": 15.0
+                            }, {
+                                "percent": 25.0
+                            }]
+                        }
                     },
                     "inlineIconCredentials": {
                         "state": "enabled",
-                        "rollouts": []
+                        "rollout": {
+                            "steps": []
+                        }
                     },
                     "accessCredentialManagement": {
-                        "state": "diabled",
-                        "rollouts": [{
-                            "percent": 5.0
-                        }, {
-                            "percent": 15.0
-                        }]
+                        "state": "disabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }, {
+                                "percent": 15.0
+                            }]
+                        }
                     }
                 }
             }

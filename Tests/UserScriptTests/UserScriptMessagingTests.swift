@@ -188,6 +188,8 @@ class UserScriptMessagingTests: XCTestCase {
     }
 }
 
+// swiftlint:disable large_tuple
+
 /// A helper for registering a test delegate and creating a MockMsg based on the
 /// incoming dictionary (which represents a message coming from a webview)
 ///
@@ -208,6 +210,8 @@ func setupWith(message: [String: Any]) -> (UserScriptMessageBroker, UserScriptMe
 
     return (testee, action, msg1)
 }
+
+// swiftlint:enable large_tuple
 
 /// An example of how to conform to `Subfeature`
 /// It contains 3 examples that are typical of a feature that needs to

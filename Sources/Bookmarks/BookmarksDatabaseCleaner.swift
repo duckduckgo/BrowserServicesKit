@@ -46,10 +46,14 @@ public final class BookmarkDatabaseCleaner {
         self.getLog = log
         self.fetchBookmarksPendingDeletion = fetchBookmarksPendingDeletion
 
-        cleanupCancellable = triggerSubject
+        cleanupCancellable = Publishers
+            .Merge(
+                externalTriggerSubject.map { false },
+                scheduledTriggerSubject.map { true }
+            )
             .receive(on: workQueue)
-            .sink { [weak self] _ in
-                self?.removeBookmarksPendingDeletion()
+            .sink { [weak self] cancelIfActive in
+                self?.removeBookmarksPendingDeletion(skipWhenSyncIsActive: cancelIfActive)
             }
     }
 
@@ -57,7 +61,7 @@ public final class BookmarkDatabaseCleaner {
         cancelCleaningSchedule()
         scheduleCleanupCancellable = Timer.publish(every: Const.cleanupInterval, on: .main, in: .default)
             .sink { [weak self] _ in
-                self?.triggerSubject.send()
+                self?.scheduledTriggerSubject.send()
             }
     }
 
@@ -66,11 +70,11 @@ public final class BookmarkDatabaseCleaner {
     }
 
     public func cleanUpDatabaseNow() {
-        triggerSubject.send()
+        externalTriggerSubject.send()
     }
 
-    func removeBookmarksPendingDeletion() {
-        guard !isSyncActive() else {
+    func removeBookmarksPendingDeletion(skipWhenSyncIsActive: Bool = true) {
+        if skipWhenSyncIsActive && isSyncActive() {
             errorEvents?.fire(.syncActive)
             return
         }
@@ -124,7 +128,8 @@ public final class BookmarkDatabaseCleaner {
 
     private let errorEvents: EventMapping<BookmarksCleanupError>?
     private let database: CoreDataDatabase
-    private let triggerSubject = PassthroughSubject<Void, Never>()
+    private let externalTriggerSubject = PassthroughSubject<Void, Never>()
+    private let scheduledTriggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "BookmarkDatabaseCleaner queue", qos: .userInitiated)
 
     private var cleanupCancellable: AnyCancellable?

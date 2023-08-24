@@ -25,7 +25,7 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable:next type_body_length
+// swiftlint:disable file_length type_body_length line_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -127,10 +127,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Registration Key
 
-    private lazy var keyStore = NetworkProtectionKeychainKeyStore(useSystemKeychain: useSystemKeychain,
+    private lazy var keyStore = NetworkProtectionKeychainKeyStore(keychainType: keychainType,
                                                                   errorEvents: debugEvents)
 
-    private lazy var tokenStore = NetworkProtectionKeychainTokenStore(useSystemKeychain: useSystemKeychain,
+    private lazy var tokenStore = NetworkProtectionKeychainTokenStore(keychainType: keychainType,
                                                                       errorEvents: debugEvents)
 
     /// This is for overriding the defaults.  A `nil` value means NetP will just use the defaults.
@@ -296,20 +296,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Initializers
 
-    private let useSystemKeychain: Bool
+    private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
-                useSystemKeychain: Bool,
+                keychainType: KeychainType,
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
-        self.useSystemKeychain = useSystemKeychain
+        self.keychainType = keychainType
         self.debugEvents = debugEvents
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
@@ -778,10 +778,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 try await connectionTester.start(tunnelIfName: interfaceName)
             } catch {
-                os_log("🔵 Error: the VPN connection tester could not be started: %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
+                os_log("🔵 Error: the VPN connection tester could not be started: %{public}@",
+                       log: .networkProtection,
+                       type: .error,
+                       error.localizedDescription)
             }
         } else if isConnectionTesterEnabled {
-            os_log("🔵 Error: the VPN connection tester could not be started since we could not retrieve the tunnel interface name", log: .networkProtection, type: .error)
+            os_log("🔵 Error: the VPN connection tester could not be started since we could not retrieve the tunnel interface name",
+                   log: .networkProtection,
+                   type: .error)
         } else {
             os_log("🔵 VPN connection tester disabled", log: .networkProtection, type: .error)
         }
@@ -837,3 +842,4 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     }
 
 }
+// swiftlint:enable file_length type_body_length line_length

@@ -24,8 +24,8 @@ import WebKit
 
 // swiftlint:disable cyclomatic_complexity
 // swiftlint:disable implicit_getter
-// swiftlint:disable large_tuple
 
+// swiftlint:disable:next large_tuple
 typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, navigationResponses: UnsafeMutablePointer<[NavigationResponse]>, responderResponses: [NavResponse], history: [UInt64: HistoryItemIdentity])
 extension TestsNavigationEvent {
 
@@ -1094,4 +1094,3 @@ extension FrameInfo {
 
 // swiftlint:enable cyclomatic_complexity
 // swiftlint:enable implicit_getter
-// swiftlint:enable large_tuple

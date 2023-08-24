@@ -95,7 +95,13 @@ protocol HTTPRequesting {
 }
 
 protocol RemoteAPIRequestCreating {
-    func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting
+    // swiftlint:disable:next function_parameter_count
+    func createRequest(url: URL,
+                       method: HTTPRequestMethod,
+                       headers: [String: String],
+                       parameters: [String: String],
+                       body: Data?,
+                       contentType: String?) -> HTTPRequesting
 }
 
 protocol RecoveryKeyTransmitting {

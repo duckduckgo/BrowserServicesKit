@@ -62,13 +62,13 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
         static let currentPublicKey = "com.duckduckgo.network-protection.NetworkProtectionKeychainStore.UserDefaultKeys.currentPublicKeyBase64"
     }
 
-    public init(useSystemKeychain: Bool,
+    public init(keychainType: KeychainType,
                 userDefaults: UserDefaults = .standard,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
 
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.label,
                                                        serviceName: Defaults.service,
-                                                       useSystemKeychain: useSystemKeychain)
+                                                       keychainType: keychainType)
         self.userDefaults = userDefaults
         self.errorEvents = errorEvents
     }

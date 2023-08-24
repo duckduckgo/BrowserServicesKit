@@ -51,7 +51,8 @@ public class ConnectionSessionUtilities {
 
 public extension NETunnelProviderSession {
 
-    func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage, responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
+    func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage,
+                                                  responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
         try sendProviderMessage(message.rawValue) { response in
             responseHandler(response.flatMap(T.init(rawValue:)))
         }
