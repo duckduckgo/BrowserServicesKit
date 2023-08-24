@@ -26,11 +26,11 @@ public protocol AutofillEmailDelegate: AnyObject {
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
                             completionHandler: @escaping AliasAutosaveCompletion)
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
+    func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
-    func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
-    func autofillUserScriptDidRequestUserData(_ : AutofillUserScript, completionHandler: @escaping UserDataCompletion)
-    func autofillUserScriptDidRequestSignOut(_ : AutofillUserScript)
+    func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
+    func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion)
+    func autofillUserScriptDidRequestSignOut(_: AutofillUserScript)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
     func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double)
     func autofillUserScriptDidRequestInContextPromptValue(_: AutofillUserScript) -> Double?
@@ -69,15 +69,17 @@ extension AutofillUserScript {
               let isIncontextSignupAvailable = dict["isIncontextSignupAvailable"] as? Bool else { return }
 
         guard isIncontextSignupAvailable, let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self), !signedIn else {
-            requestAlias(message, requiresUserPermission: requiresUserPermission, shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
+            requestAlias(message,
+                         requiresUserPermission: requiresUserPermission,
+                         shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
                 replyHandler(reply)
             }
             return
         }
 
-        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, error in
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, _ in
             if success {
-                self?.requestAlias(message, requiresUserPermission: requiresUserPermission,
+                self.requestAlias(message, requiresUserPermission: requiresUserPermission,
                                    shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
                     replyHandler(reply)
                 }
@@ -87,7 +89,10 @@ extension AutofillUserScript {
         }
     }
 
-    private func requestAlias(_ message: UserScriptMessage, requiresUserPermission: Bool, shouldConsumeAliasIfProvided: Bool, _ replyHandler: @escaping MessageReplyHandler) {
+    private func requestAlias(_ message: UserScriptMessage,
+                              requiresUserPermission: Bool,
+                              shouldConsumeAliasIfProvided: Bool,
+                              _ replyHandler: @escaping MessageReplyHandler) {
         emailDelegate?.autofillUserScript(self,
                                           didRequestAliasAndRequiresUserPermission: requiresUserPermission,
                                           shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, autosave, _  in
