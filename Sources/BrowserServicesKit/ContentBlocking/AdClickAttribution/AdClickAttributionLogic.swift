@@ -171,16 +171,11 @@ public class AdClickAttributionLogic {
         }
     }
     
+    @MainActor
     public func onProvisionalNavigation() async {
-        await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                onProvisionalNavigation {
-                    continuation.resume()
-                }
-            }
-        } onCancel: {
-            DispatchQueue.main.async {
-                self.cancelAttributedRulesCompilationIfNeeded()
+        await withCheckedContinuation { continuation in
+            onProvisionalNavigation {
+                continuation.resume()
             }
         }
     }
@@ -252,12 +247,7 @@ public class AdClickAttributionLogic {
         }
     }
 
-    enum RulesCompilationError: Error {
-        case noRules
-        case timeout
-        case cancelled
-    }
-    private func onAttributedRulesCompilationFailed(with error: RulesCompilationError, forVendor vendor: String) {
+    private func onAttributedRulesCompilationFailed(forVendor vendor: String) {
         guard case .preparingAttribution(let expectedVendor, _, let completionBlocks) = state else {
             os_log(.error, log: log, "Attributed Rules compilation failed")
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnRulesCompilationFailed)
@@ -269,25 +259,13 @@ public class AdClickAttributionLogic {
         }
         state = .noAttribution
 
-        switch error {
-        case .timeout, .noRules:
-            applyRules()
-            os_log(.debug, log: log, "Resuming provisional navigation for %{public}d requests", completionBlocks.count)
-
-        case .cancelled:
-            os_log(.debug, log: log, "Rules compilation was cancelled with %{public}d requests", completionBlocks.count)
-        }
-
+        applyRules()
+        os_log(.debug, log: log, "Resuming provisional navigation for {public}%d requests", completionBlocks.count)
         for completion in completionBlocks {
             completion()
         }
     }
 
-    private func cancelAttributedRulesCompilationIfNeeded() {
-        guard case .preparingAttribution(vendor: let vendor, session: _, completionBlocks: _) = state else { return }
-        self.onAttributedRulesCompilationFailed(with: .cancelled, forVendor: vendor)
-    }
-    
     private func applyRules() {
         if case .activeAttribution(let vendor, _, let rules) = state {
             delegate?.attributionLogic(self, didRequestRuleApplication: rules, forVendor: vendor)
@@ -308,14 +286,14 @@ public class AdClickAttributionLogic {
             if let rules = rules {
                 self?.onAttributedRulesCompiled(forVendor: vendorHost, rules)
             } else {
-                self?.onAttributedRulesCompilationFailed(with: .noRules, forVendor: vendorHost)
+                self?.onAttributedRulesCompilationFailed(forVendor: vendorHost)
             }
         }
     }
     
     private func scheduleTimeout(forVendor vendor: String) {
         let timeoutWorkItem = DispatchWorkItem { [weak self] in
-            self?.onAttributedRulesCompilationFailed(with: .timeout, forVendor: vendor)
+            self?.onAttributedRulesCompilationFailed(forVendor: vendor)
             self?.attributionTimeout = nil
 
             self?.errorReporting?.fire(.adAttributionLogicRequestingAttributionTimedOut)

@@ -164,7 +164,7 @@ private extension DistributedNavigationDelegate {
 
         // cancel the Task if WebView deallocates before it‘s finished
         webViewDeinitObserver.onDeinit { [log] in
-            os_log("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef.hexValue)> deallocation>", log: log, type: .error)
+            os_log("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef.hexValue)> deallocation", log: log, type: .error)
             task.cancel()
         }
 
