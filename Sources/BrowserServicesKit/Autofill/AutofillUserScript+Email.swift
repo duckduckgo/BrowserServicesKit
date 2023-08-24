@@ -79,7 +79,7 @@ extension AutofillUserScript {
 
         emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, _ in
             if success {
-                self.requestAlias(message, requiresUserPermission: requiresUserPermission,
+                self?.requestAlias(message, requiresUserPermission: requiresUserPermission,
                                    shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
                     replyHandler(reply)
                 }
