@@ -638,7 +638,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
         }
 
-        // Prompt to update the login on submit when previous username was empty (the was a partial password account)
+        // Prompt to update the login on submit when previous username was empty (there was a partial password account)
         if existingCredentials.account.username == "" {
             account.username = autofillData.credentials?.username ?? ""
             return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
