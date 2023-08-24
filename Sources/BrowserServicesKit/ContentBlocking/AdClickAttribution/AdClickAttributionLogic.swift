@@ -37,6 +37,10 @@ public class AdClickAttributionLogic {
         case preparingAttribution(vendor: String, session: SessionInfo, completionBlocks: [(() -> Void)])
         case activeAttribution(vendor: String, session: SessionInfo, rules: ContentBlockerRulesManager.Rules)
 
+        var isActiveAttribution: Bool {
+            if case .activeAttribution = self { return true }
+            return false
+        }
     }
     
     public struct SessionInfo {
@@ -224,7 +228,7 @@ public class AdClickAttributionLogic {
     }
 
     private func disableAttribution() {
-        cancelAttributedRulesCompilationIfNeeded()
+        assert(state.isActiveAttribution, "unexpected attribution state")
         state = .noAttribution
         applyRules()
     }
