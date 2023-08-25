@@ -77,6 +77,8 @@ public enum EmailManagerPermittedAddressType {
 public protocol EmailManagerAliasPermissionDelegate: AnyObject {
 
     func emailManager(_ emailManager: EmailManager,
+                      didRequestInContextSignUp: @escaping (_ success: Bool) -> Void)
+    func emailManager(_ emailManager: EmailManager,
                       didRequestPermissionToProvideAliasWithCompletion: @escaping (EmailManagerPermittedAddressType, _ autosave: Bool) -> Void)
 
 }
@@ -124,7 +126,7 @@ public enum AliasRequestError: Error {
 
 public struct EmailUrls {
     struct Url {
-        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"        
+        static let emailAlias = "https://quack.duckduckgo.com/api/email/addresses"
     }
 
     var emailAliasAPI: URL {
@@ -138,6 +140,7 @@ public typealias AliasCompletion = (String?, AliasRequestError?) -> Void
 public typealias AliasAutosaveCompletion = (String?, _ autosave: Bool, AliasRequestError?) -> Void
 public typealias UsernameAndAliasCompletion = (_ username: String?, _ alias: String?, AliasRequestError?) -> Void
 public typealias UserDataCompletion = (_ username: String?, _ alias: String?, _ token: String?, AliasRequestError?) -> Void
+public typealias SignUpCompletion = (Bool, AliasRequestError?) -> Void
 
 public enum EmailAliasStatus {
     case active
@@ -159,7 +162,7 @@ public class EmailManager {
     public enum NotificationParameter {
         public static let cohort = "cohort"
     }
-
+    
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
 
@@ -443,8 +446,14 @@ extension EmailManager: AutofillEmailDelegate {
         inContextEmailSignupPromptDismissedPermanentlyAt
     }
 
-    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript) {
-        NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
+    public func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript, completionHandler: @escaping SignUpCompletion) {
+        if let delegate = self.aliasPermissionDelegate {
+            delegate.emailManager(self, didRequestInContextSignUp: { success in
+                completionHandler(success, nil)
+            })
+        } else {
+            NotificationCenter.default.post(name: .emailDidIncontextSignup, object: self)
+        }
     }
 
     public func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript) {
@@ -497,7 +506,7 @@ private extension EmailManager {
     struct EmailAliasStatusResponse: Decodable {
         let active: Bool
     }
-    
+
     typealias HTTPHeaders = [String: String]
     
     var emailHeaders: HTTPHeaders {

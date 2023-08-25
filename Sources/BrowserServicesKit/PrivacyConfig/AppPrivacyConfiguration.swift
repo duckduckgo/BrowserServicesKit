@@ -25,6 +25,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private enum Constants {
         static let enabledKey = "enabled"
         static let lastRolloutCountKey = "lastRolloutCount"
+        static let installedDaysKey = "installedDays"
     }
 
     private(set) public var identifier: String
@@ -33,17 +34,20 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let locallyUnprotected: DomainsProtectionStore
     private let internalUserDecider: InternalUserDecider
     private let userDefaults: UserDefaults
+    private let installDate: Date?
 
     public init(data: PrivacyConfigurationData,
                 identifier: String,
                 localProtection: DomainsProtectionStore,
                 internalUserDecider: InternalUserDecider,
-                userDefaults: UserDefaults = UserDefaults()) {
+                userDefaults: UserDefaults = UserDefaults(),
+                installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
         self.internalUserDecider = internalUserDecider
         self.userDefaults = userDefaults
+        self.installDate = installDate
     }
 
     public var userUnprotectedDomains: [String] {
@@ -84,15 +88,30 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         
         return true
     }
-    
+
+    func satisfiesInstalledDays(_ featureKey: PrivacyFeature, installDate: Date?) -> Bool {
+        // if the key is not present, then feature is enabled by default
+        guard let installedDays = settings(for: featureKey)[Constants.installedDaysKey] else { return true }
+
+        if let installedDaysCount = installedDays as? Int,
+           let installDate = installDate,
+           let daysSinceInstall = Calendar.current.numberOfDaysBetween(installDate, and: Date()) {
+            return daysSinceInstall <= installedDaysCount
+        }
+
+        return false
+    }
+
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
         guard let feature = data.features[featureKey.rawValue] else { return false }
 
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
+        let satisfiesInstalledDays = satisfiesInstalledDays(featureKey, installDate: installDate)
+
         switch feature.state {
-        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
+        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion && satisfiesInstalledDays
+        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion && satisfiesInstalledDays
         default: return false
         }
     }
@@ -129,7 +148,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             let probability = (rollouts.count > 1 ? rollouts.last?.percent : rollouts.first?.percent) ?? 0.0
             willEnable = randomizer(0..<100) < probability
         }
-        
+
         guard willEnable else {
             userDefaults.set(rollouts.count, forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)")
             return false
