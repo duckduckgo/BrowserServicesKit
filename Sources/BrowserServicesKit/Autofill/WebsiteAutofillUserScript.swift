@@ -29,7 +29,12 @@ public protocol ContentOverlayUserScriptDelegate: AnyObject {
     func websiteAutofillUserScript(_ websiteAutofillUserScript: WebsiteAutofillUserScript,
                                    willDisplayOverlayAtClick: CGPoint?,
                                    serializedInputContext: String,
-                                   inputPosition: CGRect)
+                                   inputPosition: CGRect,
+                                   containsSensitiveData: Bool)
+}
+
+struct SerializedInputContext: Codable {
+    let inputType: String
 }
 
 public class WebsiteAutofillUserScript: AutofillUserScript {
@@ -56,6 +61,13 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         case closeAutofillParent
         case getSelectedCredentials
         case showAutofillParent
+    }
+    
+    private enum SecureInputTypes: String {
+        case credentials = "credentials"
+        case creditcards = "creditCards"
+        case identities = "identities"
+        
     }
 
     public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
@@ -92,11 +104,25 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
         // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
-
+                
+        var containsSensitiveData = false
+        if let jsonData = serializedInputContext.data(using: .utf8) {
+            let inputData = try? JSONDecoder().decode(SerializedInputContext.self, from: jsonData)
+                        
+            if let inputType = inputData?.inputType,
+               let prefix = inputType.split(separator: ".").first {
+                if SecureInputTypes(rawValue: String(prefix)) != nil {
+                    containsSensitiveData = true
+                }
+            }
+            
+        }
+        
         currentOverlayTab.websiteAutofillUserScript(self,
                                                     willDisplayOverlayAtClick: clickPoint,
                                                     serializedInputContext: serializedInputContext,
-                                                    inputPosition: CGRect(x: left, y: top, width: width, height: height))
+                                                    inputPosition: CGRect(x: left, y: top, width: width, height: height),
+                                                    containsSensitiveData: containsSensitiveData)
         replyHandler(nil)
     }
 
