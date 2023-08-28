@@ -20,6 +20,14 @@
 import Combine
 import Foundation
 
+public struct SettingsSyncMetadataSaveError: Error {
+    public let underlyingError: Error
+
+    public init(underlyingError: Error) {
+        self.underlyingError = underlyingError
+    }
+}
+
 public protocol SettingsSyncHandling {
     func getValue() throws -> String?
     func setValue(_ value: String?) throws

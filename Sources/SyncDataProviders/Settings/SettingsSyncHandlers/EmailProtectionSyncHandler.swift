@@ -89,7 +89,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
                 try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
                 try context.save()
             } catch {
-                errorSubject.send(error)
+                errorSubject.send(SettingsSyncMetadataSaveError(underlyingError: error))
             }
         }
     }
