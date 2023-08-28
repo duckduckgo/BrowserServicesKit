@@ -329,9 +329,7 @@ public class EmailManager {
                 notificationParameters[NotificationParameter.cohort] = currentCohortValue
             }
 
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
-            }
+            NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
 
         } catch {
             if let error = error as? EmailKeychainAccessError {
@@ -508,9 +506,7 @@ public extension EmailManager {
                 notificationParameters[NotificationParameter.cohort] = cohort
             }
 
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
-            }
+            NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
 
         } catch {
             if let error = error as? EmailKeychainAccessError {
