@@ -27,28 +27,24 @@ public enum Suggestion: Equatable {
     case unknown(value: String)
 
     var url: URL? {
-        get {
-            switch self {
-            case .website(url: let url),
-                 .historyEntry(title: _, url: let url, allowedInTopHits: _),
-                 .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _):
-                return url
-            case .phrase, .unknown:
-                return nil
-            }
+        switch self {
+        case .website(url: let url),
+             .historyEntry(title: _, url: let url, allowedInTopHits: _),
+             .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _):
+            return url
+        case .phrase, .unknown:
+            return nil
         }
     }
 
     var title: String? {
-        get {
             switch self {
             case .historyEntry(title: let title, url: _, allowedInTopHits: _):
                 return title
             case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _):
                 return title
-            case .phrase, .website,.unknown:
+            case .phrase, .website, .unknown:
                 return nil
-            }
         }
     }
 
@@ -94,7 +90,7 @@ extension Suggestion {
 
     init(key: String, value: String) {
         if key == Self.phraseKey {
-            self = .phrase(phrase: value.droppingWwwPrefix())
+            self = .phrase(phrase: value)
         } else {
             self = .unknown(value: value)
         }

@@ -43,8 +43,8 @@ public class ContentBlockerRulesSourceIdentifiers {
     public var rulesIdentifier: ContentBlockerRulesIdentifier {
         ContentBlockerRulesIdentifier(name: name,
                                       tdsEtag: tdsIdentifier,
-                                      tempListEtag: tempListIdentifier,
-                                      allowListEtag: allowListIdentifier,
+                                      tempListId: tempListIdentifier,
+                                      allowListId: allowListIdentifier,
                                       unprotectedSitesHash: unprotectedSitesIdentifier)
     }
 }
@@ -122,8 +122,8 @@ public class ContentBlockerRulesSourceManager {
         }
 
         // Fetch identifiers up-front
-        let tempListIdentifier = exceptionsSource.tempListEtag
-        let allowListIdentifier = exceptionsSource.allowListEtag
+        let tempListIdentifier = exceptionsSource.tempListId
+        let allowListIdentifier = exceptionsSource.allowListId
         let unprotectedSites = exceptionsSource.unprotectedSites
         let unprotectedSitesIdentifier = ContentBlockerRulesIdentifier.hash(domains: unprotectedSites)
 

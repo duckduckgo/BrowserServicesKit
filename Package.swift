@@ -23,19 +23,25 @@ let package = Package(
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
+        .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
+        .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
+        .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
+        .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "7.2.0"),
-        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.1.1"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.2.0"),
+        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.22.1"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.32.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
+        .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
     ],
     targets: [
         .target(
@@ -44,12 +50,12 @@ let package = Package(
                 .product(name: "Autofill", package: "duckduckgo-autofill"),
                 .product(name: "ContentScopeScripts", package: "content-scope-scripts"),
                 "Persistence",
-                .product(name: "GRDB", package: "GRDB.swift"),
                 "TrackerRadarKit",
                 "BloomFilterWrapper",
                 "Common",
                 "UserScript",
-                "ContentBlocking"
+                "ContentBlocking",
+                "SecureStorage"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -89,12 +95,7 @@ let package = Package(
          .target(
             name: "BloomFilterWrapper",
             dependencies: [
-                "BloomFilter"
-            ]),
-        .target(
-            name: "BloomFilter",
-            resources: [
-                .process("CMakeLists.txt")
+                .product(name: "BloomFilter", package: "bloom_cpp")
             ]),
         .target(
             name: "Crashes",
@@ -186,11 +187,21 @@ let package = Package(
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
+            name: "RemoteMessaging",
+            dependencies: [
+                "Common",
+                "BrowserServicesKit"
+            ]
+        ),
+        .target(
             name: "SyncDataProviders",
             dependencies: [
                 "Bookmarks",
+                "BrowserServicesKit",
                 "DDGSync",
-                "Persistence"
+                .product(name: "GRDB", package: "GRDB.swift"),
+                "Persistence",
+                "SecureStorage"
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -201,8 +212,41 @@ let package = Package(
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
+        .target(
+            name: "NetworkProtection",
+            dependencies: [
+                .target(name: "WireGuardC"),
+                .product(name: "WireGuard", package: "wireguard-apple"),
+                "Common"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .target(
+            name: "SecureStorage",
+            dependencies: [
+                "Common",
+                .product(name: "GRDB", package: "GRDB.swift")
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .target(
+            name: "SecureStorageTestsUtils",
+            dependencies: [
+                "SecureStorage"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .target(name: "WireGuardC"),
+        .target(
+            name: "NetworkProtectionTestUtils",
+            dependencies: [
+                "NetworkProtection"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
 
-        // MARK: - Test targets
+        // MARK: - Test Targets
+
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
@@ -214,7 +258,9 @@ let package = Package(
         .testTarget(
             name: "BrowserServicesKitTests",
             dependencies: [
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
+                "SecureStorageTestsUtils"
             ],
             resources: [
                 .copy("Resources")
@@ -295,6 +341,7 @@ let package = Package(
             name: "SyncDataProvidersTests",
             dependencies: [
                 "BookmarksTestsUtils",
+                "SecureStorageTestsUtils",
                 "SyncDataProviders"
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
@@ -308,8 +355,27 @@ let package = Package(
         ),
         .binaryTarget(
             name: "SwiftLintBinary",
-            url: "https://github.com/realm/SwiftLint/releases/download/0.52.3/SwiftLintBinary-macos.artifactbundle.zip",
-            checksum: "05cbe202aae733ce395de68557614b0dfea394093d5ee53f57436e4d71bbe12f"
+            url: "https://github.com/realm/SwiftLint/releases/download/0.52.4/SwiftLintBinary-macos.artifactbundle.zip",
+            checksum: "8a8095e6235a07d00f34a9e500e7568b359f6f66a249f36d12cd846017a8c6f5"
+        ),
+        .testTarget(
+            name: "NetworkProtectionTests",
+            dependencies: [
+                "NetworkProtection"
+            ],
+            resources: [
+                .copy("Resources/servers-original-endpoint.json"),
+                .copy("Resources/servers-updated-endpoint.json")
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .testTarget(
+            name: "SecureStorageTests",
+            dependencies: [
+                "SecureStorage",
+                "SecureStorageTestsUtils"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
     ],
     cxxLanguageStandard: .cxx11

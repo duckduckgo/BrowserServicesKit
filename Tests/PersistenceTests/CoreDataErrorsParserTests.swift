@@ -49,7 +49,7 @@ class CoreDataErrorsParserTests: XCTestCase {
         entity.name = "TestEntity"
         entity.managedObjectClassName = TestEntity.name
 
-        var properties = Array<NSPropertyDescription>()
+        var properties = [NSPropertyDescription]()
 
         let attribute = NSAttributeDescription()
         attribute.name = "attribute"
@@ -161,7 +161,7 @@ class CoreDataErrorsParserTests: XCTestCase {
     func testWhenStoreIsReadOnlyThenErrorIsIdentified() {
         
         guard let url = db.coordinator.persistentStores.first?.url else {
-            XCTFail()
+            XCTFail("Failed to get persistent store URL")
             return
         }
         let ro = CoreDataDatabase(name: "Test",

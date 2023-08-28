@@ -38,7 +38,7 @@ extension APIRequest {
                     method: HTTPMethod = .get,
                     queryParameters: QueryParams = [],
                     allowedQueryReservedCharacters: CharacterSet? = nil,
-                    headers: HTTPHeaders = APIRequest.Headers().default,
+                    headers: APIRequest.Headers = APIRequest.Headers(),
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
                     attribution: URLRequestAttribution? = .developer,
@@ -47,7 +47,7 @@ extension APIRequest {
             self.method = method
             self.queryParameters = queryParameters
             self.allowedQueryReservedCharacters = allowedQueryReservedCharacters
-            self.headers = headers
+            self.headers = headers.httpHeaders
             self.body = body
             self.timeoutInterval = timeoutInterval
             self.attribution = attribution

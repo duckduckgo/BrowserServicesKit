@@ -23,23 +23,10 @@ import Common
 
 final class SyncOperation: Operation {
 
-    let dataProviders: [Feature: DataProviding]
+    let dataProviders: [DataProviding]
     let storage: SecureStoring
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
-
-    var didFinishInitialFetch: (() -> Void)? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _didFinishInitialFetch
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _didFinishInitialFetch = newValue
-        }
-    }
 
     var didStart: (() -> Void)? {
         get {
@@ -67,28 +54,8 @@ final class SyncOperation: Operation {
         }
     }
 
-    convenience init(
-        dataProviders: [DataProviding],
-        storage: SecureStoring,
-        crypter: Crypting,
-        requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled
-    ) {
-        let dataProvidersMap: [Feature: DataProviding] = dataProviders.reduce(into: .init(), { partialResult, provider in
-            partialResult[provider.feature] = provider
-        })
-
-        self.init(
-            dataProviders: dataProvidersMap,
-            storage: storage,
-            crypter: crypter,
-            requestMaker: requestMaker,
-            log: log()
-        )
-    }
-
     init(
-        dataProviders: [Feature: DataProviding],
+        dataProviders: [DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
         requestMaker: SyncRequestMaking,
@@ -126,10 +93,11 @@ final class SyncOperation: Operation {
                     return
                 }
 
-                if state == .addingNewDevice {
-                    try await sync(fetchOnly: true)
-                    didFinishInitialFetch?()
+                let providersPendingFirstSync = dataProviders.filter { $0.featureSyncSetupState == .needsRemoteDataFetch }
+                if !providersPendingFirstSync.isEmpty {
+                    try await sync(fetchOnly: true, dataProviders: providersPendingFirstSync)
                 }
+
                 try await sync(fetchOnly: false)
                 didFinish?(nil)
             } catch is CancellationError {
@@ -141,18 +109,23 @@ final class SyncOperation: Operation {
     }
 
     func sync(fetchOnly: Bool) async throws {
+        try await sync(fetchOnly: fetchOnly, dataProviders: dataProviders)
+    }
+
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
             os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
         }
 
         try await withThrowingTaskGroup(of: Void.self) { group in
-            for (feature, dataProvider) in dataProviders {
+            for dataProvider in dataProviders {
                 group.addTask { [weak self] in
                     guard let self else {
                         return
                     }
-                    os_log(.debug, log: self.log, "Syncing %{public}s", feature.name)
+                    os_log(.debug, log: self.log, "Syncing %{public}s", dataProvider.feature.name)
 
                     do {
                         try checkCancellation()
@@ -169,23 +142,26 @@ final class SyncOperation: Operation {
                                 throw SyncError.noResponseBody
                             }
                             os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
-                                   feature.name,
+                                   dataProvider.feature.name,
                                    String(data: data, encoding: .utf8) ?? "")
                             let syncResult = try self.decodeResponse(with: data, request: syncRequest)
                             try checkCancellation()
                             try await self.handleResponse(for: dataProvider, syncResult: syncResult, fetchOnly: fetchOnly, timestamp: clientTimestamp)
                         case 204, 304:
                             try checkCancellation()
-                            try await self.handleResponse(for: dataProvider, syncResult: .noData(with: syncRequest), fetchOnly: fetchOnly, timestamp: clientTimestamp)
+                            try await self.handleResponse(for: dataProvider,
+                                                          syncResult: .noData(with: syncRequest),
+                                                          fetchOnly: fetchOnly,
+                                                          timestamp: clientTimestamp)
                         default:
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch is CancellationError {
-                        os_log(.debug, log: self.log, "Syncing %{public}s cancelled", feature.name)
+                        os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)
                     } catch {
-                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", feature.name, error.localizedDescription)
+                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", dataProvider.feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error)
-                        throw FeatureError(feature: feature, underlyingError: error)
+                        throw FeatureError(feature: dataProvider.feature, underlyingError: error)
                     }
                 }
             }
@@ -303,7 +279,6 @@ final class SyncOperation: Operation {
     private let lock = NSRecursiveLock()
     private var _isExecuting: Bool = false
     private var _isFinished: Bool = false
-    private var _didFinishInitialFetch: (() -> Void)?
     private var _didStart: (() -> Void)?
     private var _didFinish: ((Error?) -> Void)?
 }

@@ -74,7 +74,6 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             self.observer = nil
         }
     }
-
     
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
@@ -120,21 +119,32 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             return
         }
 
-        guard let children = parentFolder.children,
-              fromIndex < children.count,
-              toIndex < children.count else {
+        let visibleChildren = parentFolder.childrenArray
+
+        guard fromIndex < visibleChildren.count,
+              toIndex < visibleChildren.count else {
             errorEvents?.fire(.indexOutOfRange(.bookmarks))
             return
         }
 
-        guard let actualBookmark = children[fromIndex] as? BookmarkEntity,
-              actualBookmark == bookmark else {
+        guard visibleChildren[fromIndex] == bookmark else {
             errorEvents?.fire(.bookmarksListIndexNotMatchingBookmark)
             return
         }
 
+        // Take into account bookmarks that are pending deletion
         let mutableChildrenSet = parentFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.children))
-        mutableChildrenSet.moveObjects(at: IndexSet(integer: fromIndex), to: toIndex)
+
+        let actualFromIndex = mutableChildrenSet.index(of: bookmark)
+        let actualToIndex = mutableChildrenSet.index(of: visibleChildren[toIndex])
+
+        guard actualFromIndex != NSNotFound, actualToIndex != NSNotFound else {
+            assertionFailure("Bookmark: position could not be determined")
+            refresh()
+            return
+        }
+
+        mutableChildrenSet.moveObjects(at: IndexSet(integer: actualFromIndex), to: actualToIndex)
 
         save()
         refresh()
@@ -220,7 +230,11 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public var totalBookmarksCount: Int {
         let countRequest = BookmarkEntity.fetchRequest()
-        countRequest.predicate = NSPredicate(format: "%K == false && %K == NO", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.isPendingDeletion))
+        countRequest.predicate = NSPredicate(
+            format: "%K == false && %K == NO",
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.isPendingDeletion)
+        )
         
         return (try? context.count(for: countRequest)) ?? 0
     }

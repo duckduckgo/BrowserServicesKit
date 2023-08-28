@@ -19,6 +19,7 @@
 
 import XCTest
 @testable import BrowserServicesKit
+@testable import RemoteMessaging
 
 class RemoteMessagingConfigProcessorTests: XCTestCase {
 

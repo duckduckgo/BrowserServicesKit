@@ -31,32 +31,37 @@ public extension APIRequest {
             self.userAgent = userAgent
         }
         
-        private var userAgent: UserAgent?
-        public init(userAgent: UserAgent? = nil) {
-            self.userAgent = userAgent
-        }
-        
-        public var `default`: HTTPHeaders {
-            let acceptEncoding = "gzip;q=1.0, compress;q=0.5"
+        let userAgent: UserAgent
+        let acceptEncoding: String = "gzip;q=1.0, compress;q=0.5"
+        let acceptLanguage: String = {
             let languages = Locale.preferredLanguages.prefix(6)
-            let acceptLanguage = languages.enumerated().map { index, language in
+            return languages.enumerated().map { index, language in
                 let q = 1.0 - (Double(index) * 0.1)
                 return "\(language);q=\(q)"
             }.joined(separator: ", ")
-            
-            let userAgent = userAgent ?? Self.userAgent ?? ""
-            return [
+        }()
+        let etag: String?
+        let additionalHeaders: HTTPHeaders?
+
+        public init(userAgent: UserAgent? = nil, etag: String? = nil, additionalHeaders: HTTPHeaders? = nil) {
+            self.userAgent = userAgent ?? Self.userAgent ?? ""
+            self.etag = etag
+            self.additionalHeaders = additionalHeaders
+        }
+        
+        public var httpHeaders: HTTPHeaders {
+            var headers = [
                 HTTPHeaderField.acceptEncoding: acceptEncoding,
                 HTTPHeaderField.acceptLanguage: acceptLanguage,
                 HTTPHeaderField.userAgent: userAgent
             ]
-        }
-        
-        public func `default`(with etag: String?) -> HTTPHeaders {
-            guard let etag = etag else {
-                return `default`
+            if let etag {
+                headers[HTTPHeaderField.ifNoneMatch] = etag
             }
-            return `default`.merging([HTTPHeaderField.ifNoneMatch: etag]) { (_, new) in new }
+            if let additionalHeaders {
+                headers.merge(additionalHeaders) { old, _ in old }
+            }
+            return headers
         }
         
     }

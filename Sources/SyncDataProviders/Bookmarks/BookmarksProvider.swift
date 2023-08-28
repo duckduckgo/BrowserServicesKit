@@ -23,34 +23,17 @@ import CoreData
 import DDGSync
 import Persistence
 
-public final class BookmarksProvider: DataProviding {
+// swiftlint:disable line_length
+public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, reloadBookmarksAfterSync: @escaping () -> Void) throws {
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) throws {
         self.database = database
-        self.metadataStore = metadataStore
-        try self.metadataStore.registerFeature(named: feature.name)
-        self.reloadBookmarksAfterSync = reloadBookmarksAfterSync
-        syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
-
-    public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     // MARK: - DataProviding
 
-    public let feature: Feature = .init(name: "bookmarks")
-
-    public var lastSyncTimestamp: String? {
-        get {
-            metadataStore.timestamp(forFeatureNamed: feature.name)
-        }
-        set {
-            metadataStore.updateTimestamp(newValue, forFeatureNamed: feature.name)
-        }
-    }
-
-    public func prepareForFirstSync() throws {
-        lastSyncTimestamp = nil
-
+    public override func prepareForFirstSync() throws {
         var saveError: Error?
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -74,31 +57,29 @@ public final class BookmarksProvider: DataProviding {
         }
     }
 
-    public func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+    public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         var syncableBookmarks: [Syncable] = []
+        let encryptionKey = try crypter.fetchSecretKey()
         context.performAndWait {
             let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedWith: crypter) }
+            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
         }
         return syncableBookmarks
     }
 
-    public func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
-    public func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
-    }
-
-    public func handleSyncError(_ error: Error) {
-        syncErrorSubject.send(error)
     }
 
     // MARK: - Internal
 
+    // swiftlint:disable:next function_parameter_count
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         var saveError: Error?
 
@@ -108,20 +89,20 @@ public final class BookmarksProvider: DataProviding {
         context.performAndWait {
             while true {
 
-                let responseHandler = BookmarksResponseHandler(
-                    received: received,
-                    clientTimestamp: clientTimestamp,
-                    context: context,
-                    crypter: crypter,
-                    deduplicateEntities: isInitial
-                )
-                let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
-                responseHandler.processReceivedBookmarks()
+                do {
+                    let responseHandler = try BookmarksResponseHandler(
+                        received: received,
+                        clientTimestamp: clientTimestamp,
+                        context: context,
+                        crypter: crypter,
+                        deduplicateEntities: isInitial
+                    )
+                    let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
+                    try responseHandler.processReceivedBookmarks()
 
 #if DEBUG
-                willSaveContextAfterApplyingSyncResponse()
+                    willSaveContextAfterApplyingSyncResponse()
 #endif
-                do {
                     let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
                     try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                     break
@@ -147,7 +128,7 @@ public final class BookmarksProvider: DataProviding {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            reloadBookmarksAfterSync()
+            syncDidUpdateData()
         }
     }
 
@@ -155,7 +136,7 @@ public final class BookmarksProvider: DataProviding {
         if sent.isEmpty {
             return []
         }
-        let identifiers = sent.compactMap(\.uuid)
+        let identifiers = sent.compactMap { SyncableBookmarkAdapter(syncable: $0).uuid }
         let bookmarks = BookmarkEntity.fetchBookmarks(with: identifiers, in: context)
 
         var idsOfItemsToClearModifiedAt = Set<String>()
@@ -214,9 +195,6 @@ public final class BookmarksProvider: DataProviding {
     }
 
     private let database: CoreDataDatabase
-    private let metadataStore: SyncMetadataStore
-    private let reloadBookmarksAfterSync: () -> Void
-    private let syncErrorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {
         static let maxContextSaveRetries = 5
@@ -229,4 +207,4 @@ public final class BookmarksProvider: DataProviding {
 #endif
 
 }
-
+// swiftlint:enable line_length

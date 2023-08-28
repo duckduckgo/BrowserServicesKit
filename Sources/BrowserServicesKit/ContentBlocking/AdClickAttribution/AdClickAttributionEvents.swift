@@ -25,13 +25,13 @@ public enum AdClickAttributionEvents {
         public static let domainDetection = "domainDetection"
         public static let heuristicDetectionEnabled = "heuristicDetectionEnabled"
         public static let domainDetectionEnabled = "domainDetectionEnabled"
+        public static let count = "count"
     }
  
     case adAttributionDetected
     case adAttributionActive
+    case adAttributionPageLoads
 }
-
-// swiftlint:disable identifier_name
 
 public enum AdClickAttributionDebugEvents {
  
@@ -47,5 +47,3 @@ public enum AdClickAttributionDebugEvents {
     case adAttributionDetectionHeuristicsDidNotMatchDomain
     
 }
-
-// swiftlint:enable identifier_name

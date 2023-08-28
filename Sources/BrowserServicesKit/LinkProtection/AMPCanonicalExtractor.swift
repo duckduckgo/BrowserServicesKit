@@ -118,14 +118,10 @@ public final class AMPCanonicalExtractor: NSObject {
         let urlStr = url.absoluteString
         
         let ampKeywords = TrackingLinkSettings(fromConfig: privacyConfig).ampKeywords
-        
-        for keyword in ampKeywords {
-            if urlStr.contains(keyword) {
-                return true
-            }
+
+        return ampKeywords.contains { keyword in
+            return urlStr.contains(keyword)
         }
-        
-        return false
     }
     
     private func buildUserScript() -> WKUserScript {

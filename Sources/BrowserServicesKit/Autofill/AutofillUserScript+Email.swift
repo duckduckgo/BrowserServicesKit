@@ -25,17 +25,17 @@ public protocol AutofillEmailDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
-                            completionHandler: @escaping AliasCompletion)
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript)
+                            completionHandler: @escaping AliasAutosaveCompletion)
+    func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript)
     func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?)
-    func autofillUserScriptDidRequestUsernameAndAlias(_ : AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
-    func autofillUserScriptDidRequestUserData(_ : AutofillUserScript, completionHandler: @escaping UserDataCompletion)
-    func autofillUserScriptDidRequestSignOut(_ : AutofillUserScript)
+    func autofillUserScriptDidRequestUsernameAndAlias(_: AutofillUserScript, completionHandler: @escaping UsernameAndAliasCompletion)
+    func autofillUserScriptDidRequestUserData(_: AutofillUserScript, completionHandler: @escaping UserDataCompletion)
+    func autofillUserScriptDidRequestSignOut(_: AutofillUserScript)
     func autofillUserScriptDidRequestSignedInStatus(_: AutofillUserScript) -> Bool
-    func autofillUserScript(_ : AutofillUserScript, didRequestSetInContextPromptValue value: Double)
-    func autofillUserScriptDidRequestInContextPromptValue(_ : AutofillUserScript) -> Double?
-    func autofillUserScriptDidRequestInContextSignup(_ : AutofillUserScript)
-    func autofillUserScriptDidCompleteInContextSignup(_ : AutofillUserScript)
+    func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double)
+    func autofillUserScriptDidRequestInContextPromptValue(_: AutofillUserScript) -> Double?
+    func autofillUserScriptDidRequestInContextSignup(_: AutofillUserScript, completionHandler: @escaping SignUpCompletion)
+    func autofillUserScriptDidCompleteInContextSignup(_: AutofillUserScript)
 }
 
 extension AutofillUserScript {
@@ -65,18 +65,57 @@ extension AutofillUserScript {
     func emailGetAlias(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         guard let dict = message.messageBody as? [String: Any],
               let requiresUserPermission = dict["requiresUserPermission"] as? Bool,
-              let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool else { return }
+              let shouldConsumeAliasIfProvided = dict["shouldConsumeAliasIfProvided"] as? Bool,
+              let isIncontextSignupAvailable = dict["isIncontextSignupAvailable"] as? Bool else { return }
 
-        emailDelegate?.autofillUserScript(self,
-                                  didRequestAliasAndRequiresUserPermission: requiresUserPermission,
-                                  shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, _ in
-            guard let alias = alias else { return }
-
-            replyHandler("""
-            {
-                "alias": "\(alias)"
+        guard isIncontextSignupAvailable, let signedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self), !signedIn else {
+            requestAlias(message,
+                         requiresUserPermission: requiresUserPermission,
+                         shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
+                replyHandler(reply)
             }
-            """)
+            return
+        }
+
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { [weak self] success, _ in
+            if success {
+                self?.requestAlias(message, requiresUserPermission: requiresUserPermission,
+                                   shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { reply in
+                    replyHandler(reply)
+                }
+            } else {
+                replyHandler(nil)
+            }
+        }
+    }
+
+    private func requestAlias(_ message: UserScriptMessage,
+                              requiresUserPermission: Bool,
+                              shouldConsumeAliasIfProvided: Bool,
+                              _ replyHandler: @escaping MessageReplyHandler) {
+        emailDelegate?.autofillUserScript(self,
+                                          didRequestAliasAndRequiresUserPermission: requiresUserPermission,
+                                          shouldConsumeAliasIfProvided: shouldConsumeAliasIfProvided) { alias, autosave, _  in
+            guard let alias = alias else { return }
+            let domain = self.hostProvider.hostForMessage(message)
+
+            //  Fetch the data in order to validate whether the alias is the personal email address or not
+            self.emailDelegate?.autofillUserScriptDidRequestUserData(self) { username, _, _, _ in
+                if let username = username {
+                    let autogenerated = alias != username && autosave // Only consider private emails as autogenerated
+                    let credentials = AutofillUserScript.IncomingCredentials(username: "\(alias)@\(EmailManager.emailDomain)",
+                                                                             password: nil,
+                                                                             autogenerated: autogenerated)
+                    let data = DetectedAutofillData(identity: nil, credentials: credentials, creditCard: nil, trigger: .emailProtection)
+                    self.vaultDelegate?.autofillUserScript(self, didRequestStoreDataForDomain: domain, data: data)
+
+                    replyHandler("""
+                    {
+                        "alias": "\(alias)"
+                    }
+                    """)
+                }
+            }
         }
     }
 
@@ -169,7 +208,7 @@ extension AutofillUserScript {
     }
 
     func startEmailProtectionSignup(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self)
+        emailDelegate?.autofillUserScriptDidRequestInContextSignup(self) { _, _  in }
         replyHandler(nil)
     }
 

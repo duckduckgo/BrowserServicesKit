@@ -28,12 +28,15 @@ public protocol AdClickAttributionLogicDelegate: AnyObject {
                           forVendor vendor: String?)
 }
 
+// swiftlint:disable:next type_body_length
 public class AdClickAttributionLogic {
     
     public enum State {
+
         case noAttribution
         case preparingAttribution(vendor: String, session: SessionInfo, completionBlocks: [(() -> Void)])
         case activeAttribution(vendor: String, session: SessionInfo, rules: ContentBlockerRulesManager.Rules)
+
     }
     
     public struct SessionInfo {
@@ -57,8 +60,12 @@ public class AdClickAttributionLogic {
     }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
-    
+    private lazy var counter: AdClickAttributionCounter = AdClickAttributionCounter(onSendRequest: { count in
+        self.eventReporting?.fire(.adAttributionPageLoads, parameters: [AdClickAttributionEvents.Parameters.count: String(count)])
+    })
+
     public private(set) var state = State.noAttribution
+
     private var registerFirstActivity = false
     
     private var attributionTimeout: DispatchWorkItem?
@@ -78,7 +85,7 @@ public class AdClickAttributionLogic {
         self.errorReporting = errorReporting
         self.getLog = log
     }
-    
+
     public func applyInheritedAttribution(state: State?) {
         guard let state = state else { return }
         
@@ -171,6 +178,10 @@ public class AdClickAttributionLogic {
     public func onDidFinishNavigation(host: String?, currentTime: Date = Date()) {
         guard case .activeAttribution(let vendor, let session, let rules) = state else {
             return
+        }
+
+        if tld.eTLDplus1(host) == vendor {
+            counter.onAttributionActive()
         }
         
         if currentTime.timeIntervalSince(session.attributionStartedAt) >= featureConfig.totalExpiration {

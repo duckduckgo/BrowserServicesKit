@@ -26,7 +26,10 @@ public protocol ContentOverlayUserScriptDelegate: AnyObject {
     /// Closes the overlay
     func websiteAutofillUserScriptCloseOverlay(_ websiteAutofillUserScript: WebsiteAutofillUserScript?)
     /// Opens the overlay
-    func websiteAutofillUserScript(_ websiteAutofillUserScript: WebsiteAutofillUserScript, willDisplayOverlayAtClick: CGPoint?, serializedInputContext: String, inputPosition: CGRect)
+    func websiteAutofillUserScript(_ websiteAutofillUserScript: WebsiteAutofillUserScript,
+                                   willDisplayOverlayAtClick: CGPoint?,
+                                   serializedInputContext: String,
+                                   inputPosition: CGRect)
 }
 
 public class WebsiteAutofillUserScript: AutofillUserScript {
@@ -114,14 +117,14 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         var response = GetSelectedCredentialsResponse(type: CredentialsResponse.none)
 
         let emailSignedIn = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        if (previousEmailSignedIn == nil) {
+        if previousEmailSignedIn == nil {
             previousEmailSignedIn = emailSignedIn
         }
         let hasEmailSignedInStateChanged = previousEmailSignedIn != emailSignedIn
         let inContextEmailSignupPromptDismissedPermanentlyAt: Double? = emailDelegate?.autofillUserScriptDidRequestInContextPromptValue(self)
         let hasIncontextSignupStateChanged = previousIncontextSignupPermanentlyDismissedAt != inContextEmailSignupPromptDismissedPermanentlyAt
 
-        if (hasEmailSignedInStateChanged || hasIncontextSignupStateChanged) {
+        if hasEmailSignedInStateChanged || hasIncontextSignupStateChanged {
             previousIncontextSignupPermanentlyDismissedAt = inContextEmailSignupPromptDismissedPermanentlyAt
             previousEmailSignedIn = emailSignedIn
             response = GetSelectedCredentialsResponse(type: CredentialsResponse.state)
@@ -131,7 +134,9 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
 
         } else if let selectedDetailsData = selectedDetailsData {
             self.selectedDetailsData = nil
-            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok, data: selectedDetailsData.data, configType: selectedDetailsData.configType)
+            response = GetSelectedCredentialsResponse(type: CredentialsResponse.ok,
+                                                      data: selectedDetailsData.data,
+                                                      configType: selectedDetailsData.configType)
         }
 
         if let json = try? JSONEncoder().encode(response),
@@ -150,7 +155,9 @@ extension WebsiteAutofillUserScript: OverlayAutofillUserScriptDelegate {
         close()
     }
 
-    public func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript, messageSelectedCredential: [String: String], _ configType: String) {
+    public func overlayAutofillUserScript(_ overlayAutofillUserScript: OverlayAutofillUserScript,
+                                          messageSelectedCredential: [String: String],
+                                          _ configType: String) {
         guard let currentOverlayTab = currentOverlayTab else { return }
         currentOverlayTab.websiteAutofillUserScriptCloseOverlay(self)
         selectedDetailsData = SelectedDetailsData(data: messageSelectedCredential, configType: configType)

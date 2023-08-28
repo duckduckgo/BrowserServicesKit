@@ -1,0 +1,99 @@
+name: PR Checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    
+jobs:
+  swiftlint:
+    
+    name: Run SwiftLint
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v3
+    - name: Run SwiftLint on all files
+      uses: norio-nomura/action-swiftlint@3.2.1
+      with:
+        args: --force-exclude
+
+  unit-tests:
+
+      name: Run unit tests
+
+      runs-on: macos-13
+      timeout-minutes: 30
+
+      steps:
+
+      - name: Check out the code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set cache key hash
+        run: |
+          has_only_tags=$(jq '[ .pins[].state | has("version") ] | all' Package.resolved)
+          if [[ "$has_only_tags" == "true" ]]; then
+            echo "cache_key_hash=${{ hashFiles('Package.resolved') }}" >> $GITHUB_ENV
+          else
+            echo "Package.resolved contains dependencies specified by branch or commit, skipping cache."
+          fi
+
+      - name: Cache SPM
+        if: env.cache_key_hash
+        uses: actions/cache@v3
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ env.cache_key_hash }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_14.3.app/Contents/Developer
+
+      - name: Install xcbeautify
+        continue-on-error: true
+        run: brew install xcbeautify
+
+      - name: Run tests
+        run: set -o pipefail && swift test | tee build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
+
+      - name: Publish Unit Tests Report
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          check_name: Test Report
+          report_paths: tests.xml
+          require_tests: true
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: build-log.txt
+          path: build-log.txt
+
+  asana:
+    name: Create Asana Task
+    needs: [swiftlint, unit-tests]
+
+    if: failure() && github.ref_name == 'main'
+    
+    env:
+      WORKFLOW_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create Asana Task
+        uses: malmstein/github-asana-action@master
+        with:
+          asana-pat: ${{ secrets.ASANA_ACCESS_TOKEN }}
+          asana-project: ${{ vars.APPLE_CI_FAILING_TESTS_PROJECT_ID }}
+          asana-section: ${{ vars.APPLE_CI_FAILING_TESTS_BSK_POST_MERGE_SECTION_ID }}
+          asana-task-name: 'PR Check is failing on main'
+          action: create-asana-task
+          asana-task-description: PR Checks conducted after merging have failed.  See ${{ env.WORKFLOW_URL }}

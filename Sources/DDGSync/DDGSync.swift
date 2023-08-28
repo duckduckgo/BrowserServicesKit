@@ -26,11 +26,11 @@ public class DDGSync: DDGSyncing {
     public static let bundle = Bundle.module
 
     enum Constants {
-        //#if DEBUG
+        // #if DEBUG
         public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        //#else
+        // #else
         //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-        //#endif
+        // #endif
 
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }
@@ -57,7 +57,9 @@ public class DDGSync: DDGSyncing {
     public weak var dataProvidersSource: DataProvidersSource?
 
     /// This is the constructor intended for use by app clients.
-    public convenience init(dataProvidersSource: DataProvidersSource, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public convenience init(dataProvidersSource: DataProvidersSource,
+                            errorEvents: EventMapping<SyncError>,
+                            log: @escaping @autoclosure () -> OSLog = .disabled) {
         let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, errorEvents: errorEvents, log: log())
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
@@ -225,10 +227,11 @@ public class DDGSync: DDGSyncing {
             return
         }
 
-        guard let account, account.state != .inactive else {
+        guard var account, account.state != .inactive else {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
+            try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
             try dependencies.secureStore.removeAccount()
@@ -240,10 +243,10 @@ public class DDGSync: DDGSyncing {
 
         let providers = dataProvidersSource?.makeDataProviders() ?? []
         let syncQueue = SyncQueue(dataProviders: providers, dependencies: dependencies)
+        try syncQueue.prepareDataModelsForSync(needsRemoteDataFetch: account.state == .addingNewDevice)
 
-        let previousState = try dependencies.secureStore.account()?.state
-        if previousState == nil || previousState ==  .inactive {
-            try syncQueue.prepareForFirstSync()
+        if account.state != .active {
+            account = account.updatingState(.active)
         }
         try dependencies.secureStore.persistAccount(account)
         authState = account.state
@@ -258,12 +261,7 @@ public class DDGSync: DDGSyncing {
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
-                self?.syncQueue?.startSync() {
-                    if let account = try? self?.dependencies.secureStore.account()?.updatingState(.active) {
-                        try? self?.dependencies.secureStore.persistAccount(account)
-                        self?.authState = .active
-                    }
-                }
+                self?.syncQueue?.startSync()
             }
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
@@ -291,6 +289,7 @@ public class DDGSync: DDGSyncing {
             try updateAccount(nil)
             dependencies.errorEvents.fire(syncError)
         } catch {
+            // swiftlint:disable:next line_length
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
             if let syncError = error as? SyncError {
                 dependencies.errorEvents.fire(syncError)

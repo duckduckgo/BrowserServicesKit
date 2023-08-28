@@ -22,14 +22,10 @@ import Foundation
 import Navigation
 import WebKit
 
-// swiftlint:disable file_length
-// swiftlint:disable line_length
 // swiftlint:disable cyclomatic_complexity
-// swiftlint:disable force_try
-// swiftlint:disable force_cast
 // swiftlint:disable implicit_getter
-// swiftlint:disable large_tuple
 
+// swiftlint:disable:next large_tuple
 typealias EncodingContext = (urls: Any, webView: WKWebView, dataSource: Any, navigationActions: UnsafeMutablePointer<[UInt64: NavAction]>, navigationResponses: UnsafeMutablePointer<[NavigationResponse]>, responderResponses: [NavResponse], history: [UInt64: HistoryItemIdentity])
 extension TestsNavigationEvent {
 
@@ -1076,7 +1072,6 @@ extension URLResponse {
     }
 }
 
-
 #if !_FRAME_HANDLE_ENABLED
 
 struct FrameHandle: Equatable {
@@ -1096,3 +1091,6 @@ extension FrameInfo {
 }
 
 #endif
+
+// swiftlint:enable cyclomatic_complexity
+// swiftlint:enable implicit_getter

@@ -54,7 +54,7 @@ struct SyncResult {
 
 final class SyncQueue {
 
-    let dataProviders: [Feature: DataProviding]
+    let dataProviders: [DataProviding]
     let storage: SecureStoring
     let isSyncInProgressPublisher: AnyPublisher<Bool, Never>
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
@@ -80,9 +80,7 @@ final class SyncQueue {
         endpoints: Endpoints,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
-        self.dataProviders = dataProviders.reduce(into: .init(), { partialResult, provider in
-            partialResult[provider.feature] = provider
-        })
+        self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.getLog = log
@@ -95,11 +93,21 @@ final class SyncQueue {
             .eraseToAnyPublisher()
     }
 
-    func prepareForFirstSync() throws {
-        for dataProvider in dataProviders.values {
+    func prepareDataModelsForSync(needsRemoteDataFetch: Bool) throws {
+        let unregisteredDataProviders = dataProviders.filter { !$0.isFeatureRegistered }
+        guard !unregisteredDataProviders.isEmpty else {
+            return
+        }
+
+        let hasRegisteredDataProviders = unregisteredDataProviders.count != dataProviders.count
+        let setupState: FeatureSetupState = (needsRemoteDataFetch || hasRegisteredDataProviders) ? .needsRemoteDataFetch : .readyToSync
+
+        for dataProvider in unregisteredDataProviders {
             do {
                 try dataProvider.prepareForFirstSync()
+                try dataProvider.registerFeature(withState: setupState)
             } catch {
+                // swiftlint:disable:next line_length
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)
                 throw error
@@ -107,8 +115,8 @@ final class SyncQueue {
         }
     }
 
-    func startSync(withFirstFetchCompletion firstFetchCompletion: (() -> Void)? = nil) {
-        let operation = makeSyncOperation(firstFetchCompletion: firstFetchCompletion)
+    func startSync() {
+        let operation = makeSyncOperation()
         operationQueue.addOperation(operation)
     }
 
@@ -125,7 +133,7 @@ final class SyncQueue {
 
     // MARK: - Private
 
-    private func makeSyncOperation(firstFetchCompletion: (() -> Void)?) -> SyncOperation {
+    private func makeSyncOperation() -> SyncOperation {
         let operation = SyncOperation(
             dataProviders: dataProviders,
             storage: storage,
@@ -133,7 +141,6 @@ final class SyncQueue {
             requestMaker: requestMaker,
             log: self.log
         )
-        operation.didFinishInitialFetch = firstFetchCompletion
         operation.didStart = { [weak self] in
             self?.syncDidStartSubject.send(())
         }

@@ -296,7 +296,6 @@ extension BookmarkEntity {
     
 }
 
-extension BookmarkEntity : Identifiable {
+extension BookmarkEntity: Identifiable {
 
 }
-

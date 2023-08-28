@@ -26,9 +26,9 @@ struct ContentBlockerRulesListSourceMock: ContentBlockerRulesListsSource {
 }
 
 struct ContentBlockerRulesExceptionsSourceMock: ContentBlockerRulesExceptionsSource {
-    var tempListEtag: String = ""
+    var tempListId: String = ""
     var tempList: [String] = []
-    var allowListEtag: String = ""
+    var allowListId: String = ""
     var allowList: [TrackerException] = []
     var unprotectedSites: [String] = []
 }

@@ -28,5 +28,4 @@ extension URLComponents {
         return tld.extractSubdomain(from: self.host?.lowercased())
     }
 
-
 }

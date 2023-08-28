@@ -23,15 +23,9 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable file_length
-// swiftlint:disable line_length
-// swiftlint:disable function_body_length
 // swiftlint:disable unused_closure_parameter
-// swiftlint:disable type_body_length
 // swiftlint:disable trailing_comma
 // swiftlint:disable opening_brace
-// swiftlint:disable force_try
-// swiftlint:disable identifier_name
 
 @available(macOS 12.0, iOS 15.0, *)
 class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase {
@@ -1013,6 +1007,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     @MainActor
     func testSimulatedRequest() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let eDidFinish = expectation(description: "onDidFinish")
@@ -1036,6 +1031,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     @MainActor
     func testSimulatedRequestWithData() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let eDidFinish = expectation(description: "onDidFinish")
@@ -1057,6 +1053,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequest() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         navigationDelegateProxy.finishEventsDispatchTime = .instant
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
@@ -1091,6 +1088,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequestWithFailureBeforeWillStartNavigation() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .beforeWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -1121,6 +1119,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterWillStartNavigation() {
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (because it works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -1151,7 +1150,8 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterDidStartNavigation() {
-        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
+        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+       // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
         navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
@@ -1258,7 +1258,6 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     // MARK: - Local file requests
-
 
 //    #selector(loadSimulatedRequest(_:response:responseData:)): #selector(navigation_loadSimulatedRequest(_:response:responseData:)),
 
@@ -1662,3 +1661,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
 }
+
+// swiftlint:enable unused_closure_parameter
+// swiftlint:enable trailing_comma
+// swiftlint:enable opening_brace

@@ -42,7 +42,11 @@ extension BookmarkEntity {
 
     static func fetchBookmark(withTitle title: String?, url: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@ AND %K == %@", #keyPath(BookmarkEntity.title), title ?? "", #keyPath(BookmarkEntity.url), url ?? "")
+        request.predicate = NSPredicate(
+            format: "%K == %@ AND %K == %@",
+            #keyPath(BookmarkEntity.title), title ?? "",
+            #keyPath(BookmarkEntity.url), url ?? ""
+        )
         request.fetchLimit = 1
 
         return (try? context.fetch(request))?.first
@@ -50,7 +54,11 @@ extension BookmarkEntity {
 
     static func fetchFolder(withTitle title: String?, parentUUID: String?, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.title), title ?? "")
+        request.predicate = NSPredicate(
+            format: "%K == YES AND %K == %@",
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.title), title ?? ""
+        )
         request.returnsObjectsAsFaults = false
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.parent)]
 
@@ -60,18 +68,28 @@ extension BookmarkEntity {
 
     static func fetchFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == YES AND %K == %@", #keyPath(BookmarkEntity.isFolder), #keyPath(BookmarkEntity.uuid), uuid)
+        request.predicate = NSPredicate(
+            format: "%K == YES AND %K == %@",
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.uuid), uuid
+)
         request.returnsObjectsAsFaults = true
         request.fetchLimit = 1
 
         return (try? context.fetch(request))?.first
     }
 
-    static func deduplicatedEntity(with syncable: Syncable, parentUUID: String?, in context: NSManagedObjectContext, using crypter: Crypting) -> BookmarkEntity? {
+    static func deduplicatedEntity(
+        with syncable: SyncableBookmarkAdapter,
+        parentUUID: String?,
+        in context: NSManagedObjectContext,
+        decryptedUsing decrypt: (String) throws -> String
+    ) throws -> BookmarkEntity? {
+
         if syncable.isDeleted {
             return nil
         }
-        let title = try? crypter.base64DecodeAndDecrypt(syncable.encryptedTitle ?? "")
+        let title = try decrypt(syncable.encryptedTitle ?? "")
         if syncable.isFolder {
             guard let parentUUID else {
                 if syncable.uuid == BookmarkEntity.Constants.rootFolderID {
@@ -82,13 +100,14 @@ extension BookmarkEntity {
             return fetchFolder(withTitle: title, parentUUID: parentUUID, in: context)
         }
 
-        let url = try? crypter.base64DecodeAndDecrypt(syncable.encryptedUrl ?? "")
+        let url = try decrypt(syncable.encryptedUrl ?? "")
         return fetchBookmark(withTitle: title, url: url, in: context)
     }
 
-    func update(with syncable: Syncable, in context: NSManagedObjectContext, using crypter: Crypting) throws {
-        let payload = syncable.payload
-        guard payload["deleted"] == nil else {
+    func update(with syncable: SyncableBookmarkAdapter,
+                in context: NSManagedObjectContext,
+                decryptedUsing decrypt: (String) throws -> String) throws {
+        guard !syncable.isDeleted else {
             context.delete(self)
             return
         }
@@ -96,13 +115,13 @@ extension BookmarkEntity {
         cancelDeletion()
         modifiedAt = nil
 
-        if let encryptedTitle = payload["title"] as? String {
-            title = try crypter.base64DecodeAndDecrypt(encryptedTitle)
+        if let encryptedTitle = syncable.encryptedTitle {
+            title = try decrypt(encryptedTitle)
         }
 
         if !isFolder {
-            if let page = payload["page"] as? [String: Any], let encryptedUrl = page["url"] as? String {
-                url = try crypter.base64DecodeAndDecrypt(encryptedUrl)
+            if let encryptedUrl = syncable.encryptedUrl {
+                url = try decrypt(encryptedUrl)
             }
         }
     }

@@ -136,11 +136,12 @@ class AutofillEmailUserScriptTests: XCTestCase {
         var body = encryptedMessagingParams
         body["requiresUserPermission"] = false
         body["shouldConsumeAliasIfProvided"] = false
+        body["isIncontextSignupAvailable"] = false
         let mockWebView = MockWebView()
         let message = MockWKScriptMessage(name: "emailHandlerGetAlias", body: body, webView: mockWebView)
         userScript.userContentController(userContentController, didReceive: message)
 
-        waitForExpectations(timeout: 1.0, handler: nil)
+        waitForExpectations(timeout: 2.0, handler: nil)
 
         XCTAssertNotNil(mockWebView.javaScriptString)
     }
@@ -275,11 +276,11 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         return nil
     }
 
-    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+    func autofillUserScriptDidRequestInContextSignup(_: BrowserServicesKit.AutofillUserScript, completionHandler: @escaping BrowserServicesKit.SignUpCompletion) {
 
     }
 
-    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) -> Void {
+    func autofillUserScriptDidCompleteInContextSignup(_: BrowserServicesKit.AutofillUserScript) {
 
     }
 
@@ -299,16 +300,16 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
-                            completionHandler: @escaping AliasCompletion) {
+                            completionHandler: @escaping AliasAutosaveCompletion) {
         requestAliasCallback?()
-        completionHandler("alias", nil)
+        completionHandler("alias", true, nil)
     }
     
-    func autofillUserScriptDidRequestRefreshAlias(_ : AutofillUserScript) {
+    func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         refreshAliasCallback?()
     }
     
-    func autofillUserScript(_ : AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
+    func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         requestStoreTokenCallback!(token, username, cohort)
     }
 

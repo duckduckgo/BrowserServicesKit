@@ -31,7 +31,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         XCTAssertNil(provider.lastSyncTimestamp)
     }
 
-    func testThatLastSyncTimestampIsPersisted() {
+    func testThatLastSyncTimestampIsPersisted() throws {
+        try provider.registerFeature(withState: .readyToSync)
         provider.lastSyncTimestamp = "12345"
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
     }
@@ -92,7 +93,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         try provider.prepareForFirstSync()
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
@@ -127,7 +128,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
@@ -163,7 +164,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
         let changedFolder = try XCTUnwrap(changedObjects.first(where: { $0.uuid == "2"}))
 
         XCTAssertEqual(Set(changedObjects.compactMap(\.uuid)), Set(["2", "4"]))
@@ -592,6 +593,41 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             assertEquivalent(rootFolder, BookmarkTree {
                 Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
             })
+        }
+    }
+
+    func testWhenObjectWasUpdatedLocallyAfterStartingSyncThenRemoteDeletionIsApplied() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1")
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: []),
+            .bookmark("test2", id: "1", isDeleted: true)
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        context.performAndWait {
+            let bookmark = BookmarkEntity.fetchBookmarks(with: ["1"], in: context).first!
+            bookmark.title = "test3"
+            try! context.save()
+        }
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(rootFolder, BookmarkTree {})
         }
     }
 

@@ -174,9 +174,14 @@ final class MockDataProvidersSource: DataProvidersSource {
 }
 
 class HTTPRequestingMock: HTTPRequesting {
+
+    init(result: HTTPResult = .init(data: Data(), response: HTTPURLResponse())) {
+        self.result = result
+    }
+
     var executeCallCount = 0
     var error: SyncError?
-    var result: HTTPResult = .init(data: Data(), response: HTTPURLResponse())
+    var result: HTTPResult
 
     func execute() async throws -> HTTPResult {
         executeCallCount += 1
@@ -191,6 +196,7 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     var createRequestCallCount = 0
     var createRequestCallArgs: [CreateRequestCallArgs] = []
     var request: HTTPRequesting = HTTPRequestingMock()
+    var fakeRequests: [URL: HTTPRequestingMock] = [:]
     private let lock = NSLock()
 
     struct CreateRequestCallArgs: Equatable {
@@ -207,14 +213,17 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
         defer { lock.unlock() }
         createRequestCallCount += 1
         createRequestCallArgs.append(CreateRequestCallArgs(url: url, method: method, headers: headers, parameters: parameters, body: body, contentType: contentType))
-        return request
+        return fakeRequests[url] ?? request
     }
 }
 
 struct CryptingMock: CryptingInternal {
-
     var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
     var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
+
+    func fetchSecretKey() throws -> Data {
+        .init()
+    }
 
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try _encryptAndBase64Encode(value)
@@ -224,11 +233,11 @@ struct CryptingMock: CryptingInternal {
         try _base64DecodeAndDecrypt(value)
     }
 
-    func encryptAndBase64Encode(_ value: String, using secretKey: Data?) throws -> String {
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data) throws -> String {
         try _encryptAndBase64Encode(value)
     }
 
-    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data?) throws -> String {
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String {
         try _base64DecodeAndDecrypt(value)
     }
 
@@ -258,33 +267,75 @@ struct CryptingMock: CryptingInternal {
 
 }
 
-struct DataProvidingMock: DataProviding {
-
-    var feature: Feature
-    var lastSyncTimestamp: String?
-    var _prepareForFirstSync: () -> Void = {}
-    var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
-    var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_ in }
-    var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _,_,_,_,_ in }
-    var handleSyncError: (Error) -> Void = { _ in }
-
-    func prepareForFirstSync() {
-        _prepareForFirstSync()
+class SyncMetadataStoreMock: SyncMetadataStore {
+    struct FeatureInfo: Equatable {
+        var timestamp: String?
+        var state: FeatureSetupState
     }
 
-    func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
+    var features: [String: FeatureInfo] = [:]
+
+    func isFeatureRegistered(named name: String) -> Bool {
+        features.keys.contains(name)
+    }
+
+    func registerFeature(named name: String, setupState: FeatureSetupState) throws {
+        features[name] = .init(state: setupState)
+    }
+
+    func deregisterFeature(named name: String) throws {
+        features.removeValue(forKey: name)
+    }
+
+    func timestamp(forFeatureNamed name: String) -> String? {
+        features[name]?.timestamp
+    }
+
+    func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String) {
+        features[name]?.timestamp = timestamp
+    }
+
+    func state(forFeatureNamed name: String) -> FeatureSetupState {
+        features[name]?.state ?? .readyToSync
+    }
+
+    func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String) {
+        features[name]?.state = state
+        features[name]?.timestamp = timestamp
+    }
+}
+
+class DataProvidingMock: DataProvider {
+
+    init(feature: Feature, syncDidUpdateData: @escaping () -> Void = {}) {
+        super.init(feature: feature, metadataStore: SyncMetadataStoreMock(), syncDidUpdateData: syncDidUpdateData)
+    }
+
+    var _prepareForFirstSync: () throws -> Void = {}
+    var _fetchChangedObjects: (Crypting) async throws -> [Syncable] = { _ in return [] }
+    var handleInitialSyncResponse: ([Syncable], Date, String?, Crypting) async throws -> Void = { _, _, _, _ in }
+    var handleSyncResponse: ([Syncable], [Syncable], Date, String?, Crypting) async throws -> Void = { _, _, _, _, _ in }
+    var _handleSyncError: (Error) -> Void = { _ in }
+
+    override func prepareForFirstSync() throws {
+        try _prepareForFirstSync()
+    }
+
+    override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         try await _fetchChangedObjects(crypter)
     }
 
-    func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
+        lastSyncTimestamp = serverTimestamp
     }
 
-    func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
+        lastSyncTimestamp = serverTimestamp
     }
 
-    func handleSyncError(_ error: Error) {
-        handleSyncError(error)
+    override func handleSyncError(_ error: Error) {
+        _handleSyncError(error)
     }
 }

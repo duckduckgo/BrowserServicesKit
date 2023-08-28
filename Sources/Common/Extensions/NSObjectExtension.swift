@@ -65,10 +65,28 @@ extension NSObject {
         }
     }
 
+    public struct DeallocationCheckAction {
+        let perform: (NSObject) -> Void
+        public init(action: @escaping (NSObject) -> Void) {
+            self.perform = action
+        }
+
+        public static let assert = DeallocationCheckAction { object in
+            assertionFailure("\(object) has not been deallocated. Ensure there‘s no retain cycle added.")
+        }
+        public static let interrupt = DeallocationCheckAction { object in
+        #if DEBUG
+            breakByRaisingSigInt("\(object) has not been deallocated. Ensure there‘s no retain cycle added.")
+        #endif
+        }
+        public static let log = DeallocationCheckAction { object in
+            os_log(.error, "\(object) has not been deallocated. Ensure there‘s no retain cycle added.")
+        }
+    }
 #if DEBUG
     /// DEBUG-only runtime check for an expected object deallocation
     /// will raise an assertionFailure if the object is not deallocated after the timeout
-    public func assertObjectDeallocated(after timeout: TimeInterval = 0) {
+    public func ensureObjectDeallocated(after timeout: TimeInterval = 0, do action: DeallocationCheckAction) {
         guard Thread.isMainThread else {
             DispatchQueue.main.async { [weak self] in
                 self?.assertObjectDeallocated(after: timeout)
@@ -76,7 +94,7 @@ extension NSObject {
             return
         }
         let assertion = DispatchWorkItem { [unowned self] in
-            assertionFailure("\(self) has not been deallocated")
+            action.perform(self)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: assertion)
         self.onDeinit {
@@ -85,7 +103,12 @@ extension NSObject {
     }
 #else
     @inlinable
-    public func assertObjectDeallocated(after timeout: TimeInterval = 0) {}
+    public func ensureObjectDeallocated(after _: TimeInterval = 0, do _: DeallocationCheckAction) {}
 #endif
+
+    @inlinable
+    public func assertObjectDeallocated(after timeout: TimeInterval = 0) {
+        ensureObjectDeallocated(after: timeout, do: .assert)
+    }
 
 }

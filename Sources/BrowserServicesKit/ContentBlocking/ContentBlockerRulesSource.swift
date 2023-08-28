@@ -33,9 +33,9 @@ public protocol ContentBlockerRulesListsSource {
  */
 public protocol ContentBlockerRulesExceptionsSource {
 
-    var tempListEtag: String { get }
+    var tempListId: String { get }
     var tempList: [String] { get }
-    var allowListEtag: String { get }
+    var allowListId: String { get }
     var allowList: [TrackerException] { get }
     var unprotectedSites: [String] { get }
 }
@@ -93,8 +93,8 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
         self.privacyConfigManager = privacyConfigManager
     }
 
-    public var tempListEtag: String {
-        return privacyConfigManager.privacyConfig.identifier
+    public var tempListId: String {
+        return ContentBlockerRulesIdentifier.hash(domains: tempList)
     }
 
     public var tempList: [String] {
@@ -104,12 +104,12 @@ public class DefaultContentBlockerRulesExceptionsSource: ContentBlockerRulesExce
         return tempUnprotected
     }
 
-    public var allowListEtag: String {
-        return privacyConfigManager.privacyConfig.identifier
+    public var allowListId: String {
+        return privacyConfigManager.privacyConfig.trackerAllowlist.hash ?? privacyConfigManager.privacyConfig.identifier
     }
 
     public var allowList: [TrackerException] {
-        return Self.transform(allowList: privacyConfigManager.privacyConfig.trackerAllowlist)
+        return Self.transform(allowList: privacyConfigManager.privacyConfig.trackerAllowlist.entries)
     }
 
     public var unprotectedSites: [String] {

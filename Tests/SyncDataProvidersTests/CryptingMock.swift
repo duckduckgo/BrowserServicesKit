@@ -19,6 +19,7 @@
 
 import Bookmarks
 import DDGSync
+import Foundation
 
 struct CryptingMock: Crypting {
 
@@ -35,11 +36,23 @@ struct CryptingMock: Crypting {
         return value.dropping(prefix: "encrypted_")
     }
 
+    func fetchSecretKey() throws -> Data {
+        .init()
+    }
+
     func encryptAndBase64Encode(_ value: String) throws -> String {
         try _encryptAndBase64Encode(value)
     }
 
     func base64DecodeAndDecrypt(_ value: String) throws -> String {
+        try _base64DecodeAndDecrypt(value)
+    }
+
+    func encryptAndBase64Encode(_ value: String, using secretKey: Data) throws -> String {
+        try _encryptAndBase64Encode(value)
+    }
+
+    func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String {
         try _base64DecodeAndDecrypt(value)
     }
 }

@@ -371,6 +371,108 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertFalse(config.isEnabled(featureKey: .ampLinks, versionProvider: appVersion))
     }
 
+    let exampleInstalledDaysConfig =
+            """
+            {
+                "features": {
+                    "gpc": {
+                        "state": "enabled",
+                        "exceptions": [
+                            {
+                                "domain": "example.com",
+                                "reason": "site breakage"
+                            }
+                        ]
+                    },
+                    "incontextSignup": {
+                        "exceptions": [],
+                        "state": "enabled",
+                        "minSupportedVersion": "7.82.0",
+                        "settings": {
+                            "installedDays": 21
+                        }
+                    },
+                    "trackingParameters": {
+                        "state": "enabled",
+                        "minSupportedVersion": "7.82.0",
+                        "exceptions": [],
+                        "settings": {
+                            "installedDays": "a"
+                        }
+
+                    }
+                },
+                "unprotectedTemporary": [
+                    {
+                        "domain": "unp.com",
+                        "reason": "site breakage"
+                    }
+                ]
+            }
+            """.data(using: .utf8)!
+
+    func createPrivacyConfigWithInstallDate(_ mockEmbeddedData: MockEmbeddedDataProvider, _ mockProtectionStore: MockDomainsProtectionStore, installDate: Date?) -> PrivacyConfiguration {
+        return PrivacyConfigurationManager(fetchedETag: nil,
+                                           fetchedData: nil,
+                                           embeddedDataProvider: mockEmbeddedData,
+                                           localProtection: mockProtectionStore,
+                                           internalUserDecider: DefaultInternalUserDecider(),
+                                           installDate: installDate).privacyConfig
+    }
+
+    func testInstalledDaysCheckReturnsCorrectly() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleInstalledDaysConfig, etag: "test")
+        let mockProtectionStore = MockDomainsProtectionStore()
+        let appVersion = MockAppVersionProvider(appVersion: "7.82.0")
+
+        // When installedDays key not present
+        var config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: nil)
+        XCTAssertTrue(config.isEnabled(featureKey: .gpc, versionProvider: appVersion))
+
+        // When valid number of installed days (less than or equal to 21):
+
+        // 0 days
+        let installDate0DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 0)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate0DaysAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 1 day
+        let installDate1DayAgo = Date().addingTimeInterval(-60 * 60 * 24 * 1)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate1DayAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 20 days (1 day less than config)
+        let installDate20DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 20)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate20DaysAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 21 days (same as config)
+        let installDate21DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 21)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate21DaysAgo)
+        XCTAssertTrue(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+
+        // When invalid number of installed days (> 21 days):
+
+        // 22 days (1 day more than config)
+        let installDate22DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 22)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate22DaysAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+        // 444 days (many days more than config)
+        let installDate444DaysAgo = Date().addingTimeInterval(-60 * 60 * 24 * 444)
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate444DaysAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+
+        // When no install date for user
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: nil)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersion))
+
+        // When invalid days format in json for trackingParameters feature
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate1DayAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .trackingParameters, versionProvider: appVersion))
+
+        // When valid install days but invalid app version
+        let appVersionInvalid = MockAppVersionProvider(appVersion: "7.81.0")
+        config = createPrivacyConfigWithInstallDate(mockEmbeddedData, mockProtectionStore, installDate: installDate1DayAgo)
+        XCTAssertFalse(config.isEnabled(featureKey: .incontextSignup, versionProvider: appVersionInvalid))
+    }
+
     let exampleInternalConfig =
     """
     {
@@ -472,11 +574,11 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let config = manager.privacyConfig
 
         let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
         let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
         let futureVersionProvider = MockAppVersionProvider(appVersion: "2.16.0")
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: futureVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: futureVersionProvider, randomizer: Double.random(in:)))
     }
 
     let exampleDisabledFeatureStateOverridingSubfeatureConfig =
@@ -543,11 +645,218 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
         XCTAssertFalse(config.isEnabled(featureKey: .autofill, versionProvider: oldVersionProvider))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
 
         let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
         XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
+    }
+    
+    let exampleSubfeatureWithRolloutsConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }]
+                        }
+                    }
+                },
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+    
+    func clearRolloutData(feature: String, subFeature: String) {
+        UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")
+        UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).lastRolloutCount")
+    }
+    
+    var mockRandomValue: Double = 0.0
+    func mockRandom(in range: Range<Double>) -> Double {
+        return mockRandomValue
+    }
+    
+    func testWhenCheckingSubfeatureState_SubfeatureIsEnabledWithSingleRolloutProbability() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+        
+        mockRandomValue = 7.0
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
+        
+        mockRandomValue = 2.0
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertTrue(enabled, "Feature should be enabled if selected value below rollout")
+    }
+    
+    let exampleSubfeatureWithMultipleRolloutsConfig =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }, {
+                                "percent": 15.0
+                            }]
+                        }
+                    },
+                    "credentialsAutofill": {
+                        "state": "enabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }, {
+                                "percent": 15.0
+                            }, {
+                                "percent": 25.0
+                            }]
+                        }
+                    },
+                    "inlineIconCredentials": {
+                        "state": "enabled",
+                        "rollout": {
+                            "steps": []
+                        }
+                    },
+                    "accessCredentialManagement": {
+                        "state": "disabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }, {
+                                "percent": 15.0
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+        "unprotectedTemporary": []
+    }
+    """.data(using: .utf8)!
+    
+    func testWhenCheckingSubfeatureState_SubfeatureIsEnabledWithMultipleRolloutProbability() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+        
+        mockRandomValue = 37
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
+        
+        mockRandomValue = 0.1 // Effective probability of 10.5% in test config
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
+        XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
+        
+        mockRandomValue = 37
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+        XCTAssertFalse(enabled, "Feature should not be enabled if selected value above rollout")
+        
+        mockRandomValue = 0.10 // Effective probability of 11.7% in test config
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+        XCTAssertTrue(enabled, "Feature should not be enabled if selected value above rollout")
+    }
+    
+    func testWhenCheckingSubfeatureStateAndRolloutSizeChanges_SubfeatureIsEnabledWithMultipleRolloutProbability() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        mockRandomValue = 0.10
+        // Mock that the user has previously seen the rollout and was not chosen
+        UserDefaults().set(2, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
+        var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+
+        XCTAssert(enabled, "Subfeature should be enabled when rollout count changes")
+        
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        // Mock that the user has previously seen the rollout and was not chosen
+        UserDefaults().set(3, forKey: "config.autofill.credentialsAutofill.lastRolloutCount")
+        enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill, randomizer: mockRandom(in:))
+
+        XCTAssertFalse(enabled, "Subfeature should not be enabled when rollout count does not changes")
+    }
+    
+    func testWhenCheckingSubfeatureStateAndUserIsInARollout_SubfeatureIsEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+        
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "credentialsAutofill")
+        UserDefaults().set(true, forKey: "config.autofill.credentialsAutofill.enabled")
+        XCTAssert(config.isSubfeatureEnabled(AutofillSubfeature.credentialsAutofill), "Subfeature should be enabled if the user has already been selected in a rollout")
+    }
+    
+    func testWhenCheckingSubfeatureStateAndRolloutsIsEmpty_SubfeatrueIsEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+        
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "inlineIconCredentials")
+        XCTAssert(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials), "Subfeature should be enabled if rollouts array is empty")
+    }
+    
+    func testWhenCheckingSubfeatureStateWithRolloutsAndSubfeatureDisabled_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureWithMultipleRolloutsConfig, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+        
+        let config = manager.privacyConfig
+        
+        clearRolloutData(feature: "autofill", subFeature: "accessCredentialManagement")
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement), "Subfeature should be enabled if rollouts array is empty")
     }
 
     func exampleTrackerAllowlistConfig(with state: String) -> Data {
@@ -579,8 +888,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
             """.data(using: .utf8)!
     }
 
-    func testTrackerAllowlistIsAlwaysEmptyWhenDisabled() {
-        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "disabled"), etag: "test")
+    func testTrackerAllowlistIsNotEmptyWhenEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: PrivacyConfigurationData.State.enabled), etag: "test")
         let mockInternalUserStore = MockInternalUserStoring()
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
@@ -590,14 +899,11 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
         let config = manager.privacyConfig
 
-        mockInternalUserStore.isInternalUser = true
-        XCTAssertTrue(config.trackerAllowlist.isEmpty)
-        mockInternalUserStore.isInternalUser = false
-        XCTAssertTrue(config.trackerAllowlist.isEmpty)
+        XCTAssertFalse(config.trackerAllowlist.entries.isEmpty)
     }
 
-    func testTrackerAllowlistIsEmptyForNonInternalUsersWhenInternal() {
-        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "internal"), etag: "test")
+    func testTrackerAllowlistIsEmptyWhenDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: PrivacyConfigurationData.State.disabled), etag: "test")
         let mockInternalUserStore = MockInternalUserStoring()
 
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
@@ -607,27 +913,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
         let config = manager.privacyConfig
 
-        mockInternalUserStore.isInternalUser = true
-        XCTAssertFalse(config.trackerAllowlist.isEmpty)
-        mockInternalUserStore.isInternalUser = false
-        XCTAssertTrue(config.trackerAllowlist.isEmpty)
-    }
-
-    func testTrackerAllowlistIsNeverEmptyWhenEnabled() {
-        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleTrackerAllowlistConfig(with: "enabled"), etag: "test")
-        let mockInternalUserStore = MockInternalUserStoring()
-
-        let manager = PrivacyConfigurationManager(fetchedETag: nil,
-                                                  fetchedData: nil,
-                                                  embeddedDataProvider: mockEmbeddedData,
-                                                  localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
-        let config = manager.privacyConfig
-
-        mockInternalUserStore.isInternalUser = true
-        XCTAssertFalse(config.trackerAllowlist.isEmpty)
-        mockInternalUserStore.isInternalUser = false
-        XCTAssertFalse(config.trackerAllowlist.isEmpty)
+        XCTAssert(config.trackerAllowlist.entries.isEmpty)
     }
 
 }

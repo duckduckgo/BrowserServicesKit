@@ -38,7 +38,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     }
     
     private var _favoritesFolder: BookmarkEntity?
-    private var favoritesFolder: BookmarkEntity?{
+    private var favoritesFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
             _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)
             
@@ -129,7 +129,11 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     public func favorite(for url: URL) -> BookmarkEntity? {
         BookmarkUtils.fetchBookmark(for: url,
-                                    predicate: NSPredicate(format: "%K != nil AND %K == NO", #keyPath(BookmarkEntity.favoriteFolder), #keyPath(BookmarkEntity.isPendingDeletion)),
+                                    predicate: NSPredicate(
+                                        format: "%K != nil AND %K == NO",
+                                        #keyPath(BookmarkEntity.favoriteFolder),
+                                        #keyPath(BookmarkEntity.isPendingDeletion)
+                                    ),
                                     context: context)
     }
     

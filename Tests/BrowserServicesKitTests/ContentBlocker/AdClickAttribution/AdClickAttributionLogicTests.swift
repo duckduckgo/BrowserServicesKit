@@ -21,7 +21,6 @@ import Foundation
 import XCTest
 import Common
 @testable import BrowserServicesKit
-import Common
 
 final class MockAttributionRulesProvider: AdClickAttributionRulesProviding {
     
@@ -32,8 +31,8 @@ final class MockAttributionRulesProvider: AdClickAttributionRulesProviding {
     init() async {
         globalAttributionRules = await ContentBlockingRulesHelper().makeFakeRules(name: Constants.globalAttributionRulesListName,
                                                                                   tdsEtag: "tdsEtag",
-                                                                                  tempListEtag: "tempEtag",
-                                                                                  allowListEtag: nil,
+                                                                                  tempListId: "tempEtag",
+                                                                                  allowListId: nil,
                                                                                   unprotectedSitesHash: nil)
         
         XCTAssertNotNil(globalAttributionRules)
@@ -89,7 +88,6 @@ final class AdClickAttributionLogicTests: XCTestCase {
 
         await fulfillment(of: [rulesApplied], timeout: 0.1)
     }
-    
     
     func testWhenAttributionDetectedThenNewRulesAreRequestedAndApplied() async {
         
@@ -385,7 +383,7 @@ final class AdClickAttributionLogicTimeoutTests: XCTestCase {
             XCTFail("Attribution should be present")
         }
         
-        var lastTimeOfLeavingAttributionSite: Date? = nil
+        var lastTimeOfLeavingAttributionSite: Date?
         logic.onDidFinishNavigation(host: "other.com",
                                     currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
         if case AdClickAttributionLogic.State.activeAttribution(_, let session, _) = logic.state {

@@ -22,7 +22,6 @@ import TrackerRadarKit
 import UserScript
 import ContentBlocking
 import Common
-import UserScript
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
     
@@ -155,7 +154,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
         // Construct a JavaScript object for function lookup
         let surrogatesOut = surrogateScripts.map { (surrogate) -> String in
             var codeLines = surrogate.split(separator: "\n")
-            if (codeLines.isEmpty) {
+            if codeLines.isEmpty {
                 return ""
             }
             let instructionsRow = codeLines.removeFirst()
@@ -190,7 +189,7 @@ open class SurrogatesUserScript: NSObject, UserScript {
             "$IS_DEBUG$": isDebugBuild ? "true" : "false",
             "$TEMP_UNPROTECTED_DOMAINS$": remoteUnprotectedDomains,
             "$USER_UNPROTECTED_DOMAINS$": privacyConfiguration.userUnprotectedDomains.joined(separator: "\n"),
-            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist),
+            "$TRACKER_ALLOWLIST_ENTRIES$": TrackerAllowlistInjection.prepareForInjection(allowlist: privacyConfiguration.trackerAllowlist.entries),
             "$TRACKER_DATA$": trackerData,
             "$SURROGATES$": createSurrogateFunctions(surrogates),
             "$BLOCKING_ENABLED$": privacyConfiguration.isEnabled(featureKey: .contentBlocking) ? "true" : "false"

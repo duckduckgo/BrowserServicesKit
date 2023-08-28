@@ -23,8 +23,6 @@ import BrowserServicesKit
 import TrackerRadarKit
 import Common
 
-// swiftlint:disable file_length
-// swiftlint:disable type_body_length
 class SurrogatesUserScriptsTests: XCTestCase {
 
     static let exampleRules = """
@@ -141,7 +139,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         var tempUnprotected = privacyConfig.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         tempUnprotected.append(contentsOf: privacyConfig.exceptionsList(forFeature: .contentBlocking))
 
-        let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: privacyConfig.trackerAllowlist)
+        let exceptions = DefaultContentBlockerRulesExceptionsSource.transform(allowList: privacyConfig.trackerAllowlist.entries)
 
         WebKitTestHelper.prepareContentBlockingRules(trackerData: trackerData,
                                                      exceptions: privacyConfig.userUnprotectedDomains,
@@ -542,5 +540,3 @@ class SurrogatesUserScriptsTests: XCTestCase {
         self.wait(for: [websiteLoaded, surrogateValidated], timeout: 15)
     }
 }
-// swiftlint:enable type_body_length
-// swiftlint:enable file_length

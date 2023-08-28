@@ -83,11 +83,12 @@ final class RemoteConnector: RemoteConnecting {
     private func fetchEncryptedRecoveryKey() async throws -> Data? {
         let url = endpoints.connect.appendingPathComponent(connectInfo.deviceID)
 
-        let request = api.createRequest(url: url, method: .GET,
-                              headers: [:],
-                              parameters: [:],
-                              body: nil,
-                              contentType: nil)
+        let request = api.createRequest(url: url,
+                                        method: .GET,
+                                        headers: [:],
+                                        parameters: [:],
+                                        body: nil,
+                                        contentType: nil)
 
         do {
             let result = try await request.execute()
