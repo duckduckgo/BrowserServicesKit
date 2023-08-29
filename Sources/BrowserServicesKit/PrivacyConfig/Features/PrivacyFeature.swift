@@ -70,6 +70,7 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
         .networkProtection
     }
 
+    case waitlist
     case waitlistBetaActive
 }
 
