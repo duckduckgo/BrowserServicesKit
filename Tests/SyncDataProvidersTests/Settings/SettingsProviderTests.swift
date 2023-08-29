@@ -118,7 +118,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: emailManager.token!)
+            .emailProtection(userEmail: "dax", token: try emailManager.getToken()!)
         ]
 
         try await provider.handleInitialSyncResponse(received: received, clientTimestamp: date.addingTimeInterval(1), serverTimestamp: "1234", crypter: crypter)

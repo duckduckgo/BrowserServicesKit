@@ -24,13 +24,13 @@ import DDGSync
 import Persistence
 
 public protocol EmailManagerSyncSupporting: AnyObject {
-    var userEmail: String? { get }
-    var token: String? { get }
-    var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
+    func getUsername() throws -> String?
+    func getToken() throws -> String?
 
     func signIn(userEmail: String, token: String) throws
     func signOut() throws
 
+    var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
 }
 
 extension SettingsProvider.Setting {
@@ -51,10 +51,10 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
     let errorPublisher: AnyPublisher<Error, Never>
 
     func getValue() throws -> String? {
-        guard let user = emailManager.userEmail else {
+        guard let user = try emailManager.getUsername() else {
             return nil
         }
-        guard let token = emailManager.token else {
+        guard let token = try emailManager.getToken() else {
             throw SyncError.duckAddressTokenMissing
         }
         let data = try JSONEncoder.snakeCaseKeys.encode(Payload(mainDuckAddress: user, personalAccessToken: token))

@@ -173,7 +173,7 @@ public class EmailManager {
     private static let lock = NSRecursiveLock()
 
     private var dateFormatter = ISO8601DateFormatter()
-    
+
     private var username: String? {
         Self.lock.lock()
         defer {
@@ -193,7 +193,7 @@ public class EmailManager {
         }
     }
 
-    public var token: String? {
+    private var token: String? {
         Self.lock.lock()
         defer {
             Self.lock.unlock()
@@ -495,6 +495,27 @@ extension EmailManager: AutofillEmailDelegate {
         NotificationCenter.default.post(name: .emailDidCloseEmailProtection, object: self)
     }
 
+}
+
+// MARK: - Sync Support
+
+public extension EmailManager {
+
+    func getUsername() throws -> String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+        return try storage.getUsername()
+    }
+
+    func getToken() throws -> String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+        return try storage.getToken()
+    }
 }
 
 // MARK: - Token Management
