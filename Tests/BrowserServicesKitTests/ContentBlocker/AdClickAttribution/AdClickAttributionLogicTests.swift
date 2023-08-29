@@ -447,7 +447,7 @@ final class AdClickAttributionLogicStateInheritingTests: XCTestCase {
         let rules = await ContentBlockingRulesHelper().makeFakeRules(name: "attributed")!
         
         logic.onDidFinishNavigation(host: "example.com",
-                                     currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
+                                    currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
         
         if case AdClickAttributionLogic.State.activeAttribution = logic.state { } else {
             XCTFail("Attribution should be present")
@@ -459,7 +459,7 @@ final class AdClickAttributionLogicStateInheritingTests: XCTestCase {
                                                                   rules: rules))
         
         logic.onDidFinishNavigation(host: "example.com",
-                                     currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
+                                    currentTime: startOfAttribution.addingTimeInterval(feature.totalExpiration - 1))
         
         if case AdClickAttributionLogic.State.noAttribution = logic.state { } else {
             XCTFail("Attribution should be forgotten")
