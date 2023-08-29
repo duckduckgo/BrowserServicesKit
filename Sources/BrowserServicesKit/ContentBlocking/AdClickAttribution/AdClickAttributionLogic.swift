@@ -37,6 +37,10 @@ public class AdClickAttributionLogic {
         case preparingAttribution(vendor: String, session: SessionInfo, completionBlocks: [(() -> Void)])
         case activeAttribution(vendor: String, session: SessionInfo, rules: ContentBlockerRulesManager.Rules)
 
+        var isActiveAttribution: Bool {
+            if case .activeAttribution = self { return true }
+            return false
+        }
     }
     
     public struct SessionInfo {
@@ -91,6 +95,7 @@ public class AdClickAttributionLogic {
         
         if case .noAttribution = self.state {} else {
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnInheritedAttribution)
+            assert(NSClassFromString("XCTest") != nil /* allow when running tests */, "unexpected initial attribution state \(self.state)")
         }
         
         switch state {
@@ -142,7 +147,7 @@ public class AdClickAttributionLogic {
                                        rules: rules)
         }
     }
-    
+
     public func onProvisionalNavigation(completion: @escaping () -> Void, currentTime: Date = Date()) {
         switch state {
         case .noAttribution:
@@ -174,7 +179,7 @@ public class AdClickAttributionLogic {
             }
         }
     }
-    
+
     public func onDidFinishNavigation(host: String?, currentTime: Date = Date()) {
         guard case .activeAttribution(let vendor, let session, let rules) = state else {
             return
@@ -216,8 +221,9 @@ public class AdClickAttributionLogic {
         eventReporting?.fire(.adAttributionActive)
         registerFirstActivity = false
     }
-    
+
     private func disableAttribution() {
+        assert(state.isActiveAttribution, "unexpected attribution state")
         state = .noAttribution
         applyRules()
     }
@@ -240,7 +246,7 @@ public class AdClickAttributionLogic {
             completion()
         }
     }
-    
+
     private func onAttributedRulesCompilationFailed(forVendor vendor: String) {
         guard case .preparingAttribution(let expectedVendor, _, let completionBlocks) = state else {
             os_log(.error, log: log, "Attributed Rules compilation failed")
@@ -252,14 +258,14 @@ public class AdClickAttributionLogic {
             return
         }
         state = .noAttribution
-        
+
         applyRules()
         os_log(.debug, log: log, "Resuming provisional navigation for {public}%d requests", completionBlocks.count)
         for completion in completionBlocks {
             completion()
         }
     }
-    
+
     private func applyRules() {
         if case .activeAttribution(let vendor, _, let rules) = state {
             delegate?.attributionLogic(self, didRequestRuleApplication: rules, forVendor: vendor)
@@ -289,7 +295,7 @@ public class AdClickAttributionLogic {
         let timeoutWorkItem = DispatchWorkItem { [weak self] in
             self?.onAttributedRulesCompilationFailed(forVendor: vendor)
             self?.attributionTimeout = nil
-            
+
             self?.errorReporting?.fire(.adAttributionLogicRequestingAttributionTimedOut)
         }
         self.attributionTimeout?.cancel()
