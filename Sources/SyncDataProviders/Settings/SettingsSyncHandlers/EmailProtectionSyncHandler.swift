@@ -55,7 +55,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
             return nil
         }
         guard let token = try emailManager.getToken() else {
-            throw SyncError.duckAddressTokenMissing
+            throw SyncError.emailProtectionUsernamePresentButTokenMissing
         }
         let data = try JSONEncoder.snakeCaseKeys.encode(Payload(mainDuckAddress: user, personalAccessToken: token))
         return String(bytes: data, encoding: .utf8)

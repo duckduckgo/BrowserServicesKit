@@ -53,5 +53,5 @@ public enum SyncError: Error, Equatable {
     case credentialsMetadataMissingBeforeFirstSync
     case receivedCredentialsWithoutUUID
 
-    case duckAddressTokenMissing
+    case emailProtectionUsernamePresentButTokenMissing
 }
