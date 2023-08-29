@@ -127,14 +127,6 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public required init(providers: AutofillStorageProviders) {
         self.providers = providers
         self.expiringPassword = ExpiringValue(expiresAfter: 60 * 60 * 24 * 3)
-
-
-        let tainted = try! String(contentsOf: URL(string: "http://example.com")!)
-
-        let a = String("abc") // GOOD: not a format string
-        let b = String(tainted) // GOOD: not a format string
-        let c = String(format: "abc") // GOOD: not tainted
-        let d = String(format: tainted) // BAD
     }
 
     // MARK: - public interface (protocol candidates)
