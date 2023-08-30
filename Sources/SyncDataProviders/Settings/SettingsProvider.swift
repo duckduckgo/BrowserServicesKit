@@ -73,7 +73,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         emailProtectionSyncHandler.delegate = self
     }
 
-    public init(
+    init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlers: [Setting: any SettingsSyncHandling],
@@ -249,7 +249,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         return idsOfItemsToClearModifiedAt
     }
 
-    public func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
+    func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
         updateMetadataTimestamp(for: handler.setting)
     }
 
