@@ -131,6 +131,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                   errorEvents: debugEvents)
 
     private lazy var tokenStore = NetworkProtectionKeychainTokenStore(keychainType: keychainType,
+                                                                      serviceName: "\(Bundle.main.bundleIdentifier!).authToken",
                                                                       errorEvents: debugEvents)
 
     /// This is for overriding the defaults.  A `nil` value means NetP will just use the defaults.
