@@ -588,7 +588,7 @@ extension AutofillUserScript {
     }
 
     func pmGetAutofillCredentials(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-
+        
         guard let body = message.messageBody as? [String: Any],
               let id = body["id"] as? String else {
             return
