@@ -397,8 +397,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 } else {
                     return
                 }
-            })
-            
+            })            
             
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
