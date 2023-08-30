@@ -45,10 +45,8 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
     }
 
     let setting: SettingsProvider.Setting = .emailProtectionGeneration
-
     let shouldApplyRemoteDeleteOnInitialSync: Bool = false
-
-    let errorPublisher: AnyPublisher<Error, Never>
+    weak var delegate: SettingsSyncHandlingDelegate?
 
     func getValue() throws -> String? {
         guard let user = try emailManager.getUsername() else {
@@ -71,31 +69,19 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
         try emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
     }
 
-    init(emailManager: EmailManagerSyncSupporting, metadataDatabase: CoreDataDatabase) {
+    init(emailManager: EmailManagerSyncSupporting) {
         self.emailManager = emailManager
-        self.metadataDatabase = metadataDatabase
-        errorPublisher = errorSubject.eraseToAnyPublisher()
 
         emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
             .sink { [weak self] in
-                self?.updateMetadataTimestamp()
+                guard let self else {
+                    return
+                }
+                assert(self.delegate != nil, "delegate has not been set for \(type(of: self))")
+                self.delegate?.syncHandlerDidUpdateSettingValue(self)
             }
-    }
-
-    private func updateMetadataTimestamp() {
-        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        context.performAndWait {
-            do {
-                try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
-                try context.save()
-            } catch {
-                errorSubject.send(SettingsSyncMetadataSaveError(underlyingError: error))
-            }
-        }
     }
 
     private let emailManager: EmailManagerSyncSupporting
-    private let metadataDatabase: CoreDataDatabase
     private var emailProtectionStatusDidChangeCancellable: AnyCancellable?
-    private let errorSubject = PassthroughSubject<Error, Never>()
 }

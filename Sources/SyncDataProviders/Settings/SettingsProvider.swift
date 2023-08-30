@@ -24,7 +24,24 @@ import CoreData
 import DDGSync
 import Persistence
 
-public final class SettingsProvider: DataProvider {
+/**
+ * Error that may occur while updating timestamp when a setting changes.
+ *
+ * This error should be published via `SettingsSyncHandling.errorPublisher`
+ * whenever settings metadata database fails to save changes after updating
+ * timestamp for a given setting.
+ *
+ * `underlyingError` should contain the actual Core Data error.
+ */
+public struct SettingsSyncMetadataSaveError: Error {
+    public let underlyingError: Error
+
+    public init(underlyingError: Error) {
+        self.underlyingError = underlyingError
+    }
+}
+
+public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate {
 
     public struct Setting: Hashable {
         let key: String
@@ -40,7 +57,7 @@ public final class SettingsProvider: DataProvider {
         emailManager: EmailManagerSyncSupporting,
         syncDidUpdateData: @escaping () -> Void
     ) {
-        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager, metadataDatabase: metadataDatabase)
+        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
 
         self.init(
             metadataDatabase: metadataDatabase,
@@ -51,7 +68,9 @@ public final class SettingsProvider: DataProvider {
             syncDidUpdateData: syncDidUpdateData
         )
 
-        register(errorPublisher: emailProtectionSyncHandler.errorPublisher)
+        register(errorPublisher: errorSubject.eraseToAnyPublisher())
+
+        emailProtectionSyncHandler.delegate = self
     }
 
     public init(
@@ -230,6 +249,12 @@ public final class SettingsProvider: DataProvider {
         return idsOfItemsToClearModifiedAt
     }
 
+    public func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
+        updateMetadataTimestamp(for: handler.setting)
+    }
+
+    // MARK: - Private
+
     private func clearModifiedAtAndSaveContext(keys: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
         let settingsMetadata = try SyncableSettingsMetadataUtils.fetchSettingsMetadata(for: keys, in: context)
         for metadata in settingsMetadata {
@@ -241,9 +266,21 @@ public final class SettingsProvider: DataProvider {
         try context.save()
     }
 
-    // MARK: - Private
+    private func updateMetadataTimestamp(for setting: Setting) {
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            do {
+                try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
+                try context.save()
+            } catch {
+                errorSubject.send(SettingsSyncMetadataSaveError(underlyingError: error))
+            }
+        }
+    }
+
     private let metadataDatabase: CoreDataDatabase
     private let settingsHandlers: [Setting: any SettingsSyncHandling]
+    private let errorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {
         static let maxContextSaveRetries = 5

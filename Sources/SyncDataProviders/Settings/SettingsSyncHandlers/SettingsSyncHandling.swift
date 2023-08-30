@@ -22,23 +22,6 @@ import Foundation
 import Persistence
 
 /**
- * Error that may occur while updating timestamp when a setting changes.
- *
- * This error should be published via `SettingsSyncHandling.errorPublisher`
- * whenever settings metadata database fails to save changes after updating
- * timestamp for a given setting.
- *
- * `underlyingError` should contain the actual Core Data error.
- */
-public struct SettingsSyncMetadataSaveError: Error {
-    public let underlyingError: Error
-
-    public init(underlyingError: Error) {
-        self.underlyingError = underlyingError
-    }
-}
-
-/**
  * Protocol defining communication between Settings Sync Data Provider and a syncable setting.
  *
  * This protocol should be implemented by classes or structs providing integration with Sync
@@ -47,7 +30,7 @@ public struct SettingsSyncMetadataSaveError: Error {
  * Its responsibilities are:
  *   * provide implementation for getting and updating the setting's value,
  *   * fine-tune Sync behavior for the setting,
- *   * track changes to setting's value and update metadata database timestamp accordingly.
+ *   * track changes to setting's value and notify delegate accordingly.
  */
 public protocol SettingsSyncHandling {
     /**
@@ -80,9 +63,23 @@ public protocol SettingsSyncHandling {
     var shouldApplyRemoteDeleteOnInitialSync: Bool { get }
 
     /**
-     * Publishes errors thrown internally by the handler.
+     * Delegate that must be notified about updating setting's value.
      *
-     * For example, when metadata database fails to save after updating setting's value.
+     * The delegate must be set, otherwise an assertion failure is called.
      */
-    var errorPublisher: AnyPublisher<Error, Never> { get }
+    var delegate: SettingsSyncHandlingDelegate? { get set }
+}
+
+/**
+ * Protocol defining delegate interface for Settings Sync Handler.
+ *
+ * It's implemented by SettingsProvider which owns Settings Sync Handlers
+ * and sets itself as their delegate.
+ */
+public protocol SettingsSyncHandlingDelegate: AnyObject {
+
+    /**
+     * This function must be called whenever setting's value changes for a given Setting Sync Handler.
+     */
+    func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling)
 }
