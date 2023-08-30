@@ -161,17 +161,17 @@ public extension NavigationProtocol { // Navigation or ExpectedNavigation
 
 public struct NavigationIdentity: Equatable {
 
-    private var value: NSValue?
+    private var value: UnsafeMutableRawPointer?
 
     public init(_ value: AnyObject?) {
-        self.value = value.map(NSValue.init(nonretainedObject:))
+        self.value = value.map { Unmanaged.passUnretained($0).toOpaque() }
     }
 
     public static var expected = NavigationIdentity(nil)
 
     fileprivate mutating func resolve(with navigation: WKNavigation?) {
         guard let navigation else { return }
-        let newValue = NSValue(nonretainedObject: navigation)
+        let newValue = Unmanaged.passUnretained(navigation).toOpaque()
         assert(self.value == nil || self.value == newValue)
         self.value = newValue
     }
@@ -387,7 +387,7 @@ extension Navigation: CustomDebugStringConvertible {
 
 extension NavigationIdentity: CustomStringConvertible {
     public var description: String {
-        "WKNavigation: " + (value?.pointerValue?.debugDescription.replacing(regex: "^0x0*", with: "0x") ?? "nil")
+        "WKNavigation: " + (value?.hexValue ?? "nil")
     }
 }
 // swiftlint:enable line_length
