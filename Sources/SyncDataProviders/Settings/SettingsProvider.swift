@@ -155,17 +155,36 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         return syncableSettings
     }
 
-    public override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleInitialSyncResponse(
+        received: [Syncable],
+        clientTimestamp: Date,
+        serverTimestamp: String?,
+        crypter: Crypting
+    ) async throws {
         try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
-    public override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    public override func handleSyncResponse(
+        sent: [Syncable],
+        received: [Syncable],
+        clientTimestamp: Date,
+        serverTimestamp: String?,
+        crypter: Crypting
+    ) async throws {
         try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
     }
 
     // MARK: - Internal
 
-    func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
+    func handleSyncResponse(
+        isInitial: Bool,
+        sent: [Syncable],
+        received: [Syncable],
+        clientTimestamp: Date,
+        serverTimestamp: String?,
+        crypter: Crypting
+    ) async throws {
+
         var saveError: Error?
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -228,7 +247,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         var idsOfItemsToClearModifiedAt = Set<String>()
 
         for metadata in settingsMetadata {
-            guard let adapter = settingsHandlers[Setting(key: metadata.key)] else {
+            guard let handler = settingsHandlers[Setting(key: metadata.key)] else {
                 continue
             }
 
@@ -236,9 +255,9 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
                 continue
             }
             let isLocalChangeRejectedBySync: Bool = receivedKeys.contains(metadata.key)
-            let isPendingDeletion = try adapter.getValue() == nil
+            let isPendingDeletion = try handler.getValue() == nil
             if isPendingDeletion, !isLocalChangeRejectedBySync {
-                try adapter.setValue(nil)
+                try handler.setValue(nil)
                 context.delete(metadata)
             } else {
                 context.delete(metadata)

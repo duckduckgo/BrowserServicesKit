@@ -24,7 +24,6 @@ import DDGSync
 import Persistence
 @testable import SyncDataProviders
 
-
 class MockEmailManagerStorage: EmailManagerStorage {
 
     var mockError: EmailKeychainAccessError?
@@ -104,7 +103,6 @@ class MockEmailManagerStorage: EmailManagerStorage {
     }
 
 }
-
 
 internal class SettingsProviderTestsBase: XCTestCase {
     var emailManagerStorage: MockEmailManagerStorage!

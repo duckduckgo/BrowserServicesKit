@@ -39,7 +39,12 @@ public class SyncableSettingsMetadata: NSManagedObject {
     }
 
     @discardableResult
-    public static func makeSettingsMetadata(with key: String, lastModified: Date? = nil, in context: NSManagedObjectContext) -> SyncableSettingsMetadata {
+    public static func makeSettingsMetadata(
+        with key: String,
+        lastModified: Date? = nil,
+        in context: NSManagedObjectContext
+    ) -> SyncableSettingsMetadata {
+
         let object = SyncableSettingsMetadata(context: context)
         object.key = key
         object.lastModified = lastModified
@@ -58,7 +63,12 @@ public enum SyncableSettingsMetadataUtils {
     }
 
     @discardableResult
-    public static func setLastModified(_ lastModified: Date, forSettingWithKey key: String, in context: NSManagedObjectContext) throws -> SyncableSettingsMetadata? {
+    public static func setLastModified(
+        _ lastModified: Date,
+        forSettingWithKey key: String,
+        in context: NSManagedObjectContext
+    ) throws -> SyncableSettingsMetadata? {
+
         let request = SyncableSettingsMetadata.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(SyncableSettingsMetadata.key), key)
         request.fetchLimit = 1
@@ -74,7 +84,11 @@ public enum SyncableSettingsMetadataUtils {
         return metadata
     }
 
-    public static func fetchSettingsMetadata(for keys: any Sequence & CVarArg, in context: NSManagedObjectContext) throws -> [SyncableSettingsMetadata] {
+    public static func fetchSettingsMetadata(
+        for keys: any Sequence & CVarArg,
+        in context: NSManagedObjectContext
+    ) throws -> [SyncableSettingsMetadata] {
+
         let request = SyncableSettingsMetadata.fetchRequest()
         request.predicate = NSPredicate(format: "%K IN %@", #keyPath(SyncableSettingsMetadata.key), keys)
 
