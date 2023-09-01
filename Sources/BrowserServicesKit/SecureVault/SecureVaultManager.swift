@@ -56,7 +56,11 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
     func secureVaultManager(_: SecureVaultManager,
                             promptUserWithGeneratedPassword password: String,
                             completionHandler: @escaping (Bool) -> Void)
-
+    
+    func secureVaultManager(_: SecureVaultManager,
+                            isAuthenticatedFor type: AutofillType,
+                            completionHandler: @escaping (Bool) -> Void)
+    
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: String)
 
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
@@ -377,16 +381,24 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
-            getCredentials(for: accountId, from: vault, or: self.passwordManager) { [weak self] credentials, error in
-                guard let self = self else { return }
-                if let error = error {
-                    os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
-                    completionHandler(nil, self.credentialsProvider)
+            
+            self.delegate?.secureVaultManager(self, isAuthenticatedFor: .password, completionHandler: { result in
+                if result == true {
+                    self.getCredentials(for: accountId, from: vault, or: self.passwordManager) { [weak self] credentials, error in
+                        guard let self = self else { return }
+                        if let error = error {
+                            os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                            completionHandler(nil, self.credentialsProvider)
+                        } else {
+                            completionHandler(credentials, self.credentialsProvider)
+                            self.delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
+                        }
+                    }
                 } else {
-                    completionHandler(credentials, self.credentialsProvider)
-                    self.delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
+                    return
                 }
-            }
+            })            
+            
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
             completionHandler(nil, credentialsProvider)
