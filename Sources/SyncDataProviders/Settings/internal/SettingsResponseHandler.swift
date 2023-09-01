@@ -105,24 +105,7 @@ final class SettingsResponseHandler {
 
         let setting = SettingsProvider.Setting(key: syncableKey)
 
-        if shouldDeduplicateEntities {
-            guard let settingAdapter = settingsHandlers[setting] else {
-                return
-            }
-            if syncable.isDeleted {
-                if settingAdapter.shouldApplyRemoteDeleteOnInitialSync {
-                    try update(setting, with: syncable)
-                } else {
-                    let currentValue = try settingAdapter.getValue()
-                    if currentValue != nil {
-                        idsOfItemsThatRetainModifiedAt.insert(syncableKey)
-                    }
-                }
-            } else {
-                try update(setting, with: syncable)
-            }
-
-        } else if let existingMetadata = metadataByKey[syncableKey] {
+        if let existingMetadata = metadataByKey[syncableKey] {
             let isModifiedAfterSyncTimestamp: Bool = {
                 guard let clientTimestamp, let lastModified = existingMetadata.lastModified else {
                     return false

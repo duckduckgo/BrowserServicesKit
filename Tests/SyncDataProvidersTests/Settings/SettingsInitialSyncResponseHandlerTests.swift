@@ -61,25 +61,6 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertNil(emailManagerStorage.mockToken)
     }
 
-    func testThatEmailProtectionDisabledStateIsIgnoredWhenLocallyIsEnabled() async throws {
-        let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
-
-        let received: [Syncable] = [
-            .emailProtectionDeleted()
-        ]
-
-        try await handleInitialSyncResponse(received: received)
-
-        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
-        XCTAssertEqual(settingsMetadata.count, 1)
-        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.emailProtectionGeneration.key)
-        XCTAssertNotNil(settingsMetadata.first?.lastModified)
-        XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
-        XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
-    }
-
     func testThatEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
         try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")

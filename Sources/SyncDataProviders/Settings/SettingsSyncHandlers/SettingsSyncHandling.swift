@@ -47,22 +47,6 @@ protocol SettingsSyncHandling {
     func setValue(_ value: String?) throws
 
     /**
-     * Controls setting behavior during initial sync.
-     *
-     * Upon initial sync, the setting for the given key may be deleted on the server.
-     * The default Sync behavior is to delete (clear) equivalent local setting.
-     *
-     * Return `false` here if local setting should not be deleted and should
-     * override server value.
-     *
-     * Example: when Sync account has Email Protection disabled on the server,
-     * adding a new device with Email Protection enabled to Sync should propagate
-     * that Email Protection credentials to other devices, hence Email Protection
-     * Sync Handler returns `false` here.
-     */
-    var shouldApplyRemoteDeleteOnInitialSync: Bool { get }
-
-    /**
      * Delegate that must be notified about updating setting's value.
      *
      * The delegate must be set, otherwise an assertion failure is called.

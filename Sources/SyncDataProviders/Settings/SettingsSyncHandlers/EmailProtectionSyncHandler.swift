@@ -45,7 +45,6 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
     }
 
     let setting: SettingsProvider.Setting = .emailProtectionGeneration
-    let shouldApplyRemoteDeleteOnInitialSync: Bool = false
     weak var delegate: SettingsSyncHandlingDelegate?
 
     func getValue() throws -> String? {
