@@ -40,10 +40,18 @@ protocol SettingsSyncHandling {
      */
     var setting: SettingsProvider.Setting { get }
 
-    /// Retrieves setting value.
+    /**
+     * Retrieves setting value.
+     *
+     * Note: Return `nil` if a "delete" should be sent via Sync.
+     */
     func getValue() throws -> String?
 
-    /// Updates setting value with `value` received from Sync.
+    /**
+     * Updates setting value with `value` received from Sync.
+     *
+     * Note: If "delete" was received from Sync, `value` is `nil`.
+     */
     func setValue(_ value: String?) throws
 
     /**
