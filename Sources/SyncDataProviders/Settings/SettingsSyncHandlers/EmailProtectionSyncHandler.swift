@@ -40,7 +40,7 @@ extension SettingsProvider.Setting {
 class EmailProtectionSyncHandler: SettingsSyncHandling {
 
     struct Payload: Codable {
-        let mainDuckAddress: String
+        let username: String
         let personalAccessToken: String
     }
 
@@ -54,7 +54,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
         guard let token = try emailManager.getToken() else {
             throw SyncError.emailProtectionUsernamePresentButTokenMissing
         }
-        let data = try JSONEncoder.snakeCaseKeys.encode(Payload(mainDuckAddress: user, personalAccessToken: token))
+        let data = try JSONEncoder.snakeCaseKeys.encode(Payload(username: user, personalAccessToken: token))
         return String(bytes: data, encoding: .utf8)
     }
 
@@ -65,7 +65,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
         }
 
         let payload = try JSONDecoder.snakeCaseKeys.decode(Payload.self, from: valueData)
-        try emailManager.signIn(userEmail: payload.mainDuckAddress, token: payload.personalAccessToken)
+        try emailManager.signIn(userEmail: payload.username, token: payload.personalAccessToken)
     }
 
     init(emailManager: EmailManagerSyncSupporting) {

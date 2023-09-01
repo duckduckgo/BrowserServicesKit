@@ -29,7 +29,7 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionEnabledStateIsApplied() async throws {
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: "secret-token")
+            .emailProtection(username: "dax", token: "secret-token")
         ]
 
         try await handleSyncResponse(received: received)
@@ -63,7 +63,7 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax-remote", token: "secret-token-remote")
+            .emailProtection(username: "dax-remote", token: "secret-token-remote")
         ]
 
         try await handleSyncResponse(received: received)

@@ -32,7 +32,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try emailManager.signOut()
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: "secret-token")
+            .emailProtection(username: "dax", token: "secret-token")
         ]
 
         try await handleInitialSyncResponse(received: received)
@@ -66,7 +66,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax-remote", token: "secret-token-remote")
+            .emailProtection(username: "dax-remote", token: "secret-token-remote")
         ]
 
         try await handleInitialSyncResponse(received: received)
@@ -83,7 +83,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: "secret-token")
+            .emailProtection(username: "dax", token: "secret-token")
         ]
 
         try await handleInitialSyncResponse(received: received)

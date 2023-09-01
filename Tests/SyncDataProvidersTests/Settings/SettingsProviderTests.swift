@@ -100,7 +100,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
     func testThatInitialSyncIntoEmptyDatabaseDoesNotCreateMetadataForReceivedObjects() async throws {
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "abcd", token: "secret-token")
+            .emailProtection(username: "abcd", token: "secret-token")
         ]
 
         try await provider.handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
@@ -118,7 +118,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: try emailManager.getToken()!)
+            .emailProtection(username: "dax", token: try emailManager.getToken()!)
         ]
 
         try await provider.handleInitialSyncResponse(received: received, clientTimestamp: date.addingTimeInterval(1), serverTimestamp: "1234", crypter: crypter)
@@ -135,7 +135,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: "secret-token")
+            .emailProtection(username: "dax", token: "secret-token")
         ]
 
         var willSaveCallCount = 0
@@ -171,7 +171,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         try emailManager.signOut()
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: "secret-token2")
+            .emailProtection(username: "dax", token: "secret-token2")
         ]
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
@@ -194,7 +194,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         try emailManager.signOut()
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax2", token: "secret-token2")
+            .emailProtection(username: "dax2", token: "secret-token2")
         ]
 
         try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
@@ -216,7 +216,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         try emailManager.signIn(userEmail: "dax", token: "secret-token")
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax2", token: "secret-token2")
+            .emailProtection(username: "dax2", token: "secret-token2")
         ]
 
         try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
@@ -261,7 +261,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         let received: [Syncable] = [
-            .emailProtection(userEmail: "dax", token: "secret-token")
+            .emailProtection(username: "dax", token: "secret-token")
         ]
 
         var willSaveCallCount = 0
