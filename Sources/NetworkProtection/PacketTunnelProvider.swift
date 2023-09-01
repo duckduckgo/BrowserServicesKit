@@ -613,148 +613,140 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - App Messages
 
     // swiftlint:disable:next cyclomatic_complexity
-    public override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
+    public override func handleAppMessage(_ messageData: Data) async -> Data? {
         guard let message = ExtensionMessage(rawValue: messageData) else {
-            completionHandler?(nil)
-            return
+            os_log("Received an unknown app message: %{public}@", log: .networkProtectionIPCLog)
+            return nil
         }
 
         switch message {
         case .expireRegistrationKey:
-            handleExpireRegistrationKey(completionHandler: completionHandler)
+            return await handleExpireRegistrationKey()
         case .getLastErrorMessage:
-            handleGetLastErrorMessage(completionHandler: completionHandler)
+            return await handleGetLastErrorMessage()
         case .getRuntimeConfiguration:
-            handleGetRuntimeConfiguration(completionHandler: completionHandler)
+            return await handleGetRuntimeConfiguration()
         case .isHavingConnectivityIssues:
-            handleIsHavingConnectivityIssues(completionHandler: completionHandler)
+            return await handleIsHavingConnectivityIssues()
         case .setSelectedServer(let serverName):
-            handleSetSelectedServer(serverName, completionHandler: completionHandler)
+            return await handleSetSelectedServer(serverName)
         case .getServerLocation:
-            handleGetServerLocation(completionHandler: completionHandler)
+            return await handleGetServerLocation()
         case .getServerAddress:
-            handleGetServerAddress(completionHandler: completionHandler)
+            return await handleGetServerAddress()
         case .setKeyValidity(let keyValidity):
-            handleSetKeyValidity(keyValidity, completionHandler: completionHandler)
+            return await handleSetKeyValidity(keyValidity)
         case .resetAllState:
-            handleResetAllState(completionHandler: completionHandler)
+            return await handleResetAllState()
         case .triggerTestNotification:
-            handleTriggerTestNotification(completionHandler: completionHandler)
+            return await handleTriggerTestNotification()
         case .setExcludedRoutes(let excludedRoutes):
-            setExcludedRoutes(excludedRoutes, completionHandler: completionHandler)
+            return await setExcludedRoutes(excludedRoutes)
         case .setIncludedRoutes(let includedRoutes):
-            setIncludedRoutes(includedRoutes, completionHandler: completionHandler)
+            return await setIncludedRoutes(includedRoutes)
         case .simulateTunnelFailure:
-            simulateTunnelFailure(completionHandler: completionHandler)
+            return await simulateTunnelFailure()
         }
     }
 
     // MARK: - App Messages: Handling
 
-    private func handleExpireRegistrationKey(completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            await rekey()
-            completionHandler?(nil)
-        }
+    private func handleExpireRegistrationKey() async -> Data? {
+        await rekey()
+        return nil
     }
 
-    private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleResetAllState() async -> Data? {
         resetRegistrationKey()
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
         try? serverCache.removeServerList()
         // This is not really an error, we received a command to reset the connection
         cancelTunnelWithError(nil)
-        completionHandler?(nil)
+        return nil
     }
 
-    private func handleGetLastErrorMessage(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetLastErrorMessage() async -> Data? {
         let response = controllerErrorStore.lastErrorMessage.map(ExtensionMessageString.init)
-        completionHandler?(response?.rawValue)
+        return response?.rawValue
     }
 
-    private func handleGetRuntimeConfiguration(completionHandler: ((Data?) -> Void)? = nil) {
-        adapter.getRuntimeConfiguration { settings in
-            let response = settings.map(ExtensionMessageString.init)
-            completionHandler?(response?.rawValue)
+    private func handleGetRuntimeConfiguration() async -> Data? {
+        await withCheckedContinuation { continuation in
+            adapter.getRuntimeConfiguration { settings in
+                let response = settings.map(ExtensionMessageString.init)
+                continuation.resume(returning: response?.rawValue)
+            }
         }
     }
 
-    private func handleIsHavingConnectivityIssues(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleIsHavingConnectivityIssues() async -> Data? {
         let response = ExtensionMessageBool(tunnelHealth.isHavingConnectivityIssues)
-        completionHandler?(response.rawValue)
+        return response.rawValue
     }
 
-    private func handleSetSelectedServer(_ serverName: String?, completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            guard let serverName else {
+    private func handleSetSelectedServer(_ serverName: String?) async -> Data? {
+        guard let serverName else {
 
-                if case .endpoint = selectedServerStore.selectedServer {
-                    selectedServerStore.selectedServer = .automatic
-                    try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
-                }
-                completionHandler?(nil)
-                return
+            if case .endpoint = selectedServerStore.selectedServer {
+                selectedServerStore.selectedServer = .automatic
+                try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
             }
-
-            guard selectedServerStore.selectedServer.stringValue != serverName else {
-                completionHandler?(nil)
-                return
-            }
-
-            selectedServerStore.selectedServer = .endpoint(serverName)
-            try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
-            completionHandler?(nil)
+            return nil
         }
+
+        guard selectedServerStore.selectedServer.stringValue != serverName else {
+            return nil
+        }
+
+        selectedServerStore.selectedServer = .endpoint(serverName)
+        try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
+        return nil
     }
 
-    private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetServerLocation() async -> Data? {
         let response = lastSelectedServerInfo.map { ExtensionMessageString($0.serverLocation) }
-        completionHandler?(response?.rawValue)
+        return response?.rawValue
     }
 
-    private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleGetServerAddress() async -> Data? {
         let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.description) }
-        completionHandler?(response?.rawValue)
+        return response?.rawValue
     }
 
-    private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            setKeyValidity(keyValidity)
-            completionHandler?(nil)
-        }
+    private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: ((Data?) -> Void)? = nil) async -> Data? {
+        setKeyValidity(keyValidity)
+        return nil
     }
 
-    private func handleTriggerTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleTriggerTestNotification() async -> Data? {
         notificationsPresenter.showTestNotification()
+        return nil
     }
 
-    private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            self.excludedRoutes = excludedRoutes
-            try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
-            completionHandler?(nil)
-        }
+    private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange]) async -> Data? {
+        self.excludedRoutes = excludedRoutes
+        try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
+        return nil
     }
 
-    private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            self.includedRoutes = includedRoutes
-            try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
-            completionHandler?(nil)
-        }
+    private func setIncludedRoutes(_ includedRoutes: [IPAddressRange]) async -> Data? {
+        self.includedRoutes = includedRoutes
+        try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
+        return nil
     }
 
-    private func simulateTunnelFailure(completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            os_log("Simulating tunnel failure", log: .networkProtection, type: .info)
+    private func simulateTunnelFailure() async -> Data? {
+        os_log("Simulating tunnel failure", log: .networkProtection, type: .info)
 
+        return await withCheckedContinuation() { continuation in
             adapter.stop { error in
                 if let error {
                     os_log("🔵 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
                 }
 
-                completionHandler?(error.map { ExtensionMessageString($0.localizedDescription).rawValue })
+                let mappedError = error.map { ExtensionMessageString($0.localizedDescription).rawValue }
+                continuation.resume(returning: mappedError)
             }
         }
     }
