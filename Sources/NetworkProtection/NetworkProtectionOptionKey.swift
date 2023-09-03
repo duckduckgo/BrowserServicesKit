@@ -29,6 +29,3 @@ public enum NetworkProtectionOptionKey {
     public static let excludedRoutes = "excludedRoutes"
     public static let connectionTesterEnabled = "connectionTesterEnabled"
 }
-public enum NetworkProtectionOptionValue {
-    public static let `true` = "true" as NSString
-}

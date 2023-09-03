@@ -65,7 +65,10 @@ public enum ExtensionMessage: RawRepresentable {
         case .isHavingConnectivityIssues:
             self = .isHavingConnectivityIssues
         case .setSelectedServer:
-            guard data.count > 1 else { return nil }
+            guard data.count > 1 else {
+                self = .setSelectedServer(nil)
+                return
+            }
             let serverName = ExtensionMessageString(rawValue: data[1...])
             self = .setSelectedServer(serverName?.value)
 
@@ -148,6 +151,7 @@ public enum ExtensionMessage: RawRepresentable {
                     assertionFailure("could not encode routes: \(error)")
                 }
             }
+
         case .setSelectedServer(.none),
              .setKeyValidity(.none),
              .resetAllState,
@@ -158,7 +162,8 @@ public enum ExtensionMessage: RawRepresentable {
              .getServerAddress,
              .expireRegistrationKey,
              .triggerTestNotification,
-             .simulateTunnelFailure: break
+             .simulateTunnelFailure:
+            break
         }
 
         var data = Data([self.name.rawValue])

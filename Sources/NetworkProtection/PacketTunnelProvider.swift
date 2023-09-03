@@ -37,12 +37,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Error Handling
 
     enum TunnelError: LocalizedError {
+        case startingTunnelWithoutOptions
+        case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
         case couldNotFixConnection
         case simulateTunnelFailureError
 
         var errorDescription: String? {
             switch self {
+            case .startingTunnelWithoutOptions:
+                return "Missing tunnel options at startup"
+            case .startingTunnelWithoutAuthToken:
+                return "Missing auth token at startup"
             case .couldNotGenerateTunnelConfiguration(let internalError):
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
@@ -184,19 +190,22 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func setKeyValidity(_ interval: TimeInterval?) {
-        guard keyValidity != interval,
-            let interval = interval else {
-
+        guard keyValidity != interval else {
             return
         }
 
-        let firstExpirationDate = Date().addingTimeInterval(interval)
+        if let interval {
+            let firstExpirationDate = Date().addingTimeInterval(interval)
 
-        os_log("Setting key validity to %{public}@ seconds (next expiration date %{public}@)",
-               log: .networkProtectionKeyManagement,
-               type: .info,
-               String(describing: interval),
-               String(describing: firstExpirationDate))
+            os_log("Setting key validity interval to %{public}@ seconds (next expiration date %{public}@)",
+                   log: .networkProtectionKeyManagement,
+                   String(describing: interval),
+                   String(describing: firstExpirationDate))
+        } else {
+            os_log("Resetting key validity interval",
+                   log: .networkProtectionKeyManagement)
+        }
+
         keyStore.setValidityInterval(interval)
     }
 
@@ -327,12 +336,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         protocolConfiguration as? NETunnelProviderProtocol
     }
 
-    private func load(options: [String: NSObject]?) throws {
-        guard let options = options else {
-            os_log("🔵 Tunnel options are not set", log: .networkProtection)
-            return
-        }
-
+    private func load(options: StartupOptions) throws {
         loadKeyValidity(from: options)
         loadSelectedServer(from: options)
         try loadAuthToken(from: options)
@@ -345,29 +349,40 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.isConnectionTesterEnabled = vendorOptions?[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
     }
 
-    private func loadKeyValidity(from options: [String: AnyObject]) {
-        guard let keyValidityString = options[NetworkProtectionOptionKey.keyValidity] as? String,
-              let keyValidity = TimeInterval(keyValidityString) else {
-            return
+    private func loadKeyValidity(from options: StartupOptions) {
+        switch options.keyValidity {
+        case .set(let validity):
+            setKeyValidity(validity)
+        case .useExisting:
+            break
+        case .reset:
+            setKeyValidity(nil)
         }
-
-        setKeyValidity(keyValidity)
     }
 
-    private func loadSelectedServer(from options: [String: AnyObject]) {
-        guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {
-            return
+    private func loadSelectedServer(from options: StartupOptions) {
+        switch options.selectedServer {
+        case .set(let selectedServer):
+            selectedServerStore.selectedServer = selectedServer
+        case .useExisting:
+            break
+        case .reset:
+            selectedServerStore.selectedServer = .automatic
         }
-
-        selectedServerStore.selectedServer = .endpoint(serverName)
     }
 
-    private func loadAuthToken(from options: [String: AnyObject]) throws {
-        guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String else {
-            return
+    private func loadAuthToken(from options: StartupOptions) throws {
+        switch options.authToken {
+        case .set(let authToken):
+            try tokenStore.store(authToken)
+        case .useExisting:
+            break
+        case .reset:
+            // This case should in theory not be possible, but it's ideal to have this in place
+            // in case an error in the controller on the client side allows it.
+            try tokenStore.deleteToken()
+            throw TunnelError.startingTunnelWithoutAuthToken
         }
-
-        try tokenStore.store(authToken)
     }
 
     private func loadRoutes(from options: [String: Any]?) {
@@ -389,33 +404,37 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         connectionStatus = .connecting
-
-        // when activated by system "on-demand" the option is set
-        var isOnDemand: Bool {
-            options?[NetworkProtectionOptionKey.isOnDemand] as? Bool == true
-        }
-        var isActivatedFromSystemSettings: Bool {
-            options?[NetworkProtectionOptionKey.activationAttemptId] == nil && !isOnDemand
-        }
-
-        let internalCompletionHandler = { [weak self] (error: Error?) in
-            if error != nil {
-                self?.connectionStatus = .disconnected
-                completionHandler(error)
-                return
-            }
-
-            completionHandler(nil)
-        }
-
         tunnelHealth.isHavingConnectivityIssues = false
         controllerErrorStore.lastErrorMessage = nil
 
-        os_log("🔵 Will load options\n%{public}@", log: .networkProtection, String(describing: options))
+        let internalCompletionHandler = { [weak self] (error: Error?) in
+            guard let error else {
+                completionHandler(nil)
+                return
+            }
 
-        if options?[NetworkProtectionOptionKey.tunnelFailureSimulation] == NetworkProtectionOptionValue.true {
-            internalCompletionHandler(TunnelError.simulateTunnelFailureError)
-            controllerErrorStore.lastErrorMessage = TunnelError.simulateTunnelFailureError.localizedDescription
+            let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
+
+            os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
+            self?.controllerErrorStore.lastErrorMessage = errorDescription
+            self?.connectionStatus = .disconnected
+
+            completionHandler(error)
+        }
+
+        guard let options else {
+            internalCompletionHandler(TunnelError.startingTunnelWithoutOptions)
+            return
+        }
+
+        os_log("Will load options\n%{public}@", log: .networkProtection, String(describing: options))
+        let startupOptions = StartupOptions(options: options, log: .networkProtection)
+        startTunnel(options: startupOptions, completionHandler: internalCompletionHandler)
+    }
+
+    private func startTunnel(options: StartupOptions, completionHandler: @escaping (Error?) -> Void) {
+        if options.startedToSimulateError {
+            completionHandler(TunnelError.simulateTunnelFailureError)
             return
         }
 
@@ -423,13 +442,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             try load(options: options)
             try loadVendorOptions(from: tunnelProviderProtocol)
         } catch {
-            internalCompletionHandler(error)
+            completionHandler(error)
             return
         }
 
-        os_log("🔵 Done! Starting tunnel from the %{public}@", log: .networkProtection, type: .info, (isActivatedFromSystemSettings ? "settings" : (isOnDemand ? "on-demand" : "app")))
-
-        startTunnel(selectedServer: selectedServerStore.selectedServer, completionHandler: internalCompletionHandler)
+        os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
+        startTunnel(selectedServer: selectedServerStore.selectedServer, completionHandler: completionHandler)
     }
 
     private func startTunnel(selectedServer: SelectedNetworkProtectionServer, completionHandler: @escaping (Error?) -> Void) {
@@ -688,7 +706,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleSetSelectedServer(_ serverName: String?, completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             guard let serverName else {
-
                 if case .endpoint = selectedServerStore.selectedServer {
                     selectedServerStore.selectedServer = .automatic
                     try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
