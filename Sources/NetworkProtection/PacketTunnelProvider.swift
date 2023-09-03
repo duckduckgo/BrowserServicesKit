@@ -651,11 +651,25 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - App Messages: Handling
 
+    /// Handles a request to expire the registration key.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleExpireRegistrationKey() async -> Data? {
         await rekey()
         return nil
     }
 
+    /// Handles a request to reset all state.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleResetAllState() async -> Data? {
         resetRegistrationKey()
 
@@ -666,6 +680,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return nil
     }
 
+    /// Handles a request to get the last error message.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleGetLastErrorMessage() async -> Data? {
         let response = controllerErrorStore.lastErrorMessage.map(ExtensionMessageString.init)
         return response?.rawValue
@@ -680,6 +701,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    /// Handles a request to get the status of connectivity issues.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleIsHavingConnectivityIssues() async -> Data? {
         let response = ExtensionMessageBool(tunnelHealth.isHavingConnectivityIssues)
         return response.rawValue
@@ -704,21 +732,49 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return nil
     }
 
+    /// Handles a request to get the server location.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleGetServerLocation() async -> Data? {
         let response = lastSelectedServerInfo.map { ExtensionMessageString($0.serverLocation) }
         return response?.rawValue
     }
 
+    /// Handles a request to get the server address.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleGetServerAddress() async -> Data? {
         let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.description) }
         return response?.rawValue
     }
 
+    /// Handles a request to set the key validity.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleSetKeyValidity(_ keyValidity: TimeInterval?) async -> Data? {
         setKeyValidity(keyValidity)
         return nil
     }
 
+    /// Handles a request to trigger a test notification.
+    ///
+    /// - Note: We're preventing this to be `inline` because of an issue compiling release builds.
+    ///     Here is a simplified explanation of our issues: https://forums.swift.org/t/undefined-symbol-error-when-using-async-await-function-in-module/62683
+    ///     To test whether this can be removed just comment it and try archiving a release build.  If it succeeds then this can be removed.
+    ///
+    @inline(never)
     private func handleTriggerTestNotification() async -> Data? {
         notificationsPresenter.showTestNotification()
         return nil
