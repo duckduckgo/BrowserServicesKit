@@ -714,7 +714,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return response?.rawValue
     }
 
-    private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: ((Data?) -> Void)? = nil) async -> Data? {
+    private func handleSetKeyValidity(_ keyValidity: TimeInterval?) async -> Data? {
         setKeyValidity(keyValidity)
         return nil
     }
