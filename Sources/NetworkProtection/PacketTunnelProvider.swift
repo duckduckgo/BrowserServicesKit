@@ -37,7 +37,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Error Handling
 
     enum TunnelError: LocalizedError {
-        case startingTunnelWithoutOptions
         case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
         case couldNotFixConnection
@@ -45,8 +44,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         var errorDescription: String? {
             switch self {
-            case .startingTunnelWithoutOptions:
-                return "Missing tunnel options at startup"
             case .startingTunnelWithoutAuthToken:
                 return "Missing auth token at startup"
             case .couldNotGenerateTunnelConfiguration(let internalError):
@@ -422,13 +419,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             completionHandler(error)
         }
 
-        guard let options else {
-            internalCompletionHandler(TunnelError.startingTunnelWithoutOptions)
-            return
-        }
-
         os_log("Will load options\n%{public}@", log: .networkProtection, String(describing: options))
-        let startupOptions = StartupOptions(options: options, log: .networkProtection)
+        let startupOptions = StartupOptions(options: options ?? [:], log: .networkProtection)
         startTunnel(options: startupOptions, completionHandler: internalCompletionHandler)
     }
 
