@@ -39,7 +39,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForEmailSettings() throws {
 
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var settingsMetadata = try fetchAllSettingsMetadata(in: context)
@@ -57,7 +57,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
     func testThatFetchChangedObjectsReturnsEmailSettingsWithNonNilModifiedAt() async throws {
 
         let otherEmailManager = EmailManager(storage: MockEmailManagerStorage())
-        try otherEmailManager.signIn(userEmail: "dax", token: "secret-token")
+        try otherEmailManager.signIn(username: "dax", token: "secret-token")
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableSettingAdapter.init)
 
@@ -85,7 +85,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
     func testThatSentItemsAreProperlyCleanedUp() async throws {
 
         let otherEmailManager = EmailManager(storage: MockEmailManagerStorage())
-        try otherEmailManager.signIn(userEmail: "dax", token: "secret-token")
+        try otherEmailManager.signIn(username: "dax", token: "secret-token")
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
         try await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
@@ -115,7 +115,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let date = Date()
 
         let emailManager = EmailManager(storage: MockEmailManagerStorage())
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
 
         let received: [Syncable] = [
             .emailProtection(username: "dax", token: try emailManager.getToken()!)
@@ -132,7 +132,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
+        try emailManager.signIn(username: "dax-local", token: "secret-token-local")
 
         let received: [Syncable] = [
             .emailProtection(username: "dax", token: "secret-token")
@@ -157,17 +157,18 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
         XCTAssertEqual(willSaveCallCount, 2)
 
+        context.refreshAllObjects()
         let settingsMetadata = try fetchAllSettingsMetadata(in: context)
-        XCTAssertTrue(settingsMetadata.isEmpty)
-        XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
-        XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
+        XCTAssertFalse(settingsMetadata.isEmpty)
+        XCTAssertNil(emailManagerStorage.mockUsername)
+        XCTAssertNil(emailManagerStorage.mockToken)
     }
 
     // MARK: - Regular Sync
 
     func testWhenEmailProtectionDeleteIsSentAndUpdateIsReceivedThenEmailProtectionIsNotDeleted() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
         try emailManager.signOut()
 
         let received: [Syncable] = [
@@ -187,7 +188,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
     func testWhenEmailProtectionWasSentAndThenDisabledLocallyAndAnUpdateIsReceivedThenEmailProtectionIsDisabled() async throws {
 
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
@@ -213,7 +214,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
 
         let received: [Syncable] = [
             .emailProtection(username: "dax2", token: "secret-token2")
@@ -235,7 +236,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
 
         let received: [Syncable] = [
             .emailProtectionDeleted()
@@ -256,7 +257,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token-local")
+        try emailManager.signIn(username: "dax", token: "secret-token-local")
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 

@@ -43,7 +43,7 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionDisabledStateIsApplied() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax", token: "secret-token")
+        try emailManager.signIn(username: "dax", token: "secret-token")
 
         let received: [Syncable] = [
             .emailProtectionDeleted()
@@ -60,7 +60,7 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
 
     func testThatEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
-        try emailManager.signIn(userEmail: "dax-local", token: "secret-token-local")
+        try emailManager.signIn(username: "dax-local", token: "secret-token-local")
 
         let received: [Syncable] = [
             .emailProtection(username: "dax-remote", token: "secret-token-remote")

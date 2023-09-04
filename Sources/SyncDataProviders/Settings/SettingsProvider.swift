@@ -161,7 +161,14 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         serverTimestamp: String?,
         crypter: Crypting
     ) async throws {
-        try await handleSyncResponse(isInitial: true, sent: [], received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
+        try await handleSyncResponse(
+            isInitial: true,
+            sent: [],
+            received: received,
+            clientTimestamp: clientTimestamp,
+            serverTimestamp: serverTimestamp,
+            crypter: crypter
+        )
     }
 
     public override func handleSyncResponse(
@@ -171,7 +178,14 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         serverTimestamp: String?,
         crypter: Crypting
     ) async throws {
-        try await handleSyncResponse(isInitial: false, sent: sent, received: received, clientTimestamp: clientTimestamp, serverTimestamp: serverTimestamp, crypter: crypter)
+        try await handleSyncResponse(
+            isInitial: false,
+            sent: sent,
+            received: received,
+            clientTimestamp: clientTimestamp,
+            serverTimestamp: serverTimestamp,
+            crypter: crypter
+        )
     }
 
     // MARK: - Internal
@@ -202,13 +216,21 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
                         crypter: crypter,
                         deduplicateEntities: isInitial
                     )
-                    let idsOfItemsToClearModifiedAt = try cleanUpSentItems(sent, receivedKeys: Set(responseHandler.receivedByKey.keys), clientTimestamp: clientTimestamp, in: context)
+                    let idsOfItemsToClearModifiedAt = try cleanUpSentItems(
+                        sent,
+                        receivedKeys: Set(responseHandler.receivedByKey.keys),
+                        clientTimestamp: clientTimestamp,
+                        in: context
+                    )
                     try responseHandler.processReceivedSettings()
 
 #if DEBUG
                     try willSaveContextAfterApplyingSyncResponse()
 #endif
-                    let keys = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByKey.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
+                    let keys = idsOfItemsToClearModifiedAt.union(
+                        Set(responseHandler.receivedByKey.keys)
+                            .subtracting(responseHandler.idsOfItemsThatRetainModifiedAt)
+                    )
                     try clearModifiedAtAndSaveContext(keys: keys, clientTimestamp: clientTimestamp, in: context)
                     break
                 } catch {
@@ -237,7 +259,13 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         }
     }
 
-    func cleanUpSentItems(_ sent: [Syncable], receivedKeys: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws -> Set<String> {
+    func cleanUpSentItems(
+        _ sent: [Syncable],
+        receivedKeys: Set<String>,
+        clientTimestamp: Date,
+        in context: NSManagedObjectContext
+    ) throws -> Set<String> {
+
         if sent.isEmpty {
             return []
         }

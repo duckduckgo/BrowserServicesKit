@@ -27,7 +27,7 @@ public protocol EmailManagerSyncSupporting: AnyObject {
     func getUsername() throws -> String?
     func getToken() throws -> String?
 
-    func signIn(userEmail: String, token: String) throws
+    func signIn(username: String, token: String) throws
     func signOut() throws
 
     var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
@@ -65,7 +65,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
         }
 
         let payload = try JSONDecoder.snakeCaseKeys.decode(Payload.self, from: valueData)
-        try emailManager.signIn(userEmail: payload.username, token: payload.personalAccessToken)
+        try emailManager.signIn(username: payload.username, token: payload.personalAccessToken)
     }
 
     init(emailManager: EmailManagerSyncSupporting) {
