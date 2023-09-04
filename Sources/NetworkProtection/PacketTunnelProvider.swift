@@ -663,6 +663,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
         try? serverCache.removeServerList()
+
+        try? tokenStore.deleteToken()
+
         // This is not really an error, we received a command to reset the connection
         cancelTunnelWithError(nil)
         completionHandler?(nil)
@@ -727,6 +730,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleTriggerTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
+        completionHandler?(nil)
     }
 
     private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
