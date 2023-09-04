@@ -40,6 +40,7 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
+    case networkProtection
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -61,4 +62,13 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case inlineIconCredentials
     case accessCredentialManagement
     case autofillPasswordGeneration
+}
+
+public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .networkProtection
+    }
+
+    case waitlist
+    case waitlistBetaActive
 }

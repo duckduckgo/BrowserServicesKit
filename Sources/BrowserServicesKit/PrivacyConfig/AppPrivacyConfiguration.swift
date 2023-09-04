@@ -161,6 +161,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature,
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
+
         guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
             return false
         }
