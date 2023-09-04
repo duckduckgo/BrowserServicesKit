@@ -588,6 +588,11 @@ private extension EmailManager {
     }
     
     func consumeAliasAndReplace() {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             try storage.deleteAlias()
         } catch {
@@ -616,6 +621,11 @@ private extension EmailManager {
     }
 
     func fetchAndStoreAlias(timeoutInterval: TimeInterval = 60.0, completionHandler: AliasCompletion? = nil) {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         fetchAlias(timeoutInterval: timeoutInterval) { [weak self] alias, error in
             guard let alias = alias, error == nil else {
                 completionHandler?(nil, error)
