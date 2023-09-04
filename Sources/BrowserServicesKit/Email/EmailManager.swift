@@ -622,10 +622,6 @@ private extension EmailManager {
 
     func fetchAndStoreAlias(timeoutInterval: TimeInterval = 60.0, completionHandler: AliasCompletion? = nil) {
         fetchAlias(timeoutInterval: timeoutInterval) { [weak self] alias, error in
-            Self.lock.lock()
-            defer {
-                Self.lock.unlock()
-            }
             guard let alias = alias, error == nil else {
                 completionHandler?(nil, error)
                 return
@@ -636,7 +632,12 @@ private extension EmailManager {
                 completionHandler?(nil, .signedOut)
                 return
             }
-            
+
+            Self.lock.lock()
+            defer {
+                Self.lock.unlock()
+            }
+
             do {
                 try self.storage.store(alias: alias)
             } catch {
