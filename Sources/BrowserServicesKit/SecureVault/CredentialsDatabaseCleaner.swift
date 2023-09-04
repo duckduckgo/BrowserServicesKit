@@ -63,10 +63,14 @@ public final class CredentialsDatabaseCleaner {
         self.getLog = log
         self.removeSyncMetadataPendingDeletion = removeSyncMetadataPendingDeletion
 
-        cleanupCancellable = triggerSubject
+        cleanupCancellable = Publishers
+            .Merge(
+                externalTriggerSubject.map { false },
+                scheduledTriggerSubject.map { true }
+            )
             .receive(on: workQueue)
-            .sink { [weak self] _ in
-                self?.removeSyncableCredentialsMetadataPendingDeletion()
+            .sink { [weak self] cancelIfActive in
+                self?.removeSyncableCredentialsMetadataPendingDeletion(skipWhenSyncIsActive: cancelIfActive)
             }
     }
 
@@ -74,7 +78,7 @@ public final class CredentialsDatabaseCleaner {
         cancelCleaningSchedule()
         scheduleCleanupCancellable = Timer.publish(every: Const.cleanupInterval, on: .main, in: .default)
             .sink { [weak self] _ in
-                self?.triggerSubject.send()
+                self?.scheduledTriggerSubject.send()
             }
     }
 
@@ -83,11 +87,11 @@ public final class CredentialsDatabaseCleaner {
     }
 
     public func cleanUpDatabaseNow() {
-        triggerSubject.send()
+        externalTriggerSubject.send()
     }
 
-    func removeSyncableCredentialsMetadataPendingDeletion() {
-        guard !isSyncActive() else {
+    func removeSyncableCredentialsMetadataPendingDeletion(skipWhenSyncIsActive: Bool = true) {
+        if skipWhenSyncIsActive && isSyncActive() {
             errorEvents?.fire(.syncActive)
             return
         }
@@ -151,7 +155,8 @@ public final class CredentialsDatabaseCleaner {
     private let errorEvents: EventMapping<CredentialsCleanupError>?
     private let secureVaultFactory: AutofillVaultFactory
     private let secureVaultErrorReporter: SecureVaultErrorReporting
-    private let triggerSubject = PassthroughSubject<Void, Never>()
+    private let externalTriggerSubject = PassthroughSubject<Void, Never>()
+    private let scheduledTriggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "CredentialsDatabaseCleaner queue", qos: .userInitiated)
 
     private var cleanupCancellable: AnyCancellable?

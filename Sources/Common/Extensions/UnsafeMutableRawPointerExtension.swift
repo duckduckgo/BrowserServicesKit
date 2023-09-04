@@ -1,5 +1,6 @@
 //
-//  NetworkProtectionFeatureVisibility.swift
+//  UnsafeMutableRawPointerExtension.swift
+//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,19 +19,11 @@
 
 import Foundation
 
-public protocol NetworkProtectionFeatureVisibility {
+public extension UnsafeMutableRawPointer {
 
-    /// Has the invite code flow been completed and an oAuth token stored?
-    ///
-    var isFeatureActivated: Bool { get }
-}
-
-extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureVisibility {
-    public var isFeatureActivated: Bool {
-        do {
-            return try fetchToken() != nil
-        } catch {
-            return false
-        }
+    /// HEX String representation of the pointer with trimmed leading zeros
+    var hexValue: String {
+        self.debugDescription.replacing(regex: "^0x0*", with: "0x")
     }
+
 }

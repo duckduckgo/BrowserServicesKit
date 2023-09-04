@@ -40,7 +40,7 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
-    case incrementalRolloutTest // Temporary feature flag for testing incremental rollouts
+    case networkProtection
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -64,10 +64,11 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case autofillPasswordGeneration
 }
 
-public enum IncrementalRolloutTestSubfeature: String, PrivacySubfeature {
+public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature {
-        .incrementalRolloutTest
+        .networkProtection
     }
 
-    case rollout
+    case waitlist
+    case waitlistBetaActive
 }
