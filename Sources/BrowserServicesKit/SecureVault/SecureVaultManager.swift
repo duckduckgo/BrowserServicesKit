@@ -182,9 +182,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             } else {
                 completionHandler([], identities, cards, self.credentialsProvider)
             }
-            
-            
-            
+
         } catch {
             os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
             completionHandler([], [], [], credentialsProvider)
