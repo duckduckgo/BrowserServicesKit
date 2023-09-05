@@ -74,7 +74,7 @@ class SyncOperationTests: XCTestCase {
 
     func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
         let feature = Feature(name: "bookmarks")
-        var dataProvider = DataProvidingMock(feature: feature)
+        let dataProvider = DataProvidingMock(feature: feature)
         dataProvider.lastSyncTimestamp = "1234"
         dataProvider._fetchChangedObjects = { _ in
             [Syncable(jsonObject: [:])]
@@ -229,7 +229,7 @@ class SyncOperationTests: XCTestCase {
             Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
             Syncable(jsonObject: ["id": "2", "name": "bookmark2", "url": "https://example.com"]),
         ]
-        var dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         var sentModels: [Syncable] = []
         dataProvider.lastSyncTimestamp = "1234"
         dataProvider._fetchChangedObjects = { _ in objectsToSync }
