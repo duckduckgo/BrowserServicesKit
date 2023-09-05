@@ -271,11 +271,15 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         }
         let keys = sent.compactMap { SyncableSettingAdapter(syncable: $0).uuid }
         let settingsMetadata = try SyncableSettingsMetadataUtils.fetchSettingsMetadata(for: keys, in: context)
+        let originalValues: [Setting: String?] = try settingsHandlers.reduce(into: .init()) { partialResult, handler in
+            partialResult[handler.key] = try handler.value.getValue()
+        }
 
         var idsOfItemsToClearModifiedAt = Set<String>()
 
         for metadata in settingsMetadata {
-            guard let handler = settingsHandlers[Setting(key: metadata.key)] else {
+            let setting = Setting(key: metadata.key)
+            guard let handler = settingsHandlers[setting] else {
                 continue
             }
 
@@ -283,7 +287,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
                 continue
             }
             let isLocalChangeRejectedBySync: Bool = receivedKeys.contains(metadata.key)
-            let isPendingDeletion = try handler.getValue() == nil
+            let isPendingDeletion = originalValues[setting] == nil
             if isPendingDeletion, !isLocalChangeRejectedBySync {
                 try handler.setValue(nil)
                 context.delete(metadata)
