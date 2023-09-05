@@ -101,9 +101,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
                 }
 
                 for key in settingsHandlers.keys.map(\.key) {
-                    let metadataObject = SyncableSettingsMetadata(context: context)
-                    metadataObject.key = key
-                    metadataObject.lastModified = currentTimestamp
+                    SyncableSettingsMetadata.makeSettingsMetadata(with: key, lastModified: currentTimestamp, in: context)
                 }
                 try context.save()
 
@@ -290,11 +288,10 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
             let isPendingDeletion = originalValues[setting] == nil
             if isPendingDeletion, !isLocalChangeRejectedBySync {
                 try handler.setValue(nil)
-                context.delete(metadata)
             } else {
-                context.delete(metadata)
                 idsOfItemsToClearModifiedAt.insert(metadata.key)
             }
+            metadata.lastModified = nil
         }
 
         return idsOfItemsToClearModifiedAt
@@ -310,7 +307,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         let settingsMetadata = try SyncableSettingsMetadataUtils.fetchSettingsMetadata(for: keys, in: context)
         for metadata in settingsMetadata {
             if let lastModified = metadata.lastModified, lastModified < clientTimestamp {
-                context.delete(metadata)
+                metadata.lastModified = nil
             }
         }
 
@@ -323,6 +320,13 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
             do {
                 try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
                 try context.save()
+            } catch SyncError.settingsMetadataNotPresent {
+                SyncableSettingsMetadata.makeSettingsMetadata(with: setting.key, lastModified: Date(), in: context)
+                do {
+                    try context.save()
+                } catch {
+                    errorSubject.send(SettingsSyncMetadataSaveError(underlyingError: error))
+                }
             } catch {
                 errorSubject.send(SettingsSyncMetadataSaveError(underlyingError: error))
             }

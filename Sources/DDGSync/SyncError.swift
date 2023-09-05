@@ -54,4 +54,5 @@ public enum SyncError: Error, Equatable {
     case receivedCredentialsWithoutUUID
 
     case emailProtectionUsernamePresentButTokenMissing
+    case settingsMetadataNotPresent
 }

@@ -93,7 +93,6 @@ final class SettingsResponseHandler {
         }
         if let metadata = metadataByKey[setting.key] {
             metadata.lastModified = nil
-            context.delete(metadata)
             metadataByKey.removeValue(forKey: setting.key)
         }
     }

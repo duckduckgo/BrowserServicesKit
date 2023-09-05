@@ -38,8 +38,9 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try await handleInitialSyncResponse(received: received)
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
-        XCTAssertTrue(settingsMetadata.isEmpty)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(emailMetadata.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
     }
@@ -55,8 +56,9 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try await handleInitialSyncResponse(received: received)
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
-        XCTAssertTrue(settingsMetadata.isEmpty)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(emailMetadata.lastModified)
         XCTAssertNil(emailManagerStorage.mockUsername)
         XCTAssertNil(emailManagerStorage.mockToken)
     }
@@ -72,8 +74,9 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try await handleInitialSyncResponse(received: received)
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
-        XCTAssertTrue(settingsMetadata.isEmpty)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(emailMetadata.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax-remote")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token-remote")
     }
@@ -89,8 +92,9 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         try await handleInitialSyncResponse(received: received)
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        let settingsMetadata = try fetchAllSettingsMetadata(in: context)
-        XCTAssertTrue(settingsMetadata.isEmpty)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(emailMetadata.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
     }

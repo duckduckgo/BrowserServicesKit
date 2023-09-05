@@ -64,7 +64,7 @@ public enum SyncableSettingsMetadataUtils {
 
     @discardableResult
     public static func setLastModified(
-        _ lastModified: Date,
+        _ lastModified: Date?,
         forSettingWithKey key: String,
         in context: NSManagedObjectContext
     ) throws -> SyncableSettingsMetadata? {
@@ -73,13 +73,10 @@ public enum SyncableSettingsMetadataUtils {
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(SyncableSettingsMetadata.key), key)
         request.fetchLimit = 1
 
-        if let metadata = try context.fetch(request).first {
-            metadata.lastModified = lastModified
-            return metadata
+        guard let metadata = try context.fetch(request).first else {
+            throw SyncError.settingsMetadataNotPresent
         }
 
-        let metadata = SyncableSettingsMetadata(context: context)
-        metadata.key = key
         metadata.lastModified = lastModified
         return metadata
     }

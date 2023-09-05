@@ -151,7 +151,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
 
     // MARK: - Helpers
 
-    func fetchAllSettingsMetadata(in context: NSManagedObjectContext) throws -> [SyncableSettingsMetadata] {
+    func fetchAllSettingsMetadata(in context: NSManagedObjectContext) -> [SyncableSettingsMetadata] {
         var metadata = [SyncableSettingsMetadata]()
         let request = SyncableSettingsMetadata.fetchRequest()
         context.performAndWait {
@@ -162,17 +162,6 @@ internal class SettingsProviderTestsBase: XCTestCase {
             }
         }
         return metadata
-    }
-
-    func setLastModified(for setting: SettingsProvider.Setting, to timestamp: Date, in context: NSManagedObjectContext) throws {
-        context.performAndWait {
-            do {
-                try SyncableSettingsMetadataUtils.setLastModified(Date(), forSettingWithKey: setting.key, in: context)
-                try context.save()
-            } catch {
-                XCTFail("Failed to save context")
-            }
-        }
     }
 
     func handleSyncResponse(sent: [Syncable] = [], received: [Syncable], clientTimestamp: Date = Date(), serverTimestamp: String = "1234") async throws {
