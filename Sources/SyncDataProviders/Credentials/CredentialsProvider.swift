@@ -40,7 +40,6 @@ public final class CredentialsProvider: DataProvider {
     // MARK: - DataProviding
 
     public override func prepareForFirstSync() throws {
-        lastSyncTimestamp = nil
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
         try secureVault.inDatabaseTransaction { database in
 

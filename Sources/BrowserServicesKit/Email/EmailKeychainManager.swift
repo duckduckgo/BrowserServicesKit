@@ -140,9 +140,14 @@ private extension EmailKeychainManager {
         }
 
         try deleteAuthenticationState()
-        
+
         try add(data: tokenData, forField: .token)
-        try add(data: usernameData, forField: .username)
+
+        do {
+            try add(data: usernameData, forField: .username)
+        } catch let EmailKeychainAccessError.keychainSaveFailure(status) {
+            throw EmailKeychainAccessError.keychainFailedToSaveUsernameAfterSavingToken(status)
+        }
 
         if let cohortData = cohort?.data(using: .utf8) {
             try add(data: cohortData, forField: .cohort)
