@@ -65,6 +65,35 @@ final class DDGSyncTests: XCTestCase {
         try super.tearDownWithError()
     }
 
+    func testSyncErrorCodes() {
+        print((SyncError.noToken as NSError).code)
+        print((SyncError.failedToMigrate as NSError).code)
+        print((SyncError.failedToLoadAccount as NSError).code)
+        print((SyncError.failedToSetupEngine as NSError).code)
+        print((SyncError.failedToCreateAccountKeys("") as NSError).code)
+        print((SyncError.accountNotFound as NSError).code)
+        print((SyncError.accountAlreadyExists as NSError).code)
+        print((SyncError.invalidRecoveryKey as NSError).code)
+        print((SyncError.noFeaturesSpecified as NSError).code)
+        print((SyncError.noResponseBody as NSError).code)
+        print((SyncError.unexpectedStatusCode(1) as NSError).code)
+        print((SyncError.unexpectedResponseBody as NSError).code)
+        print((SyncError.unableToEncodeRequestBody("") as NSError).code)
+        print((SyncError.unableToDecodeResponse("") as NSError).code)
+        print((SyncError.invalidDataInResponse("") as NSError).code)
+        print((SyncError.accountRemoved as NSError).code)
+        print((SyncError.failedToEncryptValue("") as NSError).code)
+        print((SyncError.failedToDecryptValue("") as NSError).code)
+        print((SyncError.failedToPrepareForConnect("") as NSError).code)
+        print((SyncError.failedToOpenSealedBox("") as NSError).code)
+        print((SyncError.failedToSealData("") as NSError).code)
+        print((SyncError.failedToWriteSecureStore(status: 1) as NSError).code)
+        print((SyncError.failedToReadSecureStore(status: 1) as NSError).code)
+        print((SyncError.failedToRemoveSecureStore(status: 1) as NSError).code)
+        print((SyncError.credentialsMetadataMissingBeforeFirstSync as NSError).code)
+        print((SyncError.receivedCredentialsWithoutUUID as NSError).code)
+    }
+
     // MARK: - Setup
 
     func setUpExpectations(started syncStartedExpectedCount: Int, fetch fetchExpectedCount: Int, handleResponse handleSyncResponseExpectedCount: Int, finished syncFinishedExpectedCount: Int) {

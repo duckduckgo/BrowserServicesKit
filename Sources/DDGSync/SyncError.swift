@@ -55,3 +55,59 @@ public enum SyncError: Error, Equatable {
 
     case emailProtectionUsernamePresentButTokenMissing
 }
+
+extension SyncError: CustomNSError {
+
+    public var errorCode: Int {
+        switch self {
+        case .noToken: return 13
+
+        case .failedToMigrate: return 14
+        case .failedToLoadAccount: return 15
+        case .failedToSetupEngine: return 16
+
+        case .failedToCreateAccountKeys: return 0
+        case .accountNotFound: return 17
+        case .accountAlreadyExists: return 18
+        case .invalidRecoveryKey: return 19
+
+        case .noFeaturesSpecified: return 20
+        case .noResponseBody: return 21
+        case .unexpectedStatusCode: return 1
+        case .unexpectedResponseBody: return 22
+        case .unableToEncodeRequestBody: return 2
+        case .unableToDecodeResponse: return 3
+        case .invalidDataInResponse: return 4
+        case .accountRemoved: return 23
+
+        case .failedToEncryptValue: return 5
+        case .failedToDecryptValue: return 6
+        case .failedToPrepareForConnect: return 7
+        case .failedToOpenSealedBox: return 8
+        case .failedToSealData: return 9
+
+        case .failedToWriteSecureStore: return 10
+        case .failedToReadSecureStore: return 11
+        case .failedToRemoveSecureStore: return 12
+
+        case .credentialsMetadataMissingBeforeFirstSync: return 24
+        case .receivedCredentialsWithoutUUID: return 25
+        case .emailProtectionUsernamePresentButTokenMissing: return 26
+        }
+    }
+
+    public var errorUserInfo: [String: Any] {
+        var errorUserInfo = [String: Any]()
+        switch self {
+        case .unexpectedStatusCode(let statusCode):
+            errorUserInfo["statusCode"] = statusCode
+        case .failedToWriteSecureStore(let status), .failedToReadSecureStore(let status), .failedToRemoveSecureStore(let status):
+            errorUserInfo["statusCode"] = status
+        default:
+            break
+        }
+
+        return errorUserInfo
+    }
+
+}
