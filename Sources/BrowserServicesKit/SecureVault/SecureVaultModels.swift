@@ -521,7 +521,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return urlComponents.eTLDplus1(tld: tld)
     }
 
-    // Last Updated (if accountForLastUpdate = true) > Alphabetical Domain > Alphabetical Username > Empty Usernames
+    // Last Updated (if alphabeticalOnly = false) > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount,
                                 _ account2: SecureVaultModels.WebsiteAccount,
                                 alphabeticalOnly: Bool = false) -> Bool {
