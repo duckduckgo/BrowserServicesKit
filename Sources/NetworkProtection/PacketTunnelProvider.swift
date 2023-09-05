@@ -656,6 +656,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             setIncludedRoutes(includedRoutes, completionHandler: completionHandler)
         case .simulateTunnelFailure:
             simulateTunnelFailure(completionHandler: completionHandler)
+        case .simulateTunnelFatalError:
+            simulateTunnelFatalError(completionHandler: completionHandler)
+        case .simulateTunnelMemoryOveruse:
+            simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         }
     }
 
@@ -766,6 +770,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                 completionHandler?(error.map { ExtensionMessageString($0.localizedDescription).rawValue })
             }
+        }
+    }
+
+    private func simulateTunnelFatalError(completionHandler: ((Data?) -> Void)? = nil) {
+        completionHandler?(nil)
+        fatalError("Simulated PacketTunnelProvider crash")
+    }
+
+    private func simulateTunnelMemoryOveruse(completionHandler: ((Data?) -> Void)? = nil) {
+        completionHandler?(nil)
+        var array = [String]()
+        while true {
+            array.append("Crash")
         }
     }
 
