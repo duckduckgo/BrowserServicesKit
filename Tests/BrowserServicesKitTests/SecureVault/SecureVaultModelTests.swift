@@ -329,5 +329,35 @@ class SecureVaultModelTests: XCTestCase {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
+    
+    func testAlphabeticalSorting() {
+        // (Note Duplicates are removed exclusively based on signature -- Ignoring usernames/domains)
+        let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld, removeDuplicates: false, alphabeticalOnly: true)
+        let controlAccounts  = [
+            testAccount("olivia", "toys.amazon.com", "4567", 50 * days),
+            testAccount("anna", "amazon.com", "1234", 50 * days),
+            testAccount("jane", "amazon.com", "7890", 0),
+            testAccount("oscar", "amazon.com", "7890", 0),
+            testAccount("paul", "amazon.com", "3456", 0),
+            testAccount("rachel", "amazon.com", "7890", 0),
+            testAccount("daniel", "www.amazon.com", "23456", 0),
+            testAccount("john", "www.amazon.com", "4567", 0),
+            testAccount("quinn", "www.amazon.com", "2345", 0),
+            testAccount("", "amazon.com", "3456", 0),
+            testAccount("chris", "baby.amazon.com", "3456", 0),
+            testAccount("lisa", "books.amazon.com", "5678", 50 * days),
+            testAccount("william", "fashion.amazon.com", "1234", 50 * days),
+            testAccount("mary", "garden.amazon.com", "12345", 50 * days),
+            testAccount("jacob", "office.amazon.com", "12345", 0),
+            testAccount("peter", "primevideo.amazon.com", "4567", 85 * days),
+            testAccount("frank", "sports.amazon.com", "23456", 0),
+            testAccount("", "appliances.amazon.com", "5678", 0),
+            testAccount("", "grocery.amazon.com", "4567", 0),
+            testAccount("", "movies.amazon.com", "2345", 0)
+        ]
+        for i in 0...7 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
 
 }
