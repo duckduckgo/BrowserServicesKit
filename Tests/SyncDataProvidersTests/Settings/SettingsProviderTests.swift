@@ -245,7 +245,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let settingsMetadata = fetchAllSettingsMetadata(in: context)
         let emailMetadata = try XCTUnwrap(settingsMetadata.first)
-        XCTAssertNotNil(emailMetadata.lastModified)
+        XCTAssertNil(emailMetadata.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token2")
     }
