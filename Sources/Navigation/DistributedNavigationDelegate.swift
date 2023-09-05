@@ -89,6 +89,7 @@ public final class DistributedNavigationDelegate: NSObject {
 #if !_MAIN_FRAME_NAVIGATION_ENABLED
         _=WKWebView.swizzleLoadMethodOnce
 #endif
+        _=WKNavigationAction.swizzleRequestOnce
     }
 
     /** set responder chain for Navigation Events with defined ownership and nullability:
