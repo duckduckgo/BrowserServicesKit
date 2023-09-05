@@ -242,8 +242,21 @@ open class DataProvider: DataProviding {
         syncErrorSubject.send(error)
     }
 
+    /**
+     * Allows to stream errors from additional error publishers (such as publishing errors
+     * related to specific data provider's internal logic) to `syncErrorPublisher`.
+     */
+    public func register(errorPublisher: AnyPublisher<Error, Never>) {
+        errorPublisher
+            .sink { [weak self] error in
+                self?.syncErrorSubject.send(error)
+            }
+            .store(in: &additionalErrorPublisherCancellables)
+    }
+
     // MARK: - Private
 
     private let syncErrorSubject = PassthroughSubject<Error, Never>()
     private let metadataStore: SyncMetadataStore
+    private var additionalErrorPublisherCancellables = Set<AnyCancellable>()
 }
