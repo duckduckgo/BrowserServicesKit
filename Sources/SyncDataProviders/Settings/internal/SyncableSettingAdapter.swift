@@ -49,13 +49,11 @@ extension Syncable {
 
         payload["key"] = setting.key
 
-        guard let value else {
+        if let value {
+            payload["value"] = try encrypt(value)
+        } else {
             payload["deleted"] = ""
-            self.init(jsonObject: payload)
-            return
         }
-
-        payload["value"] = try encrypt(value)
 
         if let lastModified {
             payload["client_last_modified"] = Self.dateFormatter.string(from: lastModified)
