@@ -130,8 +130,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private lazy var keyStore = NetworkProtectionKeychainKeyStore(keychainType: keychainType,
                                                                   errorEvents: debugEvents)
 
-    private lazy var tokenStore = NetworkProtectionKeychainTokenStore(keychainType: keychainType,
-                                                                      errorEvents: debugEvents)
+    private let tokenStore: NetworkProtectionTokenStore
 
     /// This is for overriding the defaults.  A `nil` value means NetP will just use the defaults.
     ///
@@ -304,12 +303,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
                 keychainType: KeychainType,
+                tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
         self.keychainType = keychainType
+        self.tokenStore = tokenStore
         self.debugEvents = debugEvents
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
