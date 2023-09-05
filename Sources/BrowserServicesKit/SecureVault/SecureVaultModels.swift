@@ -509,9 +509,9 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
 
         let exactMatches = accountGroups["exactMatches"]?.sorted { compareAccount( $0, $1 ) } ?? []
         let tldMatches = accountGroups["tldMatches"]?.sorted { compareAccount( $0, $1 ) } ?? []
-        let other = accountGroups["other"]?.sorted { compareAccount( $0, $1 ) } ?? []
+        let other = accountGroups["other"]?.sorted { compareAccount( $0, $1, lastUpdatedFirst: false ) } ?? []
         let result = exactMatches + tldMatches + other
-
+        
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
@@ -521,8 +521,10 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return urlComponents.eTLDplus1(tld: tld)
     }
 
-    // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
-    private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
+    // Last Updated (if accountForLastUpdate = true) > Alphabetical Domain > Alphabetical Username > Empty Usernames
+    private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount,
+                                _ account2: SecureVaultModels.WebsiteAccount,
+                                lastUpdatedFirst: Bool = true) -> Bool {
         let username1 = account1.username ?? ""
         let username2 = account2.username ?? ""
 
@@ -534,8 +536,10 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return false
         }
 
-        if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
-            return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
+        if lastUpdatedFirst {
+            if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
+                return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
+            }
         }
 
         let domain1 = account1.domain ?? ""
