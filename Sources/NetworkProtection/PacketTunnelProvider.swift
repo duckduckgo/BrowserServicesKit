@@ -420,14 +420,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         if options?[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] == NetworkProtectionOptionValue.true {
-            fatalError("Simulater Tunnel Fatal Error")
+            simulateTunnelFatalError()
         }
 
         if options?[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] == NetworkProtectionOptionValue.true {
-            var array = [String]()
-            while true {
-                array.append("crash")
-            }
+            simulateTunnelMemoryOveruse()
         }
 
         do {
