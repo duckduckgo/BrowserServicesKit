@@ -489,7 +489,7 @@ extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
 // MARK: - WebsiteAccount Array extensions
 extension Array where Element == SecureVaultModels.WebsiteAccount {
 
-    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false) -> [SecureVaultModels.WebsiteAccount] {
+    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false, alphabeticalOnly: Bool = false) -> [SecureVaultModels.WebsiteAccount] {
 
         guard let targetTLD = extractTLD(domain: targetDomain, tld: tld) else {
             return []
@@ -507,9 +507,9 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             }
         }
 
-        let exactMatches = accountGroups["exactMatches"]?.sorted { compareAccount( $0, $1 ) } ?? []
-        let tldMatches = accountGroups["tldMatches"]?.sorted { compareAccount( $0, $1 ) } ?? []
-        let other = accountGroups["other"]?.sorted { compareAccount( $0, $1, lastUpdatedFirst: false ) } ?? []
+        let exactMatches = accountGroups["exactMatches"]?.sorted { compareAccount( $0, $1, alphabeticalOnly: alphabeticalOnly ) } ?? []
+        let tldMatches = accountGroups["tldMatches"]?.sorted { compareAccount( $0, $1, alphabeticalOnly: alphabeticalOnly ) } ?? []
+        let other = accountGroups["other"]?.sorted { compareAccount( $0, $1, alphabeticalOnly: alphabeticalOnly ) } ?? []
         let result = exactMatches + tldMatches + other
         
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
@@ -524,7 +524,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
     // Last Updated (if accountForLastUpdate = true) > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount,
                                 _ account2: SecureVaultModels.WebsiteAccount,
-                                lastUpdatedFirst: Bool = true) -> Bool {
+                                alphabeticalOnly: Bool = false) -> Bool {
         let username1 = account1.username ?? ""
         let username2 = account2.username ?? ""
 
@@ -536,7 +536,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return false
         }
 
-        if lastUpdatedFirst {
+        if !alphabeticalOnly {
             if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
                 return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
             }
