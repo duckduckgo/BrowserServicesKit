@@ -418,6 +418,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
+        if options?[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] == NetworkProtectionOptionValue.true {
+            fatalError("Simulater Tunnel Fatal Error")
+        }
+
+        if options?[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] == NetworkProtectionOptionValue.true {
+            var array = [String]()
+            while true {
+                array.append("crash")
+            }
+        }
+
         do {
             try load(options: options)
             try loadVendorOptions(from: tunnelProviderProtocol)
