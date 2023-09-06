@@ -80,7 +80,7 @@ final class BookmarkEntityTests: XCTestCase {
             try! context.save()
 
             let nextSaveModifiedAt = bookmark.modifiedAt
-            XCTAssertNotNil(nextSaveModifiedAt)
+            XCTAssertNil(nextSaveModifiedAt)
 
             XCTAssertTrue(firstSaveModifiedAt! < nextSaveModifiedAt!)
         }
