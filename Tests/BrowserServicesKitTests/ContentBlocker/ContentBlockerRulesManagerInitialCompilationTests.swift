@@ -62,7 +62,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         
         wait(for: [exp, expStore], timeout: 15.0)
         
-        XCTAssertNil(mockLastCompiledRulesStore.rules)
+        XCTAssertNotNil(mockLastCompiledRulesStore.rules)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, mockRulesSource.trackerData?.etag)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
