@@ -39,8 +39,8 @@ public struct AutofillData {
 
 public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting {
     
-    func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
-
+    func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType?) -> Bool
+    
     func secureVaultManagerShouldSaveData(_: SecureVaultManager) -> Bool
 
     func secureVaultManager(_: SecureVaultManager,
@@ -73,6 +73,12 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
 
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel)
 
+}
+
+extension SecureVaultManagerDelegate {
+    func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType? = nil) -> Bool {
+        return secureVaultManagerIsEnabledStatus(manager, forType: type)
+    }
 }
 
 public protocol PasswordManager: AnyObject {
@@ -153,21 +159,34 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 return
             }
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
-            let identities = try vault.identities()
-            let cards = try vault.creditCards()
-
-            getAccounts(for: domain,
-                        from: vault,
-                        or: passwordManager,
-                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
-                guard let self = self else { return }
-                if let error = error {
-                    os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
-                    completionHandler([], [], [], self.credentialsProvider)
-                } else {
-                    completionHandler(accounts, identities, cards, self.credentialsProvider)
-                }
+            
+            var identities: [SecureVaultModels.Identity] = []
+            if delegate.secureVaultManagerIsEnabledStatus(self, forType: .identity) {
+                identities = try vault.identities()
             }
+            
+            var cards: [SecureVaultModels.CreditCard] = []
+            if delegate.secureVaultManagerIsEnabledStatus(self, forType: .card) {
+                cards = try vault.creditCards()
+            }
+                        
+            if delegate.secureVaultManagerIsEnabledStatus(self, forType: .password) {
+                getAccounts(for: domain,
+                            from: vault,
+                            or: passwordManager,
+                            withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+                    guard let self = self else { return }
+                    if let error = error {
+                        os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
+                        completionHandler([], [], [], self.credentialsProvider)
+                    } else {
+                        completionHandler(accounts, identities, cards, self.credentialsProvider)
+                    }
+                }
+            } else {
+                completionHandler([], identities, cards, self.credentialsProvider)
+            }
+
         } catch {
             os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
             completionHandler([], [], [], credentialsProvider)
