@@ -330,4 +330,66 @@ class SecureVaultModelTests: XCTestCase {
         }
     }
 
+    func testPatternMatchedTitle() {
+        
+        let domainTitles: [String] = [
+            "duck.com",
+            "duck.com (test@duck.com)",
+            "https://duck.com",
+            "https://duck.com (test@duck.com)",
+            "https://duck.com?page.php?test=variable1&b=variable2",
+            "https://duck.com/section/page.php?test=variable1&b=variable2",
+            "www.duck.com",
+            "www.duck.com (test@duck.com)",
+            "https://www.duck.com",
+            "https://www.duck.com (test@duck.com)",
+            "https://www.duck.com?page.php?test=variable1&b=variable2",
+            "https://www.duck.com/section/page.php?test=variable1&b=variable2",
+        ]
+        
+        let subdomainTitles: [String] = [
+            "signin.duck.com",
+            "signin.duck.com (test@duck.com.co)",
+            "https://signin.duck.com",
+            "https://signin.duck.com (test@duck.com.co)",
+            "https://signin.duck.com?page.php?test=variable1&b=variable2",
+            "https://signin.duck.com/section/page.php?test=variable1&b=variable2",
+        ]
+        
+        let tldPlusOneTitles: [String] = [
+            "signin.duck.com.co",
+            "signin.duck.com.co (test@duck.com.co)",
+            "https://signin.duck.com.co",
+            "https://signin.duck.com.co (test@duck.com.co)",
+            "https://signin.duck.com.co?page.php?test=variable1&b=variable2",
+            "https://signin.duck.com.co/section/page.php?test=variable1&b=variable2",
+        ]
+                        
+        for title in domainTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
+            
+            let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "duck.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+        for title in subdomainTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("signin.duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
+            
+            let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+        for title in tldPlusOneTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("signin.duck.com.co", account.patternMatchedTitle(), "Failed for title: \(title)")
+            
+            let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com.co", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+    }
+    
+    
 }
