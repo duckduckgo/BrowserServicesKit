@@ -345,6 +345,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://www.duck.com (test@duck.com)",
             "https://www.duck.com?page.php?test=variable1&b=variable2",
             "https://www.duck.com/section/page.php?test=variable1&b=variable2",
+            "https://WwW.dUck.com/section/page"
         ]
         
         let subdomainTitles: [String] = [
@@ -354,6 +355,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://signin.duck.com (test@duck.com.co)",
             "https://signin.duck.com?page.php?test=variable1&b=variable2",
             "https://signin.duck.com/section/page.php?test=variable1&b=variable2",
+            "https://SiGnIn.dUck.com/section/page"
         ]
         
         let tldPlusOneTitles: [String] = [
@@ -363,6 +365,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://signin.duck.com.co (test@duck.com.co)",
             "https://signin.duck.com.co?page.php?test=variable1&b=variable2",
             "https://signin.duck.com.co/section/page.php?test=variable1&b=variable2",
+            "https://SiGnIn.dUck.com.CO/section/page"
         ]
                         
         for title in domainTitles {

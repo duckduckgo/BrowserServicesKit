@@ -54,19 +54,16 @@ public struct SecureVaultModels {
         public let lastUpdated: Date
         
         public enum CommonTitlePatterns: String, CaseIterable {
-            /* 
+            /*
              Matches the following title patterns
              duck.com (test@duck.com) -> duck.com
              signin.duck.com -> signin.duck.com
              signin.duck.com (test@duck.com.co) -> signin.duck.com
              https://signin.duck.com -> signin.duck.com
              https://signin.duck.com (test@duck.com.co) -> signin.duck.com
-             https://signin.duck.com?page.php?test=variable1&b=variable2 -> signin.duck.com
-             https://signin.duck.com/section/page.php?test=variable1&b=variable2 -> signin.duck.com
-             */            
-            case hostFromTitle = #"^(?:https?:\/\/)?(?:www\.)?([^\/\?\s]+)"#
-            // www.duck.com -> duck.com
-            //case wwwPrefix = #"^www\.(.*)"#
+             (See SecureVaultModelTests.testPatternMatchedTitle() for more examples)
+             */
+            case hostFromTitle = #"^(?:https?:\/\/)?(?:www\.)?([^\/\?\s]+)"#            
         }
 
         public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
@@ -138,20 +135,20 @@ public struct SecureVaultModels {
         
         // Clean up the provided title, via pattern matching
         public func patternMatchedTitle() -> String {
-            guard let title = title?.lowercased(), !title.isEmpty else {
+            guard let title = title, !title.isEmpty else {
                 return ""
             }
             
             for pattern in SecureVaultModels.WebsiteAccount.CommonTitlePatterns.allCases {
-                if let regex = try? NSRegularExpression(pattern: pattern.rawValue, options: []) {
+                if let regex = try? NSRegularExpression(pattern: pattern.rawValue, options: [.caseInsensitive]) {
                     let matches = regex.matches(in: title, options: [], range: NSRange(title.startIndex..., in: title))
                     
                     if let firstMatch = matches.first,
                        let range = Range(firstMatch.range(at: 1), in: title) { // range(at: 1) gets the first capturing group
-                        let host = String(title[range])
+                        let host = String(title[range]).lowercased()
                         
                         // Drop the title if equal to the domain
-                        if host == domain {
+                        if host.caseInsensitiveCompare(domain ?? "") == .orderedSame {
                             return ""
                         }
                         
@@ -161,6 +158,7 @@ public struct SecureVaultModels {
             }
             return ""
         }
+
         
         
   
