@@ -21,11 +21,11 @@
 import Foundation
 import CoreData
 
-public enum FavoritesConfiguration {
+public enum FavoritesConfiguration: Equatable {
     case displayNative(FavoritesPlatform)
     case displayAll(native: FavoritesPlatform)
 
-    var displayedPlatform: FavoritesPlatform {
+    public var displayedPlatform: FavoritesPlatform {
         switch self {
         case .displayNative(let platform):
             return platform
@@ -34,14 +34,14 @@ public enum FavoritesConfiguration {
         }
     }
 
-    var nativePlatform: FavoritesPlatform {
+    public var nativePlatform: FavoritesPlatform {
         switch self {
         case .displayNative(let native), .displayAll(let native):
             return native
         }
     }
 
-    var folderUUIDs: Set<String> {
+    public var folderUUIDs: Set<String> {
         return [displayedPlatform.rawValue, nativePlatform.rawValue]
     }
 }
