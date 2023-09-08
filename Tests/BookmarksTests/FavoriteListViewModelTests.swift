@@ -82,7 +82,8 @@ final class FavoriteListViewModelTests: XCTestCase {
 
             try! context.save()
 
-            let rootFavoriteFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+            let favoriteFolderUUID = favoriteListViewModel.favoritesConfiguration.displayedPlatform.rawValue
+            let rootFavoriteFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoriteFolderUUID, in: context)!
             XCTAssertEqual(rootFavoriteFolder.favoritesArray.map(\.title), ["2", "4"])
 
             let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!

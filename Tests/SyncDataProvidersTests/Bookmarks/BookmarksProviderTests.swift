@@ -74,7 +74,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                 Bookmark("Bookmark 6", id: "6", modifiedAtConstraint: .notNil())
             })
 
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+            // todo
+            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context)!
             XCTAssertNotNil(favoritesFolder.modifiedAt)
         }
     }

@@ -40,6 +40,10 @@ public enum FavoritesConfiguration {
             return native
         }
     }
+
+    var folderUUIDs: Set<String> {
+        return [displayedPlatform.rawValue, nativePlatform.rawValue]
+    }
 }
 
 public enum FavoritesPlatform: String {
@@ -57,14 +61,14 @@ public class BookmarkEntity: NSManagedObject {
         public static let mobileFavoritesFolderID = "mobile_favorites_root"
         public static let desktopFavoritesFolderID = "desktop_favorites_root"
 
-        static let favoriteFoldersIDs: Set<String> = [
+        public static let favoriteFoldersIDs: Set<String> = [
             desktopFavoritesFolderID,
             mobileFavoritesFolderID,
             favoritesFolderID
         ]
     }
 
-    static func isValidFavoritesFolderID(_ value: String) -> Bool {
+    public static func isValidFavoritesFolderID(_ value: String) -> Bool {
         return Constants.favoriteFoldersIDs.contains(value)
     }
 
@@ -124,7 +128,7 @@ public class BookmarkEntity: NSManagedObject {
         guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
             return
         }
-        if isInserted && (uuid == Constants.rootFolderID || uuid == Constants.favoritesFolderID) {
+        if isInserted && (uuid == Constants.rootFolderID || uuid.flatMap(Constants.favoriteFoldersIDs.contains) == true) {
             return
         }
         modifiedAt = Date()
@@ -215,7 +219,13 @@ public class BookmarkEntity: NSManagedObject {
             root.addToFavorites(self)
         }
     }
-    
+
+    public func addToFavorites(folders: [BookmarkEntity]) {
+        for root in folders {
+            root.addToFavorites(self)
+        }
+    }
+
     public func removeFromFavorites() {
         guard let favoriteFolders else {
             return

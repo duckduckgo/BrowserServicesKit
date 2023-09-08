@@ -119,16 +119,14 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
             if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
                 bookmark.removeFromFavorites()
             } else {
-                bookmark.addToFavorites(favoritesRoot: favoritesFolder)
-                bookmark.addToFavorites(favoritesRoot: nativeFavoritesFolder)
+                bookmark.addToFavorites(folders: [favoritesFolder, nativeFavoritesFolder])
             }
         } else {
             let favorite = BookmarkEntity.makeBookmark(title: title,
                                                        url: url.absoluteString,
                                                        parent: rootFolder,
                                                        context: context)
-            favorite.addToFavorites(favoritesRoot: favoritesFolder)
-            favorite.addToFavorites(favoritesRoot: nativeFavoritesFolder)
+            favorite.addToFavorites(folders: [favoritesFolder, nativeFavoritesFolder])
         }
         
         save()

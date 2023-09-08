@@ -30,6 +30,10 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
 
+    public static func fetchFavoritesFolders(for configuration: FavoritesConfiguration, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        configuration.folderUUIDs.compactMap { fetchFavoritesFolder(withUUID: $0, in: context) }
+    }
+
     public static func fetchFavoritesFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {
         assert(BookmarkEntity.isValidFavoritesFolderID(uuid))
         let request = BookmarkEntity.fetchRequest()
@@ -40,21 +44,12 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
 
-    public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
-        let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.favoritesFolderID)
-        request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
-        
-        return try? context.fetch(request).first
-    }
-
     public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(
             format: "NOT %K IN %@ AND %K == NO AND %K == nil",
             #keyPath(BookmarkEntity.uuid),
-            [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID],
+            BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID]),
             #keyPath(BookmarkEntity.isPendingDeletion),
             #keyPath(BookmarkEntity.parent)
         )
@@ -77,9 +72,11 @@ public struct BookmarkUtils {
         if fetchRootFolder(context) == nil {
             insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
         }
-        
-        if fetchFavoritesFolder(context) == nil {
-            insertRootFolder(uuid: BookmarkEntity.Constants.favoritesFolderID, into: context)
+
+        for uuid in BookmarkEntity.Constants.favoriteFoldersIDs {
+            if fetchFavoritesFolder(withUUID: uuid, in: context) == nil {
+                insertRootFolder(uuid: uuid, into: context)
+            }
         }
     }
     

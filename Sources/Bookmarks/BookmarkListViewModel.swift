@@ -115,12 +115,8 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
             bookmark.removeFromFavorites()
         } else {
-            let favoriteFoldersUUIDs: Set<String> = [favoritesConfiguration.displayedPlatform.rawValue, favoritesConfiguration.nativePlatform.rawValue]
-            for uuid in favoriteFoldersUUIDs {
-                if let folder = BookmarkUtils.fetchFavoritesFolder(withUUID: uuid, in: context) {
-                    bookmark.addToFavorites(favoritesRoot: folder)
-                }
-            }
+            let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesConfiguration, in: context)
+            bookmark.addToFavorites(folders: folders)
         }
         save()
     }

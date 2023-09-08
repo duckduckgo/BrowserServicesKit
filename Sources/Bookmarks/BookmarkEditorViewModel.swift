@@ -36,7 +36,10 @@ public class BookmarkEditorViewModel: ObservableObject {
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
 
-    lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(context)
+    lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(
+        withUUID: favoritesConfiguration.displayedPlatform.rawValue,
+        in: context
+    )
 
     private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
@@ -184,7 +187,8 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public func addToFavorites() {
         assert(!bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform))
-        bookmark.addToFavorites(favoritesRoot: favoritesFolder)
+        let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesConfiguration, in: context)
+        bookmark.addToFavorites(folders: folders)
     }
 
     public func setParentWithID(_ parentID: NSManagedObjectID) {

@@ -36,8 +36,12 @@ public class BookmarkCoreDataImporter {
             
             context.performAndWait { () -> Void in
                 do {
+                    let favoritesFolderUUIDs = favoritesConfiguration.folderUUIDs
+                    let favoritesFolders = favoritesFolderUUIDs.compactMap { BookmarkUtils.fetchFavoritesFolder(withUUID: $0, in: context) }
+
                     guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context),
-                    let topLevelFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+                          favoritesFolders.count == favoritesFolderUUIDs.count
+                    else {
                         throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
                     
@@ -45,7 +49,7 @@ public class BookmarkCoreDataImporter {
                     
                     try recursivelyCreateEntities(from: bookmarks,
                                                   parent: topLevelBookmarksFolder,
-                                                  favoritesRoot: topLevelFavoritesFolder,
+                                                  favoritesFolders: favoritesFolders,
                                                   bookmarkURLToIDMap: &bookmarkURLToIDMap)
                     try context.save()
                     continuation.resume()
@@ -87,7 +91,7 @@ public class BookmarkCoreDataImporter {
 
     private func recursivelyCreateEntities(from bookmarks: [BookmarkOrFolder],
                                            parent: BookmarkEntity,
-                                           favoritesRoot: BookmarkEntity,
+                                           favoritesFolders: [BookmarkEntity],
                                            bookmarkURLToIDMap: inout [String: NSManagedObjectID]) throws {
         for bookmarkOrFolder in bookmarks {
             if bookmarkOrFolder.isInvalidBookmark {
@@ -102,20 +106,20 @@ public class BookmarkCoreDataImporter {
                 if let children = bookmarkOrFolder.children {
                     try recursivelyCreateEntities(from: children,
                                                   parent: folder,
-                                                  favoritesRoot: favoritesRoot,
+                                                  favoritesFolders: favoritesFolders,
                                                   bookmarkURLToIDMap: &bookmarkURLToIDMap)
                 }
             case .favorite:
                 if let url = bookmarkOrFolder.url {
                     if let objectID = bookmarkURLToIDMap[url.absoluteString],
                        let bookmark = try? context.existingObject(with: objectID) as? BookmarkEntity {
-                        bookmark.addToFavorites(favoritesRoot: favoritesRoot)
+                        bookmark.addToFavorites(folders: favoritesFolders)
                     } else {
                         let newFavorite = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
                                                                       url: url.absoluteString,
                                                                       parent: parent,
                                                                       context: context)
-                        newFavorite.addToFavorites(favoritesRoot: favoritesRoot)
+                        newFavorite.addToFavorites(folders: favoritesFolders)
                         bookmarkURLToIDMap[url.absoluteString] = newFavorite.objectID
                     }
                 }

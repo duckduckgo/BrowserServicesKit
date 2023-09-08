@@ -203,7 +203,8 @@ public struct BookmarkTree {
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         rootFolder.modifiedAt = modifiedAt
-        let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+        // todo
+        let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context)!
         var orphans = [BookmarkEntity]()
         var modifiedAtConstraints = [String: ModifiedAtConstraint]()
         if let modifiedAtConstraint {
@@ -341,7 +342,8 @@ public extension XCTestCase {
             XCTAssertEqual(expectedNode.isFolder, thisNode.isFolder, "isFolder mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.isPendingDeletion, thisNode.isPendingDeletion, "isPendingDeletion mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.children?.count, thisNode.children?.count, "children count mismatch for \(thisUUID)", file: file, line: line)
-            XCTAssertEqual(expectedNode.isFavorite, thisNode.isFavorite, "isFavorite mismatch for \(thisUUID)", file: file, line: line)
+            // todo
+            XCTAssertEqual(expectedNode.isFavorite(on: .all), thisNode.isFavorite(on: .all), "isFavorite mismatch for \(thisUUID)", file: file, line: line)
             if withTimestamps {
                 if let modifiedAtConstraint = modifiedAtConstraints[thisUUID] {
                     modifiedAtConstraint.check(thisNode.modifiedAt)
