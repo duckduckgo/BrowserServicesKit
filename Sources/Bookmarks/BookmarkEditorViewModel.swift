@@ -31,6 +31,7 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     let context: NSManagedObjectContext
+    let favoritesConfiguration: FavoritesConfiguration
 
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
@@ -59,11 +60,13 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public init(editingEntityID: NSManagedObjectID,
                 bookmarksDatabase: CoreDataDatabase,
+                favoritesConfiguration: FavoritesConfiguration,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.favoritesConfiguration = favoritesConfiguration
 
         guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
             // For sync, this is valid scenario in case of a timing issue
@@ -84,11 +87,13 @@ public class BookmarkEditorViewModel: ObservableObject {
     
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
+                favoritesConfiguration: FavoritesConfiguration,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.favoritesConfiguration = favoritesConfiguration
 
         let parent: BookmarkEntity?
         if let parentFolderID = parentFolderID {
@@ -173,12 +178,12 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func removeFromFavorites() {
-        assert(bookmark.isFavorite)
+        assert(bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform))
         bookmark.removeFromFavorites()
     }
 
     public func addToFavorites() {
-        assert(!bookmark.isFavorite)
+        assert(!bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform))
         bookmark.addToFavorites(favoritesRoot: favoritesFolder)
     }
 

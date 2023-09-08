@@ -24,7 +24,8 @@ import Persistence
 public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     let context: NSManagedObjectContext
-    
+    let favoritesConfiguration: FavoritesConfiguration
+
     private var _rootFolder: BookmarkEntity?
     private var rootFolder: BookmarkEntity? {
         if _rootFolder == nil {
@@ -40,7 +41,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     private var _favoritesFolder: BookmarkEntity?
     private var favoritesFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
-            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesConfiguration.displayedPlatform.rawValue, in: context)
             
             if _favoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.menu))
@@ -49,12 +50,26 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         return _favoritesFolder
     }
 
+    private var _nativeFavoritesFolder: BookmarkEntity?
+    private var nativeFavoritesFolder: BookmarkEntity? {
+        if _nativeFavoritesFolder == nil {
+            _nativeFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesConfiguration.nativePlatform.rawValue, in: context)
+
+            if _nativeFavoritesFolder == nil {
+                errorEvents?.fire(.fetchingRootItemFailed(.menu))
+            }
+        }
+        return _nativeFavoritesFolder
+    }
+
     private var observer: NSObjectProtocol?
     
     private let errorEvents: EventMapping<BookmarksModelError>?
     
     public init(bookmarksDatabase: CoreDataDatabase,
+                favoritesConfiguration: FavoritesConfiguration,
                 errorEvents: EventMapping<BookmarksModelError>?) {
+        self.favoritesConfiguration = favoritesConfiguration
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         registerForChanges()
@@ -93,6 +108,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     public func createOrToggleFavorite(title: String, url: URL) {
         guard let favoritesFolder = favoritesFolder,
+              let nativeFavoritesFolder = nativeFavoritesFolder,
               let rootFolder = rootFolder else {
             return
         }
@@ -100,10 +116,11 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         let queriedBookmark = favorite(for: url) ?? bookmark(for: url)
         
         if let bookmark = queriedBookmark {
-            if bookmark.isFavorite {
+            if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
                 bookmark.removeFromFavorites()
             } else {
                 bookmark.addToFavorites(favoritesRoot: favoritesFolder)
+                bookmark.addToFavorites(favoritesRoot: nativeFavoritesFolder)
             }
         } else {
             let favorite = BookmarkEntity.makeBookmark(title: title,
@@ -111,6 +128,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
                                                        parent: rootFolder,
                                                        context: context)
             favorite.addToFavorites(favoritesRoot: favoritesFolder)
+            favorite.addToFavorites(favoritesRoot: nativeFavoritesFolder)
         }
         
         save()
@@ -128,10 +146,14 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     }
     
     public func favorite(for url: URL) -> BookmarkEntity? {
-        BookmarkUtils.fetchBookmark(for: url,
+        guard let favoritesFolder else {
+            return nil
+        }
+        return BookmarkUtils.fetchBookmark(for: url,
                                     predicate: NSPredicate(
-                                        format: "%K != nil AND %K == NO",
-                                        #keyPath(BookmarkEntity.favoriteFolder),
+                                        format: "ANY %K CONTAINS %@ AND %K == NO",
+                                        #keyPath(BookmarkEntity.favoriteFolders),
+                                        favoritesFolder,
                                         #keyPath(BookmarkEntity.isPendingDeletion)
                                     ),
                                     context: context)

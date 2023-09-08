@@ -25,6 +25,7 @@ import Common
 public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject {
     
     let context: NSManagedObjectContext
+    let favoritesConfiguration: FavoritesConfiguration
 
     public var favorites = [BookmarkEntity]()
 
@@ -36,11 +37,25 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
 
     private let errorEvents: EventMapping<BookmarksModelError>?
 
+    private var _favoritesFolder: BookmarkEntity?
+    private var favoriteFolder: BookmarkEntity? {
+        if _favoritesFolder == nil {
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesConfiguration.displayedPlatform.rawValue, in: context)
+
+            if _favoritesFolder == nil {
+                errorEvents?.fire(.fetchingRootItemFailed(.favorites))
+            }
+        }
+        return _favoritesFolder
+    }
+
     public init(bookmarksDatabase: CoreDataDatabase,
+                favoritesConfiguration: FavoritesConfiguration,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
+        self.favoritesConfiguration = favoritesConfiguration
         
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         refresh()
@@ -78,13 +93,13 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     }
 
     private func refresh() {
-        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+        guard let favoriteFolder else {
             errorEvents?.fire(.fetchingRootItemFailed(.favorites))
             favorites = []
             return
         }
         
-        readFavorites(with: favoritesFolder)
+        readFavorites(with: favoriteFolder)
     }
 
     public func favorite(at index: Int) -> BookmarkEntity? {
@@ -97,8 +112,8 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     }
 
     public func removeFavorite(_ favorite: BookmarkEntity) {
-        guard let favoriteFolder = favorite.favoriteFolder else {
-            errorEvents?.fire(.missingParent(.favorite))
+        guard let favoriteFolder else {
+            errorEvents?.fire(.fetchingRootItemFailed(.favorites))
             return
         }
 
@@ -112,8 +127,8 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     public func moveFavorite(_ favorite: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
-        guard let favoriteFolder = favorite.favoriteFolder else {
-            errorEvents?.fire(.missingParent(.favorite))
+        guard let favoriteFolder else {
+            errorEvents?.fire(.fetchingRootItemFailed(.favorites))
             return
         }
         
@@ -160,7 +175,6 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     }
 
     private func readFavorites(with favoritesFolder: BookmarkEntity) {
-        favorites = (favoritesFolder.favorites?.array as? [BookmarkEntity] ?? [])
-            .filter { !$0.isPendingDeletion }
+        favorites = favoritesFolder.favoritesArray
     }
 }

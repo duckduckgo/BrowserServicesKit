@@ -21,12 +21,51 @@
 import Foundation
 import CoreData
 
+public enum FavoritesConfiguration {
+    case displayNative(FavoritesPlatform)
+    case displayAll(native: FavoritesPlatform)
+
+    var displayedPlatform: FavoritesPlatform {
+        switch self {
+        case .displayNative(let platform):
+            return platform
+        case .displayAll:
+            return .all
+        }
+    }
+
+    var nativePlatform: FavoritesPlatform {
+        switch self {
+        case .displayNative(let native), .displayAll(let native):
+            return native
+        }
+    }
+}
+
+public enum FavoritesPlatform: String {
+    case mobile = "mobile_favorites_root"
+    case desktop = "desktop_favorites_root"
+    case all = "favorites_root"
+}
+
 @objc(BookmarkEntity)
 public class BookmarkEntity: NSManagedObject {
     
     public enum Constants {
         public static let rootFolderID = "bookmarks_root"
         public static let favoritesFolderID = "favorites_root"
+        public static let mobileFavoritesFolderID = "mobile_favorites_root"
+        public static let desktopFavoritesFolderID = "desktop_favorites_root"
+
+        static let favoriteFoldersIDs: Set<String> = [
+            desktopFavoritesFolderID,
+            mobileFavoritesFolderID,
+            favoritesFolderID
+        ]
+    }
+
+    static func isValidFavoritesFolderID(_ value: String) -> Bool {
+        return Constants.favoriteFoldersIDs.contains(value)
     }
 
     public enum Error: Swift.Error {
@@ -49,7 +88,7 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public var url: String?
     @NSManaged public var uuid: String?
     @NSManaged public var children: NSOrderedSet?
-    @NSManaged fileprivate(set) public var favoriteFolder: BookmarkEntity?
+    @NSManaged public fileprivate(set) var favoriteFolders: NSSet?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
 
@@ -58,8 +97,12 @@ public class BookmarkEntity: NSManagedObject {
     /// In-memory flag. When set to `false`, disables adjusting `modifiedAt` on `willSave()`. It's reset to `true` on `didSave()`.
     public var shouldManageModifiedAt: Bool = true
 
-    public var isFavorite: Bool {
-        favoriteFolder != nil
+    public func isFavorite(on platform: FavoritesPlatform) -> Bool {
+        favoriteFoldersSet.contains { $0.uuid == platform.rawValue }
+    }
+
+    public var favoritedOn: [FavoritesPlatform] {
+        favoriteFoldersSet.compactMap(\.uuid).compactMap(FavoritesPlatform.init)
     }
 
     public convenience init(context moc: NSManagedObjectContext) {
@@ -123,6 +166,10 @@ public class BookmarkEntity: NSManagedObject {
         return children.filter { $0.isPendingDeletion == false }
     }
 
+    public var favoriteFoldersSet: Set<BookmarkEntity> {
+        return favoriteFolders.flatMap(Set<BookmarkEntity>.init) ?? []
+    }
+
     public static func makeFolder(title: String,
                                   parent: BookmarkEntity,
                                   insertAtBeginning: Bool = false,
@@ -170,7 +217,10 @@ public class BookmarkEntity: NSManagedObject {
     }
     
     public func removeFromFavorites() {
-        favoriteFolder = nil
+        guard let favoriteFolders else {
+            return
+        }
+        removeFromFavoriteFolders(favoriteFolders)
     }
 
     public func markPendingDeletion() {
@@ -200,20 +250,12 @@ extension BookmarkEntity {
     func validate() throws {
         try validateThatFoldersDoNotHaveURLs()
         try validateThatFolderHierarchyHasNoCycles()
-        try validateFavoritesStatus()
         try validateFavoritesFolder()
     }
 
-    func validateFavoritesStatus() throws {
-        let isInFavoriteCollection = favoriteFolder != nil
-        if isFavorite != isInFavoriteCollection {
-            throw Error.invalidFavoritesStatus
-        }
-    }
-
     func validateFavoritesFolder() throws {
-        if let favoritesFolderID = favoriteFolder?.uuid,
-            favoritesFolderID != Constants.favoritesFolderID {
+        let uuids = Set(favoriteFoldersSet.compactMap(\.uuid))
+        guard uuids.isSubset(of: Constants.favoriteFoldersIDs) else {
             throw Error.invalidFavoritesFolder
         }
     }
@@ -294,6 +336,23 @@ extension BookmarkEntity {
     @objc(removeFavorites:)
     @NSManaged private func removeFromFavorites(_ values: NSOrderedSet)
     
+}
+
+// MARK: Generated accessors for favoriteFolders
+extension BookmarkEntity {
+
+    @objc(addFavoriteFoldersObject:)
+    @NSManaged private func addToFavoriteFolders(_ value: BookmarkEntity)
+
+    @objc(removeFavoriteFoldersObject:)
+    @NSManaged private func removeFromFavoriteFolders(_ value: BookmarkEntity)
+
+    @objc(addFavoriteFolders:)
+    @NSManaged private func addToFavoriteFolders(_ values: NSSet)
+
+    @objc(removeFavoriteFolders:)
+    @NSManaged private func removeFromFavoriteFolders(_ values: NSSet)
+
 }
 
 extension BookmarkEntity: Identifiable {

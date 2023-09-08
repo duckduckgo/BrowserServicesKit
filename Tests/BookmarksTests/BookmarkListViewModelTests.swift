@@ -65,7 +65,12 @@ final class BookmarkListViewModelTests: XCTestCase {
             try! context.save()
         }
 
-        bookmarkListViewModel = BookmarkListViewModel(bookmarksDatabase: bookmarksDatabase, parentID: nil, errorEvents: eventMapping)
+        bookmarkListViewModel = BookmarkListViewModel(
+            bookmarksDatabase: bookmarksDatabase,
+            favoritesConfiguration: .displayNative(.mobile),
+            parentID: nil,
+            errorEvents: eventMapping
+        )
     }
 
     override func tearDown() {

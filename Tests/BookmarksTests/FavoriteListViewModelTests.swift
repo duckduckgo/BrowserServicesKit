@@ -53,6 +53,7 @@ final class FavoriteListViewModelTests: XCTestCase {
         }
 
         favoriteListViewModel = FavoritesListViewModel(bookmarksDatabase: bookmarksDatabase,
+                                                       favoritesConfiguration: .displayNative(.mobile),
                                                        errorEvents: eventMapping)
     }
 

@@ -27,6 +27,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public let currentFolder: BookmarkEntity?
     
     let context: NSManagedObjectContext
+    let favoritesConfiguration: FavoritesConfiguration
     
     public var bookmarks = [BookmarkEntity]()
 
@@ -39,12 +40,14 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     private let errorEvents: EventMapping<BookmarksModelError>?
     
     public init(bookmarksDatabase: CoreDataDatabase,
+                favoritesConfiguration: FavoritesConfiguration,
                 parentID: NSManagedObjectID?,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.favoritesConfiguration = favoritesConfiguration
 
         if let parentID = parentID {
             if let bookmark = (try? context.existingObject(with: parentID)) as? BookmarkEntity {
@@ -109,10 +112,15 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     }
 
     public func toggleFavorite(_ bookmark: BookmarkEntity) {
-        if bookmark.isFavorite {
+        if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
             bookmark.removeFromFavorites()
-        } else if let folder = BookmarkUtils.fetchFavoritesFolder(context) {
-            bookmark.addToFavorites(favoritesRoot: folder)
+        } else {
+            let favoriteFoldersUUIDs: Set<String> = [favoritesConfiguration.displayedPlatform.rawValue, favoritesConfiguration.nativePlatform.rawValue]
+            for uuid in favoriteFoldersUUIDs {
+                if let folder = BookmarkUtils.fetchFavoritesFolder(withUUID: uuid, in: context) {
+                    bookmark.addToFavorites(favoritesRoot: folder)
+                }
+            }
         }
         save()
     }

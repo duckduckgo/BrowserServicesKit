@@ -30,6 +30,16 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
 
+    public static func fetchFavoritesFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {
+        assert(BookmarkEntity.isValidFavoritesFolderID(uuid))
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)
+        request.returnsObjectsAsFaults = false
+        request.fetchLimit = 1
+
+        return try? context.fetch(request).first
+    }
+
     public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.favoritesFolderID)

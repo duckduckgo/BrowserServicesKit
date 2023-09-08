@@ -23,9 +23,11 @@ import Persistence
 public class BookmarkCoreDataImporter {
     
     let context: NSManagedObjectContext
+    let favoritesConfiguration: FavoritesConfiguration
     
-    public init(database: CoreDataDatabase) {
+    public init(database: CoreDataDatabase, favoritesConfiguration: FavoritesConfiguration) {
         self.context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        self.favoritesConfiguration = favoritesConfiguration
     }
     
     public func importBookmarks(_ bookmarks: [BookmarkOrFolder]) async throws {
