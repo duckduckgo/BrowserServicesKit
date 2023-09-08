@@ -22,7 +22,7 @@ import Foundation
 public class EmailKeychainManager {
 
     public init() {
-//        Self.migrateItemsToDataProtectionKeychainIfNecessary()
+        Self.migrateItemsToDataProtectionKeychainIfNecessary()
     }
 
 }
