@@ -115,8 +115,8 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "2", favoritedOn: [.all])
         }
 
         let received: [Syncable] = [
@@ -127,9 +127,9 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
-            Bookmark(id: "3", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "2", favoritedOn: [.all])
+            Bookmark(id: "3", favoritedOn: [.all])
         })
     }
 
@@ -137,7 +137,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
             Folder(id: "2") {
                 Bookmark(id: "3")
             }
@@ -151,9 +151,9 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
             Folder(id: "2") {
-                Bookmark(id: "3", isFavorite: true)
+                Bookmark(id: "3", favoritedOn: [.all])
             }
         })
     }

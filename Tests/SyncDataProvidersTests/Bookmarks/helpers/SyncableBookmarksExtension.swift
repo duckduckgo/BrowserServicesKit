@@ -29,6 +29,14 @@ extension Syncable {
         .folder(id: BookmarkEntity.Constants.favoritesFolderID, children: favorites)
     }
 
+    static func mobileFavoritesFolder(favorites: [String]) -> Syncable {
+        .folder(id: BookmarkEntity.Constants.mobileFavoritesFolderID, children: favorites)
+    }
+
+    static func desktopFavoritesFolder(favorites: [String]) -> Syncable {
+        .folder(id: BookmarkEntity.Constants.desktopFavoritesFolderID, children: favorites)
+    }
+
     static func bookmark(_ title: String? = nil, id: String, url: String? = nil, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
         var json: [String: Any] = [
             "id": id,

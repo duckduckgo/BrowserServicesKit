@@ -137,21 +137,22 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile])
+            Bookmark(id: "2", favoritedOn: [.mobile])
         }
 
         let received: [Syncable] = [
             .rootFolder(children: ["1", "2", "3"]),
-            .favoritesFolder(favorites: ["1", "2", "3"]),
+            .mobileFavoritesFolder(favorites: ["1", "2"]),
+            .desktopFavoritesFolder(favorites: ["3"]),
             .bookmark(id: "3")
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
-            Bookmark(id: "3", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile])
+            Bookmark(id: "2", favoritedOn: [.mobile])
+            Bookmark(id: "3", favoritedOn: [.desktop])
         })
     }
 
@@ -159,8 +160,8 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "4", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "4", favoritedOn: [.all])
         }
 
         let received: [Syncable] = [
@@ -171,9 +172,9 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "4", isFavorite: true)
-            Bookmark(id: "3", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "4", favoritedOn: [.all])
+            Bookmark(id: "3", favoritedOn: [.all])
         })
     }
 
@@ -350,7 +351,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
         }
 
         let received: [Syncable] = [
@@ -361,13 +362,12 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "2", favoritedOn: [.all])
         })
 
         var favoritesFolder: BookmarkEntity!
         context.performAndWait {
-            // todo
             favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context)
         }
         XCTAssertNotNil(favoritesFolder.modifiedAt)

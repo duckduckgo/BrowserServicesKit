@@ -46,7 +46,7 @@ public enum FavoritesConfiguration {
     }
 }
 
-public enum FavoritesPlatform: String {
+public enum FavoritesPlatform: String, CaseIterable {
     case mobile = "mobile_favorites_root"
     case desktop = "desktop_favorites_root"
     case all = "favorites_root"
@@ -62,6 +62,13 @@ public class BookmarkEntity: NSManagedObject {
         public static let desktopFavoritesFolderID = "desktop_favorites_root"
 
         public static let favoriteFoldersIDs: Set<String> = [
+            desktopFavoritesFolderID,
+            mobileFavoritesFolderID,
+            favoritesFolderID
+        ]
+
+        public static let allReservedFoldersIDs: Set<String> = [
+            rootFolderID,
             desktopFavoritesFolderID,
             mobileFavoritesFolderID,
             favoritesFolderID

@@ -71,10 +71,10 @@ final class FavoriteListViewModelTests: XCTestCase {
         let context = favoriteListViewModel.context
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true, isDeleted: true)
-            Bookmark(id: "2", isFavorite: true)
-            Bookmark(id: "3", isFavorite: true, isDeleted: true)
-            Bookmark(id: "4", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile, .all], isDeleted: true)
+            Bookmark(id: "2", favoritedOn: [.mobile, .all])
+            Bookmark(id: "3", favoritedOn: [.mobile, .all], isDeleted: true)
+            Bookmark(id: "4", favoritedOn: [.mobile, .all])
         }
 
         context.performAndWait {
