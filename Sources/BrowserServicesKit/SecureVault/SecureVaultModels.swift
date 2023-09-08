@@ -63,7 +63,7 @@ public struct SecureVaultModels {
              https://signin.duck.com (test@duck.com.co) -> signin.duck.com
              (See SecureVaultModelTests.testPatternMatchedTitle() for more examples)
              */
-            case hostFromTitle = #"^(?:https?:\/\/)?(?:www\.)?([^\/\?\s]+)"#            
+            case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)"#
         }
 
         public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
@@ -133,30 +133,31 @@ public struct SecureVaultModels {
             return autofillDomainNameUrlSort.firstCharacterForGrouping(self, tld: tld)?.uppercased()
         }
         
-        // Clean up the provided title, via pattern matching
         public func patternMatchedTitle() -> String {
             guard let title = title, !title.isEmpty else {
                 return ""
             }
-            
+
             for pattern in SecureVaultModels.WebsiteAccount.CommonTitlePatterns.allCases {
                 if let regex = try? NSRegularExpression(pattern: pattern.rawValue, options: [.caseInsensitive]) {
                     let matches = regex.matches(in: title, options: [], range: NSRange(title.startIndex..., in: title))
-                    
+
                     if let firstMatch = matches.first,
                        let range = Range(firstMatch.range(at: 1), in: title) { // range(at: 1) gets the first capturing group
                         let host = String(title[range]).lowercased()
-                        
+
                         // Drop the title if equal to the domain
                         if host.caseInsensitiveCompare(domain ?? "") == .orderedSame {
                             return ""
                         }
-                        
+
                         return host.isEmpty ? "" : host
                     }
                 }
             }
-            return ""
+            
+            // If no pattern matched, return the original title
+            return title
         }
 
         
