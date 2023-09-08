@@ -138,7 +138,7 @@ public struct SecureVaultModels {
         
         // Clean up the provided title, via pattern matching
         public func patternMatchedTitle() -> String {
-            guard let title = title, !title.isEmpty else {
+            guard let title = title?.lowercased(), !title.isEmpty else {
                 return ""
             }
             
