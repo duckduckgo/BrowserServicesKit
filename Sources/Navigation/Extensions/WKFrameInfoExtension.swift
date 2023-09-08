@@ -58,6 +58,8 @@ public extension WKFrameInfo {
 
         // ignore `request` selector calls from `safeRequest` itself
         ignoredRequestUsageSymbols.insert(callingSymbol())
+        // ignore `-[WKFrameInfo description]`
+        ignoredRequestUsageSymbols.insert("-[WKFrameInfo description]")
     }()
 
     @objc dynamic private func swizzledRequest() -> URLRequest? {

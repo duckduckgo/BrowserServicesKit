@@ -430,6 +430,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
+        if options?[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] == NetworkProtectionOptionValue.true {
+            simulateTunnelFatalError()
+        }
+
+        if options?[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] == NetworkProtectionOptionValue.true {
+            simulateTunnelMemoryOveruse()
+        }
+
         do {
             try load(options: options)
             try loadVendorOptions(from: tunnelProviderProtocol)
@@ -656,6 +664,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             setIncludedRoutes(includedRoutes, completionHandler: completionHandler)
         case .simulateTunnelFailure:
             simulateTunnelFailure(completionHandler: completionHandler)
+        case .simulateTunnelFatalError:
+            simulateTunnelFatalError(completionHandler: completionHandler)
+        case .simulateTunnelMemoryOveruse:
+            simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         }
     }
 
@@ -673,6 +685,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
         try? serverCache.removeServerList()
+
+        try? tokenStore.deleteToken()
+
         // This is not really an error, we received a command to reset the connection
         cancelTunnelWithError(nil)
         completionHandler?(nil)
@@ -736,6 +751,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleTriggerTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
+        completionHandler?(nil)
     }
 
     private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
@@ -765,6 +781,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                 completionHandler?(error.map { ExtensionMessageString($0.localizedDescription).rawValue })
             }
+        }
+    }
+
+    private func simulateTunnelFatalError(completionHandler: ((Data?) -> Void)? = nil) {
+        completionHandler?(nil)
+        fatalError("Simulated PacketTunnelProvider crash")
+    }
+
+    private func simulateTunnelMemoryOveruse(completionHandler: ((Data?) -> Void)? = nil) {
+        completionHandler?(nil)
+        var array = [String]()
+        while true {
+            array.append("Crash")
         }
     }
 
