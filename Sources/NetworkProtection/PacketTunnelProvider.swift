@@ -333,7 +333,33 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         protocolConfiguration as? NETunnelProviderProtocol
     }
 
+    private func runDebugSimulations(options: StartupOptions) throws {
+        if options.simulateError {
+            throw TunnelError.simulateTunnelFailureError
+        }
+
+        if options.simulateCrash {
+            DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval.seconds(2)) {
+                fatalError("Simulated PacketTunnelProvider crash")
+            }
+
+            return
+        }
+
+        if options.simulateMemoryCrash {
+            Task {
+                var array = [String]()
+                while true {
+                    array.append("Crash")
+                }
+            }
+
+            return
+        }
+    }
+
     private func load(options: StartupOptions) throws {
+        isConnectionTesterEnabled = options.enableTester
         loadKeyValidity(from: options)
         loadSelectedServer(from: options)
         try loadAuthToken(from: options)
@@ -343,7 +369,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let vendorOptions = provider?.providerConfiguration
 
         loadRoutes(from: vendorOptions)
-        self.isConnectionTesterEnabled = vendorOptions?[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
     }
 
     private func loadKeyValidity(from options: StartupOptions) {
@@ -425,20 +450,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func startTunnel(options: StartupOptions, completionHandler: @escaping (Error?) -> Void) {
-        if options.startedToSimulateError {
-            completionHandler(TunnelError.simulateTunnelFailureError)
-            return
-        }
-
-        if options?[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] == NetworkProtectionOptionValue.true {
-            simulateTunnelFatalError()
-        }
-
-        if options?[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] == NetworkProtectionOptionValue.true {
-            simulateTunnelMemoryOveruse()
-        }
-
         do {
+            try runDebugSimulations(options: options)
             try load(options: options)
             try loadVendorOptions(from: tunnelProviderProtocol)
         } catch {

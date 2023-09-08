@@ -55,7 +55,10 @@ struct StartupOptions {
 
     private let log: OSLog
     let startupMethod: StartupMethod
-    let startedToSimulateError: Bool
+    let simulateError: Bool
+    let simulateCrash: Bool
+    let simulateMemoryCrash: Bool
+    let enableTester: Bool
     let keyValidity: Option<TimeInterval>
     let selectedServer: Option<SelectedNetworkProtectionServer>
     let authToken: Option<String>
@@ -75,7 +78,10 @@ struct StartupOptions {
 
         self.startupMethod = startupMethod
 
-        startedToSimulateError = options[NetworkProtectionOptionKey.tunnelFailureSimulation] as? Bool ?? false
+        simulateError = options[NetworkProtectionOptionKey.tunnelFailureSimulation] as? Bool ?? false
+        simulateCrash = options[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] as? Bool ?? false
+        simulateMemoryCrash = options[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] as? Bool ?? false
+        enableTester = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
 
         keyValidity = {
             guard let keyValidityString = options[NetworkProtectionOptionKey.keyValidity] as? String else {
