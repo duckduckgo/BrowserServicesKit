@@ -128,7 +128,7 @@ final class BookmarksResponseHandler {
 
                 favoritesUUIDs.forEach { uuid in
                     if let bookmark = entitiesByUUID[uuid] {
-                        bookmark.removeFromFavorites()
+                        bookmark.removeFromFavorites(favoritesRoot: favoritesFolder)
                         bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                     }
                 }

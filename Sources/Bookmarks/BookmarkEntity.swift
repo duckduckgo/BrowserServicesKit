@@ -240,6 +240,10 @@ public class BookmarkEntity: NSManagedObject {
         removeFromFavoriteFolders(favoriteFolders)
     }
 
+    public func removeFromFavorites(favoritesRoot: BookmarkEntity) {
+        removeFromFavoriteFolders(favoritesRoot)
+    }
+
     public func markPendingDeletion() {
         var queue: [BookmarkEntity] = [self]
 
