@@ -119,7 +119,8 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
             if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
                 bookmark.removeFromFavorites()
             } else {
-                bookmark.addToFavorites(folders: [favoritesFolder, nativeFavoritesFolder])
+                let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesConfiguration, in: context)
+                bookmark.addToFavorites(folders: folders)
             }
         } else {
             let favorite = BookmarkEntity.makeBookmark(title: title,
