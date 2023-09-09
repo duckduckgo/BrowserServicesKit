@@ -42,7 +42,7 @@ public enum FavoritesConfiguration: Equatable {
     }
 
     public var folderUUIDs: Set<String> {
-        return [displayedPlatform.rawValue, nativePlatform.rawValue]
+        return [nativePlatform.rawValue, FavoritesPlatform.all.rawValue]
     }
 }
 
