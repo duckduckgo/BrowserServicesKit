@@ -30,7 +30,7 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
 
-    public static func fetchFavoritesFolders(for configuration: FavoritesConfiguration, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+    public static func fetchFavoritesFolders(for configuration: FavoritesDisplayMode, in context: NSManagedObjectContext) -> [BookmarkEntity] {
         configuration.folderUUIDs.compactMap { fetchFavoritesFolder(withUUID: $0, in: context) }
     }
 

@@ -67,7 +67,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         bookmarkListViewModel = BookmarkListViewModel(
             bookmarksDatabase: bookmarksDatabase,
-            favoritesConfiguration: .displayNative(.mobile),
+            favoritesDisplayMode: .displayNative(.mobile),
             parentID: nil,
             errorEvents: eventMapping
         )

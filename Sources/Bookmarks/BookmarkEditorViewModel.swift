@@ -31,13 +31,13 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     let context: NSManagedObjectContext
-    let favoritesConfiguration: FavoritesConfiguration
+    let favoritesDisplayMode: FavoritesDisplayMode
 
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
 
     lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(
-        withUUID: favoritesConfiguration.displayedPlatform.rawValue,
+        withUUID: favoritesDisplayMode.displayedPlatform.rawValue,
         in: context
     )
 
@@ -63,13 +63,13 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public init(editingEntityID: NSManagedObjectID,
                 bookmarksDatabase: CoreDataDatabase,
-                favoritesConfiguration: FavoritesConfiguration,
+                favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
-        self.favoritesConfiguration = favoritesConfiguration
+        self.favoritesDisplayMode = favoritesDisplayMode
 
         guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
             // For sync, this is valid scenario in case of a timing issue
@@ -90,13 +90,13 @@ public class BookmarkEditorViewModel: ObservableObject {
     
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
-                favoritesConfiguration: FavoritesConfiguration,
+                favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
-        self.favoritesConfiguration = favoritesConfiguration
+        self.favoritesDisplayMode = favoritesDisplayMode
 
         let parent: BookmarkEntity?
         if let parentFolderID = parentFolderID {
@@ -181,13 +181,13 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func removeFromFavorites() {
-        assert(bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform))
+        assert(bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
         bookmark.removeFromFavorites()
     }
 
     public func addToFavorites() {
-        assert(!bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform))
-        let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesConfiguration, in: context)
+        assert(!bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
+        let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
         bookmark.addToFavorites(folders: folders)
     }
 

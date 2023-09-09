@@ -23,11 +23,11 @@ import Persistence
 public class BookmarkCoreDataImporter {
     
     let context: NSManagedObjectContext
-    let favoritesConfiguration: FavoritesConfiguration
+    let favoritesDisplayMode: FavoritesDisplayMode
     
-    public init(database: CoreDataDatabase, favoritesConfiguration: FavoritesConfiguration) {
+    public init(database: CoreDataDatabase, favoritesDisplayMode: FavoritesDisplayMode) {
         self.context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        self.favoritesConfiguration = favoritesConfiguration
+        self.favoritesDisplayMode = favoritesDisplayMode
     }
     
     public func importBookmarks(_ bookmarks: [BookmarkOrFolder]) async throws {
@@ -36,7 +36,7 @@ public class BookmarkCoreDataImporter {
             
             context.performAndWait { () -> Void in
                 do {
-                    let favoritesFolderUUIDs = favoritesConfiguration.folderUUIDs
+                    let favoritesFolderUUIDs = favoritesDisplayMode.folderUUIDs
                     let favoritesFolders = favoritesFolderUUIDs.compactMap { BookmarkUtils.fetchFavoritesFolder(withUUID: $0, in: context) }
 
                     guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context),

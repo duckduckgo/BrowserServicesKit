@@ -25,7 +25,7 @@ import Common
 public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject {
     
     let context: NSManagedObjectContext
-    let favoritesConfiguration: FavoritesConfiguration
+    let favoritesDisplayMode: FavoritesDisplayMode
 
     public var favorites = [BookmarkEntity]()
 
@@ -40,7 +40,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     private var _favoritesFolder: BookmarkEntity?
     private var favoriteFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
-            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesConfiguration.displayedPlatform.rawValue, in: context)
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedPlatform.rawValue, in: context)
 
             if _favoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.favorites))
@@ -50,12 +50,12 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     }
 
     public init(bookmarksDatabase: CoreDataDatabase,
-                favoritesConfiguration: FavoritesConfiguration,
+                favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
-        self.favoritesConfiguration = favoritesConfiguration
+        self.favoritesDisplayMode = favoritesDisplayMode
         
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         refresh()

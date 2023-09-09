@@ -27,7 +27,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public let currentFolder: BookmarkEntity?
     
     let context: NSManagedObjectContext
-    let favoritesConfiguration: FavoritesConfiguration
+    let favoritesDisplayMode: FavoritesDisplayMode
     
     public var bookmarks = [BookmarkEntity]()
 
@@ -40,14 +40,14 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     private let errorEvents: EventMapping<BookmarksModelError>?
     
     public init(bookmarksDatabase: CoreDataDatabase,
-                favoritesConfiguration: FavoritesConfiguration,
+                favoritesDisplayMode: FavoritesDisplayMode,
                 parentID: NSManagedObjectID?,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
-        self.favoritesConfiguration = favoritesConfiguration
+        self.favoritesDisplayMode = favoritesDisplayMode
 
         if let parentID = parentID {
             if let bookmark = (try? context.existingObject(with: parentID)) as? BookmarkEntity {
@@ -112,10 +112,10 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     }
 
     public func toggleFavorite(_ bookmark: BookmarkEntity) {
-        if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
+        if bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform) {
             bookmark.removeFromFavorites()
         } else {
-            let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesConfiguration, in: context)
+            let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
             bookmark.addToFavorites(folders: folders)
         }
         save()

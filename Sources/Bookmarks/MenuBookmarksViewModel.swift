@@ -24,7 +24,7 @@ import Persistence
 public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     let context: NSManagedObjectContext
-    let favoritesConfiguration: FavoritesConfiguration
+    let favoritesDisplayMode: FavoritesDisplayMode
 
     private var _rootFolder: BookmarkEntity?
     private var rootFolder: BookmarkEntity? {
@@ -41,7 +41,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     private var _favoritesFolder: BookmarkEntity?
     private var favoritesFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
-            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesConfiguration.displayedPlatform.rawValue, in: context)
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedPlatform.rawValue, in: context)
             
             if _favoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.menu))
@@ -53,7 +53,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     private var _nativeFavoritesFolder: BookmarkEntity?
     private var nativeFavoritesFolder: BookmarkEntity? {
         if _nativeFavoritesFolder == nil {
-            _nativeFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesConfiguration.nativePlatform.rawValue, in: context)
+            _nativeFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.nativePlatform.rawValue, in: context)
 
             if _nativeFavoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.menu))
@@ -67,9 +67,9 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     private let errorEvents: EventMapping<BookmarksModelError>?
     
     public init(bookmarksDatabase: CoreDataDatabase,
-                favoritesConfiguration: FavoritesConfiguration,
+                favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
-        self.favoritesConfiguration = favoritesConfiguration
+        self.favoritesDisplayMode = favoritesDisplayMode
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         registerForChanges()
@@ -116,10 +116,10 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         let queriedBookmark = favorite(for: url) ?? bookmark(for: url)
         
         if let bookmark = queriedBookmark {
-            if bookmark.isFavorite(on: favoritesConfiguration.displayedPlatform) {
+            if bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform) {
                 bookmark.removeFromFavorites()
             } else {
-                let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesConfiguration, in: context)
+                let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
                 bookmark.addToFavorites(folders: folders)
             }
         } else {

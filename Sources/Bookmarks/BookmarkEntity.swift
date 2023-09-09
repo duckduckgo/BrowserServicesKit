@@ -21,7 +21,7 @@
 import Foundation
 import CoreData
 
-public enum FavoritesConfiguration: Equatable {
+public enum FavoritesDisplayMode: Equatable {
     case displayNative(FavoritesPlatform)
     case displayAll(native: FavoritesPlatform)
 

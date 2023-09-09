@@ -53,7 +53,7 @@ final class FavoriteListViewModelTests: XCTestCase {
         }
 
         favoriteListViewModel = FavoritesListViewModel(bookmarksDatabase: bookmarksDatabase,
-                                                       favoritesConfiguration: .displayNative(.mobile),
+                                                       favoritesDisplayMode: .displayNative(.mobile),
                                                        errorEvents: eventMapping)
     }
 
@@ -82,7 +82,7 @@ final class FavoriteListViewModelTests: XCTestCase {
 
             try! context.save()
 
-            let favoriteFolderUUID = favoriteListViewModel.favoritesConfiguration.displayedPlatform.rawValue
+            let favoriteFolderUUID = favoriteListViewModel.favoritesDisplayMode.displayedPlatform.rawValue
             let rootFavoriteFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoriteFolderUUID, in: context)!
             XCTAssertEqual(rootFavoriteFolder.favoritesArray.map(\.title), ["2", "4"])
 
