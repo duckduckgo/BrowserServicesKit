@@ -36,12 +36,9 @@ public class BookmarkCoreDataImporter {
             
             context.performAndWait { () -> Void in
                 do {
-                    let favoritesFolderUUIDs = favoritesDisplayMode.folderUUIDs
-                    let favoritesFolders = favoritesFolderUUIDs.compactMap { BookmarkUtils.fetchFavoritesFolder(withUUID: $0, in: context) }
+                    let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
 
-                    guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context),
-                          favoritesFolders.count == favoritesFolderUUIDs.count
-                    else {
+                    guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context) else {
                         throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
                     

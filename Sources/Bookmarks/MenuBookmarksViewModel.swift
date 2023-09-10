@@ -50,18 +50,6 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         return _favoritesFolder
     }
 
-    private var _nativeFavoritesFolder: BookmarkEntity?
-    private var nativeFavoritesFolder: BookmarkEntity? {
-        if _nativeFavoritesFolder == nil {
-            _nativeFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.nativePlatform.rawValue, in: context)
-
-            if _nativeFavoritesFolder == nil {
-                errorEvents?.fire(.fetchingRootItemFailed(.menu))
-            }
-        }
-        return _nativeFavoritesFolder
-    }
-
     private var observer: NSObjectProtocol?
     
     private let errorEvents: EventMapping<BookmarksModelError>?
@@ -107,9 +95,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     }
     
     public func createOrToggleFavorite(title: String, url: URL) {
-        guard let favoritesFolder = favoritesFolder,
-              let nativeFavoritesFolder = nativeFavoritesFolder,
-              let rootFolder = rootFolder else {
+        guard let rootFolder = rootFolder else {
             return
         }
         
@@ -127,7 +113,8 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
                                                        url: url.absoluteString,
                                                        parent: rootFolder,
                                                        context: context)
-            favorite.addToFavorites(folders: [favoritesFolder, nativeFavoritesFolder])
+            let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
+            favorite.addToFavorites(folders: folders)
         }
         
         save()
