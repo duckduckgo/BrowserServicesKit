@@ -53,9 +53,11 @@ public protocol BookmarkListInteracting: BookmarkStoring {
 }
 
 public protocol FavoritesListInteracting: BookmarkStoring {
-    
+
+    var favoritesDisplayMode: FavoritesDisplayMode { get set }
+
     var favorites: [BookmarkEntity] { get }
-    
+
     func favorite(at index: Int) -> BookmarkEntity?
 
     func removeFavorite(_ favorite: BookmarkEntity)
@@ -66,6 +68,8 @@ public protocol FavoritesListInteracting: BookmarkStoring {
 }
 
 public protocol MenuBookmarksInteracting {
+
+    var favoritesDisplayMode: FavoritesDisplayMode { get set }
 
     func createOrToggleFavorite(title: String, url: URL)
     

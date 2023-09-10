@@ -52,9 +52,7 @@ final class FavoriteListViewModelTests: XCTestCase {
             try! context.save()
         }
 
-        favoriteListViewModel = FavoritesListViewModel(bookmarksDatabase: bookmarksDatabase,
-                                                       favoritesDisplayMode: .displayNative(.mobile),
-                                                       errorEvents: eventMapping)
+        favoriteListViewModel = FavoritesListViewModel(bookmarksDatabase: bookmarksDatabase, errorEvents: eventMapping)
     }
 
     override func tearDown() {
