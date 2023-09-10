@@ -25,9 +25,13 @@ import Common
 public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject {
     
     let context: NSManagedObjectContext
-    let favoritesDisplayMode: FavoritesDisplayMode
 
     public var favorites = [BookmarkEntity]()
+    public var favoritesDisplayMode: FavoritesDisplayMode {
+        didSet {
+            reloadData()
+        }
+    }
 
     private var observer: NSObjectProtocol?
     private let subject = PassthroughSubject<Void, Never>()
