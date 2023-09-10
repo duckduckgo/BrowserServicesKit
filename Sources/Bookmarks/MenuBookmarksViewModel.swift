@@ -24,7 +24,11 @@ import Persistence
 public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     let context: NSManagedObjectContext
-    let favoritesDisplayMode: FavoritesDisplayMode
+    public var favoritesDisplayMode: FavoritesDisplayMode = .displayNative(.mobile) {
+        didSet {
+            _favoritesFolder = nil
+        }
+    }
 
     private var _rootFolder: BookmarkEntity?
     private var rootFolder: BookmarkEntity? {
