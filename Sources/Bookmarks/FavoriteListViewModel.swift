@@ -27,8 +27,9 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     let context: NSManagedObjectContext
 
     public var favorites = [BookmarkEntity]()
-    public var favoritesDisplayMode: FavoritesDisplayMode {
+    public var favoritesDisplayMode: FavoritesDisplayMode = .displayNative(.mobile) {
         didSet {
+            _favoritesFolder = nil
             reloadData()
         }
     }
@@ -53,14 +54,11 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         return _favoritesFolder
     }
 
-    public init(bookmarksDatabase: CoreDataDatabase,
-                favoritesDisplayMode: FavoritesDisplayMode,
-                errorEvents: EventMapping<BookmarksModelError>?) {
+    public init(bookmarksDatabase: CoreDataDatabase, errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
-        self.favoritesDisplayMode = favoritesDisplayMode
-        
+
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         refresh()
         registerForChanges()

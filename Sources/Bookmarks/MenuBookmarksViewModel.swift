@@ -58,10 +58,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     private let errorEvents: EventMapping<BookmarksModelError>?
     
-    public init(bookmarksDatabase: CoreDataDatabase,
-                favoritesDisplayMode: FavoritesDisplayMode,
-                errorEvents: EventMapping<BookmarksModelError>?) {
-        self.favoritesDisplayMode = favoritesDisplayMode
+    public init(bookmarksDatabase: CoreDataDatabase, errorEvents: EventMapping<BookmarksModelError>?) {
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         registerForChanges()
