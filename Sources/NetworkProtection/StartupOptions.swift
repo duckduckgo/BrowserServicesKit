@@ -53,7 +53,20 @@ struct StartupOptions {
     ///
     /// Since these options are stored, the logic can allow for
     ///
-    enum StoredOption<T> {
+    enum StoredOption<T: Equatable>: Equatable {
+        static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
+            switch (lhs, rhs) {
+            case (.reset, .reset):
+                return true
+            case (.set(let lValue), .set(let rValue)):
+                return lValue == rValue
+            case (.useExisting, .useExisting):
+                return true
+            default:
+                return false
+            }
+        }
+
         case set(_ value: T)
         case reset
         case useExisting
