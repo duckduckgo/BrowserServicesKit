@@ -126,6 +126,10 @@ final class GRDBSecureStorageDatabaseProviderTests: XCTestCase {
         let databaseFilePath = GRDBSecureStorageDatabaseProvider.databaseFilePath(directoryName: "Test", fileName: "Database.db")
 
         XCTAssert(databaseFilePath.absoluteString.hasSuffix("Test/Database.db"))
+
+        let databaseFilePathAppGroup = GRDBSecureStorageDatabaseProvider.databaseFilePath(directoryName: "Test", fileName: "Database.db", appGroupIdentifier: "TEST")
+
+        XCTAssert(databaseFilePathAppGroup.absoluteString.hasSuffix("Test/Database.db"))
     }
 
     func createTemporaryFileURL() -> URL {
