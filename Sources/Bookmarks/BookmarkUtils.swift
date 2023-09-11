@@ -60,15 +60,7 @@ public struct BookmarkUtils {
     }
 
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) {
-        
-        func insertRootFolder(uuid: String, into context: NSManagedObjectContext) {
-            let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
-                                        insertInto: context)
-            folder.uuid = uuid
-            folder.title = uuid
-            folder.isFolder = true
-        }
-        
+
         if fetchRootFolder(context) == nil {
             insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
         }
@@ -76,6 +68,38 @@ public struct BookmarkUtils {
         for uuid in BookmarkEntity.Constants.favoriteFoldersIDs {
             if fetchFavoritesFolder(withUUID: uuid, in: context) == nil {
                 insertRootFolder(uuid: uuid, into: context)
+            }
+        }
+    }
+
+    public static func migrateToFormFactorSpecificFavorites(byCopyingExistingTo platform: FavoritesPlatform, in context: NSManagedObjectContext) {
+        assert(platform != .all, "You must specify either desktop or mobile platform")
+
+        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context) else {
+            return
+        }
+
+        if BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.desktopFavoritesFolderID, in: context) == nil {
+            let desktopFavoritesFolder = insertRootFolder(uuid: BookmarkEntity.Constants.desktopFavoritesFolderID, into: context)
+
+            if platform == .desktop {
+                favoritesFolder.favoritesArray.forEach { bookmark in
+                    bookmark.addToFavorites(folders: [desktopFavoritesFolder])
+                }
+            } else {
+                desktopFavoritesFolder.shouldManageModifiedAt = false
+            }
+        }
+
+        if BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.mobileFavoritesFolderID, in: context) == nil {
+            let mobileFavoritesFolder = insertRootFolder(uuid: BookmarkEntity.Constants.mobileFavoritesFolderID, into: context)
+
+            if platform == .mobile {
+                favoritesFolder.favoritesArray.forEach { bookmark in
+                    bookmark.addToFavorites(folders: [mobileFavoritesFolder])
+                }
+            } else {
+                mobileFavoritesFolder.shouldManageModifiedAt = false
             }
         }
     }
@@ -107,5 +131,18 @@ public struct BookmarkUtils {
         request.predicate = NSPredicate(format: "%K != nil", #keyPath(BookmarkEntity.modifiedAt))
 
         return (try? context.fetch(request)) ?? []
+    }
+
+    // MARK: Private
+
+    @discardableResult
+    private static func insertRootFolder(uuid: String, into context: NSManagedObjectContext) -> BookmarkEntity {
+        let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
+                                    insertInto: context)
+        folder.uuid = uuid
+        folder.title = uuid
+        folder.isFolder = true
+
+        return folder
     }
 }
