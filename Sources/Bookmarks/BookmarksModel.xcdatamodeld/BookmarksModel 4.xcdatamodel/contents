@@ -8,7 +8,7 @@
         <attribute name="url" optional="YES" attributeType="String" versionHashModifier="3"/>
         <attribute name="uuid" attributeType="String" versionHashModifier="3"/>
         <relationship name="children" optional="YES" toMany="YES" deletionRule="Cascade" ordered="YES" destinationEntity="BookmarkEntity" inverseName="parent" inverseEntity="BookmarkEntity"/>
-        <relationship name="favoriteFolders" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="favorites" inverseEntity="BookmarkEntity"/>
+        <relationship name="favoriteFolders" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="favorites" inverseEntity="BookmarkEntity" elementID="favoriteFolder"/>
         <relationship name="favorites" optional="YES" toMany="YES" deletionRule="Nullify" ordered="YES" destinationEntity="BookmarkEntity" inverseName="favoriteFolders" inverseEntity="BookmarkEntity"/>
         <relationship name="parent" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookmarkEntity" inverseName="children" inverseEntity="BookmarkEntity"/>
         <fetchIndex name="byUUID">
