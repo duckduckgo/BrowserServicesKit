@@ -19,6 +19,8 @@
 import Foundation
 import Common
 
+/// This class handles the proper parsing of the startup options for our tunnel.
+///
 struct StartupOptions {
 
     enum StartupMethod: CustomDebugStringConvertible {
@@ -47,7 +49,11 @@ struct StartupOptions {
         }
     }
 
-    enum Option<T> {
+    /// Stored options are the options that the our network extension stores / remembers.
+    ///
+    /// Since these options are stored, the logic can allow for
+    ///
+    enum StoredOption<T> {
         case set(_ value: T)
         case reset
         case useExisting
@@ -59,9 +65,9 @@ struct StartupOptions {
     let simulateCrash: Bool
     let simulateMemoryCrash: Bool
     let enableTester: Bool
-    let keyValidity: Option<TimeInterval>
-    let selectedServer: Option<SelectedNetworkProtectionServer>
-    let authToken: Option<String>
+    let keyValidity: StoredOption<TimeInterval>
+    let selectedServer: StoredOption<SelectedNetworkProtectionServer>
+    let authToken: StoredOption<String>
 
     init(options: [String: Any], log: OSLog) {
         self.log = log
@@ -115,9 +121,13 @@ struct StartupOptions {
         }()
 
         authToken = {
-            guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String else {
+            guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String,
+                  !authToken.isEmpty else {
+
                 switch startupMethod {
                 case .manualByMainApp:
+                    // When the app is started manually we don't ever want to use an existing auth token,
+                    // because the app is supposed to always provide an auth token.
                     return .reset
                 default:
                     return .useExisting
