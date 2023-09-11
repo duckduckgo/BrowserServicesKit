@@ -54,6 +54,26 @@ struct StartupOptions {
     /// Since these options are stored, the logic can allow for
     ///
     enum StoredOption<T: Equatable>: Equatable {
+        case set(_ value: T)
+        case reset
+        case useExisting
+
+        init(resetIfNil: Bool, getValue: () -> T?) {
+            guard let value = getValue() else {
+                if resetIfNil {
+                    self = .reset
+                } else {
+                    self = .useExisting
+                }
+
+                return
+            }
+
+            self = .set(value)
+        }
+
+        // MARK: - Equatable
+
         static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
             switch (lhs, rhs) {
             case (.reset, .reset):
@@ -66,10 +86,6 @@ struct StartupOptions {
                 return false
             }
         }
-
-        case set(_ value: T)
-        case reset
-        case useExisting
     }
 
     private let log: OSLog
@@ -102,52 +118,46 @@ struct StartupOptions {
         simulateMemoryCrash = options[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] as? Bool ?? false
         enableTester = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
 
-        keyValidity = {
-            guard let keyValidityString = options[NetworkProtectionOptionKey.keyValidity] as? String else {
-                switch startupMethod {
-                case .manualByMainApp:
-                    return .reset
-                default:
-                    return .useExisting
-                }
-            }
+        let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
+        authToken = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
+        keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
+        selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
+    }
 
-            guard let keyValidity = TimeInterval(keyValidityString) else {
-                os_log("The key validity startup option cannot be parsed", log: log, type: .error)
-                return .useExisting
-            }
+    // MARK: - Helpers for reading stored options
 
-            return .set(keyValidity)
-        }()
+    private static func readAuthToken(from options: [String: Any], resetIfNil: Bool) -> StoredOption<String> {
 
-        selectedServer = {
-            guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {
-                switch startupMethod {
-                case .manualByMainApp:
-                    return .reset
-                default:
-                    return .useExisting
-                }
-            }
-
-            return .set(.endpoint(serverName))
-        }()
-
-        authToken = {
+        StoredOption(resetIfNil: resetIfNil) {
             guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String,
                   !authToken.isEmpty else {
-
-                switch startupMethod {
-                case .manualByMainApp:
-                    // When the app is started manually we don't ever want to use an existing auth token,
-                    // because the app is supposed to always provide an auth token.
-                    return .reset
-                default:
-                    return .useExisting
-                }
+                return nil
             }
 
-            return .set(authToken)
-        }()
+            return authToken
+        }
+    }
+
+    private static func readKeyValidity(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TimeInterval> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let keyValidityString = options[NetworkProtectionOptionKey.keyValidity] as? String,
+                  let keyValidity = TimeInterval(keyValidityString) else {
+
+                return nil
+            }
+
+            return keyValidity
+        }
+    }
+
+    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<SelectedNetworkProtectionServer> {
+
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {
+                return nil
+            }
+
+            return .endpoint(serverName)
+        }
     }
 }
