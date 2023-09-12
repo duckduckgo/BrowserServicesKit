@@ -4,6 +4,7 @@
 import Foundation
 import Network
 import NetworkExtension
+import Common
 
 #if SWIFT_PACKAGE
 import WireGuard
