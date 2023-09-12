@@ -21,8 +21,10 @@ import Foundation
 
 public class EmailKeychainManager {
 
-    public init() {
-        Self.migrateItemsToDataProtectionKeychainIfNecessary()
+    public init(needsMigration: Bool = true) {
+        if needsMigration {
+            Self.migrateItemsToDataProtectionKeychain()
+        }
     }
 
 }
@@ -232,7 +234,7 @@ extension EmailKeychainManager {
     
     /// Takes data from the login keychain and moves it to the data protection keychain.
     /// Reference: https://developer.apple.com/documentation/security/ksecusedataprotectionkeychain
-    static func migrateItemsToDataProtectionKeychainIfNecessary() {
+    static func migrateItemsToDataProtectionKeychain() {
         #if os(macOS)
         
         for field in EmailKeychainField.allCases {
