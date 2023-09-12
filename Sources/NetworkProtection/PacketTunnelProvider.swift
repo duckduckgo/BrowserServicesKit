@@ -256,9 +256,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     self.reasserting = true
                     self.fixTunnel()
                 } else if failureCount == 2 {
-                    self.notificationsPresenter.showConnectionFailureNotification()
-                    self.stopTunnel(with: TunnelError.couldNotFixConnection)
+                    self.fixTunnel()
                 }
+                //    self.notificationsPresenter.showConnectionFailureNotification()
+                //    self.stopTunnel(with: TunnelError.couldNotFixConnection)
+                //}
             }
         }
     }()
