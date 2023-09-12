@@ -74,6 +74,17 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             self.observer = nil
         }
     }
+
+    public func createBookmark(title: String, url: String, folder: BookmarkEntity, folderIndex: Int, favoritesFolder: BookmarkEntity?, favoritesIndex: Int?) {
+        let bookmark = BookmarkEntity.makeBookmark(title: title, url: url, parent: folder, context: context)
+        if let addedIndex = folder.childrenArray.firstIndex(of: bookmark) {
+            moveBookmark(bookmark, fromIndex: addedIndex, toIndex: folderIndex)
+        }
+        if let favoritesFolder, let favoritesIndex {
+            bookmark.addToFavorites(insertAt: favoritesIndex, favoritesRoot: favoritesFolder)
+        }
+        save()
+    }
     
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
