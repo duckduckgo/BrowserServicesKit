@@ -36,14 +36,18 @@ struct Endpoints {
     let syncGet: URL
     let syncPatch: URL
 
-    init(baseUrl: URL) {
-        signup = baseUrl.appendingPathComponent("sync/signup")
-        login = baseUrl.appendingPathComponent("sync/login")
-        logoutDevice = baseUrl.appendingPathComponent("sync/logout-device")
-        connect = baseUrl.appendingPathComponent("sync/connect")
+    init(serverEnvironment: ServerEnvironment) {
+        self.init(baseURL: serverEnvironment.baseURL)
+    }
 
-        syncGet = baseUrl.appendingPathComponent("sync")
-        syncPatch = baseUrl.appendingPathComponent("sync/data")
+    init(baseURL: URL) {
+        signup = baseURL.appendingPathComponent("sync/signup")
+        login = baseURL.appendingPathComponent("sync/login")
+        logoutDevice = baseURL.appendingPathComponent("sync/logout-device")
+        connect = baseURL.appendingPathComponent("sync/connect")
+
+        syncGet = baseURL.appendingPathComponent("sync")
+        syncPatch = baseURL.appendingPathComponent("sync/data")
     }
     
 }

@@ -139,8 +139,8 @@ class MockKeyValueStore: KeyValueStoring {
     }
 }
 
-struct MockSyncDepenencies: SyncDependencies {
-    var endpoints: Endpoints = Endpoints(baseUrl: URL(string: "https://dev.null")!)
+struct MockSyncDepenencies: SyncDependencies, SyncDependenciesDebuggingSupport {
+    var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
     var secureStore: SecureStoring = SecureStorageStub()
@@ -163,6 +163,8 @@ struct MockSyncDepenencies: SyncDependencies {
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
         RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
     }
+
+    mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
 }
 
 final class MockDataProvidersSource: DataProvidersSource {

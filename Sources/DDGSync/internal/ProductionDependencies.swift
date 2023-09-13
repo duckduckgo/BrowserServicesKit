@@ -22,7 +22,7 @@ import Common
 struct ProductionDependencies: SyncDependencies {
 
     let fileStorageUrl: URL
-    let endpoints: Endpoints
+    private(set) var endpoints: Endpoints
     let account: AccountManaging
     let api: RemoteAPIRequestCreating
     var keyValueStore: KeyValueStoring
@@ -36,10 +36,10 @@ struct ProductionDependencies: SyncDependencies {
     }
     private let getLog: () -> OSLog
 
-    init(baseUrl: URL, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    init(serverEnvironment: ServerEnvironment, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
         
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
-                  baseUrl: baseUrl,
+                  serverEnvironment: serverEnvironment,
                   keyValueStore: KeyValueStore(),
                   secureStore: SecureStorage(),
                   errorEvents: errorEvents,
@@ -48,14 +48,14 @@ struct ProductionDependencies: SyncDependencies {
     
     init(
         fileStorageUrl: URL,
-        baseUrl: URL,
+        serverEnvironment: ServerEnvironment,
         keyValueStore: KeyValueStoring,
         secureStore: SecureStoring,
         errorEvents: EventMapping<SyncError>,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.fileStorageUrl = fileStorageUrl
-        self.endpoints = Endpoints(baseUrl: baseUrl)
+        self.endpoints = Endpoints(serverEnvironment: serverEnvironment)
         self.keyValueStore = keyValueStore
         self.secureStore = secureStore
         self.errorEvents = errorEvents
@@ -74,6 +74,10 @@ struct ProductionDependencies: SyncDependencies {
 
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
         return RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
+    }
+
+    mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
+        self.endpoints = .init(serverEnvironment: serverEnvironment)
     }
 
 }

@@ -26,12 +26,6 @@ public class DDGSync: DDGSyncing {
     public static let bundle = Bundle.module
 
     enum Constants {
-        // #if DEBUG
-        public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        // #else
-        //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-        // #endif
-
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }
 
@@ -60,7 +54,7 @@ public class DDGSync: DDGSyncing {
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
                             log: @escaping @autoclosure () -> OSLog = .disabled) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, errorEvents: errorEvents, log: log())
+        let dependencies = ProductionDependencies(serverEnvironment: .development, errorEvents: errorEvents, log: log())
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -171,9 +165,15 @@ public class DDGSync: DDGSyncing {
         }
     }
 
+    public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
+        syncQueue?.cancelOngoingSyncAndSuspendQueue()
+        dependencies.updateServerEnvironment(serverEnvironment)
+        syncQueue?.resumeQueue()
+    }
+
     // MARK: -
 
-    let dependencies: SyncDependencies
+    var dependencies: SyncDependencies
 
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource

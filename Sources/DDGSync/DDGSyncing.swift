@@ -44,7 +44,7 @@ public protocol DataProvidersSource: AnyObject {
     func makeDataProviders() -> [DataProviding]
 }
 
-public protocol DDGSyncing {
+public protocol DDGSyncing: DDGSyncingDebuggingSupport {
 
     var dataProvidersSource: DataProvidersSource? { get set }
 
@@ -111,7 +111,7 @@ public protocol DDGSyncing {
     func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice]
 
     /**
-    Returns a device id and temporary secret key ready for display and allows callers attempt to fetch the transmitted recovery key.
+     Returns a device id and temporary secret key ready for display and allows callers attempt to fetch the transmitted recovery key.
      */
     func remoteConnect() throws -> RemoteConnecting
 
@@ -129,7 +129,7 @@ public protocol DDGSyncing {
      Disconnect the specified device from the sync service.
 
      - Parameter deviceId: ID of the device to be disconnected.
-    */
+     */
     func disconnect(deviceId: String) async throws
 
     /**
@@ -138,7 +138,7 @@ public protocol DDGSyncing {
     func fetchDevices() async throws -> [RegisteredDevice]
 
     /**
-    Updated the device name.
+     Updated the device name.
      */
     func updateDeviceName(_ name: String) async throws -> [RegisteredDevice]
 
@@ -146,7 +146,24 @@ public protocol DDGSyncing {
      Deletes this account, but does not affect locally stored data.
      */
     func deleteAccount() async throws
+}
 
+public protocol DDGSyncingDebuggingSupport {
+    func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
+}
+
+public enum ServerEnvironment {
+    case development
+    case production
+
+    var baseURL: URL {
+        switch self {
+        case .development:
+            return URL(string: "https://dev-sync-use.duckduckgo.com")!
+        case .production:
+            return URL(string: "https://sync.duckduckgo.com")!
+        }
+    }
 }
 
 public protocol Crypting {

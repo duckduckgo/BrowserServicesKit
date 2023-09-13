@@ -20,7 +20,11 @@ import Foundation
 import Combine
 import Common
 
-protocol SyncDependencies {
+protocol SyncDependenciesDebuggingSupport {
+    mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
+}
+
+protocol SyncDependencies: SyncDependenciesDebuggingSupport {
 
     var endpoints: Endpoints { get }
     var account: AccountManaging { get }
