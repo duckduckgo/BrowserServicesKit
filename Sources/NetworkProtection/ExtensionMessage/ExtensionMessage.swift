@@ -22,6 +22,7 @@ public enum ExtensionMessage: RawRepresentable {
     public typealias RawValue = Data
 
     enum Name: UInt8 {
+        // Old messages
         case resetAllState = 0
         case getRuntimeConfiguration
         case getLastErrorMessage
@@ -37,9 +38,22 @@ public enum ExtensionMessage: RawRepresentable {
         case simulateTunnelFailure
         case simulateTunnelFatalError
         case simulateTunnelMemoryOveruse
+
+        // `request` is meant to allow us to start replacing `ExtensionMessage` with
+        // a more flexible and solid messaging system without going for a drastic
+        // migration of all of our existing messages.  Please don't add
+        // any new cases to `ExtensionMessage` in the future, and instead add them to
+        // `ExtensionRequest`.
+        //
+        // This new type of messaging is meant to eventually remove the limitation of
+        // having to assign a fixed (and never-changing) numeric ID to each message type.
+        // This is very limiting right now because we may want to eventually remove some
+        // of these cases but can't.
+        //
+        case request = 255
     }
 
-    // important: Preserve this order because Message Name is represented by Int value
+    // Old messages: do not add any new messages here
     case resetAllState
     case getRuntimeConfiguration
     case getLastErrorMessage
@@ -55,6 +69,9 @@ public enum ExtensionMessage: RawRepresentable {
     case simulateTunnelFailure
     case simulateTunnelFatalError
     case simulateTunnelMemoryOveruse
+
+    // Add new messages to `ExtensionRequest`
+    case request(_ request: ExtensionRequest)
 
     // swiftlint:disable:next cyclomatic_complexity
     public init?(rawValue data: Data) {
@@ -112,6 +129,16 @@ public enum ExtensionMessage: RawRepresentable {
 
         case .simulateTunnelMemoryOveruse:
             self = .simulateTunnelMemoryOveruse
+
+        case .request:
+            let decoder = JSONDecoder()
+            do {
+                let request = try decoder.decode(ExtensionRequest.self, from: data[1...])
+                self = .request(request)
+            } catch {
+                assertionFailure("\(error)")
+                return nil
+            }
             
         case .none:
             assertionFailure("Invalid data")
@@ -122,6 +149,7 @@ public enum ExtensionMessage: RawRepresentable {
     // TO BE: Replaced with auto case name generating Macro when Xcode 15
     private var name: Name {
         switch self {
+        case .request: return .request
         case .resetAllState: return .resetAllState
         case .getRuntimeConfiguration: return .getRuntimeConfiguration
         case .getLastErrorMessage: return .getLastErrorMessage
@@ -143,6 +171,14 @@ public enum ExtensionMessage: RawRepresentable {
     public var rawValue: Data {
         var encoder: (inout Data) -> Void = { _ in }
         switch self {
+        case .request(let request):
+            encoder = {
+                do {
+                    try $0.append(JSONEncoder().encode(request))
+                } catch {
+                    assertionFailure("could not encode routes: \(error)")
+                }
+            }
         case .setSelectedServer(.some(let serverName)):
             encoder = {
                 $0.append(ExtensionMessageString(serverName).rawValue)
@@ -183,7 +219,6 @@ public enum ExtensionMessage: RawRepresentable {
         encoder(&data)
         return data
     }
-
 }
 
 public struct ExtensionMessageString: RawRepresentable {

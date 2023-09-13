@@ -30,4 +30,5 @@ public enum NetworkProtectionOptionKey {
     public static let includedRoutes = "includedRoutes"
     public static let excludedRoutes = "excludedRoutes"
     public static let connectionTesterEnabled = "connectionTesterEnabled"
+    public static let useNewConnectionTesterBehavior = "useNewConnectionTesterBehavior"
 }
