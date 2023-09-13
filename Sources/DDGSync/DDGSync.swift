@@ -53,8 +53,9 @@ public class DDGSync: DDGSyncing {
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
-                            log: @escaping @autoclosure () -> OSLog = .disabled) {
-        let dependencies = ProductionDependencies(serverEnvironment: .development, errorEvents: errorEvents, log: log())
+                            log: @escaping @autoclosure () -> OSLog = .disabled,
+                            environment: ServerEnvironment = .production) {
+        let dependencies = ProductionDependencies(serverEnvironment: environment, errorEvents: errorEvents, log: log())
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -173,7 +174,6 @@ public class DDGSync: DDGSyncing {
     }
 
     public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
-        syncQueue?.cancelOngoingSyncAndSuspendQueue()
         try? updateAccount(nil)
         dependencies.updateServerEnvironment(serverEnvironment)
         authState = .initializing
