@@ -336,6 +336,9 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
                                  key l2Key: Data? = nil,
                                  salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
+            if let password = credentials.password, String(bytes: password, encoding: .utf8) == nil {
+                assertionFailure("Encrypted password passed to \(#function)")
+            }
             // Generate a new signature
             let hashData = credentials.account.hashValue + (credentials.password ?? Data())
             var creds = credentials

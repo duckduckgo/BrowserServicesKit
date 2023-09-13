@@ -1,5 +1,6 @@
 //
-//  NetworkProtectionFeatureVisibility.swift
+//  JSONExtensions.swift
+//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,19 +19,20 @@
 
 import Foundation
 
-public protocol NetworkProtectionFeatureVisibility {
-
-    /// Has the invite code flow been completed and an oAuth token stored?
-    ///
-    var isFeatureActivated: Bool { get }
+public extension JSONDecoder {
+    static var snakeCaseKeys: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
 }
 
-extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureVisibility {
-    public var isFeatureActivated: Bool {
-        do {
-            return try fetchToken() != nil
-        } catch {
-            return false
-        }
-    }
+public extension JSONEncoder {
+    static var snakeCaseKeys: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }()
 }

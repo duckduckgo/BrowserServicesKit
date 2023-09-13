@@ -1,5 +1,5 @@
 //
-//  JSONExtensions.swift
+//  UnsafeMutableRawPointerExtension.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,20 +19,11 @@
 
 import Foundation
 
-extension JSONDecoder {
-    static var snakeCaseKeys: JSONDecoder = {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }()
-}
+public extension UnsafeMutableRawPointer {
 
-extension JSONEncoder {
-    static var snakeCaseKeys: JSONEncoder = {
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }()
+    /// HEX String representation of the pointer with trimmed leading zeros
+    var hexValue: String {
+        self.debugDescription.replacing(regex: "^0x0*", with: "0x")
+    }
+
 }

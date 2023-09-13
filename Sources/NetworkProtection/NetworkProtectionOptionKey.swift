@@ -25,10 +25,9 @@ public enum NetworkProtectionOptionKey {
     public static let isOnDemand = "is-on-demand"
     public static let activationAttemptId = "activationAttemptId"
     public static let tunnelFailureSimulation = "tunnelFailureSimulation"
+    public static let tunnelFatalErrorCrashSimulation = "tunnelFatalErrorCrashSimulation"
+    public static let tunnelMemoryCrashSimulation = "tunnelMemoryCrashSimulation"
     public static let includedRoutes = "includedRoutes"
     public static let excludedRoutes = "excludedRoutes"
     public static let connectionTesterEnabled = "connectionTesterEnabled"
-}
-public enum NetworkProtectionOptionValue {
-    public static let `true` = "true" as NSString
 }

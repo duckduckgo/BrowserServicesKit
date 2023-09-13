@@ -89,6 +89,7 @@ public final class DistributedNavigationDelegate: NSObject {
 #if !_MAIN_FRAME_NAVIGATION_ENABLED
         _=WKWebView.swizzleLoadMethodOnce
 #endif
+        _=WKNavigationAction.swizzleRequestOnce
     }
 
     /** set responder chain for Navigation Events with defined ownership and nullability:
@@ -111,7 +112,8 @@ private extension DistributedNavigationDelegate {
 #endif
 
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
-    func makeAsyncDecision<T>(boundToLifetimeOf webView: WKWebView,
+    func makeAsyncDecision<T>(for actionDebugInfo: some CustomDebugStringConvertible,
+                              boundToLifetimeOf webView: WKWebView,
                               with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
                               completion: @escaping @MainActor (T?) -> Void,
@@ -120,6 +122,7 @@ private extension DistributedNavigationDelegate {
 
         // cancel the decision making Task if WebView deallocates before it‘s finished
         let webViewDeinitObserver = webView.deinitObservers.insert(NSObject.DeinitObserver()).memberAfterInsert
+        let webViewDebugRef = Unmanaged.passUnretained(webView).toOpaque()
 
         // TO DO: ideally the Task should be executed synchronously until the first await, check it later when custom Executors arrive to Swift
         let task = Task.detached { @MainActor [responders, weak webView, weak webViewDeinitObserver] in
@@ -128,10 +131,13 @@ private extension DistributedNavigationDelegate {
                     // in case of the Task cancellation completion handler will be called in `onCancel:`
                     guard !Task.isCancelled else { return }
 #if DEBUG
-                    let longDecisionMakingCheckCancellable = Self.checkLongDecisionMaking(for: responder)
-                    defer { longDecisionMakingCheckCancellable?.cancel() }
+                    let longDecisionMakingCheckCancellable = Self.checkLongDecisionMaking(performedBy: responder) {
+                        "<WKWebView: \(webViewDebugRef.hexValue)>: " + actionDebugInfo.debugDescription
+                    }
+                    defer {
+                        longDecisionMakingCheckCancellable?.cancel()
+                    }
 #endif
-
                     // complete if responder returns non-nil (non-`.next`) decision
                     if let decision = await decide(responder) {
                         guard !Task.isCancelled else { return }
@@ -158,17 +164,20 @@ private extension DistributedNavigationDelegate {
         }
 
         // cancel the Task if WebView deallocates before it‘s finished
-        webViewDeinitObserver.onDeinit {
+        webViewDeinitObserver.onDeinit { [log] in
+            os_log("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef.hexValue)> deallocation", log: log, type: .error)
             task.cancel()
         }
+
         return task
     }
 
-    func makeAsyncDecision<T>(boundToLifetimeOf webView: WKWebView,
+    func makeAsyncDecision<T>(for actionDebugInfo: some CustomDebugStringConvertible,
+                              boundToLifetimeOf webView: WKWebView,
                               with responders: ResponderChain,
                               decide: @escaping @MainActor (NavigationResponder) async -> T?,
                               completion: @escaping @MainActor (T?) -> Void) {
-        _=makeAsyncDecision(boundToLifetimeOf: webView, with: responders, decide: decide, completion: completion, cancellation: { @MainActor in
+        _=makeAsyncDecision(for: actionDebugInfo, boundToLifetimeOf: webView, with: responders, decide: decide, completion: completion, cancellation: { @MainActor in
             completion(nil)
         })
     }
@@ -178,7 +187,7 @@ private extension DistributedNavigationDelegate {
     /// DEBUG check raising SIGINT (break) if NavigationResponder decision making takes more than 4 seconds
     /// the check won‘t be made if `responder.shouldDisableLongDecisionMakingChecks` returns `true`
     @MainActor
-    static func checkLongDecisionMaking<Responder: NavigationResponder>(for responder: Responder) -> AnyCancellable? {
+    static func checkLongDecisionMaking<Responder: NavigationResponder>(performedBy responder: Responder, debugDescription: @escaping () -> String) -> AnyCancellable? {
         let typeOfResponder = String(describing: Responder.self)
         var timeoutWorkItem: DispatchWorkItem?
         if !Self.sigIntRaisedForResponders.contains(typeOfResponder),
@@ -193,11 +202,12 @@ private extension DistributedNavigationDelegate {
                 Self.sigIntRaisedForResponders.insert(typeOfResponder)
 
                 breakByRaisingSigInt("""
-                    Decision making is taking longer than expected
-                    This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder
+                    Decision making for \(debugDescription())
+                    is taking longer than expected.
+                    This may be indicating that there‘s a leak in \(typeOfResponder) Navigation Responder.
 
                     Implement `var shouldDisableLongDecisionMakingChecks: Bool` and set it to `true`
-                    for known long decision making to disable this warning
+                    for known long decision making to disable this warning.
                 """)
             }
         }
@@ -336,7 +346,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         // keep WKNavigationAction alive until the decision is made but not any longer!
         var wkNavigationAction: WKNavigationAction! = wkNavigationAction
         // pass async decision making to Navigation.navigationResponders (or the delegate navigationResponders for non-main-frame navigations)
-        let task = makeAsyncDecision(boundToLifetimeOf: webView, with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
+        let task = makeAsyncDecision(for: navigationAction, boundToLifetimeOf: webView, with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             // get to next responder until we get non-nil (.next == nil) decision
@@ -460,7 +470,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         os_log("didReceive challenge: %s: %s", log: log, type: .default, navigation?.debugDescription ?? webView.debugDescription, challenge.protectionSpace.description)
 
-        makeAsyncDecision(boundToLifetimeOf: webView, with: navigation?.navigationResponders ?? responders) { @MainActor responder in
+        makeAsyncDecision(for: navigation?.debugDescription ?? challenge.debugDescription, boundToLifetimeOf: webView, with: navigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.didReceive(challenge, for: navigation) else { return .next }
@@ -553,7 +563,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         os_log("decidePolicyFor: %s", log: log, type: .default, navigationResponse.debugDescription)
 
         let responders = (navigationResponse.isForMainFrame ? startedNavigation?.navigationResponders : nil) ?? responders
-        makeAsyncDecision(boundToLifetimeOf: webView, with: responders) { @MainActor responder in
+        makeAsyncDecision(for: navigationResponse.debugDescription, boundToLifetimeOf: webView, with: responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.decidePolicy(for: navigationResponse) else { return .next }

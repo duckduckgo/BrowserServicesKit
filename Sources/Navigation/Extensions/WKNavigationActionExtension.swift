@@ -30,6 +30,27 @@ extension WKNavigationAction: WebViewNavigationAction {
         return self.perform(#selector(getter: sourceFrame))?.takeUnretainedValue() as? WKFrameInfo
     }
 
+    /// Make an empty URLRequest if `WKNavigationAction.request` returns nil
+    /// https://app.asana.com/0/1200541656900018/1205419940512581/f
+    /// yes, it can be nil 😅
+    ///  - On the home page navigate to "about:blank", then duplicate tab - > new blank window is open
+    ///  - Open developer console, run document.body.innerHTML = '<a id="a" href="/">link</a>'
+    ///  - Enter in the console: setTimeout(function() { document.getElementById("a").removeAttribute("href") }, 2000) but don‘t submit just yet
+    ///  - Point cursor to the created link
+    ///  - Press enter in the Console then instantly right-click the link
+    ///  - Wait until the link turns black
+    ///  - Choose Copy Link → Crash
+    static var swizzleRequestOnce: Void = {
+        let originalSourceFrameMethod = class_getInstanceMethod(WKNavigationAction.self, #selector(getter: WKNavigationAction.request))!
+        let swizzledSourceFrameMethod = class_getInstanceMethod(WKNavigationAction.self, #selector(WKNavigationAction.swizzledRequest))!
+        method_exchangeImplementations(originalSourceFrameMethod, swizzledSourceFrameMethod)
+    }()
+
+    @objc dynamic private func swizzledRequest() -> URLRequest? {
+        return self.swizzledRequest() // call the original
+            ?? NSURLRequest() as URLRequest
+    }
+
 #if DEBUG
 
     private static var ignoredSourceFrameUsageSymbols = Set<String>()
@@ -42,6 +63,8 @@ extension WKNavigationAction: WebViewNavigationAction {
 
         // ignore `sourceFrame` selector calls from `safeSourceFrame` itself
         ignoredSourceFrameUsageSymbols.insert(callingSymbol())
+        // ignore `-[WKNavigationAction description]`
+        ignoredSourceFrameUsageSymbols.insert("-[WKNavigationAction description]")
     }()
 
     @objc dynamic private func swizzledSourceFrame() -> WKFrameInfo? {

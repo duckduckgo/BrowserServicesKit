@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionSimulationOption.swift
+//  NetworkProtectionFeatureActivation.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,23 +18,19 @@
 
 import Foundation
 
-public enum NetworkProtectionSimulationOption: Sendable {
-    case controllerFailure
-    case tunnelFailure
-    case crashFatalError
-    case crashMemory
+public protocol NetworkProtectionFeatureActivation {
+
+    /// Has the invite code flow been completed and an oAuth token stored?
+    ///
+    var isFeatureActivated: Bool { get }
 }
 
-public class NetworkProtectionSimulationOptions {
-    private var options: [NetworkProtectionSimulationOption: Bool] = [:]
-
-    public init() {}
-
-    public func setEnabled(_ enabled: Bool, option: NetworkProtectionSimulationOption) {
-        options[option] = enabled
-    }
-
-    public func isEnabled(_ option: NetworkProtectionSimulationOption) -> Bool {
-        options[option] ?? false
+extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureActivation {
+    public var isFeatureActivated: Bool {
+        do {
+            return try fetchToken() != nil
+        } catch {
+            return false
+        }
     }
 }
