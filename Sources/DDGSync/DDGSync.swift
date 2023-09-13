@@ -174,8 +174,10 @@ public class DDGSync: DDGSyncing {
 
     public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
         syncQueue?.cancelOngoingSyncAndSuspendQueue()
+        syncQueue = nil
         dependencies.updateServerEnvironment(serverEnvironment)
-        syncQueue?.resumeQueue()
+        authState = .initializing
+        initializeIfNeeded(isInternalUser: false)
     }
 
     // MARK: -
