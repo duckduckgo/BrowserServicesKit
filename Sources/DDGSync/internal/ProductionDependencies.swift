@@ -77,11 +77,6 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
-        endpoints = .init(serverEnvironment: serverEnvironment)
-        updateAccount(AccountManager(endpoints: endpoints, api: api, crypter: crypter))
-    }
-
-    mutating func updateAccount(_ account: AccountManaging) {
-        self.account = account
+        endpoints.updateBaseURL(for: serverEnvironment)
     }
 }

@@ -22,7 +22,6 @@ import Common
 
 protocol SyncDependenciesDebuggingSupport {
     mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
-    mutating func updateAccount(_ account: AccountManaging)
 }
 
 protocol SyncDependencies: SyncDependenciesDebuggingSupport {

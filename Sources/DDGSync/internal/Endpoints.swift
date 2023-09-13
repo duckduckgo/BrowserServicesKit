@@ -18,17 +18,17 @@
 
 import Foundation
 
-struct Endpoints {
+class Endpoints {
 
-    let baseURL: URL
+    private(set) var baseURL: URL
 
-    let signup: URL
-    let login: URL
-    let logoutDevice: URL
-    let connect: URL
+    private(set) var signup: URL
+    private(set) var login: URL
+    private(set) var logoutDevice: URL
+    private(set) var connect: URL
 
-    let syncGet: URL
-    let syncPatch: URL
+    private(set) var syncGet: URL
+    private(set) var syncPatch: URL
 
     /// Constructs sync GET URL for specific data type(s), e.g. `sync/type1,type2,type3`
     func syncGet(features: [String]) throws -> URL {
@@ -38,7 +38,7 @@ struct Endpoints {
         return syncGet.appendingPathComponent(features.joined(separator: ","))
     }
 
-    init(serverEnvironment: ServerEnvironment) {
+    convenience init(serverEnvironment: ServerEnvironment) {
         self.init(baseURL: serverEnvironment.baseURL)
     }
 
@@ -52,5 +52,21 @@ struct Endpoints {
         syncGet = baseURL.appendingPathComponent("sync")
         syncPatch = baseURL.appendingPathComponent("sync/data")
     }
-    
+}
+
+// MARK: - Debugging Support
+
+extension Endpoints {
+
+    func updateBaseURL(for serverEnvironment: ServerEnvironment) {
+        baseURL = serverEnvironment.baseURL
+        signup = baseURL.appendingPathComponent("sync/signup")
+        login = baseURL.appendingPathComponent("sync/login")
+        logoutDevice = baseURL.appendingPathComponent("sync/logout-device")
+        connect = baseURL.appendingPathComponent("sync/connect")
+
+        syncGet = baseURL.appendingPathComponent("sync")
+        syncPatch = baseURL.appendingPathComponent("sync/data")
+    }
+
 }
