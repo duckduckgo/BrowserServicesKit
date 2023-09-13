@@ -149,6 +149,7 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
 }
 
 public protocol DDGSyncingDebuggingSupport {
+    var serverEnvironment: ServerEnvironment { get }
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
 }
 

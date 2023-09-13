@@ -20,10 +20,15 @@ import Foundation
 
 struct Endpoints {
 
+    let baseURL: URL
+
     let signup: URL
     let login: URL
     let logoutDevice: URL
     let connect: URL
+
+    let syncGet: URL
+    let syncPatch: URL
 
     /// Constructs sync GET URL for specific data type(s), e.g. `sync/type1,type2,type3`
     func syncGet(features: [String]) throws -> URL {
@@ -32,15 +37,13 @@ struct Endpoints {
         }
         return syncGet.appendingPathComponent(features.joined(separator: ","))
     }
-    
-    let syncGet: URL
-    let syncPatch: URL
 
     init(serverEnvironment: ServerEnvironment) {
         self.init(baseURL: serverEnvironment.baseURL)
     }
 
     init(baseURL: URL) {
+        self.baseURL = baseURL
         signup = baseURL.appendingPathComponent("sync/signup")
         login = baseURL.appendingPathComponent("sync/login")
         logoutDevice = baseURL.appendingPathComponent("sync/logout-device")

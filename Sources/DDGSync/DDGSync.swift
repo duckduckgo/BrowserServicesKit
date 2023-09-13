@@ -165,6 +165,13 @@ public class DDGSync: DDGSyncing {
         }
     }
 
+    public var serverEnvironment: ServerEnvironment {
+        if dependencies.endpoints.baseURL == ServerEnvironment.production.baseURL {
+            return .production
+        }
+        return .development
+    }
+
     public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
         syncQueue?.cancelOngoingSyncAndSuspendQueue()
         dependencies.updateServerEnvironment(serverEnvironment)
