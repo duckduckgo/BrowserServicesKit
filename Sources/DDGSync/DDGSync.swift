@@ -174,7 +174,7 @@ public class DDGSync: DDGSyncing {
 
     public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
         syncQueue?.cancelOngoingSyncAndSuspendQueue()
-        syncQueue = nil
+        try? updateAccount(nil)
         dependencies.updateServerEnvironment(serverEnvironment)
         authState = .initializing
         initializeIfNeeded(isInternalUser: false)

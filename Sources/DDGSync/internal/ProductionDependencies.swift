@@ -23,7 +23,7 @@ struct ProductionDependencies: SyncDependencies {
 
     let fileStorageUrl: URL
     private(set) var endpoints: Endpoints
-    let account: AccountManaging
+    private(set) var account: AccountManaging
     let api: RemoteAPIRequestCreating
     var keyValueStore: KeyValueStoring
     let secureStore: SecureStoring
@@ -77,7 +77,11 @@ struct ProductionDependencies: SyncDependencies {
     }
 
     mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
-        self.endpoints = .init(serverEnvironment: serverEnvironment)
+        endpoints = .init(serverEnvironment: serverEnvironment)
+        updateAccount(AccountManager(endpoints: endpoints, api: api, crypter: crypter))
     }
 
+    mutating func updateAccount(_ account: AccountManaging) {
+        self.account = account
+    }
 }
