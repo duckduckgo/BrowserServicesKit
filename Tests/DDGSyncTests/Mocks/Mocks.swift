@@ -164,7 +164,7 @@ struct MockSyncDepenencies: SyncDependencies, SyncDependenciesDebuggingSupport {
         RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
     }
 
-    mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
+    func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
 }
 
 final class MockDataProvidersSource: DataProvidersSource {

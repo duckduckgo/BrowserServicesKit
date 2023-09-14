@@ -21,7 +21,7 @@ import Combine
 import Common
 
 protocol SyncDependenciesDebuggingSupport {
-    mutating func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
+    func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
 }
 
 protocol SyncDependencies: SyncDependenciesDebuggingSupport {
