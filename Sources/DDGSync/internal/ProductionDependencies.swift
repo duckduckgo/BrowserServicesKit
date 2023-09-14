@@ -22,8 +22,8 @@ import Common
 struct ProductionDependencies: SyncDependencies {
 
     let fileStorageUrl: URL
-    private(set) var endpoints: Endpoints
-    private(set) var account: AccountManaging
+    let endpoints: Endpoints
+    let account: AccountManaging
     let api: RemoteAPIRequestCreating
     var keyValueStore: KeyValueStoring
     let secureStore: SecureStoring
