@@ -44,9 +44,9 @@ public struct SettingsSyncMetadataSaveError: Error {
 public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate {
 
     public struct Setting: Hashable {
-        let key: String
+        public let key: String
 
-        init(key: String) {
+        public init(key: String) {
             self.key = key
         }
     }
@@ -55,22 +55,29 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         emailManager: EmailManagerSyncSupporting,
+        userDefaultsHandlers: [UserDefaultsSyncHandler],
         syncDidUpdateData: @escaping () -> Void
     ) {
         let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
+        let userDefaultsHandlersBySetting = userDefaultsHandlers.reduce(into: [Setting: any SettingsSyncHandling]()) { partialResult, handler in
+            partialResult[handler.setting] = handler
+        }
+
+        let settingsHandlers = userDefaultsHandlersBySetting
+            .merging([.emailProtectionGeneration: emailProtectionSyncHandler], uniquingKeysWith: { $1 })
 
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsHandlers: [
-                .emailProtectionGeneration: emailProtectionSyncHandler
-            ],
+            settingsHandlers: settingsHandlers,
             syncDidUpdateData: syncDidUpdateData
         )
 
         register(errorPublisher: errorSubject.eraseToAnyPublisher())
 
-        emailProtectionSyncHandler.delegate = self
+        settingsHandlers.values.forEach { handler in
+            handler.delegate = self
+        }
     }
 
     init(
@@ -297,7 +304,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         return idsOfItemsToClearModifiedAt
     }
 
-    func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
+    public func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
         updateMetadataTimestamp(for: handler.setting)
     }
 

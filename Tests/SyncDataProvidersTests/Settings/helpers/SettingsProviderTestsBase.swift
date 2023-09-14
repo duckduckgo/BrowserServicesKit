@@ -135,6 +135,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
             metadataDatabase: metadataDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
             emailManager: emailManager,
+            userDefaultsHandlers: [],
             syncDidUpdateData: {}
         )
     }

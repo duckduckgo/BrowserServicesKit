@@ -32,7 +32,7 @@ import Persistence
  *   * fine-tune Sync behavior for the setting,
  *   * track changes to setting's value and notify delegate accordingly.
  */
-protocol SettingsSyncHandling {
+public protocol SettingsSyncHandling: AnyObject {
     /**
      * Returns setting identifier that this handler supports.
      *
@@ -68,7 +68,7 @@ protocol SettingsSyncHandling {
  * It's implemented by SettingsProvider which owns Settings Sync Handlers
  * and sets itself as their delegate.
  */
-protocol SettingsSyncHandlingDelegate: AnyObject {
+public protocol SettingsSyncHandlingDelegate: AnyObject {
 
     /**
      * This function must be called whenever setting's value changes for a given Setting Sync Handler.
