@@ -22,9 +22,10 @@ import WebKit
 import BrowserServicesKit
 import Common
 
+
 protocol CustomUserAgentProtocol {
 
-    static func `for`(_ url: URL, isDesktop: Bool, privacyConfig: PrivacyConfiguration) -> String
+    static func `for`(_ url: URL, isFakingDesktop: Bool, privacyConfig: PrivacyConfiguration) -> String
 
 }
 
@@ -50,97 +51,140 @@ private enum Constant {
 
     enum Regex {
 
-        static let osVersion = " OS ([0-9_]+)"
-        static let webKitVersion = #"AppleWebKit\s*\/\s*([\d.]+)"#
+        static let osVersion = "(?<= OS )([0-9_]+)"
+        static let webKitVersion = "(?<=AppleWebKit/)([0-9_.]+)"
 
     }
 
     enum Fallback {
 
         static let webKitVersion = "605.1.15"
-        static let safariComponent = "Safari/\(webKitVersion)"
         static let safariVersion = "14.1.2"
-        static let defaultAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/\(webKitVersion) (KHTML, like Gecko) Mobile/15E148"
+
+        static let phoneWebView = "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/\(webKitVersion) (KHTML, like Gecko) Mobile/15E148"
+        static let padWebView = "Mozilla/5.0 (iPad; CPU OS 12_4 like Mac OS X) AppleWebKit/\(webKitVersion) (KHTML, like Gecko) Mobile/15E148"
+        static let desktopWebView = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/\(webKitVersion) (KHTML, like Gecko)"
 
     }
 
 }
 
-public struct CustomUserAgent: CustomUserAgentProtocol {
+enum Environment {
 
-    private static let safariVersion: String = { // provide mac version for this
-        #if os(macOS)
-            guard let range = webView.range(of: Constant.Regex.osVersion, options: .regularExpression) else { return Constant.Fallback.safariVersion } // different for mac i suppose
-            let osVersion = String(webView[range])
-            let versionComponents = osVersion.split(separator: "_").prefix(2)
-            return versionComponents.count > 1 ? "\(versionComponents.joined(separator: "."))" : Constant.Fallback.safariVersion
-        #else
+    case macOS
+    case iOS
 
-        #endif
+}
+
+public enum CustomUserAgent: CustomUserAgentProtocol {
+
+    @available(macOS 11, *)
+    public static func configure(withSafariVersion safariVersion: String, appMajorVersion: String) {
+        self.safariVersion = safariVersion
+        self.appMajorVersion = appMajorVersion
+    }
+    @available(iOS 13, *)
+    public static func configure(withAppMajorVersion appMajorVersion: String) {
+        self.appMajorVersion = appMajorVersion
+    }
+
+    private static var safariVersion: String = {
+        guard let range = webView.range(of: Constant.Regex.osVersion, options: .regularExpression) else { return Constant.Fallback.safariVersion }
+        let osVersion = String(webView[range])
+        let versionComponents = osVersion.split(separator: "_").prefix(2)
+        return versionComponents.count > 1 ? "\(versionComponents.joined(separator: "."))" : Constant.Fallback.safariVersion
     }()
+    private static var appMajorVersion: String = AppVersion.shared.majorVersionNumber
+
     private static let webKitVersion: String = {
         guard let range = webView.range(of: Constant.Regex.webKitVersion, options: .regularExpression) else { return Constant.Fallback.webKitVersion }
         return String(webView[range])
     }()
 
-    static var appMajorVersionNumber: String = AppVersion.shared.majorVersionNumber
-    static var webView = WKWebView().value(forKey: Constant.Key.userAgent) as? String ?? Constant.Fallback.defaultAgent // todo different fallback for mac? pad?
-    private static var webViewDesktop = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/\(webKitVersion) (KHTML, like Gecko)"
-//UIDevice.current.userInterfaceIdiom == .pad
-    private static let safariComponent = "\(Constant.Prefix.safari)\(webKitVersion)"
-    private static let applicationComponent = "\(Constant.Prefix.ddg)\(appMajorVersionNumber)"
-
-    private static let versionedWebView = makeVersionedWebViewUserAgent(webViewUserAgent: webView, version: safariVersion)
-    private static let versionedWebViewDesktop = makeVersionedWebViewUserAgent(webViewUserAgent: webViewDesktop, version: Constant.Fallback.safariVersion)
-
-    private static let safari = "\(versionedWebView) \(safariComponent)"
-    private static let safariDesktop = "\(versionedWebViewDesktop) \(safariComponent)"
-
-    private static let ddg = "\(versionedWebView) \(applicationComponent) \(safariComponent)"
-    private static let ddgDesktop = "\(versionedWebViewDesktop) \(applicationComponent) \(safariComponent)"
-
-    private static let ddgNoApplication = safari
-    private static let ddgNoApplicationDesktop = safariDesktop
-
-    private static let ddgNoVersion = "\(webView) \(applicationComponent) \(safariComponent)"
-    private static let ddgNoVersionDesktop = "\(webViewDesktop) \(applicationComponent) \(safariComponent)"
-
-    private static let ddgNoApplicationAndVersion = "\(webView) \(safariComponent)"
-    private static let ddgNoApplicationAndVersionDesktop = "\(webViewDesktop) \(safariComponent)"
-
-    private static func makeVersionedWebViewUserAgent(webViewUserAgent: String, version: String) -> String {
-        guard let range = webViewUserAgent.range(of: "Gecko)") else { return webViewUserAgent }
-        return webViewUserAgent.replacingCharacters(in: range.upperBound..<range.upperBound, with: " \(Constant.Prefix.version)\(version)")
-    }
-
-    private static let `default` = {
+    static var webView = WKWebView().value(forKey: Constant.Key.userAgent) as? String ?? fallbackWebView
+    static var currentEnvironment: Environment = {
         #if os(macOS)
-            safari
+            .macOS
         #else
-            ddg
+            .iOS
         #endif
     }()
 
-    public static func `for`(_ url: URL,
-                             isDesktop: Bool,
-                             privacyConfig: PrivacyConfiguration) -> String {
-        guard privacyConfig.isFeature(.customUserAgent, enabledForDomain: url.host) else { return isDesktop ? safariDesktop : safari }
-        guard !privacyConfig.webViewDefaultSites.contains(url: url) else { return isDesktop ? webViewDesktop : webView }
+    static let fallbackWebView: String = {
+        switch currentEnvironment {
+        case .macOS: return Constant.Fallback.desktopWebView
+        case .iOS:
+            #if os(iOS)
+                return UIDevice.current.userInterfaceIdiom == .pad ? Constant.Fallback.padWebView : Constant.Fallback.phoneWebView
+            #else
+                return ""
+            #endif
+        }
+    }()
 
-        let omitApplication = privacyConfig.omitApplicationSites.contains(url: url)
-        let omitVersion = privacyConfig.omitVersionSites.contains(url: url)
+    private static let fakedDesktopWebView = Constant.Fallback.desktopWebView
 
-        switch (omitApplication, omitVersion) {
-        case (true, true):
-            return isDesktop ? ddgNoApplicationAndVersionDesktop : ddgNoApplicationAndVersion
-        case (true, false):
-            return isDesktop ? ddgNoApplicationDesktop : ddgNoApplication
-        case (false, true):
-            return isDesktop ? ddgNoVersionDesktop : ddgNoVersion
-        default:
-            return isDesktop ? ddgDesktop : ddg
+    private static let safariComponent = "\(Constant.Prefix.safari)\(webKitVersion)"
+    private static let applicationComponent = "\(Constant.Prefix.ddg)\(appMajorVersion)"
+    private static let versionComponent = "\(Constant.Prefix.version)\(safariVersion)"
+
+    private static let versionedWebView = makeVersionedWebViewUserAgent(webViewUserAgent: webView)
+    private static let versionedWebViewDesktop = makeVersionedWebViewUserAgent(webViewUserAgent: fakedDesktopWebView)
+
+    private static let safari = "\(versionedWebView) \(safariComponent)"
+    private static let fakedDesktopSafari = "\(versionedWebViewDesktop) \(safariComponent)"
+
+    private static let ddg = "\(versionedWebView) \(applicationComponent) \(safariComponent)"
+    private static let fakedDesktopDDG = "\(versionedWebViewDesktop) \(applicationComponent) \(safariComponent)"
+
+    private static let fixedSafari = ""
+
+    // if we ever decide to introduce custom ddg user agent on macOS this is the only piece of code we should change
+    private static let custom: (Bool) -> String = { isFakingDesktop in
+        switch currentEnvironment {
+        case .macOS: return safari
+        case .iOS: return isFakingDesktop ? fakedDesktopDDG : ddg
         }
     }
+
+    private static func makeVersionedWebViewUserAgent(webViewUserAgent: String) -> String {
+        guard let range = webViewUserAgent.range(of: "Gecko)") else { return webViewUserAgent }
+        return webViewUserAgent.replacingCharacters(in: range.upperBound..<range.upperBound, with: " \(versionComponent)")
+    }
+
+    @available(macOS 11, *)
+    public static func `for`(_ url: URL, privacyConfig: PrivacyConfiguration) -> String {
+        if let userAgent = localUserAgentConfiguration.first(where: { (regex, _) in url.absoluteString.matches(regex) })?.value {
+            return userAgent
+        }
+        return self.for(url, isFakingDesktop: false, privacyConfig: privacyConfig)
+    }
+
+    @available(iOS 13, *)
+    public static func `for`(_ url: URL,
+                             isFakingDesktop: Bool,
+                             privacyConfig: PrivacyConfiguration) -> String {
+        guard privacyConfig.isFeature(.customUserAgent, enabledForDomain: url.host) else { return isFakingDesktop ? fakedDesktopSafari : safari }
+        guard !privacyConfig.webViewDefaultSites.contains(url: url) else { return isFakingDesktop ? fakedDesktopWebView : webView }
+
+        var custom = custom(isFakingDesktop)
+        if privacyConfig.omitApplicationSites.contains(url: url) {
+            custom.remove("\(applicationComponent) ")
+        }
+        if privacyConfig.omitVersionSites.contains(url: url) {
+            custom.remove("\(versionComponent) ")
+        }
+        return custom
+    }
+
+    @available(macOS 11, *)
+    static let localUserAgentConfiguration: KeyValuePairs<RegEx, String> = [
+        // use safari when serving up PDFs from duckduckgo directly
+        regex("https://duckduckgo\\.com/[^?]*\\.pdf"): safari,
+
+        // use default WKWebView user agent for duckduckgo domain to remove CTA
+        regex("https://duckduckgo\\.com/.*"): webView
+    ]
 
 }
 
@@ -167,8 +211,6 @@ private extension Array where Element == String {
 
 private extension String {
 
-    func removing(_ string: String) -> String {
-        replacingOccurrences(of: string, with: "")
-    }
+    mutating func remove(_ string: String) { self = replacingOccurrences(of: string, with: "") }
 
 }

@@ -51,7 +51,7 @@ final class CustomUserAgentTests: XCTestCase {
             // swiftlint:disable line_length
 
             static let phone = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.4 Mobile/15E148 DuckDuckGo/7 Safari/605.1.15"
-            static let desktop = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 DuckDuckGo/7 Safari/605.1.15"
+            static let desktop = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.4 DuckDuckGo/7 Safari/605.1.15"
 
             static let noApplication = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.4 Mobile/15E148 Safari/605.1.15"
             static let noVersion = "Mozilla/5.0 (iPhone; CPU iPhone OS 12_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 DuckDuckGo/7 Safari/605.1.15"
@@ -123,8 +123,9 @@ final class CustomUserAgentTests: XCTestCase {
     private var privacyConfig: PrivacyConfiguration!
     private let customUserAgent: CustomUserAgent.Type = {
         let customUserAgent = CustomUserAgent.self
-        customUserAgent.appMajorVersionNumber = "7"
+        customUserAgent.configure(withAppMajorVersion: "7")
         customUserAgent.webView = Constant.DefaultAgent.phone
+        customUserAgent.currentEnvironment = .iOS
         return customUserAgent
     }()
 
@@ -141,16 +142,17 @@ final class CustomUserAgentTests: XCTestCase {
                                                   internalUserDecider: DefaultInternalUserDecider())
 
         privacyConfig = manager.privacyConfig
+
     }
 
     func testWhenPhoneUserAgentAndDesktopFalseThenPhoneAgentCreatedWithApplicationAndSafariSuffix() {
         XCTAssertEqual(Constant.ExpectedAgent.phone,
-                       customUserAgent.for(Constant.TestURL.example, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.example, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
     func testWhenPhoneUserAgentAndDesktopTrueThenDesktopAgentCreatedWithApplicationAndSafariSuffix() {
         XCTAssertEqual(Constant.ExpectedAgent.desktop,
-                       customUserAgent.for(Constant.TestURL.example, isDesktop: true, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.example, isFakingDesktop: true, privacyConfig: privacyConfig))
     }
 
 //    func testWhenNoUAAndDesktopFalseThenFallbackMobileAgentIsUsed() {
@@ -165,37 +167,37 @@ final class CustomUserAgentTests: XCTestCase {
 
     func testWhenPhoneUserAgentAndDesktopFalseAndDomainDoesNotSupportSafariUserAgentThenItDefaultsToWebViewUserAgent() {
         XCTAssertEqual(Constant.ExpectedAgent.webView,
-                       customUserAgent.for(Constant.TestURL.noSafariURL, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.noSafariURL, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
     func testWhenPhoneUserAgentAndDesktopTrueAndDomainDoesNotSupportSafariUserAgentThenItDefaultsToDesktopWebViewUserAgent() {
         XCTAssertEqual(Constant.ExpectedAgent.webViewDesktop,
-                       customUserAgent.for(Constant.TestURL.noSafariURL, isDesktop: true, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.noSafariURL, isFakingDesktop: true, privacyConfig: privacyConfig))
     }
 
     func testWhenDomainDoesNotSupportApplicationComponentThenApplicationIsOmittedFromUA() {
         XCTAssertEqual(Constant.ExpectedAgent.noApplication,
-                       customUserAgent.for(Constant.TestURL.noAppURL, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.noAppURL, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
     func testWhenDomainDoesNotSupportVersionComponentThenVersionIsOmittedFromUA() {
         XCTAssertEqual(Constant.ExpectedAgent.noVersion,
-                       customUserAgent.for(Constant.TestURL.noVersionURL, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.noVersionURL, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
     func testWhenDomainDoesNotSupportVersionAndApplicationComponentsThenVersionAndApplicationAreOmittedFromUA() {
         XCTAssertEqual(Constant.ExpectedAgent.noApplicationAndVersion,
-                       customUserAgent.for(Constant.TestURL.noAppAndVersionURL, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.noAppAndVersionURL, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
     func testWhenDomainIsOnExceptionsListThenItDefaultsToSafariUA() {
         XCTAssertEqual(Constant.ExpectedAgent.safari,
-                       customUserAgent.for(Constant.TestURL.exceptionURL, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.exceptionURL, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
     func testWhenDomainIsOnUnprotectedTemporaryListThenItDefaultsToSafariUA() {
         XCTAssertEqual(Constant.ExpectedAgent.safari,
-                       customUserAgent.for(Constant.TestURL.unprotectedTemporaryURL, isDesktop: false, privacyConfig: privacyConfig))
+                       customUserAgent.for(Constant.TestURL.unprotectedTemporaryURL, isFakingDesktop: false, privacyConfig: privacyConfig))
     }
 
 //    func testWhenDomainIsOnUnprotectedTemporaryListThenItDefaultsToSafariUA() {
@@ -232,8 +234,9 @@ final class CustomUserAgentTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: mockProtectionStore,
                                                   internalUserDecider: DefaultInternalUserDecider())
+
         XCTAssertEqual(Constant.ExpectedAgent.safari, customUserAgent.for(Constant.TestURL.example,
-                                                                          isDesktop: false,
+                                                                          isFakingDesktop: false,
                                                                           privacyConfig: manager.privacyConfig))
     }
 }
