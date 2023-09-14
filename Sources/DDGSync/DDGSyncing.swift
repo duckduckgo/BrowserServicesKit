@@ -153,7 +153,7 @@ public protocol DDGSyncingDebuggingSupport {
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
 }
 
-public enum ServerEnvironment {
+public enum ServerEnvironment: LosslessStringConvertible {
     case development
     case production
 
@@ -163,6 +163,26 @@ public enum ServerEnvironment {
             return URL(string: "https://dev-sync-use.duckduckgo.com")!
         case .production:
             return URL(string: "https://sync.duckduckgo.com")!
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .development:
+            return "Development"
+        case .production:
+            return "Production"
+        }
+    }
+
+    public init?(_ description: String) {
+        switch description {
+        case "Development":
+            self = .development
+        case "Production":
+            self = .production
+        default:
+            return nil
         }
     }
 }
