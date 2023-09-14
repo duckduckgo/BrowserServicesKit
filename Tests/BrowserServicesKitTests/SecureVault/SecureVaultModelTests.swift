@@ -418,7 +418,9 @@ class SecureVaultModelTests: XCTestCase {
             "Canva Pro Design Tools",
             "Groupon - Best Deals!",
             "Twitter (follows 500+)",
-            "Zillow Home Searches"
+            "Zillow Home Searches",
+            "twitter.com my account",
+            "fill.dev  personal email"
         ]
                         
         for title in domainTitles {

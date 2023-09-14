@@ -63,7 +63,7 @@ public struct SecureVaultModels {
              https://signin.duck.com (test@duck.com.co) -> signin.duck.com
              (See SecureVaultModelTests.testPatternMatchedTitle() for more examples)
              */
-            case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)"#
+            case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)(?=\s*\(|\s*\/|\s*\?|$)"#
         }
 
         public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
