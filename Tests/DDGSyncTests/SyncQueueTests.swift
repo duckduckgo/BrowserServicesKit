@@ -33,7 +33,7 @@ class SyncQueueTests: XCTestCase {
         apiMock = RemoteAPIRequestCreatingMock()
         request = HTTPRequestingMock()
         apiMock.request = request
-        endpoints = Endpoints(baseUrl: URL(string: "https://example.com")!)
+        endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
         storage = SecureStorageStub()
         crypter = CryptingMock()
         try storage.persistAccount(
