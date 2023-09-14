@@ -160,9 +160,6 @@ public struct SecureVaultModels {
             return title
         }
 
-        
-        
-  
     }
 
     public struct CreditCard {
