@@ -177,7 +177,7 @@ public class DDGSync: DDGSyncing {
         try? updateAccount(nil)
         dependencies.updateServerEnvironment(serverEnvironment)
         authState = .initializing
-        initializeIfNeeded(isInternalUser: false)
+        initializeIfNeeded()
     }
 
     // MARK: -
@@ -189,27 +189,13 @@ public class DDGSync: DDGSyncing {
         self.dependencies = dependencies
     }
 
-    public func initializeIfNeeded(isInternalUser: Bool) {
+    public func initializeIfNeeded() {
         guard authState == .initializing else { return }
 
         let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
         guard syncEnabled else {
-            // This is for initial tests only
-            if isInternalUser {
-                // Migrate and start using user defaults flag
-                do {
-                    let account = try dependencies.secureStore.account()
-                    authState = account?.state ?? .inactive
-                    try updateAccount(account)
-
-                } catch {
-                    dependencies.errorEvents.fire(.failedToMigrate, error: error)
-                }
-            } else {
-                try? dependencies.secureStore.removeAccount()
-                authState = .inactive
-            }
-
+            try? dependencies.secureStore.removeAccount()
+            authState = .inactive
             return
         }
 

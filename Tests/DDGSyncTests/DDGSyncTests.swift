@@ -117,7 +117,7 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.requestSyncImmediately()
@@ -155,7 +155,7 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.requestSyncImmediately()
@@ -200,7 +200,7 @@ final class DDGSyncTests: XCTestCase {
 
         dataProvidersSource.dataProviders = [bookmarksDataProvider, credentialsDataProvider]
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.requestSyncImmediately()
@@ -235,7 +235,7 @@ final class DDGSyncTests: XCTestCase {
 
         dataProvidersSource.dataProviders = [bookmarksDataProvider, credentialsDataProvider]
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.requestSyncImmediately()
@@ -282,7 +282,7 @@ final class DDGSyncTests: XCTestCase {
 
         dataProvidersSource.dataProviders = [bookmarksDataProvider, credentialsDataProvider]
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.requestSyncImmediately()
@@ -316,7 +316,7 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
 
         isInProgressCancellable = syncService.isSyncInProgressPublisher.sink { [weak syncService] isInProgress in
             if isInProgress {
@@ -364,7 +364,7 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.cancelSyncAndSuspendSyncQueue()
@@ -390,7 +390,7 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.cancelSyncAndSuspendSyncQueue()
@@ -420,7 +420,7 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource.dataProviders = [dataProvider]
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
-        syncService.initializeIfNeeded(isInternalUser: false)
+        syncService.initializeIfNeeded()
         bindInProgressPublisher(for: syncService)
 
         syncService.scheduler.requestSyncImmediately()

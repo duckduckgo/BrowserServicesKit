@@ -87,7 +87,7 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     /**
      Initializes Sync object, loads account info and prepares internal state.
      */
-    func initializeIfNeeded(isInternalUser: Bool)
+    func initializeIfNeeded()
 
     /**
      Creates an account.
