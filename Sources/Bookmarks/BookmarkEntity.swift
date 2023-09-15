@@ -25,6 +25,15 @@ public enum FavoritesDisplayMode: Equatable {
     case displayNative(FavoritesPlatform)
     case displayAll(native: FavoritesPlatform)
 
+    public var isDisplayAll: Bool {
+        switch self {
+        case .displayNative:
+            return false
+        case .displayAll:
+            return true
+        }
+    }
+
     public var displayedPlatform: FavoritesPlatform {
         switch self {
         case .displayNative(let platform):
