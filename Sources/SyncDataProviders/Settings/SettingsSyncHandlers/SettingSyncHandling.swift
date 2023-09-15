@@ -1,5 +1,5 @@
 //
-//  SettingsSyncHandling.swift
+//  SettingSyncHandling.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -32,7 +32,9 @@ import Persistence
  *   * fine-tune Sync behavior for the setting,
  *   * track changes to setting's value and notify delegate accordingly.
  */
-public protocol SettingsSyncHandling: AnyObject {
+protocol SettingSyncHandling: AnyObject {
+
+    var valueDidChangePublisher: AnyPublisher<Void, Never> { get }
     /**
      * Returns setting identifier that this handler supports.
      *
@@ -59,19 +61,19 @@ public protocol SettingsSyncHandling: AnyObject {
      *
      * The delegate must be set, otherwise an assertion failure is called.
      */
-    var delegate: SettingsSyncHandlingDelegate? { get set }
+    var delegate: SettingSyncHandlingDelegate? { get set }
 }
 
 /**
- * Protocol defining delegate interface for Settings Sync Handler.
+ * Protocol defining delegate interface for Setting Sync Handler.
  *
  * It's implemented by SettingsProvider which owns Settings Sync Handlers
  * and sets itself as their delegate.
  */
-public protocol SettingsSyncHandlingDelegate: AnyObject {
+protocol SettingSyncHandlingDelegate: AnyObject {
 
     /**
      * This function must be called whenever setting's value changes for a given Setting Sync Handler.
      */
-    func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling)
+    func syncHandlerDidUpdateSettingValue(_ handler: SettingSyncHandling)
 }

@@ -27,7 +27,7 @@ import Persistence
 /**
  * Error that may occur while updating timestamp when a setting changes.
  *
- * This error should be published via `SettingsSyncHandling.errorPublisher`
+ * This error should be published via `SettingSyncHandling.errorPublisher`
  * whenever settings metadata database fails to save changes after updating
  * timestamp for a given setting.
  *
@@ -41,7 +41,7 @@ public struct SettingsSyncMetadataSaveError: Error {
     }
 }
 
-public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate {
+public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
     public struct Setting: Hashable {
         public let key: String
@@ -55,11 +55,11 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         emailManager: EmailManagerSyncSupporting,
-        userDefaultsHandlers: [UserDefaultsSyncHandler],
+        userDefaultsHandlers: [SettingSyncHandler],
         syncDidUpdateData: @escaping () -> Void
     ) {
         let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
-        let userDefaultsHandlersBySetting = userDefaultsHandlers.reduce(into: [Setting: any SettingsSyncHandling]()) { partialResult, handler in
+        let userDefaultsHandlersBySetting = userDefaultsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
             partialResult[handler.setting] = handler
         }
 
@@ -83,7 +83,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
     init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        settingsHandlers: [Setting: any SettingsSyncHandling],
+        settingsHandlers: [Setting: any SettingSyncHandling],
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
@@ -304,7 +304,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         return idsOfItemsToClearModifiedAt
     }
 
-    public func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
+    func syncHandlerDidUpdateSettingValue(_ handler: SettingSyncHandling) {
         updateMetadataTimestamp(for: handler.setting)
     }
 
@@ -341,7 +341,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
     }
 
     private let metadataDatabase: CoreDataDatabase
-    private let settingsHandlers: [Setting: any SettingsSyncHandling]
+    private let settingsHandlers: [Setting: any SettingSyncHandling]
     private let errorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {
