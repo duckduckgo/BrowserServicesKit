@@ -35,13 +35,7 @@ public extension String {
 
     static let localhost = "localhost"
 
-    func length() -> Int {
-        self.utf16.count
-    }
-
-    var fullRange: NSRange {
-        return NSRange(location: 0, length: length())
-    }
+    // MARK: Prefix/Suffix
 
     func trimmingWhitespace() -> String {
         return trimmingCharacters(in: .whitespacesAndNewlines)
@@ -93,6 +87,8 @@ public extension String {
         return normalizedString
     }
 
+    // MARK: Host name validation
+
     var isValidHost: Bool {
         return isValidHostname || isValidIpHost
     }
@@ -108,6 +104,8 @@ public extension String {
         return false
     }
 
+    // MARK: Regex
+
     func matches(_ regex: NSRegularExpression) -> Bool {
         let matches = regex.matches(in: self, options: .anchored, range: self.fullRange)
         return matches.count == 1
@@ -121,7 +119,7 @@ public extension String {
     }
 
     func replacing(_ regex: NSRegularExpression, with replacement: String) -> String {
-        regex.stringByReplacingMatches(in: self, range: NSRange(location: 0, length: utf16.count), withTemplate: replacement)
+        regex.stringByReplacingMatches(in: self, range: self.fullRange, withTemplate: replacement)
     }
 
     func replacing(regex pattern: String, with replacement: String) -> String {
@@ -131,6 +129,22 @@ public extension String {
 }
 
 public extension StringProtocol {
+
+    // MARK: NSRange
+
+    var fullRange: NSRange {
+        NSRange(startIndex..<endIndex, in: self)
+    }
+
+    func length() -> Int {
+        self.fullRange.length
+    }
+
+    subscript (_ range: NSRange) -> Self.SubSequence? {
+        Range(range, in: self).map { self[$0] }
+    }
+
+    // MARK: Percent encoding
 
     // Replaces plus symbols in a string with the space character encoding
     // Space UTF-8 encoding is 0x20
