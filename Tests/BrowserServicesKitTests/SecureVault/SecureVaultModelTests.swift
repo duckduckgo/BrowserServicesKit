@@ -330,4 +330,129 @@ class SecureVaultModelTests: XCTestCase {
         }
     }
 
+    func testPatternMatchedTitle() {
+        
+        let domainTitles: [String] = [
+            "duck.com",
+            "duck.com (test@duck.com)",
+            "https://duck.com",
+            "https://duck.com (test@duck.com)",
+            "https://duck.com?page.php?test=variable1&b=variable2",
+            "https://duck.com/section/page.php?test=variable1&b=variable2",
+            "www.duck.com",
+            "www.duck.com (test@duck.com)",
+            "https://www.duck.com",
+            "https://www.duck.com (test@duck.com)",
+            "https://www.duck.com?page.php?test=variable1&b=variable2",
+            "https://www.duck.com/section/page.php?test=variable1&b=variable2",
+            "https://WwW.dUck.com/section/page"
+        ]
+        
+        let subdomainTitles: [String] = [
+            "signin.duck.com",
+            "signin.duck.com (test@duck.com.co)",
+            "https://signin.duck.com",
+            "https://signin.duck.com (test@duck.com.co)",
+            "https://signin.duck.com?page.php?test=variable1&b=variable2",
+            "https://signin.duck.com/section/page.php?test=variable1&b=variable2",
+            "https://SiGnIn.dUck.com/section/page"
+        ]
+        
+        let tldPlusOneTitles: [String] = [
+            "signin.duck.com.co",
+            "signin.duck.com.co (test@duck.com.co)",
+            "https://signin.duck.com.co",
+            "https://signin.duck.com.co (test@duck.com.co)",
+            "https://signin.duck.com.co?page.php?test=variable1&b=variable2",
+            "https://signin.duck.com.co/section/page.php?test=variable1&b=variable2",
+            "https://SiGnIn.dUck.com.CO/section/page"
+        ]
+        
+        let randomTitles: [String] = [
+            "John's Work Gmail",
+            "Chase Bank - Main Account",
+            "FB - Old College Friends",
+            "Amazon (signed up in 2010!)",
+            "Netflix - Sharing with Family",
+            "HSBC Savings (emergency funds)",
+            "Reddit Secret Account 🤫",
+            "LinkedIn (need to update resume)",
+            "Google Drive - Trip Photos",
+            "Spotify (got on sale)",
+            "Airbnb Host Profile",
+            "@JanePhotography on Insta",
+            "PayPal (linked to Visa)",
+            "eBay (mostly for vintage buys)",
+            "Dropbox Pro Subscription",
+            "Blogger - Childhood Diary",
+            "Zoom Yoga Classes",
+            "Slack for Uni Group Project",
+            "Office 365 (from work)",
+            "Github (learning Python projects)",
+            "Adobe - Annual Subscription",
+            "Steam Gamer Acct (JohnD_91)",
+            "NYT Digital - Daily Reads",
+            "Diet Tracker - Keto Journey",
+            "UberEats (too many orders lol)",
+            "Twitch (streaming on weekends)",
+            "Pinterest Board - DIY Projects",
+            "Disney+ Kids Account",
+            "Squarespace Portfolio Site",
+            "Apple ID (old email)",
+            "Walmart Online Shopping Cart",
+            "Duolingo - 100-day streak!",
+            "Yelp (foodie reviews)",
+            "My Uni Library Login",
+            "Trello Board for Home Reno",
+            "Asana (Team XYZ project)",
+            "Bitbucket (web dev stuff)",
+            "Hulu - free trial ending soon",
+            "Starbucks Rewards Card",
+            "PlayStation Network (PS5)",
+            "Goodreads (reading challenge 2023)",
+            "Skype Old Account",
+            "Robinhood Stock Trades",
+            "Minecraft (John's server)",
+            "Postmates (frequent discounts)",
+            "BestBuy Member Rewards",
+            "Canva Pro Design Tools",
+            "Groupon - Best Deals!",
+            "Twitter (follows 500+)",
+            "Zillow Home Searches",
+            "twitter.com my account",
+            "fill.dev  personal email"
+        ]
+                        
+        for title in domainTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
+            
+            let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "duck.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+        for title in subdomainTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("signin.duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
+            
+            let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+        for title in tldPlusOneTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("signin.duck.com.co", account.patternMatchedTitle(), "Failed for title: \(title)")
+            
+            let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com.co", created: Date(), lastUpdated: Date())
+            XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+        for title in randomTitles {
+            let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
+            XCTAssertEqual(title, account.patternMatchedTitle(), "Failed for title: \(title)")
+        }
+        
+    }
+    
+    
 }
