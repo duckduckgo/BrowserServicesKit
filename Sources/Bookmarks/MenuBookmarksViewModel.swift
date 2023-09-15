@@ -104,8 +104,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         
         if let bookmark = queriedBookmark {
             if bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform) {
-                let folders = BookmarkUtils.fetchFavoritesFoldersForUnfavoriting(bookmark, for: favoritesDisplayMode, in: context)
-                bookmark.removeFromFavorites(folders: folders)
+                bookmark.removeFromFavorites(for: favoritesDisplayMode)
             } else {
                 let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
                 bookmark.addToFavorites(folders: folders)

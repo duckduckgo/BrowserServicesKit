@@ -119,8 +119,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             return
         }
 
-        let folders = BookmarkUtils.fetchFavoritesFoldersForUnfavoriting(favorite, for: favoritesDisplayMode, in: context)
-        favorite.removeFromFavorites(folders: folders)
+        favorite.removeFromFavorites(for: favoritesDisplayMode)
 
         save()
         
