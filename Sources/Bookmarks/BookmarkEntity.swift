@@ -242,11 +242,10 @@ public class BookmarkEntity: NSManagedObject {
         }
     }
 
-    public func removeFromFavorites() {
-        guard let favoriteFolders else {
-            return
+    public func removeFromFavorites(folders: [BookmarkEntity]) {
+        for root in folders {
+            root.removeFromFavorites(self)
         }
-        removeFromFavoriteFolders(favoriteFolders)
     }
 
     public func removeFromFavorites(favoritesRoot: BookmarkEntity) {
