@@ -534,6 +534,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
+                // It's important to call this completiong handler before running the tester
+                // as if we don't, the tester will just fail.  It seems like the connection
+                // won't fully work until the completion handler is called.
                 completionHandler(nil)
 
                 do {
