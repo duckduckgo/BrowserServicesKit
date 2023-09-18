@@ -540,12 +540,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
                     try await self.handleAdapterStarted(startReason: startReason)
                 } catch {
-                    //completionHandler(error)
                     self.cancelTunnelWithError(error)
                     return
                 }
-
-                //completionHandler(nil)
             }
         }
     }
