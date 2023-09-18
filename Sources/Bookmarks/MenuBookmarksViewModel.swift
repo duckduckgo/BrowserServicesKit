@@ -113,8 +113,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
                                                        url: url.absoluteString,
                                                        parent: rootFolder,
                                                        context: context)
-            let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
-            favorite.addToFavorites(folders: folders)
+            favorite.addToFavorites(with: favoritesDisplayMode, in: context)
         }
         
         save()
