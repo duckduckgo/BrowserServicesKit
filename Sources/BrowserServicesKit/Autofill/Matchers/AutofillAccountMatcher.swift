@@ -32,7 +32,7 @@ public struct AccountMatches {
 }
 
 public protocol AutofillAccountMatcher {
-    func findMatchesSortedByLastUpdated(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches
+    func findDeduplicatedSortedMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches
     func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> [SecureVaultModels.WebsiteAccount]
 }
 
@@ -46,10 +46,9 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         self.tld = tld
     }
 
-    @available(*, deprecated, message: "Use findMatches(accounts:for:) -- Which returns an already sorted list with removed duplicates")
-    public func findMatchesSortedByLastUpdated(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches {
-        let matches = buildMatches(accounts: accounts, for: url)
-        return sort(matches: matches)
+    public func findDeduplicatedSortedMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> AccountMatches {
+        let deduplicatedAndSortedMatches = findMatches(accounts: accounts, for: url)
+        return buildMatches(accounts: deduplicatedAndSortedMatches, for: url)
     }
 
     /// Builds a list of accounts that are perfect matches for the given url
@@ -77,12 +76,6 @@ public struct AutofillWebsiteAccountMatcher: AutofillAccountMatcher {
         }
 
         return AccountMatches(perfectMatches: perfectMatches, partialMatches: partialMatches)
-    }
-
-    private func sort(matches: AccountMatches) -> AccountMatches {
-        let sortedPerfectMatches = matches.perfectMatches.sorted { $0.lastUpdated > $1.lastUpdated }
-        let partialMatches = matches.partialMatches.mapValues { $0.sorted { $0.lastUpdated > $1.lastUpdated } }
-        return AccountMatches(perfectMatches: sortedPerfectMatches, partialMatches: partialMatches)
     }
 
     public func findMatches(accounts: [SecureVaultModels.WebsiteAccount], for url: String) -> [SecureVaultModels.WebsiteAccount] {
