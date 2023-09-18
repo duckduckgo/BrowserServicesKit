@@ -113,7 +113,8 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public func toggleFavorite(_ bookmark: BookmarkEntity) {
         if bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform) {
-            bookmark.removeFromFavorites(for: favoritesDisplayMode)
+            let folders = BookmarkUtils.favoritesFoldersForUnfavoriting(of: bookmark, with: favoritesDisplayMode)
+            bookmark.removeFromFavorites(folders: folders)
         } else {
             let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
             bookmark.addToFavorites(folders: folders)

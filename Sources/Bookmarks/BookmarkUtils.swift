@@ -30,8 +30,21 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
 
-    public static func fetchFavoritesFolders(for configuration: FavoritesDisplayMode, in context: NSManagedObjectContext) -> [BookmarkEntity] {
-        configuration.folderUUIDs.compactMap { fetchFavoritesFolder(withUUID: $0, in: context) }
+    public static func fetchFavoritesFolders(for displayMode: FavoritesDisplayMode, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        displayMode.folderUUIDs.compactMap { fetchFavoritesFolder(withUUID: $0, in: context) }
+    }
+
+    public static func favoritesFoldersForUnfavoriting(of bookmark: BookmarkEntity, with displayMode: FavoritesDisplayMode) -> [BookmarkEntity] {
+        // if displayAll - always remove from all
+        // if displayNative:
+        //   - if favorited on non-native: only remove from native
+        //   - else remove from native and all
+        let isFavoritedOnlyOnNativeFormFactor = Set(bookmark.favoriteFoldersSet.compactMap(\.uuid)) == displayMode.folderUUIDs
+
+        if displayMode.isDisplayAll || isFavoritedOnlyOnNativeFormFactor {
+            return Array(bookmark.favoriteFoldersSet)
+        }
+        return bookmark.favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativePlatform.rawValue }).flatMap(Array.init) ?? []
     }
 
     public static func fetchFavoritesFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {

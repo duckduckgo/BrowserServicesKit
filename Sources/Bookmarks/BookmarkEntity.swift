@@ -248,20 +248,6 @@ public class BookmarkEntity: NSManagedObject {
         }
     }
 
-    public func removeFromFavorites(for displayMode: FavoritesDisplayMode) {
-        // if displayAll - always remove from all
-        // if displayNative:
-        //   - if favorited on non-native: only remove from native
-        //   - else remove from native and all
-        if displayMode.isDisplayAll || Set(favoriteFoldersSet.compactMap(\.uuid)) == displayMode.folderUUIDs {
-            for root in favoriteFoldersSet {
-                root.removeFromFavorites(self)
-            }
-        } else {
-            favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativePlatform.rawValue })?.removeFromFavorites(self)
-        }
-    }
-
     public func removeFromFavorites(favoritesRoot: BookmarkEntity) {
         removeFromFavoriteFolders(favoritesRoot)
     }

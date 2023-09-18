@@ -182,7 +182,8 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public func removeFromFavorites() {
         assert(bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
-        bookmark.removeFromFavorites(for: favoritesDisplayMode)
+        let folders = BookmarkUtils.favoritesFoldersForUnfavoriting(of: bookmark, with: favoritesDisplayMode)
+        bookmark.removeFromFavorites(folders: folders)
     }
 
     public func addToFavorites() {
