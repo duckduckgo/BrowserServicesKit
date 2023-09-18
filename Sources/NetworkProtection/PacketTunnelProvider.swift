@@ -233,16 +233,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Connection tester
 
-    private var isConnectionTesterEnabled: Bool {
-        get {
-            let value = UserDefaults.standard.bool(forKey: "isConnectionTesterEnabled")
-            return value
-        }
-
-        set {
-            UserDefaults.standard.set(newValue, forKey: "isConnectionTesterEnabled")
-        }
-    }
+    private var isConnectionTesterEnabled: Bool = true
 
     private lazy var connectionTester: NetworkProtectionConnectionTester = {
         NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] (result, isStartupTest) in
