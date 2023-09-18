@@ -60,7 +60,7 @@ public struct ModifiedAtConstraint {
 }
 
 public enum BookmarkTreeNode {
-    case bookmark(id: String, name: String?, url: String?, favoritedOn: [FavoritesPlatform], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
+    case bookmark(id: String, name: String?, url: String?, favoritedOn: [FavoritesFolderID], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
     case folder(id: String, name: String?, children: [BookmarkTreeNode], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
 
     public var id: String {
@@ -126,13 +126,13 @@ public struct Bookmark: BookmarkTreeNodeConvertible {
     var id: String
     var name: String?
     var url: String?
-    var favoritedOn: [FavoritesPlatform]
+    var favoritedOn: [FavoritesFolderID]
     var modifiedAt: Date?
     var isDeleted: Bool
     var isOrphaned: Bool
     var modifiedAtConstraint: ModifiedAtConstraint?
 
-    public init(_ name: String? = nil, id: String? = nil, url: String? = nil, favoritedOn: [FavoritesPlatform] = [], modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil) {
+    public init(_ name: String? = nil, id: String? = nil, url: String? = nil, favoritedOn: [FavoritesFolderID] = [], modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.url = (url ?? name) ?? id
@@ -203,7 +203,7 @@ public struct BookmarkTree {
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         rootFolder.modifiedAt = modifiedAt
-        let favoritesFolders = FavoritesPlatform.allCases.map { BookmarkUtils.fetchFavoritesFolder(withUUID: $0.rawValue, in: context)! }
+        let favoritesFolders = FavoritesFolderID.allCases.map { BookmarkUtils.fetchFavoritesFolder(withUUID: $0.rawValue, in: context)! }
         var orphans = [BookmarkEntity]()
         var modifiedAtConstraints = [String: ModifiedAtConstraint]()
         if let modifiedAtConstraint {

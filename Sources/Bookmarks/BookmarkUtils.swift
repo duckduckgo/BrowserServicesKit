@@ -85,15 +85,15 @@ public struct BookmarkUtils {
         }
     }
 
-    public static func migrateToFormFactorSpecificFavorites(byCopyingExistingTo platform: FavoritesPlatform, in context: NSManagedObjectContext) {
+    public static func migrateToFormFactorSpecificFavorites(byCopyingExistingTo platform: FavoritesFolderID, in context: NSManagedObjectContext) {
         assert(platform != .all, "You must specify either desktop or mobile platform")
 
-        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context) else {
+        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.all.rawValue, in: context) else {
             return
         }
 
-        if BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.desktopFavoritesFolderID, in: context) == nil {
-            let desktopFavoritesFolder = insertRootFolder(uuid: BookmarkEntity.Constants.desktopFavoritesFolderID, into: context)
+        if BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.desktop.rawValue, in: context) == nil {
+            let desktopFavoritesFolder = insertRootFolder(uuid: FavoritesFolderID.desktop.rawValue, into: context)
 
             if platform == .desktop {
                 favoritesFolder.favoritesArray.forEach { bookmark in
@@ -104,8 +104,8 @@ public struct BookmarkUtils {
             }
         }
 
-        if BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.mobileFavoritesFolderID, in: context) == nil {
-            let mobileFavoritesFolder = insertRootFolder(uuid: BookmarkEntity.Constants.mobileFavoritesFolderID, into: context)
+        if BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context) == nil {
+            let mobileFavoritesFolder = insertRootFolder(uuid: FavoritesFolderID.mobile.rawValue, into: context)
 
             if platform == .mobile {
                 favoritesFolder.favoritesArray.forEach { bookmark in

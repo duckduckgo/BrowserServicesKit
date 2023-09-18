@@ -368,7 +368,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         var favoritesFolder: BookmarkEntity!
         context.performAndWait {
-            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context)
+            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.all.rawValue, in: context)
         }
         XCTAssertNotNil(favoritesFolder.modifiedAt)
     }

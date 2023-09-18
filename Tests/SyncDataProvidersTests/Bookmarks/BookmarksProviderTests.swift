@@ -74,9 +74,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                 Bookmark("Bookmark 6", id: "6", modifiedAtConstraint: .notNil())
             })
 
-            // todo
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: BookmarkEntity.Constants.favoritesFolderID, in: context)!
-            XCTAssertNotNil(favoritesFolder.modifiedAt)
+            let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: .displayAll(native: .mobile), in: context)
+            XCTAssertTrue(favoritesFolders.allSatisfy { $0.modifiedAt != nil })
         }
     }
 
@@ -98,7 +97,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
-            BookmarkEntity.Constants.allReservedFoldersIDs.union(["1"])
+            BookmarkEntity.Constants.favoriteFoldersIDs.union(["1", BookmarkEntity.Constants.rootFolderID])
         )
     }
 

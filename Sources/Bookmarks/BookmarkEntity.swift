@@ -22,8 +22,8 @@ import Foundation
 import CoreData
 
 public enum FavoritesDisplayMode: Equatable {
-    case displayNative(FavoritesPlatform)
-    case displayAll(native: FavoritesPlatform)
+    case displayNative(FavoritesFolderID)
+    case displayAll(native: FavoritesFolderID)
 
     public var isDisplayAll: Bool {
         switch self {
@@ -34,7 +34,7 @@ public enum FavoritesDisplayMode: Equatable {
         }
     }
 
-    public var displayedPlatform: FavoritesPlatform {
+    public var displayedPlatform: FavoritesFolderID {
         switch self {
         case .displayNative(let platform):
             return platform
@@ -43,7 +43,7 @@ public enum FavoritesDisplayMode: Equatable {
         }
     }
 
-    public var nativePlatform: FavoritesPlatform {
+    public var nativePlatform: FavoritesFolderID {
         switch self {
         case .displayNative(let native), .displayAll(let native):
             return native
@@ -51,11 +51,11 @@ public enum FavoritesDisplayMode: Equatable {
     }
 
     public var folderUUIDs: Set<String> {
-        return [nativePlatform.rawValue, FavoritesPlatform.all.rawValue]
+        return [nativePlatform.rawValue, FavoritesFolderID.all.rawValue]
     }
 }
 
-public enum FavoritesPlatform: String, CaseIterable {
+public enum FavoritesFolderID: String, CaseIterable {
     case mobile = "mobile_favorites_root"
     case desktop = "desktop_favorites_root"
     case all = "favorites_root"
@@ -66,26 +66,11 @@ public class BookmarkEntity: NSManagedObject {
     
     public enum Constants {
         public static let rootFolderID = "bookmarks_root"
-        public static let favoritesFolderID = "favorites_root"
-        public static let mobileFavoritesFolderID = "mobile_favorites_root"
-        public static let desktopFavoritesFolderID = "desktop_favorites_root"
-
-        public static let favoriteFoldersIDs: Set<String> = [
-            desktopFavoritesFolderID,
-            mobileFavoritesFolderID,
-            favoritesFolderID
-        ]
-
-        public static let allReservedFoldersIDs: Set<String> = [
-            rootFolderID,
-            desktopFavoritesFolderID,
-            mobileFavoritesFolderID,
-            favoritesFolderID
-        ]
+        public static let favoriteFoldersIDs: Set<String> = Set(FavoritesFolderID.allCases.map(\.rawValue))
     }
 
     public static func isValidFavoritesFolderID(_ value: String) -> Bool {
-        return Constants.favoriteFoldersIDs.contains(value)
+        FavoritesFolderID.allCases.contains { $0.rawValue == value }
     }
 
     public enum Error: Swift.Error {
@@ -117,12 +102,12 @@ public class BookmarkEntity: NSManagedObject {
     /// In-memory flag. When set to `false`, disables adjusting `modifiedAt` on `willSave()`. It's reset to `true` on `didSave()`.
     public var shouldManageModifiedAt: Bool = true
 
-    public func isFavorite(on platform: FavoritesPlatform) -> Bool {
+    public func isFavorite(on platform: FavoritesFolderID) -> Bool {
         favoriteFoldersSet.contains { $0.uuid == platform.rawValue }
     }
 
-    public var favoritedOn: [FavoritesPlatform] {
-        favoriteFoldersSet.compactMap(\.uuid).compactMap(FavoritesPlatform.init)
+    public var favoritedOn: [FavoritesFolderID] {
+        favoriteFoldersSet.compactMap(\.uuid).compactMap(FavoritesFolderID.init)
     }
 
     public convenience init(context moc: NSManagedObjectContext) {
@@ -144,7 +129,7 @@ public class BookmarkEntity: NSManagedObject {
         guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
             return
         }
-        if isInserted && (uuid == Constants.rootFolderID || uuid.flatMap(Constants.favoriteFoldersIDs.contains) == true) {
+        if isInserted, let uuid, uuid == Constants.rootFolderID || Self.isValidFavoritesFolderID(uuid) {
             return
         }
         modifiedAt = Date()
