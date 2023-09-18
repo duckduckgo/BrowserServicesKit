@@ -162,7 +162,7 @@ final public class UserContentController: WKUserContentController {
     }
 
     public struct ContentRulesNotFoundError: Error {}
-    public func enableGlobalContentRuleList(withIdentifcontentBlockingAssetsier identifier: String) throws {
+    public func enableGlobalContentRuleList(withIdentifier identifier: String) throws {
         guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotFoundError()
         }
@@ -235,7 +235,7 @@ final public class UserContentController: WKUserContentController {
         self.removeAllContentRuleLists()
     }
 
-#if WEBKIT_EXTENSIONS
+//#if WEBKIT_EXTENSIONS
     public override func removeAllUserScripts() {
         let removeUserScriptSelector = NSSelectorFromString("_removeUserScript:")
         if responds(to: removeUserScriptSelector) {
@@ -248,7 +248,7 @@ final public class UserContentController: WKUserContentController {
             super.removeAllUserScripts()
         }
     }
-#endif
+//#endif
 
     @MainActor
     func addHandler(_ userScript: UserScript) {
