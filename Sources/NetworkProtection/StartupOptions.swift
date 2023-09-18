@@ -93,7 +93,6 @@ struct StartupOptions {
     let simulateError: Bool
     let simulateCrash: Bool
     let simulateMemoryCrash: Bool
-    let useNewConnectionTesterBehavior: StoredOption<Bool>
     let keyValidity: StoredOption<TimeInterval>
     let selectedServer: StoredOption<SelectedNetworkProtectionServer>
     let authToken: StoredOption<String>
@@ -123,7 +122,6 @@ struct StartupOptions {
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
-        useNewConnectionTesterBehavior = Self.readUseNewConnectionTesterBehavior(from: options, resetIfNil: resetStoredOptionsIfNil)
     }
 
     // MARK: - Helpers for reading stored options
@@ -160,17 +158,6 @@ struct StartupOptions {
             }
 
             return .endpoint(serverName)
-        }
-    }
-
-    private static func readUseNewConnectionTesterBehavior(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
-
-        StoredOption(resetIfNil: resetIfNil) {
-            guard let value = options[NetworkProtectionOptionKey.useNewConnectionTesterBehavior] as? Bool else {
-                return nil
-            }
-
-            return value
         }
     }
 

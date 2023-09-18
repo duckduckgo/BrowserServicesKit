@@ -236,24 +236,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private var isConnectionTesterEnabled: Bool {
         get {
             let value = UserDefaults.standard.bool(forKey: "isConnectionTesterEnabled")
-            os_log("🔥 isConnectionTesterEnabled value is: %{public}@", log: .networkProtectionConnectionTesterLog, String(reflecting: value))
             return value
         }
 
         set {
             UserDefaults.standard.set(newValue, forKey: "isConnectionTesterEnabled")
-        }
-    }
-
-    public var useNewConnectionTesterBehavior: Bool {
-        get {
-            let value = UserDefaults.standard.bool(forKey: "useNewConnectionTesterBehavior")
-            os_log("🔥 useNewConnectionTesterBehavior value is: %{public}@", log: .networkProtectionConnectionTesterLog, String(reflecting: value))
-            return value
-        }
-
-        set {
-            UserDefaults.standard.set(newValue, forKey: "useNewConnectionTesterBehavior")
         }
     }
 
@@ -275,15 +262,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.startLatencyReporter()
 
             case .disconnected(let failureCount):
-                let wasAlreadyHavingConnectivityIssues = self.tunnelHealth.isHavingConnectivityIssues
                 self.tunnelHealth.isHavingConnectivityIssues = true
                 self.bandwidthAnalyzer.reset()
                 self.latencyReporter.stop()
 
                 if failureCount == 1 {
-                    if !wasAlreadyHavingConnectivityIssues {
-                        self.notificationsPresenter.showReconnectingNotification()
-                    }
+                    self.notificationsPresenter.showReconnectingNotification()
 
                     // Only do these things if this is not a connection startup test.
                     if !isStartupTest {
@@ -291,14 +275,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                         self.fixTunnel()
                     }
                 } else if failureCount == 2 {
-                    if !wasAlreadyHavingConnectivityIssues {
-                        if useNewConnectionTesterBehavior {
-                            self.notificationsPresenter.showReconnectingNotification()
-                        } else {
-                            self.notificationsPresenter.showConnectionFailureNotification()
-                        }
-                    }
-
                     self.stopTunnel(with: TunnelError.couldNotFixConnection)
                 }
             }
@@ -398,7 +374,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadKeyValidity(from: options)
         loadSelectedServer(from: options)
         loadTesterEnabled(from: options)
-        loadUseNewConnectionTesterBehavior(from: options)
         try loadAuthToken(from: options)
     }
 
@@ -438,17 +413,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             break
         case .reset:
             isConnectionTesterEnabled = true
-        }
-    }
-
-    private func loadUseNewConnectionTesterBehavior(from options: StartupOptions) {
-        switch options.useNewConnectionTesterBehavior {
-        case .set(let value):
-            useNewConnectionTesterBehavior = value
-        case .useExisting:
-            break
-        case .reset:
-            useNewConnectionTesterBehavior = false
         }
     }
 
