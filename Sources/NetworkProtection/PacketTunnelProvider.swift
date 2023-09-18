@@ -789,8 +789,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelFatalError(completionHandler: completionHandler)
         case .simulateTunnelMemoryOveruse:
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
-        case .request(let request):
-            handleRequest(request, completionHandler: completionHandler)
         }
     }
 
@@ -918,19 +916,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         while true {
             array.append("Crash")
         }
-    }
-
-    private func handleRequest(_ request: ExtensionRequest, completionHandler: ((Data?) -> Void)? = nil) {
-
-        switch request {
-        case .setUseNewTesterBehavior(let useNewBehavior):
-            setUseNewTesterBehavior(useNewBehavior)
-        }
-    }
-
-    private func setUseNewTesterBehavior(_ useNewBehavior: Bool, completionHandler: ((Data?) -> Void)? = nil) {
-        useNewConnectionTesterBehavior = useNewBehavior
-        completionHandler?(nil)
     }
 
     // MARK: - Adapter start completion handling

@@ -77,25 +77,4 @@ public extension NETunnelProviderSession {
             completionHandler?()
         }
     }
-
-    // MARK: - ExtensionRequest
-
-    func sendProviderRequest<T: RawRepresentable>(_ request: ExtensionRequest,
-                             responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
-        try sendProviderMessage(.request(request)) { output in
-            responseHandler(output)
-        }
-    }
-
-    func sendProviderMessage<T: RawRepresentable>(_ request: ExtensionRequest) async throws -> T? where T.RawValue == Data {
-        try await withCheckedThrowingContinuation { continuation in
-            do {
-                try sendProviderMessage(.request(request)) { output in
-                    continuation.resume(returning: output)
-                }
-            } catch {
-                continuation.resume(throwing: error)
-            }
-        }
-    }
 }
