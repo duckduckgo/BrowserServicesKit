@@ -115,8 +115,8 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
-            Bookmark(id: "2", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "2", favoritedOn: [.unified])
         }
 
         let received: [Syncable] = [
@@ -127,9 +127,9 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
-            Bookmark(id: "2", favoritedOn: [.all])
-            Bookmark(id: "3", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "2", favoritedOn: [.unified])
+            Bookmark(id: "3", favoritedOn: [.unified])
         })
     }
 
@@ -137,7 +137,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
             Folder(id: "2") {
                 Bookmark(id: "3")
             }
@@ -151,9 +151,9 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
             Folder(id: "2") {
-                Bookmark(id: "3", favoritedOn: [.all])
+                Bookmark(id: "3", favoritedOn: [.unified])
             }
         })
     }

@@ -26,7 +26,7 @@ extension Syncable {
     }
 
     static func favoritesFolder(favorites: [String]) -> Syncable {
-        .folder(id: FavoritesFolderID.all.rawValue, children: favorites)
+        .folder(id: FavoritesFolderID.unified.rawValue, children: favorites)
     }
 
     static func mobileFavoritesFolder(favorites: [String]) -> Syncable {

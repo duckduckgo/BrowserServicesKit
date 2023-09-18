@@ -85,9 +85,9 @@ public struct BookmarkUtils {
     }
 
     public static func migrateToFormFactorSpecificFavorites(byCopyingExistingTo platform: FavoritesFolderID, in context: NSManagedObjectContext) {
-        assert(platform != .all, "You must specify either desktop or mobile platform")
+        assert(platform != .unified, "You must specify either desktop or mobile platform")
 
-        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.all.rawValue, in: context) else {
+        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context) else {
             return
         }
 

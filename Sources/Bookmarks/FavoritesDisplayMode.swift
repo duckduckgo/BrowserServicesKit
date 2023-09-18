@@ -38,7 +38,7 @@ public enum FavoritesDisplayMode: Equatable {
         case .displayNative(let platform):
             return platform
         case .displayAll:
-            return .all
+            return .unified
         }
     }
 
@@ -50,7 +50,7 @@ public enum FavoritesDisplayMode: Equatable {
     }
 
     public var folderUUIDs: Set<String> {
-        return [nativePlatform.rawValue, FavoritesFolderID.all.rawValue]
+        return [nativePlatform.rawValue, FavoritesFolderID.unified.rawValue]
     }
 }
 

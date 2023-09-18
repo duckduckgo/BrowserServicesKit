@@ -24,7 +24,7 @@ import CoreData
 public enum FavoritesFolderID: String, CaseIterable {
     case mobile = "mobile_favorites_root"
     case desktop = "desktop_favorites_root"
-    case all = "favorites_root"
+    case unified = "favorites_root"
 }
 
 @objc(BookmarkEntity)

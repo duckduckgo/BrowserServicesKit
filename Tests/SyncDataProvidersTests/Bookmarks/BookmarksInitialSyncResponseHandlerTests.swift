@@ -160,8 +160,8 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
-            Bookmark(id: "4", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "4", favoritedOn: [.unified])
         }
 
         let received: [Syncable] = [
@@ -172,9 +172,9 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
-            Bookmark(id: "4", favoritedOn: [.all])
-            Bookmark(id: "3", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "4", favoritedOn: [.unified])
+            Bookmark(id: "3", favoritedOn: [.unified])
         })
     }
 
@@ -351,7 +351,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
         }
 
         let received: [Syncable] = [
@@ -362,13 +362,13 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.all])
-            Bookmark(id: "2", favoritedOn: [.all])
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "2", favoritedOn: [.unified])
         })
 
         var favoritesFolder: BookmarkEntity!
         context.performAndWait {
-            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.all.rawValue, in: context)
+            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
         }
         XCTAssertNotNil(favoritesFolder.modifiedAt)
     }
