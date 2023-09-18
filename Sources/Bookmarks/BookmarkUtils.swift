@@ -49,12 +49,24 @@ public struct BookmarkUtils {
 
     public static func fetchFavoritesFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {
         assert(BookmarkEntity.isValidFavoritesFolderID(uuid))
+
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
 
         return try? context.fetch(request).first
+    }
+
+    public static func fetchFavoritesFolders(withUUIDs uuids: Set<String>, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        assert(uuids.allSatisfy { BookmarkEntity.isValidFavoritesFolderID($0) })
+
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K in %@", #keyPath(BookmarkEntity.uuid), uuids)
+        request.returnsObjectsAsFaults = false
+        request.fetchLimit = uuids.count
+
+        return (try? context.fetch(request)) ?? []
     }
 
     public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {

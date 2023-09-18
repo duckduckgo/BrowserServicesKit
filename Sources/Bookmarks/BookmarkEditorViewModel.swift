@@ -182,14 +182,12 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public func removeFromFavorites() {
         assert(bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
-        let folders = BookmarkUtils.favoritesFoldersForUnfavoriting(of: bookmark, with: favoritesDisplayMode)
-        bookmark.removeFromFavorites(folders: folders)
+        bookmark.removeFromFavorites(with: favoritesDisplayMode)
     }
 
     public func addToFavorites() {
         assert(!bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
-        let folders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
-        bookmark.addToFavorites(folders: folders)
+        bookmark.addToFavorites(with: favoritesDisplayMode, in: context)
     }
 
     public func setParentWithID(_ parentID: NSManagedObjectID) {

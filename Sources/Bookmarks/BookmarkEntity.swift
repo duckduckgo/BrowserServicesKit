@@ -21,40 +21,6 @@
 import Foundation
 import CoreData
 
-public enum FavoritesDisplayMode: Equatable {
-    case displayNative(FavoritesFolderID)
-    case displayAll(native: FavoritesFolderID)
-
-    public var isDisplayAll: Bool {
-        switch self {
-        case .displayNative:
-            return false
-        case .displayAll:
-            return true
-        }
-    }
-
-    public var displayedPlatform: FavoritesFolderID {
-        switch self {
-        case .displayNative(let platform):
-            return platform
-        case .displayAll:
-            return .all
-        }
-    }
-
-    public var nativePlatform: FavoritesFolderID {
-        switch self {
-        case .displayNative(let native), .displayAll(let native):
-            return native
-        }
-    }
-
-    public var folderUUIDs: Set<String> {
-        return [nativePlatform.rawValue, FavoritesFolderID.all.rawValue]
-    }
-}
-
 public enum FavoritesFolderID: String, CaseIterable {
     case mobile = "mobile_favorites_root"
     case desktop = "desktop_favorites_root"
@@ -234,7 +200,7 @@ public class BookmarkEntity: NSManagedObject {
     }
 
     public func removeFromFavorites(favoritesRoot: BookmarkEntity) {
-        removeFromFavoriteFolders(favoritesRoot)
+        favoritesRoot.removeFromFavorites(self)
     }
 
     public func markPendingDeletion() {
