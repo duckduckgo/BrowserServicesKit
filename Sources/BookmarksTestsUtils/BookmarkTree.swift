@@ -345,7 +345,7 @@ public extension XCTestCase {
             XCTAssertEqual(expectedNode.isFolder, thisNode.isFolder, "isFolder mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.isPendingDeletion, thisNode.isPendingDeletion, "isPendingDeletion mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.children?.count, thisNode.children?.count, "children count mismatch for \(thisUUID)", file: file, line: line)
-            XCTAssertEqual(expectedNode.favoritedOn, thisNode.favoritedOn, "favoritedOn mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(Set(expectedNode.favoritedOn), Set(thisNode.favoritedOn), "favoritedOn mismatch for \(thisUUID)", file: file, line: line)
             if withTimestamps {
                 if let modifiedAtConstraint = modifiedAtConstraints[thisUUID] {
                     modifiedAtConstraint.check(thisNode.modifiedAt)

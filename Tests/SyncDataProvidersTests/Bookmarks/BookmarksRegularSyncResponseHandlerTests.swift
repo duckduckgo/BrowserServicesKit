@@ -115,21 +115,22 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.unified])
-            Bookmark(id: "2", favoritedOn: [.unified])
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "2", favoritedOn: [.mobile, .unified])
         }
 
         let received: [Syncable] = [
             .rootFolder(children: ["1", "2", "3"]),
             .favoritesFolder(favorites: ["1", "2", "3"]),
+            .mobileFavoritesFolder(favorites: ["1", "2", "3"]),
             .bookmark(id: "3")
         ]
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.unified])
-            Bookmark(id: "2", favoritedOn: [.unified])
-            Bookmark(id: "3", favoritedOn: [.unified])
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "2", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "3", favoritedOn: [.mobile, .unified])
         })
     }
 
@@ -137,7 +138,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
             Folder(id: "2") {
                 Bookmark(id: "3")
             }
@@ -145,15 +146,16 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .favoritesFolder(favorites: ["1", "3"]),
+            .mobileFavoritesFolder(favorites: ["1", "3"]),
             .folder(id: "2", children: ["3"]),
             .bookmark(id: "3")
         ]
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
             Folder(id: "2") {
-                Bookmark(id: "3", favoritedOn: [.unified])
+                Bookmark(id: "3", favoritedOn: [.mobile, .unified])
             }
         })
     }
