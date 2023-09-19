@@ -40,8 +40,8 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     private let errorEvents: EventMapping<BookmarksModelError>?
     
     public init(bookmarksDatabase: CoreDataDatabase,
-                favoritesDisplayMode: FavoritesDisplayMode,
                 parentID: NSManagedObjectID?,
+                favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
