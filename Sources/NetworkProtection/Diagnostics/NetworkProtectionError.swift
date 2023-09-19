@@ -61,7 +61,7 @@ public enum NetworkProtectionError: LocalizedError {
     // Wireguard errors
     case wireGuardCannotLocateTunnelFileDescriptor
     case wireGuardInvalidState
-    case wireGuardDnsResolution([DNSResolutionError])
+    case wireGuardDnsResolution
     case wireGuardSetNetworkSettings(Error)
     case startWireGuardBackend(Int32)
 
