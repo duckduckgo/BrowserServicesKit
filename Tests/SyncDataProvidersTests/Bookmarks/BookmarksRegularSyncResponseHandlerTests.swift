@@ -474,6 +474,66 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    // MARK: - Invalid Favorites Form Factors
+
+    func testWhenMobileOnlyFavoriteIsReceivedThenItIsSaved() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .mobileFavoritesFolder(favorites: ["1"])
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile])
+            Bookmark(id: "2")
+        })
+    }
+
+    func testWhenUnifiedOnlyFavoriteIsReceivedThenItIsSaved() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .favoritesFolder(favorites: ["1"])
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "2")
+        })
+    }
+
+    func testWhenNonUnifiedFavoriteIsReceivedThenItIsSaved() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [
+            .mobileFavoritesFolder(favorites: ["1"]),
+            .desktopFavoritesFolder(favorites: ["1", "2"])
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .desktop])
+            Bookmark(id: "2", favoritedOn: [.desktop])
+        })
+    }
+
     // MARK: - Helpers
 
     func createEntitiesAndHandleSyncResponse(
