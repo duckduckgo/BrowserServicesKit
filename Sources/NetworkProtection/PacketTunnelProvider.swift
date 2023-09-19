@@ -493,15 +493,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func startTunnel(with tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (Error?) -> Void) {
-        adapter.start(tunnelConfiguration: tunnelConfiguration) { error in
+        adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
             if let error {
                 os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
+                self?.debugEvents?.fire(error.networkProtectionError)
                 completionHandler(error)
                 return
             }
 
-            Task {
-                await self.handleAdapterStarted()
+            Task { [weak self] in
+                await self?.handleAdapterStarted()
                 completionHandler(nil)
             }
         }
@@ -513,15 +514,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         connectionStatus = .disconnecting
         os_log("Stopping tunnel with reason %{public}@", log: .networkProtection, type: .info, String(describing: reason))
 
-        adapter.stop { error in
+        adapter.stop { [weak self] error in
             if let error {
                 os_log("🔵 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
+                self?.debugEvents?.fire(error.networkProtectionError)
             }
 
-            Task {
-                await self.handleAdapterStopped()
+            Task { [weak self] in
+                await self?.handleAdapterStopped()
                 if case .superceded = reason {
-                    self.notificationsPresenter.showSupersededNotification()
+                    self?.notificationsPresenter.showSupersededNotification()
                 }
 
                 completionHandler()
@@ -539,12 +541,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await handleAdapterStopped()
         }
 
-        self.adapter.stop { error in
+        self.adapter.stop { [weak self] error in
             if let error = error {
                 os_log("Error while stopping adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
+                self?.debugEvents?.fire(error.networkProtectionError)
             }
 
-            self.cancelTunnelWithError(stopError)
+            self?.cancelTunnelWithError(stopError)
         }
     }
 
@@ -599,15 +602,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
 
-            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { error in
+            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
                 if let error = error {
                     os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
+                    self?.debugEvents?.fire(error.networkProtectionError)
                     continuation.resume(throwing: error)
                     return
                 }
 
-                Task {
-                    await self.handleAdapterStarted(resumed: false)
+                Task { [weak self] in
+                    await self?.handleAdapterStarted(resumed: false)
                     continuation.resume()
                 }
             }
@@ -787,8 +791,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             os_log("Simulating tunnel failure", log: .networkProtection, type: .info)
 
-            adapter.stop { error in
+            adapter.stop { [weak self] error in
                 if let error {
+                    self?.debugEvents?.fire(error.networkProtectionError)
                     os_log("🔵 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
                 }
 
