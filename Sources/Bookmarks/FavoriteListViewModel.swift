@@ -29,6 +29,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     public var favorites = [BookmarkEntity]()
     public var favoritesDisplayMode: FavoritesDisplayMode = .displayNative(.mobile) {
         didSet {
+            _favoritesFolder = nil
             reloadData()
         }
     }
@@ -40,6 +41,18 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     public var localUpdates: AnyPublisher<Void, Never>
 
     private let errorEvents: EventMapping<BookmarksModelError>?
+
+    private var _favoritesFolder: BookmarkEntity?
+    private var favoriteFolder: BookmarkEntity? {
+        if _favoritesFolder == nil {
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedPlatform.rawValue, in: context)
+
+            if _favoritesFolder == nil {
+                errorEvents?.fire(.fetchingRootItemFailed(.favorites))
+            }
+        }
+        return _favoritesFolder
+    }
 
     public init(bookmarksDatabase: CoreDataDatabase, errorEvents: EventMapping<BookmarksModelError>?) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
@@ -82,7 +95,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     }
 
     private func refresh() {
-        guard let favoriteFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedPlatform.rawValue, in: context) else {
+        guard let favoriteFolder else {
             errorEvents?.fire(.fetchingRootItemFailed(.favorites))
             favorites = []
             return
