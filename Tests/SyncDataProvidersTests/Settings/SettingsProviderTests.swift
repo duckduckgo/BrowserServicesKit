@@ -37,7 +37,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
     }
 
-    func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForEmailSettings() throws {
+    func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllSettings() throws {
 
         try emailManager.signIn(username: "dax", token: "secret-token")
 
@@ -50,7 +50,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertNil(provider.lastSyncTimestamp)
 
         settingsMetadata = fetchAllSettingsMetadata(in: context)
-        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.count, 2)
         XCTAssertTrue(settingsMetadata.allSatisfy { $0.lastModified != nil })
     }
 
@@ -65,6 +65,23 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
             Set(changedObjects.compactMap(\.uuid)),
             Set([SettingsProvider.Setting.emailProtectionGeneration.key])
         )
+    }
+
+    func testThatFetchChangedObjectsReturnsTestSettingWithNonNilModifiedAt() async throws {
+
+        testSettingSyncHandler.syncedValue = "1"
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableSettingAdapter.init)
+
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set([SettingsProvider.Setting.testSetting.key])
+        )
+    }
+
+    func testThatFetchChangedObjectsReturnsEmptyArrayWhenNothingHasChanged() async throws {
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableSettingAdapter.init)
+        XCTAssertTrue(changedObjects.isEmpty)
     }
 
     func testWhenEmailProtectionIsDisabledThenFetchChangedObjectsContainsDeletedSyncable() async throws {
@@ -82,6 +99,21 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertEqual(syncable.uuid, SettingsProvider.Setting.emailProtectionGeneration.key)
     }
 
+    func testWhenTestSettingIsClearedThenFetchChangedObjectsContainsDeletedSyncable() async throws {
+
+        testSettingSyncHandler.syncedValue = "1"
+        testSettingSyncHandler.syncedValue = nil
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableSettingAdapter.init)
+
+        XCTAssertEqual(changedObjects.count, 1)
+
+        let syncable = try XCTUnwrap(changedObjects.first)
+
+        XCTAssertTrue(syncable.isDeleted)
+        XCTAssertEqual(syncable.uuid, SettingsProvider.Setting.testSetting.key)
+    }
+
     func testThatSigninInToEmailProtectionStateUpdatesSyncMetadataTimestamp() async throws {
 
         try provider.prepareForFirstSync()
@@ -89,9 +121,9 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let initialSettingsMetadata = fetchAllSettingsMetadata(in: context)
-        let initialEmailMetadata = try XCTUnwrap(initialSettingsMetadata.first)
+        let initialEmailMetadata = try XCTUnwrap(initialSettingsMetadata.first(where: { $0.key == SettingsProvider.Setting.emailProtectionGeneration.key }))
         let initialTimestamp = initialEmailMetadata.lastModified
-        XCTAssertEqual(initialSettingsMetadata.count, 1)
+        XCTAssertEqual(initialSettingsMetadata.count, 2)
         XCTAssertNotNil(initialTimestamp)
 
         try await Task.sleep(nanoseconds: 1000)
@@ -102,9 +134,9 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         context.refreshAllObjects()
 
         let settingsMetadata = fetchAllSettingsMetadata(in: context)
-        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first(where: { $0.key == SettingsProvider.Setting.emailProtectionGeneration.key }))
         let timestamp = emailMetadata.lastModified
-        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.count, 2)
         XCTAssertNotNil(timestamp)
 
         XCTAssertTrue(timestamp! > initialTimestamp!)
@@ -119,9 +151,9 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let initialSettingsMetadata = fetchAllSettingsMetadata(in: context)
-        let initialEmailMetadata = try XCTUnwrap(initialSettingsMetadata.first)
+        let initialEmailMetadata = try XCTUnwrap(initialSettingsMetadata.first(where: { $0.key == SettingsProvider.Setting.emailProtectionGeneration.key }))
         let initialTimestamp = initialEmailMetadata.lastModified
-        XCTAssertEqual(initialSettingsMetadata.count, 1)
+        XCTAssertEqual(initialSettingsMetadata.count, 2)
         XCTAssertNotNil(initialTimestamp)
 
         try await Task.sleep(nanoseconds: 1000)
@@ -132,9 +164,36 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         context.refreshAllObjects()
 
         let settingsMetadata = fetchAllSettingsMetadata(in: context)
-        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first(where: { $0.key == SettingsProvider.Setting.emailProtectionGeneration.key }))
         let timestamp = emailMetadata.lastModified
-        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.count, 2)
+        XCTAssertNotNil(timestamp)
+
+        XCTAssertTrue(timestamp! > initialTimestamp!)
+    }
+
+    func testThatUpdatingSettingValueUpdatesSyncMetadataTimestamp() async throws {
+
+        try provider.prepareForFirstSync()
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let initialSettingsMetadata = fetchAllSettingsMetadata(in: context)
+        let initialTestSettingMetadata = try XCTUnwrap(initialSettingsMetadata.first(where: { $0.key == SettingsProvider.Setting.testSetting.key }))
+        let initialTimestamp = initialTestSettingMetadata.lastModified
+        XCTAssertEqual(initialSettingsMetadata.count, 2)
+        XCTAssertNotNil(initialTimestamp)
+
+        try await Task.sleep(nanoseconds: 1000)
+
+        testSettingSyncHandler.syncedValue = "1"
+
+        context.refreshAllObjects()
+
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first(where: { $0.key == SettingsProvider.Setting.testSetting.key }))
+        let timestamp = testSettingMetadata.lastModified
+        XCTAssertEqual(settingsMetadata.count, 2)
         XCTAssertNotNil(timestamp)
 
         XCTAssertTrue(timestamp! > initialTimestamp!)
@@ -169,11 +228,11 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
         let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let settingsMetadata = fetchAllSettingsMetadata(in: context)
-        let emailMetadata = try XCTUnwrap(settingsMetadata.first)
+        let emailMetadata = try XCTUnwrap(settingsMetadata.first(where: { $0.key == SettingsProvider.Setting.emailProtectionGeneration.key }))
         XCTAssertNil(emailMetadata.lastModified)
     }
 
-    func testThatInitialSyncClearsLastModifiedForDeduplicatedCredential() async throws {
+    func testThatInitialSyncClearsLastModifiedForDeduplicatedEmailProtectionSetting() async throws {
 
         let date = Date()
 
@@ -190,6 +249,24 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let settingsMetadata = fetchAllSettingsMetadata(in: context)
         let emailMetadata = try XCTUnwrap(settingsMetadata.first)
         XCTAssertNil(emailMetadata.lastModified)
+    }
+
+    func testThatInitialSyncClearsLastModifiedForDeduplicatedSetting() async throws {
+
+        let date = Date()
+
+        testSettingSyncHandler.syncedValue = "1"
+
+        let received: [Syncable] = [
+            .testSetting("1")
+        ]
+
+        try await provider.handleInitialSyncResponse(received: received, clientTimestamp: date.addingTimeInterval(1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
     }
 
     func testWhenThereIsMergeConflictDuringInitialSyncThenSyncResponseHandlingIsRetried() async throws {
@@ -250,6 +327,24 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token2")
     }
 
+    func testWhenSettingDeleteIsSentAndUpdateIsReceivedThenSettingIsNotDeleted() async throws {
+        testSettingSyncHandler.syncedValue = "local"
+        testSettingSyncHandler.syncedValue = nil
+
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "remote")
+    }
+
     func testWhenEmailProtectionWasSentAndThenDisabledLocallyAndAnUpdateIsReceivedThenEmailProtectionIsDisabled() async throws {
 
         let emailManager = EmailManager(storage: emailManagerStorage)
@@ -274,6 +369,28 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertNil(emailManagerStorage.mockToken)
     }
 
+    func testWhenSettingWasSentAndThenDeletedLocallyAndAnUpdateIsReceivedThenSettingIsDeleted() async throws {
+
+        testSettingSyncHandler.syncedValue = "local"
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        testSettingSyncHandler.syncedValue = nil
+
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.testSetting.key)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertNil(testSettingSyncHandler.syncedValue)
+    }
+
     func testWhenEmailProtectionWasEnabledLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
@@ -296,6 +413,26 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
     }
 
+    func testWhenSettingWasUpdatedLocallyAfterStartingSyncThenRemoteChangesAreDropped() async throws {
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        testSettingSyncHandler.syncedValue = "local"
+
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.testSetting.key)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "local")
+    }
+
     func testWhenEmailProtectionWasEnabledLocallyAfterStartingSyncThenRemoteDisableIsDropped() async throws {
 
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
@@ -316,6 +453,26 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         XCTAssertNotNil(settingsMetadata.first?.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
+    }
+
+    func testWhenSettingWasUpdatedLocallyAfterStartingSyncThenRemoteDeleteIsDropped() async throws {
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        testSettingSyncHandler.syncedValue = "local"
+
+        let received: [Syncable] = [
+            .testSettingDeleted()
+        ]
+
+        try await provider.handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().advanced(by: -1), serverTimestamp: "1234", crypter: crypter)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        XCTAssertEqual(settingsMetadata.count, 1)
+        XCTAssertEqual(settingsMetadata.first?.key, SettingsProvider.Setting.testSetting.key)
+        XCTAssertNotNil(settingsMetadata.first?.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "local")
     }
 
     func testWhenThereIsMergeConflictDuringRegularSyncThenSyncResponseHandlingIsRetried() async throws {

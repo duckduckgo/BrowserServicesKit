@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Bookmarks
 import BrowserServicesKit
 import DDGSync
 import Foundation
@@ -44,6 +45,14 @@ extension Syncable {
     }
 
     static func emailProtectionDeleted() -> Syncable {
-        return Self.settings(SettingsProvider.Setting.emailProtectionGeneration, value: nil, isDeleted: true)
+        Self.settings(SettingsProvider.Setting.emailProtectionGeneration, value: nil, isDeleted: true)
+    }
+
+    static func testSetting(_ value: String, lastModified: String? = nil, isDeleted: Bool = false) -> Syncable {
+        Self.settings(SettingsProvider.Setting.testSetting, value: "encrypted_\(value)", lastModified: lastModified, isDeleted: isDeleted)
+    }
+
+    static func testSettingDeleted() -> Syncable {
+        Self.settings(SettingsProvider.Setting.testSetting, value: nil, isDeleted: true)
     }
 }
