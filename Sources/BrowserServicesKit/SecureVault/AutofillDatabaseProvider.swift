@@ -92,6 +92,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 migrator.registerMigration("v8", migrate: Self.migrateV8(database:))
                 migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
                 migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
+                migrator.registerMigration("v11", migrate: Self.migrateV11(database:))
             }
         }
     }
@@ -216,7 +217,10 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         assert(database.isInsideTransaction)
 
         do {
-            try credentials.account.update(database)
+            var account = credentials.account
+            account.title = account.patternMatchedTitle()
+            
+            try account.update(database)
             try database.execute(sql: """
                 UPDATE
                     \(SecureVaultModels.WebsiteCredentials.databaseTableName)
@@ -245,7 +249,10 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         assert(database.isInsideTransaction)
 
         do {
-            try credentials.account.insert(database)
+            var account = credentials.account
+            account.title = account.patternMatchedTitle()
+            
+            try account.insert(database)
             let id = database.lastInsertedRowID
             try database.execute(sql: """
                 INSERT INTO
@@ -850,6 +857,33 @@ extension DefaultAutofillDatabaseProvider {
             unique: false,
             ifNotExists: false
         )
+    }
+        
+    static func migrateV11(database: Database) throws {
+        
+        // Remove WWW from titles and ignore titles containing known export format
+        let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
+        while let accountRow = try accountRows.next() {
+            let account = SecureVaultModels.WebsiteAccount(id: accountRow[SecureVaultModels.WebsiteAccount.Columns.id.name],
+                                                           title: accountRow[SecureVaultModels.WebsiteAccount.Columns.title],
+                                                           username: accountRow[SecureVaultModels.WebsiteAccount.Columns.username.name],
+                                                           domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
+                                                           created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
+                                                           lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
+            
+            let cleanTitle = account.patternMatchedTitle()
+            
+            // Update the accounts table with the new hash value
+            try database.execute(sql: """
+                UPDATE
+                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                SET
+                    \(SecureVaultModels.WebsiteAccount.Columns.title) = ?
+                WHERE
+                    \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+            """, arguments: [cleanTitle, account.id])
+            
+        }
     }
 
     // Refresh password comparison hashes
