@@ -74,6 +74,13 @@ public enum NetworkProtectionError: LocalizedError {
     case keychainWriteError(field: String, status: Int32)
     case keychainDeleteError(status: Int32)
 
+    // Wireguard errors
+    case wireGuardCannotLocateTunnelFileDescriptor
+    case wireGuardInvalidState
+    case wireGuardDnsResolution([DNSResolutionError])
+    case wireGuardSetNetworkSettings(Error)
+    case startWireGuardBackend(Int32)
+
     // Auth errors
     case noAuthTokenFound
 
