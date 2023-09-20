@@ -203,7 +203,7 @@ public struct BookmarkTree {
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         rootFolder.modifiedAt = modifiedAt
-        let favoritesFolders = FavoritesFolderID.allCases.map { BookmarkUtils.fetchFavoritesFolder(withUUID: $0.rawValue, in: context)! }
+        let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(withUUIDs: Set(FavoritesFolderID.allCases.map(\.rawValue)), in: context)
         var orphans = [BookmarkEntity]()
         var modifiedAtConstraints = [String: ModifiedAtConstraint]()
         if let modifiedAtConstraint {

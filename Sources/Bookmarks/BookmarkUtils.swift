@@ -178,10 +178,10 @@ public struct BookmarkUtils {
         return (try? context.fetch(request)) ?? []
     }
 
-    // MARK: Private
+    // MARK: Internal
 
     @discardableResult
-    private static func insertRootFolder(uuid: String, into context: NSManagedObjectContext) -> BookmarkEntity {
+    static func insertRootFolder(uuid: String, into context: NSManagedObjectContext) -> BookmarkEntity {
         let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
                                     insertInto: context)
         folder.uuid = uuid
