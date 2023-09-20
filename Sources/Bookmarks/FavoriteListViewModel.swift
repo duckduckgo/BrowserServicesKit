@@ -57,7 +57,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     public init(
         bookmarksDatabase: CoreDataDatabase,
         errorEvents: EventMapping<BookmarksModelError>?,
-        favoritesDisplayMode: FavoritesDisplayMode = .displayNative(.mobile)
+        favoritesDisplayMode: FavoritesDisplayMode
     ) {
         self.externalUpdates = self.subject.eraseToAnyPublisher()
         self.localUpdates = self.localSubject.eraseToAnyPublisher()
