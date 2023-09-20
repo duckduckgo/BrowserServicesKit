@@ -51,6 +51,8 @@ public class ConnectionSessionUtilities {
 
 public extension NETunnelProviderSession {
 
+    // MARK: - ExtensionMessage
+
     func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage,
                                                   responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
         try sendProviderMessage(message.rawValue) { response in
@@ -75,5 +77,4 @@ public extension NETunnelProviderSession {
             completionHandler?()
         }
     }
-
 }
