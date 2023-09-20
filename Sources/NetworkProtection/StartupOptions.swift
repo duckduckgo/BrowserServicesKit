@@ -93,10 +93,10 @@ struct StartupOptions {
     let simulateError: Bool
     let simulateCrash: Bool
     let simulateMemoryCrash: Bool
-    let enableTester: Bool
     let keyValidity: StoredOption<TimeInterval>
     let selectedServer: StoredOption<SelectedNetworkProtectionServer>
     let authToken: StoredOption<String>
+    let enableTester: StoredOption<Bool>
 
     init(options: [String: Any], log: OSLog) {
         self.log = log
@@ -116,10 +116,10 @@ struct StartupOptions {
         simulateError = options[NetworkProtectionOptionKey.tunnelFailureSimulation] as? Bool ?? false
         simulateCrash = options[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] as? Bool ?? false
         simulateMemoryCrash = options[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] as? Bool ?? false
-        enableTester = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool ?? true
 
         let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
         authToken = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
+        enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
     }
@@ -158,6 +158,17 @@ struct StartupOptions {
             }
 
             return .endpoint(serverName)
+        }
+    }
+
+    private static func readEnableTester(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
+
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let value = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool else {
+                return nil
+            }
+
+            return value
         }
     }
 }
