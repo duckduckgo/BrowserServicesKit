@@ -58,6 +58,7 @@ extension BookmarkEntity {
 
     public func addToFavorites(with displayMode: FavoritesDisplayMode, in context: NSManagedObjectContext) {
         let folders = BookmarkUtils.fetchFavoritesFolders(withUUIDs: displayMode.folderUUIDs, in: context)
+        print("Adding to \(folders.compactMap(\.uuid).sorted().joined(separator: ", "))")
         addToFavorites(folders: folders)
     }
 
@@ -71,10 +72,18 @@ extension BookmarkEntity {
             if displayMode.isDisplayAll || isFavoritedOnlyOnNativeFormFactor {
                 return Array(favoriteFoldersSet)
             }
-            return favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativePlatform.rawValue }).flatMap(Array.init) ?? []
+            if let nativeFolder = favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativePlatform.rawValue }) {
+                return [nativeFolder]
+            }
+            return []
         }()
 
-        removeFromFavorites(folders: affectedFolders)
+        assert(!affectedFolders.isEmpty)
+
+        if !affectedFolders.isEmpty {
+            print("Removing from \(affectedFolders.compactMap(\.uuid).sorted().joined(separator: ", "))")
+            removeFromFavorites(folders: affectedFolders)
+        }
     }
 
 }
