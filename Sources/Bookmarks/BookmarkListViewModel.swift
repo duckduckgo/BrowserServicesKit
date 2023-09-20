@@ -27,7 +27,11 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public let currentFolder: BookmarkEntity?
     
     let context: NSManagedObjectContext
-    let favoritesDisplayMode: FavoritesDisplayMode
+    public var favoritesDisplayMode: FavoritesDisplayMode {
+        didSet {
+            reloadData()
+        }
+    }
     
     public var bookmarks = [BookmarkEntity]()
 

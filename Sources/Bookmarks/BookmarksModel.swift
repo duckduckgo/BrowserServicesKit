@@ -28,8 +28,10 @@ public protocol BookmarkStoring {
     func reloadData()
 }
 
-public protocol BookmarkListInteracting: BookmarkStoring {
-    
+public protocol BookmarkListInteracting: BookmarkStoring, AnyObject {
+
+    var favoritesDisplayMode: FavoritesDisplayMode { get set }
+
     var currentFolder: BookmarkEntity? { get }
     var bookmarks: [BookmarkEntity] { get }
     var totalBookmarksCount: Int { get }
@@ -52,7 +54,7 @@ public protocol BookmarkListInteracting: BookmarkStoring {
 
 }
 
-public protocol FavoritesListInteracting: BookmarkStoring {
+public protocol FavoritesListInteracting: BookmarkStoring, AnyObject {
 
     var favoritesDisplayMode: FavoritesDisplayMode { get set }
 
