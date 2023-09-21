@@ -20,10 +20,41 @@
 import CoreData
 import Foundation
 
+/**
+ * This enum defines which set of favorites should be displayed to the user.
+ *
+ * Users only ever see one set of favorites at a time, and as long as Sync
+ * is not enabled, it's the one corresponding to the local device (native)
+ * form factor, i.e. `mobile` on iOS and iPadOS and `desktop` on macOS.
+ *
+ * When Sync is enabled, users get to choose between displaying their native
+ * form factor folder, or a unified folder that contains favorites from
+ * both mobile and desktop combined.
+ */
 public enum FavoritesDisplayMode: Equatable {
+    /**
+     * Display native form factor favorites.
+     *
+     * This case takes a parameter that specifies the native form factor.
+     * It's up to the client app to define its native form factor.
+     *
+     * Using a parameter gives the flexibility of overriding the form factor
+     * on a given client in the future (e.g. treat `desktop` as native form
+     * factor on the iPad).
+     */
     case displayNative(FavoritesFolderID)
+
+    /**
+     * Display unified favorites (mobile + desktop combined)
+     *
+     * This case takes a parameter that specifies the native form factor.
+     * It's required because all favorites that are added to or deleted from
+     * the unified folder need also to be added to or deleted from their
+     * respective native form factor folder.
+     */
     case displayAll(native: FavoritesFolderID)
 
+    /// Returns true if the current mode is to display unified folder.
     public var isDisplayAll: Bool {
         switch self {
         case .displayNative:
@@ -33,6 +64,7 @@ public enum FavoritesDisplayMode: Equatable {
         }
     }
 
+    /// Returns the UUID of a folder that is displayed for a given display mode.
     public var displayedPlatform: FavoritesFolderID {
         switch self {
         case .displayNative(let platform):
@@ -42,6 +74,7 @@ public enum FavoritesDisplayMode: Equatable {
         }
     }
 
+    /// Returns the UUID of a native favorites folder for a given display mode.
     public var nativePlatform: FavoritesFolderID {
         switch self {
         case .displayNative(let native), .displayAll(let native):
@@ -49,25 +82,31 @@ public enum FavoritesDisplayMode: Equatable {
         }
     }
 
+    /// Returns UUIDs of folders that all favorites must be added to in the current display mode.
     public var folderUUIDs: Set<String> {
-        return [nativePlatform.rawValue, FavoritesFolderID.unified.rawValue]
+        [nativePlatform.rawValue, FavoritesFolderID.unified.rawValue]
     }
 }
 
 extension BookmarkEntity {
 
+    /**
+     * Adds sender to favorites according to `displayMode` passed as argument.
+     */
     public func addToFavorites(with displayMode: FavoritesDisplayMode, in context: NSManagedObjectContext) {
         let folders = BookmarkUtils.fetchFavoritesFolders(withUUIDs: displayMode.folderUUIDs, in: context)
-        print("Adding to \(folders.compactMap(\.uuid).sorted().joined(separator: ", "))")
         addToFavorites(folders: folders)
     }
 
+    /**
+     * Removes sender from favorites according to `displayMode` passed as argument.
+     *
+     * When current mode is to display unified favorites - a favorite is removed from all folders.
+     * When current mode is to display native form factor - it's removed from the native form factor
+     * folder, and if it's not favorites on non-native form factor then also removed from unified folder.
+     */
     public func removeFromFavorites(with displayMode: FavoritesDisplayMode) {
         let affectedFolders: [BookmarkEntity] = {
-            // if displayAll - always remove from all
-            // if displayNative:
-            //   - if favorited on non-native: only remove from native
-            //   - else remove from native and all
             let isFavoritedOnlyOnNativeFormFactor = Set(favoriteFoldersSet.compactMap(\.uuid)) == displayMode.folderUUIDs
             if displayMode.isDisplayAll || isFavoritedOnlyOnNativeFormFactor {
                 return Array(favoriteFoldersSet)
@@ -81,7 +120,6 @@ extension BookmarkEntity {
         assert(!affectedFolders.isEmpty)
 
         if !affectedFolders.isEmpty {
-            print("Removing from \(affectedFolders.compactMap(\.uuid).sorted().joined(separator: ", "))")
             removeFromFavorites(folders: affectedFolders)
         }
     }
