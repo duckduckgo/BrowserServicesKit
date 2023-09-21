@@ -79,6 +79,22 @@ final class DDGSyncLifecycleTests: XCTestCase {
         XCTAssertEqual(mockErrorHandler.handledErrors, [])
     }
 
+    func testWhenInitializingAndKeysBeenRemovedThenStateIsInactive() {
+        secureStorageStub.theAccount = nil
+        mockKeyValueStore.isSyncEnabled = true
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        XCTAssertEqual(syncService.authState, .initializing)
+        syncService.initializeIfNeeded()
+        XCTAssertEqual(syncService.authState, .inactive)
+
+        // Shall we be removing the account? Keeping it tho, allows us to recover sync In case we somehow get back access to the keychain entry.
+        //XCTAssertNil(mockKeyValueStore.isSyncEnabled)
+        
+        XCTAssertNil(secureStorageStub.theAccount)
+        XCTAssertEqual(mockErrorHandler.handledErrors, [])
+    }
+
     func testWhenInitializingAndCannotReadAccountThenErrorIsReportedAndInitializationIsPostponed() {
         let expectedError = SyncError.failedToReadSecureStore(status: 0)
         secureStorageStub.theAccount = .mock
