@@ -55,21 +55,21 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         emailManager: EmailManagerSyncSupporting,
-        userDefaultsHandlers: [SettingSyncHandler],
+        settingsHandlers: [SettingSyncHandler],
         syncDidUpdateData: @escaping () -> Void
     ) {
         let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
-        let userDefaultsHandlersBySetting = userDefaultsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
+        let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
             partialResult[handler.setting] = handler
         }
 
-        let settingsHandlers = userDefaultsHandlersBySetting
+        let settingsHandlers = settingsHandlersBySetting
             .merging([.emailProtectionGeneration: emailProtectionSyncHandler], uniquingKeysWith: { $1 })
 
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsHandlers: settingsHandlers,
+            settingsHandlersBySetting: settingsHandlers,
             syncDidUpdateData: syncDidUpdateData
         )
 
@@ -83,11 +83,11 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
     init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        settingsHandlers: [Setting: any SettingSyncHandling],
+        settingsHandlersBySetting: [Setting: any SettingSyncHandling],
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
-        self.settingsHandlers = settingsHandlers
+        self.settingsHandlers = settingsHandlersBySetting
         super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
