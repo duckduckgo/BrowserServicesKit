@@ -31,7 +31,7 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     let context: NSManagedObjectContext
-    let favoritesDisplayMode: FavoritesDisplayMode
+    public let favoritesDisplayMode: FavoritesDisplayMode
 
     @Published public var bookmark: BookmarkEntity
     @Published public var locations = [Location]()
