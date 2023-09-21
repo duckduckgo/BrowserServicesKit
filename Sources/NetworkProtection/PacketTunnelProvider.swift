@@ -526,7 +526,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func startTunnel(with tunnelConfiguration: TunnelConfiguration, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
         
-        adapter.start(tunnelConfiguration: tunnelConfiguration) { error in
+        adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
             if let error {
                 os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
                 self?.debugEvents?.fire(error.networkProtectionError)
@@ -535,8 +535,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task { [weak self] in
-                await self?.handleAdapterStarted()
-
                 // It's important to call this completion handler before running the tester
                 // as if we don't, the tester will just fail.  It seems like the connection
                 // won't fully work until the completion handler is called.
@@ -544,9 +542,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                 do {
                     let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
-                    try await self.handleAdapterStarted(startReason: startReason)
+                    try await self?.handleAdapterStarted(startReason: startReason)
                 } catch {
-                    self.cancelTunnelWithError(error)
+                    self?.cancelTunnelWithError(error)
                     return
                 }
             }
