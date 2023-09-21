@@ -207,7 +207,7 @@ extension BookmarkUtils {
         }
     }
 
-    static func fetchLegacyFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
+    public static func fetchLegacyFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
         fetchFavoritesFolder(withUUID: legacyFavoritesFolderID, in: context)
     }
 
