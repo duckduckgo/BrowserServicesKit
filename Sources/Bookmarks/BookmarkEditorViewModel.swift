@@ -37,7 +37,7 @@ public class BookmarkEditorViewModel: ObservableObject {
     @Published public var locations = [Location]()
 
     lazy var favoritesFolder: BookmarkEntity! = BookmarkUtils.fetchFavoritesFolder(
-        withUUID: favoritesDisplayMode.displayedPlatform.rawValue,
+        withUUID: favoritesDisplayMode.displayedFolder.rawValue,
         in: context
     )
 
@@ -181,12 +181,12 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     public func removeFromFavorites() {
-        assert(bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
+        assert(bookmark.isFavorite(on: favoritesDisplayMode.displayedFolder))
         bookmark.removeFromFavorites(with: favoritesDisplayMode)
     }
 
     public func addToFavorites() {
-        assert(!bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform))
+        assert(!bookmark.isFavorite(on: favoritesDisplayMode.displayedFolder))
         bookmark.addToFavorites(with: favoritesDisplayMode, in: context)
     }
 

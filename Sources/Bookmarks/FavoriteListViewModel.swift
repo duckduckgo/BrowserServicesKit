@@ -45,7 +45,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
     private var _favoritesFolder: BookmarkEntity?
     private var favoriteFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
-            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedPlatform.rawValue, in: context)
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedFolder.rawValue, in: context)
 
             if _favoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.favorites))

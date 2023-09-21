@@ -45,7 +45,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     private var _favoritesFolder: BookmarkEntity?
     private var favoritesFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
-            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedPlatform.rawValue, in: context)
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedFolder.rawValue, in: context)
             
             if _favoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.menu))
@@ -103,7 +103,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         let queriedBookmark = favorite(for: url) ?? bookmark(for: url)
         
         if let bookmark = queriedBookmark {
-            if bookmark.isFavorite(on: favoritesDisplayMode.displayedPlatform) {
+            if bookmark.isFavorite(on: favoritesDisplayMode.displayedFolder) {
                 bookmark.removeFromFavorites(with: favoritesDisplayMode)
             } else {
                 bookmark.addToFavorites(with: favoritesDisplayMode, in: context)

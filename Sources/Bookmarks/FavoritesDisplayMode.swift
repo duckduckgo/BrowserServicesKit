@@ -65,7 +65,7 @@ public enum FavoritesDisplayMode: Equatable {
     }
 
     /// Returns the UUID of a folder that is displayed for a given display mode.
-    public var displayedPlatform: FavoritesFolderID {
+    public var displayedFolder: FavoritesFolderID {
         switch self {
         case .displayNative(let platform):
             return platform
@@ -75,7 +75,7 @@ public enum FavoritesDisplayMode: Equatable {
     }
 
     /// Returns the UUID of a native favorites folder for a given display mode.
-    public var nativePlatform: FavoritesFolderID {
+    public var nativeFolder: FavoritesFolderID {
         switch self {
         case .displayNative(let native), .displayUnified(let native):
             return native
@@ -83,8 +83,8 @@ public enum FavoritesDisplayMode: Equatable {
     }
 
     /// Returns UUIDs of folders that all favorites must be added to in the current display mode.
-    public var folderUUIDs: Set<String> {
-        [nativePlatform.rawValue, FavoritesFolderID.unified.rawValue]
+    var folderUUIDs: Set<String> {
+        [nativeFolder.rawValue, FavoritesFolderID.unified.rawValue]
     }
 }
 
@@ -111,7 +111,7 @@ extension BookmarkEntity {
             if displayMode.isDisplayUnified || isFavoritedOnlyOnNativeFormFactor {
                 return Array(favoriteFoldersSet)
             }
-            if let nativeFolder = favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativePlatform.rawValue }) {
+            if let nativeFolder = favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativeFolder.rawValue }) {
                 return [nativeFolder]
             }
             return []
