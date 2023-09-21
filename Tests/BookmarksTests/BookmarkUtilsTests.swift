@@ -107,7 +107,7 @@ final class BookmarkUtilsTests: XCTestCase {
 
             try! context.save()
 
-            BookmarkUtils.copyFavorites(from: .mobile, to: .unified, removingNonNativeFavoritesFrom: .desktop, in: context)
+            BookmarkUtils.copyFavorites(from: .mobile, to: .unified, clearingNonNativeFavoritesFolder: .desktop, in: context)
 
             try! context.save()
 
@@ -147,7 +147,7 @@ final class BookmarkUtilsTests: XCTestCase {
 
             try! context.save()
 
-            BookmarkUtils.copyFavorites(from: .unified, to: .mobile, removingNonNativeFavoritesFrom: .desktop, in: context)
+            BookmarkUtils.copyFavorites(from: .unified, to: .mobile, clearingNonNativeFavoritesFolder: .desktop, in: context)
 
             try! context.save()
 
