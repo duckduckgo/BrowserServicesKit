@@ -22,12 +22,22 @@ import Foundation
 class SecureStorageStub: SecureStoring {
     
     var theAccount: SyncAccount?
+
+    var mockReadError: SyncError?
+    var mockWriteError: SyncError?
     
     func persistAccount(_ account: SyncAccount) throws {
+        if let mockWriteError {
+            throw mockWriteError
+        }
+
         theAccount = account
     }
 
     func account() throws -> SyncAccount? {
+        if let mockReadError {
+            throw mockReadError
+        }
         return theAccount
     }
 
