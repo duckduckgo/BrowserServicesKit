@@ -130,6 +130,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
 
         emailManagerStorage = MockEmailManagerStorage()
         emailManager = EmailManager(storage: emailManagerStorage)
+        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
         testSettingSyncHandler = .init()
 
         setUpSyncMetadataDatabase()
@@ -137,8 +138,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
         provider = SettingsProvider(
             metadataDatabase: metadataDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            emailManager: emailManager,
-            settingsHandlers: [testSettingSyncHandler],
+            settingsHandlers: [emailProtectionSyncHandler, testSettingSyncHandler],
             syncDidUpdateData: {}
         )
     }

@@ -37,18 +37,18 @@ extension SettingsProvider.Setting {
     static let emailProtectionGeneration = SettingsProvider.Setting(key: "email_protection_generation")
 }
 
-class EmailProtectionSyncHandler: SettingSyncHandler {
+public final class EmailProtectionSyncHandler: SettingSyncHandler {
 
     struct Payload: Codable {
         let username: String
         let personalAccessToken: String
     }
 
-    override var setting: SettingsProvider.Setting {
+    public override var setting: SettingsProvider.Setting {
         .emailProtectionGeneration
     }
 
-    override func getValue() throws -> String? {
+    public override func getValue() throws -> String? {
         guard let user = try emailManager.getUsername() else {
             return nil
         }
@@ -59,7 +59,7 @@ class EmailProtectionSyncHandler: SettingSyncHandler {
         return String(bytes: data, encoding: .utf8)
     }
 
-    override func setValue(_ value: String?) throws {
+    public override func setValue(_ value: String?) throws {
         guard let value, let valueData = value.data(using: .utf8) else {
             try emailManager.signOut()
             return
@@ -69,11 +69,11 @@ class EmailProtectionSyncHandler: SettingSyncHandler {
         try emailManager.signIn(username: payload.username, token: payload.personalAccessToken)
     }
 
-    override var valueDidChangePublisher: AnyPublisher<Void, Never> {
+    public override var valueDidChangePublisher: AnyPublisher<Void, Never> {
         emailManager.userDidToggleEmailProtectionPublisher
     }
 
-    init(emailManager: EmailManagerSyncSupporting) {
+    public init(emailManager: EmailManagerSyncSupporting) {
         self.emailManager = emailManager
         super.init()
     }

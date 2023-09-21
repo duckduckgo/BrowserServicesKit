@@ -54,17 +54,14 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
     public convenience init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        emailManager: EmailManagerSyncSupporting,
         settingsHandlers: [SettingSyncHandler],
         syncDidUpdateData: @escaping () -> Void
     ) {
-        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
         let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
             partialResult[handler.setting] = handler
         }
 
         let settingsHandlers = settingsHandlersBySetting
-            .merging([.emailProtectionGeneration: emailProtectionSyncHandler], uniquingKeysWith: { $1 })
 
         self.init(
             metadataDatabase: metadataDatabase,
