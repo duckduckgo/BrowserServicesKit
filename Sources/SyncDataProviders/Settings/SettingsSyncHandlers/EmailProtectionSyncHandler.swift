@@ -78,5 +78,5 @@ public final class EmailProtectionSyncHandler: SettingSyncHandler {
         super.init()
     }
 
-    private let emailManager: EmailManagerSyncSupporting
+    public let emailManager: EmailManagerSyncSupporting
 }
