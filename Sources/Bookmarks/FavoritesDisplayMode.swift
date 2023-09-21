@@ -52,14 +52,14 @@ public enum FavoritesDisplayMode: Equatable {
      * the unified folder need also to be added to or deleted from their
      * respective native form factor folder.
      */
-    case displayAll(native: FavoritesFolderID)
+    case displayUnified(native: FavoritesFolderID)
 
     /// Returns true if the current mode is to display unified folder.
-    public var isDisplayAll: Bool {
+    public var isDisplayUnified: Bool {
         switch self {
         case .displayNative:
             return false
-        case .displayAll:
+        case .displayUnified:
             return true
         }
     }
@@ -69,7 +69,7 @@ public enum FavoritesDisplayMode: Equatable {
         switch self {
         case .displayNative(let platform):
             return platform
-        case .displayAll:
+        case .displayUnified:
             return .unified
         }
     }
@@ -77,7 +77,7 @@ public enum FavoritesDisplayMode: Equatable {
     /// Returns the UUID of a native favorites folder for a given display mode.
     public var nativePlatform: FavoritesFolderID {
         switch self {
-        case .displayNative(let native), .displayAll(let native):
+        case .displayNative(let native), .displayUnified(let native):
             return native
         }
     }
@@ -108,7 +108,7 @@ extension BookmarkEntity {
     public func removeFromFavorites(with displayMode: FavoritesDisplayMode) {
         let affectedFolders: [BookmarkEntity] = {
             let isFavoritedOnlyOnNativeFormFactor = Set(favoriteFoldersSet.compactMap(\.uuid)) == displayMode.folderUUIDs
-            if displayMode.isDisplayAll || isFavoritedOnlyOnNativeFormFactor {
+            if displayMode.isDisplayUnified || isFavoritedOnlyOnNativeFormFactor {
                 return Array(favoriteFoldersSet)
             }
             if let nativeFolder = favoriteFoldersSet.first(where: { $0.uuid == displayMode.nativePlatform.rawValue }) {

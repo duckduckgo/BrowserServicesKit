@@ -441,7 +441,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
     func testDisplayAllMode_WhenBookmarkIsFavoritedThenItIsAddedToNativeAndUnifiedFolders() async throws {
 
-        bookmarkListViewModel.favoritesDisplayMode = .displayAll(native: .mobile)
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
         let context = bookmarkListViewModel.context
 
         let bookmarkTree = BookmarkTree {
@@ -466,7 +466,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
     func testDisplayAllMode_WhenNonNativeFavoriteIsUnfavoritedThenItIsRemovedFromAllFolders() async throws {
 
-        bookmarkListViewModel.favoritesDisplayMode = .displayAll(native: .mobile)
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
         let context = bookmarkListViewModel.context
 
         let bookmarkTree = BookmarkTree {
@@ -491,7 +491,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
     func testDisplayAllMode_WhenNonNativeBrokenFavoriteIsFavoritedThenItIsAddedToNativeAndUnifiedFolder() async throws {
 
-        bookmarkListViewModel.favoritesDisplayMode = .displayAll(native: .mobile)
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
         let context = bookmarkListViewModel.context
 
         let bookmarkTree = BookmarkTree {
@@ -516,7 +516,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
     func testDisplayAllMode_WhenAllFormFactorsFavoriteIsUnfavoritedThenItIsRemovedFromAllFolders() async throws {
 
-        bookmarkListViewModel.favoritesDisplayMode = .displayAll(native: .mobile)
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
         let context = bookmarkListViewModel.context
 
         let bookmarkTree = BookmarkTree {

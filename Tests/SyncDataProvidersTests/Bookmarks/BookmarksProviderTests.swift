@@ -74,7 +74,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                 Bookmark("Bookmark 6", id: "6", modifiedAtConstraint: .notNil())
             })
 
-            let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: .displayAll(native: .mobile), in: context)
+            let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: .displayUnified(native: .mobile), in: context)
             XCTAssertTrue(favoritesFolders.allSatisfy { $0.modifiedAt != nil })
         }
     }

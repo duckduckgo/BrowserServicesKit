@@ -150,7 +150,7 @@ final class FavoriteListViewModelTests: XCTestCase {
 
     func testDisplayAllMode_WhenNonNativeFavoriteIsUnfavoritedThenItIsRemovedFromAllFolders() async throws {
 
-        favoriteListViewModel.favoritesDisplayMode = .displayAll(native: .mobile)
+        favoriteListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
         let context = favoriteListViewModel.context
 
         let bookmarkTree = BookmarkTree {
@@ -175,7 +175,7 @@ final class FavoriteListViewModelTests: XCTestCase {
 
     func testDisplayAllMode_WhenAllFormFactorsFavoriteIsUnfavoritedThenItIsRemovedFromAllFolders() async throws {
 
-        favoriteListViewModel.favoritesDisplayMode = .displayAll(native: .mobile)
+        favoriteListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
         let context = favoriteListViewModel.context
 
         let bookmarkTree = BookmarkTree {
