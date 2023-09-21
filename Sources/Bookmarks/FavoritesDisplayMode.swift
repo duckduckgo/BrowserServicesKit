@@ -88,6 +88,17 @@ public enum FavoritesDisplayMode: Equatable {
     }
 }
 
+extension FavoritesDisplayMode: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .displayNative:
+            return "display_native"
+        case .displayUnified:
+            return "display_all"
+        }
+    }
+}
+
 extension BookmarkEntity {
 
     /**

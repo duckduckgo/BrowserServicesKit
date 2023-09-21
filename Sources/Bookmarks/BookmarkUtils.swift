@@ -119,7 +119,7 @@ public struct BookmarkUtils {
     public static func copyFavorites(
         from sourceFolderID: FavoritesFolderID,
         to targetFolderID: FavoritesFolderID,
-        removingNonNativeFavoritesFrom nonNativeFolderID: FavoritesFolderID,
+        clearingNonNativeFavoritesFolder nonNativeFolderID: FavoritesFolderID,
         in context: NSManagedObjectContext
     ) {
         assert(nonNativeFolderID != .unified, "You must specify either desktop or mobile folder")
@@ -190,4 +190,26 @@ public struct BookmarkUtils {
 
         return folder
     }
+}
+
+// MARK: - Legacy Migration Support
+
+extension BookmarkUtils {
+
+    public static func prepareLegacyFoldersStructure(in context: NSManagedObjectContext) {
+
+        if fetchRootFolder(context) == nil {
+            insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
+        }
+
+        if fetchLegacyFavoritesFolder(context) == nil {
+            insertRootFolder(uuid: legacyFavoritesFolderID, into: context)
+        }
+    }
+
+    static func fetchLegacyFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
+        fetchFavoritesFolder(withUUID: legacyFavoritesFolderID, in: context)
+    }
+
+    static let legacyFavoritesFolderID = FavoritesFolderID.unified.rawValue
 }
