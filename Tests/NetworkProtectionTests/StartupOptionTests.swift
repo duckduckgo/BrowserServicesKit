@@ -33,7 +33,7 @@ final class StartupOptionsTests: XCTestCase {
         let options = StartupOptions(options: rawOptions, log: .disabled)
 
         XCTAssertEqual(options.authToken, .useExisting)
-        XCTAssertTrue(options.enableTester)
+        XCTAssertEqual(options.enableTester, .useExisting)
         XCTAssertEqual(options.keyValidity, .useExisting)
         XCTAssertFalse(options.simulateCrash)
         XCTAssertFalse(options.simulateError)
@@ -55,7 +55,7 @@ final class StartupOptionsTests: XCTestCase {
         let options = StartupOptions(options: rawOptions, log: .disabled)
 
         XCTAssertEqual(options.authToken, .reset)
-        XCTAssertTrue(options.enableTester)
+        XCTAssertEqual(options.enableTester, .reset)
         XCTAssertEqual(options.keyValidity, .reset)
         XCTAssertFalse(options.simulateCrash)
         XCTAssertFalse(options.simulateError)
@@ -76,7 +76,7 @@ final class StartupOptionsTests: XCTestCase {
         let options = StartupOptions(options: rawOptions, log: .disabled)
 
         XCTAssertEqual(options.authToken, .useExisting)
-        XCTAssertTrue(options.enableTester)
+        XCTAssertEqual(options.enableTester, .useExisting)
         XCTAssertEqual(options.keyValidity, .useExisting)
         XCTAssertFalse(options.simulateCrash)
         XCTAssertFalse(options.simulateError)
