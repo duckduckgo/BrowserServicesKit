@@ -90,7 +90,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
 
         // Shall we be removing the account? Keeping it tho, allows us to recover sync In case we somehow get back access to the keychain entry.
         //XCTAssertNil(mockKeyValueStore.isSyncEnabled)
-        
+
         XCTAssertNil(secureStorageStub.theAccount)
         XCTAssertEqual(mockErrorHandler.handledErrors, [])
     }
@@ -115,7 +115,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)
         syncService.initializeIfNeeded()
-        // Account has been red, so it is active
+        // Account has been read, so it is active
         XCTAssertEqual(syncService.authState, .active)
         XCTAssertEqual(mockErrorHandler.handledErrors, [.failedToSetupEngine])
     }
