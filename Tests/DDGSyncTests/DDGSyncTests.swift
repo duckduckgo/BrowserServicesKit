@@ -68,15 +68,25 @@ final class DDGSyncTests: XCTestCase {
     // MARK: - Setup
 
     func setUpExpectations(started syncStartedExpectedCount: Int, fetch fetchExpectedCount: Int, handleResponse handleSyncResponseExpectedCount: Int, finished syncFinishedExpectedCount: Int) {
-        syncStartedExpectation = expectation(description: "syncStarted")
-        fetchExpectation = expectation(description: "fetch")
-        handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
-        syncFinishedExpectation = expectation(description: "syncFinished")
+        if syncStartedExpectedCount > 0 {
+            syncStartedExpectation = expectation(description: "syncStarted")
+            syncStartedExpectation.expectedFulfillmentCount = syncStartedExpectedCount
+        }
 
-        syncStartedExpectation.expectedFulfillmentCount = syncStartedExpectedCount
-        fetchExpectation.expectedFulfillmentCount = fetchExpectedCount
-        handleSyncResponseExpectation.expectedFulfillmentCount = handleSyncResponseExpectedCount
-        syncFinishedExpectation.expectedFulfillmentCount = syncFinishedExpectedCount
+        if fetchExpectedCount > 0 {
+            fetchExpectation = expectation(description: "fetch")
+            fetchExpectation.expectedFulfillmentCount = fetchExpectedCount
+        }
+
+        if handleSyncResponseExpectedCount > 0 {
+            handleSyncResponseExpectation = expectation(description: "handleSyncResponse")
+            handleSyncResponseExpectation.expectedFulfillmentCount = handleSyncResponseExpectedCount
+        }
+
+        if syncFinishedExpectedCount > 0 {
+            syncFinishedExpectation = expectation(description: "syncFinished")
+            syncFinishedExpectation.expectedFulfillmentCount = syncFinishedExpectedCount
+        }
     }
 
     func setUpDataProviderCallbacks(for dataProvider: DataProvidingMock) {
@@ -435,5 +445,64 @@ final class DDGSyncTests: XCTestCase {
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertTrue(api.createRequestCallArgs.isEmpty)
+    }
+
+    func testThatSyncOperationRequestReturningHTTP401CausesLoggingOutOfSync() {
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dataProvider.lastSyncTimestamp = "1234"
+        setUpDataProviderCallbacks(for: dataProvider)
+        setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
+
+        dataProvidersSource.dataProviders = [dataProvider]
+        (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [:]
+        let http401Response = HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 401, httpVersion: nil, headerFields: [:])!
+        dependencies.request.result = HTTPResult(data: Data(), response: http401Response)
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded()
+        bindInProgressPublisher(for: syncService)
+
+        XCTAssertEqual(syncService.authState, .active)
+
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 2)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .fetch(1),
+            .finished(1)
+        ])
+
+        XCTAssertEqual(syncService.authState, .inactive)
+    }
+
+    func testThatSyncOperationRequestThrowingHTTP401CausesLoggingOutOfSync() {
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dataProvider.lastSyncTimestamp = "1234"
+        setUpDataProviderCallbacks(for: dataProvider)
+        setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
+
+        dataProvidersSource.dataProviders = [dataProvider]
+        (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [:]
+        dependencies.request.error = SyncError.unexpectedStatusCode(401)
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded()
+        bindInProgressPublisher(for: syncService)
+
+        XCTAssertEqual(syncService.authState, .active)
+
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 2)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .fetch(1),
+            .finished(1)
+        ])
+
+        XCTAssertEqual(syncService.authState, .inactive)
     }
 }
