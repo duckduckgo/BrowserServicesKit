@@ -54,6 +54,19 @@ class SyncOperation: Operation {
         }
     }
 
+    var didReceiveHTTPRequestError: ((Error) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _didReceiveHTTPRequestError
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _didReceiveHTTPRequestError = newValue
+        }
+    }
+
     init(
         dataProviders: [DataProviding],
         storage: SecureStoring,
@@ -154,7 +167,9 @@ class SyncOperation: Operation {
                                                           fetchOnly: fetchOnly,
                                                           timestamp: clientTimestamp)
                         default:
-                            throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
+                            let error = SyncError.unexpectedStatusCode(httpResult.response.statusCode)
+                            didReceiveHTTPRequestError?(error)
+                            throw FeatureError(feature: dataProvider.feature, underlyingError: error)
                         }
                     } catch is CancellationError {
                         os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)
@@ -281,4 +296,5 @@ class SyncOperation: Operation {
     private var _isFinished: Bool = false
     private var _didStart: (() -> Void)?
     private var _didFinish: ((Error?) -> Void)?
+    private var _didReceiveHTTPRequestError: ((Error) -> Void)?
 }
