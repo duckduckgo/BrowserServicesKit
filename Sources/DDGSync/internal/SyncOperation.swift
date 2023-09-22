@@ -174,6 +174,9 @@ class SyncOperation: Operation {
                     } catch is CancellationError {
                         os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)
                     } catch {
+                        if case SyncError.unexpectedStatusCode = error {
+                            didReceiveHTTPRequestError?(error)
+                        }
                         os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", dataProvider.feature.name, error.localizedDescription)
                         dataProvider.handleSyncError(error)
                         throw FeatureError(feature: dataProvider.feature, underlyingError: error)

@@ -476,4 +476,33 @@ final class DDGSyncTests: XCTestCase {
 
         XCTAssertEqual(syncService.authState, .inactive)
     }
+
+    func testThatSyncOperationRequestThrowingHTTP401CausesLoggingOutOfSync() {
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        dataProvider.lastSyncTimestamp = "1234"
+        setUpDataProviderCallbacks(for: dataProvider)
+        setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
+
+        dataProvidersSource.dataProviders = [dataProvider]
+        (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [:]
+        dependencies.request.error = SyncError.unexpectedStatusCode(401)
+
+        let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
+        syncService.initializeIfNeeded()
+        bindInProgressPublisher(for: syncService)
+
+        XCTAssertEqual(syncService.authState, .active)
+
+        syncService.scheduler.requestSyncImmediately()
+
+        waitForExpectations(timeout: 2)
+
+        XCTAssertEqual(recordedEvents, [
+            .started(1),
+            .fetch(1),
+            .finished(1)
+        ])
+
+        XCTAssertEqual(syncService.authState, .inactive)
+    }
 }
