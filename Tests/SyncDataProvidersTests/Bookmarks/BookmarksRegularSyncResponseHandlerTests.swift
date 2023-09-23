@@ -464,7 +464,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "5")
+            Bookmark(id: "1")
             Bookmark(id: "2")
             Folder(id: "3", isOrphaned: true) {
                 Bookmark(id: "4")
