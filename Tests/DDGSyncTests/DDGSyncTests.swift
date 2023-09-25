@@ -31,7 +31,7 @@ enum SyncOperationEvent: Equatable {
 
 final class DDGSyncTests: XCTestCase {
     var dataProvidersSource: MockDataProvidersSource!
-    var dependencies: MockSyncDepenencies!
+    var dependencies: MockSyncDependencies!
 
     var syncStartedExpectation: XCTestExpectation!
     var fetchExpectation: XCTestExpectation!
@@ -48,7 +48,7 @@ final class DDGSyncTests: XCTestCase {
         taskID = 1
 
         dataProvidersSource = MockDataProvidersSource()
-        dependencies = MockSyncDepenencies()
+        dependencies = MockSyncDependencies()
         (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [
             URL(string: "https://dev.null/sync/credentials")!: HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
             URL(string: "https://dev.null/sync/bookmarks")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
