@@ -2,7 +2,7 @@ name: PR Checks
 
 on:
   push:
-    branches: [ main, dominik/gha-pr-check-failed-improvements ]
+    branches: [ main ]
   pull_request:
     
 jobs:
@@ -38,7 +38,6 @@ jobs:
 
       - name: Set cache key hash
         run: |
-          exit 1
           has_only_tags=$(jq '[ .pins[].state | has("version") ] | all' Package.resolved)
           if [[ "$has_only_tags" == "true" ]]; then
             echo "cache_key_hash=${{ hashFiles('Package.resolved') }}" >> $GITHUB_ENV
@@ -94,7 +93,7 @@ jobs:
           path: build-log.txt
 
       - name: Fetch latest commit author
-        if: always()
+        if: always() && github.ref_name == 'main'
         id: fetch_commit_author
         env:
           GH_TOKEN: ${{ github.token }}
@@ -107,7 +106,7 @@ jobs:
     name: Create Asana Task
     needs: [swiftlint, unit-tests]
 
-    if: failure() && github.run_attempt == 1
+    if: failure() && github.ref_name == 'main' && github.run_attempt == 1
 
     runs-on: ubuntu-latest
 
@@ -126,7 +125,7 @@ jobs:
     name: Close Asana Task
     needs: [swiftlint, unit-tests]
 
-    if: always() && github.run_attempt > 1
+    if: success() && github.ref_name == 'main' && github.run_attempt > 1
 
     runs-on: ubuntu-latest
 
