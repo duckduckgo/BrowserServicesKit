@@ -35,59 +35,6 @@ public protocol NetworkProtectionDeviceManagement {
 
 }
 
-protocol NetworkProtectionErrorConvertible {
-    var networkProtectionError: NetworkProtectionError { get }
-}
-
-public enum NetworkProtectionError: LocalizedError {
-    // Tunnel configuration errors
-    case noServerRegistrationInfo
-    case couldNotSelectClosestServer
-    case couldNotGetPeerPublicKey
-    case couldNotGetPeerHostName
-    case couldNotGetInterfaceAddressRange
-
-    // Client errors
-    case failedToFetchServerList(Error?)
-    case failedToParseServerListResponse(Error)
-    case failedToEncodeRegisterKeyRequest
-    case failedToFetchRegisteredServers(Error?)
-    case failedToParseRegisteredServersResponse(Error)
-    case failedToEncodeRedeemRequest
-    case invalidInviteCode
-    case failedToRedeemInviteCode(Error?)
-    case failedToParseRedeemResponse(Error)
-    case invalidAuthToken
-    case serverListInconsistency
-
-    // Server list store errors
-    case failedToEncodeServerList(Error)
-    case failedToDecodeServerList(Error)
-    case failedToWriteServerList(Error)
-    case noServerListFound
-    case couldNotCreateServerListDirectory(Error)
-    case failedToReadServerList(Error)
-
-    // Keychain errors
-    case failedToCastKeychainValueToData(field: String)
-    case keychainReadError(field: String, status: Int32)
-    case keychainWriteError(field: String, status: Int32)
-    case keychainDeleteError(status: Int32)
-
-    // Auth errors
-    case noAuthTokenFound
-
-    // Unhandled error
-    case unhandledError(function: String, line: Int, error: Error)
-
-    public var errorDescription: String? {
-        // This is probably not the most elegant error to show to a user but
-        // it's a great way to get detailed reports for those cases we haven't
-        // provided good descriptions for yet.
-        return "NetworkProtectionError.\(String(describing: self))"
-    }
-}
-
 public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
