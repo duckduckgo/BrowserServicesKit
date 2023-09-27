@@ -748,6 +748,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelFatalError(completionHandler: completionHandler)
         case .simulateTunnelMemoryOveruse:
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
+        case .simulateConnectionInterruption:
+            simulateConnectionInterruption(completionHandler: completionHandler)
         }
     }
 
@@ -876,6 +878,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         while true {
             array.append("Crash")
         }
+    }
+
+    private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
+        notificationsPresenter.showReconnectingNotification()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            self.notificationsPresenter.showReconnectedNotification()
+        }
+        completionHandler?(nil)
     }
 
     // MARK: - Adapter start completion handling
