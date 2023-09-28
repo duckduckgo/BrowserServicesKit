@@ -248,7 +248,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .reconnected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
                 self.notificationsPresenter.showReconnectedNotification()
-                self.reasserting = false
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
                 self.startLatencyReporter()
 
@@ -262,7 +261,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                     // Only do these things if this is not a connection startup test.
                     if !isStartupTest {
-                        self.reasserting = true
                         self.fixTunnel()
                     }
                 } else if failureCount == 2 {
@@ -881,10 +879,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
-        reasserting = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
-            self.reasserting = false
-        }
+        connectionTester.failNextTest()
         completionHandler?(nil)
     }
 
