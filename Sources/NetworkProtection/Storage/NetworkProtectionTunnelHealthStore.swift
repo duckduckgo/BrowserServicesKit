@@ -63,8 +63,8 @@ public final class NetworkProtectionTunnelHealthStore {
                 return
             }
             userDefaults.set(newValue, forKey: Self.isHavingConnectivityIssuesKey)
-#if os(macOS)
             os_log("Issues set to %{public}@", log: .networkProtectionConnectionTesterLog, String(reflecting: newValue))
+#if os(macOS)
             postIssueChangeNotification(newValue: newValue)
 #endif
         }
