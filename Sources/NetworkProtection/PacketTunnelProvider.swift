@@ -882,8 +882,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showReconnectingNotification()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+        reasserting = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) {
             self.notificationsPresenter.showReconnectedNotification()
+            self.reasserting = false
         }
         completionHandler?(nil)
     }
