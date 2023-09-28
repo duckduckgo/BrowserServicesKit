@@ -96,6 +96,8 @@ final class NetworkProtectionConnectionTester {
     private var failureCount = 0
     private let resultHandler: @MainActor (Result, Bool) -> Void
 
+    private var simulateFailure = false
+
     // MARK: - Init & deinit
 
     init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result, Bool) -> Void) {
@@ -110,6 +112,12 @@ final class NetworkProtectionConnectionTester {
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
 
         cancelTimerImmediately()
+    }
+
+    // MARK: - Testing
+
+    func failNextTest() {
+        simulateFailure = true
     }
 
     // MARK: - Starting & Stopping the tester
@@ -247,7 +255,8 @@ final class NetworkProtectionConnectionTester {
         let vpnIsConnected = await vpnConnected
         let localIsConnected = await localConnected
 
-        let onlyVPNIsDown = !vpnIsConnected && localIsConnected
+        let onlyVPNIsDown = simulateFailure || (!vpnIsConnected && localIsConnected)
+        simulateFailure = false
 
         // After completing the conection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
