@@ -18,8 +18,14 @@
 
 import Foundation
 
+public enum NetworkProtectionAuthenticationMethod {
+    case inviteCode(String)
+    case subscription(String)
+}
+
 public protocol NetworkProtectionClient {
-    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
+    func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
+    // func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
                   publicKey: PublicKey,
@@ -64,11 +70,15 @@ struct RegisterKeyRequestBody: Encodable {
     }
 }
 
-struct RedeemRequestBody: Encodable {
+struct RedeemInviteCodeRequestBody: Encodable {
     let code: String
 }
 
-struct RedeemResponse: Decodable {
+struct ExchangeAccessTokenRequestBody: Encodable {
+    let token: String
+}
+
+struct AuthenticationResponse: Decodable {
     let token: String
 }
 
@@ -77,6 +87,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
     enum Constants {
         static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
         static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
+        static let subscriptionEndpoint = URL(string: "https://staging1.netp.duckduckgo.com")!
     }
 
     private enum DecoderError: Error {
@@ -93,6 +104,10 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     var redeemURL: URL {
         Constants.productionEndpoint.appending("/redeem")
+    }
+
+    var authorizeEndpoint: URL {
+        Constants.subscriptionEndpoint.appending("/authorize")
     }
 
     private let decoder: JSONDecoder = {
@@ -185,8 +200,17 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
-        let requestBody = RedeemRequestBody(code: inviteCode)
+    public func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError> {
+        switch method {
+        case .inviteCode(let code):
+            return await redeem(inviteCode: code)
+        case .subscription(let accessToken):
+            return await exchange(accessToken: accessToken)
+        }
+    }
+
+    private func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
+        let requestBody = RedeemInviteCodeRequestBody(code: inviteCode)
         let requestBodyData: Data
         do {
             requestBodyData = try JSONEncoder().encode(requestBody)
@@ -216,12 +240,51 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         do {
-            let decodedRedemptionResponse = try decoder.decode(RedeemResponse.self, from: responseData)
+            let decodedRedemptionResponse = try decoder.decode(AuthenticationResponse.self, from: responseData)
             return .success(decodedRedemptionResponse.token)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
         }
     }
+
+    private func exchange(accessToken: String) async -> Result<String, NetworkProtectionClientError> {
+        let requestBody = ExchangeAccessTokenRequestBody(token: accessToken)
+        let requestBodyData: Data
+        do {
+            requestBodyData = try JSONEncoder().encode(requestBody)
+        } catch {
+            return .failure(.failedToEncodeRedeemRequest)
+        }
+
+        var request = URLRequest(url: authorizeEndpoint)
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = "POST"
+        request.httpBody = requestBodyData
+
+        let responseData: Data
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let response = response as? HTTPURLResponse else {
+                return .failure(.failedToRedeemInviteCode(nil))
+            }
+            switch response.statusCode {
+            case 200: responseData = data
+            case 400: return .failure(.invalidInviteCode)
+            default: return .failure(.failedToRedeemInviteCode(nil))
+            }
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToRedeemInviteCode(error))
+        }
+
+        do {
+            let decodedRedemptionResponse = try decoder.decode(AuthenticationResponse.self, from: responseData)
+            return .success(decodedRedemptionResponse.token)
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
+        }
+    }
+
 
 }
 
