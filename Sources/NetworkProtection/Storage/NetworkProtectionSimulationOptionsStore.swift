@@ -23,6 +23,7 @@ public enum NetworkProtectionSimulationOption: Sendable {
     case tunnelFailure
     case crashFatalError
     case crashMemory
+    case connectionInterruption
 }
 
 public class NetworkProtectionSimulationOptions {
