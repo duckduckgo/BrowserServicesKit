@@ -169,7 +169,7 @@ extension URL {
                 self = urlWithScheme
                 return
 
-            } else if url.scheme != nil {
+            } else if let scheme = url.scheme, s.hasPrefix(scheme + NavigationalScheme.separator) {
                 self = url
                 return
 
