@@ -89,7 +89,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
         XCTAssertEqual(syncService.authState, .inactive)
 
         // Shall we be removing the account? Keeping it tho, allows us to recover sync In case we somehow get back access to the keychain entry.
-        //XCTAssertNil(mockKeyValueStore.isSyncEnabled)
+        // XCTAssertNil(mockKeyValueStore.isSyncEnabled)
 
         XCTAssertNil(secureStorageStub.theAccount)
         XCTAssertEqual(mockErrorHandler.handledErrors, [])

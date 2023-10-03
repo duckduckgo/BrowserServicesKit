@@ -75,7 +75,13 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
     }
 
-    public func createBookmark(title: String, url: String, folder: BookmarkEntity, folderIndex: Int, favoritesFolder: BookmarkEntity?, favoritesIndex: Int?) {
+    // swiftlint:disable:next function_parameter_count
+    public func createBookmark(title: String,
+                               url: String,
+                               folder: BookmarkEntity,
+                               folderIndex: Int,
+                               favoritesFolder: BookmarkEntity?,
+                               favoritesIndex: Int?) {
         let bookmark = BookmarkEntity.makeBookmark(title: title, url: url, parent: folder, context: context)
         if let addedIndex = folder.childrenArray.firstIndex(of: bookmark) {
             moveBookmark(bookmark, fromIndex: addedIndex, toIndex: folderIndex)
