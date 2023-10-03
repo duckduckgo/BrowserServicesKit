@@ -50,10 +50,6 @@ class TrackerAllowlistReferenceTests: XCTestCase {
     var tests = [AllowlistTests.Test]()
     var mockWebsite: MockWebsite!
 
-    override func setUp() {
-        super.setUp()
-    }
-
     func setupWebView(trackerData: TrackerData,
                       userScriptDelegate: ContentBlockerRulesUserScriptDelegate,
                       trackerAllowlist: PrivacyConfigurationData.TrackerAllowlistData,

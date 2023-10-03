@@ -26,7 +26,7 @@ public enum ContentBlockerDebugEvents {
         static let errorDescription = "error_desc"
     }
     
-    public enum Component: String, CustomStringConvertible {
+    public enum Component: String, CustomStringConvertible, CaseIterable {
     
         public var description: String { rawValue }
         

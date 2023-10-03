@@ -42,9 +42,9 @@ final class NetworkProtectionKeychainStore {
     private let keychainType: KeychainType
 
     init(label: String,
-        serviceName: String,
-        keychainType: KeychainType) {
-
+         serviceName: String,
+         keychainType: KeychainType) {
+        
         self.label = label
         self.serviceName = serviceName
         self.keychainType = keychainType
