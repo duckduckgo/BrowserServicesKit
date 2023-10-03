@@ -106,7 +106,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         Constants.productionEndpoint.appending("/redeem")
     }
 
-    var authorizeEndpoint: URL {
+    var authorizeURL: URL {
         Constants.subscriptionEndpoint.appending("/authorize")
     }
 
@@ -211,52 +211,27 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     private func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
         let requestBody = RedeemInviteCodeRequestBody(code: inviteCode)
-        let requestBodyData: Data
-        do {
-            requestBodyData = try JSONEncoder().encode(requestBody)
-        } catch {
-            return .failure(.failedToEncodeRedeemRequest)
-        }
-
-        var request = URLRequest(url: redeemURL)
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpMethod = "POST"
-        request.httpBody = requestBodyData
-
-        let responseData: Data
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToRedeemInviteCode(nil))
-            }
-            switch response.statusCode {
-            case 200: responseData = data
-            case 400: return .failure(.invalidInviteCode)
-            default: return .failure(.failedToRedeemInviteCode(nil))
-            }
-        } catch {
-            return .failure(NetworkProtectionClientError.failedToRedeemInviteCode(error))
-        }
-
-        do {
-            let decodedRedemptionResponse = try decoder.decode(AuthenticationResponse.self, from: responseData)
-            return .success(decodedRedemptionResponse.token)
-        } catch {
-            return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
-        }
+        return await retrieveAuthToken(requestBody: requestBody, endpoint: redeemURL)
     }
 
     private func exchange(accessToken: String) async -> Result<String, NetworkProtectionClientError> {
         let requestBody = ExchangeAccessTokenRequestBody(token: accessToken)
+        return await retrieveAuthToken(requestBody: requestBody, endpoint: authorizeURL)
+    }
+
+    private func retrieveAuthToken<RequestBody: Encodable>(
+        requestBody: RequestBody,
+        endpoint: URL
+    ) async -> Result<String, NetworkProtectionClientError> {
         let requestBodyData: Data
+
         do {
             requestBodyData = try JSONEncoder().encode(requestBody)
         } catch {
             return .failure(.failedToEncodeRedeemRequest)
         }
 
-        var request = URLRequest(url: authorizeEndpoint)
+        var request = URLRequest(url: endpoint)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
         request.httpBody = requestBodyData
@@ -284,7 +259,6 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
             return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
         }
     }
-
 
 }
 
