@@ -41,14 +41,11 @@ public struct SettingsSyncMetadataSaveError: Error {
     }
 }
 
+// swiftlint:disable:next type_body_length
 public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate {
 
     public struct Setting: Hashable {
         let key: String
-
-        init(key: String) {
-            self.key = key
-        }
     }
 
     public convenience init(
@@ -188,6 +185,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
 
     // MARK: - Internal
 
+    // swiftlint:disable:next function_body_length function_parameter_count
     func handleSyncResponse(
         isInitial: Bool,
         sent: [Syncable],
