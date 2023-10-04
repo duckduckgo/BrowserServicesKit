@@ -41,6 +41,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToEncodeRedeemRequest
     case invalidInviteCode
     case failedToRedeemInviteCode(Error?)
+    case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
 
@@ -54,6 +55,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToEncodeRedeemRequest: return .failedToEncodeRedeemRequest
         case .invalidInviteCode: return .invalidInviteCode
         case .failedToRedeemInviteCode(let error): return .failedToRedeemInviteCode(error)
+        case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
         }
@@ -78,8 +80,12 @@ struct ExchangeAccessTokenRequestBody: Encodable {
     let token: String
 }
 
-struct AuthenticationResponse: Decodable {
+struct AuthenticationSuccessResponse: Decodable {
     let token: String
+}
+
+public struct AuthenticationFailureResponse: Decodable {
+    public let message: String
 }
 
 public final class NetworkProtectionBackendClient: NetworkProtectionClient {
@@ -244,16 +250,25 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 return .failure(.failedToRedeemInviteCode(nil))
             }
             switch response.statusCode {
-            case 200: responseData = data
-            case 400: return .failure(.invalidInviteCode)
-            default: return .failure(.failedToRedeemInviteCode(nil))
+            case 200:
+                responseData = data
+            case 400:
+                return .failure(.invalidInviteCode)
+            default:
+                do {
+                    // Try to redeem the subscription backend error response first:
+                    let decodedRedemptionResponse = try decoder.decode(AuthenticationFailureResponse.self, from: data)
+                    return .failure(.failedToRetrieveAuthToken(decodedRedemptionResponse))
+                } catch {
+                    return .failure(.failedToRedeemInviteCode(nil))
+                }
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToRedeemInviteCode(error))
         }
 
         do {
-            let decodedRedemptionResponse = try decoder.decode(AuthenticationResponse.self, from: responseData)
+            let decodedRedemptionResponse = try decoder.decode(AuthenticationSuccessResponse.self, from: responseData)
             return .success(decodedRedemptionResponse.token)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))

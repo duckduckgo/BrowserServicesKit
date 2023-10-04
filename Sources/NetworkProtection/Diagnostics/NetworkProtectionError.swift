@@ -40,6 +40,7 @@ public enum NetworkProtectionError: LocalizedError {
     case failedToEncodeRedeemRequest
     case invalidInviteCode
     case failedToRedeemInviteCode(Error?)
+    case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
     case serverListInconsistency

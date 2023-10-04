@@ -21,21 +21,21 @@ import Common
 
 public protocol NetworkProtectionTokenStore {
 
-    /// Store an oAuth token.
+    /// Store an auth token.
     ///
     func store(_ token: String) throws
 
-    /// Obtain the current oAuth token.
+    /// Obtain the current auth token.
     ///
     func fetchToken() throws -> String?
 
-    /// Obtain the stored oAuth token.
+    /// Obtain the stored auth token.
     ///
     func deleteToken() throws
 }
 
-/// Store an oAuth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
-/// Writing a new oAuth token will replace the old one.
+/// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
+/// Writing a new auth token will replace the old one.
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
