@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
+        .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
@@ -86,10 +87,15 @@ let package = Package(
                 "Bookmarks"
             ]
         ),
-         .target(
-            name: "BloomFilterWrapper",
+        .target(
+            name: "BloomFilterObjC",
             dependencies: [
                 .product(name: "BloomFilter", package: "bloom_cpp")
+            ]),
+        .target(
+            name: "BloomFilterWrapper",
+            dependencies: [
+                "BloomFilterObjC"
             ]),
         .target(
             name: "Crashes"

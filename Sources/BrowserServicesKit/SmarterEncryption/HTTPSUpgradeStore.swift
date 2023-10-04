@@ -17,6 +17,7 @@
 //
 
 import BloomFilterWrapper
+import Foundation
 
 public protocol HTTPSUpgradeStore {
 
