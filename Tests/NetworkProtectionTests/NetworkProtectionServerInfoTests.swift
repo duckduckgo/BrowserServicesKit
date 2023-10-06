@@ -44,5 +44,4 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
         XCTAssertEqual(serverInfo.serverLocation, "New York, NY")
     }
 
-
 }
