@@ -28,11 +28,13 @@ public struct NetworkProtectionServerInfo: Codable, Equatable, Sendable {
     public struct ServerAttributes: Codable, Equatable, Sendable {
         public let city: String
         public let country: String
+        public let state: String
         public let timezoneOffset: Int
 
         enum CodingKeys: String, CodingKey {
             case city
             case country
+            case state
             case timezoneOffset = "tzOffset"
         }
     }
@@ -59,7 +61,8 @@ extension NetworkProtectionServerInfo {
 
     /// Returns the physical location of the server, if one is available. For instance, this may return "Amsterdam, NL". If location attributes are not present, this will return the server name.
     public var serverLocation: String {
-        return "\(attributes.city), \(attributes.country.localizedUppercase)"
+        let stateOrCountry = isUSServerLocation ? attributes.state : attributes.country
+        return "\(attributes.city), \(stateOrCountry.localizedUppercase)"
     }
 
     /// Calculates the total available addresses for this server.
@@ -78,6 +81,10 @@ extension NetworkProtectionServerInfo {
     /// first available IPv4 address
     public var ipv4: IPv4Address? {
         ips.lazy.compactMap(\.ipv4).first
+    }
+
+    private var isUSServerLocation: Bool {
+        return attributes.country.localizedUppercase == "US"
     }
 
 }

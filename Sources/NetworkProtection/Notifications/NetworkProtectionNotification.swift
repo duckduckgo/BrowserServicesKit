@@ -54,6 +54,7 @@ extension DistributedNotificationCenter {
 extension DistributedNotificationCenter: NetworkProtectionNotificationPosting {
     public func post(_ networkProtectionNotification: NetworkProtectionNotification,
                      object: String? = nil,
+                     userInfo: [AnyHashable: Any]? = nil,
                      log: OSLog = .networkProtectionDistributedNotificationsLog) {
         logPost(networkProtectionNotification, object: object, log: log)
 
@@ -62,12 +63,12 @@ extension DistributedNotificationCenter: NetworkProtectionNotificationPosting {
 }
 
 public protocol NetworkProtectionNotificationPosting: AnyObject {
-    func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String?, log: OSLog)
+    func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String?, userInfo: [AnyHashable: Any]?, log: OSLog)
 }
 
 public extension NetworkProtectionNotificationPosting {
-    func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String? = nil) {
-        post(networkProtectionNotification, object: object, log: .networkProtectionDistributedNotificationsLog)
+    func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String? = nil, userInfo: [AnyHashable: Any]? = nil) {
+        post(networkProtectionNotification, object: object, userInfo: userInfo, log: .networkProtectionDistributedNotificationsLog)
     }
 }
 
@@ -90,6 +91,10 @@ extension NotificationCenter {
 }
 
 public enum NetworkProtectionNotification: String {
+    public enum UserInfoKey {
+        public static let connectedServerLocation = "NetworkProtectionServerLocationKey"
+    }
+
     // Tunnel Status
     case statusDidChange
 
@@ -99,7 +104,7 @@ public enum NetworkProtectionNotification: String {
 
     // User Notification Events
     case showIssuesStartedNotification
-    case showIssuesResolvedNotification
+    case showConnectedNotification
     case showIssuesNotResolvedNotification
     case showVPNSupersededNotification
     case showTestNotification
