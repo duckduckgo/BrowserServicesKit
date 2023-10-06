@@ -158,10 +158,21 @@ extension URL {
             s = scheme.separated() + s.dropFirst(scheme.separated().count - 1)
         }
 
-        if let url = URL(string: s) {
+        let url: URL?
+        let urlWithScheme: URL?
+        if #available(macOS 14.0, *) {
+            // Making sure string is strictly valid according to the RFC
+            url = URL(string: s, encodingInvalidCharacters: false)
+            urlWithScheme = URL(string: NavigationalScheme.http.separated() + s, encodingInvalidCharacters: false)
+        } else {
+            url = URL(string: s)
+            urlWithScheme = URL(string: NavigationalScheme.http.separated() + s)
+        }
+
+        if let url {
             // if URL has domain:port or user:password@domain mistakengly interpreted as a scheme
             if url.navigationalScheme != .mailto,
-               let urlWithScheme = URL(string: NavigationalScheme.http.separated() + s),
+               let urlWithScheme,
                urlWithScheme.port != nil || urlWithScheme.user != nil {
                 // could be a local domain but user needs to use the protocol to specify that
                 // make exception for "localhost"
