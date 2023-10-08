@@ -83,7 +83,7 @@ final class NetworkProtectionClientTests: XCTestCase {
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
                                                    .success(successData))
 
-        let result = await client.redeem(inviteCode: "DH76F8S")
+        let result = await client.authenticate(withMethod: .inviteCode("DH76F8S"))
 
         XCTAssertEqual(try? result.get(), token)
     }
@@ -94,7 +94,7 @@ final class NetworkProtectionClientTests: XCTestCase {
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 400)!,
                                                    .success(emptyData))
 
-        let result = await client.redeem(inviteCode: "DH76F8S")
+        let result = await client.authenticate(withMethod: .inviteCode("DH76F8S"))
 
         guard case .failure(let error) = result, case .invalidInviteCode = error else {
             XCTFail("Expected an invalidInviteCode error to be thrown")
@@ -110,7 +110,7 @@ final class NetworkProtectionClientTests: XCTestCase {
             MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: code)!,
                                                        .success(emptyData))
 
-            let result = await client.redeem(inviteCode: "DH76F8S")
+            let result = await client.authenticate(withMethod: .inviteCode("DH76F8S"))
 
             guard case .failure(let error) = result, case .failedToRedeemInviteCode = error else {
                 XCTFail("Expected a failedToRedeemInviteCode error to be thrown")
@@ -125,7 +125,7 @@ final class NetworkProtectionClientTests: XCTestCase {
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
                                                    .success(undecodableData))
 
-        let result = await client.redeem(inviteCode: "DH76F8S")
+        let result = await client.authenticate(withMethod: .inviteCode("DH76F8S"))
 
         guard case .failure(let error) = result, case .failedToParseRedeemResponse = error else {
             XCTFail("Expected a failedToRedeemInviteCode error to be thrown")

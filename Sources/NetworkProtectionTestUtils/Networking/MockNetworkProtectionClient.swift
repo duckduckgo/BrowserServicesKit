@@ -22,12 +22,38 @@ import NetworkProtection
 
 // swiftlint:disable line_length
 public final class MockNetworkProtectionClient: NetworkProtectionClient {
+
     public var spyRedeemInviteCode: String?
+    public var spyRedeemAccessToken: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
 
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
-        spyRedeemInviteCode = inviteCode
-        return stubRedeem
+    public init(spyRedeemInviteCode: String? = nil,
+                spyRedeemAccessToken: String? = nil,
+                stubRedeem: Result<String, NetworkProtectionClientError> = .success(""),
+                spyGetServersAuthToken: String? = nil,
+                stubGetServers: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([]),
+                spyRegister: (authToken: String, publicKey: PublicKey, serverName: String?)? = nil,
+                stubRegister: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([])) {
+        self.spyRedeemInviteCode = spyRedeemInviteCode
+        self.spyRedeemAccessToken = spyRedeemAccessToken
+        self.stubRedeem = stubRedeem
+        self.spyGetServersAuthToken = spyGetServersAuthToken
+        self.stubGetServers = stubGetServers
+        self.spyRegister = spyRegister
+        self.stubRegister = stubRegister
+    }
+
+    public func authenticate(
+        withMethod method: NetworkProtection.NetworkProtectionAuthenticationMethod
+    ) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
+        switch method {
+        case .inviteCode(let inviteCode):
+            spyRedeemInviteCode = inviteCode
+            return stubRedeem
+        case .subscription(let accessToken):
+            spyRedeemAccessToken = accessToken
+            return stubRedeem
+        }
     }
 
     public var spyGetServersAuthToken: String?

@@ -305,7 +305,8 @@ let package = Package(
         .testTarget(
             name: "NetworkProtectionTests",
             dependencies: [
-                "NetworkProtection"
+                "NetworkProtection",
+                "NetworkProtectionTestUtils"
             ],
             resources: [
                 .copy("Resources/servers-original-endpoint.json"),
