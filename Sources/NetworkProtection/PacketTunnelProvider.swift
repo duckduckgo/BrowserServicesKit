@@ -97,7 +97,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard connectionStatus != oldValue else {
                 return
             }
-
+            if case .connected = connectionStatus {
+                self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServerInfo?.serverLocation)
+            }
             connectionStatusPublisher.send(connectionStatus)
         }
     }
@@ -247,7 +249,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             case .reconnected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
-                self.notificationsPresenter.showReconnectedNotification()
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
                 self.startLatencyReporter()
 
