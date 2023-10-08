@@ -25,7 +25,6 @@ public enum NetworkProtectionAuthenticationMethod {
 
 public protocol NetworkProtectionClient {
     func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
-    // func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
                   publicKey: PublicKey,
