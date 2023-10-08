@@ -27,19 +27,11 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
     public var spyRedeemAccessToken: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
 
-    public init(spyRedeemInviteCode: String? = nil,
-                spyRedeemAccessToken: String? = nil,
-                stubRedeem: Result<String, NetworkProtectionClientError> = .success(""),
-                spyGetServersAuthToken: String? = nil,
+    public init(stubRedeem: Result<String, NetworkProtectionClientError> = .success(""),
                 stubGetServers: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([]),
-                spyRegister: (authToken: String, publicKey: PublicKey, serverName: String?)? = nil,
                 stubRegister: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([])) {
-        self.spyRedeemInviteCode = spyRedeemInviteCode
-        self.spyRedeemAccessToken = spyRedeemAccessToken
         self.stubRedeem = stubRedeem
-        self.spyGetServersAuthToken = spyGetServersAuthToken
         self.stubGetServers = stubGetServers
-        self.spyRegister = spyRegister
         self.stubRegister = stubRegister
     }
 
