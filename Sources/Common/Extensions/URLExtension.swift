@@ -158,6 +158,7 @@ extension URL {
             s = scheme.separated() + s.dropFirst(scheme.separated().count - 1)
         }
 
+#if os(macOS)
         let url: URL?
         let urlWithScheme: URL?
         if #available(macOS 14.0, *) {
@@ -168,6 +169,10 @@ extension URL {
             url = URL(string: s)
             urlWithScheme = URL(string: NavigationalScheme.http.separated() + s)
         }
+#else
+        let url = URL(string: s)
+        let urlWithScheme = URL(string: NavigationalScheme.http.separated() + s)
+#endif
 
         if let url {
             // if URL has domain:port or user:password@domain mistakengly interpreted as a scheme
