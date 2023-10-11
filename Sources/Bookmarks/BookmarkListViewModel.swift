@@ -82,7 +82,13 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
     }
 
-    public func createBookmark(title: String, url: String, folder: BookmarkEntity, folderIndex: Int, favoritesFoldersAndIndexes: [BookmarkEntity: Int]) {
+    public func createBookmark(
+        title: String,
+        url: String,
+        folder: BookmarkEntity,
+        folderIndex: Int,
+        favoritesFoldersAndIndexes: [BookmarkEntity: Int]
+    ) {
         let bookmark = BookmarkEntity.makeBookmark(title: title, url: url, parent: folder, context: context)
         if let addedIndex = folder.childrenArray.firstIndex(of: bookmark) {
             moveBookmark(bookmark, fromIndex: addedIndex, toIndex: folderIndex)

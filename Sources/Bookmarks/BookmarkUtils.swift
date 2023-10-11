@@ -77,10 +77,8 @@ public struct BookmarkUtils {
             insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
         }
 
-        for uuid in BookmarkEntity.Constants.favoriteFoldersIDs {
-            if fetchFavoritesFolder(withUUID: uuid, in: context) == nil {
-                insertRootFolder(uuid: uuid, into: context)
-            }
+        for uuid in BookmarkEntity.Constants.favoriteFoldersIDs where fetchFavoritesFolder(withUUID: uuid, in: context) == nil {
+            insertRootFolder(uuid: uuid, into: context)
         }
     }
 

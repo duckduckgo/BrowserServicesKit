@@ -110,27 +110,25 @@ final class BookmarksResponseHandler {
         try processOrphanedBookmarks()
 
         // populate favorites
-        for (favoritesFolderUUID, favoritesUUIDs) in favoritesUUIDsByFolderUUID {
-            if !favoritesUUIDs.isEmpty {
-                guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesFolderUUID, in: context) else {
-                    // Error - unable to process favorites
-                    return
-                }
+        for (favoritesFolderUUID, favoritesUUIDs) in favoritesUUIDsByFolderUUID where !favoritesUUIDs.isEmpty {
+            guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesFolderUUID, in: context) else {
+                // Error - unable to process favorites
+                return
+            }
 
-                // For non-first sync we rely fully on the server response
-                if !shouldDeduplicateEntities {
-                    favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites(favoritesRoot: favoritesFolder) }
-                } else if !favoritesFolder.favoritesArray.isEmpty {
-                    // If we're deduplicating and there are favorites locally, we'll need to sync favorites folder back later.
-                    // Let's keep its modifiedAt.
-                    idsOfItemsThatRetainModifiedAt.insert(favoritesFolderUUID)
-                }
+            // For non-first sync we rely fully on the server response
+            if !shouldDeduplicateEntities {
+                favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites(favoritesRoot: favoritesFolder) }
+            } else if !favoritesFolder.favoritesArray.isEmpty {
+                // If we're deduplicating and there are favorites locally, we'll need to sync favorites folder back later.
+                // Let's keep its modifiedAt.
+                idsOfItemsThatRetainModifiedAt.insert(favoritesFolderUUID)
+            }
 
-                favoritesUUIDs.forEach { uuid in
-                    if let bookmark = entitiesByUUID[uuid] {
-                        bookmark.removeFromFavorites(favoritesRoot: favoritesFolder)
-                        bookmark.addToFavorites(favoritesRoot: favoritesFolder)
-                    }
+            favoritesUUIDs.forEach { uuid in
+                if let bookmark = entitiesByUUID[uuid] {
+                    bookmark.removeFromFavorites(favoritesRoot: favoritesFolder)
+                    bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
             }
         }
