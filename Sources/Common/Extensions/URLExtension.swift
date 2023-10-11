@@ -158,9 +158,7 @@ extension URL {
             s = scheme.separated() + s.dropFirst(scheme.separated().count - 1)
         }
 
-        
-// Remove the condition and else branch once iOS and BSK GitHub switches to Xcode 15
-#if os(macOS) || !CI
+#if os(macOS)
         let url: URL?
         let urlWithScheme: URL?
         if #available(macOS 14.0, *) {
