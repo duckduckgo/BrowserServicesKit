@@ -22,8 +22,8 @@ import Foundation
 ///
 public protocol NetworkProtectionNotificationsPresenter {
 
-    /// Present a "reconnected" notification to the user.
-    func showReconnectedNotification()
+    /// Present a "connected" notification to the user.
+    func showConnectedNotification(serverLocation: String?)
 
     /// Present a "reconnecting" notification to the user.
     func showReconnectingNotification()

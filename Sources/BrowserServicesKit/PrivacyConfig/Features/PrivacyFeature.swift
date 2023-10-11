@@ -62,6 +62,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case inlineIconCredentials
     case accessCredentialManagement
     case autofillPasswordGeneration
+    case onByDefault
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {

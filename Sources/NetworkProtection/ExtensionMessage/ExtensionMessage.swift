@@ -37,6 +37,7 @@ public enum ExtensionMessage: RawRepresentable {
         case simulateTunnelFailure
         case simulateTunnelFatalError
         case simulateTunnelMemoryOveruse
+        case simulateConnectionInterruption
     }
 
     // important: Preserve this order because Message Name is represented by Int value
@@ -55,8 +56,9 @@ public enum ExtensionMessage: RawRepresentable {
     case simulateTunnelFailure
     case simulateTunnelFatalError
     case simulateTunnelMemoryOveruse
+    case simulateConnectionInterruption
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public init?(rawValue data: Data) {
         let name = data.first.flatMap(Name.init(rawValue:))
         switch name {
@@ -69,7 +71,10 @@ public enum ExtensionMessage: RawRepresentable {
         case .isHavingConnectivityIssues:
             self = .isHavingConnectivityIssues
         case .setSelectedServer:
-            guard data.count > 1 else { return nil }
+            guard data.count > 1 else {
+                self = .setSelectedServer(nil)
+                return
+            }
             let serverName = ExtensionMessageString(rawValue: data[1...])
             self = .setSelectedServer(serverName?.value)
 
@@ -109,6 +114,9 @@ public enum ExtensionMessage: RawRepresentable {
 
         case .simulateTunnelMemoryOveruse:
             self = .simulateTunnelMemoryOveruse
+
+        case .simulateConnectionInterruption:
+            self = .simulateConnectionInterruption
             
         case .none:
             assertionFailure("Invalid data")
@@ -134,6 +142,7 @@ public enum ExtensionMessage: RawRepresentable {
         case .simulateTunnelFailure: return .simulateTunnelFailure
         case .simulateTunnelFatalError: return .simulateTunnelFatalError
         case .simulateTunnelMemoryOveruse: return .simulateTunnelMemoryOveruse
+        case .simulateConnectionInterruption: return .simulateConnectionInterruption
         }
     }
 
@@ -160,6 +169,7 @@ public enum ExtensionMessage: RawRepresentable {
                     assertionFailure("could not encode routes: \(error)")
                 }
             }
+
         case .setSelectedServer(.none),
              .setKeyValidity(.none),
              .resetAllState,
@@ -172,7 +182,9 @@ public enum ExtensionMessage: RawRepresentable {
              .triggerTestNotification,
              .simulateTunnelFailure,
              .simulateTunnelFatalError,
-             .simulateTunnelMemoryOveruse: break
+             .simulateTunnelMemoryOveruse,
+             .simulateConnectionInterruption: break
+
         }
 
         var data = Data([self.name.rawValue])

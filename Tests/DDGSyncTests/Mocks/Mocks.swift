@@ -117,14 +117,22 @@ final class SchedulerMock: SchedulingInternal {
 
 class MockErrorHandler: EventMapping<SyncError> {
 
+    private var _handledErrors: NSMutableArray?
+    var handledErrors: [SyncError] {
+        _handledErrors as? [SyncError] ?? []
+    }
+
     convenience init() {
-        self.init { _, _, _, _ in
+        let handledErrors = NSMutableArray()
+        self.init { e, _, _, _ in
+            handledErrors.add(e)
         }
+        _handledErrors = handledErrors
     }
 }
 
 class MockKeyValueStore: KeyValueStoring {
-    var isSyncEnabled = true
+    var isSyncEnabled: Bool? = true
 
     func object(forKey: String) -> Any? {
         if forKey == DDGSync.Constants.syncEnabledKey {
@@ -139,8 +147,8 @@ class MockKeyValueStore: KeyValueStoring {
     }
 }
 
-struct MockSyncDepenencies: SyncDependencies {
-    var endpoints: Endpoints = Endpoints(baseUrl: URL(string: "https://dev.null")!)
+struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
+    var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
     var secureStore: SecureStoring = SecureStorageStub()
@@ -163,6 +171,8 @@ struct MockSyncDepenencies: SyncDependencies {
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting {
         RecoveryKeyTransmitter(endpoints: endpoints, api: api, storage: secureStore, crypter: crypter)
     }
+
+    func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {}
 }
 
 final class MockDataProvidersSource: DataProvidersSource {

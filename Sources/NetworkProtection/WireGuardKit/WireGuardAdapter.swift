@@ -94,6 +94,7 @@ public class WireGuardAdapter {
                     ret = getpeername(fd, $0, &len)
                 }
             }
+
             if ret != 0 || addr.sc_family != AF_SYSTEM {
                 continue
             }
