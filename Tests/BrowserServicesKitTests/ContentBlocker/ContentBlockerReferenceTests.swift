@@ -35,10 +35,6 @@ class ContentBlockerReferenceTests: XCTestCase {
     var tds: TrackerData!
     var tests = [RefTests.Test]()
 
-    override func setUp() {
-        super.setUp()
-    }
-
     func setupWebViewForUserScripTests(trackerData: TrackerData,
                                        userScriptDelegate: ContentBlockerRulesUserScriptDelegate,
                                        schemeHandler: TestSchemeHandler,

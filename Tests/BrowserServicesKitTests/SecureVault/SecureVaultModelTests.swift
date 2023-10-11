@@ -454,5 +454,4 @@ class SecureVaultModelTests: XCTestCase {
         
     }
     
-    
 }
