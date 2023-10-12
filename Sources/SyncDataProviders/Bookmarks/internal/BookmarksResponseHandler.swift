@@ -23,6 +23,9 @@ import DDGSync
 import Foundation
 
 final class BookmarksResponseHandler {
+    // Before form-factor-specific favorites is supported, we deliberately ignore FFS folders.
+    static let ignoredFoldersUUIDs: Set<String> = ["desktop_favorites_root", "mobile_favorites_root"]
+
     let clientTimestamp: Date?
     let received: [SyncableBookmarkAdapter]
     let context: NSManagedObjectContext
@@ -84,10 +87,11 @@ final class BookmarksResponseHandler {
         self.favoritesUUIDs = favoritesUUIDs
 
         let foldersWithoutParent = Set(parentFoldersToChildren.keys).subtracting(childrenToParents.keys)
+            .subtracting(Self.ignoredFoldersUUIDs)
         topLevelFoldersSyncables = foldersWithoutParent.compactMap { syncablesByUUID[$0] }
 
         bookmarkSyncablesWithoutParent = allUUIDs.subtracting(childrenToParents.keys)
-            .subtracting(foldersWithoutParent + [BookmarkEntity.Constants.favoritesFolderID])
+            .subtracting(foldersWithoutParent + [BookmarkEntity.Constants.favoritesFolderID] + Self.ignoredFoldersUUIDs)
             .compactMap { syncablesByUUID[$0] }
 
         BookmarkEntity.fetchBookmarks(with: allReceivedIDs, in: context)
