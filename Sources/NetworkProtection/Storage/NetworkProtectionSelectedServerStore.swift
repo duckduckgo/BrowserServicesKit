@@ -24,7 +24,7 @@ protocol NetworkProtectionSelectedServerStore: AnyObject {
     func reset()
 }
 
-public enum SelectedNetworkProtectionServer: Equatable {
+public enum SelectedNetworkProtectionServer: Codable, Equatable {
     case automatic
     case endpoint(String)
 

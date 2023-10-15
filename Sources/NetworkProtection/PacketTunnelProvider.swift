@@ -717,6 +717,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         switch message {
+        case .request(let request):
+            handleRequest(request)
         case .expireRegistrationKey:
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .getLastErrorMessage:
@@ -749,6 +751,43 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         case .simulateConnectionInterruption:
             simulateConnectionInterruption(completionHandler: completionHandler)
+        }
+    }
+
+    // MARK: - App Requests: Handling
+
+    private func handleRequest(_ request: ExtensionRequest, completionHandler: ((Data?) -> Void)? = nil) {
+
+        switch request {
+        case .changeTunnelSetting(let change):
+            handleSettingsChange(change)
+            break
+        }
+    }
+
+    private func handleSettingsChange(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
+
+        switch change {
+        case .setSelectedServer(let selectedServer):
+            selectedServerStore.selectedServer = selectedServer
+
+            let serverSelectionMethod: NetworkProtectionServerSelectionMethod
+
+            switch selectedServer {
+            case .automatic:
+                serverSelectionMethod = .automatic
+            case .endpoint(let serverName):
+                serverSelectionMethod = .preferredServer(serverName: serverName)
+            }
+
+            Task {
+                try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
+                completionHandler?(nil)
+            }
+        case .setEnforceRoutes:
+            // Intentional no-op
+            // This setting is handled entirely by the VPN owner app
+            break
         }
     }
 

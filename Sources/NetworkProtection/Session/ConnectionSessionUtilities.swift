@@ -22,6 +22,24 @@ import NetworkExtension
 /// These are only usable from the App that owns the tunnel.
 ///
 public class ConnectionSessionUtilities {
+    public static func activeSession(networkExtensionBundleID: String) async throws -> NETunnelProviderSession? {
+        let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+
+        guard let manager = managers.first(where: {
+            ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == networkExtensionBundleID
+        }) else {
+            // No active connection, this is acceptable
+            return nil
+        }
+
+        guard let session = manager.connection as? NETunnelProviderSession else {
+            // The active connection is not running, so there's no session, this is acceptable
+            return nil
+        }
+
+        return session
+    }
+
     public static func activeSession() async throws -> NETunnelProviderSession? {
         let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
@@ -58,6 +76,11 @@ public extension NETunnelProviderSession {
         try sendProviderMessage(message.rawValue) { response in
             responseHandler(response.flatMap(T.init(rawValue:)))
         }
+    }
+
+    func sendProviderRequest<T: RawRepresentable>(_ request: ExtensionRequest) async throws -> T? where T.RawValue == Data {
+
+        try await sendProviderMessage(.request(request))
     }
 
     func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage) async throws -> T? where T.RawValue == Data {
