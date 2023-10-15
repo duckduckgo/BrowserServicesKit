@@ -111,9 +111,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return self.protocolConfiguration.enforceRoutes || self.protocolConfiguration.includeAllNetworks
     }
 
-    // MARK: - Server Selection
+    // MARK: - Tunnel Settings
 
-    let selectedServerStore = NetworkProtectionSelectedServerUserDefaultsStore()
+    private let settings = TunnelSettings(defaults: .standard)
+
+    // MARK: - Server Selection
 
     public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
         didSet {
@@ -182,7 +184,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.resetRegistrationKey()
 
         do {
-            try await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
+            try await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
         } catch {
             os_log("Rekey attempt failed.  This is not an error if you're using debug Key Management options: %{public}@", log: .networkProtectionKeyManagement, type: .error, String(describing: error))
         }
@@ -387,11 +389,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func loadSelectedServer(from options: StartupOptions) {
         switch options.selectedServer {
         case .set(let selectedServer):
-            selectedServerStore.selectedServer = selectedServer
+            settings.selectedServer = selectedServer
         case .useExisting:
             break
         case .reset:
-            selectedServerStore.selectedServer = .automatic
+            settings.selectedServer = .automatic
         }
     }
 
@@ -491,15 +493,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let onDemand = options.startupMethod == .automaticOnDemand
 
         os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
-        startTunnel(selectedServer: selectedServerStore.selectedServer, onDemand: onDemand, completionHandler: completionHandler)
+        startTunnel(selectedServer: settings.selectedServer, onDemand: onDemand, completionHandler: completionHandler)
     }
 
-    private func startTunnel(selectedServer: SelectedNetworkProtectionServer, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    private func startTunnel(selectedServer: TunnelSettings.SelectedServer, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
 
         Task {
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
-            switch selectedServerStore.selectedServer {
+            switch settings.selectedServer {
             case .automatic:
                 serverSelectionMethod = .automatic
             case .endpoint(let serverName):
@@ -633,10 +635,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Configuration
 
-    public func updateTunnelConfiguration(selectedServer: SelectedNetworkProtectionServer, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(selectedServer: TunnelSettings.SelectedServer, reassert: Bool = true) async throws {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
-        switch selectedServerStore.selectedServer {
+        switch settings.selectedServer {
         case .automatic:
             serverSelectionMethod = .automatic
         case .endpoint(let serverName):
@@ -769,7 +771,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         switch change {
         case .setSelectedServer(let selectedServer):
-            selectedServerStore.selectedServer = selectedServer
+            settings.selectedServer = selectedServer
 
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
@@ -833,20 +835,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleSetSelectedServer(_ serverName: String?, completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             guard let serverName else {
-                if case .endpoint = selectedServerStore.selectedServer {
-                    selectedServerStore.selectedServer = .automatic
+                if case .endpoint = settings.selectedServer {
+                    settings.selectedServer = .automatic
                     try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
                 }
                 completionHandler?(nil)
                 return
             }
 
-            guard selectedServerStore.selectedServer.stringValue != serverName else {
+            guard settings.selectedServer.stringValue != serverName else {
                 completionHandler?(nil)
                 return
             }
 
-            selectedServerStore.selectedServer = .endpoint(serverName)
+            settings.selectedServer = .endpoint(serverName)
             try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
             completionHandler?(nil)
         }
@@ -877,7 +879,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.excludedRoutes = excludedRoutes
-            try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
+            try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
             completionHandler?(nil)
         }
     }
@@ -885,7 +887,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.includedRoutes = includedRoutes
-            try? await updateTunnelConfiguration(selectedServer: selectedServerStore.selectedServer, reassert: false)
+            try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
             completionHandler?(nil)
         }
     }

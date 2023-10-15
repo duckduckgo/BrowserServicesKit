@@ -38,5 +38,9 @@ extension UserDefaults {
     var networkProtectionSettingEnforceRoutesPublisher: AnyPublisher<Bool, Never> {
         publisher(for: \.networkProtectionSettingEnforceRoutes).eraseToAnyPublisher()
     }
+
+    func resetNetworkProtectionSettingEnforceRoutes() {
+        removeObject(forKey: selectedServerKey)
+    }
 }
 

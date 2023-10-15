@@ -35,7 +35,7 @@ extension UserDefaults {
         }
     }
 
-    private func selectedServerFromRawValue(_ rawValue: String?) -> SelectedNetworkProtectionServer {
+    private func selectedServerFromRawValue(_ rawValue: String?) -> TunnelSettings.SelectedServer {
         guard let selectedEndpoint = networkProtectionSettingSelectedServerRawValue else {
             return .automatic
         }
@@ -43,7 +43,7 @@ extension UserDefaults {
         return .endpoint(selectedEndpoint)
     }
 
-    var networkProtectionSettingSelectedServer: SelectedNetworkProtectionServer {
+    var networkProtectionSettingSelectedServer: TunnelSettings.SelectedServer {
         get {
             selectedServerFromRawValue(networkProtectionSettingSelectedServerRawValue)
         }
@@ -58,12 +58,16 @@ extension UserDefaults {
         }
     }
 
-    var networkProtectionSettingSelectedServerPublisher: AnyPublisher<SelectedNetworkProtectionServer, Never> {
+    var networkProtectionSettingSelectedServerPublisher: AnyPublisher<TunnelSettings.SelectedServer, Never> {
         let selectedServerFromRawValue = self.selectedServerFromRawValue
 
         return publisher(for: \.networkProtectionSettingSelectedServerRawValue).map { serverName in
             selectedServerFromRawValue(serverName)
         }.eraseToAnyPublisher()
+    }
+
+    func resetNetworkProtectionSettingSelectedServer() {
+        networkProtectionSettingSelectedServerRawValue = nil
     }
 }
 

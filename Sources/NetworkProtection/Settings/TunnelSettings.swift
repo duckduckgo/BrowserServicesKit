@@ -27,8 +27,20 @@ import Foundation
 ///
 public final class TunnelSettings {
 
+    public enum SelectedServer: Codable, Equatable {
+        case automatic
+        case endpoint(String)
+
+        public var stringValue: String? {
+            switch self {
+            case .automatic: return nil
+            case .endpoint(let endpoint): return endpoint
+            }
+        }
+    }
+
     public enum Change: Codable {
-        case setSelectedServer(_ selectedServer: SelectedNetworkProtectionServer)
+        case setSelectedServer(_ selectedServer: SelectedServer)
         case setEnforceRoutes(_ enforceRoutes: Bool)
     }
 
@@ -51,6 +63,13 @@ public final class TunnelSettings {
 
     public init(defaults: UserDefaults) {
         self.defaults = defaults
+    }
+
+    // MARK - Resetting to Defaults
+
+    public func resetToDefaults() {
+        defaults.resetNetworkProtectionSettingEnforceRoutes()
+        defaults.resetNetworkProtectionSettingSelectedServer()
     }
 
     // MARK: - Registration Key Validity
@@ -148,11 +167,11 @@ public final class TunnelSettings {
 
     // MARK: - Server Selection
 
-    public var selectedServerPublisher: AnyPublisher<SelectedNetworkProtectionServer, Never> {
+    public var selectedServerPublisher: AnyPublisher<SelectedServer, Never> {
         defaults.networkProtectionSettingSelectedServerPublisher
     }
 
-    public var selectedServer: SelectedNetworkProtectionServer {
+    public var selectedServer: SelectedServer {
         get {
             defaults.networkProtectionSettingSelectedServer
         }
