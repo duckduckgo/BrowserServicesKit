@@ -40,25 +40,31 @@ public final class TunnelSettings {
     }
 
     public enum Change: Codable {
-        case setSelectedServer(_ selectedServer: SelectedServer)
+        case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
+        case setSelectedServer(_ selectedServer: SelectedServer)
     }
 
     private let defaults: UserDefaults
 
     private(set) public lazy var changePublisher: AnyPublisher<Change, Never> = {
+
+        let includeAllNetworksPublisher = includeAllNetworksPublisher.map { includeAllNetworks in
+            Change.setIncludeAllNetworks(includeAllNetworks)
+        }.eraseToAnyPublisher()
+
+        let enforceRoutesPublisher = enforceRoutesPublisher.map { enforceRoutes in
+            Change.setEnforceRoutes(enforceRoutes)
+        }.eraseToAnyPublisher()
+
         let serverChangePublisher = selectedServerPublisher.map { server in
             Change.setSelectedServer(server)
         }.eraseToAnyPublisher()
 
-        let enforceRoutesPublisher = enforceRoutesPublisher.map { enforceRoutes in
-
-            Change.setEnforceRoutes(enforceRoutes)
-        }.eraseToAnyPublisher()
-
         return Publishers.MergeMany(
-            serverChangePublisher,
-            enforceRoutesPublisher).eraseToAnyPublisher()
+            includeAllNetworksPublisher,
+            enforceRoutesPublisher,
+            serverChangePublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -69,6 +75,7 @@ public final class TunnelSettings {
 
     public func resetToDefaults() {
         defaults.resetNetworkProtectionSettingEnforceRoutes()
+        defaults.resetNetworkProtectionSettingIncludeAllNetworks()
         defaults.resetNetworkProtectionSettingSelectedServer()
     }
 
@@ -148,6 +155,22 @@ public final class TunnelSettings {
 
         try? activeSession.sendProviderMessage(.expireRegistrationKey)
     }*/
+
+    // MARK: - Enforce Routes
+
+    public var includeAllNetworksPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingIncludeAllNetworksPublisher
+    }
+
+    public var includeAllNetworks: Bool {
+        get {
+            defaults.networkProtectionSettingIncludeAllNetworks
+        }
+
+        set {
+            defaults.networkProtectionSettingIncludeAllNetworks = newValue
+        }
+    }
 
     // MARK: - Enforce Routes
 

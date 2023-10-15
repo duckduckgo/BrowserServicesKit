@@ -770,6 +770,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleSettingsChange(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
 
         switch change {
+        case .setIncludeAllNetworks: fallthrough
+        case .setEnforceRoutes:
+            // Intentional no-op
+            // This setting is handled entirely by the VPN owner app
+            break
         case .setSelectedServer(let selectedServer):
             settings.selectedServer = selectedServer
 
@@ -786,10 +791,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
                 completionHandler?(nil)
             }
-        case .setEnforceRoutes:
-            // Intentional no-op
-            // This setting is handled entirely by the VPN owner app
-            break
         }
     }
 

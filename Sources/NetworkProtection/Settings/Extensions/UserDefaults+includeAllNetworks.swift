@@ -1,5 +1,5 @@
 //
-//  UserDefaults+enforceRoutes.swift
+//  UserDefaults+includeAllNetworks.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,27 +20,27 @@ import Combine
 import Foundation
 
 extension UserDefaults {
-    private var enforceRoutesKey: String {
-        "networkProtectionSettingEnforceRoutes"
+    private var includeAllNetworksKey: String {
+        "networkProtectionSettingIncludeAllNetworks"
     }
 
     @objc
-    dynamic var networkProtectionSettingEnforceRoutes: Bool {
+    dynamic var networkProtectionSettingIncludeAllNetworks: Bool {
         get {
-            bool(forKey: enforceRoutesKey)
+            bool(forKey: includeAllNetworksKey)
         }
 
         set {
-            set(newValue, forKey: enforceRoutesKey)
+            set(newValue, forKey: includeAllNetworksKey)
         }
     }
 
-    var networkProtectionSettingEnforceRoutesPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.networkProtectionSettingEnforceRoutes).eraseToAnyPublisher()
+    var networkProtectionSettingIncludeAllNetworksPublisher: AnyPublisher<Bool, Never> {
+        publisher(for: \.networkProtectionSettingIncludeAllNetworks).eraseToAnyPublisher()
     }
 
-    func resetNetworkProtectionSettingEnforceRoutes() {
-        removeObject(forKey: enforceRoutesKey)
+    func resetNetworkProtectionSettingIncludeAllNetworks() {
+        removeObject(forKey: includeAllNetworksKey)
     }
 }
 
