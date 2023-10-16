@@ -759,12 +759,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - App Requests: Handling
 
     private func handleRequest(_ request: ExtensionRequest, completionHandler: ((Data?) -> Void)? = nil) {
-
         switch request {
         case .changeTunnelSetting(let change):
             handleSettingsChange(change, completionHandler: completionHandler)
-        case .sendTestNotification:
-            handleSendTestNotification(completionHandler: completionHandler)
+        case .debugCommand(let command):
+            handleDebugCommand(command, completionHandler: completionHandler)
         }
     }
 
@@ -793,6 +792,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
                 completionHandler?(nil)
             }
+        }
+    }
+
+    private func handleDebugCommand(_ command: DebugCommand, completionHandler:  ((Data?) -> Void)? = nil) {
+        switch command {
+        case .expireRegistrationKey:
+            handleExpireRegistrationKey(completionHandler: completionHandler)
+        case .sendTestNotification:
+            handleSendTestNotification(completionHandler: completionHandler)
         }
     }
 
