@@ -27,6 +27,13 @@ import Foundation
 ///
 public final class TunnelSettings {
 
+    public enum Change: Codable {
+        case setIncludeAllNetworks(_ includeAllNetworks: Bool)
+        case setEnforceRoutes(_ enforceRoutes: Bool)
+        case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
+        case setSelectedServer(_ selectedServer: SelectedServer)
+    }
+
     public enum SelectedServer: Codable, Equatable {
         case automatic
         case endpoint(String)
@@ -37,12 +44,6 @@ public final class TunnelSettings {
             case .endpoint(let endpoint): return endpoint
             }
         }
-    }
-
-    public enum Change: Codable {
-        case setIncludeAllNetworks(_ includeAllNetworks: Bool)
-        case setEnforceRoutes(_ enforceRoutes: Bool)
-        case setSelectedServer(_ selectedServer: SelectedServer)
     }
 
     private let defaults: UserDefaults
@@ -57,6 +58,10 @@ public final class TunnelSettings {
             Change.setEnforceRoutes(enforceRoutes)
         }.eraseToAnyPublisher()
 
+        let excludeLocalNetworksPublisher = excludeLocalNetworksPublisher.map { excludeLocalNetworks in
+            Change.setExcludeLocalNetworks(excludeLocalNetworks)
+        }.eraseToAnyPublisher()
+
         let serverChangePublisher = selectedServerPublisher.map { server in
             Change.setSelectedServer(server)
         }.eraseToAnyPublisher()
@@ -64,6 +69,7 @@ public final class TunnelSettings {
         return Publishers.MergeMany(
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
+            excludeLocalNetworksPublisher,
             serverChangePublisher).eraseToAnyPublisher()
     }()
 
@@ -185,6 +191,22 @@ public final class TunnelSettings {
 
         set {
             defaults.networkProtectionSettingEnforceRoutes = newValue
+        }
+    }
+
+    // MARK: - Exclude Local Routes
+
+    public var excludeLocalNetworksPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingExcludeLocalNetworksPublisher
+    }
+
+    public var excludeLocalNetworks: Bool {
+        get {
+            defaults.networkProtectionSettingExcludeLocalNetworks
+        }
+
+        set {
+            defaults.networkProtectionSettingExcludeLocalNetworks = newValue
         }
     }
 
