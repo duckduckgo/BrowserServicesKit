@@ -71,6 +71,13 @@ public extension NETunnelProviderSession {
 
     // MARK: - ExtensionMessage
 
+    func sendProviderMessage(_ message: ExtensionMessage,
+                             responseHandler: @escaping () -> Void) throws {
+        try sendProviderMessage(message.rawValue) { response in
+            responseHandler()
+        }
+    }
+
     func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage,
                                                   responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
         try sendProviderMessage(message.rawValue) { response in
@@ -78,9 +85,25 @@ public extension NETunnelProviderSession {
         }
     }
 
+    func sendProviderRequest(_ request: ExtensionRequest) async throws {
+        try await sendProviderMessage(.request(request))
+    }
+
     func sendProviderRequest<T: RawRepresentable>(_ request: ExtensionRequest) async throws -> T? where T.RawValue == Data {
 
         try await sendProviderMessage(.request(request))
+    }
+
+    func sendProviderMessage(_ message: ExtensionMessage) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            do {
+                try sendProviderMessage(message) {
+                    continuation.resume()
+                }
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
     }
 
     func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage) async throws -> T? where T.RawValue == Data {
@@ -92,12 +115,6 @@ public extension NETunnelProviderSession {
             } catch {
                 continuation.resume(throwing: error)
             }
-        }
-    }
-
-    func sendProviderMessage(_ message: ExtensionMessage, completionHandler: (() -> Void)? = nil) throws {
-        try sendProviderMessage(message.rawValue) { _ in
-            completionHandler?()
         }
     }
 }

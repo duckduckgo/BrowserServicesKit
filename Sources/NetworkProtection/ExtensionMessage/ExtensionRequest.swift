@@ -9,4 +9,7 @@ import Foundation
 
 public enum ExtensionRequest: Codable {
     case changeTunnelSetting(_ change: TunnelSettings.Change)
+
+    // Debug requests
+    case sendTestNotification
 }

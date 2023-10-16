@@ -136,14 +136,6 @@ public final class TunnelSettings {
         networkProtectionFeatureDisabler.disableLoginItems()
     }
 
-    func sendTestNotificationRequest() async throws {
-        guard let activeSession = try? await ConnectionSessionUtilities.activeSession() else {
-            return
-        }
-
-        try? activeSession.sendProviderMessage(.triggerTestNotification)
-    }
-
     // MARK: - Registation Key
 
     private func sendRegistrationKeyValidityToProvider() async {

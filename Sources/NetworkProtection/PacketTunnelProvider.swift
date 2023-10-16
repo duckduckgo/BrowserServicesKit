@@ -740,7 +740,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .resetAllState:
             handleResetAllState(completionHandler: completionHandler)
         case .triggerTestNotification:
-            handleTriggerTestNotification(completionHandler: completionHandler)
+            handleSendTestNotification(completionHandler: completionHandler)
         case .setExcludedRoutes(let excludedRoutes):
             setExcludedRoutes(excludedRoutes, completionHandler: completionHandler)
         case .setIncludedRoutes(let includedRoutes):
@@ -762,8 +762,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         switch request {
         case .changeTunnelSetting(let change):
-            handleSettingsChange(change)
-            break
+            handleSettingsChange(change, completionHandler: completionHandler)
+        case .sendTestNotification:
+            handleSendTestNotification(completionHandler: completionHandler)
         }
     }
 
@@ -873,7 +874,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func handleTriggerTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSendTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
         completionHandler?(nil)
     }
