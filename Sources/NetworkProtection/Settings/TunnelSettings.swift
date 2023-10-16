@@ -19,7 +19,7 @@
 import Combine
 import Foundation
 
-/// Persists tunnel settings.
+/// Persists and publishes changes to tunnel settings.
 ///
 /// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `TunnelSettingsUpdater`
 /// can then detect settings changes using KVO even if they're applied by a different process or even by the user through
@@ -31,7 +31,13 @@ public final class TunnelSettings {
         case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
         case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
+        case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
         case setSelectedServer(_ selectedServer: SelectedServer)
+    }
+
+    public enum RegistrationKeyValidity: Codable {
+        case automatic
+        case custom(_ timeInterval: TimeInterval)
     }
 
     public enum SelectedServer: Codable, Equatable {
@@ -62,6 +68,10 @@ public final class TunnelSettings {
             Change.setExcludeLocalNetworks(excludeLocalNetworks)
         }.eraseToAnyPublisher()
 
+        let registrationKeyValidityPublisher = registrationKeyValidityPublisher.map { validity in
+            Change.setRegistrationKeyValidity(validity)
+        }.eraseToAnyPublisher()
+
         let serverChangePublisher = selectedServerPublisher.map { server in
             Change.setSelectedServer(server)
         }.eraseToAnyPublisher()
@@ -81,43 +91,31 @@ public final class TunnelSettings {
 
     public func resetToDefaults() {
         defaults.resetNetworkProtectionSettingEnforceRoutes()
+        defaults.resetNetworkProtectionSettingExcludeLocalNetworks()
         defaults.resetNetworkProtectionSettingIncludeAllNetworks()
+        defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
+    }
+
+    // MARK: - Applying Changes
+
+    public func apply(change: Change) {
+        switch change {
+        case .setEnforceRoutes(let enforceRoutes):
+            self.enforceRoutes = enforceRoutes
+        case .setExcludeLocalNetworks(let excludeLocalNetworks):
+            self.excludeLocalNetworks = excludeLocalNetworks
+        case .setIncludeAllNetworks(let includeAllNetworks):
+            self.includeAllNetworks = includeAllNetworks
+        case .setRegistrationKeyValidity(let registrationKeyValidity):
+            self.registrationKeyValidity = registrationKeyValidity
+        case .setSelectedServer(let selectedServer):
+            self.selectedServer = selectedServer
+        }
     }
 
     // MARK: - Registration Key Validity
 /*
-    @UserDefaultsWrapper(key: .networkProtectionRegistrationKeyValidity, defaultValue: nil)
-    var registrationKeyValidity: TimeInterval? {
-        didSet {
-            Task {
-                await sendRegistrationKeyValidityToProvider()
-            }
-        }
-    }
-
-    private let ipcClient: TunnelControllerIPCClient
-    private let networkProtectionFeatureDisabler: NetworkProtectionFeatureDisabler
-
-    // MARK: - Login Items Management
-
-    private let loginItemsManager: LoginItemsManager
-
-    // MARK: - Server Selection
-
-    private let selectedServerStore = NetworkProtectionSelectedServerUserDefaultsStore()
-
-    // MARK: - Initializers
-
-    init(loginItemsManager: LoginItemsManager = .init()) {
-        self.loginItemsManager = loginItemsManager
-
-        let ipcClient = TunnelControllerIPCClient(machServiceName: Bundle.main.vpnMenuAgentBundleId)
-
-        self.ipcClient = ipcClient
-        self.networkProtectionFeatureDisabler = NetworkProtectionFeatureDisabler(ipcClient: ipcClient)
-    }
-
     // MARK: - Debug commands for the extension
 
     func resetAllState(keepAuthToken: Bool) async throws {
@@ -144,14 +142,6 @@ public final class TunnelSettings {
         }
 
         try? activeSession.sendProviderMessage(.setKeyValidity(registrationKeyValidity))
-    }
-
-    func expireRegistrationKeyNow() async {
-        guard let activeSession = try? await ConnectionSessionUtilities.activeSession() else {
-            return
-        }
-
-        try? activeSession.sendProviderMessage(.expireRegistrationKey)
     }*/
 
     // MARK: - Enforce Routes
@@ -202,6 +192,26 @@ public final class TunnelSettings {
         }
     }
 
+    // MARK: - Registration Key Validity
+
+    public var registrationKeyValidityPublisher: AnyPublisher<RegistrationKeyValidity, Never> {
+        defaults.networkProtectionSettingRegistrationKeyValidityPublisher
+    }
+
+    public var registrationKeyValidity: RegistrationKeyValidity {
+        get {
+            defaults.networkProtectionSettingRegistrationKeyValidity
+        }
+
+        set {
+            defaults.networkProtectionSettingRegistrationKeyValidity = newValue
+        }
+    }
+
+    private var networkProtectionSettingRegistrationKeyValidityDefault: TimeInterval {
+        .days(2)
+    }
+
     // MARK: - Server Selection
 
     public var selectedServerPublisher: AnyPublisher<SelectedServer, Never> {
@@ -217,4 +227,34 @@ public final class TunnelSettings {
             defaults.networkProtectionSettingSelectedServer = newValue
         }
     }
+
+    // MARK: - Routes
+
+    public enum ExclusionListItem {
+        case section(String)
+        case exclusion(range: NetworkProtection.IPAddressRange, description: String? = nil, `default`: Bool)
+    }
+
+    public let exclusionList: [ExclusionListItem] = [
+        .section("IPv4 Local Routes"),
+
+        .exclusion(range: "10.0.0.0/8"     /* 255.0.0.0 */, description: "disabled for enforceRoutes", default: true),
+        .exclusion(range: "172.16.0.0/12"  /* 255.240.0.0 */, default: true),
+        .exclusion(range: "192.168.0.0/16" /* 255.255.0.0 */, default: true),
+        .exclusion(range: "169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local", default: true),
+        .exclusion(range: "127.0.0.0/8"    /* 255.0.0.0 */, description: "Loopback", default: true),
+        .exclusion(range: "224.0.0.0/4"    /* 240.0.0.0 (corrected subnet mask) */, description: "Multicast", default: true),
+        .exclusion(range: "100.64.0.0/16"  /* 255.255.0.0 */, description: "Shared Address Space", default: true),
+
+        .section("IPv6 Local Routes"),
+        .exclusion(range: "fe80::/10", description: "link local", default: false),
+        .exclusion(range: "ff00::/8", description: "multicast", default: false),
+        .exclusion(range: "fc00::/7", description: "local unicast", default: false),
+        .exclusion(range: "::1/128", description: "loopback", default: false),
+
+        .section("duckduckgo.com"),
+        .exclusion(range: "52.142.124.215/32", default: false),
+        .exclusion(range: "52.250.42.157/32", default: false),
+        .exclusion(range: "40.114.177.156/32", default: false),
+    ]
 }

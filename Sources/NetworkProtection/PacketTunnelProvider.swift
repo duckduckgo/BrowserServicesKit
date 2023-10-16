@@ -139,25 +139,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private let tokenStore: NetworkProtectionTokenStore
 
-    /// This is for overriding the defaults.  A `nil` value means NetP will just use the defaults.
-    ///
-    private var keyValidity: TimeInterval?
-
-    private static let defaultRetryInterval: TimeInterval = .minutes(1)
-
-    /// Normally we'll retry using the default interval, but since we can override the key validity interval for testing purposes
-    /// we'll retry sooner if it's been overridden with values lower than the default retry interval.
-    ///
-    /// In practical terms this means that if the validity interval is 15 secs, the retry will also be 15 secs instead of 1 minute.
-    ///
-    private var retryInterval: TimeInterval {
-        guard let keyValidity = keyValidity else {
-            return Self.defaultRetryInterval
-        }
-
-        return keyValidity > Self.defaultRetryInterval ? Self.defaultRetryInterval : keyValidity
-    }
-
     private func resetRegistrationKey() {
         os_log("Resetting the current registration key", log: .networkProtectionKeyManagement)
         keyStore.resetCurrentKeyPair()
@@ -191,10 +172,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func setKeyValidity(_ interval: TimeInterval?) {
-        guard keyValidity != interval else {
-            return
-        }
-
         if let interval {
             let firstExpirationDate = Date().addingTimeInterval(interval)
 
@@ -202,9 +179,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                    log: .networkProtectionKeyManagement,
                    String(describing: interval),
                    String(describing: firstExpirationDate))
+
+            settings.registrationKeyValidity = .custom(interval)
         } else {
             os_log("Resetting key validity interval",
                    log: .networkProtectionKeyManagement)
+
+            settings.registrationKeyValidity = .automatic
         }
 
         keyStore.setValidityInterval(interval)
@@ -769,16 +750,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleSettingsChange(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
 
-        switch change {
-        case .setIncludeAllNetworks,
-                .setEnforceRoutes,
-                .setExcludeLocalNetworks:
-            // Intentional no-op
-            // This setting is handled entirely by the VPN owner app
-            break
-        case .setSelectedServer(let selectedServer):
-            settings.selectedServer = selectedServer
+        settings.apply(change: change)
 
+        switch change {
+        case .setSelectedServer(let selectedServer):
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
             switch selectedServer {
@@ -792,6 +767,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
                 completionHandler?(nil)
             }
+        case .setIncludeAllNetworks,
+                .setEnforceRoutes,
+                .setExcludeLocalNetworks,
+                .setRegistrationKeyValidity:
+            // Intentional no-op, as some setting changes don't require any further operation
+            break
         }
     }
 
