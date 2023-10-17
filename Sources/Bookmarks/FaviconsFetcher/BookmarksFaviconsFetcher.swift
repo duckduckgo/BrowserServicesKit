@@ -87,10 +87,13 @@ public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
 }
 
 public protocol FaviconFetching {
+
+    func fetchFaviconLinks(for url: URL) async throws -> [URL]
+
 #if os(macOS)
-    func fetchFavicon(for domain: String) async throws -> NSImage?
+    func fetchFavicon(for url: URL) async throws -> NSImage?
 #elseif os(iOS)
-    func fetchFavicon(for domain: String) async throws -> UIImage?
+    func fetchFavicon(for url: URL) async throws -> UIImage?
 #endif
 }
 
@@ -102,9 +105,31 @@ public protocol FaviconStoring {
 #endif
 }
 
-public final class FaviconFetcher: FaviconFetching {
+public struct BookmarkFaviconLinks {
+    let documentURL: URL
+    let links: [FaviconLink]
+}
+
+public final class FaviconFetcher: FaviconFetching, URLSessionTaskDelegate {
 
     public init() {}
+
+    private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self)
+
+    public func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        return request
+    }
+
+    public func fetchFaviconLinks(for url: URL) async throws -> BookmarkFaviconLinks {
+        let data = try await faviconsURLSession.data(from: url)
+        let links = FaviconsLinksExtractor(data: data).extractLinks()
+        return BookmarkFaviconLinks(documentURL: url, links: links)
+    }
 
 #if os(macOS)
     public func fetchFavicon(for domain: String) async throws -> NSImage? {
