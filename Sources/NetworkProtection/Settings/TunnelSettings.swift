@@ -114,36 +114,6 @@ public final class TunnelSettings {
         }
     }
 
-    // MARK: - Registration Key Validity
-/*
-    // MARK: - Debug commands for the extension
-
-    func resetAllState(keepAuthToken: Bool) async throws {
-        networkProtectionFeatureDisabler.disable(keepAuthToken: keepAuthToken, uninstallSystemExtension: true)
-
-        NetworkProtectionWaitlist().waitlistStorage.deleteWaitlistState()
-        DefaultWaitlistActivationDateStore().removeDates()
-        DefaultNetworkProtectionRemoteMessagingStorage().removeStoredAndDismissedMessages()
-
-        UserDefaults().removeObject(forKey: UserDefaultsWrapper<Bool>.Key.networkProtectionTermsAndConditionsAccepted.rawValue)
-        NotificationCenter.default.post(name: .networkProtectionWaitlistAccessChanged, object: nil)
-    }
-
-    func removeSystemExtensionAndAgents() async throws {
-        await networkProtectionFeatureDisabler.resetAllStateForVPNApp(uninstallSystemExtension: true)
-        networkProtectionFeatureDisabler.disableLoginItems()
-    }
-
-    // MARK: - Registation Key
-
-    private func sendRegistrationKeyValidityToProvider() async {
-        guard let activeSession = try? await ConnectionSessionUtilities.activeSession() else {
-            return
-        }
-
-        try? activeSession.sendProviderMessage(.setKeyValidity(registrationKeyValidity))
-    }*/
-
     // MARK: - Enforce Routes
 
     public var includeAllNetworksPublisher: AnyPublisher<Bool, Never> {
