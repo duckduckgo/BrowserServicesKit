@@ -70,4 +70,3 @@ extension UserDefaults {
         networkProtectionSettingSelectedServerRawValue = nil
     }
 }
-

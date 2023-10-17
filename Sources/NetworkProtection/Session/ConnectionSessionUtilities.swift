@@ -73,7 +73,7 @@ public extension NETunnelProviderSession {
 
     func sendProviderMessage(_ message: ExtensionMessage,
                              responseHandler: @escaping () -> Void) throws {
-        try sendProviderMessage(message.rawValue) { response in
+        try sendProviderMessage(message.rawValue) { _ in
             responseHandler()
         }
     }

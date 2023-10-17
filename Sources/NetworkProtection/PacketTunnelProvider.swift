@@ -776,7 +776,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func handleDebugCommand(_ command: DebugCommand, completionHandler:  ((Data?) -> Void)? = nil) {
+    private func handleDebugCommand(_ command: DebugCommand, completionHandler: ((Data?) -> Void)? = nil) {
         switch command {
         case .expireRegistrationKey:
             handleExpireRegistrationKey(completionHandler: completionHandler)

@@ -43,4 +43,3 @@ extension UserDefaults {
         removeObject(forKey: includeAllNetworksKey)
     }
 }
-

@@ -87,7 +87,7 @@ public final class TunnelSettings {
         self.defaults = defaults
     }
 
-    // MARK - Resetting to Defaults
+    // MARK: - Resetting to Defaults
 
     public func resetToDefaults() {
         defaults.resetNetworkProtectionSettingEnforceRoutes()
