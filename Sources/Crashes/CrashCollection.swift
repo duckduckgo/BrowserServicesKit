@@ -18,7 +18,6 @@
 
 import Foundation
 import MetricKit
-import Common
 
 @available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
