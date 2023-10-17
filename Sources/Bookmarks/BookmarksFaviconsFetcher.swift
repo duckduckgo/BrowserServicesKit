@@ -35,6 +35,57 @@ public protocol BookmarkFaviconsMetadataStoring {
     func storeDomainsWithoutFavicon(_ domains: Set<String>) throws
 }
 
+public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
+
+    let dataDirectoryURL: URL
+    let missingIDsFileURL: URL
+    let domainsWithoutFaviconURL: URL
+
+    public init(applicationSupportURL: URL) {
+        dataDirectoryURL = applicationSupportURL.appendingPathComponent("FaviconsFetcher")
+        missingIDsFileURL = dataDirectoryURL.appendingPathComponent("missingIDs")
+        domainsWithoutFaviconURL = dataDirectoryURL.appendingPathComponent("domainsWithoutFavicon")
+
+        initStorage()
+    }
+
+    private func initStorage() {
+        if !FileManager.default.fileExists(atPath: dataDirectoryURL.path) {
+            try! FileManager.default.createDirectory(at: dataDirectoryURL, withIntermediateDirectories: true)
+        }
+        if !FileManager.default.fileExists(atPath: missingIDsFileURL.path) {
+            try! FileManager.default.createFile(atPath: missingIDsFileURL.path, contents: Data())
+        }
+        if !FileManager.default.fileExists(atPath: domainsWithoutFaviconURL.path) {
+            try! FileManager.default.createFile(atPath: domainsWithoutFaviconURL.path, contents: Data())
+        }
+    }
+
+    public func getBookmarkIDs() throws -> Set<String> {
+        let data = try Data(contentsOf: missingIDsFileURL)
+        guard let rawValue = String(data: data, encoding: .utf8) else {
+            return []
+        }
+        return Set(rawValue.components(separatedBy: ","))
+    }
+
+    public func storeBookmarkIDs(_ ids: Set<String>) throws {
+        try ids.joined(separator: ",").data(using: .utf8)?.write(to: missingIDsFileURL)
+    }
+
+    public func getDomainsWithoutFavicon() throws -> Set<String> {
+        let data = try Data(contentsOf: domainsWithoutFaviconURL)
+        guard let rawValue = String(data: data, encoding: .utf8) else {
+            return []
+        }
+        return Set(rawValue.components(separatedBy: ","))
+    }
+
+    public func storeDomainsWithoutFavicon(_ domains: Set<String>) throws {
+        try domains.joined(separator: ",").data(using: .utf8)?.write(to: domainsWithoutFaviconURL)
+    }
+}
+
 public protocol FaviconFetching {
 #if os(macOS)
     func fetchFavicon(for domain: String) async throws -> NSImage?
@@ -45,13 +96,15 @@ public protocol FaviconFetching {
 
 public protocol FaviconStoring {
 #if os(macOS)
-    func storeFavicon(_ image: NSImage, for domain: String) throws
+    func storeFavicon(_ image: NSImage, for domain: String) async throws
 #elseif os(iOS)
-    func storeFavicon(_ image: UIImage, for domain: String) throws
+    func storeFavicon(_ image: UIImage, for domain: String) async throws
 #endif
 }
 
 public final class FaviconFetcher: FaviconFetching {
+
+    public init() {}
 
 #if os(macOS)
     public func fetchFavicon(for domain: String) async throws -> NSImage? {
@@ -75,13 +128,13 @@ public final class FaviconFetcher: FaviconFetching {
         }
 
         return await withCheckedContinuation { continuation in
-            iconProvider.loadDataRepresentation(forTypeIdentifier: "public.image", completionHandler: { data, error in
-                guard let data else {
+            iconProvider.loadItem(forTypeIdentifier: kUTTypeImage as String, options: nil) { data, error in
+                guard let data = data as? Data else {
                     continuation.resume(returning: nil)
                     return
                 }
                 continuation.resume(returning: NSImage(data: data))
-            })
+            }
         }
     }
 #elseif os(iOS)
@@ -142,10 +195,9 @@ public final class BookmarksFaviconsFetcher {
                 urls = bookmarks.compactMap(\.url)
             }
 
-
             for urlString in urls {
                 if let domain = URL(string: urlString)?.host, let image = try await fetcher.fetchFavicon(for: domain) {
-                    try faviconStore.storeFavicon(image, for: domain)
+                    try await faviconStore.storeFavicon(image, for: domain)
                 }
             }
         }
