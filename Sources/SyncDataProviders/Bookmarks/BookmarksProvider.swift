@@ -85,6 +85,7 @@ public final class BookmarksProvider: DataProvider {
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
+        var changes: [ChangesKey: Set<String>] = [:]
 
         context.performAndWait {
             while true {
@@ -104,7 +105,7 @@ public final class BookmarksProvider: DataProvider {
                     willSaveContextAfterApplyingSyncResponse()
 #endif
                     let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
-                    try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
+                    changes = try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
@@ -128,7 +129,7 @@ public final class BookmarksProvider: DataProvider {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            syncDidUpdateData([:])
+            syncDidUpdateData(changes)
         }
     }
 
@@ -179,11 +180,14 @@ public final class BookmarksProvider: DataProvider {
         try context.save()
     }
 
-    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
+    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws -> [ChangesKey: Set<String>] {
         let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
         let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
+        let deletedObjectsUUIDs = Array(context.deletedObjects).compactMap { ($0 as? BookmarkEntity)?.uuid }
 
-        (insertedObjects + updatedObjects).forEach { bookmarkEntity in
+        let modifiedObjects = insertedObjects + updatedObjects
+
+        modifiedObjects.forEach { bookmarkEntity in
             if let uuid = bookmarkEntity.uuid, uuids.contains(uuid) {
                 bookmarkEntity.shouldManageModifiedAt = false
                 if let modifiedAt = bookmarkEntity.modifiedAt, modifiedAt < clientTimestamp {
@@ -192,6 +196,11 @@ public final class BookmarksProvider: DataProvider {
             }
         }
         try context.save()
+
+        return [
+            .modified: Set(modifiedObjects.compactMap(\.uuid)),
+            .deleted: Set(deletedObjectsUUIDs)
+        ]
     }
 
     private let database: CoreDataDatabase
