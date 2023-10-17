@@ -62,7 +62,11 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        provider = BookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), syncDidUpdateData: {})
+        provider = BookmarksProvider(
+            database: bookmarksDatabase,
+            metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
+            syncDidUpdateData: { _ in }
+        )
     }
 
     override func tearDown() {

@@ -177,8 +177,13 @@ public protocol DataProviding: AnyObject {
  */
 open class DataProvider: DataProviding {
 
+    public enum ChangesKey {
+        case modified
+        case deleted
+    }
+
     public let feature: Feature
-    public let syncDidUpdateData: () -> Void
+    public let syncDidUpdateData: ([ChangesKey: Set<String>]) -> Void
     public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     public var isFeatureRegistered: Bool {
@@ -210,7 +215,7 @@ open class DataProvider: DataProviding {
         }
     }
 
-    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) {
+    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping ([ChangesKey: Set<String>]) -> Void) {
         self.feature = feature
         self.metadataStore = metadataStore
         self.syncDidUpdateData = syncDidUpdateData

@@ -56,7 +56,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlers: [SettingSyncHandler],
-        syncDidUpdateData: @escaping () -> Void
+        syncDidUpdateData: @escaping ([ChangesKey: Set<String>]) -> Void
     ) {
         let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
             partialResult[handler.setting] = handler
@@ -82,7 +82,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlersBySetting: [Setting: any SettingSyncHandling],
-        syncDidUpdateData: @escaping () -> Void
+        syncDidUpdateData: @escaping ([ChangesKey: Set<String>]) -> Void
     ) {
         self.metadataDatabase = metadataDatabase
         self.settingsHandlers = settingsHandlersBySetting
@@ -259,7 +259,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            syncDidUpdateData()
+            syncDidUpdateData([:])
         }
     }
 
