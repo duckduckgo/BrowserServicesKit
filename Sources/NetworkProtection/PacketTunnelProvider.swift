@@ -619,7 +619,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Configuration
 
-    public func updateTunnelConfiguration(selectedServer: TunnelSettings.SelectedServer, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, selectedServer: TunnelSettings.SelectedServer, reassert: Bool = true) async throws {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
         switch settings.selectedServer {
@@ -629,12 +629,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             serverSelectionMethod = .preferredServer(serverName: serverName)
         }
 
-        try await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod, reassert: reassert)
+        try await updateTunnelConfiguration(environment: environment, serverSelectionMethod: serverSelectionMethod, reassert: reassert)
     }
 
-    public func updateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
 
-        let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
+        let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
+                                                                        serverSelectionMethod: serverSelectionMethod,
                                                                         includedRoutes: includedRoutes ?? [],
                                                                         excludedRoutes: excludedRoutes ?? [])
 
@@ -666,12 +667,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
+    private func generateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
 
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
 
         do {
-            let deviceManager = NetworkProtectionDeviceManager(tokenStore: tokenStore,
+            let networkClient = NetworkProtectionBackendClient(environment: environment)
+            let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
+                                                               tokenStore: tokenStore,
                                                                keyStore: keyStore,
                                                                errorEvents: debugEvents)
 
@@ -768,6 +771,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             Task {
                 try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
+                completionHandler?(nil)
+            }
+        case .setSelectedEnvironment(let selectedEnvironment):
+            Task {
+                let networkClient = NetworkProtectionBackendClient(environment: selectedEnvironment)
+                let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
+                                                                   tokenStore: tokenStore,
+                                                                   keyStore: keyStore,
+                                                                   errorEvents: debugEvents)
+                _ = try? await deviceManager.refreshServerList()
+                try? await updateTunnelConfiguration(environment: selectedEnvironment, serverSelectionMethod: .automatic)
                 completionHandler?(nil)
             }
         case .setIncludeAllNetworks,
