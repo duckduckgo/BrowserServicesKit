@@ -35,6 +35,12 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
 
+    func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites]
+    func hasNeverPromptWebsitesFor(domain: String) throws -> Bool
+    @discardableResult
+    func storeNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64
+    func deleteAllNeverPromptWebsites() throws
+
     func notes() throws -> [SecureVaultModels.Note]
     func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note?
     @discardableResult
@@ -93,6 +99,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
                 migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
                 migrator.registerMigration("v11", migrate: Self.migrateV11(database:))
+                migrator.registerMigration("v12", migrate: Self.migrateV12(database:))
             }
         }
     }
@@ -332,6 +339,54 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     public func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         try db.read {
             try websiteCredentialsForAccountId(accountId, in: $0)
+        }
+    }
+
+    // MARK: NeverPromptWebsites
+
+    public func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites] {
+        try db.read {
+            try SecureVaultModels.NeverPromptWebsites.fetchAll($0)
+        }
+    }
+
+    public func hasNeverPromptWebsitesFor(domain: String) throws -> Bool {
+        let neverPromptWebsite = try db.read {
+            try SecureVaultModels.NeverPromptWebsites
+                .filter(SecureVaultModels.NeverPromptWebsites.Columns.domain.like(domain))
+                .fetchOne($0)
+        }
+        return neverPromptWebsite != nil
+    }
+
+    public func storeNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        if let id = neverPromptWebsite.id {
+            try updateNeverPromptWebsite(neverPromptWebsite, usingId: id)
+            return id
+        } else {
+            return try insertNeverPromptWebsite(neverPromptWebsite)
+        }
+    }
+
+    public func deleteAllNeverPromptWebsites() throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.NeverPromptWebsites.databaseTableName)
+                """)
+        }
+    }
+
+    func updateNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites, usingId id: Int64) throws {
+        try db.write {
+            try neverPromptWebsite.update($0)
+        }
+    }
+
+    func insertNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        try db.write {
+            try neverPromptWebsite.insert($0)
+            return $0.lastInsertedRowID
         }
     }
 
@@ -886,6 +941,15 @@ extension DefaultAutofillDatabaseProvider {
         }
     }
 
+    static func migrateV12(database: Database) throws {
+
+        try database.create(table: SecureVaultModels.NeverPromptWebsites.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.NeverPromptWebsites.Columns.id.name)
+
+            $0.column(SecureVaultModels.NeverPromptWebsites.Columns.domain.name, .text)
+        }
+    }
+
     // Refresh password comparison hashes
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
@@ -1024,6 +1088,27 @@ extension SecureVaultModels.WebsiteCredentials {
     }
 
     public static var databaseTableName: String = "website_passwords"
+
+}
+
+
+extension SecureVaultModels.NeverPromptWebsites: PersistableRecord, FetchableRecord {
+
+    public enum Columns: String, ColumnExpression {
+        case id, domain
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        domain = row[Columns.domain]
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.domain] = domain
+    }
+
+    public static var databaseTableName: String = "never_prompt_websites"
 
 }
 
