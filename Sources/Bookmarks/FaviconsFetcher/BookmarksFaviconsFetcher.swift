@@ -51,7 +51,7 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
             return nil
         }
 
-        return await withCheckedContinuation { continuation in
+        let imageData: Data? = await withCheckedContinuation { continuation in
             iconProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { data, error in
                 guard let data = data as? Data else {
                     continuation.resume(returning: nil)
@@ -60,7 +60,42 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
                 continuation.resume(returning: data)
             }
         }
+
+        guard let imageData else {
+            return try await lookUpHardcodedFaviconPath(for: url)
+        }
+
+        return imageData
     }
+
+    public func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        return request
+    }
+
+    private func lookUpHardcodedFaviconPath(for url: URL) async throws -> Data? {
+        guard let host = url.host else {
+            return nil
+        }
+        var faviconImageData: Data?
+        for path in ["apple-touch-icon.png", "favicon.ico"] {
+            guard let faviconURL = URL(string: "\(URL.NavigationalScheme.https.separated())\(host)/\(path)") else {
+                continue
+            }
+            let (data, response) = try await faviconsURLSession.data(from: faviconURL)
+            if (response as? HTTPURLResponse)?.statusCode == 200 {
+                faviconImageData = data
+                break
+            }
+        }
+        return faviconImageData
+    }
+
+    private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
 }
 
 public final class BookmarksFaviconsFetcher {
