@@ -54,10 +54,10 @@ public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
             try! FileManager.default.createDirectory(at: dataDirectoryURL, withIntermediateDirectories: true)
         }
         if !FileManager.default.fileExists(atPath: missingIDsFileURL.path) {
-            try! FileManager.default.createFile(atPath: missingIDsFileURL.path, contents: Data())
+            FileManager.default.createFile(atPath: missingIDsFileURL.path, contents: Data())
         }
         if !FileManager.default.fileExists(atPath: domainsWithoutFaviconURL.path) {
-            try! FileManager.default.createFile(atPath: domainsWithoutFaviconURL.path, contents: Data())
+            FileManager.default.createFile(atPath: domainsWithoutFaviconURL.path, contents: Data())
         }
     }
 
@@ -197,9 +197,9 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
             if #available(iOS 15.0, *) {
                 var request = URLRequest(url: url)
                 request.attribution = .user
-                try await metadataFetcher.startFetchingMetadata(for: request)
+                return try await metadataFetcher.startFetchingMetadata(for: request)
             } else {
-                try await metadataFetcher.startFetchingMetadata(for: url)
+                return try await metadataFetcher.startFetchingMetadata(for: url)
             }
         }()
 
