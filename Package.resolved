@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "aa279a3b006a0b1e009707311283c7fcaed24fb7",
-        "version" : "4.39.0"
+        "branch" : "shane/big-sure-assets",
+        "revision" : "46d848f98289976c0dbe034a1c0cc919971795a7"
       }
     },
     {
