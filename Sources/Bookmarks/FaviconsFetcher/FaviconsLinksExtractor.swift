@@ -19,27 +19,38 @@
 
 import Foundation
 
-struct FaviconLink {
-    let href: String
-    let rel: String
+public struct FaviconLink {
+    public let href: String
+    public let rel: String
 }
 
 class FaviconsLinksExtractor: NSObject, XMLParserDelegate {
 
     let data: Data
+    let baseURL: URL
     var links: [FaviconLink] = []
+    private var isStopExpected = false
 
     static let matchingRelAttributes: Set<String> = ["icon", "favicon", "apple-touch-icon"]
 
-    init(data: Data) {
+    init(data: Data, baseURL: URL) {
         self.data = data
+        self.baseURL = baseURL
     }
 
     func extractLinks() -> [FaviconLink] {
         let parser = XMLParser(data: data)
+        parser.delegate = self
         links.removeAll()
         parser.parse()
+        if !isStopExpected {
+            assert(parser.parserError == nil)
+        }
         return links
+    }
+
+    func parser(_ parser: XMLParser, parseErrorOccurred parseError: Error) {
+        print(parseError)
     }
 
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
@@ -47,11 +58,18 @@ class FaviconsLinksExtractor: NSObject, XMLParserDelegate {
         case "head":
             isInsideHead = true
         case "link":
-            if let rel = attributeDict["rel"], Self.matchingRelAttributes.contains(rel),
-               let href = attributeDict["href"],
-                !href.localizedCaseInsensitiveContains("svg") && attributeDict["type"]?.localizedCaseInsensitiveContains("svg") != true
-            {
-                links.append(.init(href: href, rel: rel))
+            if isInsideHead {
+                if let rel = attributeDict["rel"] {
+                    if rel.lowercased() == "apple-touch-icon" || rel.lowercased() == "favicon" || rel.lowercased().contains("icon") {
+//                    if Self.matchingRelAttributes.contains(where: { rel.localizedCaseInsensitiveContains($0) }) {
+//                        print("rel \(rel)")
+                        if let href = attributeDict["href"],
+                           !href.localizedCaseInsensitiveContains("svg") && attributeDict["type"]?.localizedCaseInsensitiveContains("svg") != true {
+                            print("found \(rel) \(href)")
+                            links.append(.init(href: absoluteURLString(for: href), rel: rel))
+                        }
+                    }
+                }
             }
         default:
             break
@@ -60,8 +78,28 @@ class FaviconsLinksExtractor: NSObject, XMLParserDelegate {
 
     func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
         if elementName == "head" {
+            isStopExpected = true
             parser.abortParsing()
         }
+    }
+
+    private func absoluteURLString(for extractedHref: String) -> String {
+        var href = extractedHref
+        if var components = URLComponents(string: href) {
+            var updated = false
+            if components.host == nil {
+                components.host = baseURL.host
+                updated = true
+            }
+            if components.scheme == nil {
+                components.scheme = "https" // links.documentURL.scheme
+                updated = true
+            }
+            if updated, let url = components.url {
+                href = url.absoluteString
+            }
+        }
+        return href
     }
 
     private var isInsideHead = false

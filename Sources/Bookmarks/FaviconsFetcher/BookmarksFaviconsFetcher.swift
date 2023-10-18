@@ -86,9 +86,15 @@ public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
     }
 }
 
+public struct BookmarkFaviconLinks {
+    public let documentURL: URL
+    public let links: [FaviconLink]
+}
+
 public protocol FaviconFetching {
 
-    func fetchFaviconLinks(for url: URL) async throws -> [URL]
+    func fetchFaviconLinks(for url: URL) async throws -> BookmarkFaviconLinks
+    func searchHardcodedFaviconPaths(for url: URL) async throws -> BookmarkFaviconLinks
 
 #if os(macOS)
     func fetchFavicon(for url: URL) async throws -> NSImage?
@@ -98,23 +104,21 @@ public protocol FaviconFetching {
 }
 
 public protocol FaviconStoring {
+
+    func handleFaviconLinks(_ links: BookmarkFaviconLinks) async throws
+
 #if os(macOS)
-    func storeFavicon(_ image: NSImage, for domain: String) async throws
+    func storeFavicon(_ image: NSImage, for url: URL) async throws
 #elseif os(iOS)
-    func storeFavicon(_ image: UIImage, for domain: String) async throws
+    func storeFavicon(_ image: UIImage, for url: URL) async throws
 #endif
 }
 
-public struct BookmarkFaviconLinks {
-    let documentURL: URL
-    let links: [FaviconLink]
-}
+public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDelegate {
 
-public final class FaviconFetcher: FaviconFetching, URLSessionTaskDelegate {
+    public override init() {}
 
-    public init() {}
-
-    private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self)
+    private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
 
     public func urlSession(
         _ session: URLSession,
@@ -126,17 +130,41 @@ public final class FaviconFetcher: FaviconFetching, URLSessionTaskDelegate {
     }
 
     public func fetchFaviconLinks(for url: URL) async throws -> BookmarkFaviconLinks {
-        let data = try await faviconsURLSession.data(from: url)
-        let links = FaviconsLinksExtractor(data: data).extractLinks()
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        components?.scheme = "https"
+        guard let upgradedURL = components?.url else {
+            return BookmarkFaviconLinks(documentURL: url, links: [])
+        }
+        let (data, response) = try await faviconsURLSession.data(from: upgradedURL)
+        let baseURL = URL(string: "https://\(response.url!.host!)")!
+        let links = FaviconsLinksExtractor(data: data, baseURL: baseURL).extractLinks()
         return BookmarkFaviconLinks(documentURL: url, links: links)
     }
 
-#if os(macOS)
-    public func fetchFavicon(for domain: String) async throws -> NSImage? {
-        guard let url = URL(string: "https://\(domain)") else {
-            return nil
+    public func searchHardcodedFaviconPaths(for url: URL) async throws -> BookmarkFaviconLinks {
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var newComponents = URLComponents()
+        newComponents.scheme = "https"
+        newComponents.host = components?.host
+        newComponents.port = components?.port
+        guard let upgradedURL = newComponents.url else {
+            return BookmarkFaviconLinks(documentURL: url, links: [])
         }
 
+        for path in ["apple-touch-icon.png", "favicon.ico"] {
+            let faviconURL = upgradedURL.appendingPathComponent(path)
+            var request = URLRequest(url: faviconURL)
+            request.httpMethod = "HEAD"
+            if let response = try await faviconsURLSession.data(for: request).1 as? HTTPURLResponse, response.statusCode == 200 {
+                print("Found favicon at hardcoded path \(faviconURL)")
+                return BookmarkFaviconLinks(documentURL: url, links: [.init(href: faviconURL.absoluteString, rel: "icon")])
+            }
+        }
+        return BookmarkFaviconLinks(documentURL: url, links: [])
+    }
+
+#if os(macOS)
+    public func fetchFavicon(for url: URL) async throws -> NSImage? {
         let metadataFetcher = LPMetadataProvider()
         let metadata: LPLinkMetadata = try await {
             if #available(macOS 12.0, *) {
@@ -163,11 +191,7 @@ public final class FaviconFetcher: FaviconFetching, URLSessionTaskDelegate {
         }
     }
 #elseif os(iOS)
-    public func fetchFavicon(for domain: String) async throws -> UIImage? {
-        guard let url = URL(string: "https://\(domain)") else {
-            return nil
-        }
-
+    public func fetchFavicon(for url: URL) async throws -> UIImage? {
         let metadataFetcher = LPMetadataProvider()
         let metadata: LPLinkMetadata = try await {
             if #available(iOS 15.0, *) {
@@ -203,28 +227,78 @@ public final class BookmarksFaviconsFetcher {
 
     public func startFetching(with modifiedBookmarkIDs: Set<String>, deletedBookmarkIDs: Set<String> = []) async throws {
         var ids = try metadataStore.getBookmarkIDs().union(modifiedBookmarkIDs).subtracting(deletedBookmarkIDs)
-        try metadataStore.storeBookmarkIDs(ids)
+        var urlsByID = [String:URL]()
+        var idsWithoutFavicons = Set<String>()
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        context.performAndWait {
+            let bookmarks = fetchBookmarks(with: ids, in: context)
+            ids.removeAll()
+            bookmarks.forEach { bookmark in
+                if let uuid = bookmark.uuid, let urlString = bookmark.url, let url = URL(string: urlString) {
+                    urlsByID[uuid] = url
+                    ids.insert(uuid)
+                }
+            }
+        }
+
+        try metadataStore.storeBookmarkIDs(ids)
 
         var idsArray = Array(ids)
 
         while !idsArray.isEmpty {
+            print("IDS ARRAY SIZE: \(idsArray.count)")
             let numberOfIdsToFetch = min(10, idsArray.count)
             let idsToFetch = Array(idsArray.prefix(upTo: numberOfIdsToFetch))
             idsArray = Array(idsArray.dropFirst(numberOfIdsToFetch))
 
-            var urls = [String]()
-            context.performAndWait {
-                let bookmarks = fetchBookmarks(with: idsToFetch, in: context)
-                urls = bookmarks.compactMap(\.url)
+            let newIdsWithoutFavicons = try await withThrowingTaskGroup(of: String?.self, returning: Set<String>.self) { group in
+                for id in idsToFetch {
+                    if let url = urlsByID[id] {
+                        group.addTask { [weak self] in
+                            guard let self else {
+                                return nil
+                            }
+                            do {
+                                if let image = try await self.fetcher.fetchFavicon(for: url) {
+                                    print("Favicon found for \(url)")
+                                    try await self.faviconStore.storeFavicon(image, for: url)
+                                    return nil
+                                } else {
+                                    print("Favicon not found for \(url)")
+                                    return id
+                                }
+
+//                                var links = try await self.fetcher.fetchFaviconLinks(for: url)
+//                                if links.links.isEmpty {
+//                                    links = try await self.fetcher.searchHardcodedFaviconPaths(for: url)
+//                                }
+//                                if links.links.isEmpty {
+//                                    print("No links for \(url)")
+//                                    return id
+//                                } else {
+//                                    try await self.faviconStore.handleFaviconLinks(links)
+//                                    return nil
+//                                }
+                            } catch {
+                                print("ERROR: \(error)")
+                                return nil
+                            }
+                        }
+                    }
+                }
+
+                var results = Set<String>()
+                for try await value in group {
+                    if let value {
+                        results.insert(value)
+                    }
+                }
+                return results
             }
 
-            for urlString in urls {
-                if let domain = URL(string: urlString)?.host, let image = try await fetcher.fetchFavicon(for: domain) {
-                    try await faviconStore.storeFavicon(image, for: domain)
-                }
-            }
+            idsWithoutFavicons.formUnion(newIdsWithoutFavicons)
         }
     }
 
