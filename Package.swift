@@ -8,7 +8,7 @@ let package = Package(
     name: "BrowserServicesKit",
     platforms: [
         .iOS("14.0"),
-        .macOS("10.15")
+        .macOS("11.4")
     ],
     products: [
         // Exported libraries

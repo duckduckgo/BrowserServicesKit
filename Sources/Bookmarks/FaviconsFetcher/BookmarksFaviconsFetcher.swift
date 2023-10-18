@@ -21,39 +21,24 @@ import CoreData
 import Foundation
 import Persistence
 import LinkPresentation
-#if os(macOS)
-import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
+import UniformTypeIdentifiers
 
 public protocol FaviconFetching {
-
-#if os(macOS)
-    func fetchFavicon(for url: URL) async throws -> NSImage?
-#elseif os(iOS)
-    func fetchFavicon(for url: URL) async throws -> UIImage?
-#endif
+    func fetchFavicon(for url: URL) async throws -> Data?
 }
 
 public protocol FaviconStoring {
-
-#if os(macOS)
-    func storeFavicon(_ image: NSImage, for url: URL) async throws
-#elseif os(iOS)
-    func storeFavicon(_ image: UIImage, for url: URL) async throws
-#endif
+    func storeFavicon(_ imageData: Data, for url: URL) async throws
 }
 
 public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDelegate {
 
     public override init() {}
 
-#if os(macOS)
-    public func fetchFavicon(for url: URL) async throws -> NSImage? {
+    public func fetchFavicon(for url: URL) async throws -> Data? {
         let metadataFetcher = LPMetadataProvider()
         let metadata: LPLinkMetadata = try await {
-            if #available(macOS 12.0, *) {
+            if #available(iOS 15.0, macOS 12.0, *) {
                 var request = URLRequest(url: url)
                 request.attribution = .user
                 return try await metadataFetcher.startFetchingMetadata(for: request)
@@ -67,39 +52,15 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
         }
 
         return await withCheckedContinuation { continuation in
-            iconProvider.loadItem(forTypeIdentifier: kUTTypeImage as String, options: nil) { data, error in
+            iconProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { data, error in
                 guard let data = data as? Data else {
                     continuation.resume(returning: nil)
                     return
                 }
-                continuation.resume(returning: NSImage(data: data))
+                continuation.resume(returning: data)
             }
         }
     }
-#elseif os(iOS)
-    public func fetchFavicon(for url: URL) async throws -> UIImage? {
-        let metadataFetcher = LPMetadataProvider()
-        let metadata: LPLinkMetadata = try await {
-            if #available(iOS 15.0, *) {
-                var request = URLRequest(url: url)
-                request.attribution = .user
-                return try await metadataFetcher.startFetchingMetadata(for: request)
-            } else {
-                return try await metadataFetcher.startFetchingMetadata(for: url)
-            }
-        }()
-
-        guard let iconProvider = metadata.iconProvider else {
-            return nil
-        }
-
-        return await withCheckedContinuation { continuation in
-            iconProvider.loadObject(ofClass: UIImage.self) { potentialImage, _ in
-                continuation.resume(returning: potentialImage as? UIImage)
-            }
-        }
-    }
-#endif
 }
 
 public final class BookmarksFaviconsFetcher {
