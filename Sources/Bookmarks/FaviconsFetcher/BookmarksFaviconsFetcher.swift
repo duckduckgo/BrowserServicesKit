@@ -27,74 +27,7 @@ import AppKit
 import UIKit
 #endif
 
-public protocol BookmarkFaviconsMetadataStoring {
-    func getBookmarkIDs() throws -> Set<String>
-    func storeBookmarkIDs(_ ids: Set<String>) throws
-
-    func getDomainsWithoutFavicon() throws -> Set<String>
-    func storeDomainsWithoutFavicon(_ domains: Set<String>) throws
-}
-
-public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
-
-    let dataDirectoryURL: URL
-    let missingIDsFileURL: URL
-    let domainsWithoutFaviconURL: URL
-
-    public init(applicationSupportURL: URL) {
-        dataDirectoryURL = applicationSupportURL.appendingPathComponent("FaviconsFetcher")
-        missingIDsFileURL = dataDirectoryURL.appendingPathComponent("missingIDs")
-        domainsWithoutFaviconURL = dataDirectoryURL.appendingPathComponent("domainsWithoutFavicon")
-
-        initStorage()
-    }
-
-    private func initStorage() {
-        if !FileManager.default.fileExists(atPath: dataDirectoryURL.path) {
-            try! FileManager.default.createDirectory(at: dataDirectoryURL, withIntermediateDirectories: true)
-        }
-        if !FileManager.default.fileExists(atPath: missingIDsFileURL.path) {
-            FileManager.default.createFile(atPath: missingIDsFileURL.path, contents: Data())
-        }
-        if !FileManager.default.fileExists(atPath: domainsWithoutFaviconURL.path) {
-            FileManager.default.createFile(atPath: domainsWithoutFaviconURL.path, contents: Data())
-        }
-    }
-
-    public func getBookmarkIDs() throws -> Set<String> {
-        let data = try Data(contentsOf: missingIDsFileURL)
-        guard let rawValue = String(data: data, encoding: .utf8) else {
-            return []
-        }
-        return Set(rawValue.components(separatedBy: ","))
-    }
-
-    public func storeBookmarkIDs(_ ids: Set<String>) throws {
-        try ids.joined(separator: ",").data(using: .utf8)?.write(to: missingIDsFileURL)
-    }
-
-    public func getDomainsWithoutFavicon() throws -> Set<String> {
-        let data = try Data(contentsOf: domainsWithoutFaviconURL)
-        guard let rawValue = String(data: data, encoding: .utf8) else {
-            return []
-        }
-        return Set(rawValue.components(separatedBy: ","))
-    }
-
-    public func storeDomainsWithoutFavicon(_ domains: Set<String>) throws {
-        try domains.joined(separator: ",").data(using: .utf8)?.write(to: domainsWithoutFaviconURL)
-    }
-}
-
-public struct BookmarkFaviconLinks {
-    public let documentURL: URL
-    public let links: [FaviconLink]
-}
-
 public protocol FaviconFetching {
-
-    func fetchFaviconLinks(for url: URL) async throws -> BookmarkFaviconLinks
-    func searchHardcodedFaviconPaths(for url: URL) async throws -> BookmarkFaviconLinks
 
 #if os(macOS)
     func fetchFavicon(for url: URL) async throws -> NSImage?
@@ -104,8 +37,6 @@ public protocol FaviconFetching {
 }
 
 public protocol FaviconStoring {
-
-    func handleFaviconLinks(_ links: BookmarkFaviconLinks) async throws
 
 #if os(macOS)
     func storeFavicon(_ image: NSImage, for url: URL) async throws
@@ -117,51 +48,6 @@ public protocol FaviconStoring {
 public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDelegate {
 
     public override init() {}
-
-    private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
-
-    public func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest
-    ) async -> URLRequest? {
-        return request
-    }
-
-    public func fetchFaviconLinks(for url: URL) async throws -> BookmarkFaviconLinks {
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.scheme = "https"
-        guard let upgradedURL = components?.url else {
-            return BookmarkFaviconLinks(documentURL: url, links: [])
-        }
-        let (data, response) = try await faviconsURLSession.data(from: upgradedURL)
-        let baseURL = URL(string: "https://\(response.url!.host!)")!
-        let links = FaviconsLinksExtractor(data: data, baseURL: baseURL).extractLinks()
-        return BookmarkFaviconLinks(documentURL: url, links: links)
-    }
-
-    public func searchHardcodedFaviconPaths(for url: URL) async throws -> BookmarkFaviconLinks {
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        var newComponents = URLComponents()
-        newComponents.scheme = "https"
-        newComponents.host = components?.host
-        newComponents.port = components?.port
-        guard let upgradedURL = newComponents.url else {
-            return BookmarkFaviconLinks(documentURL: url, links: [])
-        }
-
-        for path in ["apple-touch-icon.png", "favicon.ico"] {
-            let faviconURL = upgradedURL.appendingPathComponent(path)
-            var request = URLRequest(url: faviconURL)
-            request.httpMethod = "HEAD"
-            if let response = try await faviconsURLSession.data(for: request).1 as? HTTPURLResponse, response.statusCode == 200 {
-                print("Found favicon at hardcoded path \(faviconURL)")
-                return BookmarkFaviconLinks(documentURL: url, links: [.init(href: faviconURL.absoluteString, rel: "icon")])
-            }
-        }
-        return BookmarkFaviconLinks(documentURL: url, links: [])
-    }
 
 #if os(macOS)
     public func fetchFavicon(for url: URL) async throws -> NSImage? {
@@ -269,18 +155,6 @@ public final class BookmarksFaviconsFetcher {
                                     print("Favicon not found for \(url)")
                                     return id
                                 }
-
-//                                var links = try await self.fetcher.fetchFaviconLinks(for: url)
-//                                if links.links.isEmpty {
-//                                    links = try await self.fetcher.searchHardcodedFaviconPaths(for: url)
-//                                }
-//                                if links.links.isEmpty {
-//                                    print("No links for \(url)")
-//                                    return id
-//                                } else {
-//                                    try await self.faviconStore.handleFaviconLinks(links)
-//                                    return nil
-//                                }
                             } catch {
                                 print("ERROR: \(error)")
                                 return nil
