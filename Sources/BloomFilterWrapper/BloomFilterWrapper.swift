@@ -26,11 +26,11 @@ public final class BloomFilterWrapper {
         bloomFilter = BloomFilterObjC(fromPath: path, withBitCount: bitCount, andTotalItems: totalItems)
     }
 
-    public init(withTotalItems count: Int32, errorRate: Double) {
+    public init(totalItems count: Int32, errorRate: Double) {
         bloomFilter = BloomFilterObjC(totalItems: count, errorRate: errorRate)
     }
 
-    public func add(entry: String) {
+    public func add(_ entry: String) {
         bloomFilter.add(entry)
     }
 

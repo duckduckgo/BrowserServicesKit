@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Foundation
 @testable import BrowserServicesKit
 @testable import BloomFilterWrapper
 
