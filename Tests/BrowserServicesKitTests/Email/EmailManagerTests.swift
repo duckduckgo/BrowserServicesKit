@@ -391,7 +391,9 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     var keychainAccessErrorAccessType: EmailKeychainAccessType?
     var keychainAccessError: EmailKeychainAccessError?
 
-    func emailManagerKeychainAccessFailed(self, accessType: EmailKeychainAccessType, error: EmailKeychainAccessError) {
+    func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
+                                          accessType: EmailKeychainAccessType,
+                                          error: EmailKeychainAccessError) {
         keychainAccessErrorAccessType = accessType
         keychainAccessError = error
     }
