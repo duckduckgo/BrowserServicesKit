@@ -247,14 +247,19 @@ public class ContentBlockerRulesSourceManager {
                                  parameters: params,
                                  onComplete: { _ in
                 if input.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
-                    if let onCriticalError = self.onCriticalError {
-                        onCriticalError()
-                    } else {
-                        fatalError("Could not compile embedded rules list")
-                    }
+                    self.handleCriticalError()
                 }
             })
             fallbackTDSFailure = true
         }
     }
+
+    private func handleCriticalError() {
+        if let onCriticalError = self.onCriticalError {
+            onCriticalError()
+        } else {
+            fatalError("Could not compile embedded rules list")
+        }
+    }
+    
 }
