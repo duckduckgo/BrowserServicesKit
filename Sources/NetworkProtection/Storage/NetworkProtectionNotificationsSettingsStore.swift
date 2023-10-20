@@ -19,7 +19,11 @@
 
 import Foundation
 
-final public class NetworkProtectionNotificationsSettingsStore {
+public protocol NetworkProtectionNotificationsSettingsStore {
+    var alertsEnabled: Bool { get set }
+}
+
+final public class NetworkProtectionNotificationsSettingsUserDefaultsStore: NetworkProtectionNotificationsSettingsStore {
     private enum Key {
         static let alerts = "com.duckduckgo.notificationSettings.alertsEnabled"
     }
@@ -31,7 +35,7 @@ final public class NetworkProtectionNotificationsSettingsStore {
         self.userDefaults = userDefaults
     }
 
-    var alertsEnabled: Bool {
+    public var alertsEnabled: Bool {
         get {
             guard self.userDefaults.object(forKey: Key.alerts) != nil else {
                 return true
