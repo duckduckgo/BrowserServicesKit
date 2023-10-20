@@ -48,8 +48,8 @@ public struct ProtectionState: Decodable {
     }
 
     public enum EventOriginScreen: String, Decodable {
-        case primaryScreen;
-        case breakageForm;
+        case primaryScreen
+        case breakageForm
     }
 }
 
