@@ -1,6 +1,5 @@
 //
-//  MockTunnelController.swift
-//  DuckDuckGo
+//  ExtensionRequest.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,22 +17,13 @@
 //
 
 import Foundation
-import NetworkProtection
 
-public final class MockTunnelController: TunnelController {
-    public init() {}
+public enum DebugCommand: Codable {
+    case expireRegistrationKey
+    case sendTestNotification
+}
 
-    public var didCallStart = false
-    public func start() async {
-        didCallStart = true
-    }
-
-    public var didCallStop = false
-    public func stop() async {
-        didCallStop = true
-    }
-
-    public var isConnected: Bool {
-        true
-    }
+public enum ExtensionRequest: Codable {
+    case changeTunnelSetting(_ change: TunnelSettings.Change)
+    case debugCommand(_ command: DebugCommand)
 }

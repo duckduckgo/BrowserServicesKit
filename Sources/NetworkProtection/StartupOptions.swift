@@ -94,7 +94,7 @@ struct StartupOptions {
     let simulateCrash: Bool
     let simulateMemoryCrash: Bool
     let keyValidity: StoredOption<TimeInterval>
-    let selectedServer: StoredOption<SelectedNetworkProtectionServer>
+    let selectedServer: StoredOption<TunnelSettings.SelectedServer>
     let authToken: StoredOption<String>
     let enableTester: StoredOption<Bool>
 
@@ -150,7 +150,7 @@ struct StartupOptions {
         }
     }
 
-    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<SelectedNetworkProtectionServer> {
+    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TunnelSettings.SelectedServer> {
 
         StoredOption(resetIfNil: resetIfNil) {
             guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {
