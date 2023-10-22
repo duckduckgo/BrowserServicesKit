@@ -196,6 +196,9 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         .target(
             name: "SecureStorage",
