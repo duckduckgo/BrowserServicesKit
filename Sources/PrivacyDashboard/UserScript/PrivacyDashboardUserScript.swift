@@ -20,9 +20,10 @@ import Foundation
 import WebKit
 import TrackerRadarKit
 import UserScript
+import Common
 
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
-    func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo protectionState: Bool)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
@@ -36,6 +37,20 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
 public enum PrivacyDashboardTheme: String, Encodable {
     case light
     case dark
+}
+
+public struct ProtectionState: Decodable {
+    public let isProtected: Bool
+    public let eventOrigin: EventOrigin
+
+    public struct EventOrigin: Decodable {
+        public let screen: EventOriginScreen
+    }
+
+    public enum EventOriginScreen: String, Decodable {
+        case primaryScreen
+        case breakageForm
+    }
 }
 
 final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
@@ -91,12 +106,13 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     // MARK: - JS message handlers
 
     private func handleSetProtection(message: WKScriptMessage) {
-        guard let isProtected = message.body as? Bool else {
-            assertionFailure("privacyDashboardSetProtection: expected Bool")
+
+        guard let protectionState: ProtectionState = DecodableHelper.decode(from: message.messageBody) else {
+            assertionFailure("privacyDashboardSetProtection: expected ProtectionState")
             return
         }
 
-        delegate?.userScript(self, didChangeProtectionStateTo: isProtected)
+        delegate?.userScript(self, didChangeProtectionState: protectionState)
     }
     
     private func handleSetSize(message: WKScriptMessage) {
