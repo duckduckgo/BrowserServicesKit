@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Common
 import CoreData
 import Foundation
 import Persistence
@@ -27,89 +28,50 @@ public protocol FaviconStoring {
 
 public final class BookmarksFaviconsFetcher {
 
-    public init(database: CoreDataDatabase, metadataStore: BookmarkFaviconsMetadataStoring, fetcher: FaviconFetching, store: FaviconStoring) {
+    public init(
+        database: CoreDataDatabase,
+        metadataStore: BookmarkFaviconsMetadataStoring,
+        fetcher: FaviconFetching,
+        store: FaviconStoring,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
         self.database = database
         self.metadataStore = metadataStore
         self.fetcher = fetcher
         self.faviconStore = store
+        self.getLog = log
     }
 
-    public func startFetching(with modifiedBookmarkIDs: Set<String>, deletedBookmarkIDs: Set<String> = []) async throws {
-        var ids = try metadataStore.getBookmarkIDs().union(modifiedBookmarkIDs).subtracting(deletedBookmarkIDs)
-        var urlsByID = [String:URL]()
-        var idsWithoutFavicons = Set<String>()
-
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-        context.performAndWait {
-            let bookmarks = fetchBookmarks(with: ids, in: context)
-            ids.removeAll()
-            bookmarks.forEach { bookmark in
-                if let uuid = bookmark.uuid, let urlString = bookmark.url, let url = URL(string: urlString) {
-                    urlsByID[uuid] = url
-                    ids.insert(uuid)
-                }
-            }
-        }
-
-        try metadataStore.storeBookmarkIDs(ids)
-
-        var idsArray = Array(ids)
-
-        while !idsArray.isEmpty {
-            print("IDS ARRAY SIZE: \(idsArray.count)")
-            let numberOfIdsToFetch = min(10, idsArray.count)
-            let idsToFetch = Array(idsArray.prefix(upTo: numberOfIdsToFetch))
-            idsArray = Array(idsArray.dropFirst(numberOfIdsToFetch))
-
-            let newIdsWithoutFavicons = try await withThrowingTaskGroup(of: String?.self, returning: Set<String>.self) { group in
-                for id in idsToFetch {
-                    if let url = urlsByID[id] {
-                        group.addTask { [weak self] in
-                            guard let self else {
-                                return nil
-                            }
-                            do {
-                                if let image = try await self.fetcher.fetchFavicon(for: url) {
-                                    print("Favicon found for \(url)")
-                                    try await self.faviconStore.storeFavicon(image, for: url)
-                                    return nil
-                                } else {
-                                    print("Favicon not found for \(url)")
-                                    return id
-                                }
-                            } catch {
-                                print("ERROR: \(error)")
-                                return nil
-                            }
-                        }
-                    }
-                }
-
-                var results = Set<String>()
-                for try await value in group {
-                    if let value {
-                        results.insert(value)
-                    }
-                }
-                return results
-            }
-
-            idsWithoutFavicons.formUnion(newIdsWithoutFavicons)
-        }
+    public func startFetching(with modifiedBookmarkIDs: Set<String>, deletedBookmarkIDs: Set<String> = []) {
+        operationQueue.cancelAllOperations()
+        let operation = FaviconsFetchOperation(
+            database: database,
+            metadataStore: metadataStore,
+            fetcher: fetcher,
+            faviconStore: faviconStore,
+            modifiedBookmarkIDs: modifiedBookmarkIDs,
+            deletedBookmarkIDs: deletedBookmarkIDs,
+            log: self.log
+        )
+        operationQueue.addOperation(operation)
     }
+
+    let operationQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "com.duckduckgo.sync.faviconsFetcher"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 1
+        return queue
+    }()
 
     private let database: CoreDataDatabase
     private let metadataStore: BookmarkFaviconsMetadataStoring
     private let fetcher: FaviconFetching
     private let faviconStore: FaviconStoring
 
-    private func fetchBookmarks(with uuids: any Sequence & CVarArg, in context: NSManagedObjectContext) -> [BookmarkEntity] {
-        let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K IN %@ AND %K == NO", #keyPath(BookmarkEntity.uuid), uuids, #keyPath(BookmarkEntity.isFolder))
-        request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
-
-        return (try? context.fetch(request)) ?? []
+    private var log: OSLog {
+        getLog()
     }
+    private let getLog: () -> OSLog
 }
 
