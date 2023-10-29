@@ -20,82 +20,9 @@
 import CoreData
 import Foundation
 import Persistence
-import LinkPresentation
-import UniformTypeIdentifiers
-
-public protocol FaviconFetching {
-    func fetchFavicon(for url: URL) async throws -> Data?
-}
 
 public protocol FaviconStoring {
     func storeFavicon(_ imageData: Data, for url: URL) async throws
-}
-
-public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDelegate {
-
-    public override init() {}
-
-    public func fetchFavicon(for url: URL) async throws -> Data? {
-        let metadataFetcher = LPMetadataProvider()
-        let metadata: LPLinkMetadata = try await {
-            if #available(iOS 15.0, macOS 12.0, *) {
-                var request = URLRequest(url: url)
-                request.attribution = .user
-                return try await metadataFetcher.startFetchingMetadata(for: request)
-            } else {
-                return try await metadataFetcher.startFetchingMetadata(for: url)
-            }
-        }()
-
-        guard let iconProvider = metadata.iconProvider else {
-            return nil
-        }
-
-        let imageData: Data? = await withCheckedContinuation { continuation in
-            iconProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { data, error in
-                guard let data = data as? Data else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                continuation.resume(returning: data)
-            }
-        }
-
-        guard let imageData else {
-            return try await lookUpHardcodedFaviconPath(for: url)
-        }
-
-        return imageData
-    }
-
-    public func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest
-    ) async -> URLRequest? {
-        return request
-    }
-
-    private func lookUpHardcodedFaviconPath(for url: URL) async throws -> Data? {
-        guard let host = url.host else {
-            return nil
-        }
-        var faviconImageData: Data?
-        for path in ["apple-touch-icon.png", "favicon.ico"] {
-            guard let faviconURL = URL(string: "\(URL.NavigationalScheme.https.separated())\(host)/\(path)") else {
-                continue
-            }
-            let (data, response) = try await faviconsURLSession.data(from: faviconURL)
-            if (response as? HTTPURLResponse)?.statusCode == 200 {
-                faviconImageData = data
-                break
-            }
-        }
-        return faviconImageData
-    }
-
-    private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
 }
 
 public final class BookmarksFaviconsFetcher {
