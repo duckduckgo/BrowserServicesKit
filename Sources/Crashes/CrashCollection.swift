@@ -41,7 +41,7 @@ public struct CrashCollection {
                 .flatMap { $0 }
                 .forEach {
                     completion([
-                        "appVersion": $0.applicationVersion,
+                        "appVersion": "\($0.applicationVersion).\($0.metaData.applicationBuildVersion)",
                         "code": "\($0.exceptionCode ?? -1)",
                         "type": "\($0.exceptionType ?? -1)",
                         "signal": "\($0.signal ?? -1)"
