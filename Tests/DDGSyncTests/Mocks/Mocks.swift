@@ -317,7 +317,7 @@ class SyncMetadataStoreMock: SyncMetadataStore {
 
 class DataProvidingMock: DataProvider {
 
-    init(feature: Feature, syncDidUpdateData: @escaping ([ChangesKey: Set<String>]) -> Void = { _ in }) {
+    init(feature: Feature, syncDidUpdateData: @escaping ([ChangesKey: Set<String>]?) -> Void = { _ in }) {
         super.init(feature: feature, metadataStore: SyncMetadataStoreMock(), syncDidUpdateData: syncDidUpdateData)
     }
 

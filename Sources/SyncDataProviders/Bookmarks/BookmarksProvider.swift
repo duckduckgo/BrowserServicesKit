@@ -26,7 +26,7 @@ import Persistence
 // swiftlint:disable line_length
 public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping ([ChangesKey: Set<String>]) -> Void) {
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping ([ChangesKey: Set<String>]?) -> Void) {
         self.database = database
         super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
@@ -130,6 +130,8 @@ public final class BookmarksProvider: DataProvider {
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData(changes)
+        } else {
+            syncDidUpdateData(nil)
         }
     }
 

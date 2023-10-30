@@ -30,7 +30,7 @@ public final class CredentialsProvider: DataProvider {
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
-        syncDidUpdateData: @escaping ([ChangesKey: Set<String>]) -> Void
+        syncDidUpdateData: @escaping ([ChangesKey: Set<String>]?) -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
@@ -181,6 +181,8 @@ public final class CredentialsProvider: DataProvider {
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData([:])
+        } else {
+            syncDidUpdateData(nil)
         }
     }
 
