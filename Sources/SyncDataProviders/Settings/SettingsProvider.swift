@@ -56,7 +56,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlers: [SettingSyncHandler],
-        syncDidUpdateData: @escaping ([ChangesKey: Set<String>]?) -> Void
+        syncDidFinish: @escaping (SyncResult) -> Void
     ) {
         let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
             partialResult[handler.setting] = handler
@@ -68,7 +68,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
             settingsHandlersBySetting: settingsHandlers,
-            syncDidUpdateData: syncDidUpdateData
+            syncDidFinish: syncDidFinish
         )
 
         register(errorPublisher: errorSubject.eraseToAnyPublisher())
@@ -82,11 +82,11 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlersBySetting: [Setting: any SettingSyncHandling],
-        syncDidUpdateData: @escaping ([ChangesKey: Set<String>]?) -> Void
+        syncDidFinish: @escaping (SyncResult) -> Void
     ) {
         self.metadataDatabase = metadataDatabase
         self.settingsHandlers = settingsHandlersBySetting
-        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidFinish: syncDidFinish)
     }
 
     // MARK: - DataProviding
@@ -259,9 +259,9 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            syncDidUpdateData([:])
+            syncDidFinish(.someNewData)
         } else {
-            syncDidUpdateData(nil)
+            syncDidFinish(.noData)
         }
     }
 

@@ -139,7 +139,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
             metadataDatabase: metadataDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
             settingsHandlers: [emailProtectionSyncHandler, testSettingSyncHandler],
-            syncDidUpdateData: { _ in }
+            syncDidFinish: { _ in }
         )
     }
 

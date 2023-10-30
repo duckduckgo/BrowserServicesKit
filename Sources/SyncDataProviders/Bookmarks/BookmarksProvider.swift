@@ -26,9 +26,9 @@ import Persistence
 // swiftlint:disable line_length
 public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping ([ChangesKey: Set<String>]?) -> Void) {
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidFinish: @escaping (SyncResult) -> Void) {
         self.database = database
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidFinish: syncDidFinish)
     }
 
     // MARK: - DataProviding
@@ -85,7 +85,7 @@ public final class BookmarksProvider: DataProvider {
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
-        var changes: [ChangesKey: Set<String>] = [:]
+        var newData: (modifiedIds: Set<String>, deletedIds: Set<String>) = ([], [])
 
         context.performAndWait {
             while true {
@@ -105,7 +105,7 @@ public final class BookmarksProvider: DataProvider {
                     willSaveContextAfterApplyingSyncResponse()
 #endif
                     let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
-                    changes = try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
+                    newData = try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
@@ -129,9 +129,9 @@ public final class BookmarksProvider: DataProvider {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            syncDidUpdateData(changes)
+            syncDidFinish(.newData(modifiedIds: newData.modifiedIds, deletedIds: newData.deletedIds))
         } else {
-            syncDidUpdateData(nil)
+            syncDidFinish(.noData)
         }
     }
 
@@ -182,7 +182,7 @@ public final class BookmarksProvider: DataProvider {
         try context.save()
     }
 
-    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws -> [ChangesKey: Set<String>] {
+    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws -> (modifiedIds: Set<String>, deletedIds: Set<String>) {
         let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
         let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
         let deletedObjectsUUIDs = Array(context.deletedObjects).compactMap { ($0 as? BookmarkEntity)?.uuid }
@@ -199,10 +199,7 @@ public final class BookmarksProvider: DataProvider {
         }
         try context.save()
 
-        return [
-            .modified: Set(modifiedObjects.compactMap(\.uuid)),
-            .deleted: Set(deletedObjectsUUIDs)
-        ]
+        return (modifiedIds: Set(modifiedObjects.compactMap(\.uuid)), deletedIds: Set(deletedObjectsUUIDs))
     }
 
     private let database: CoreDataDatabase

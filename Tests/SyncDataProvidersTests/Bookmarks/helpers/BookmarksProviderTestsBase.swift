@@ -32,8 +32,8 @@ internal class BookmarksProviderTestsBase: XCTestCase {
     var crypter = CryptingMock()
     var provider: BookmarksProvider!
 
-    var expectedDidUpdateDataDictionary: [BookmarksProvider.ChangesKey: Set<String>]?
-    var syncDidUpdateData: (([BookmarksProvider.ChangesKey: Set<String>]) -> Void) = { _ in }
+    var expectedSyncResult: BookmarksProvider.SyncResult?
+    var syncDidFinish: (BookmarksProvider.SyncResult) -> Void) = { _ in }
 
     func setUpBookmarksDatabase() {
         bookmarksDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -65,17 +65,17 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        syncDidUpdateData = { [weak self] changes in
-            if let self, let expectedDidUpdateDataDictionary = self.expectedDidUpdateDataDictionary {
-                XCTAssertEqual(expectedDidUpdateDataDictionary, changes)
+        syncDidFinish = { [weak self] changes in
+            if let self, let expectedSyncResult = self.expectedSyncResult {
+                XCTAssertEqual(expectedSyncResult, changes)
             }
         }
 
         provider = BookmarksProvider(
             database: bookmarksDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            syncDidUpdateData: { [weak self] in
-                self?.syncDidUpdateData($0)
+            syncDidFinish: { [weak self] in
+                self?.syncDidFinish($0)
             }
         )
     }

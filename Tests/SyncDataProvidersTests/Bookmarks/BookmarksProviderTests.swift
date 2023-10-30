@@ -728,9 +728,9 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
-    // MARK: - syncDidUpdateData callback
+    // MARK: - syncDidFinish callback
 
-    func testThatSyncDidUpdateDataCallbackReportsModifiedAndDeletedObjectIDs() async throws {
+    func testThatSyncDidFinishCallbackReportsModifiedAndDeletedObjectIDs() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -751,10 +751,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        expectedDidUpdateDataDictionary = [
-            .modified: ["1", "3", "bookmarks_root"],
-            .deleted: ["2"]
-        ]
+        expectedSyncResult = .newData(modifiedIds: ["1", "3", "bookmarks_root"], deletedIds: ["2"])
 
         try await provider.handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
 
