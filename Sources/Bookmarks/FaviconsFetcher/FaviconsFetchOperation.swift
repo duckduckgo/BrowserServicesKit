@@ -106,7 +106,6 @@ class FaviconsFetchOperation: Operation {
 
         var ids = try metadataStore.getBookmarkIDs().union(modifiedBookmarkIDs).subtracting(deletedBookmarkIDs)
         var urlsByID = [String:URL]()
-        var idsWithoutFavicons = Set<String>()
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
@@ -132,7 +131,7 @@ class FaviconsFetchOperation: Operation {
             let idsToFetch = Array(idsArray.prefix(upTo: numberOfIdsToFetch))
             idsArray = Array(idsArray.dropFirst(numberOfIdsToFetch))
 
-            let newIdsWithoutFavicons = try await withThrowingTaskGroup(of: String?.self, returning: Set<String>.self) { group in
+            let handledIds = try await withThrowingTaskGroup(of: String?.self, returning: Set<String>.self) { group in
                 for id in idsToFetch {
                     if let url = urlsByID[id] {
                         group.addTask { [weak self] in
@@ -144,12 +143,15 @@ class FaviconsFetchOperation: Operation {
                                     os_log(.debug, log: self.log, "Favicon found for %{public}s", url.absoluteString)
                                     try await self.faviconStore.storeFavicon(image, for: url)
                                     try checkCancellation()
-                                    return nil
+                                    return id
                                 } else {
                                     os_log(.debug, log: self.log, "Favicon not found for %{public}s", url.absoluteString)
                                     try checkCancellation()
-                                    return id
+                                    return nil
                                 }
+                            } catch is CancellationError {
+                                os_log(.debug, log: self.log, "Favicon fetching cancelled")
+                                return nil
                             } catch {
                                 os_log(.debug, log: self.log, "Error fetching favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
                                 try checkCancellation()
@@ -158,8 +160,6 @@ class FaviconsFetchOperation: Operation {
                         }
                     }
                 }
-
-                try checkCancellation()
 
                 var results = Set<String>()
                 for try await value in group {
@@ -170,9 +170,10 @@ class FaviconsFetchOperation: Operation {
                 return results
             }
 
-            try checkCancellation()
+            ids.subtract(handledIds)
+            try metadataStore.storeBookmarkIDs(ids)
 
-            idsWithoutFavicons.formUnion(newIdsWithoutFavicons)
+            try checkCancellation()
         }
     }
 
