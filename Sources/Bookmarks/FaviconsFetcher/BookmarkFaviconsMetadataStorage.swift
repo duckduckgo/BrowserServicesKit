@@ -22,21 +22,16 @@ import Foundation
 public protocol BookmarkFaviconsMetadataStoring {
     func getBookmarkIDs() throws -> Set<String>
     func storeBookmarkIDs(_ ids: Set<String>) throws
-
-    func getDomainsWithoutFavicon() throws -> Set<String>
-    func storeDomainsWithoutFavicon(_ domains: Set<String>) throws
 }
 
 public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
 
     let dataDirectoryURL: URL
     let missingIDsFileURL: URL
-    let domainsWithoutFaviconURL: URL
 
     public init(applicationSupportURL: URL) {
         dataDirectoryURL = applicationSupportURL.appendingPathComponent("FaviconsFetcher")
         missingIDsFileURL = dataDirectoryURL.appendingPathComponent("missingIDs")
-        domainsWithoutFaviconURL = dataDirectoryURL.appendingPathComponent("domainsWithoutFavicon")
 
         initStorage()
     }
@@ -47,9 +42,6 @@ public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
         }
         if !FileManager.default.fileExists(atPath: missingIDsFileURL.path) {
             FileManager.default.createFile(atPath: missingIDsFileURL.path, contents: Data())
-        }
-        if !FileManager.default.fileExists(atPath: domainsWithoutFaviconURL.path) {
-            FileManager.default.createFile(atPath: domainsWithoutFaviconURL.path, contents: Data())
         }
     }
 
@@ -63,17 +55,5 @@ public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
 
     public func storeBookmarkIDs(_ ids: Set<String>) throws {
         try ids.joined(separator: ",").data(using: .utf8)?.write(to: missingIDsFileURL)
-    }
-
-    public func getDomainsWithoutFavicon() throws -> Set<String> {
-        let data = try Data(contentsOf: domainsWithoutFaviconURL)
-        guard let rawValue = String(data: data, encoding: .utf8) else {
-            return []
-        }
-        return Set(rawValue.components(separatedBy: ","))
-    }
-
-    public func storeDomainsWithoutFavicon(_ domains: Set<String>) throws {
-        try domains.joined(separator: ",").data(using: .utf8)?.write(to: domainsWithoutFaviconURL)
     }
 }

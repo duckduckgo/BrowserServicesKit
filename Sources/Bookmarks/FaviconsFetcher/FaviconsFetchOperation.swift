@@ -105,57 +105,52 @@ class FaviconsFetchOperation: Operation {
         }
 
         var ids = try metadataStore.getBookmarkIDs().union(modifiedBookmarkIDs).subtracting(deletedBookmarkIDs)
-        var urlsByID = [String:URL]()
+        var idsByDomain = [String: [String]]()
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {
-            let bookmarks = fetchBookmarks(with: ids, in: context)
-            ids.removeAll()
-            bookmarks.forEach { bookmark in
-                if let uuid = bookmark.uuid, let urlString = bookmark.url, let url = URL(string: urlString) {
-                    urlsByID[uuid] = url
-                    ids.insert(uuid)
-                }
-            }
+            idsByDomain = mapBookmarkDomainsToUUIDs(for: ids, in: context)
         }
 
         try checkCancellation()
         try metadataStore.storeBookmarkIDs(ids)
 
-        var idsArray = Array(ids)
+        let domains = Set(idsByDomain.keys)
 
-        while !idsArray.isEmpty {
-            print("IDS ARRAY SIZE: \(idsArray.count)")
-            let numberOfIdsToFetch = min(10, idsArray.count)
-            let idsToFetch = Array(idsArray.prefix(upTo: numberOfIdsToFetch))
-            idsArray = Array(idsArray.dropFirst(numberOfIdsToFetch))
+        var domainsArray = Array(domains)
+        while !domainsArray.isEmpty {
+            print("URLS ARRAY SIZE: \(domainsArray.count)")
+            let numberOfDomainsToFetch = min(10, domainsArray.count)
+            let domainsToFetch = Array(domainsArray.prefix(upTo: numberOfDomainsToFetch))
+            domainsArray = Array(domainsArray.dropFirst(numberOfDomainsToFetch))
 
-            let handledIds = try await withThrowingTaskGroup(of: String?.self, returning: Set<String>.self) { group in
-                for id in idsToFetch {
-                    if let url = urlsByID[id] {
+            let handledIds = try await withThrowingTaskGroup(of: [String].self, returning: Set<String>.self) { group in
+                for domain in domainsToFetch {
+                    let url = URL(string: "\(URL.NavigationalScheme.https.separated())\(domain)")
+                    if let ids = idsByDomain[domain], let url {
                         group.addTask { [weak self] in
                             guard let self else {
-                                return nil
+                                return []
                             }
                             do {
                                 if let image = try await self.fetcher.fetchFavicon(for: url) {
                                     os_log(.debug, log: self.log, "Favicon found for %{public}s", url.absoluteString)
                                     try await self.faviconStore.storeFavicon(image, for: url)
                                     try checkCancellation()
-                                    return id
+                                    return ids
                                 } else {
                                     os_log(.debug, log: self.log, "Favicon not found for %{public}s", url.absoluteString)
                                     try checkCancellation()
-                                    return nil
+                                    return []
                                 }
                             } catch is CancellationError {
                                 os_log(.debug, log: self.log, "Favicon fetching cancelled")
-                                return nil
+                                return []
                             } catch {
                                 os_log(.debug, log: self.log, "Error fetching favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
                                 try checkCancellation()
-                                return nil
+                                return []
                             }
                         }
                     }
@@ -163,9 +158,7 @@ class FaviconsFetchOperation: Operation {
 
                 var results = Set<String>()
                 for try await value in group {
-                    if let value {
-                        results.insert(value)
-                    }
+                    results.formUnion(value)
                 }
                 return results
             }
@@ -184,12 +177,22 @@ class FaviconsFetchOperation: Operation {
         }
     }
 
-    private func fetchBookmarks(with uuids: any Sequence & CVarArg, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+    private func mapBookmarkDomainsToUUIDs(for uuids: any Sequence & CVarArg, in context: NSManagedObjectContext) -> [String: [String]] {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K IN %@ AND %K == NO", #keyPath(BookmarkEntity.uuid), uuids, #keyPath(BookmarkEntity.isFolder))
         request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
 
-        return (try? context.fetch(request)) ?? []
+        let bookmarks = (try? context.fetch(request)) ?? []
+
+        return bookmarks.reduce(into: [String: [String]]()) { partialResult, bookmark in
+            if let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host {
+                if let ids = partialResult[domain] {
+                    partialResult[domain] = ids + [uuid]
+                } else {
+                    partialResult[domain] = [uuid]
+                }
+            }
+        }
     }
 
     private var log: OSLog {

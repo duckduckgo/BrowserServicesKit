@@ -65,9 +65,9 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        syncDidFinish = { [weak self] changes in
+        syncDidFinish = { [weak self] result in
             if let self, let expectedSyncResult = self.expectedSyncResult {
-                XCTAssertEqual(expectedSyncResult, changes)
+                XCTAssertEqual(expectedSyncResult, result)
             }
         }
 
