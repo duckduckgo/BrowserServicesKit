@@ -18,7 +18,7 @@
 //
 #import <Foundation/Foundation.h>
 
-@interface BloomFilterWrapper : NSObject
+@interface BloomFilterObjC: NSObject
 - (instancetype)initFromPath:(NSString*)path withBitCount:(int)bitCount andTotalItems:(int)totalItems;
 - (instancetype)initWithTotalItems:(int)count errorRate:(double)errorRate;
 - (void)dealloc;
