@@ -28,7 +28,6 @@ final public class NetworkProtectionNotificationsSettingsUserDefaultsStore: Netw
         static let alerts = "com.duckduckgo.vpnNotificationSettings.alertsEnabled"
     }
 
-    private static let alertsEnabledKey = "com.duckduckgo.notificationSettings"
     private let userDefaults: UserDefaults
 
     public init(userDefaults: UserDefaults) {
