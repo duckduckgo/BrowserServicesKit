@@ -105,12 +105,8 @@ class FaviconsFetchOperation: Operation {
         }
 
         var ids = try metadataStore.getBookmarkIDs().union(modifiedBookmarkIDs).subtracting(deletedBookmarkIDs)
-        var idsByDomain = [String: [String]]()
-
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-        context.performAndWait {
-            idsByDomain = mapBookmarkDomainsToUUIDs(for: ids, in: context)
+        let idsByDomain = mapBookmarkDomainsToUUIDs(for: ids).filter { [weak self] (domain, _) in
+            self?.faviconStore.hasFavicon(for: domain) == false
         }
 
         try checkCancellation()
@@ -137,20 +133,18 @@ class FaviconsFetchOperation: Operation {
                                 if let image = try await self.fetcher.fetchFavicon(for: url) {
                                     os_log(.debug, log: self.log, "Favicon found for %{public}s", url.absoluteString)
                                     try await self.faviconStore.storeFavicon(image, for: url)
-                                    try checkCancellation()
-                                    return ids
                                 } else {
                                     os_log(.debug, log: self.log, "Favicon not found for %{public}s", url.absoluteString)
-                                    try checkCancellation()
-                                    return []
                                 }
+                                try checkCancellation()
+                                return ids
                             } catch is CancellationError {
                                 os_log(.debug, log: self.log, "Favicon fetching cancelled")
                                 return []
                             } catch {
                                 os_log(.debug, log: self.log, "Error fetching favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
                                 try checkCancellation()
-                                return []
+                                return ids
                             }
                         }
                     }
@@ -177,22 +171,29 @@ class FaviconsFetchOperation: Operation {
         }
     }
 
-    private func mapBookmarkDomainsToUUIDs(for uuids: any Sequence & CVarArg, in context: NSManagedObjectContext) -> [String: [String]] {
+    private func mapBookmarkDomainsToUUIDs(for uuids: any Sequence & CVarArg) -> [String: [String]] {
+        var idsByDomain = [String: [String]]()
+
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K IN %@ AND %K == NO", #keyPath(BookmarkEntity.uuid), uuids, #keyPath(BookmarkEntity.isFolder))
         request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
 
-        let bookmarks = (try? context.fetch(request)) ?? []
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        return bookmarks.reduce(into: [String: [String]]()) { partialResult, bookmark in
-            if let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host {
-                if let ids = partialResult[domain] {
-                    partialResult[domain] = ids + [uuid]
-                } else {
-                    partialResult[domain] = [uuid]
+        context.performAndWait {
+            let bookmarks = (try? context.fetch(request)) ?? []
+
+            idsByDomain = bookmarks.reduce(into: [String: [String]]()) { partialResult, bookmark in
+                if let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host {
+                    if let ids = partialResult[domain] {
+                        partialResult[domain] = ids + [uuid]
+                    } else {
+                        partialResult[domain] = [uuid]
+                    }
                 }
             }
         }
+        return idsByDomain
     }
 
     private var log: OSLog {
