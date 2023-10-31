@@ -32,7 +32,7 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "9.0.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "9.1.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
