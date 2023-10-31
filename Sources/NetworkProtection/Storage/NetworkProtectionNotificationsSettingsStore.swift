@@ -25,7 +25,7 @@ public protocol NetworkProtectionNotificationsSettingsStore {
 
 final public class NetworkProtectionNotificationsSettingsUserDefaultsStore: NetworkProtectionNotificationsSettingsStore {
     private enum Key {
-        static let alerts = "com.duckduckgo.notificationSettings.alertsEnabled"
+        static let alerts = "com.duckduckgo.vpnNotificationSettings.alertsEnabled"
     }
 
     private static let alertsEnabledKey = "com.duckduckgo.notificationSettings"
