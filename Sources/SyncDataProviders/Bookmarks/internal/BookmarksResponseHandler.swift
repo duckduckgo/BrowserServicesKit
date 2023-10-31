@@ -110,7 +110,7 @@ final class BookmarksResponseHandler {
         try processOrphanedBookmarks()
 
         // populate favorites
-        for (favoritesFolderUUID, favoritesUUIDs) in favoritesUUIDsByFolderUUID where !favoritesUUIDs.isEmpty {
+        for (favoritesFolderUUID, favoritesUUIDs) in favoritesUUIDsByFolderUUID {
             guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesFolderUUID, in: context) else {
                 // Error - unable to process favorites
                 return

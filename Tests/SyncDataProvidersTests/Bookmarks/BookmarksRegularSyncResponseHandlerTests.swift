@@ -160,6 +160,30 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    func testWhenPayloadContainsEmptyFavoritesFolderThenAllFavoritesAreRemoved() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Folder(id: "2") {
+                Bookmark(id: "3", favoritedOn: [.mobile, .unified])
+            }
+        }
+
+        let received: [Syncable] = [
+            .favoritesFolder(favorites: []),
+            .mobileFavoritesFolder(favorites: [])
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Folder(id: "2") {
+                Bookmark(id: "3")
+            }
+        })
+    }
+
     func testThatSinglePayloadCanCreateReorderAndOrphanBookmarks() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
