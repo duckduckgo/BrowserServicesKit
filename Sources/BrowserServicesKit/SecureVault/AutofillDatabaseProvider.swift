@@ -239,7 +239,18 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
             var account = credentials.account
             account.title = account.patternMatchedTitle()
             if let currentPassword {
-                account.notes = currentPassword.appending("\n").appending(account.notes ?? "")
+                if let notes = account.notes, 
+                    !notes.isEmpty,
+                    let data = notes.data(using: .utf8),
+                    let history = try? JSONDecoder().decode([SecureVaultModels.WebsiteAccount.PasswordHistoryItem].self, from: data) {
+                    var revisedHistory = history
+                    revisedHistory.append(.init(password: currentPassword))
+                    if let data = try? JSONEncoder().encode(revisedHistory) {
+                        account.notes = String(data: data, encoding: .utf8)
+                    }
+                } else if let data = try? JSONEncoder().encode([SecureVaultModels.WebsiteAccount.PasswordHistoryItem(password: currentPassword)]) {
+                    account.notes = String(data: data, encoding: .utf8)
+                }
             }
             try account.update(database)
             try database.execute(sql: """

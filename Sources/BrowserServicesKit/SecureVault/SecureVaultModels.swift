@@ -52,7 +52,19 @@ public struct SecureVaultModels {
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
-        
+
+        public struct PasswordHistoryItem: Codable, Identifiable {
+            public let id: UUID
+            public let password: String
+            public let created: Date
+
+            public init(password: String, created: Date = .init(), id: UUID = .init()) {
+                self.id = id
+                self.password = password
+                self.created = created
+            }
+        }
+
         public enum CommonTitlePatterns: String, CaseIterable {
             /*
              Matches the following title patterns
