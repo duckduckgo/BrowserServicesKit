@@ -151,8 +151,26 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     public func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
         assert(database.isInsideTransaction)
 
+        let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
+
         if let stringId = credentials.account.id, let id = Int64(stringId) {
-            try updateWebsiteCredentials(in: database, credentials, usingId: id)
+            if let currentCredentials = try? websiteCredentialsForAccountId(id, in: database),
+               let currentPasswordData = currentCredentials.password,
+               let proposedPasswordData = credentials.password,
+               let decryptedCurrentPassword = try? MigrationUtility.l2decrypt(data: currentPasswordData,
+                                                                              cryptoProvider: cryptoProvider,
+                                                                              keyStoreProvider: keyStoreProvider),
+               let decryptedProposedPassword = try? MigrationUtility.l2decrypt(data: proposedPasswordData,
+                                                                               cryptoProvider: cryptoProvider,
+                                                                               keyStoreProvider: keyStoreProvider),
+               let currentPassword = String(data: decryptedCurrentPassword, encoding: .utf8),
+               let proposedPassword = String(data: decryptedProposedPassword, encoding: .utf8),
+               currentPassword != proposedPassword {
+                try updateWebsiteCredentials(in: database, credentials, usingId: id, currentPassword: currentPassword)
+            } else {
+                try updateWebsiteCredentials(in: database, credentials, usingId: id)
+            }
             return id
         } else {
             return try insertWebsiteCredentials(in: database, credentials)
@@ -213,13 +231,16 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     func updateWebsiteCredentials(in database: Database,
                                   _ credentials: SecureVaultModels.WebsiteCredentials,
                                   usingId id: Int64,
-                                  timestamp: Date? = Date()) throws {
+                                  timestamp: Date? = Date(),
+                                  currentPassword: String? = nil) throws {
         assert(database.isInsideTransaction)
 
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
-            
+            if let currentPassword {
+                account.notes = currentPassword.appending("\n").appending(account.notes ?? "")
+            }
             try account.update(database)
             try database.execute(sql: """
                 UPDATE
