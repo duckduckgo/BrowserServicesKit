@@ -35,7 +35,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     func testWhenDisabled_sourceDisabled_returnsFalse() {
         let featureFlagger = createFeatureFlagger()
-        XCTAssertFalse(featureFlagger.isFeatureOn(forProvider: FeatureFlagSource.disabled))
+        XCTAssertFalse(featureFlagger.isFeatureOn(forProvider: Test))
     }
 
     func testWhenInternalOnly_returnsIsInternalUserValue() {
@@ -153,4 +153,8 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
 extension FeatureFlagSource: FeatureFlagSourceProviding {
     public var source: FeatureFlagSource { self }
+}
+
+enum TestFlag: FeatureFlagSourceProviding, RawRepresentable {
+    case blah
 }

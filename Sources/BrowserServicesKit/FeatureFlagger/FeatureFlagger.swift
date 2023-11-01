@@ -19,25 +19,37 @@
 
 import Foundation
 
+public typealias FeatureFlaggerFlag = FeatureFlagSourceProviding & RawRepresentable
+
 public protocol FeatureFlagger {
 
 /// Called from app features to determine whether a given feature is enabled.
 ///
 /// `forProvider: F` takes a FeatureFlag type defined by the respective app which defines from what source it should be toggled
 /// see `FeatureFlagSourceProviding` comments below for more details
-    func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider: F) -> Bool
+    func isFeatureOn<F: FeatureFlaggerFlag>(forProvider: F) -> Bool where F.RawValue == String
+}
+
+public protocol OverrideableFeatureFlagger {
+    func setOverride<F: FeatureFlaggerFlag>(value: Bool?, for featureFlaggerFlag: F) where F.RawValue == String
+    func overrideValue<F: FeatureFlaggerFlag>(for featureFlaggerFlag: F) -> Bool? where F.RawValue == String
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
     private let internalUserDecider: InternalUserDecider
     private let privacyConfig: PrivacyConfiguration
+    private let overrideStore: FeatureFlagOverrideStoring
 
-    public init(internalUserDecider: InternalUserDecider, privacyConfig: PrivacyConfiguration) {
+    public init(internalUserDecider: InternalUserDecider, privacyConfig: PrivacyConfiguration, overrideStore: FeatureFlagOverrideStoring) {
         self.internalUserDecider = internalUserDecider
         self.privacyConfig = privacyConfig
+        self.overrideStore = overrideStore
     }
 
-    public func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider provider: F) -> Bool {
+    public func isFeatureOn<F: FeatureFlaggerFlag>(forProvider provider: F) -> Bool where F.RawValue == String {
+        if let override = overrideStore.overrideValue(for: provider.rawValue) {
+            return override
+        }
         switch provider.source {
         case .disabled:
             return false
@@ -60,6 +72,16 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         case .subfeature(let subfeature):
             return privacyConfig.isSubfeatureEnabled(subfeature)
         }
+    }
+}
+
+extension DefaultFeatureFlagger: OverrideableFeatureFlagger {
+    public func setOverride<F>(value: Bool?, for featureFlaggerFlag: F) where F : FeatureFlagSourceProviding, F : RawRepresentable, F.RawValue == String {
+        self.overrideStore.setOverride(value: value, for: featureFlaggerFlag.rawValue)
+    }
+    
+    public func overrideValue<F>(for featureFlaggerFlag: F) -> Bool? where F : FeatureFlagSourceProviding, F : RawRepresentable, F.RawValue == String {
+        self.overrideStore.overrideValue(for: featureFlaggerFlag.rawValue)
     }
 }
 
