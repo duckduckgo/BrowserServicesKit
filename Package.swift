@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
+        .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
@@ -31,13 +32,13 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.4.2"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "9.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.39.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.40.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "2.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1")
@@ -87,10 +88,15 @@ let package = Package(
                 "Bookmarks"
             ]
         ),
-         .target(
-            name: "BloomFilterWrapper",
+        .target(
+            name: "BloomFilterObjC",
             dependencies: [
                 .product(name: "BloomFilter", package: "bloom_cpp")
+            ]),
+        .target(
+            name: "BloomFilterWrapper",
+            dependencies: [
+                "BloomFilterObjC"
             ]),
         .target(
             name: "Crashes"
@@ -196,6 +202,9 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]),
         .target(
             name: "SecureStorage",

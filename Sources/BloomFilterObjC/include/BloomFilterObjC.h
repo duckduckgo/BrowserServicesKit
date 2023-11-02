@@ -1,7 +1,8 @@
 //
-//  HTTPSUpgradeStore.swift
+//  BloomFilterWrapper.h
+//  DuckDuckGo
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2018 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -15,20 +16,12 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+#import <Foundation/Foundation.h>
 
-import BloomFilterWrapper
-import Foundation
-
-public protocol HTTPSUpgradeStore {
-
-    // MARK: - Bloom filter
-
-    func loadBloomFilter() -> BloomFilter?
-    func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws
-    
-    // MARK: - Excluded domains
-
-    func hasExcludedDomain(_ domain: String) -> Bool
-    func persistExcludedDomains(_ domains: [String]) throws
-
-}
+@interface BloomFilterObjC: NSObject
+- (instancetype)initFromPath:(NSString*)path withBitCount:(int)bitCount andTotalItems:(int)totalItems;
+- (instancetype)initWithTotalItems:(int)count errorRate:(double)errorRate;
+- (void)dealloc;
+- (void)add:(NSString*) entry;
+- (BOOL)contains:(NSString*) entry;
+@end

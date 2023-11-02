@@ -27,7 +27,8 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
 }
 
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch isEnabled: Bool)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didChangeProtectionSwitch protectionState: ProtectionState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
@@ -239,8 +240,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         delegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
     }
 
-    func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionStateTo isProtected: Bool) {
-        delegate?.privacyDashboardController(self, didChangeProtectionSwitch: isProtected)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
+        delegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
