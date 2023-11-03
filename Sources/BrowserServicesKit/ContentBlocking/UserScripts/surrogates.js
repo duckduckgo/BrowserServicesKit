@@ -31,6 +31,7 @@
 
             log = function log () {
                 try {
+                    console.log(arguments)
                     webkit.messageHandlers.log.postMessage(JSON.stringify(arguments))
                 } catch (error) {}
             }
@@ -508,14 +509,14 @@
             if (element && element.onerror) {
                 element.onerror = () => {}
             }
-            if (!loadedSurrogates[result.matchedRule.surrogate]) {
+            // if (!loadedSurrogates[result.matchedRule.surrogate]) {
                 loadSurrogate(result.matchedRule.surrogate)
                 loadedSurrogates[result.matchedRule.surrogate] = true
                 // Trigger a load event on the original element
                 if (element && element.onload) {
                     element.onload(new Event('load'))
                 }
-            }
+            // }
 
             const pageUrl = window.location.href
             surrogateInjected({
@@ -553,92 +554,33 @@
                 duckduckgoDebugMessaging.log('blocking load')
             }
         });
-        [...document.images].filter((el) => hasNotSeen(el.src)).forEach((el) => {
-            // If the image's natural width is zero, then it has not loaded so we
-            // can assume that it may have been blocked.
-            if (el.naturalWidth === 0) {
-                if (shouldBlock(el.src, 'image', el)) {
+    }
+
+    const observer = new MutationObserver((records) => {
+        for (const record of records) {
+            // console.log('xxx', record)
+            record.addedNodes.forEach((node) => {
+                if (node instanceof HTMLScriptElement) {
+                    if (shouldBlock(node.src, 'script', node)) {
+                        duckduckgoDebugMessaging.log('blocking load')
+                    }
+                }
+            })
+            if (record.target instanceof HTMLScriptElement) {
+                if (shouldBlock(record.target.src, 'script', record.target)) {
                     duckduckgoDebugMessaging.log('blocking load')
                 }
             }
-        });
-        [...document.querySelectorAll('link')].filter((el) => hasNotSeen(el.href)).forEach((el) => {
-            if (shouldBlock(el.href, el.rel, el)) {
-                duckduckgoDebugMessaging.log('blocking load')
-            }
-        });
-        [...document.querySelectorAll('iframe')].filter((el) => hasNotSeen(el.src)).forEach((el) => {
-            if (shouldBlock(el.src, 'subdocument', el)) {
-                duckduckgoDebugMessaging.log('blocking load')
-            }
-        })
-    }
-
-    function debounce (func, wait) {
-        let timeout
-        return function () {
-            clearTimeout(timeout)
-            timeout = setTimeout(() => {
-                func.apply(this, arguments)
-            }, wait)
         }
-    }
-
-    const observer = new MutationObserver(debounce((mutations, o) => {
-        processPage()
-    }, 100))
+    })
     const rootElement = document.body || document.documentElement
-    observer.observe(rootElement, { childList: true, subtree: true });
+    observer.observe(rootElement, { childList: true, subtree: true, attributeFilter: ['src'] });
+    // observer.observe(document.head, { childList: true })
 
     // Init
     (function () {
         duckduckgoDebugMessaging.log('installing load detection')
-        window.addEventListener('load', function (event) {
-            processPage()
-        }, false)
-
-        try {
-            duckduckgoDebugMessaging.log('installing image src detection')
-
-            const originalImageSrc = Object.getOwnPropertyDescriptor(Image.prototype, 'src')
-            Object.defineProperty(Image.prototype, 'src', {
-                writable: true, // Needs to be writable for the content blocking rules script. Will be locked down in that script
-                get: function () {
-                    return originalImageSrc.get.call(this)
-                },
-                set: function (value) {
-                    const instance = this
-                    if (shouldBlock(value, 'image')) {
-                        duckduckgoDebugMessaging.log('blocking image src: ' + value)
-                    } else {
-                        originalImageSrc.set.call(instance, value)
-                    }
-                }
-            })
-        } catch (error) {
-            duckduckgoDebugMessaging.log('failed to install image src detection')
-        }
-
-        try {
-            duckduckgoDebugMessaging.log('installing xhr detection')
-
-            const xhr = XMLHttpRequest.prototype
-            const originalOpen = xhr.open
-
-            xhr.open = function () {
-                const args = arguments
-                const url = arguments[1]
-                if (shouldBlock(url, 'xmlhttprequest')) {
-                    args[1] = 'about:blank'
-                }
-                duckduckgoDebugMessaging.log('sending xhr ' + url + ' to ' + args[1])
-                return originalOpen.apply(this, args)
-            }
-        } catch (error) {
-            duckduckgoDebugMessaging.log('failed to install xhr detection')
-        }
-
-        duckduckgoDebugMessaging.log('content blocking initialised')
+        processPage()
     })()
 
     return {
