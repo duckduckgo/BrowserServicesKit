@@ -770,24 +770,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
-                try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
-                completionHandler?(nil)
-            }
-        case .setSelectedEnvironment(let selectedEnvironment):
-            Task {
-                let networkClient = NetworkProtectionBackendClient(environment: selectedEnvironment)
-                let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
-                                                                   tokenStore: tokenStore,
-                                                                   keyStore: keyStore,
-                                                                   errorEvents: debugEvents)
-                _ = try? await deviceManager.refreshServerList()
-                try? await updateTunnelConfiguration(environment: selectedEnvironment, serverSelectionMethod: .automatic)
+                try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
                 completionHandler?(nil)
             }
         case .setIncludeAllNetworks,
                 .setEnforceRoutes,
                 .setExcludeLocalNetworks,
-                .setRegistrationKeyValidity:
+                .setRegistrationKeyValidity,
+                .setSelectedEnvironment:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
