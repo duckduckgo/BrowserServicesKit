@@ -24,7 +24,7 @@ import Persistence
 
 public protocol FaviconStoring {
     func hasFavicon(for domain: String) -> Bool
-    func storeFavicon(_ imageData: Data, for url: URL) async throws
+    func storeFavicon(_ imageData: Data, with url: URL?, for documentURL: URL) async throws
 }
 
 public final class BookmarksFaviconsFetcher {

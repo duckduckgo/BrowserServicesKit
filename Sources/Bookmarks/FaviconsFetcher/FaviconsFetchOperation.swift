@@ -130,9 +130,10 @@ class FaviconsFetchOperation: Operation {
                                 return []
                             }
                             do {
-                                if let image = try await self.fetcher.fetchFavicon(for: url) {
+                                let (image, imageURL) = try await self.fetcher.fetchFavicon(for: url)
+                                if let image {
                                     os_log(.debug, log: self.log, "Favicon found for %{public}s", url.absoluteString)
-                                    try await self.faviconStore.storeFavicon(image, for: url)
+                                    try await self.faviconStore.storeFavicon(image, with: imageURL, for: url)
                                 } else {
                                     os_log(.debug, log: self.log, "Favicon not found for %{public}s", url.absoluteString)
                                 }
