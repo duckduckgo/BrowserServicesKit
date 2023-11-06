@@ -99,12 +99,22 @@ class FaviconsFetchOperation: Operation {
     }
 
     func fetchFavicons() async throws {
+        let reservedBookmarkIDs = BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID])
+        var ids = try metadataStore.getBookmarkIDs()
+            .union(modifiedBookmarkIDs)
+            .subtracting(deletedBookmarkIDs)
+            .subtracting(reservedBookmarkIDs)
+
+        guard !ids.isEmpty else {
+            os_log(.debug, log: log, "No new Favicons to fetch")
+            return
+        }
+
         os_log(.debug, log: log, "Favicons Fetch Operation Started")
         defer {
             os_log(.debug, log: log, "Favicons Fetch Operation Finished")
         }
 
-        var ids = try metadataStore.getBookmarkIDs().union(modifiedBookmarkIDs).subtracting(deletedBookmarkIDs)
         let idsByDomain = mapBookmarkDomainsToUUIDs(for: ids).filter { [weak self] (domain, _) in
             self?.faviconStore.hasFavicon(for: domain) == false
         }
