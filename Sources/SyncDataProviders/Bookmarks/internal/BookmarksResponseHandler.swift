@@ -57,7 +57,7 @@ final class BookmarksResponseHandler {
         var allUUIDs: Set<String> = []
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]
-        var favoritesUUIDs: [String]? = nil
+        var favoritesUUIDs: [String]?
 
         self.received.forEach { syncable in
             guard let uuid = syncable.uuid else {
