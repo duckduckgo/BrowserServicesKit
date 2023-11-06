@@ -44,7 +44,7 @@ public final class BookmarksFaviconsFetcher {
     }
 
     public func startFetching(with modifiedBookmarkIDs: Set<String>, deletedBookmarkIDs: Set<String> = []) {
-        operationQueue.cancelAllOperations()
+        cancelOngoingFetchingIfNeeded()
         let operation = FaviconsFetchOperation(
             database: database,
             metadataStore: metadataStore,
@@ -55,6 +55,10 @@ public final class BookmarksFaviconsFetcher {
             log: self.log
         )
         operationQueue.addOperation(operation)
+    }
+
+    public func cancelOngoingFetchingIfNeeded() {
+        operationQueue.cancelAllOperations()
     }
 
     let operationQueue: OperationQueue = {
