@@ -43,15 +43,31 @@ public final class BookmarksFaviconsFetcher {
         self.getLog = log
     }
 
-    public func startFetching(with modifiedBookmarkIDs: Set<String>, deletedBookmarkIDs: Set<String> = []) {
+    public func updateBookmarkIDs(modified: Set<String>, deleted: Set<String>) {
+        cancelOngoingFetchingIfNeeded()
+        operationQueue.addOperation {
+            do {
+                let reservedBookmarkIDs = BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID])
+
+                let ids = try self.metadataStore.getBookmarkIDs()
+                    .union(modified)
+                    .subtracting(deleted)
+                    .subtracting(reservedBookmarkIDs)
+
+                try self.metadataStore.storeBookmarkIDs(ids)
+            } catch {
+                os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
+            }
+        }
+    }
+
+    public func startFetching() {
         cancelOngoingFetchingIfNeeded()
         let operation = FaviconsFetchOperation(
             database: database,
             metadataStore: metadataStore,
             fetcher: fetcher,
             faviconStore: faviconStore,
-            modifiedBookmarkIDs: modifiedBookmarkIDs,
-            deletedBookmarkIDs: deletedBookmarkIDs,
             log: self.log
         )
         operationQueue.addOperation(operation)

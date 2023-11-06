@@ -56,16 +56,12 @@ class FaviconsFetchOperation: Operation {
         metadataStore: BookmarkFaviconsMetadataStoring,
         fetcher: FaviconFetching,
         faviconStore: FaviconStoring,
-        modifiedBookmarkIDs: Set<String>,
-        deletedBookmarkIDs: Set<String>,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.database = database
         self.metadataStore = metadataStore
         self.fetcher = fetcher
         self.faviconStore = faviconStore
-        self.modifiedBookmarkIDs = modifiedBookmarkIDs
-        self.deletedBookmarkIDs = deletedBookmarkIDs
         self.getLog = log
     }
 
@@ -99,11 +95,7 @@ class FaviconsFetchOperation: Operation {
     }
 
     func fetchFavicons() async throws {
-        let reservedBookmarkIDs = BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID])
         var ids = try metadataStore.getBookmarkIDs()
-            .union(modifiedBookmarkIDs)
-            .subtracting(deletedBookmarkIDs)
-            .subtracting(reservedBookmarkIDs)
 
         guard !ids.isEmpty else {
             os_log(.debug, log: log, "No new Favicons to fetch")
@@ -120,7 +112,6 @@ class FaviconsFetchOperation: Operation {
         }
 
         try checkCancellation()
-        try metadataStore.storeBookmarkIDs(ids)
 
         let domains = Set(idsByDomain.keys)
 
@@ -246,8 +237,6 @@ class FaviconsFetchOperation: Operation {
         }
     }
 
-    private let modifiedBookmarkIDs: Set<String>
-    private let deletedBookmarkIDs: Set<String>
     private let lock = NSRecursiveLock()
 
     private let database: CoreDataDatabase
