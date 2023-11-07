@@ -1,5 +1,5 @@
 //
-//  contentblocker.js
+//  surrogates.js
 //  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
@@ -467,8 +467,6 @@
         }
     }
 
-    const loadedSurrogates = {}
-
     // private
     function loadSurrogate (surrogatePattern) {
         trackers.surrogateList[surrogatePattern]()
@@ -476,7 +474,6 @@
 
     // public
     function shouldBlock (trackerUrl, type, element) {
-        seenUrls.add(trackerUrl)
         const startTime = performance.now()
 
         if (!blockingEnabled) {
@@ -509,14 +506,15 @@
             if (element && element.onerror) {
                 element.onerror = () => {}
             }
-            // if (!loadedSurrogates[result.matchedRule.surrogate]) {
+            try {
                 loadSurrogate(result.matchedRule.surrogate)
-                loadedSurrogates[result.matchedRule.surrogate] = true
-                // Trigger a load event on the original element
-                if (element && element.onload) {
-                    element.onload(new Event('load'))
-                }
-            // }
+            } catch (e) {
+                duckduckgoDebugMessaging.log(`error loading surrogate: ${e.toString()}`)
+            }
+            // Trigger a load event on the original element
+            if (element && element.onload) {
+                element.onload(new Event('load'))
+            }
 
             const pageUrl = window.location.href
             surrogateInjected({
@@ -539,26 +537,8 @@
         return false
     }
 
-    const seenUrls = new Set()
-    function hasNotSeen (url) {
-        // Ignore elements with no url
-        if (!url) {
-            return false
-        }
-        return !seenUrls.has(url)
-    }
-
-    function processPage () {
-        [...document.scripts].filter((el) => hasNotSeen(el.src)).forEach((el) => {
-            if (shouldBlock(el.src, 'script', el)) {
-                duckduckgoDebugMessaging.log('blocking load')
-            }
-        });
-    }
-
     const observer = new MutationObserver((records) => {
         for (const record of records) {
-            // console.log('xxx', record)
             record.addedNodes.forEach((node) => {
                 if (node instanceof HTMLScriptElement) {
                     if (shouldBlock(node.src, 'script', node)) {
@@ -574,14 +554,11 @@
         }
     })
     const rootElement = document.body || document.documentElement
-    observer.observe(rootElement, { childList: true, subtree: true, attributeFilter: ['src'] });
-    // observer.observe(document.head, { childList: true })
-
-    // Init
-    (function () {
-        duckduckgoDebugMessaging.log('installing load detection')
-        processPage()
-    })()
+    observer.observe(rootElement, {
+        childList: true, 
+        subtree: true, 
+        attributeFilter: ['src']
+    });
 
     return {
         shouldBlock: shouldBlock
