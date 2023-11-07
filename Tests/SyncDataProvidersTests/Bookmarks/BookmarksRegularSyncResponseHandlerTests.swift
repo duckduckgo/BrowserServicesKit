@@ -184,6 +184,31 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    func testWhenPayloadDoesNotContainFavoritesFolderThenFavoritesAreNotAffected() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Folder(id: "2") {
+                Bookmark(id: "3", favoritedOn: [.mobile, .unified])
+            }
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "4"]),
+            .bookmark(id: "4")
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Folder(id: "2") {
+                Bookmark(id: "3", favoritedOn: [.mobile, .unified])
+            }
+            Bookmark(id: "4")
+        })
+    }
+
     func testThatSinglePayloadCanCreateReorderAndOrphanBookmarks() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 

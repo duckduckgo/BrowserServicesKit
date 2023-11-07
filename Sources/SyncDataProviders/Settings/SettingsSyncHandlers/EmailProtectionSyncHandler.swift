@@ -28,7 +28,7 @@ public protocol EmailManagerSyncSupporting: AnyObject {
     func getToken() throws -> String?
 
     func signIn(username: String, token: String) throws
-    func signOut() throws
+    func signOut(isForced: Bool) throws
 
     var userDidToggleEmailProtectionPublisher: AnyPublisher<Void, Never> { get }
 }
@@ -61,7 +61,7 @@ public final class EmailProtectionSyncHandler: SettingSyncHandler {
 
     public override func setValue(_ value: String?) throws {
         guard let value, let valueData = value.data(using: .utf8) else {
-            try emailManager.signOut()
+            try emailManager.signOut(isForced: false)
             return
         }
 

@@ -109,12 +109,26 @@ final class BookmarksResponseHandler {
         }
         try processOrphanedBookmarks()
 
-        // populate favorites
+        processReceivedFavorites()
+    }
+
+    // MARK: - Private
+
+    private func processReceivedFavorites() {
         for (favoritesFolderUUID, favoritesUUIDs) in favoritesUUIDsByFolderUUID {
             guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesFolderUUID, in: context) else {
                 // Error - unable to process favorites
                 return
             }
+
+//            guard let favoritesUUIDs else {
+//                return
+//            }
+//            
+//            guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+//                // Error - unable to process favorites
+//                return
+//            }
 
             // For non-first sync we rely fully on the server response
             if !shouldDeduplicateEntities {
@@ -133,8 +147,6 @@ final class BookmarksResponseHandler {
             }
         }
     }
-
-    // MARK: - Private
 
     private func processTopLevelFolder(_ topLevelFolderSyncable: SyncableBookmarkAdapter) throws {
         guard let topLevelFolderUUID = topLevelFolderSyncable.uuid else {
