@@ -158,6 +158,54 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    func testWhenPayloadDoesNotContainFavoritesFolderThenFavoritesAreNotAffected() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Folder(id: "2") {
+                Bookmark(id: "3", isFavorite: true)
+            }
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "4"]),
+            .bookmark(id: "4")
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Folder(id: "2") {
+                Bookmark(id: "3", isFavorite: true)
+            }
+            Bookmark(id: "4")
+        })
+    }
+
+    func testWhenPayloadContainsEmptyFavoritesFolderThenAllFavoritesAreRemoved() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", isFavorite: true)
+            Folder(id: "2") {
+                Bookmark(id: "3", isFavorite: true)
+            }
+        }
+
+        let received: [Syncable] = [
+            .favoritesFolder(favorites: [])
+        ]
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+            Bookmark(id: "1")
+            Folder(id: "2") {
+                Bookmark(id: "3")
+            }
+        })
+    }
+
     func testThatSinglePayloadCanCreateReorderAndOrphanBookmarks() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
