@@ -1,6 +1,5 @@
 //
-//  MockTunnelController.swift
-//  DuckDuckGo
+//  UserDefaults+enforceRoutes.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,23 +16,30 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
-import NetworkProtection
 
-public final class MockTunnelController: TunnelController {
-    public init() {}
-
-    public var didCallStart = false
-    public func start() async {
-        didCallStart = true
+extension UserDefaults {
+    private var enforceRoutesKey: String {
+        "networkProtectionSettingEnforceRoutes"
     }
 
-    public var didCallStop = false
-    public func stop() async {
-        didCallStop = true
+    @objc
+    dynamic var networkProtectionSettingEnforceRoutes: Bool {
+        get {
+            bool(forKey: enforceRoutesKey)
+        }
+
+        set {
+            set(newValue, forKey: enforceRoutesKey)
+        }
     }
 
-    public var isConnected: Bool {
-        true
+    var networkProtectionSettingEnforceRoutesPublisher: AnyPublisher<Bool, Never> {
+        publisher(for: \.networkProtectionSettingEnforceRoutes).eraseToAnyPublisher()
+    }
+
+    func resetNetworkProtectionSettingEnforceRoutes() {
+        removeObject(forKey: enforceRoutesKey)
     }
 }

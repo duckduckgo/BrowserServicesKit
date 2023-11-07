@@ -22,6 +22,11 @@ public enum ExtensionMessage: RawRepresentable {
     public typealias RawValue = Data
 
     enum Name: UInt8 {
+        // This is actually an improved way to send messages.
+        // Please avoid adding new messages to this enum, and instead
+        // add them to `ExtensionRequest`
+        case request = 255
+
         case resetAllState = 0
         case getRuntimeConfiguration
         case getLastErrorMessage
@@ -39,6 +44,11 @@ public enum ExtensionMessage: RawRepresentable {
         case simulateTunnelMemoryOveruse
         case simulateConnectionInterruption
     }
+
+    // This is actually an improved way to send messages.
+    // Please avoid adding new messages to this enum, and instead
+    // add them to `ExtensionRequest`
+    case request(_ request: ExtensionRequest)
 
     // important: Preserve this order because Message Name is represented by Int value
     case resetAllState
@@ -62,6 +72,12 @@ public enum ExtensionMessage: RawRepresentable {
     public init?(rawValue data: Data) {
         let name = data.first.flatMap(Name.init(rawValue:))
         switch name {
+        case .request:
+            guard let request = try? JSONDecoder().decode(ExtensionRequest.self, from: data[1...]) else {
+                return nil
+            }
+
+            self = .request(request)
         case .resetAllState:
             self = .resetAllState
         case .getRuntimeConfiguration:
@@ -127,6 +143,7 @@ public enum ExtensionMessage: RawRepresentable {
     // TO BE: Replaced with auto case name generating Macro when Xcode 15
     private var name: Name {
         switch self {
+        case .request: return .request
         case .resetAllState: return .resetAllState
         case .getRuntimeConfiguration: return .getRuntimeConfiguration
         case .getLastErrorMessage: return .getLastErrorMessage
@@ -149,6 +166,14 @@ public enum ExtensionMessage: RawRepresentable {
     public var rawValue: Data {
         var encoder: (inout Data) -> Void = { _ in }
         switch self {
+        case .request(let request):
+            encoder = {
+                do {
+                    try $0.append(JSONEncoder().encode(request))
+                } catch {
+                    assertionFailure("could not encode request: \(error)")
+                }
+            }
         case .setSelectedServer(.some(let serverName)):
             encoder = {
                 $0.append(ExtensionMessageString(serverName).rawValue)

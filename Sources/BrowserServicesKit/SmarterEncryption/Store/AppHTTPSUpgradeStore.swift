@@ -102,7 +102,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
         let wrapper = BloomFilterWrapper(fromPath: bloomFilterDataURL.path,
                                          withBitCount: Int32(specification.bitCount),
                                          andTotalItems: Int32(specification.totalEntries))
-        return BloomFilter(wrapper: wrapper!, specification: specification)
+        return BloomFilter(wrapper: wrapper, specification: specification)
     }
 
     func loadStoredBloomFilterSpecification() -> HTTPSBloomFilterSpecification? {

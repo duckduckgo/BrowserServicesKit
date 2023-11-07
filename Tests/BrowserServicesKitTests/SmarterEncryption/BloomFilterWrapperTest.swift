@@ -32,12 +32,12 @@ class BloomFilterWrapperTest: XCTestCase {
     }
     
     func testWhenBloomFilterEmptyThenContainsIsFalse() {
-        let testee = BloomFilterWrapper(totalItems: Int32(Constants.filterElementCount), errorRate: Constants.targetErrorRate)!
+        let testee = BloomFilterWrapper(totalItems: Int32(Constants.filterElementCount), errorRate: Constants.targetErrorRate)
         XCTAssertFalse(testee.contains("abc"))
     }
     
     func testWhenBloomFilterContainsElementThenContainsIsTrue() {
-        let testee = BloomFilterWrapper(totalItems: Int32(Constants.filterElementCount), errorRate: Constants.targetErrorRate)!
+        let testee = BloomFilterWrapper(totalItems: Int32(Constants.filterElementCount), errorRate: Constants.targetErrorRate)
         testee.add("abc")
         XCTAssertTrue(testee.contains("abc"))
     }
@@ -46,7 +46,7 @@ class BloomFilterWrapperTest: XCTestCase {
         let bloomData = createRandomStrings(count: Constants.filterElementCount)
         let testData = bloomData + createRandomStrings(count: Constants.additionalTestDataElementCount)
         
-        let testee = BloomFilterWrapper(totalItems: Int32(bloomData.count), errorRate: Constants.targetErrorRate)!
+        let testee = BloomFilterWrapper(totalItems: Int32(bloomData.count), errorRate: Constants.targetErrorRate)
         bloomData.forEach { testee.add($0) }
         
         var falsePositives = 0, truePositives = 0, falseNegatives = 0, trueNegatives = 0
