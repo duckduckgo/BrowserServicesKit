@@ -317,8 +317,8 @@ class SyncMetadataStoreMock: SyncMetadataStore {
 
 class DataProvidingMock: DataProvider {
 
-    init(feature: Feature, syncDidFinish: @escaping (SyncResult) -> Void = { _ in }) {
-        super.init(feature: feature, metadataStore: SyncMetadataStoreMock(), syncDidFinish: syncDidFinish)
+    init(feature: Feature, syncDidUpdateData: @escaping () -> Void = {}) {
+        super.init(feature: feature, metadataStore: SyncMetadataStoreMock(), syncDidUpdateData: syncDidUpdateData)
     }
 
     var _prepareForFirstSync: () throws -> Void = {}

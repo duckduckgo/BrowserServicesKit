@@ -56,7 +56,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlers: [SettingSyncHandler],
-        syncDidFinish: @escaping (SyncResult) -> Void
+        syncDidUpdateData: @escaping () -> Void
     ) {
         let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
             partialResult[handler.setting] = handler
@@ -68,7 +68,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
             settingsHandlersBySetting: settingsHandlers,
-            syncDidFinish: syncDidFinish
+            syncDidUpdateData: syncDidUpdateData
         )
 
         register(errorPublisher: errorSubject.eraseToAnyPublisher())
@@ -82,11 +82,11 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlersBySetting: [Setting: any SettingSyncHandling],
-        syncDidFinish: @escaping (SyncResult) -> Void
+        syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
         self.settingsHandlers = settingsHandlersBySetting
-        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidFinish: syncDidFinish)
+        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding
@@ -259,9 +259,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            syncDidFinish(.someNewData)
-        } else {
-            syncDidFinish(.noData)
+            syncDidUpdateData()
         }
     }
 

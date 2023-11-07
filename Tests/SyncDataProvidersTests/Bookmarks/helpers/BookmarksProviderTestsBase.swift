@@ -33,7 +33,6 @@ internal class BookmarksProviderTestsBase: XCTestCase {
     var provider: BookmarksProvider!
 
     var expectedSyncResult: BookmarksProvider.SyncResult?
-    var syncDidFinish: (BookmarksProvider.SyncResult) -> Void) = { _ in }
 
     func setUpBookmarksDatabase() {
         bookmarksDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -65,18 +64,10 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        syncDidFinish = { [weak self] result in
-            if let self, let expectedSyncResult = self.expectedSyncResult {
-                XCTAssertEqual(expectedSyncResult, result)
-            }
-        }
-
         provider = BookmarksProvider(
             database: bookmarksDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            syncDidFinish: { [weak self] in
-                self?.syncDidFinish($0)
-            }
+            syncDidUpdateData: {}
         )
     }
 

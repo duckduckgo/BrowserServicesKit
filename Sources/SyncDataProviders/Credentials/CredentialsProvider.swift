@@ -30,11 +30,11 @@ public final class CredentialsProvider: DataProvider {
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
-        syncDidFinish: @escaping (SyncResult) -> Void
+        syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
-        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidFinish: syncDidFinish)
+        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding
@@ -180,9 +180,7 @@ public final class CredentialsProvider: DataProvider {
 
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
-            syncDidFinish(.someNewData)
-        } else {
-            syncDidFinish(.noData)
+            syncDidUpdateData()
         }
     }
 

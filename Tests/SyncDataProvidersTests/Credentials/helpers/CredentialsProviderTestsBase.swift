@@ -90,7 +90,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
             secureVaultFactory: secureVaultFactory,
             secureVaultErrorReporter: MockSecureVaultErrorReporter(),
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            syncDidFinish: { _ in }
+            syncDidUpdateData: {}
         )
     }
 
