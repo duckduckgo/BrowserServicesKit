@@ -41,6 +41,7 @@ public enum PrivacyFeature: String {
     case incontextSignup
     case newTabContinueSetUp
     case networkProtection
+    case dbp
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -68,6 +69,15 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature {
         .networkProtection
+    }
+
+    case waitlist
+    case waitlistBetaActive
+}
+
+public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .dbp
     }
 
     case waitlist
