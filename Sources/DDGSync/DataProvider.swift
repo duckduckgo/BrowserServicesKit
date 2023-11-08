@@ -208,6 +208,7 @@ open class DataProvider: DataProviding {
 
     public let feature: Feature
     public var syncDidUpdateData: () -> Void
+    public var syncDidFinish: () -> Void
     public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     public var isFeatureRegistered: Bool {
@@ -239,10 +240,11 @@ open class DataProvider: DataProviding {
         }
     }
 
-    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void = {}) {
+    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void = {}, syncDidFinish: @escaping () -> Void = {}) {
         self.feature = feature
         self.metadataStore = metadataStore
         self.syncDidUpdateData = syncDidUpdateData
+        self.syncDidFinish = syncDidFinish
         self.syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
 

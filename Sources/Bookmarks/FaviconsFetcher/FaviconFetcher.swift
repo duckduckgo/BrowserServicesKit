@@ -77,7 +77,7 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
         }
         var faviconImageData: Data?
         var faviconURL: URL?
-        for path in ["apple-touch-icon.png", "favicon.ico"] {
+        for path in Const.hardcodedFaviconPaths {
             faviconURL = URL(string: "\(URL.NavigationalScheme.https.separated())\(host)/\(path)")
             guard let faviconURL else {
                 continue
@@ -89,6 +89,10 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
             }
         }
         return (faviconImageData, faviconURL)
+    }
+
+    enum Const {
+        static let hardcodedFaviconPaths = ["apple-touch-icon.png", "favicon.ico"]
     }
 
     private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)

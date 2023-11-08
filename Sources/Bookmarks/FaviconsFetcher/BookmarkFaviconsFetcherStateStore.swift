@@ -1,5 +1,5 @@
 //
-//  BookmarkFaviconsMetadataStorage.swift
+//  BookmarkFaviconsFetcherStateStore.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,12 +19,12 @@
 
 import Foundation
 
-public protocol BookmarkFaviconsMetadataStoring {
+public protocol BookmarkFaviconsFetcherStateStoring: AnyObject {
     func getBookmarkIDs() throws -> Set<String>
     func storeBookmarkIDs(_ ids: Set<String>) throws
 }
 
-public class BookmarkFaviconsMetadataStorage: BookmarkFaviconsMetadataStoring {
+public class BookmarkFaviconsFetcherStateStore: BookmarkFaviconsFetcherStateStoring {
 
     let dataDirectoryURL: URL
     let missingIDsFileURL: URL

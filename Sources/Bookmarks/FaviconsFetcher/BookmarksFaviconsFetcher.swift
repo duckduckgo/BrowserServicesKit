@@ -31,30 +31,39 @@ public final class BookmarksFaviconsFetcher {
 
     public init(
         database: CoreDataDatabase,
-        metadataStore: BookmarkFaviconsMetadataStoring,
+        stateStore: BookmarkFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
         store: FaviconStoring,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.database = database
-        self.metadataStore = metadataStore
+        self.stateStore = stateStore
         self.fetcher = fetcher
         self.faviconStore = store
         self.getLog = log
+    }
+
+    public func initializeFetcherState() {
+        cancelOngoingFetchingIfNeeded()
+        operationQueue.addOperation {
+            do {
+                let allBookmarkIDs = self.fetchAllBookmarksUUIDs()
+                try self.stateStore.storeBookmarkIDs(allBookmarkIDs)
+            } catch {
+                os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
+            }
+        }
     }
 
     public func updateBookmarkIDs(modified: Set<String>, deleted: Set<String>) {
         cancelOngoingFetchingIfNeeded()
         operationQueue.addOperation {
             do {
-                let reservedBookmarkIDs = BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID])
-
-                let ids = try self.metadataStore.getBookmarkIDs()
+                let ids = try self.stateStore.getBookmarkIDs()
                     .union(modified)
                     .subtracting(deleted)
-                    .subtracting(reservedBookmarkIDs)
 
-                try self.metadataStore.storeBookmarkIDs(ids)
+                try self.stateStore.storeBookmarkIDs(ids)
             } catch {
                 os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
             }
@@ -65,7 +74,7 @@ public final class BookmarksFaviconsFetcher {
         cancelOngoingFetchingIfNeeded()
         let operation = FaviconsFetchOperation(
             database: database,
-            metadataStore: metadataStore,
+            stateStore: stateStore,
             fetcher: fetcher,
             faviconStore: faviconStore,
             log: self.log
@@ -85,8 +94,22 @@ public final class BookmarksFaviconsFetcher {
         return queue
     }()
 
+    private func fetchAllBookmarksUUIDs() -> Set<String> {
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        var ids = [String]()
+
+        context.performAndWait {
+            let bookmarks = BookmarkUtils.fetchAllBookmarks(in: context)
+            ids = bookmarks.compactMap(\.uuid)
+        }
+
+        return Set(ids)
+    }
+
+
     private let database: CoreDataDatabase
-    private let metadataStore: BookmarkFaviconsMetadataStoring
+    private let stateStore: BookmarkFaviconsFetcherStateStoring
     private let fetcher: FaviconFetching
     private let faviconStore: FaviconStoring
 

@@ -182,6 +182,7 @@ public final class CredentialsProvider: DataProvider {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in database: Database) throws -> Set<String> {

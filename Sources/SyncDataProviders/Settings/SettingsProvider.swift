@@ -261,6 +261,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(

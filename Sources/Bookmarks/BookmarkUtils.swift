@@ -147,6 +147,16 @@ public struct BookmarkUtils {
         }
     }
 
+    public static func fetchAllBookmarks(in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == NO AND %K == NO",
+                                        #keyPath(BookmarkEntity.isFolder),
+                                        #keyPath(BookmarkEntity.isPendingDeletion))
+        request.returnsObjectsAsFaults = false
+
+        return (try? context.fetch(request)) ?? []
+    }
+
     public static func fetchBookmark(for url: URL,
                                      predicate: NSPredicate = NSPredicate(value: true),
                                      context: NSManagedObjectContext) -> BookmarkEntity? {

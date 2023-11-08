@@ -33,11 +33,16 @@ public final class BookmarksProvider: DataProvider {
 
     public private(set) var faviconsFetcherInput: FaviconsFetcherInput = .init(modifiedBookmarksUUIDs: [], deletedBookmarksUUIDs: [])
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping (FaviconsFetcherInput?) -> Void) {
+    public init(
+        database: CoreDataDatabase,
+        metadataStore: SyncMetadataStore,
+        syncDidUpdateData: @escaping () -> Void,
+        syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
+    ) {
         self.database = database
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore)
-        self.syncDidUpdateData = { [weak self] in
-            syncDidUpdateData(self?.faviconsFetcherInput)
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        self.syncDidFinish = { [weak self] in
+            syncDidFinish(self?.faviconsFetcherInput)
         }
     }
 
@@ -142,6 +147,7 @@ public final class BookmarksProvider: DataProvider {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
