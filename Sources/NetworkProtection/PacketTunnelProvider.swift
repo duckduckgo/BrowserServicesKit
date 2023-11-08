@@ -201,6 +201,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
 
+            // This provides a more frequent active user pixel check
+            providerEvents.fire(.userBecameActive)
+
             await rekeyIfExpired()
         }
     }
