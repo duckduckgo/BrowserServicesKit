@@ -39,6 +39,9 @@ final class BookmarksResponseHandler {
     var idsOfItemsThatRetainModifiedAt = Set<String>()
     var deduplicatedFolderUUIDs = Set<String>()
 
+    var idsOfBookmarksWithModifiedURLs = Set<String>()
+    var idsOfDeletedBookmarks = Set<String>()
+
     private let decrypt: (String) throws -> String
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
@@ -120,15 +123,6 @@ final class BookmarksResponseHandler {
                 // Error - unable to process favorites
                 return
             }
-
-//            guard let favoritesUUIDs else {
-//                return
-//            }
-//            
-//            guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
-//                // Error - unable to process favorites
-//                return
-//            }
 
             // For non-first sync we rely fully on the server response
             if !shouldDeduplicateEntities {
@@ -235,7 +229,7 @@ final class BookmarksResponseHandler {
                 return modifiedAt > clientTimestamp
             }()
             if !isModifiedAfterSyncTimestamp {
-                try existingEntity.update(with: syncable, in: context, decryptedUsing: decrypt)
+                try updateEntity(existingEntity, with: syncable)
             }
 
             if parent != nil, !existingEntity.isDeleted {
@@ -249,9 +243,20 @@ final class BookmarksResponseHandler {
 
             let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
             parent?.addToChildren(newEntity)
-            try newEntity.update(with: syncable, in: context, decryptedUsing: decrypt)
+            try updateEntity(newEntity, with: syncable)
             entitiesByUUID[syncableUUID] = newEntity
         }
     }
 
+    private func updateEntity(_ entity: BookmarkEntity, with syncable: SyncableBookmarkAdapter) throws {
+        let url = entity.url
+        try entity.update(with: syncable, in: context, decryptedUsing: decrypt)
+        if let uuid = entity.uuid {
+            if entity.isDeleted {
+                idsOfDeletedBookmarks.insert(uuid)
+            } else if entity.url != url {
+                idsOfBookmarksWithModifiedURLs.insert(uuid)
+            }
+        }
+    }
 }

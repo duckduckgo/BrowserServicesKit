@@ -23,12 +23,22 @@ import CoreData
 import DDGSync
 import Persistence
 
+public struct FaviconsFetcherInput {
+    public var modifiedBookmarksUUIDs: Set<String>
+    public var deletedBookmarksUUIDs: Set<String>
+}
+
 // swiftlint:disable line_length
 public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) {
+    public private(set) var faviconsFetcherInput: FaviconsFetcherInput = .init(modifiedBookmarksUUIDs: [], deletedBookmarksUUIDs: [])
+
+    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping (FaviconsFetcherInput?) -> Void) {
         self.database = database
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore)
+        self.syncDidUpdateData = { [weak self] in
+            syncDidUpdateData(self?.faviconsFetcherInput)
+        }
     }
 
     // MARK: - DataProviding
@@ -85,7 +95,6 @@ public final class BookmarksProvider: DataProvider {
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         var saveAttemptsLeft = Const.maxContextSaveRetries
-        var newData: (modifiedIds: Set<String>, deletedIds: Set<String>) = ([], [])
 
         context.performAndWait {
             while true {
@@ -100,12 +109,14 @@ public final class BookmarksProvider: DataProvider {
                     )
                     let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedBookmarks()
+                    faviconsFetcherInput.modifiedBookmarksUUIDs = responseHandler.idsOfBookmarksWithModifiedURLs
+                    faviconsFetcherInput.deletedBookmarksUUIDs = responseHandler.idsOfDeletedBookmarks
 
 #if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
 #endif
                     let uuids = idsOfItemsToClearModifiedAt.union(Set(responseHandler.receivedByUUID.keys).subtracting(responseHandler.idsOfItemsThatRetainModifiedAt))
-                    newData = try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
+                    try clearModifiedAtAndSaveContext(uuids: uuids, clientTimestamp: clientTimestamp, in: context)
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
@@ -130,7 +141,6 @@ public final class BookmarksProvider: DataProvider {
         if let serverTimestamp {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
-//            syncDidFinish(.newData(modifiedIds: newData.modifiedIds, deletedIds: newData.deletedIds))
         }
     }
 
@@ -181,11 +191,9 @@ public final class BookmarksProvider: DataProvider {
         try context.save()
     }
 
-    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws -> (modifiedIds: Set<String>, deletedIds: Set<String>) {
+    private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
         let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
         let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
-        let deletedObjectsUUIDs = Array(context.deletedObjects).compactMap { ($0 as? BookmarkEntity)?.uuid }
-
         let modifiedObjects = insertedObjects + updatedObjects
 
         modifiedObjects.forEach { bookmarkEntity in
@@ -197,9 +205,7 @@ public final class BookmarksProvider: DataProvider {
             }
         }
         try context.save()
-
-        return (modifiedIds: Set(modifiedObjects.compactMap(\.uuid)), deletedIds: Set(deletedObjectsUUIDs))
-    }
+     }
 
     private let database: CoreDataDatabase
 
