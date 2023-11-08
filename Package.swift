@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
+        .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
@@ -31,7 +32,7 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.4.2"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "9.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
@@ -87,10 +88,15 @@ let package = Package(
                 "Bookmarks"
             ]
         ),
-         .target(
-            name: "BloomFilterWrapper",
+        .target(
+            name: "BloomFilterObjC",
             dependencies: [
                 .product(name: "BloomFilter", package: "bloom_cpp")
+            ]),
+        .target(
+            name: "BloomFilterWrapper",
+            dependencies: [
+                "BloomFilterObjC"
             ]),
         .target(
             name: "Crashes"

@@ -96,6 +96,7 @@ public class ContentBlockerRulesSourceManager {
     public private(set) var fallbackTDSFailure = false
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
+    private let onCriticalError: (() -> Void)?
     private let getLog: () -> OSLog
     private var log: OSLog {
         getLog()
@@ -105,10 +106,12 @@ public class ContentBlockerRulesSourceManager {
     init(rulesList: ContentBlockerRulesList,
          exceptionsSource: ContentBlockerRulesExceptionsSource,
          errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+         onCriticalError: (() -> Void)? = nil,
          log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.rulesList = rulesList
         self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
+        self.onCriticalError = onCriticalError
         self.getLog = log
     }
 
@@ -186,7 +189,7 @@ public class ContentBlockerRulesSourceManager {
             compilationFailed(for: input, with: error, brokenSources: brokenSources)
             return
         }
-        
+
         compilationFailed(for: input, with: error, brokenSources: brokenSources)
     }
 
@@ -196,6 +199,7 @@ public class ContentBlockerRulesSourceManager {
     private func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers,
                                    with error: Error,
                                    brokenSources: RulesSourceBreakageInfo) {
+        
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             os_log(.debug, log: log, "Falling back to embedded TDS")
             // We failed compilation for non-embedded TDS, marking it as broken.
@@ -243,10 +247,19 @@ public class ContentBlockerRulesSourceManager {
                                  parameters: params,
                                  onComplete: { _ in
                 if input.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName {
-                    fatalError("Could not compile embedded rules list")
+                    self.handleCriticalError()
                 }
             })
             fallbackTDSFailure = true
         }
     }
+
+    private func handleCriticalError() {
+        if let onCriticalError = self.onCriticalError {
+            onCriticalError()
+        } else {
+            fatalError("Could not compile embedded rules list")
+        }
+    }
+    
 }

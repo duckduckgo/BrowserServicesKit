@@ -116,6 +116,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     public var updatesPublisher: AnyPublisher<UpdateEvent, Never> {
         updatesSubject.eraseToAnyPublisher()
     }
+    public var onCriticalError: (() -> Void)?
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let getLog: () -> OSLog
@@ -288,6 +289,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 sourceManager = ContentBlockerRulesSourceManager(rulesList: rulesList,
                                                                  exceptionsSource: self.exceptionsSource,
                                                                  errorReporting: self.errorReporting,
+                                                                 onCriticalError: self.onCriticalError,
                                                                  log: log)
                 self.sourceManagers[rulesList.name] = sourceManager
             }
