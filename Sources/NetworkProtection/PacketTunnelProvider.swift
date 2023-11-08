@@ -348,6 +348,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func load(options: StartupOptions) throws {
         loadKeyValidity(from: options)
+        loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
         loadTesterEnabled(from: options)
         try loadAuthToken(from: options)
@@ -367,6 +368,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             break
         case .reset:
             setKeyValidity(nil)
+        }
+    }
+
+    private func loadSelectedEnvironment(from options: StartupOptions) {
+        switch options.selectedEnvironment {
+        case .set(let selectedEnvironment):
+            settings.selectedEnvironment = selectedEnvironment
+        case .useExisting:
+            break
+        case .reset:
+            settings.selectedEnvironment = .default
         }
     }
 
@@ -477,10 +489,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let onDemand = options.startupMethod == .automaticOnDemand
 
         os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
-        startTunnel(selectedServer: settings.selectedServer, onDemand: onDemand, completionHandler: completionHandler)
+        startTunnel(environment: settings.selectedEnvironment, 
+                    selectedServer: settings.selectedServer,
+                    onDemand: onDemand,
+                    completionHandler: completionHandler)
     }
 
-    private func startTunnel(selectedServer: TunnelSettings.SelectedServer, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    private func startTunnel(environment: TunnelSettings.SelectedEnvironment, selectedServer: TunnelSettings.SelectedServer, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
 
         Task {
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
@@ -494,7 +509,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
-                let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
+                let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
+                                                                                serverSelectionMethod: serverSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: excludedRoutes ?? [])
                 startTunnel(with: tunnelConfiguration, onDemand: onDemand, completionHandler: completionHandler)
