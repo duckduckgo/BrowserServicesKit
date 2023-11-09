@@ -33,6 +33,7 @@ public final class TunnelSettings {
         case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
         case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
         case setSelectedServer(_ selectedServer: SelectedServer)
+        case setSelectedLocation(_ selectedLocation: SelectedLocation)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -48,6 +49,18 @@ public final class TunnelSettings {
             switch self {
             case .automatic: return nil
             case .endpoint(let endpoint): return endpoint
+            }
+        }
+    }
+
+    public enum SelectedLocation: Codable, Equatable {
+        case nearest
+        case location(NetworkProtectionSelectedLocation)
+
+        public var location: NetworkProtectionSelectedLocation? {
+            switch self {
+            case .nearest: return nil
+            case .location(let location): return location
             }
         }
     }
@@ -76,11 +89,16 @@ public final class TunnelSettings {
             Change.setSelectedServer(server)
         }.eraseToAnyPublisher()
 
+        let locationChangePublisher = selectedLocationPublisher.map { location in
+            Change.setSelectedLocation(location)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
             excludeLocalNetworksPublisher,
-            serverChangePublisher).eraseToAnyPublisher()
+            serverChangePublisher,
+            locationChangePublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -111,6 +129,8 @@ public final class TunnelSettings {
             self.registrationKeyValidity = registrationKeyValidity
         case .setSelectedServer(let selectedServer):
             self.selectedServer = selectedServer
+        case .setSelectedLocation(let selectedLocation):
+            self.selectedLocation = selectedLocation
         }
     }
 
@@ -195,6 +215,22 @@ public final class TunnelSettings {
 
         set {
             defaults.networkProtectionSettingSelectedServer = newValue
+        }
+    }
+
+    // MARK: - Location Selection
+
+    public var selectedLocationPublisher: AnyPublisher<SelectedLocation, Never> {
+        defaults.networkProtectionSettingSelectedLocationPublisher
+    }
+
+    public var selectedLocation: SelectedLocation {
+        get {
+            defaults.networkProtectionSettingSelectedLocation
+        }
+
+        set {
+            defaults.networkProtectionSettingSelectedLocation = newValue
         }
     }
 

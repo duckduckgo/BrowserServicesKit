@@ -158,6 +158,9 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         case .avoidServer(let serverToAvoid):
             requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey)
             excludedServerName = serverToAvoid
+        case .preferredLocation(let location):
+            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey, country: location.country, city: location.city)
+            excludedServerName = nil
         }
 
         let registeredServersResult = await networkClient.register(authToken: token,
