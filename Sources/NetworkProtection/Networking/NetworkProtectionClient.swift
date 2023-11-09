@@ -235,14 +235,3 @@ extension URL {
     }
 
 }
-
-extension TunnelSettings.SelectedEnvironment {
-    var endpointURL: URL {
-        switch self {
-        case .production:
-            return URL(string: "https://controller.netp.duckduckgo.com")!
-        case .staging:
-            return URL(string: "https://staging1.netp.duckduckgo.com")!
-        }
-    }
-}
