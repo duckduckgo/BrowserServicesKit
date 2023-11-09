@@ -804,7 +804,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .removeSystemExtension:
             // Since the system extension is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
-            break
         case .expireRegistrationKey:
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .sendTestNotification:
@@ -812,7 +811,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
-            break
         }
     }
 
