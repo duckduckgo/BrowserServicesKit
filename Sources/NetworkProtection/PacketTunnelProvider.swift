@@ -801,15 +801,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleDebugCommand(_ command: DebugCommand, completionHandler: ((Data?) -> Void)? = nil) {
         switch command {
-        case .deactivateSystemExtension:
-            // Intentional no-op: handled by the VPN agent
+        case .removeSystemExtension:
+            // Since the system extension is being removed we may as well reset all state
+            handleResetAllState(completionHandler: completionHandler)
             break
         case .expireRegistrationKey:
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
         case .removeVPNConfiguration:
-            // Intentional no-op: handled by the VPN agent
+            // Since the VPN configuration is being removed we may as well reset all state
+            handleResetAllState(completionHandler: completionHandler)
             break
         }
     }
