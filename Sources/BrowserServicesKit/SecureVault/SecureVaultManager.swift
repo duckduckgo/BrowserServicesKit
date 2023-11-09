@@ -231,7 +231,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 autosaveAccount = nil                
                 autosaveAccountCreatedInSession = false
             }
-            
+
+            // Do not autosave anything if user has requested to never be prompted to save credentials for this domain
+            if let neverPrompt = try vault?.hasNeverPromptWebsitesFor(domain: domain), neverPrompt {
+                return
+            }
+
             // Validate the existing account exists and matches the domain and fetch the credentials
             if let stringId = autosaveAccount?.id,
                let id = Int64(stringId),
