@@ -1091,7 +1091,6 @@ extension SecureVaultModels.WebsiteCredentials {
 
 }
 
-
 extension SecureVaultModels.NeverPromptWebsites: PersistableRecord, FetchableRecord {
 
     public enum Columns: String, ColumnExpression {

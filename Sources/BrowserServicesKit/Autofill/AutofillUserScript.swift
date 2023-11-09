@@ -69,6 +69,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
     public var serializedInputContext: String?
 
+    public var sessionKey: String?
+
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
 

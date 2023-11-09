@@ -60,7 +60,7 @@ public struct ContentScopeFeatureToggles: Encodable {
 
     public let credentialsSaving: Bool
 
-    public let passwordGeneration: Bool
+    public var passwordGeneration: Bool
 
     public let inlineIconCredentials: Bool
     public let thirdPartyCredentialsProvider: Bool
