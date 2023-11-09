@@ -67,6 +67,9 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     func autofillUserScript(_: AutofillUserScript, didRequestCredentialsForDomain domain: String,
                             completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials], SecureVaultModels.CredentialsProvider) -> Void)
 
+    func autofillUserScript(_: AutofillUserScript, didRequestRuntimeConfigurationForDomain domain: String,
+                            completionHandler: @escaping (String?) -> Void)
+
     func autofillUserScriptDidOfferGeneratedPassword(_: AutofillUserScript,
                                                      password: String,
                                                      completionHandler: @escaping (Bool) -> Void)
@@ -428,6 +431,14 @@ extension AutofillUserScript {
     // swiftlint:enable nesting
 
     // MARK: - Message Handlers
+
+    func getRuntimeConfiguration(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
+        let domain = hostForMessage(message)
+
+        vaultDelegate?.autofillUserScript(self, didRequestRuntimeConfigurationForDomain: domain, completionHandler: { response in
+            replyHandler(response)
+        })
+    }
 
     func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)

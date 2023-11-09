@@ -47,6 +47,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case pmHandlerOpenManageIdentities
         case pmHandlerOpenManagePasswords
 
+        case getRuntimeConfiguration
         case getAvailableInputTypes
         case getAutofillData
         case storeFormData
@@ -131,7 +132,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
-            
+
+        case .getRuntimeConfiguration: return getRuntimeConfiguration
         case .getAvailableInputTypes: return getAvailableInputTypes
         case .getAutofillData: return getAutofillData
         case .storeFormData: return pmStoreData
