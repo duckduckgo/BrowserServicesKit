@@ -20,6 +20,7 @@ import Foundation
 
 protocol NetworkProtectionClient {
     func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
+    func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
                   publicKey: PublicKey,
@@ -27,6 +28,8 @@ protocol NetworkProtectionClient {
 }
 
 public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertible {
+    case failedToFetchLocationList(Error?)
+    case failedToParseLocationListResponse(Error)
     case failedToFetchServerList(Error?)
     case failedToParseServerListResponse(Error)
     case failedToEncodeRegisterKeyRequest
@@ -40,6 +43,8 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
+        case .failedToFetchLocationList(let error): return .failedToFetchLocationList(error)
+        case .failedToParseLocationListResponse(let error): return .failedToParseLocationListResponse(error)
         case .failedToFetchServerList(let error): return .failedToFetchServerList(error)
         case .failedToParseServerListResponse(let error): return .failedToParseServerListResponse(error)
         case .failedToEncodeRegisterKeyRequest: return .failedToEncodeRegisterKeyRequest
@@ -87,6 +92,10 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         Constants.productionEndpoint.appending("/servers")
     }
 
+    var locationsURL: URL {
+        Constants.stagingEndpoint.appending("/locations")
+    }
+
     var registerKeyURL: URL {
         Constants.productionEndpoint.appending("/register")
     }
@@ -115,6 +124,33 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }()
 
     public init() {}
+
+    func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
+        var request = URLRequest(url: locationsURL)
+        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let downloadedData: Data
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let response = response as? HTTPURLResponse else {
+                return .failure(.failedToFetchLocationList(nil))
+            }
+            switch response.statusCode {
+            case 200: downloadedData = data
+            case 401: return .failure(.invalidAuthToken)
+            default: return .failure(.failedToFetchLocationList(nil))
+            }
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToFetchLocationList(error))
+        }
+
+        do {
+            let decodedLocations = try decoder.decode([NetworkProtectionLocation].self, from: downloadedData)
+            return .success(decodedLocations)
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToParseLocationListResponse(error))
+        }
+    }
 
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)

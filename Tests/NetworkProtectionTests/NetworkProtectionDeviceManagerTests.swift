@@ -19,6 +19,7 @@
 import Foundation
 import XCTest
 @testable import NetworkProtection
+@testable import NetworkProtectionTestUtils
 
 final class NetworkProtectionDeviceManagerTests: XCTestCase {
     var tokenStore: NetworkProtectionTokenStoreMock!
@@ -45,11 +46,12 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
     func testDeviceManager() async {
         let server = NetworkProtectionServer.mockRegisteredServer
-        let networkClient = NetworkProtectionMockClient(
-            getServersReturnValue: .success([server]),
-            registerServersReturnValue: .success([server]),
-            redeemReturnValue: .success("IamANauthTOKEN")
-        )
+
+        let networkClient = MockNetworkProtectionClient()
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .success([server])
+        networkClient.stubRedeem = .success("IamANauthTOKEN")
+        networkClient.stubGetLocations = .success([])
 
         let manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
@@ -80,11 +82,12 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     func testWhenGeneratingTunnelConfig_AndNoServersAreStored_ThenPrivateKeyIsCreated_AndRegisterEndpointIsCalled() async {
         let server = NetworkProtectionServer.mockBaseServer
         let registeredServer = NetworkProtectionServer.mockRegisteredServer
-        let networkClient = NetworkProtectionMockClient(
-            getServersReturnValue: .success([server]),
-            registerServersReturnValue: .success([registeredServer]),
-            redeemReturnValue: .success("IamANauthTOKEN")
-        )
+
+        let networkClient = MockNetworkProtectionClient()
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .success([server])
+        networkClient.stubRedeem = .success("IamANauthTOKEN")
+        networkClient.stubGetLocations = .success([])
 
         let manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
@@ -110,11 +113,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         let keyStore = NetworkProtectionKeyStoreMock()
         let temporaryURL = temporaryFileURL()
         let serverListStore = NetworkProtectionServerListFileSystemStore(fileURL: temporaryURL, errorEvents: nil)
-        let networkClient = NetworkProtectionMockClient(
-            getServersReturnValue: .failure(.invalidAuthToken),
-            registerServersReturnValue: .failure(.invalidAuthToken),
-            redeemReturnValue: .success("IamANauthTOKEN")
-        )
+
+        let networkClient = MockNetworkProtectionClient()
+        networkClient.stubGetServers = .failure(.invalidAuthToken)
+        networkClient.stubRegister = .failure(.invalidAuthToken)
+        networkClient.stubRedeem = .success("IamANauthTOKEN")
 
         let manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
@@ -136,11 +139,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         let keyStore = NetworkProtectionKeyStoreMock()
         let temporaryURL = temporaryFileURL()
         let serverListStore = NetworkProtectionServerListFileSystemStore(fileURL: temporaryURL, errorEvents: nil)
-        let networkClient = NetworkProtectionMockClient(
-            getServersReturnValue: .success([server]),
-            registerServersReturnValue: .failure(.invalidAuthToken),
-            redeemReturnValue: .success("IamANauthTOKEN")
-        )
+
+        let networkClient = MockNetworkProtectionClient()
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .failure(.invalidAuthToken)
+        networkClient.stubRedeem = .success("IamANauthTOKEN")
 
         let manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
