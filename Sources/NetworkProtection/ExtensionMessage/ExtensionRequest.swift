@@ -19,8 +19,8 @@
 import Foundation
 
 public enum DebugCommand: Codable {
-    case deactivateSystemExtension
     case expireRegistrationKey
+    case removeSystemExtension
     case removeVPNConfiguration
     case sendTestNotification
 }
