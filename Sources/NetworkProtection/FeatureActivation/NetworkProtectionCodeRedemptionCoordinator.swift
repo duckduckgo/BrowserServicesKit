@@ -32,10 +32,19 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
     private let versionStore: NetworkProtectionLastVersionRunStore
     private let errorEvents: EventMapping<NetworkProtectionError>
 
-    public init(networkClient: NetworkProtectionClient = NetworkProtectionBackendClient(),
-                tokenStore: NetworkProtectionTokenStore,
+    convenience public init(tokenStore: NetworkProtectionTokenStore,
                 versionStore: NetworkProtectionLastVersionRunStore = .init(),
                 errorEvents: EventMapping<NetworkProtectionError>) {
+        self.init(networkClient: NetworkProtectionBackendClient(),
+                  tokenStore: tokenStore,
+                  versionStore: versionStore,
+                  errorEvents: errorEvents)
+    }
+
+    init(networkClient: NetworkProtectionClient,
+         tokenStore: NetworkProtectionTokenStore,
+         versionStore: NetworkProtectionLastVersionRunStore,
+         errorEvents: EventMapping<NetworkProtectionError>) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.versionStore = versionStore

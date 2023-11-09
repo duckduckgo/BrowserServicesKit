@@ -43,11 +43,22 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    public init(networkClient: NetworkProtectionClient = NetworkProtectionBackendClient(),
-                tokenStore: NetworkProtectionTokenStore,
+    public init(tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
+        self.init(networkClient: NetworkProtectionBackendClient(),
+                  tokenStore: tokenStore, 
+                  keyStore: keyStore,
+                  serverListStore: serverListStore,
+                  errorEvents: errorEvents)
+    }
+
+    init(networkClient: NetworkProtectionClient,
+         tokenStore: NetworkProtectionTokenStore,
+         keyStore: NetworkProtectionKeyStore,
+         serverListStore: NetworkProtectionServerListStore? = nil,
+         errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore

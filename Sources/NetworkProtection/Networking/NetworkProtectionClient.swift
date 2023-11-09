@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol NetworkProtectionClient {
+protocol NetworkProtectionClient {
     func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
@@ -116,7 +116,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     public init() {}
 
-    public func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
+    func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
@@ -143,10 +143,10 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    public func register(authToken: String,
                          publicKey: PublicKey,
                          withServerNamed serverName: String? = nil) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         let requestBody = RegisterKeyRequestBody(publicKey: publicKey, server: serverName)
+    func register(authToken: String,
         let requestBodyData: Data
 
         do {
@@ -185,7 +185,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
+    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
         let requestBody = RedeemRequestBody(code: inviteCode)
         let requestBodyData: Data
         do {
