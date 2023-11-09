@@ -24,6 +24,7 @@ public enum NetworkProtectionServerSelectionMethod {
     case automatic
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
+    case preferredLocation(NetworkProtectionSelectedLocation)
 }
 
 public protocol NetworkProtectionDeviceManagement {
@@ -142,26 +143,25 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                                                                     keyPair: KeyPair) {
 
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        var keyPair = keyStore.currentKeyPair()
 
-        let selectedServerName: String?
+        let requestBody: RegisterKeyRequestBody
         let excludedServerName: String?
 
         switch selectionMethod {
         case .automatic:
-            selectedServerName = nil
+            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey)
             excludedServerName = nil
         case .preferredServer(let serverName):
-            selectedServerName = serverName
+            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey, server: serverName)
             excludedServerName = nil
         case .avoidServer(let serverToAvoid):
-            selectedServerName = nil
+            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey)
             excludedServerName = serverToAvoid
         }
 
-        var keyPair = keyStore.currentKeyPair()
         let registeredServersResult = await networkClient.register(authToken: token,
-                                                                   publicKey: keyPair.publicKey,
-                                                                   withServerNamed: selectedServerName)
+                                                                   requestBody: requestBody)
         let selectedServer: NetworkProtectionServer
 
         switch registeredServersResult {
