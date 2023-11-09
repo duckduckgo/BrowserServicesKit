@@ -17,6 +17,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import Common
 import CoreData
 import Foundation
@@ -28,6 +29,9 @@ public protocol FaviconStoring {
 }
 
 public final class BookmarksFaviconsFetcher {
+
+    @Published public private(set) var isFetchingInProgress: Bool = false
+    public let fetchingDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
 
     public init(
         database: CoreDataDatabase,
@@ -41,6 +45,14 @@ public final class BookmarksFaviconsFetcher {
         self.fetcher = fetcher
         self.faviconStore = store
         self.getLog = log
+
+        fetchingDidFinishPublisher = fetchingDidFinishSubject.eraseToAnyPublisher()
+
+        isFetchingInProgressCancellable = Publishers
+            .Merge(fetchingDidStartSubject.map({ true }), fetchingDidFinishSubject.map({ _ in false }))
+            .prepend(false)
+            .removeDuplicates()
+            .assign(to: \.isFetchingInProgress, onWeaklyHeld: self)
     }
 
     public func initializeFetcherState() {
@@ -79,6 +91,16 @@ public final class BookmarksFaviconsFetcher {
             faviconStore: faviconStore,
             log: self.log
         )
+        operation.didStart = { [weak self] in
+            self?.fetchingDidStartSubject.send()
+        }
+        operation.didFinish = { [weak self] error in
+            if let error {
+                self?.fetchingDidFinishSubject.send(.failure(error))
+            } else {
+                self?.fetchingDidFinishSubject.send(.success(()))
+            }
+        }
         operationQueue.addOperation(operation)
     }
 
@@ -112,6 +134,10 @@ public final class BookmarksFaviconsFetcher {
     private let stateStore: BookmarkFaviconsFetcherStateStoring
     private let fetcher: FaviconFetching
     private let faviconStore: FaviconStoring
+
+    private var isFetchingInProgressCancellable: AnyCancellable?
+    private let fetchingDidStartSubject = PassthroughSubject<Void, Never>()
+    private let fetchingDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
 
     private var log: OSLog {
         getLog()
