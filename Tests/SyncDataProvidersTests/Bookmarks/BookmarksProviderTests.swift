@@ -41,7 +41,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark("Bookmark 1", id: "1", isFavorite: true)
+            Bookmark("Bookmark 1", id: "1", favoritedOn: [.mobile, .unified])
             Bookmark("Bookmark 2", id: "2")
             Folder("Folder", id: "3") {
                 Bookmark("Bookmark 4", id: "4")
@@ -65,7 +65,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
             assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .notNil()) {
-                Bookmark("Bookmark 1", id: "1", isFavorite: true, modifiedAtConstraint: .notNil())
+                Bookmark("Bookmark 1", id: "1", favoritedOn: [.mobile, .unified], modifiedAtConstraint: .notNil())
                 Bookmark("Bookmark 2", id: "2", modifiedAtConstraint: .notNil())
                 Folder("Folder", id: "3", modifiedAtConstraint: .notNil()) {
                     Bookmark("Bookmark 4", id: "4", modifiedAtConstraint: .notNil())
@@ -74,8 +74,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
                 Bookmark("Bookmark 6", id: "6", modifiedAtConstraint: .notNil())
             })
 
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
-            XCTAssertNotNil(favoritesFolder.modifiedAt)
+            let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: .displayUnified(native: .mobile), in: context)
+            XCTAssertTrue(favoritesFolders.allSatisfy { $0.modifiedAt != nil })
         }
     }
 
@@ -83,7 +83,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
         }
 
         context.performAndWait {
@@ -97,7 +97,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
-            Set([BookmarkEntity.Constants.favoritesFolderID, BookmarkEntity.Constants.rootFolderID, "1"])
+            BookmarkEntity.Constants.favoriteFoldersIDs.union(["1", BookmarkEntity.Constants.rootFolderID])
         )
     }
 
@@ -105,7 +105,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
             Folder(id: "2") {
                 Bookmark(id: "3")
                 Bookmark(id: "4")

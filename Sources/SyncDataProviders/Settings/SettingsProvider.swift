@@ -27,7 +27,7 @@ import Persistence
 /**
  * Error that may occur while updating timestamp when a setting changes.
  *
- * This error should be published via `SettingsSyncHandling.errorPublisher`
+ * This error should be published via `SettingSyncHandling.errorPublisher`
  * whenever settings metadata database fails to save changes after updating
  * timestamp for a given setting.
  *
@@ -42,42 +42,50 @@ public struct SettingsSyncMetadataSaveError: Error {
 }
 
 // swiftlint:disable:next type_body_length
-public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate {
+public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
     public struct Setting: Hashable {
-        let key: String
+        public let key: String
+
+        public init(key: String) {
+            self.key = key
+        }
     }
 
     public convenience init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        emailManager: EmailManagerSyncSupporting,
+        settingsHandlers: [SettingSyncHandler],
         syncDidUpdateData: @escaping () -> Void
     ) {
-        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
+        let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
+            partialResult[handler.setting] = handler
+        }
+
+        let settingsHandlers = settingsHandlersBySetting
 
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsHandlers: [
-                .emailProtectionGeneration: emailProtectionSyncHandler
-            ],
+            settingsHandlersBySetting: settingsHandlers,
             syncDidUpdateData: syncDidUpdateData
         )
 
         register(errorPublisher: errorSubject.eraseToAnyPublisher())
 
-        emailProtectionSyncHandler.delegate = self
+        settingsHandlers.values.forEach { handler in
+            handler.delegate = self
+        }
     }
 
     init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        settingsHandlers: [Setting: any SettingsSyncHandling],
+        settingsHandlersBySetting: [Setting: any SettingSyncHandling],
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
-        self.settingsHandlers = settingsHandlers
+        self.settingsHandlers = settingsHandlersBySetting
         super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
@@ -295,7 +303,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         return idsOfItemsToClearModifiedAt
     }
 
-    func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
+    func syncHandlerDidUpdateSettingValue(_ handler: SettingSyncHandling) {
         updateMetadataTimestamp(for: handler.setting)
     }
 
@@ -332,7 +340,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
     }
 
     private let metadataDatabase: CoreDataDatabase
-    private let settingsHandlers: [Setting: any SettingsSyncHandling]
+    private let settingsHandlers: [Setting: any SettingSyncHandling]
     private let errorSubject = PassthroughSubject<Error, Never>()
 
     enum Const {

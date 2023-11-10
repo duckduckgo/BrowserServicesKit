@@ -24,7 +24,12 @@ import Persistence
 public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     let context: NSManagedObjectContext
-    
+    public var favoritesDisplayMode: FavoritesDisplayMode = .displayNative(.mobile) {
+        didSet {
+            _favoritesFolder = nil
+        }
+    }
+
     private var _rootFolder: BookmarkEntity?
     private var rootFolder: BookmarkEntity? {
         if _rootFolder == nil {
@@ -40,7 +45,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     private var _favoritesFolder: BookmarkEntity?
     private var favoritesFolder: BookmarkEntity? {
         if _favoritesFolder == nil {
-            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)
+            _favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesDisplayMode.displayedFolder.rawValue, in: context)
             
             if _favoritesFolder == nil {
                 errorEvents?.fire(.fetchingRootItemFailed(.menu))
@@ -53,8 +58,7 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     
     private let errorEvents: EventMapping<BookmarksModelError>?
     
-    public init(bookmarksDatabase: CoreDataDatabase,
-                errorEvents: EventMapping<BookmarksModelError>?) {
+    public init(bookmarksDatabase: CoreDataDatabase, errorEvents: EventMapping<BookmarksModelError>?) {
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         registerForChanges()
@@ -92,25 +96,24 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     }
     
     public func createOrToggleFavorite(title: String, url: URL) {
-        guard let favoritesFolder = favoritesFolder,
-              let rootFolder = rootFolder else {
+        guard let rootFolder = rootFolder else {
             return
         }
         
         let queriedBookmark = favorite(for: url) ?? bookmark(for: url)
         
         if let bookmark = queriedBookmark {
-            if bookmark.isFavorite {
-                bookmark.removeFromFavorites()
+            if bookmark.isFavorite(on: favoritesDisplayMode.displayedFolder) {
+                bookmark.removeFromFavorites(with: favoritesDisplayMode)
             } else {
-                bookmark.addToFavorites(favoritesRoot: favoritesFolder)
+                bookmark.addToFavorites(with: favoritesDisplayMode, in: context)
             }
         } else {
             let favorite = BookmarkEntity.makeBookmark(title: title,
                                                        url: url.absoluteString,
                                                        parent: rootFolder,
                                                        context: context)
-            favorite.addToFavorites(favoritesRoot: favoritesFolder)
+            favorite.addToFavorites(with: favoritesDisplayMode, in: context)
         }
         
         save()
@@ -128,10 +131,14 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
     }
     
     public func favorite(for url: URL) -> BookmarkEntity? {
-        BookmarkUtils.fetchBookmark(for: url,
+        guard let favoritesFolder else {
+            return nil
+        }
+        return BookmarkUtils.fetchBookmark(for: url,
                                     predicate: NSPredicate(
-                                        format: "%K != nil AND %K == NO",
-                                        #keyPath(BookmarkEntity.favoriteFolder),
+                                        format: "ANY %K CONTAINS %@ AND %K == NO",
+                                        #keyPath(BookmarkEntity.favoriteFolders),
+                                        favoritesFolder,
                                         #keyPath(BookmarkEntity.isPendingDeletion)
                                     ),
                                     context: context)
