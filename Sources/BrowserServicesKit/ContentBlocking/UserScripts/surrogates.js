@@ -31,7 +31,6 @@
 
             log = function log () {
                 try {
-                    console.log(arguments)
                     webkit.messageHandlers.log.postMessage(JSON.stringify(arguments))
                 } catch (error) {}
             }
@@ -508,14 +507,13 @@
             }
             try {
                 loadSurrogate(result.matchedRule.surrogate)
+                // Trigger a load event on the original element
+                if (element && element.onload) {
+                    element.onload(new Event('load'))
+                }
             } catch (e) {
                 duckduckgoDebugMessaging.log(`error loading surrogate: ${e.toString()}`)
             }
-            // Trigger a load event on the original element
-            if (element && element.onload) {
-                element.onload(new Event('load'))
-            }
-
             const pageUrl = window.location.href
             surrogateInjected({
                 url: trackerUrl,
