@@ -43,7 +43,7 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
-         versionStore: NetworkProtectionLastVersionRunStore,
+         versionStore: NetworkProtectionLastVersionRunStore = .init(),
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore

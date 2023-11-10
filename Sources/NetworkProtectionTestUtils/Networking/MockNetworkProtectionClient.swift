@@ -18,11 +18,10 @@
 //
 
 import Foundation
-import NetworkProtection
+@testable import NetworkProtection
 
 // swiftlint:disable line_length
 public final class MockNetworkProtectionClient: NetworkProtectionClient {
-
     public init() {
     }
 
@@ -60,14 +59,14 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
     }
 
     // swiftlint:disable:next large_tuple
-    public var spyRegister: (authToken: String, publicKey: NetworkProtection.PublicKey, serverName: String?)?
+    public var spyRegister: (authToken: String, requestBody: NetworkProtection.RegisterKeyRequestBody)?
     public var registerCalled: Bool {
         spyRegister != nil
     }
     public var stubRegister: Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> = .success([])
 
-    public func register(authToken: String, publicKey: NetworkProtection.PublicKey, withServerNamed serverName: String?) async -> Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> {
-        spyRegister = (authToken: authToken, publicKey: publicKey, serverName: serverName)
+    public func register(authToken: String, requestBody: NetworkProtection.RegisterKeyRequestBody) async -> Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> {
+        spyRegister = (authToken: authToken, requestBody: requestBody)
         return stubRegister
     }
 }
