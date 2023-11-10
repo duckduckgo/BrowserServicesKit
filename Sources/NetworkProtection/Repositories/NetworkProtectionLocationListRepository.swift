@@ -48,9 +48,16 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
             Self.locationList = try await client.getLocations(authToken: authToken).get()
         } catch let error as NetworkProtectionErrorConvertible {
             throw error.networkProtectionError
+        } catch let error as NetworkProtectionError {
+            throw error
         } catch {
             throw NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
         }
         return Self.locationList
+    }
+
+    @MainActor
+    static func clearCache() {
+        locationList = []
     }
 }
