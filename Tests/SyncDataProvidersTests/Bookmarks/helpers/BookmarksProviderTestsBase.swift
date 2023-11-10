@@ -67,7 +67,8 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         provider = BookmarksProvider(
             database: bookmarksDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            syncDidUpdateData: {}
+            syncDidUpdateData: {},
+            syncDidFinish: { _ in }
         )
     }
 
