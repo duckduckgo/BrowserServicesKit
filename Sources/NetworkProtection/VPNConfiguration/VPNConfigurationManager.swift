@@ -1,5 +1,5 @@
 //
-//  ExtensionRequest.swift
+//  VPNConfigurationManager.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,15 +17,20 @@
 //
 
 import Foundation
+import NetworkExtension
 
-public enum DebugCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
-}
+public final class VPNConfigurationManager {
 
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: TunnelSettings.Change)
-    case debugCommand(_ command: DebugCommand)
+    public init() {}
+
+    public func removeVPNConfiguration() async {
+        let tunnels = try? await NETunnelProviderManager.loadAllFromPreferences()
+
+        if let tunnels = tunnels {
+            for tunnel in tunnels {
+                tunnel.connection.stopVPNTunnel()
+                try? await tunnel.removeFromPreferences()
+            }
+        }
+    }
 }

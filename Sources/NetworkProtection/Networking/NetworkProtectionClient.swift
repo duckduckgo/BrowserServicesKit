@@ -74,25 +74,20 @@ struct RedeemResponse: Decodable {
 
 public final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
-    enum Constants {
-        static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
-        static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
-    }
-
     private enum DecoderError: Error {
         case failedToDecode(key: String)
     }
 
     var serversURL: URL {
-        Constants.productionEndpoint.appending("/servers")
+        endpointURL.appending("/servers")
     }
 
     var registerKeyURL: URL {
-        Constants.productionEndpoint.appending("/register")
+        endpointURL.appending("/register")
     }
 
     var redeemURL: URL {
-        Constants.productionEndpoint.appending("/redeem")
+        endpointURL.appending("/redeem")
     }
 
     private let decoder: JSONDecoder = {
@@ -114,7 +109,11 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         return decoder
     }()
 
-    public init() {}
+    private let endpointURL: URL
+
+    public init(environment: TunnelSettings.SelectedEnvironment = .default) {
+        endpointURL = environment.endpointURL
+    }
 
     public func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
