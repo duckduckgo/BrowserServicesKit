@@ -28,6 +28,7 @@ import Foundation
 public final class TunnelSettings {
 
     public enum Change: Codable {
+        case setConnectOnLogin(_ connectOnLogin: Bool)
         case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
         case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
@@ -73,6 +74,10 @@ public final class TunnelSettings {
 
     private(set) public lazy var changePublisher: AnyPublisher<Change, Never> = {
 
+        let connectOnLoginPublisher = connectOnLoginPublisher.map { connectOnLogin in
+            Change.setConnectOnLogin(connectOnLogin)
+        }.eraseToAnyPublisher()
+
         let includeAllNetworksPublisher = includeAllNetworksPublisher.map { includeAllNetworks in
             Change.setIncludeAllNetworks(includeAllNetworks)
         }.eraseToAnyPublisher()
@@ -98,6 +103,7 @@ public final class TunnelSettings {
         }.eraseToAnyPublisher()
 
         return Publishers.MergeMany(
+            connectOnLoginPublisher,
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
             excludeLocalNetworksPublisher,
@@ -112,6 +118,7 @@ public final class TunnelSettings {
     // MARK: - Resetting to Defaults
 
     public func resetToDefaults() {
+        defaults.resetNetworkProtectionSettingConnectOnLogin()
         defaults.resetNetworkProtectionSettingEnforceRoutes()
         defaults.resetNetworkProtectionSettingExcludeLocalNetworks()
         defaults.resetNetworkProtectionSettingIncludeAllNetworks()
@@ -124,6 +131,8 @@ public final class TunnelSettings {
 
     public func apply(change: Change) {
         switch change {
+        case .setConnectOnLogin(let connectOnLogin):
+            self.connectOnLogin = connectOnLogin
         case .setEnforceRoutes(let enforceRoutes):
             self.enforceRoutes = enforceRoutes
         case .setExcludeLocalNetworks(let excludeLocalNetworks):
@@ -136,6 +145,22 @@ public final class TunnelSettings {
             self.selectedServer = selectedServer
         case .setSelectedEnvironment(let selectedEnvironment):
             self.selectedEnvironment = selectedEnvironment
+        }
+    }
+
+    // MARK: - Connect on Login
+
+    public var connectOnLoginPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingConnectOnLoginPublisher
+    }
+
+    public var connectOnLogin: Bool {
+        get {
+            defaults.networkProtectionSettingConnectOnLogin
+        }
+
+        set {
+            defaults.networkProtectionSettingConnectOnLogin = newValue
         }
     }
 

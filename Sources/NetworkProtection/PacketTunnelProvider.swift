@@ -789,7 +789,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
                 completionHandler?(nil)
             }
-        case .setIncludeAllNetworks,
+        case .setConnectOnLogin,
+                .setIncludeAllNetworks,
                 .setEnforceRoutes,
                 .setExcludeLocalNetworks,
                 .setRegistrationKeyValidity,
