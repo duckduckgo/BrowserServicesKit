@@ -1,4 +1,4 @@
-module BloomFilterWrapper {
+module BloomFilterObjC {
     header "BloomFilterObjC.h"
     export *
 }

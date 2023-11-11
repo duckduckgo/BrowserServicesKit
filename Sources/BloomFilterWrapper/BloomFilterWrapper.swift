@@ -22,18 +22,22 @@ import Foundation
 public final class BloomFilterWrapper {
     private let bloomFilter: BloomFilterObjC
 
+    @inline(never)
     public init(fromPath path: String, withBitCount bitCount: Int32, andTotalItems totalItems: Int32) {
         bloomFilter = BloomFilterObjC(fromPath: path, withBitCount: bitCount, andTotalItems: totalItems)
     }
 
+    @inline(never)
     public init(totalItems count: Int32, errorRate: Double) {
         bloomFilter = BloomFilterObjC(totalItems: count, errorRate: errorRate)
     }
 
+    @inline(never)
     public func add(_ entry: String) {
         bloomFilter.add(entry)
     }
 
+    @inline(never)
     public func contains(_ entry: String) -> Bool {
         bloomFilter.contains(entry)
     }
