@@ -65,7 +65,12 @@ final class BookmarkListViewModelTests: XCTestCase {
             try! context.save()
         }
 
-        bookmarkListViewModel = BookmarkListViewModel(bookmarksDatabase: bookmarksDatabase, parentID: nil, errorEvents: eventMapping)
+        bookmarkListViewModel = BookmarkListViewModel(
+            bookmarksDatabase: bookmarksDatabase,
+            parentID: nil,
+            favoritesDisplayMode: .displayNative(.mobile),
+            errorEvents: eventMapping
+        )
     }
 
     override func tearDown() {
@@ -306,6 +311,231 @@ final class BookmarkListViewModelTests: XCTestCase {
                 Bookmark(id: "6", isOrphaned: true)
             })
             XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
+        }
+    }
+
+    func testDisplayNativeMode_WhenBookmarkIsFavoritedThenItIsAddedToNativeAndUnifiedFolders() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayNative(.mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            })
+        }
+    }
+
+    func testDisplayNativeMode_WhenNonNativeFavoriteIsFavoritedThenItIsAddedToNativeFolder() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayNative(.mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.desktop, .unified])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", favoritedOn: [.mobile, .desktop, .unified])
+            })
+        }
+    }
+
+    func testDisplayNativeMode_WhenNonNativeBrokenFavoriteIsFavoritedThenItIsAddedToNativeAndUnifiedFolder() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayNative(.mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.desktop])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", favoritedOn: [.mobile, .desktop, .unified])
+            })
+        }
+    }
+
+    func testDisplayNativeMode_WhenFavoriteIsUnfavoritedThenItIsRemovedFromNativeAndUnifiedFolder() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayNative(.mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+            })
+        }
+    }
+
+    func testDisplayNativeMode_WhenAllFormFactorsFavoriteIsUnfavoritedThenItIsOnlyRemovedFromNativeFolder() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayNative(.mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .desktop, .unified])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", favoritedOn: [.desktop, .unified])
+            })
+        }
+    }
+
+    func testDisplayAllMode_WhenBookmarkIsFavoritedThenItIsAddedToNativeAndUnifiedFolders() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            })
+        }
+    }
+
+    func testDisplayAllMode_WhenNonNativeFavoriteIsUnfavoritedThenItIsRemovedFromAllFolders() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.desktop, .unified])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+            })
+        }
+    }
+
+    func testDisplayAllMode_WhenNonNativeBrokenFavoriteIsFavoritedThenItIsAddedToNativeAndUnifiedFolder() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.desktop])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1", favoritedOn: [.mobile, .desktop, .unified])
+            })
+        }
+    }
+
+    func testDisplayAllMode_WhenAllFormFactorsFavoriteIsUnfavoritedThenItIsRemovedFromAllFolders() async throws {
+
+        bookmarkListViewModel.favoritesDisplayMode = .displayUnified(native: .mobile)
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .desktop, .unified])
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+            bookmarkListViewModel.toggleFavorite(bookmark)
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+            })
         }
     }
 }

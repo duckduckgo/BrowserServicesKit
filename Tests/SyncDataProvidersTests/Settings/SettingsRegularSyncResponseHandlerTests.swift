@@ -59,7 +59,7 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertNil(emailManagerStorage.mockToken)
     }
 
-    func testThatEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
+    func testWhenEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
         try emailManager.signIn(username: "dax-local", token: "secret-token-local")
 
@@ -75,5 +75,50 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertNil(emailMetadata.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax-remote")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token-remote")
+    }
+
+    func testThatSettingStateIsApplied() async throws {
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        try await handleSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        XCTAssertTrue(settingsMetadata.isEmpty)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "remote")
+    }
+
+    func testThatSettingDeletedStateIsApplied() async throws {
+        testSettingSyncHandler.syncedValue = "local"
+
+        let received: [Syncable] = [
+            .testSettingDeleted()
+        ]
+
+        try await handleSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertNil(testSettingSyncHandler.syncedValue)
+    }
+
+    func testWhenSettingIsSetLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
+        testSettingSyncHandler.syncedValue = "local"
+
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        try await handleSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "remote")
     }
 }

@@ -1,5 +1,6 @@
 //
-//  ExtensionRequest.swift
+//  FavoritesDisplayModeSyncHandlerBase.swift
+//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -16,16 +17,16 @@
 //  limitations under the License.
 //
 
+import Bookmarks
 import Foundation
 
-public enum DebugCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
+extension SettingsProvider.Setting {
+    static let favoritesDisplayMode = SettingsProvider.Setting(key: "favorites_display_mode")
 }
 
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: TunnelSettings.Change)
-    case debugCommand(_ command: DebugCommand)
+open class FavoritesDisplayModeSyncHandlerBase: SettingSyncHandler {
+
+    open override var setting: SettingsProvider.Setting {
+        .favoritesDisplayMode
+    }
 }

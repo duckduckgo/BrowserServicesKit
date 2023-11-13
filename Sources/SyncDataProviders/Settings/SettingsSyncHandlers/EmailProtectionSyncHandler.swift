@@ -37,17 +37,18 @@ extension SettingsProvider.Setting {
     static let emailProtectionGeneration = SettingsProvider.Setting(key: "email_protection_generation")
 }
 
-class EmailProtectionSyncHandler: SettingsSyncHandling {
+public final class EmailProtectionSyncHandler: SettingSyncHandler {
 
     struct Payload: Codable {
         let username: String
         let personalAccessToken: String
     }
 
-    let setting: SettingsProvider.Setting = .emailProtectionGeneration
-    weak var delegate: SettingsSyncHandlingDelegate?
+    public override var setting: SettingsProvider.Setting {
+        .emailProtectionGeneration
+    }
 
-    func getValue() throws -> String? {
+    public override func getValue() throws -> String? {
         guard let user = try emailManager.getUsername() else {
             return nil
         }
@@ -58,7 +59,7 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
         return String(bytes: data, encoding: .utf8)
     }
 
-    func setValue(_ value: String?) throws {
+    public override func setValue(_ value: String?) throws {
         guard let value, let valueData = value.data(using: .utf8) else {
             try emailManager.signOut(isForced: false)
             return
@@ -68,19 +69,14 @@ class EmailProtectionSyncHandler: SettingsSyncHandling {
         try emailManager.signIn(username: payload.username, token: payload.personalAccessToken)
     }
 
-    init(emailManager: EmailManagerSyncSupporting) {
-        self.emailManager = emailManager
+    public override var valueDidChangePublisher: AnyPublisher<Void, Never> {
+        emailManager.userDidToggleEmailProtectionPublisher
+    }
 
-        emailProtectionStatusDidChangeCancellable = self.emailManager.userDidToggleEmailProtectionPublisher
-            .sink { [weak self] in
-                guard let self else {
-                    return
-                }
-                assert(self.delegate != nil, "delegate has not been set for \(type(of: self))")
-                self.delegate?.syncHandlerDidUpdateSettingValue(self)
-            }
+    public init(emailManager: EmailManagerSyncSupporting) {
+        self.emailManager = emailManager
+        super.init()
     }
 
     private let emailManager: EmailManagerSyncSupporting
-    private var emailProtectionStatusDidChangeCancellable: AnyCancellable?
 }
