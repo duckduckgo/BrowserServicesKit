@@ -99,7 +99,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }
 
     var locationsURL: URL {
-        Constants.stagingEndpoint.appending("/locations")
+        Constants.productionEndpoint.appending("/locations")
     }
 
     var registerKeyURL: URL {
