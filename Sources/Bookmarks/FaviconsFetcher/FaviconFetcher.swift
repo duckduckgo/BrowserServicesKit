@@ -25,27 +25,30 @@ public protocol FaviconFetching {
     func fetchFavicon(for url: URL) async throws -> (Data?, URL?)
 }
 
-public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDelegate {
+public final class FaviconFetcher: NSObject, FaviconFetching {
 
     public override init() {}
 
     public func fetchFavicon(for url: URL) async throws -> (Data?, URL?) {
         let metadataFetcher = LPMetadataProvider()
-        let metadata: LPLinkMetadata = try await {
+
+        // Allow LinkPresentation to fail so that we can fall back to fetching hardcoded paths
+        let metadata: LPLinkMetadata? = await {
             if #available(iOS 15.0, macOS 12.0, *) {
                 var request = URLRequest(url: url)
                 request.attribution = .user
-                return try await metadataFetcher.startFetchingMetadata(for: request)
+                return try? await metadataFetcher.startFetchingMetadata(for: request)
             } else {
-                return try await metadataFetcher.startFetchingMetadata(for: url)
+                return try? await metadataFetcher.startFetchingMetadata(for: url)
             }
         }()
 
-        guard let iconProvider = metadata.iconProvider else {
-            return (nil, nil)
-        }
-
+        // If LinkPresentation returned metadata, try retrieving favicon data
         let imageData: Data? = await withCheckedContinuation { continuation in
+            guard let iconProvider = metadata?.iconProvider else {
+                continuation.resume(returning: nil)
+                return
+            }
             iconProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { data, error in
                 guard let data = data as? Data else {
                     continuation.resume(returning: nil)
@@ -62,32 +65,27 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
         return (imageData, nil)
     }
 
-    public func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest
-    ) async -> URLRequest? {
-        return request
-    }
-
     private func lookUpHardcodedFaviconPath(for url: URL) async throws -> (Data?, URL?) {
         guard let host = url.host else {
             return (nil, nil)
         }
+
         var faviconImageData: Data?
         var faviconURL: URL?
+
         for path in Const.hardcodedFaviconPaths {
-            faviconURL = URL(string: "\(URL.NavigationalScheme.https.separated())\(host)/\(path)")
-            guard let faviconURL else {
+            let potentialFaviconURL = URL(string: "\(URL.NavigationalScheme.https.separated())\(host)/\(path)")
+            guard let potentialFaviconURL else {
                 continue
             }
-            let (data, response) = try await faviconsURLSession.data(from: faviconURL)
+            let (data, response) = try await faviconsURLSession.data(from: potentialFaviconURL)
             if (response as? HTTPURLResponse)?.statusCode == 200 {
                 faviconImageData = data
+                faviconURL = potentialFaviconURL
                 break
             }
         }
+
         return (faviconImageData, faviconURL)
     }
 
@@ -96,4 +94,16 @@ public final class FaviconFetcher: NSObject, FaviconFetching, URLSessionTaskDele
     }
 
     private(set) lazy var faviconsURLSession = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
+}
+
+extension FaviconFetcher: URLSessionTaskDelegate {
+
+    public func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        return request
+    }
 }

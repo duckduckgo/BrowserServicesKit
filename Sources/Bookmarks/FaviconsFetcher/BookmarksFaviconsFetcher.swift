@@ -28,6 +28,25 @@ public protocol FaviconStoring {
     func storeFavicon(_ imageData: Data, with url: URL?, for documentURL: URL) async throws
 }
 
+public enum BookmarksFaviconsFetcherError: CustomNSError {
+    case failedToStoreBookmarkIDs(Error)
+    case failedToRetrieveBookmarkIDs(Error)
+    case other(Error)
+
+    public static let errorDomain: String = "BookmarksFaviconsFetcherError"
+
+    public var errorCode: Int {
+        switch self {
+        case .failedToStoreBookmarkIDs:
+            return 1
+        case .failedToRetrieveBookmarkIDs:
+            return 2
+        case .other:
+            return 255
+        }
+    }
+}
+
 public final class BookmarksFaviconsFetcher {
 
     @Published public private(set) var isFetchingInProgress: Bool = false
@@ -38,12 +57,14 @@ public final class BookmarksFaviconsFetcher {
         stateStore: BookmarkFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
         store: FaviconStoring,
+        errorEvents: EventMapping<BookmarksFaviconsFetcherError>?,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.database = database
         self.stateStore = stateStore
         self.fetcher = fetcher
         self.faviconStore = store
+        self.errorEvents = errorEvents
         self.getLog = log
 
         fetchingDidFinishPublisher = fetchingDidFinishSubject.eraseToAnyPublisher()
@@ -63,6 +84,7 @@ public final class BookmarksFaviconsFetcher {
                 try self.stateStore.storeBookmarkIDs(allBookmarkIDs)
             } catch {
                 os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
+                self.errorEvents?.fire(.failedToStoreBookmarkIDs(error))
             }
         }
     }
@@ -71,13 +93,11 @@ public final class BookmarksFaviconsFetcher {
         cancelOngoingFetchingIfNeeded()
         operationQueue.addOperation {
             do {
-                let ids = try self.stateStore.getBookmarkIDs()
-                    .union(modified)
-                    .subtracting(deleted)
-
+                let ids = try self.stateStore.getBookmarkIDs().union(modified).subtracting(deleted)
                 try self.stateStore.storeBookmarkIDs(ids)
             } catch {
                 os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
+                self.errorEvents?.fire(.failedToStoreBookmarkIDs(error))
             }
         }
     }
@@ -97,6 +117,11 @@ public final class BookmarksFaviconsFetcher {
         operation.didFinish = { [weak self] error in
             if let error {
                 self?.fetchingDidFinishSubject.send(.failure(error))
+                if let fetcherError = error as? BookmarksFaviconsFetcherError {
+                    self?.errorEvents?.fire(fetcherError)
+                } else {
+                    self?.errorEvents?.fire(.other(error))
+                }
             } else {
                 self?.fetchingDidFinishSubject.send(.success(()))
             }
@@ -110,7 +135,7 @@ public final class BookmarksFaviconsFetcher {
 
     let operationQueue: OperationQueue = {
         let queue = OperationQueue()
-        queue.name = "com.duckduckgo.sync.faviconsFetcher"
+        queue.name = "com.duckduckgo.sync.bookmarksFaviconsFetcher"
         queue.qualityOfService = .userInitiated
         queue.maxConcurrentOperationCount = 1
         return queue
@@ -129,7 +154,7 @@ public final class BookmarksFaviconsFetcher {
         return Set(ids)
     }
 
-
+    private let errorEvents: EventMapping<BookmarksFaviconsFetcherError>?
     private let database: CoreDataDatabase
     private let stateStore: BookmarkFaviconsFetcherStateStoring
     private let fetcher: FaviconFetching

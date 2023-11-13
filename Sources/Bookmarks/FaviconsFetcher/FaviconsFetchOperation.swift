@@ -102,9 +102,9 @@ class FaviconsFetchOperation: Operation {
             return
         }
 
-        os_log(.debug, log: log, "Favicons Fetch Operation Started")
+        os_log(.debug, log: log, "Favicons Fetch Operation started")
         defer {
-            os_log(.debug, log: log, "Favicons Fetch Operation Finished")
+            os_log(.debug, log: log, "Favicons Fetch Operation finished")
         }
 
         let idsByDomain = mapBookmarkDomainsToUUIDs(for: ids).filter { [weak self] (domain, _) in
@@ -114,10 +114,15 @@ class FaviconsFetchOperation: Operation {
         try checkCancellation()
 
         let domains = Set(idsByDomain.keys)
-
         var domainsArray = Array(domains)
+
+        guard !domainsArray.isEmpty else {
+            os_log(.debug, log: log, "No favicons to fetch")
+            return
+        }
+        os_log(.debug, log: log, "Will try to fetch favicons for %{public}d domains", domainsArray.count)
+
         while !domainsArray.isEmpty {
-            print("URLS ARRAY SIZE: \(domainsArray.count)")
             let numberOfDomainsToFetch = min(10, domainsArray.count)
             let domainsToFetch = Array(domainsArray.prefix(upTo: numberOfDomainsToFetch))
             domainsArray = Array(domainsArray.dropFirst(numberOfDomainsToFetch))
@@ -130,23 +135,36 @@ class FaviconsFetchOperation: Operation {
                             guard let self else {
                                 return []
                             }
+
+                            let fetchResult: (Data?, URL?)
                             do {
-                                let (image, imageURL) = try await self.fetcher.fetchFavicon(for: url)
+                                fetchResult = try await self.fetcher.fetchFavicon(for: url)
+                            } catch {
+                                let nsError = error as NSError
+                                // if user is offline, we want to retry later
+                                if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorNotConnectedToInternet {
+                                    return []
+                                }
+                                return ids
+                            }
+
+                            do {
+                                let (image, imageURL) = fetchResult
                                 if let image {
                                     os_log(.debug, log: self.log, "Favicon found for %{public}s", url.absoluteString)
                                     try await self.faviconStore.storeFavicon(image, with: imageURL, for: url)
                                 } else {
                                     os_log(.debug, log: self.log, "Favicon not found for %{public}s", url.absoluteString)
                                 }
+
                                 try checkCancellation()
                                 return ids
                             } catch is CancellationError {
                                 os_log(.debug, log: self.log, "Favicon fetching cancelled")
                                 return []
                             } catch {
-                                os_log(.debug, log: self.log, "Error fetching favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
-                                try checkCancellation()
-                                return ids
+                                os_log(.debug, log: self.log, "Error storing favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
+                                throw error
                             }
                         }
                     }

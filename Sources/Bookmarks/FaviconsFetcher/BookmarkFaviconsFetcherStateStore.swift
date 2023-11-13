@@ -29,16 +29,16 @@ public class BookmarkFaviconsFetcherStateStore: BookmarkFaviconsFetcherStateStor
     let dataDirectoryURL: URL
     let missingIDsFileURL: URL
 
-    public init(applicationSupportURL: URL) {
+    public init(applicationSupportURL: URL) throws {
         dataDirectoryURL = applicationSupportURL.appendingPathComponent("FaviconsFetcher")
         missingIDsFileURL = dataDirectoryURL.appendingPathComponent("missingIDs")
 
-        initStorage()
+        try initStorage()
     }
 
-    private func initStorage() {
+    private func initStorage() throws {
         if !FileManager.default.fileExists(atPath: dataDirectoryURL.path) {
-            try! FileManager.default.createDirectory(at: dataDirectoryURL, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: dataDirectoryURL, withIntermediateDirectories: true)
         }
         if !FileManager.default.fileExists(atPath: missingIDsFileURL.path) {
             FileManager.default.createFile(atPath: missingIDsFileURL.path, contents: Data())
@@ -46,14 +46,22 @@ public class BookmarkFaviconsFetcherStateStore: BookmarkFaviconsFetcherStateStor
     }
 
     public func getBookmarkIDs() throws -> Set<String> {
-        let data = try Data(contentsOf: missingIDsFileURL)
-        guard let rawValue = String(data: data, encoding: .utf8) else {
-            return []
+        do {
+            let data = try Data(contentsOf: missingIDsFileURL)
+            guard let rawValue = String(data: data, encoding: .utf8) else {
+                return []
+            }
+            return Set(rawValue.components(separatedBy: ","))
+        } catch {
+            throw BookmarksFaviconsFetcherError.failedToRetrieveBookmarkIDs(error)
         }
-        return Set(rawValue.components(separatedBy: ","))
     }
 
     public func storeBookmarkIDs(_ ids: Set<String>) throws {
-        try ids.joined(separator: ",").data(using: .utf8)?.write(to: missingIDsFileURL)
+        do {
+            try ids.joined(separator: ",").data(using: .utf8)?.write(to: missingIDsFileURL)
+        } catch {
+            throw BookmarksFaviconsFetcherError.failedToStoreBookmarkIDs(error)
+        }
     }
 }
