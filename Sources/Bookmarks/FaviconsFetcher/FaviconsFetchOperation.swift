@@ -135,37 +135,7 @@ class FaviconsFetchOperation: Operation {
                             guard let self else {
                                 return []
                             }
-
-                            let fetchResult: (Data?, URL?)
-                            do {
-                                fetchResult = try await self.fetcher.fetchFavicon(for: url)
-                            } catch {
-                                let nsError = error as NSError
-                                // if user is offline, we want to retry later
-                                if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorNotConnectedToInternet {
-                                    return []
-                                }
-                                return ids
-                            }
-
-                            do {
-                                let (image, imageURL) = fetchResult
-                                if let image {
-                                    os_log(.debug, log: self.log, "Favicon found for %{public}s", url.absoluteString)
-                                    try await self.faviconStore.storeFavicon(image, with: imageURL, for: url)
-                                } else {
-                                    os_log(.debug, log: self.log, "Favicon not found for %{public}s", url.absoluteString)
-                                }
-
-                                try checkCancellation()
-                                return ids
-                            } catch is CancellationError {
-                                os_log(.debug, log: self.log, "Favicon fetching cancelled")
-                                return []
-                            } catch {
-                                os_log(.debug, log: self.log, "Error storing favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
-                                throw error
-                            }
+                            return try await self.fetchAndStoreFavicon(for: url, bookmarkIds: ids)
                         }
                     }
                 }
@@ -181,6 +151,39 @@ class FaviconsFetchOperation: Operation {
             try stateStore.storeBookmarkIDs(ids)
 
             try checkCancellation()
+        }
+    }
+
+    private func fetchAndStoreFavicon(for url: URL, bookmarkIds: [String]) async throws -> [String] {
+        let fetchResult: (Data?, URL?)
+        do {
+            fetchResult = try await fetcher.fetchFavicon(for: url)
+        } catch {
+            let nsError = error as NSError
+            // if user is offline, we want to retry later
+            if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorNotConnectedToInternet {
+                return []
+            }
+            return bookmarkIds
+        }
+
+        do {
+            let (image, imageURL) = fetchResult
+            if let image {
+                os_log(.debug, log: log, "Favicon found for %{public}s", url.absoluteString)
+                try await faviconStore.storeFavicon(image, with: imageURL, for: url)
+            } else {
+                os_log(.debug, log: log, "Favicon not found for %{public}s", url.absoluteString)
+            }
+
+            try checkCancellation()
+            return bookmarkIds
+        } catch is CancellationError {
+            os_log(.debug, log: log, "Favicon fetching cancelled")
+            return []
+        } catch {
+            os_log(.debug, log: log, "Error storing favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
+            throw error
         }
     }
 
