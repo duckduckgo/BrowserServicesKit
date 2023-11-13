@@ -64,15 +64,30 @@ struct RegisterKeyRequestBody: Encodable {
     let country: String?
     let city: String?
 
-    init(publicKey: PublicKey, 
-         server: String? = nil,
-         country: String? = nil,
-         city: String? = nil) {
+    init(publicKey: PublicKey,
+         serverSelection: RegisterServerSelection) {
         self.publicKey = publicKey.base64Key
-        self.server = server
-        self.country = country
-        self.city = city
+        switch serverSelection {
+        case .automatic:
+            server = nil
+            country = nil
+            city = nil
+        case .server(let name):
+            server = name
+            country = nil
+            city = nil
+        case .location(let country, let city):
+            server = nil
+            self.country = country
+            self.city = city
+        }
     }
+}
+
+enum RegisterServerSelection {
+    case automatic
+    case server(name: String)
+    case location(country: String, city: String?)
 }
 
 struct RedeemRequestBody: Encodable {

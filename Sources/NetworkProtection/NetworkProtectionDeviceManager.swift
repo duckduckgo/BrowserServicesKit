@@ -145,23 +145,26 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
         var keyPair = keyStore.currentKeyPair()
 
-        let requestBody: RegisterKeyRequestBody
+        let serverSelection: RegisterServerSelection
         let excludedServerName: String?
 
         switch selectionMethod {
         case .automatic:
-            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey)
+            serverSelection = .automatic
             excludedServerName = nil
         case .preferredServer(let serverName):
-            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey, server: serverName)
+            serverSelection = .server(name: serverName)
             excludedServerName = nil
         case .avoidServer(let serverToAvoid):
-            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey)
+            serverSelection = .automatic
             excludedServerName = serverToAvoid
         case .preferredLocation(let location):
-            requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey, country: location.country, city: location.city)
+            serverSelection = .location(country: location.country, city: location.city)
             excludedServerName = nil
         }
+
+        let requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey,
+                                                 serverSelection: serverSelection)
 
         let registeredServersResult = await networkClient.register(authToken: token,
                                                                    requestBody: requestBody)
