@@ -110,6 +110,7 @@ class FaviconsFetchOperation: Operation {
         let idsByDomain = mapBookmarkDomainsToUUIDs(for: ids).filter { [weak self] (domain, _) in
             self?.faviconStore.hasFavicon(for: domain) == false
         }
+        ids = Set(idsByDomain.values.flatMap { $0 })
 
         try checkCancellation()
 
@@ -118,6 +119,7 @@ class FaviconsFetchOperation: Operation {
 
         guard !domainsArray.isEmpty else {
             os_log(.debug, log: log, "No favicons to fetch")
+            try stateStore.storeBookmarkIDs(ids)
             return
         }
         os_log(.debug, log: log, "Will try to fetch favicons for %{public}d domains", domainsArray.count)
@@ -161,17 +163,18 @@ class FaviconsFetchOperation: Operation {
         } catch {
             let nsError = error as NSError
             // if user is offline, we want to retry later
-            if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorNotConnectedToInternet {
+            let temporaryErrorCodes = [NSURLErrorNotConnectedToInternet, NSURLErrorTimedOut, NSURLErrorCancelled]
+            if nsError.domain == NSURLErrorDomain, temporaryErrorCodes.contains(nsError.code) {
                 return []
             }
             return bookmarkIds
         }
 
         do {
-            let (image, imageURL) = fetchResult
-            if let image {
+            let (imageData, imageURL) = fetchResult
+            if let imageData {
                 os_log(.debug, log: log, "Favicon found for %{public}s", url.absoluteString)
-                try await faviconStore.storeFavicon(image, with: imageURL, for: url)
+                try await faviconStore.storeFavicon(imageData, with: imageURL, for: url)
             } else {
                 os_log(.debug, log: log, "Favicon not found for %{public}s", url.absoluteString)
             }
