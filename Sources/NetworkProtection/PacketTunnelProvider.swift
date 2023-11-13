@@ -794,7 +794,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setEnforceRoutes,
                 .setExcludeLocalNetworks,
                 .setRegistrationKeyValidity,
-                .setSelectedEnvironment:
+                .setSelectedEnvironment,
+                .setShowInMenuBar:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }

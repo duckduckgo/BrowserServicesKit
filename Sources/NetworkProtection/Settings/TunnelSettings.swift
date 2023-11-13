@@ -35,6 +35,7 @@ public final class TunnelSettings {
         case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
         case setSelectedServer(_ selectedServer: SelectedServer)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
+        case setShowInMenuBar(_ showInMenuBar: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -102,13 +103,18 @@ public final class TunnelSettings {
             Change.setSelectedEnvironment(environment)
         }.eraseToAnyPublisher()
 
+        let showInMenuBarPublisher = showInMenuBarPublisher.map { showInMenuBar in
+            Change.setShowInMenuBar(showInMenuBar)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
             excludeLocalNetworksPublisher,
             serverChangePublisher,
-            environmentChangePublisher).eraseToAnyPublisher()
+            environmentChangePublisher,
+            showInMenuBarPublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -125,6 +131,7 @@ public final class TunnelSettings {
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
         defaults.resetNetworkProtectionSettingSelectedEnvironment()
+        defaults.resetNetworkProtectionSettingShowInMenuBar()
     }
 
     // MARK: - Applying Changes
@@ -145,6 +152,8 @@ public final class TunnelSettings {
             self.selectedServer = selectedServer
         case .setSelectedEnvironment(let selectedEnvironment):
             self.selectedEnvironment = selectedEnvironment
+        case .setShowInMenuBar(let showInMenuBar):
+            self.showInMenuBar = showInMenuBar
         }
     }
 
@@ -261,6 +270,22 @@ public final class TunnelSettings {
 
         set {
             defaults.networkProtectionSettingSelectedEnvironment = newValue
+        }
+    }
+
+    // MARK: - Show in Menu Bar
+
+    public var showInMenuBarPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingShowInMenuBarPublisher
+    }
+
+    public var showInMenuBar: Bool {
+        get {
+            defaults.networkProtectionSettingShowInMenuBar
+        }
+
+        set {
+            defaults.networkProtectionSettingShowInMenuBar = newValue
         }
     }
 
