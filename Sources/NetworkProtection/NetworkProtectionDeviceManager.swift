@@ -44,12 +44,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    public init(tokenStore: NetworkProtectionTokenStore,
+    public init(environment: TunnelSettings.SelectedEnvironment,
+                tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
-        self.init(networkClient: NetworkProtectionBackendClient(),
-                  tokenStore: tokenStore, 
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                  tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
                   errorEvents: errorEvents)

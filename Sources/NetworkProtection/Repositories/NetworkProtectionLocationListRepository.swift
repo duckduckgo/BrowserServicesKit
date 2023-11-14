@@ -27,8 +27,11 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     private let client: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
 
-    convenience public init(tokenStore: NetworkProtectionTokenStore) {
-        self.init(client: NetworkProtectionBackendClient(), tokenStore: tokenStore)
+    convenience public init(environment: TunnelSettings.SelectedEnvironment, tokenStore: NetworkProtectionTokenStore) {
+        self.init(
+            client: NetworkProtectionBackendClient(environment: environment),
+            tokenStore: tokenStore
+        )
     }
 
     init(client: NetworkProtectionClient, tokenStore: NetworkProtectionTokenStore) {

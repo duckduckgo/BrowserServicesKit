@@ -20,6 +20,16 @@ import XCTest
 @testable import NetworkProtection
 
 final class NetworkProtectionClientTests: XCTestCase {
+    var testDefaults: UserDefaults!
+    var tunnelSettings: TunnelSettings!
+    var client: NetworkProtectionBackendClient!
+
+    override func setUp() {
+        super.setUp()
+        testDefaults = UserDefaults(suiteName: "com.duckduckgo.browserserviceskit.tests.\(String(describing: type(of: self)))")!
+        tunnelSettings = TunnelSettings(defaults: testDefaults)
+        client = NetworkProtectionBackendClient(environment: .default)
+    }
 
     override class func setUp() {
         super.setUp()
@@ -45,7 +55,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     // MARK: register
 
     func testRegister401Response_ThrowsInvalidTokenError() async {
-        let client = NetworkProtectionBackendClient()
         let emptyData = "".data(using: .utf8)!
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.registerKeyURL, statusCode: 401)!,
                                                    .success(emptyData))
@@ -62,7 +71,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     // MARK: servers
 
     func testGetServer401Response_ThrowsInvalidTokenError() async {
-        let client = NetworkProtectionBackendClient()
         let emptyData = "".data(using: .utf8)!
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.serversURL, statusCode: 401)!,
                                                    .success(emptyData))
@@ -78,7 +86,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     // MARK: redeem(inviteCode:)
 
     func testRedeemSuccess() async {
-        let client = NetworkProtectionBackendClient()
         let token = "a6s7ad6ad76aasa7s6a"
         let successData = redeemSuccessData(token: token)
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
@@ -90,7 +97,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     }
 
     func testRedeem400Response() async {
-        let client = NetworkProtectionBackendClient()
         let emptyData = "".data(using: .utf8)!
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 400)!,
                                                    .success(emptyData))
@@ -104,7 +110,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     }
 
     func testRedeemNon200Or400Response() async {
-        let client = NetworkProtectionBackendClient()
         let emptyData = "".data(using: .utf8)!
 
         for code in [401, 304, 500] {
@@ -121,7 +126,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     }
 
     func testRedeemDecodeFailure() async {
-        let client = NetworkProtectionBackendClient()
         let undecodableData = "sdfghj".data(using: .utf8)!
         MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
                                                    .success(undecodableData))
@@ -145,7 +149,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     // MARK: locations(authToken:)
 
     func testLocationsSuccess() async {
-        let client = NetworkProtectionBackendClient()
         let successData = TestData.mockLocations
         MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
                                                    .success(successData))
@@ -156,7 +159,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     }
 
     func testLocations401Response() async {
-        let client = NetworkProtectionBackendClient()
         let emptyData = "".data(using: .utf8)!
         MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.locationsURL, statusCode: 401)!,
                                                    .success(emptyData))
@@ -170,7 +172,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     }
 
     func testLocationsNon200Or400Response() async {
-        let client = NetworkProtectionBackendClient()
         let emptyData = "".data(using: .utf8)!
 
         for code in [304, 500] {
@@ -187,7 +188,6 @@ final class NetworkProtectionClientTests: XCTestCase {
     }
 
     func testLocationsDecodeFailure() async {
-        let client = NetworkProtectionBackendClient()
         let undecodableData = "sdfghj".data(using: .utf8)!
         MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
                                                    .success(undecodableData))

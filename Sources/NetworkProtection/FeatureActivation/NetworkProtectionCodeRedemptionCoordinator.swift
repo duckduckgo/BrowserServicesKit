@@ -32,10 +32,11 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
     private let versionStore: NetworkProtectionLastVersionRunStore
     private let errorEvents: EventMapping<NetworkProtectionError>
 
-    convenience public init(tokenStore: NetworkProtectionTokenStore,
-                versionStore: NetworkProtectionLastVersionRunStore = .init(),
-                errorEvents: EventMapping<NetworkProtectionError>) {
-        self.init(networkClient: NetworkProtectionBackendClient(),
+    convenience public init(environment: TunnelSettings.SelectedEnvironment,
+                            tokenStore: NetworkProtectionTokenStore,
+                            versionStore: NetworkProtectionLastVersionRunStore = .init(),
+                            errorEvents: EventMapping<NetworkProtectionError>) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
                   tokenStore: tokenStore,
                   versionStore: versionStore,
                   errorEvents: errorEvents)
