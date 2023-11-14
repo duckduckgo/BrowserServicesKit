@@ -131,14 +131,15 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
     }
 
-    /// Registers the client with a server following the specified server selection method.  Returns the precise server that was selected and the keyPair to use
-    /// for the tunnel configuration.
-    ///
-    /// - Parameters:
-    ///     - selectionMethod: the server selection method
-    ///     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
-    ///
-    /// - Throws:`NetworkProtectionError`
+    // Registers the client with a server following the specified server selection method.  Returns the precise server that was selected and the keyPair to use
+    // for the tunnel configuration.
+    //
+    // - Parameters:
+    //     - selectionMethod: the server selection method
+    //     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
+    //
+    // - Throws:`NetworkProtectionError`
+    // This cannot be a doc comment because of the swiftlint command below
     // swiftlint:disable cyclomatic_complexity
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
