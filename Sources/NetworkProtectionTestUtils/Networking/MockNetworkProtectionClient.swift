@@ -58,7 +58,6 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         return stubGetServers
     }
 
-    // swiftlint:disable:next large_tuple
     public var spyRegister: (authToken: String, requestBody: NetworkProtection.RegisterKeyRequestBody)?
     public var registerCalled: Bool {
         spyRegister != nil
