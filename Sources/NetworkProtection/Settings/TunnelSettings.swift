@@ -34,6 +34,7 @@ public final class TunnelSettings {
         case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
         case setSelectedServer(_ selectedServer: SelectedServer)
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
+        case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -61,6 +62,22 @@ public final class TunnelSettings {
             switch self {
             case .nearest: return nil
             case .location(let location): return location
+            }
+        }
+    }
+
+    public enum SelectedEnvironment: String, Codable {
+        case production
+        case staging
+
+        public static var `default`: SelectedEnvironment = .production
+
+        public var endpointURL: URL {
+            switch self {
+            case .production:
+                return URL(string: "https://controller.netp.duckduckgo.com")!
+            case .staging:
+                return URL(string: "https://staging1.netp.duckduckgo.com")!
             }
         }
     }
@@ -93,12 +110,17 @@ public final class TunnelSettings {
             Change.setSelectedLocation(location)
         }.eraseToAnyPublisher()
 
+        let environmentChangePublisher = selectedEnvironmentPublisher.map { environment in
+            Change.setSelectedEnvironment(environment)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
             excludeLocalNetworksPublisher,
             serverChangePublisher,
-            locationChangePublisher).eraseToAnyPublisher()
+            locationChangePublisher,
+            environmentChangePublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -113,6 +135,7 @@ public final class TunnelSettings {
         defaults.resetNetworkProtectionSettingIncludeAllNetworks()
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
+        defaults.resetNetworkProtectionSettingSelectedEnvironment()
     }
 
     // MARK: - Applying Changes
@@ -131,6 +154,8 @@ public final class TunnelSettings {
             self.selectedServer = selectedServer
         case .setSelectedLocation(let selectedLocation):
             self.selectedLocation = selectedLocation
+        case .setSelectedEnvironment(let selectedEnvironment):
+            self.selectedEnvironment = selectedEnvironment
         }
     }
 
@@ -231,6 +256,22 @@ public final class TunnelSettings {
 
         set {
             defaults.networkProtectionSettingSelectedLocation = newValue
+        }
+    }
+
+    // MARK: - Environment
+
+    public var selectedEnvironmentPublisher: AnyPublisher<SelectedEnvironment, Never> {
+        defaults.networkProtectionSettingSelectedEnvironmentPublisher
+    }
+
+    public var selectedEnvironment: SelectedEnvironment {
+        get {
+            defaults.networkProtectionSettingSelectedEnvironment
+        }
+
+        set {
+            defaults.networkProtectionSettingSelectedEnvironment = newValue
         }
     }
 
