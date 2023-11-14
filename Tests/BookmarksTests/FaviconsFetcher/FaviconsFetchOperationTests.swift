@@ -47,7 +47,7 @@ final class MockFaviconFetcher: FaviconFetching {
     }
 }
 
-final class MockFetcherStateStore: BookmarkFaviconsFetcherStateStoring {
+final class MockFetcherStateStore: BookmarksFaviconsFetcherStateStoring {
     var bookmarkIDs: Set<String> = []
     var getError: Error?
     var storeError: Error?

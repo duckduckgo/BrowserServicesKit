@@ -54,7 +54,7 @@ public final class BookmarksFaviconsFetcher {
 
     public init(
         database: CoreDataDatabase,
-        stateStore: BookmarkFaviconsFetcherStateStoring,
+        stateStore: BookmarksFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
         store: FaviconStoring,
         errorEvents: EventMapping<BookmarksFaviconsFetcherError>?,
@@ -156,7 +156,7 @@ public final class BookmarksFaviconsFetcher {
 
     private let errorEvents: EventMapping<BookmarksFaviconsFetcherError>?
     private let database: CoreDataDatabase
-    private let stateStore: BookmarkFaviconsFetcherStateStoring
+    private let stateStore: BookmarksFaviconsFetcherStateStoring
     private let fetcher: FaviconFetching
     private let faviconStore: FaviconStoring
 

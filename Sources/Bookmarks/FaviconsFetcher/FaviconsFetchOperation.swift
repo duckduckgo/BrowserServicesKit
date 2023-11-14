@@ -53,7 +53,7 @@ class FaviconsFetchOperation: Operation {
 
     init(
         database: CoreDataDatabase,
-        stateStore: BookmarkFaviconsFetcherStateStoring,
+        stateStore: BookmarksFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
         faviconStore: FaviconStoring,
         log: @escaping @autoclosure () -> OSLog = .disabled
@@ -264,7 +264,7 @@ class FaviconsFetchOperation: Operation {
     private let lock = NSRecursiveLock()
 
     private let database: CoreDataDatabase
-    private let stateStore: BookmarkFaviconsFetcherStateStoring
+    private let stateStore: BookmarksFaviconsFetcherStateStoring
     private let fetcher: FaviconFetching
     private let faviconStore: FaviconStoring
 

@@ -1,5 +1,5 @@
 //
-//  BookmarkFaviconsFetcherStateStore.swift
+//  BookmarksFaviconsFetcherStateStore.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -19,12 +19,12 @@
 
 import Foundation
 
-public protocol BookmarkFaviconsFetcherStateStoring: AnyObject {
+public protocol BookmarksFaviconsFetcherStateStoring: AnyObject {
     func getBookmarkIDs() throws -> Set<String>
     func storeBookmarkIDs(_ ids: Set<String>) throws
 }
 
-public class BookmarkFaviconsFetcherStateStore: BookmarkFaviconsFetcherStateStoring {
+public class BookmarksFaviconsFetcherStateStore: BookmarksFaviconsFetcherStateStoring {
 
     let dataDirectoryURL: URL
     let missingIDsFileURL: URL
