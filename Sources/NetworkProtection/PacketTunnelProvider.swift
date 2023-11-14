@@ -496,8 +496,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let onDemand = options.startupMethod == .automaticOnDemand
 
         os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
-        startTunnel(environment: settings.selectedEnvironment, 
-                    selectedServer: settings.selectedServer,
+        startTunnel(environment: settings.selectedEnvironment,
                     onDemand: onDemand,
                     completionHandler: completionHandler)
     }
@@ -524,7 +523,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return serverSelectionMethod
     }
 
-    private func startTunnel(environment: TunnelSettings.SelectedEnvironment, selectedServer: TunnelSettings.SelectedServer, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    private func startTunnel(environment: TunnelSettings.SelectedEnvironment, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
         Task {
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
