@@ -1,0 +1,22 @@
+[
+    {
+        "country":"us",
+        "cities":
+        [
+            {
+                "name":"Newark"
+            },
+            {
+                "name":"El Segundo"
+            }
+        ]
+    },
+    {
+        "country":"nl",
+        "cities": [
+            {
+                "name":"Rotterdam"
+            }
+        ]
+    }
+]
