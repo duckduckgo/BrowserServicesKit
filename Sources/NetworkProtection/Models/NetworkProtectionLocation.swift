@@ -23,16 +23,7 @@ public struct NetworkProtectionLocation: Codable, Equatable, Sendable {
     public let country: String
     public let cities: [City]
 
-    enum CodingKeys: String, CodingKey {
-        case country
-        case cities
-    }
-
     public struct City: Codable, Equatable, Sendable {
         public let name: String
-
-        enum CodingKeys: String, CodingKey {
-            case name
-        }
     }
 }
