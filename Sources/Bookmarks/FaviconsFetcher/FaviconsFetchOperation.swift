@@ -86,8 +86,6 @@ class FaviconsFetchOperation: Operation {
             do {
                 try await fetchFavicons()
                 didFinish?(nil)
-            } catch is CancellationError {
-                didFinish?(nil)
             } catch {
                 didFinish?(error)
             }

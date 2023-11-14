@@ -24,49 +24,6 @@ import Persistence
 import XCTest
 @testable import Bookmarks
 
-struct StoreError: Error {}
-
-class MockFaviconStore: FaviconStoring {
-    var hasFavicon: (String) -> Bool = { _ in false }
-    var storeFavicon: (Data, URL?, URL) async throws -> Void = { _, _, _ in }
-
-    func hasFavicon(for domain: String) -> Bool {
-        hasFavicon(domain)
-    }
-
-    func storeFavicon(_ imageData: Data, with url: URL?, for documentURL: URL) async throws {
-        try await storeFavicon(imageData, url, documentURL)
-    }
-}
-
-final class MockFaviconFetcher: FaviconFetching {
-    var fetchFavicon: (URL) async throws -> (Data?, URL?) = { _ in (nil, nil) }
-
-    func fetchFavicon(for url: URL) async throws -> (Data?, URL?) {
-        try await fetchFavicon(url)
-    }
-}
-
-final class MockFetcherStateStore: BookmarksFaviconsFetcherStateStoring {
-    var bookmarkIDs: Set<String> = []
-    var getError: Error?
-    var storeError: Error?
-
-    func getBookmarkIDs() throws -> Set<String> {
-        if let getError {
-            throw getError
-        }
-        return bookmarkIDs
-    }
-
-    func storeBookmarkIDs(_ ids: Set<String>) throws {
-        if let storeError {
-            throw storeError
-        }
-        bookmarkIDs = ids
-    }
-}
-
 final class FaviconsFetchOperationTests: XCTestCase {
     var bookmarksDatabase: CoreDataDatabase!
     var location: URL!

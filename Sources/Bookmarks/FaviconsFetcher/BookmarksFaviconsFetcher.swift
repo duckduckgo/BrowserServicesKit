@@ -45,6 +45,13 @@ public enum BookmarksFaviconsFetcherError: CustomNSError {
             return 255
         }
     }
+
+    public var underlyingError: Error {
+        switch self {
+        case .failedToStoreBookmarkIDs(let error), .failedToRetrieveBookmarkIDs(let error), .other(let error):
+            return error
+        }
+    }
 }
 
 public final class BookmarksFaviconsFetcher {
@@ -56,14 +63,14 @@ public final class BookmarksFaviconsFetcher {
         database: CoreDataDatabase,
         stateStore: BookmarksFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
-        store: FaviconStoring,
+        faviconStore: FaviconStoring,
         errorEvents: EventMapping<BookmarksFaviconsFetcherError>?,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.database = database
         self.stateStore = stateStore
         self.fetcher = fetcher
-        self.faviconStore = store
+        self.faviconStore = faviconStore
         self.errorEvents = errorEvents
         self.getLog = log
 
@@ -84,7 +91,11 @@ public final class BookmarksFaviconsFetcher {
                 try self.stateStore.storeBookmarkIDs(allBookmarkIDs)
             } catch {
                 os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
-                self.errorEvents?.fire(.failedToStoreBookmarkIDs(error))
+                if let fetcherError = error as? BookmarksFaviconsFetcherError {
+                    self.errorEvents?.fire(fetcherError)
+                } else {
+                    self.errorEvents?.fire(.other(error))
+                }
             }
         }
     }
@@ -97,7 +108,11 @@ public final class BookmarksFaviconsFetcher {
                 try self.stateStore.storeBookmarkIDs(ids)
             } catch {
                 os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
-                self.errorEvents?.fire(.failedToStoreBookmarkIDs(error))
+                if let fetcherError = error as? BookmarksFaviconsFetcherError {
+                    self.errorEvents?.fire(fetcherError)
+                } else {
+                    self.errorEvents?.fire(.other(error))
+                }
             }
         }
     }
