@@ -179,7 +179,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
             let result = await client.getLocations(authToken: "DH76F8S")
 
-            guard case .failure(let error) = result, case .failedToFetchLocationList(_) = error else {
+            guard case .failure(let error) = result, case .failedToFetchLocationList = error else {
                 XCTFail("Expected a failedToFetchLocationList error to be thrown")
                 return
             }
@@ -194,7 +194,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
         let result = await client.getLocations(authToken: "DH76F8S")
 
-        guard case .failure(let error) = result, case .failedToParseLocationListResponse(_) = error else {
+        guard case .failure(let error) = result, case .failedToParseLocationListResponse = error else {
             XCTFail("Expected a failedToRedeemInviteCode error to be thrown")
             return
         }
