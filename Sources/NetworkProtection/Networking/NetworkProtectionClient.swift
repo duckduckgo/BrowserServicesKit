@@ -98,7 +98,7 @@ struct RedeemResponse: Decodable {
     let token: String
 }
 
-public final class NetworkProtectionBackendClient: NetworkProtectionClient {
+final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     private enum DecoderError: Error {
         case failedToDecode(key: String)
@@ -141,7 +141,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     private let endpointURL: URL
 
-    public init(environment: TunnelSettings.SelectedEnvironment = .default) {
+    init(environment: TunnelSettings.SelectedEnvironment = .default) {
         endpointURL = environment.endpointURL
     }
 
