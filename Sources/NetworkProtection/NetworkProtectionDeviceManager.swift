@@ -139,7 +139,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     ///     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
     ///
     /// - Throws:`NetworkProtectionError`
-    ///
+    // swiftlint:disable cyclomatic_complexity
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
 
@@ -211,6 +211,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             return (cachedServer, keyPair)
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     /// Retrieves the first cached server that's registered with the specified key pair.
     ///
