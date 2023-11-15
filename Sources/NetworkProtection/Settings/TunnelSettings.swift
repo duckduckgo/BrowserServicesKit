@@ -19,6 +19,8 @@
 import Combine
 import Foundation
 
+// swiftlint:disable type_body_length file_length
+
 /// Persists and publishes changes to tunnel settings.
 ///
 /// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `TunnelSettingsUpdater`
@@ -168,6 +170,7 @@ public final class TunnelSettings {
 
     // MARK: - Applying Changes
 
+    // swiftlint:disable:next cyclomatic_complexity
     public func apply(change: Change) {
         switch change {
         case .setConnectOnLogin(let connectOnLogin):
@@ -405,3 +408,5 @@ public final class TunnelSettings {
         .exclusion(range: "40.114.177.156/32", default: false),
     ]
 }
+
+// swiftlint:enable type_body_length file_length
