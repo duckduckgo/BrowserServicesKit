@@ -38,6 +38,7 @@ public final class TunnelSettings {
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
+        case setShowVPNSettings(_ showVPNSettings: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -129,6 +130,10 @@ public final class TunnelSettings {
             Change.setShowInMenuBar(showInMenuBar)
         }.eraseToAnyPublisher()
 
+        let showVPNSettingsPublisher = showVPNSettingsPublisher.map { showVPNSettings in
+            Change.setShowVPNSettings(showVPNSettings)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
@@ -138,7 +143,8 @@ public final class TunnelSettings {
             serverChangePublisher,
             locationChangePublisher,
             environmentChangePublisher,
-            showInMenuBarPublisher).eraseToAnyPublisher()
+            showInMenuBarPublisher,
+            showVPNSettingsPublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -157,6 +163,7 @@ public final class TunnelSettings {
         defaults.resetNetworkProtectionSettingSelectedServer()
         defaults.resetNetworkProtectionSettingSelectedEnvironment()
         defaults.resetNetworkProtectionSettingShowInMenuBar()
+        defaults.resetNetworkProtectionSettingShowVPNSettings()
     }
 
     // MARK: - Applying Changes
@@ -183,6 +190,8 @@ public final class TunnelSettings {
             self.selectedEnvironment = selectedEnvironment
         case .setShowInMenuBar(let showInMenuBar):
             self.showInMenuBar = showInMenuBar
+        case .setShowVPNSettings(let showVPNSettings):
+            self.showVPNSettings = showVPNSettings
         }
     }
 
@@ -331,6 +340,22 @@ public final class TunnelSettings {
 
         set {
             defaults.networkProtectionSettingShowInMenuBar = newValue
+        }
+    }
+
+    // MARK: - Show VPN Settings
+
+    public var showVPNSettingsPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingShowVPNSettingsPublisher
+    }
+
+    public var showVPNSettings: Bool {
+        get {
+            defaults.networkProtectionSettingShowVPNSettings
+        }
+
+        set {
+            defaults.networkProtectionSettingShowVPNSettings = newValue
         }
     }
 
