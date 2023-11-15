@@ -25,7 +25,11 @@ import Persistence
 
 class FaviconsFetchOperation: Operation {
 
-   var didStart: (() -> Void)? {
+    enum Const {
+        static let maximumConcurrentFetches = 10
+    }
+
+    var didStart: (() -> Void)? {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -93,9 +97,9 @@ class FaviconsFetchOperation: Operation {
     }
 
     func fetchFavicons() async throws {
-        var ids = try stateStore.getBookmarkIDs()
+        var idsToProcess = try stateStore.getBookmarkIDs()
 
-        guard !ids.isEmpty else {
+        guard !idsToProcess.isEmpty else {
             os_log(.debug, log: log, "No new Favicons to fetch")
             return
         }
@@ -105,10 +109,10 @@ class FaviconsFetchOperation: Operation {
             os_log(.debug, log: log, "Favicons Fetch Operation finished")
         }
 
-        let idsByDomain = mapBookmarkDomainsToUUIDs(for: ids).filter { [weak self] (domain, _) in
+        let idsByDomain = mapBookmarkDomainsToUUIDs(for: idsToProcess).filter { [weak self] (domain, _) in
             self?.faviconStore.hasFavicon(for: domain) == false
         }
-        ids = Set(idsByDomain.values.flatMap { $0 })
+        idsToProcess = Set(idsByDomain.values.flatMap { $0 })
 
         try checkCancellation()
 
@@ -117,25 +121,25 @@ class FaviconsFetchOperation: Operation {
 
         guard !domainsArray.isEmpty else {
             os_log(.debug, log: log, "No favicons to fetch")
-            try stateStore.storeBookmarkIDs(ids)
+            try stateStore.storeBookmarkIDs(idsToProcess)
             return
         }
         os_log(.debug, log: log, "Will try to fetch favicons for %{public}d domains", domainsArray.count)
 
         while !domainsArray.isEmpty {
-            let numberOfDomainsToFetch = min(10, domainsArray.count)
+            let numberOfDomainsToFetch = min(Const.maximumConcurrentFetches, domainsArray.count)
             let domainsToFetch = Array(domainsArray.prefix(upTo: numberOfDomainsToFetch))
             domainsArray = Array(domainsArray.dropFirst(numberOfDomainsToFetch))
 
             let handledIds = try await withThrowingTaskGroup(of: [String].self, returning: Set<String>.self) { group in
                 for domain in domainsToFetch {
                     let url = URL(string: "\(URL.NavigationalScheme.https.separated())\(domain)")
-                    if let ids = idsByDomain[domain], let url {
+                    if let idsForDomain = idsByDomain[domain], let url {
                         group.addTask { [weak self] in
                             guard let self else {
                                 return []
                             }
-                            return try await self.fetchAndStoreFavicon(for: url, bookmarkIds: ids)
+                            return try await self.fetchAndStoreFavicon(for: url, bookmarkIds: idsForDomain)
                         }
                     }
                 }
@@ -147,8 +151,8 @@ class FaviconsFetchOperation: Operation {
                 return results
             }
 
-            ids.subtract(handledIds)
-            try stateStore.storeBookmarkIDs(ids)
+            idsToProcess.subtract(handledIds)
+            try stateStore.storeBookmarkIDs(idsToProcess)
 
             try checkCancellation()
         }

@@ -21,10 +21,6 @@ import Foundation
 import LinkPresentation
 import UniformTypeIdentifiers
 
-public protocol FaviconFetching {
-    func fetchFavicon(for url: URL) async throws -> (Data?, URL?)
-}
-
 public final class FaviconFetcher: NSObject, FaviconFetching {
 
     public override init() {}

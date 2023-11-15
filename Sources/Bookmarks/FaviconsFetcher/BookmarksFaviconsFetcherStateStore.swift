@@ -19,11 +19,6 @@
 
 import Foundation
 
-public protocol BookmarksFaviconsFetcherStateStoring: AnyObject {
-    func getBookmarkIDs() throws -> Set<String>
-    func storeBookmarkIDs(_ ids: Set<String>) throws
-}
-
 public class BookmarksFaviconsFetcherStateStore: BookmarksFaviconsFetcherStateStoring {
 
     let dataDirectoryURL: URL

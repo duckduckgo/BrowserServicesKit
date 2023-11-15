@@ -23,11 +23,46 @@ import CoreData
 import Foundation
 import Persistence
 
+/**
+ * This protocol abstracts favicons fetcher state storing interface.
+ */
+public protocol BookmarksFaviconsFetcherStateStoring: AnyObject {
+    func getBookmarkIDs() throws -> Set<String>
+    func storeBookmarkIDs(_ ids: Set<String>) throws
+}
+
+/**
+ * This protocol abstracts a mechanism of fetching a single favicon
+ */
+public protocol FaviconFetching {
+    /**
+     * Fetch a favicon for a document specified by `url`.
+     *
+     * Returns optional favicon image data and an optional
+     * favicon URL (if the fetcher is able to provide it).
+     */
+    func fetchFavicon(for url: URL) async throws -> (Data?, URL?)
+}
+
+/**
+ * This protocol abstracts favicons storing interface provided by client apps.
+ */
 public protocol FaviconStoring {
+    /**
+     * Returns a boolean value telling whether the store has a cached favicon for a given `domain`.
+     */
     func hasFavicon(for domain: String) -> Bool
+
+    /**
+     * Stores favicon with `imageData` for document specified by `documentURL`.
+     * Optional `url` parameter, if provided, specifies the URL of the favicon.
+     */
     func storeFavicon(_ imageData: Data, with url: URL?, for documentURL: URL) async throws
 }
 
+/**
+ * Errors that may be reported by `BookmarksFaviconsFetcher`.
+ */
 public enum BookmarksFaviconsFetcherError: CustomNSError {
     case failedToStoreBookmarkIDs(Error)
     case failedToRetrieveBookmarkIDs(Error)
@@ -54,6 +89,12 @@ public enum BookmarksFaviconsFetcherError: CustomNSError {
     }
 }
 
+/**
+ * This class manages fetching favicons for bookmarks updated by Sync.
+ *
+ * It takes modified and deleted bookmark IDs as input, fetches bookmarks' URLs,
+ * extracts their domains and fetches favicons for those domains that don't have a favicon cached.
+ */
 public final class BookmarksFaviconsFetcher {
 
     @Published public private(set) var isFetchingInProgress: Bool = false
@@ -83,6 +124,15 @@ public final class BookmarksFaviconsFetcher {
             .assign(to: \.isFetchingInProgress, onWeaklyHeld: self)
     }
 
+    /**
+     * This function should be called right after favicons fetching was turned on.
+     *
+     * This function cancels any pending fetch operation prior to updating fetcher state.
+     *
+     * It sets up initial state by fetching all bookmarks' IDs.
+     * After this function is called, `startFetching` can be called to go through
+     * all bookmarks in the database and process those without a favicon.
+     */
     public func initializeFetcherState() {
         cancelOngoingFetchingIfNeeded()
         operationQueue.addOperation {
@@ -100,6 +150,17 @@ public final class BookmarksFaviconsFetcher {
         }
     }
 
+    /**
+     * This function should be called whenever sync receives new data.
+     *
+     * It is only responsible for updating the fetcher state. Actual fetching
+     * needs `startFetching` to be called after calling this function.
+     *
+     * This function cancels any pending fetch operation prior to updating fetcher state.
+     *
+     * - Parameter modified: IDs of bookmarks that have been modified by Sync.
+     * - Parameter deleted: IDs of bookmarks that have been deleted by Sync.
+     */
     public func updateBookmarkIDs(modified: Set<String>, deleted: Set<String>) {
         cancelOngoingFetchingIfNeeded()
         operationQueue.addOperation {
@@ -117,6 +178,11 @@ public final class BookmarksFaviconsFetcher {
         }
     }
 
+    /**
+     * Starts favicons fetch operation.
+     *
+     * This function cancels any pending fetch operation and schedules a new operation.
+     */
     public func startFetching() {
         cancelOngoingFetchingIfNeeded()
         let operation = FaviconsFetchOperation(
@@ -144,6 +210,9 @@ public final class BookmarksFaviconsFetcher {
         operationQueue.addOperation(operation)
     }
 
+    /**
+     * Cancels any favicons fetching operations that may be in progress or scheduled for running.
+     */
     public func cancelOngoingFetchingIfNeeded() {
         operationQueue.cancelAllOperations()
     }
