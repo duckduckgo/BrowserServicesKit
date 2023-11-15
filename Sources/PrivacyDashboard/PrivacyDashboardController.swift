@@ -26,16 +26,12 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
     case cookiePopupManagement = "cpm"
 }
 
-
-
 public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
 #endif
     
-#if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
-#endif
 }
 
 public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
@@ -43,8 +39,6 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
 }
-
-
 
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
     
@@ -54,18 +48,13 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardControllerDidRequestShowReportBrokenSite(_ privacyDashboardController: PrivacyDashboardController)
 
 #if os(macOS)
-    //???
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetPermission permissionName: String, to state: PermissionAuthorizationState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, setPermission permissionName: String, paused: Bool)
 #endif
     
 }
 
-
-
-
-
-
+// TODO: describe everything
 /// <#Description#>
 @MainActor public final class PrivacyDashboardController: NSObject {
     
@@ -288,9 +277,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
-#if os(macOS)
-        delegate?.privacyDashboardController(self, didSetHeight: height)
-#endif
+        privacyDashboardNavigationDelegate?.privacyDashboardController(self, didSetHeight: height)
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
@@ -299,13 +286,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState) {
 #if os(macOS)
-        delegate?.privacyDashboardController(self, didSetPermission: permission, to: state)
+        privacyDashboardDelegate?.privacyDashboardController(self, didSetPermission: permission, to: state)
 #endif
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool) {
 #if os(macOS)
-        delegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
+        privacyDashboardDelegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
 #endif
     }
 }
