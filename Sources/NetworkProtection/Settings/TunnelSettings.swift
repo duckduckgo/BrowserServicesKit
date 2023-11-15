@@ -32,6 +32,7 @@ public final class TunnelSettings {
         case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
         case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
+        case setNotifyStatusChanges(_ notifyStatusChanges: Bool)
         case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
         case setSelectedServer(_ selectedServer: SelectedServer)
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
@@ -104,6 +105,10 @@ public final class TunnelSettings {
             Change.setExcludeLocalNetworks(excludeLocalNetworks)
         }.eraseToAnyPublisher()
 
+        let notifyStatusChangesPublisher = notifyStatusChangesPublisher.map { notifyStatusChanges in
+            Change.setNotifyStatusChanges(notifyStatusChanges)
+        }.eraseToAnyPublisher()
+
         let registrationKeyValidityPublisher = registrationKeyValidityPublisher.map { validity in
             Change.setRegistrationKeyValidity(validity)
         }.eraseToAnyPublisher()
@@ -129,6 +134,7 @@ public final class TunnelSettings {
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
             excludeLocalNetworksPublisher,
+            notifyStatusChangesPublisher,
             serverChangePublisher,
             locationChangePublisher,
             environmentChangePublisher,
@@ -146,6 +152,7 @@ public final class TunnelSettings {
         defaults.resetNetworkProtectionSettingEnforceRoutes()
         defaults.resetNetworkProtectionSettingExcludeLocalNetworks()
         defaults.resetNetworkProtectionSettingIncludeAllNetworks()
+        defaults.resetNetworkProtectionSettingNotifyStatusChanges()
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
         defaults.resetNetworkProtectionSettingSelectedEnvironment()
@@ -164,6 +171,8 @@ public final class TunnelSettings {
             self.excludeLocalNetworks = excludeLocalNetworks
         case .setIncludeAllNetworks(let includeAllNetworks):
             self.includeAllNetworks = includeAllNetworks
+        case .setNotifyStatusChanges(let notifyStatusChanges):
+            self.notifyStatusChanges = notifyStatusChanges
         case .setRegistrationKeyValidity(let registrationKeyValidity):
             self.registrationKeyValidity = registrationKeyValidity
         case .setSelectedServer(let selectedServer):
@@ -322,6 +331,22 @@ public final class TunnelSettings {
 
         set {
             defaults.networkProtectionSettingShowInMenuBar = newValue
+        }
+    }
+
+    // MARK: - Notify Status Changes
+
+    public var notifyStatusChangesPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionNotifyStatusChangesPublisher
+    }
+
+    public var notifyStatusChanges: Bool {
+        get {
+            defaults.networkProtectionNotifyStatusChanges
+        }
+
+        set {
+            defaults.networkProtectionNotifyStatusChanges = newValue
         }
     }
 

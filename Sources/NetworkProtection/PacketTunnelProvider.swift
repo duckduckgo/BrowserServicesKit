@@ -97,7 +97,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard connectionStatus != oldValue else {
                 return
             }
-            if case .connected = connectionStatus {
+            if case .connected = connectionStatus,
+               self.settings.notifyStatusChanges {
                 self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServerInfo?.serverLocation)
             }
             connectionStatusPublisher.send(connectionStatus)
@@ -244,7 +245,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.latencyReporter.stop()
 
                 if failureCount == 1 {
-                    self.notificationsPresenter.showReconnectingNotification()
+                    if self.settings.notifyStatusChanges {
+                        self.notificationsPresenter.showReconnectingNotification()
+                    }
 
                     // Only do these things if this is not a connection startup test.
                     if !isStartupTest {
@@ -583,9 +586,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task { [weak self] in
-                await self?.handleAdapterStopped()
-                if case .superceded = reason {
-                    self?.notificationsPresenter.showSupersededNotification()
+                if let self {
+                    await self.handleAdapterStopped()
+
+                    if case .superceded = reason,
+                       self.settings.notifyStatusChanges {
+                        self.notificationsPresenter.showSupersededNotification()
+                    }
                 }
 
                 completionHandler()
@@ -827,6 +834,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setIncludeAllNetworks,
                 .setEnforceRoutes,
                 .setExcludeLocalNetworks,
+                .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
                 .setShowInMenuBar:
