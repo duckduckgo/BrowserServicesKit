@@ -49,7 +49,7 @@ public final class FaviconFetcher: NSObject, FaviconFetching {
                 continuation.resume(returning: nil)
                 return
             }
-            iconProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { data, error in
+            iconProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { data, _ in
                 guard let data = data as? Data else {
                     continuation.resume(returning: nil)
                     return

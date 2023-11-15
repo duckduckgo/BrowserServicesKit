@@ -240,7 +240,12 @@ open class DataProvider: DataProviding {
         }
     }
 
-    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void = {}, syncDidFinish: @escaping () -> Void = {}) {
+    public init(
+        feature: Feature,
+        metadataStore: SyncMetadataStore,
+        syncDidUpdateData: @escaping () -> Void = {},
+        syncDidFinish: @escaping () -> Void = {}
+    ) {
         self.feature = feature
         self.metadataStore = metadataStore
         self.syncDidUpdateData = syncDidUpdateData

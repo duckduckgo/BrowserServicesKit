@@ -90,7 +90,7 @@ final class FaviconsFetchOperationTests: XCTestCase {
             return (Data(), nil)
         }
 
-        faviconStore.storeFavicon = { _,_,_ in
+        faviconStore.storeFavicon = { _, _, _ in
             storeFaviconExpectation.fulfill()
         }
 
@@ -119,7 +119,7 @@ final class FaviconsFetchOperationTests: XCTestCase {
             return domain == "1.com"
         }
 
-        faviconStore.storeFavicon = { _,_,_ in
+        faviconStore.storeFavicon = { _, _, _ in
             storeFaviconExpectation.fulfill()
         }
 
@@ -196,7 +196,7 @@ final class FaviconsFetchOperationTests: XCTestCase {
             return (Data(), nil)
         }
 
-        faviconStore.storeFavicon = { _,_,_ in
+        faviconStore.storeFavicon = { _, _, _ in
             storeFaviconExpectation.fulfill()
         }
 
@@ -280,7 +280,7 @@ final class FaviconsFetchOperationTests: XCTestCase {
             return (Data(), nil)
         }
 
-        faviconStore.storeFavicon = { _,_,_ in
+        faviconStore.storeFavicon = { _, _, _ in
             throw StoreError()
         }
 

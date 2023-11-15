@@ -184,4 +184,3 @@ public final class BookmarksFaviconsFetcher {
     }
     private let getLog: () -> OSLog
 }
-

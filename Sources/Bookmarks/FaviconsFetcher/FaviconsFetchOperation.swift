@@ -188,7 +188,6 @@ class FaviconsFetchOperation: Operation {
         }
     }
 
-
     private func checkCancellation() throws {
         if isCancelled {
             throw CancellationError()
