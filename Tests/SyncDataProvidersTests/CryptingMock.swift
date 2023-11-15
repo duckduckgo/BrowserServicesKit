@@ -23,14 +23,16 @@ import Foundation
 
 struct CryptingMock: Crypting {
 
+    static let reservedFolderIDs = Set(FavoritesFolderID.allCases.map(\.rawValue)).union([BookmarkEntity.Constants.rootFolderID])
+
     var _encryptAndBase64Encode: (String) throws -> String = { value in
-        if [BookmarkEntity.Constants.favoritesFolderID, BookmarkEntity.Constants.rootFolderID].contains(value) {
+        if Self.reservedFolderIDs.contains(value) {
             return value
         }
         return "encrypted_\(value)"
     }
     var _base64DecodeAndDecrypt: (String) throws -> String = { value in
-        if [BookmarkEntity.Constants.favoritesFolderID, BookmarkEntity.Constants.rootFolderID].contains(value) {
+        if Self.reservedFolderIDs.contains(value) {
             return value
         }
         return value.dropping(prefix: "encrypted_")

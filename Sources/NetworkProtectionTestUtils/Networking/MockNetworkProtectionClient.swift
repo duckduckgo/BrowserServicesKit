@@ -18,12 +18,29 @@
 //
 
 import Foundation
-import NetworkProtection
+@testable import NetworkProtection
 
 // swiftlint:disable line_length
 public final class MockNetworkProtectionClient: NetworkProtectionClient {
+    public init() {
+    }
+
+    public var spyGetLocationsAuthToken: String?
+    public var stubGetLocations: Result<[NetworkProtection.NetworkProtectionLocation], NetworkProtection.NetworkProtectionClientError> = .success([])
+    public var getLocationsCalled: Bool {
+        spyGetLocationsAuthToken != nil
+    }
+
+    public func getLocations(authToken: String) async -> Result<[NetworkProtection.NetworkProtectionLocation], NetworkProtection.NetworkProtectionClientError> {
+        spyGetLocationsAuthToken = authToken
+        return stubGetLocations
+    }
+    
     public var spyRedeemInviteCode: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
+    public var redeemCalled: Bool {
+        spyRedeemInviteCode != nil
+    }
 
     public func redeem(inviteCode: String) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
         spyRedeemInviteCode = inviteCode
@@ -32,18 +49,23 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
 
     public var spyGetServersAuthToken: String?
     public var stubGetServers: Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> = .success([])
+    public var getServersCalled: Bool {
+        spyGetServersAuthToken != nil
+    }
 
     public func getServers(authToken: String) async -> Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> {
         spyGetServersAuthToken = authToken
         return stubGetServers
     }
 
-    // swiftlint:disable:next large_tuple
-    public var spyRegister: (authToken: String, publicKey: NetworkProtection.PublicKey, serverName: String?)?
+    public var spyRegister: (authToken: String, requestBody: NetworkProtection.RegisterKeyRequestBody)?
+    public var registerCalled: Bool {
+        spyRegister != nil
+    }
     public var stubRegister: Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> = .success([])
 
-    public func register(authToken: String, publicKey: NetworkProtection.PublicKey, withServerNamed serverName: String?) async -> Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> {
-        spyRegister = (authToken: authToken, publicKey: publicKey, serverName: serverName)
+    public func register(authToken: String, requestBody: NetworkProtection.RegisterKeyRequestBody) async -> Result<[NetworkProtection.NetworkProtectionServer], NetworkProtection.NetworkProtectionClientError> {
+        spyRegister = (authToken: authToken, requestBody: requestBody)
         return stubRegister
     }
 }

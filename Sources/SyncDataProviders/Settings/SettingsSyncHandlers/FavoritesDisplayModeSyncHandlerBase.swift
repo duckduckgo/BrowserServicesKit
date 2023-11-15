@@ -1,5 +1,5 @@
 //
-//  MockNetworkProtectionTokenStorage.swift
+//  FavoritesDisplayModeSyncHandlerBase.swift
 //  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
@@ -17,34 +17,16 @@
 //  limitations under the License.
 //
 
+import Bookmarks
 import Foundation
-import NetworkProtection
 
-public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStore {
+extension SettingsProvider.Setting {
+    static let favoritesDisplayMode = SettingsProvider.Setting(key: "favorites_display_mode")
+}
 
-    public init() {
-        
-    }
+open class FavoritesDisplayModeSyncHandlerBase: SettingSyncHandler {
 
-    var spyToken: String?
-    var storeError: Error?
-
-    public func store(_ token: String) throws {
-        if let storeError {
-            throw storeError
-        }
-        spyToken = token
-    }
-
-    var stubFetchToken: String?
-
-    public func fetchToken() throws -> String? {
-        return stubFetchToken
-    }
-
-    var didCallDeleteToken: Bool = false
-
-    public func deleteToken() throws {
-        didCallDeleteToken = true
+    open override var setting: SettingsProvider.Setting {
+        .favoritesDisplayMode
     }
 }

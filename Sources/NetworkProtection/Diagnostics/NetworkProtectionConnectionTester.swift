@@ -268,8 +268,6 @@ final class NetworkProtectionConnectionTester {
         if onlyVPNIsDown {
             os_log("👎 VPN is DOWN", log: log)
             await handleDisconnected(isStartupTest: isStartupTest)
-            os_log("Throwing exception", log: log)
-            throw TesterError.connectionTestFailed
         } else {
             os_log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")", log: log)
 

@@ -113,7 +113,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Settings
 
-    private let settings = TunnelSettings(defaults: .standard)
+    private let settings: TunnelSettings
 
     // MARK: - Server Selection
 
@@ -165,7 +165,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.resetRegistrationKey()
 
         do {
-            try await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+            try await updateTunnelConfiguration(reassert: false)
         } catch {
             os_log("Rekey attempt failed.  This is not an error if you're using debug Key Management options: %{public}@", log: .networkProtectionKeyManagement, type: .error, String(describing: error))
         }
@@ -299,7 +299,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
-                providerEvents: EventMapping<Event>) {
+                providerEvents: EventMapping<Event>,
+                tunnelSettings: TunnelSettings = TunnelSettings(defaults: .standard)) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -309,8 +310,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
+        self.settings = tunnelSettings
 
         super.init()
+
+        tunnelSettings.changePublisher
+            .sink { [weak self] change in
+                self?.handleSettingsChange(change)
+            }.store(in: &cancellables)
     }
 
     deinit {
@@ -489,28 +496,39 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let onDemand = options.startupMethod == .automaticOnDemand
 
         os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
-        startTunnel(environment: settings.selectedEnvironment, 
-                    selectedServer: settings.selectedServer,
+        startTunnel(environment: settings.selectedEnvironment,
                     onDemand: onDemand,
                     completionHandler: completionHandler)
     }
 
-    private func startTunnel(environment: TunnelSettings.SelectedEnvironment, selectedServer: TunnelSettings.SelectedServer, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    var currentServerSelectionMethod: NetworkProtectionServerSelectionMethod {
+        var serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
+        switch settings.selectedLocation {
+        case .nearest:
+            serverSelectionMethod = .automatic
+        case .location(let networkProtectionSelectedLocation):
+            serverSelectionMethod = .preferredLocation(networkProtectionSelectedLocation)
+        }
+
+        switch settings.selectedServer {
+        case .automatic:
+            break
+        case .endpoint(let string):
+            // Selecting a specific server will override locations setting
+            // Only available in debug
+            serverSelectionMethod = .preferredServer(serverName: string)
+        }
+
+        return serverSelectionMethod
+    }
+
+    private func startTunnel(environment: TunnelSettings.SelectedEnvironment, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
         Task {
-            let serverSelectionMethod: NetworkProtectionServerSelectionMethod
-
-            switch settings.selectedServer {
-            case .automatic:
-                serverSelectionMethod = .automatic
-            case .endpoint(let serverName):
-                serverSelectionMethod = .preferredServer(serverName: serverName)
-            }
-
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
                 let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
-                                                                                serverSelectionMethod: serverSelectionMethod,
+                                                                                serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: excludedRoutes ?? [])
                 startTunnel(with: tunnelConfiguration, onDemand: onDemand, completionHandler: completionHandler)
@@ -635,7 +653,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Configuration
 
-    public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, selectedServer: TunnelSettings.SelectedServer, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, reassert: Bool = true) async throws {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
         switch settings.selectedServer {
@@ -764,16 +782,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleRequest(_ request: ExtensionRequest, completionHandler: ((Data?) -> Void)? = nil) {
         switch request {
         case .changeTunnelSetting(let change):
-            handleSettingsChange(change, completionHandler: completionHandler)
+            handleSettingChangeAppRequest(change, completionHandler: completionHandler)
         case .debugCommand(let command):
             handleDebugCommand(command, completionHandler: completionHandler)
         }
     }
 
-    private func handleSettingsChange(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
-
+    private func handleSettingChangeAppRequest(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         settings.apply(change: change)
+        handleSettingsChange(change, completionHandler: completionHandler)
+    }
 
+    private func handleSettingsChange(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setSelectedServer(let selectedServer):
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
@@ -787,6 +807,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             Task {
                 try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                completionHandler?(nil)
+            }
+        case .setSelectedLocation(let selectedLocation):
+            let serverSelectionMethod: NetworkProtectionServerSelectionMethod
+
+            switch selectedLocation {
+            case .nearest:
+                serverSelectionMethod = .automatic
+            case .location(let location):
+                serverSelectionMethod = .preferredLocation(location)
+            }
+
+            Task {
+                try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
                 completionHandler?(nil)
             }
         case .setConnectOnLogin,
@@ -902,7 +936,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.excludedRoutes = excludedRoutes
-            try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+            try? await updateTunnelConfiguration(reassert: false)
             completionHandler?(nil)
         }
     }
@@ -910,7 +944,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.includedRoutes = includedRoutes
-            try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+            try? await updateTunnelConfiguration(reassert: false)
             completionHandler?(nil)
         }
     }

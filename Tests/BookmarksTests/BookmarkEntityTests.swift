@@ -56,10 +56,10 @@ final class BookmarkEntityTests: XCTestCase {
             try! context.save()
 
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+            let favoritesFolders = BookmarkEntity.Constants.favoriteFoldersIDs.map { BookmarkUtils.fetchFavoritesFolder(withUUID: $0, in: context)! }
 
             XCTAssertNil(rootFolder.modifiedAt)
-            XCTAssertNil(favoritesFolder.modifiedAt)
+            XCTAssertTrue(favoritesFolders.allSatisfy { $0.modifiedAt == nil })
         }
     }
 
