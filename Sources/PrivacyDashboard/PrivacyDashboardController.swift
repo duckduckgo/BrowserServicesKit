@@ -42,7 +42,7 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
 }
 
-/// `Privacy Dasboard` oweb page delegate
+/// `Privacy Dasboard` web page delegate
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
     
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch protectionState: ProtectionState)
@@ -57,12 +57,12 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 }
 
 /// This controller provides two type of user experiences
-/// 1- `Privacy Dashboard` with teh possibility to navigate to the `Report broken site` page
+/// 1- `Privacy Dashboard` with the possibility to navigate to the `Report broken site` page
 /// 2- Direct access to the `Report broken site` page
 /// Which flow is used is decided at `setup(...)` time, where if `reportBrokenSiteOnly` is true then the `Report broken site` page is opened directly.
 @MainActor public final class PrivacyDashboardController: NSObject {
     
-    //Delegates
+    // Delegates
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
     public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
     public weak var privacyDashboardReportBrokenSiteDelegate: PrivacyDashboardReportBrokenSiteDelegate?
