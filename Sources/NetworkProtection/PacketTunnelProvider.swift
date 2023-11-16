@@ -635,6 +635,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Configuration
 
+    @MainActor
     public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, selectedServer: TunnelSettings.SelectedServer, reassert: Bool = true) async throws {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
@@ -648,6 +649,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try await updateTunnelConfiguration(environment: environment, serverSelectionMethod: serverSelectionMethod, reassert: reassert)
     }
 
+    @MainActor
     public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
 
         let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
@@ -683,6 +685,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    @MainActor
     private func generateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
 
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
@@ -786,7 +789,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
-                try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                if case .connected = connectionStatus {
+                    try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                }
                 completionHandler?(nil)
             }
         case .setIncludeAllNetworks,
@@ -858,7 +863,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard let serverName else {
                 if case .endpoint = settings.selectedServer {
                     settings.selectedServer = .automatic
-                    try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
+
+                    if case .connected = connectionStatus {
+                        try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
+                    }
                 }
                 completionHandler?(nil)
                 return
@@ -870,7 +878,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             settings.selectedServer = .endpoint(serverName)
-            try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
+            }
             completionHandler?(nil)
         }
     }
@@ -900,7 +910,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.excludedRoutes = excludedRoutes
-            try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+            }
+
             completionHandler?(nil)
         }
     }
@@ -908,7 +922,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.includedRoutes = includedRoutes
-            try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(selectedServer: settings.selectedServer, reassert: false)
+            }
+
             completionHandler?(nil)
         }
     }
