@@ -827,8 +827,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
-                .setShowInMenuBar,
-                .setShowVPNSettings:
+                .setShowInMenuBar:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
