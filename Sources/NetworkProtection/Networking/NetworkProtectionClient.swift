@@ -141,7 +141,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     private let endpointURL: URL
 
-    init(environment: TunnelSettings.SelectedEnvironment = .default) {
+    init(environment: VPNSettings.SelectedEnvironment = .default) {
         endpointURL = environment.endpointURL
     }
 

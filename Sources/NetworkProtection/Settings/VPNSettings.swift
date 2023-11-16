@@ -1,5 +1,5 @@
 //
-//  TunnelSettings.swift
+//  VPNSettings.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -23,11 +23,11 @@ import Foundation
 
 /// Persists and publishes changes to tunnel settings.
 ///
-/// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `TunnelSettingsUpdater`
+/// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `VPNSettings`
 /// can then detect settings changes using KVO even if they're applied by a different process or even by the user through
 /// the command line.
 ///
-public final class TunnelSettings {
+public final class VPNSettings {
 
     public enum Change: Codable {
         case setConnectOnLogin(_ connectOnLogin: Bool)

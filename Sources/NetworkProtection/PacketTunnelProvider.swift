@@ -97,8 +97,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard connectionStatus != oldValue else {
                 return
             }
-            if case .connected = connectionStatus,
-               self.settings.notifyStatusChanges {
+            if case .connected = connectionStatus {
                 self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServerInfo?.serverLocation)
             }
             connectionStatusPublisher.send(connectionStatus)
@@ -114,7 +113,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Settings
 
-    private let settings: TunnelSettings
+    private let settings: VPNSettings
 
     // MARK: - Server Selection
 
@@ -245,9 +244,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.latencyReporter.stop()
 
                 if failureCount == 1 {
-                    if self.settings.notifyStatusChanges {
-                        self.notificationsPresenter.showReconnectingNotification()
-                    }
+                    self.notificationsPresenter.showReconnectingNotification()
 
                     // Only do these things if this is not a connection startup test.
                     if !isStartupTest {
@@ -303,7 +300,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
-                tunnelSettings: TunnelSettings = TunnelSettings(defaults: .standard)) {
+                settings: VPNSettings) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -313,11 +310,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
-        self.settings = tunnelSettings
+        self.settings = settings
 
         super.init()
 
-        tunnelSettings.changePublisher
+        settings.changePublisher
             .sink { [weak self] change in
                 self?.handleSettingsChange(change)
             }.store(in: &cancellables)
@@ -526,7 +523,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return serverSelectionMethod
     }
 
-    private func startTunnel(environment: TunnelSettings.SelectedEnvironment, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    private func startTunnel(environment: VPNSettings.SelectedEnvironment, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
         Task {
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
@@ -589,8 +586,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 if let self {
                     await self.handleAdapterStopped()
 
-                    if case .superceded = reason,
-                       self.settings.notifyStatusChanges {
+                    if case .superceded = reason {
                         self.notificationsPresenter.showSupersededNotification()
                     }
                 }
@@ -660,7 +656,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Configuration
 
-    public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, reassert: Bool = true) async throws {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
         switch settings.selectedServer {
@@ -673,7 +669,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try await updateTunnelConfiguration(environment: environment, serverSelectionMethod: serverSelectionMethod, reassert: reassert)
     }
 
-    public func updateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
 
         let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
                                                                         serverSelectionMethod: serverSelectionMethod,
@@ -708,7 +704,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func generateTunnelConfiguration(environment: TunnelSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
+    private func generateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
 
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
 
@@ -795,12 +791,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func handleSettingChangeAppRequest(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSettingChangeAppRequest(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         settings.apply(change: change)
         handleSettingsChange(change, completionHandler: completionHandler)
     }
 
-    private func handleSettingsChange(_ change: TunnelSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setSelectedServer(let selectedServer):
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
