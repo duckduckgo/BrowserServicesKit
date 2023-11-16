@@ -1,6 +1,5 @@
 //
-//  MockNetworkProtectionTokenStorage.swift
-//  DuckDuckGo
+//  NetworkProtectionSelectedLocation.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,33 +17,13 @@
 //
 
 import Foundation
-import NetworkProtection
 
-public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStore {
+public struct NetworkProtectionSelectedLocation: Codable, Equatable {
+    public let country: String
+    public let city: String?
 
-    public init() {
-        
-    }
-
-    var spyToken: String?
-    var storeError: Error?
-
-    public func store(_ token: String) throws {
-        if let storeError {
-            throw storeError
-        }
-        spyToken = token
-    }
-
-    var stubFetchToken: String?
-
-    public func fetchToken() throws -> String? {
-        return stubFetchToken
-    }
-
-    var didCallDeleteToken: Bool = false
-
-    public func deleteToken() throws {
-        didCallDeleteToken = true
+    public init(country: String, city: String? = nil) {
+        self.country = country
+        self.city = city
     }
 }

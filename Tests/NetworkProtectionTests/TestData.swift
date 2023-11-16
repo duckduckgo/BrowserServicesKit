@@ -28,6 +28,10 @@ final class TestData {
         return loadData(named: "servers-updated-endpoint.json")!
     }
 
+    static var mockLocations: Data {
+        return loadData(named: "locations-endpoint.json")!
+    }
+
     private static func loadData(named name: String) -> Data? {
         guard let resourceUrl = Bundle.module.resourceURL else { return nil }
 
