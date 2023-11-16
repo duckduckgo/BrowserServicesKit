@@ -314,6 +314,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         super.init()
 
         settings.changePublisher
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] change in
                 self?.handleSettingsChange(change)
             }.store(in: &cancellables)
@@ -645,6 +646,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Configuration
 
+    @MainActor
     public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, reassert: Bool = true) async throws {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
@@ -658,6 +660,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try await updateTunnelConfiguration(environment: environment, serverSelectionMethod: serverSelectionMethod, reassert: reassert)
     }
 
+    @MainActor
     public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
 
         let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
@@ -693,6 +696,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    @MainActor
     private func generateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
 
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
@@ -804,7 +808,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
-                try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                if case .connected = connectionStatus  {
+                    try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                }
                 completionHandler?(nil)
             }
         case .setSelectedLocation(let selectedLocation):
@@ -818,7 +824,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
-                try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
+                if case .connected = connectionStatus  {
+                    try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
+                }
                 completionHandler?(nil)
             }
         case .setConnectOnLogin,
@@ -892,7 +900,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard let serverName else {
                 if case .endpoint = settings.selectedServer {
                     settings.selectedServer = .automatic
-                    try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
+
+                    if case .connected = connectionStatus {
+                        try? await updateTunnelConfiguration(serverSelectionMethod: .automatic)
+                    }
                 }
                 completionHandler?(nil)
                 return
@@ -904,7 +915,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             settings.selectedServer = .endpoint(serverName)
-            try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
+            if case .connected = connectionStatus  {
+                try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
+            }
             completionHandler?(nil)
         }
     }
@@ -934,7 +947,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             self.includedRoutes = includedRoutes
-            try? await updateTunnelConfiguration(reassert: false)
+
+            if case .connected = connectionStatus  {
+                try? await updateTunnelConfiguration(reassert: false)
+            }
             completionHandler?(nil)
         }
     }
