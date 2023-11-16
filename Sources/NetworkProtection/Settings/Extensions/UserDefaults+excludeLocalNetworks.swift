@@ -24,10 +24,12 @@ extension UserDefaults {
         "networkProtectionSettingExcludeLocalNetworks"
     }
 
+    static let excludeLocalNetworksDefaultValue = true
+
     @objc
     dynamic var networkProtectionSettingExcludeLocalNetworks: Bool {
         get {
-            bool(forKey: excludeLocalNetworksKey)
+            value(forKey: excludeLocalNetworksKey) as? Bool ?? Self.excludeLocalNetworksDefaultValue
         }
 
         set {
