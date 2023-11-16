@@ -26,6 +26,7 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
     case cookiePopupManagement = "cpm"
 }
 
+/// Navigation delegate for the pages provided by the PrivacyDashboardController
 public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
@@ -34,12 +35,14 @@ public protocol PrivacyDashboardNavigationDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
 }
 
+/// `Report broken site` web page delegate
 public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
     
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
 }
 
+/// `Privacy Dasboard` oweb page delegate
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
     
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didChangeProtectionSwitch protectionState: ProtectionState)
@@ -51,11 +54,12 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetPermission permissionName: String, to state: PermissionAuthorizationState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, setPermission permissionName: String, paused: Bool)
 #endif
-    
 }
 
-// TODO: describe everything
-/// <#Description#>
+/// This controller provides two type of user experiences
+/// 1- `Privacy Dashboard` with teh possibility to navigate to the `Report broken site` page
+/// 2- Direct access to the `Report broken site` page
+/// Which flow is used is decided at `setup(...)` time, where if `reportBrokenSiteOnly` is true then the `Report broken site` page is opened directly.
 @MainActor public final class PrivacyDashboardController: NSObject {
     
     //Delegates
@@ -76,6 +80,10 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         self.privacyInfo = privacyInfo
     }
     
+    /// Configure the webview for showing `Privacy Dasboard` or `Report broken site`
+    /// - Parameters:
+    ///   - webView: The webview to use
+    ///   - reportBrokenSiteOnly: true = `Report broken site`, false = `Privacy Dasboard`
     public func setup(for webView: WKWebView, reportBrokenSiteOnly: Bool) {
         self.webView = webView
         webView.navigationDelegate = self
