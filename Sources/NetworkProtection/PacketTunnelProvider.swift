@@ -126,7 +126,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>.init(nil)
 
     private var includedRoutes: [IPAddressRange]?
-    private var excludedRoutes: [IPAddressRange]?
 
     // MARK: - User Notifications
 
@@ -427,17 +426,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func loadRoutes(from options: [String: Any]?) {
         self.includedRoutes = (options?[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:)) ?? []
-
-        self.excludedRoutes = (options?[NetworkProtectionOptionKey.excludedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:))
-        ?? [ // fallback to default local network exclusions
-            "10.0.0.0/8",     // 255.0.0.0
-            "172.16.0.0/12",  // 255.240.0.0
-            "192.168.0.0/16", // 255.255.0.0
-            "169.254.0.0/16", // 255.255.0.0 : Link-local
-            "127.0.0.0/8",    // 255.0.0.0 : Loopback
-            "224.0.0.0/4",    // 240.0.0.0 : Multicast
-            "100.64.0.0/16",  // 255.255.0.0 : Shared Address Space
-        ]
     }
 
     // MARK: - Tunnel Start
@@ -527,10 +515,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
+                os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
                 let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
                                                                                 serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
-                                                                                excludedRoutes: excludedRoutes ?? [])
+                                                                                excludedRoutes: settings.excludedRanges)
                 startTunnel(with: tunnelConfiguration, onDemand: onDemand, completionHandler: completionHandler)
                 os_log("🔵 Done generating tunnel config", log: .networkProtection, type: .info)
             } catch {
@@ -674,7 +663,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
                                                                         serverSelectionMethod: serverSelectionMethod,
                                                                         includedRoutes: includedRoutes ?? [],
-                                                                        excludedRoutes: excludedRoutes ?? [])
+                                                                        excludedRoutes: settings.excludedRanges ?? [])
 
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             guard let self = self else {
@@ -765,8 +754,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleResetAllState(completionHandler: completionHandler)
         case .triggerTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
-        case .setExcludedRoutes(let excludedRoutes):
-            setExcludedRoutes(excludedRoutes, completionHandler: completionHandler)
+        case .setExcludedRoutes:
+            // No longer supported, will remove, but keeping the enum to prevent ABI issues
+            completionHandler?(nil)
         case .setIncludedRoutes(let includedRoutes):
             setIncludedRoutes(includedRoutes, completionHandler: completionHandler)
         case .simulateTunnelFailure:
@@ -798,6 +788,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
+        case .setExcludeLocalNetworks:
+            Task {
+                try? await updateTunnelConfiguration(reassert: false)
+                completionHandler?(nil)
+            }
         case .setSelectedServer(let selectedServer):
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
 
@@ -829,7 +824,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
                 .setEnforceRoutes,
-                .setExcludeLocalNetworks,
                 .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
@@ -936,14 +930,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleSendTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
         completionHandler?(nil)
-    }
-
-    private func setExcludedRoutes(_ excludedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
-        Task {
-            self.excludedRoutes = excludedRoutes
-            try? await updateTunnelConfiguration(reassert: false)
-            completionHandler?(nil)
-        }
     }
 
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {

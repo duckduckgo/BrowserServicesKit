@@ -380,33 +380,27 @@ public final class VPNSettings {
 
     // MARK: - Routes
 
-    public enum ExclusionListItem {
-        case section(String)
-        case exclusion(range: NetworkProtection.IPAddressRange, description: String? = nil, `default`: Bool)
+    public var excludedRoutes: [RoutingRange] {
+        var ipv4Ranges = RoutingRange.alwaysExcludedIPv4Ranges
+
+        if excludeLocalNetworks {
+            ipv4Ranges += RoutingRange.localNetworkRanges
+        }
+
+        return ipv4Ranges + RoutingRange.alwaysExcludedIPv6Ranges
     }
 
-    public let exclusionList: [ExclusionListItem] = [
-        .section("IPv4 Local Routes"),
-
-        .exclusion(range: "10.0.0.0/8"     /* 255.0.0.0 */, description: "disabled for enforceRoutes", default: true),
-        .exclusion(range: "172.16.0.0/12"  /* 255.240.0.0 */, default: true),
-        .exclusion(range: "192.168.0.0/16" /* 255.255.0.0 */, default: true),
-        .exclusion(range: "169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local", default: true),
-        .exclusion(range: "127.0.0.0/8"    /* 255.0.0.0 */, description: "Loopback", default: true),
-        .exclusion(range: "224.0.0.0/4"    /* 240.0.0.0 (corrected subnet mask) */, description: "Multicast", default: true),
-        .exclusion(range: "100.64.0.0/16"  /* 255.255.0.0 */, description: "Shared Address Space", default: true),
-
-        .section("IPv6 Local Routes"),
-        .exclusion(range: "fe80::/10", description: "link local", default: false),
-        .exclusion(range: "ff00::/8", description: "multicast", default: false),
-        .exclusion(range: "fc00::/7", description: "local unicast", default: false),
-        .exclusion(range: "::1/128", description: "loopback", default: false),
-
-        .section("duckduckgo.com"),
-        .exclusion(range: "52.142.124.215/32", default: false),
-        .exclusion(range: "52.250.42.157/32", default: false),
-        .exclusion(range: "40.114.177.156/32", default: false),
-    ]
+    public var excludedRanges: [IPAddressRange] {
+        excludedRoutes.compactMap { entry in
+            switch entry {
+            case .section:
+                // Nothing to map
+                return nil
+            case .range(let range, _):
+                return range
+            }
+        }
+    }
 }
 
 // swiftlint:enable type_body_length file_length
