@@ -102,7 +102,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleOpenSettings(message: message)
         }
     }
-    
+
     // MARK: - JS message handlers
 
     private func handleSetProtection(message: WKScriptMessage) {
@@ -114,7 +114,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
         delegate?.userScript(self, didChangeProtectionState: protectionState)
     }
-    
+
     private func handleSetSize(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let height = dict["height"] as? Int else {
@@ -128,11 +128,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     private func handleClose() {
         delegate?.userScriptDidRequestClosing(self)
     }
-    
+
     private func handleShowReportBrokenSite() {
         delegate?.userScriptDidRequestShowReportBrokenSite(self)
     }
-    
+
     private func handleSubmitBrokenSiteReport(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let category = dict["category"] as? String,
@@ -143,7 +143,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
         delegate?.userScript(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
-    
+
     private func handleOpenUrlInNewTab(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let urlString = dict["url"] as? String,
@@ -192,7 +192,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     }
 
     // MARK: - Calls to script's JS API
-    
+
     func setTrackerInfo(_ tabUrl: URL, trackerInfo: TrackerInfo, webView: WKWebView) {
         guard let trackerBlockingDataJson = try? JSONEncoder().encode(trackerInfo).utf8String() else {
             assertionFailure("Can't encode trackerInfoViewModel into JSON")
@@ -212,7 +212,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("Can't encode mockProtectionStatus into JSON")
             return
         }
-        
+
         evaluate(js: "window.onChangeProtectionStatus(\(protectionStatusJson))", in: webView)
     }
 
@@ -254,19 +254,19 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     func setIsPendingUpdates(_ isPendingUpdates: Bool, webView: WKWebView) {
         evaluate(js: "window.onIsPendingUpdates(\(isPendingUpdates))", in: webView)
     }
-    
+
     func setLocale(_ currentLocale: String, webView: WKWebView) {
         struct LocaleSetting: Encodable {
             var locale: String
         }
-        
+
         guard let localeSettingJson = try? JSONEncoder().encode(LocaleSetting(locale: currentLocale)).utf8String() else {
             assertionFailure("Can't encode consentInfo into JSON")
             return
         }
         evaluate(js: "window.onChangeLocale(\(localeSettingJson))", in: webView)
     }
-    
+
     func setConsentManaged(_ consentManaged: CookieConsentInfo?, webView: WKWebView) {
         guard let consentDataJson = try? JSONEncoder().encode(consentManaged).utf8String() else {
             assertionFailure("Can't encode consentInfo into JSON")
@@ -274,13 +274,13 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
         evaluate(js: "window.onChangeConsentManaged(\(consentDataJson))", in: webView)
     }
-    
+
     func setPermissions(allowedPermissions: [AllowedPermission], webView: WKWebView) {
         guard let allowedPermissionsJson = try? JSONEncoder().encode(allowedPermissions).utf8String() else {
             assertionFailure("PrivacyDashboardUserScript: could not serialize permissions object")
             return
         }
-        
+
         self.evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
     }
 
