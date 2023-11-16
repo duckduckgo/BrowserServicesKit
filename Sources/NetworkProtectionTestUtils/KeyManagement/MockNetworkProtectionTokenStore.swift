@@ -22,6 +22,10 @@ import NetworkProtection
 
 public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStore {
 
+    public init() {
+        
+    }
+
     var spyToken: String?
     var storeError: Error?
 

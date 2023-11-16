@@ -104,8 +104,10 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       httpBody: Data?,
                       timeoutInterval: TimeInterval) async throws -> Data
 
-    func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError)
-    
+    func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
+                                          accessType: EmailKeychainAccessType, 
+                                          error: EmailKeychainAccessError)
+
 }
 // swiftlint:enable function_parameter_count
 
@@ -164,6 +166,7 @@ public class EmailManager {
     
     public enum NotificationParameter {
         public static let cohort = "cohort"
+        public static let isForcedSignOut = "isForcedSignOut"
     }
     
     private lazy var emailUrls = EmailUrls()
@@ -184,7 +187,7 @@ public class EmailManager {
             return try storage.getUsername()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getUsername, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getUsername, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -203,7 +206,7 @@ public class EmailManager {
             return try storage.getToken()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getToken, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getToken, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -222,7 +225,7 @@ public class EmailManager {
             return try storage.getAlias()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getAlias, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getAlias, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -241,7 +244,7 @@ public class EmailManager {
             return try storage.getCohort()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getCohort, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getCohort, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -260,7 +263,7 @@ public class EmailManager {
             return try storage.getLastUseDate() ?? ""
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getLastUseData, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getLastUseData, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -281,7 +284,7 @@ public class EmailManager {
             try storage.store(lastUseDate: dateString)
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeLastUseDate, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .storeLastUseDate, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -314,7 +317,7 @@ public class EmailManager {
         dateFormatter.timeZone = TimeZone(identifier: "America/New_York") // Use ET time zone
     }
     
-    public func signOut() throws {
+    public func signOut(isForced: Bool = false) throws {
         Self.lock.lock()
         defer {
             Self.lock.unlock()
@@ -331,17 +334,22 @@ public class EmailManager {
             if let currentCohortValue = currentCohortValue {
                 notificationParameters[NotificationParameter.cohort] = currentCohortValue
             }
+            notificationParameters[NotificationParameter.isForcedSignOut] = isForced ? "true" : nil
 
             NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
 
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAuthenticationState, error: error)
+                self.requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .deleteAuthenticationState, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
             throw error
         }
+    }
+
+    public func forceSignOut() {
+        try? signOut(isForced: true)
     }
 
     public func emailAddressFor(_ alias: String) -> String {
@@ -540,7 +548,7 @@ public extension EmailManager {
 
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeTokenUsernameCohort, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .storeTokenUsernameCohort, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -597,7 +605,7 @@ private extension EmailManager {
             try storage.deleteAlias()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAlias, error: error)
+                self.requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .deleteAlias, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -642,7 +650,7 @@ private extension EmailManager {
                 try self.storage.store(alias: alias)
             } catch {
                 if let error = error as? EmailKeychainAccessError {
-                    self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeAlias, error: error)
+                    self.requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .storeAlias, error: error)
                 } else {
                     assertionFailure("Expected EmailKeychainAccessFailure")
                 }

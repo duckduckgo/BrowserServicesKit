@@ -111,6 +111,7 @@ private extension DistributedNavigationDelegate {
     static var sigIntRaisedForResponders = Set<String>()
 #endif
 
+    // swiftlint:disable function_parameter_count
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
     func makeAsyncDecision<T>(for actionDebugInfo: some CustomDebugStringConvertible,
                               boundToLifetimeOf webView: WKWebView,
@@ -171,6 +172,7 @@ private extension DistributedNavigationDelegate {
 
         return task
     }
+    // swiftlint:enable function_parameter_count
 
     func makeAsyncDecision<T>(for actionDebugInfo: some CustomDebugStringConvertible,
                               boundToLifetimeOf webView: WKWebView,

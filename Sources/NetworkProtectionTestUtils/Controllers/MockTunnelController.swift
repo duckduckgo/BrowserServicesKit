@@ -32,4 +32,8 @@ public final class MockTunnelController: TunnelController {
     public func stop() async {
         didCallStop = true
     }
+
+    public var isConnected: Bool {
+        true
+    }
 }

@@ -24,6 +24,7 @@ public enum NetworkProtectionServerSelectionMethod {
     case automatic
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
+    case preferredLocation(NetworkProtectionSelectedLocation)
 }
 
 public protocol NetworkProtectionDeviceManagement {
@@ -35,59 +36,6 @@ public protocol NetworkProtectionDeviceManagement {
 
 }
 
-protocol NetworkProtectionErrorConvertible {
-    var networkProtectionError: NetworkProtectionError { get }
-}
-
-public enum NetworkProtectionError: LocalizedError {
-    // Tunnel configuration errors
-    case noServerRegistrationInfo
-    case couldNotSelectClosestServer
-    case couldNotGetPeerPublicKey
-    case couldNotGetPeerHostName
-    case couldNotGetInterfaceAddressRange
-
-    // Client errors
-    case failedToFetchServerList(Error?)
-    case failedToParseServerListResponse(Error)
-    case failedToEncodeRegisterKeyRequest
-    case failedToFetchRegisteredServers(Error?)
-    case failedToParseRegisteredServersResponse(Error)
-    case failedToEncodeRedeemRequest
-    case invalidInviteCode
-    case failedToRedeemInviteCode(Error?)
-    case failedToParseRedeemResponse(Error)
-    case invalidAuthToken
-    case serverListInconsistency
-
-    // Server list store errors
-    case failedToEncodeServerList(Error)
-    case failedToDecodeServerList(Error)
-    case failedToWriteServerList(Error)
-    case noServerListFound
-    case couldNotCreateServerListDirectory(Error)
-    case failedToReadServerList(Error)
-
-    // Keychain errors
-    case failedToCastKeychainValueToData(field: String)
-    case keychainReadError(field: String, status: Int32)
-    case keychainWriteError(field: String, status: Int32)
-    case keychainDeleteError(status: Int32)
-
-    // Auth errors
-    case noAuthTokenFound
-
-    // Unhandled error
-    case unhandledError(function: String, line: Int, error: Error)
-
-    public var errorDescription: String? {
-        // This is probably not the most elegant error to show to a user but
-        // it's a great way to get detailed reports for those cases we haven't
-        // provided good descriptions for yet.
-        return "NetworkProtectionError.\(String(describing: self))"
-    }
-}
-
 public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
@@ -96,11 +44,23 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    public init(networkClient: NetworkProtectionClient = NetworkProtectionBackendClient(),
+    public init(environment: TunnelSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                  tokenStore: tokenStore,
+                  keyStore: keyStore,
+                  serverListStore: serverListStore,
+                  errorEvents: errorEvents)
+    }
+
+    init(networkClient: NetworkProtectionClient,
+         tokenStore: NetworkProtectionTokenStore,
+         keyStore: NetworkProtectionKeyStore,
+         serverListStore: NetworkProtectionServerListStore? = nil,
+         errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
@@ -171,39 +131,45 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
     }
 
-    /// Registers the client with a server following the specified server selection method.  Returns the precise server that was selected and the keyPair to use
-    /// for the tunnel configuration.
-    ///
-    /// - Parameters:
-    ///     - selectionMethod: the server selection method
-    ///     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
-    ///
-    /// - Throws:`NetworkProtectionError`
-    ///
+    // Registers the client with a server following the specified server selection method.  Returns the precise server that was selected and the keyPair to use
+    // for the tunnel configuration.
+    //
+    // - Parameters:
+    //     - selectionMethod: the server selection method
+    //     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
+    //
+    // - Throws:`NetworkProtectionError`
+    // This cannot be a doc comment because of the swiftlint command below
+    // swiftlint:disable cyclomatic_complexity
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
 
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        var keyPair = keyStore.currentKeyPair()
 
-        let selectedServerName: String?
+        let serverSelection: RegisterServerSelection
         let excludedServerName: String?
 
         switch selectionMethod {
         case .automatic:
-            selectedServerName = nil
+            serverSelection = .automatic
             excludedServerName = nil
         case .preferredServer(let serverName):
-            selectedServerName = serverName
+            serverSelection = .server(name: serverName)
             excludedServerName = nil
         case .avoidServer(let serverToAvoid):
-            selectedServerName = nil
+            serverSelection = .automatic
             excludedServerName = serverToAvoid
+        case .preferredLocation(let location):
+            serverSelection = .location(country: location.country, city: location.city)
+            excludedServerName = nil
         }
 
-        var keyPair = keyStore.currentKeyPair()
+        let requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey,
+                                                 serverSelection: serverSelection)
+
         let registeredServersResult = await networkClient.register(authToken: token,
-                                                                   publicKey: keyPair.publicKey,
-                                                                   withServerNamed: selectedServerName)
+                                                                   requestBody: requestBody)
         let selectedServer: NetworkProtectionServer
 
         switch registeredServersResult {
@@ -246,6 +212,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             return (cachedServer, keyPair)
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     /// Retrieves the first cached server that's registered with the specified key pair.
     ///

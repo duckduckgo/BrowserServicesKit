@@ -63,7 +63,7 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertNil(emailManagerStorage.mockToken)
     }
 
-    func testThatEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
+    func testWhenEmailProtectionIsEnabledLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
         let emailManager = EmailManager(storage: emailManagerStorage)
         try emailManager.signIn(username: "dax-local", token: "secret-token-local")
 
@@ -97,5 +97,69 @@ final class SettingsInitialSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertNil(emailMetadata.lastModified)
         XCTAssertEqual(emailManagerStorage.mockUsername, "dax")
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token")
+    }
+
+    func testThatSettingStateIsAppliedLocally() async throws {
+        testSettingSyncHandler.syncedValue = nil
+
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        try await handleInitialSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "remote")
+    }
+
+    func testThatDeletedSettingIsIgnoredWhenLocallyIsNil() async throws {
+        testSettingSyncHandler.syncedValue = nil
+
+        let received: [Syncable] = [
+            .testSettingDeleted()
+        ]
+
+        try await handleInitialSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertNil(testSettingSyncHandler.syncedValue)
+    }
+
+    func testWhenSettingIsNotNilLocallyAndRemotelyThenRemoteStateIsApplied() async throws {
+        testSettingSyncHandler.syncedValue = "local"
+
+        let received: [Syncable] = [
+            .testSetting("remote")
+        ]
+
+        try await handleInitialSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "remote")
+    }
+
+    func testThatSettingValueIsDeduplicated() async throws {
+        testSettingSyncHandler.syncedValue = "local"
+
+        let received: [Syncable] = [
+            .testSetting("local")
+        ]
+
+        try await handleInitialSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        let testSettingMetadata = try XCTUnwrap(settingsMetadata.first)
+        XCTAssertNil(testSettingMetadata.lastModified)
+        XCTAssertEqual(testSettingSyncHandler.syncedValue, "local")
     }
 }

@@ -38,7 +38,7 @@ final class SettingsResponseHandler {
     init(
         received: [Syncable],
         clientTimestamp: Date? = nil,
-        settingsHandlers: [SettingsProvider.Setting: any SettingsSyncHandling],
+        settingsHandlers: [SettingsProvider.Setting: any SettingSyncHandling],
         context: NSManagedObjectContext,
         crypter: Crypting,
         deduplicateEntities: Bool
@@ -119,5 +119,5 @@ final class SettingsResponseHandler {
         }
     }
 
-    private let settingsHandlers: [SettingsProvider.Setting: any SettingsSyncHandling]
+    private let settingsHandlers: [SettingsProvider.Setting: any SettingSyncHandling]
 }

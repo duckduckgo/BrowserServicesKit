@@ -18,15 +18,17 @@
 
 import Foundation
 
-public protocol NetworkProtectionClient {
+protocol NetworkProtectionClient {
     func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
+    func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
-                  publicKey: PublicKey,
-                  withServerNamed serverName: String?) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
+                  requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
 }
 
 public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertible {
+    case failedToFetchLocationList(Error?)
+    case failedToParseLocationListResponse(Error)
     case failedToFetchServerList(Error?)
     case failedToParseServerListResponse(Error)
     case failedToEncodeRegisterKeyRequest
@@ -40,6 +42,8 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
+        case .failedToFetchLocationList(let error): return .failedToFetchLocationList(error)
+        case .failedToParseLocationListResponse(let error): return .failedToParseLocationListResponse(error)
         case .failedToFetchServerList(let error): return .failedToFetchServerList(error)
         case .failedToParseServerListResponse(let error): return .failedToParseServerListResponse(error)
         case .failedToEncodeRegisterKeyRequest: return .failedToEncodeRegisterKeyRequest
@@ -57,11 +61,33 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
 struct RegisterKeyRequestBody: Encodable {
     let publicKey: String
     let server: String?
+    let country: String?
+    let city: String?
 
-    init(publicKey: PublicKey, server: String?) {
+    init(publicKey: PublicKey,
+         serverSelection: RegisterServerSelection) {
         self.publicKey = publicKey.base64Key
-        self.server = server
+        switch serverSelection {
+        case .automatic:
+            server = nil
+            country = nil
+            city = nil
+        case .server(let name):
+            server = name
+            country = nil
+            city = nil
+        case .location(let country, let city):
+            server = nil
+            self.country = country
+            self.city = city
+        }
     }
+}
+
+enum RegisterServerSelection {
+    case automatic
+    case server(name: String)
+    case location(country: String, city: String?)
 }
 
 struct RedeemRequestBody: Encodable {
@@ -72,27 +98,26 @@ struct RedeemResponse: Decodable {
     let token: String
 }
 
-public final class NetworkProtectionBackendClient: NetworkProtectionClient {
-
-    enum Constants {
-        static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
-        static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
-    }
+final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     private enum DecoderError: Error {
         case failedToDecode(key: String)
     }
 
     var serversURL: URL {
-        Constants.productionEndpoint.appending("/servers")
+        endpointURL.appending("/servers")
+    }
+
+    var locationsURL: URL {
+        endpointURL.appending("/locations")
     }
 
     var registerKeyURL: URL {
-        Constants.productionEndpoint.appending("/register")
+        endpointURL.appending("/register")
     }
 
     var redeemURL: URL {
-        Constants.productionEndpoint.appending("/redeem")
+        endpointURL.appending("/redeem")
     }
 
     private let decoder: JSONDecoder = {
@@ -114,9 +139,40 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         return decoder
     }()
 
-    public init() {}
+    private let endpointURL: URL
 
-    public func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
+    init(environment: TunnelSettings.SelectedEnvironment = .default) {
+        endpointURL = environment.endpointURL
+    }
+
+    func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
+        var request = URLRequest(url: locationsURL)
+        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let downloadedData: Data
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let response = response as? HTTPURLResponse else {
+                return .failure(.failedToFetchLocationList(nil))
+            }
+            switch response.statusCode {
+            case 200: downloadedData = data
+            case 401: return .failure(.invalidAuthToken)
+            default: return .failure(.failedToFetchLocationList(nil))
+            }
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToFetchLocationList(error))
+        }
+
+        do {
+            let decodedLocations = try decoder.decode([NetworkProtectionLocation].self, from: downloadedData)
+            return .success(decodedLocations)
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToParseLocationListResponse(error))
+        }
+    }
+
+    func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
@@ -143,10 +199,8 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    public func register(authToken: String,
-                         publicKey: PublicKey,
-                         withServerNamed serverName: String? = nil) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
-        let requestBody = RegisterKeyRequestBody(publicKey: publicKey, server: serverName)
+    func register(authToken: String,
+                  requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         let requestBodyData: Data
 
         do {
@@ -185,7 +239,7 @@ public final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
+    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
         let requestBody = RedeemRequestBody(code: inviteCode)
         let requestBodyData: Data
         do {

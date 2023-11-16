@@ -216,6 +216,7 @@ public class DDGSync: DDGSyncing {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     private func updateAccount(_ account: SyncAccount? = nil) throws {
         guard account?.state != .initializing else {
             assertionFailure("Sync has not been initialized properly")
@@ -248,6 +249,9 @@ public class DDGSync: DDGSyncing {
         dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
 
         syncQueueCancellable = syncQueue.isSyncInProgressPublisher
+            .handleEvents(receiveCancel: { [weak self] in
+                self?.isSyncInProgress = false
+            })
             .sink(receiveCompletion: { [weak self] _ in
                 self?.isSyncInProgress = false
             }, receiveValue: { [weak self] isInProgress in
@@ -257,6 +261,13 @@ public class DDGSync: DDGSyncing {
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
                 self?.syncQueue?.startSync()
+            }
+
+        syncQueueRequestErrorCancellable = syncQueue.syncHTTPRequestErrorPublisher
+            .sink { [weak self] error in
+                // Safe to try? because the error is reported to Sync Data Provider anyway
+                // and here we only care about logging the user out of Sync
+                try? self?.handleUnauthenticated(error)
             }
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
@@ -298,4 +309,5 @@ public class DDGSync: DDGSyncing {
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
+    private var syncQueueRequestErrorCancellable: AnyCancellable?
 }

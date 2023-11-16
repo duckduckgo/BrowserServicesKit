@@ -17,23 +17,11 @@
 //
 
 import Foundation
-
+/*
 protocol NetworkProtectionSelectedServerStore: AnyObject {
-
+    
     var selectedServer: SelectedNetworkProtectionServer { get set }
     func reset()
-}
-
-public enum SelectedNetworkProtectionServer: Equatable {
-    case automatic
-    case endpoint(String)
-
-    public var stringValue: String? {
-        switch self {
-        case .automatic: return nil
-        case .endpoint(let endpoint): return endpoint
-        }
-    }
 }
 
 public final class NetworkProtectionSelectedServerUserDefaultsStore: NetworkProtectionSelectedServerStore {
@@ -77,4 +65,4 @@ public final class NetworkProtectionSelectedServerUserDefaultsStore: NetworkProt
         userDefaults.removeObject(forKey: Constants.selectedServerKey)
     }
 
-}
+}*/

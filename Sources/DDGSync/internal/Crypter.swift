@@ -52,6 +52,7 @@ struct Crypter: CryptingInternal {
     }
 
     func base64DecodeAndDecrypt(_ value: String, using secretKey: Data) throws -> String {
+        guard !value.isEmpty else { return "" }
         var decryptionKey: [UInt8] = secretKey.safeBytes
         guard let data = Data(base64Encoded: value) else {
             throw SyncError.failedToDecryptValue("Unable to decode base64 value")

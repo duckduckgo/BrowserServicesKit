@@ -17,15 +17,15 @@
 //  limitations under the License.
 //
 
-#import "BloomFilterWrapper.h"
+#import "BloomFilterObjC.h"
 #import "BloomFilter.hpp"
 
-@interface BloomFilterWrapper() {
+@interface BloomFilterObjC() {
     BloomFilter *filter;
 }
 @end
 
-@implementation BloomFilterWrapper
+@implementation BloomFilterObjC
 
 - (instancetype)initFromPath:(NSString*)path withBitCount:(int)bitCount andTotalItems:(int)totalItems {
     self = [super init];

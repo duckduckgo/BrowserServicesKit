@@ -59,6 +59,7 @@ class SyncQueue {
     let storage: SecureStoring
     let isSyncInProgressPublisher: AnyPublisher<Bool, Never>
     let syncDidFinishPublisher: AnyPublisher<Result<Void, Error>, Never>
+    let syncHTTPRequestErrorPublisher: AnyPublisher<Error, Never>
     let crypter: Crypting
     let requestMaker: SyncRequestMaking
 
@@ -87,6 +88,7 @@ class SyncQueue {
         self.getLog = log
         requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
+        syncHTTPRequestErrorPublisher = syncHTTPRequestErrorSubject.eraseToAnyPublisher()
         isSyncInProgressPublisher = Publishers
             .Merge(syncDidStartSubject.map({ true }), syncDidFinishSubject.map({ _ in false }))
             .prepend(false)
@@ -152,6 +154,10 @@ class SyncQueue {
                 self?.syncDidFinishSubject.send(.success(()))
             }
         }
+        operation.didReceiveHTTPRequestError = { [weak self] error in
+            self?.syncHTTPRequestErrorSubject.send(error)
+        }
+
         return operation
     }
 
@@ -165,6 +171,7 @@ class SyncQueue {
 
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
     private let syncDidStartSubject = PassthroughSubject<Void, Never>()
+    private let syncHTTPRequestErrorSubject = PassthroughSubject<Error, Never>()
     private var log: OSLog {
         getLog()
     }
