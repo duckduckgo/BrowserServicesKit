@@ -810,7 +810,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
-                if case .connected = connectionStatus  {
+                if case .connected = connectionStatus {
                     try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
                 }
                 completionHandler?(nil)
@@ -826,7 +826,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Task {
-                if case .connected = connectionStatus  {
+                if case .connected = connectionStatus {
                     try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod)
                 }
                 completionHandler?(nil)
@@ -915,7 +915,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             settings.selectedServer = .endpoint(serverName)
-            if case .connected = connectionStatus  {
+            if case .connected = connectionStatus {
                 try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName))
             }
             completionHandler?(nil)
@@ -948,7 +948,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             self.excludedRoutes = excludedRoutes
 
-            if case .connected = connectionStatus  {
+            if case .connected = connectionStatus {
                 try? await updateTunnelConfiguration(reassert: false)
             }
             completionHandler?(nil)
@@ -959,7 +959,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             self.includedRoutes = includedRoutes
 
-            if case .connected = connectionStatus  {
+            if case .connected = connectionStatus {
                 try? await updateTunnelConfiguration(reassert: false)
             }
             completionHandler?(nil)
