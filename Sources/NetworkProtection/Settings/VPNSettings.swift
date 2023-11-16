@@ -19,7 +19,7 @@
 import Combine
 import Foundation
 
-// swiftlint:disable type_body_length file_length
+// swiftlint:disable type_body_length
 
 /// Persists and publishes changes to tunnel settings.
 ///
@@ -163,7 +163,6 @@ public final class VPNSettings {
 
     // MARK: - Applying Changes
 
-    // swiftlint:disable:next cyclomatic_complexity
     public func apply(change: Change) {
         switch change {
         case .setConnectOnLogin(let connectOnLogin):
@@ -378,4 +377,4 @@ public final class VPNSettings {
     }
 }
 
-// swiftlint:enable type_body_length file_length
+// swiftlint:enable type_body_length
