@@ -26,6 +26,8 @@ public final class FaviconFetcher: NSObject, FaviconFetching {
     public override init() {}
 
     public func fetchFavicon(for url: URL) async throws -> (Data?, URL?) {
+        /// DuckDuckGo Privacy Browser uses built-in functionality from Apple to fetch the highest quality favicons for bookmarks and favorites.
+        /// This functionality uses a user agent that is different from other network requests made by the apps in order to find the best favicon available.
         let metadataFetcher = LPMetadataProvider()
 
         // Allow LinkPresentation to fail so that we can fall back to fetching hardcoded paths
