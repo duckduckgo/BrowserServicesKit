@@ -23,7 +23,12 @@ import Common
 import CoreData
 import Persistence
 
-class FaviconsFetchOperation: Operation {
+final class FaviconsFetchOperation: Operation {
+
+    enum FaviconFetchError: Error {
+        case connectionError
+        case requestError
+    }
 
     enum Const {
         static let maximumConcurrentFetches = 10
@@ -111,10 +116,7 @@ class FaviconsFetchOperation: Operation {
 
         var bookmarkDomains = mapBookmarkDomainsToUUIDs(for: idsToProcess)
         bookmarkDomains.filterDomains { [weak self] domain in
-            guard let self else {
-                return false
-            }
-            return !self.faviconStore.hasFavicon(for: domain)
+            self?.faviconStore.hasFavicon(for: domain) == false
         }
 
         idsToProcess = bookmarkDomains.allUUIDs
@@ -143,7 +145,7 @@ class FaviconsFetchOperation: Operation {
                             guard let self else {
                                 return []
                             }
-                            return try await self.fetchAndStoreFavicon(for: url, bookmarkIds: idsForDomain)
+                            return try await self.handleDomain(with: url, bookmarkIDs: idsForDomain)
                         }
                     }
                 }
@@ -162,7 +164,31 @@ class FaviconsFetchOperation: Operation {
         }
     }
 
-    private func fetchAndStoreFavicon(for url: URL, bookmarkIds: [String]) async throws -> [String] {
+    /**
+     * This function fetches a favicon for a domain specified by `url`, required for bookmarks with `bookmarkIDs`.
+     *
+     * Returns an array of procesed bookmarks, which is either the original `bookmarkIDs` in case
+     * of success, favicon not found or request error, or an empty array in case of cancellation
+     * or connection error.
+     */
+    private func handleDomain(with url: URL, bookmarkIDs: [String]) async throws -> [String] {
+        do {
+            try await self.fetchAndStoreFavicon(for: url)
+            return bookmarkIDs
+        } catch is CancellationError {
+            return []
+        } catch let error as FaviconFetchError {
+            switch error {
+            case .connectionError:
+                return []
+            case .requestError:
+                return bookmarkIDs
+            }
+        }
+
+    }
+
+    private func fetchAndStoreFavicon(for url: URL) async throws {
         let fetchResult: (Data?, URL?)
         do {
             fetchResult = try await fetcher.fetchFavicon(for: url)
@@ -171,9 +197,9 @@ class FaviconsFetchOperation: Operation {
             // if user is offline, we want to retry later
             let temporaryErrorCodes = [NSURLErrorNotConnectedToInternet, NSURLErrorTimedOut, NSURLErrorCancelled]
             if nsError.domain == NSURLErrorDomain, temporaryErrorCodes.contains(nsError.code) {
-                return []
+                throw FaviconFetchError.connectionError
             }
-            return bookmarkIds
+            throw FaviconFetchError.requestError
         }
 
         do {
@@ -186,10 +212,9 @@ class FaviconsFetchOperation: Operation {
             }
 
             try checkCancellation()
-            return bookmarkIds
         } catch is CancellationError {
             os_log(.debug, log: log, "Favicon fetching cancelled")
-            return []
+            throw CancellationError()
         } catch {
             os_log(.debug, log: log, "Error storing favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
             throw error
@@ -203,49 +228,18 @@ class FaviconsFetchOperation: Operation {
     }
 
     private func mapBookmarkDomainsToUUIDs(for uuids: any Sequence & CVarArg) -> BookmarkDomains {
-        var idsByDomain = [String: [String]]()
-        var favoritesDomainsToUUIDs = [String: [String]]()
-        var topLevelBookmarksDomainsToUUIDs = [String: [String]]()
-
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K IN %@ AND %K == NO", #keyPath(BookmarkEntity.uuid), uuids, #keyPath(BookmarkEntity.isFolder))
         request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.favoriteFolders), #keyPath(BookmarkEntity.parent)]
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
+        var bookmarkDomains: BookmarkDomains!
         context.performAndWait {
             let bookmarks = (try? context.fetch(request)) ?? []
-
-            idsByDomain = bookmarks.reduce(into: [String: [String]]()) { partialResult, bookmark in
-                if let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host {
-                    if (bookmark.favoriteFolders?.count ?? 0) > 0 {
-                        if let ids = partialResult.removeValue(forKey: domain) {
-                            favoritesDomainsToUUIDs[domain] = ids + [uuid]
-                        } else {
-                            favoritesDomainsToUUIDs[domain] = [uuid]
-                        }
-                    } else if bookmark.parent == nil {
-                        if let ids = partialResult.removeValue(forKey: domain) {
-                            topLevelBookmarksDomainsToUUIDs[domain] = ids + [uuid]
-                        } else {
-                            topLevelBookmarksDomainsToUUIDs[domain] = [uuid]
-                        }
-                    } else {
-                        if let ids = partialResult[domain] {
-                            partialResult[domain] = ids + [uuid]
-                        } else {
-                            partialResult[domain] = [uuid]
-                        }
-                    }
-                }
-            }
+            bookmarkDomains = .init(bookmarks: bookmarks)
         }
-        return BookmarkDomains(
-            domainsToUUIDs: idsByDomain,
-            favoritesDomainsToUUIDs: favoritesDomainsToUUIDs,
-            topLevelBookmarksDomainsToUUIDs: topLevelBookmarksDomainsToUUIDs
-        )
+        return bookmarkDomains
     }
 
     private var log: OSLog {
@@ -329,5 +323,46 @@ private struct BookmarkDomains {
         domainsToUUIDs = domainsToUUIDs.filter { isIncluded($0.key) }
         favoritesDomainsToUUIDs = favoritesDomainsToUUIDs.filter { isIncluded($0.key) }
         topLevelBookmarksDomainsToUUIDs = topLevelBookmarksDomainsToUUIDs.filter { isIncluded($0.key) }
+    }
+
+    init(bookmarks: [BookmarkEntity]) {
+        var favoritesDomainsToUUIDs = [String: [String]]()
+        var topLevelBookmarksDomainsToUUIDs = [String: [String]]()
+
+        let idsByDomain = bookmarks.reduce(into: [String: [String]]()) { partialResult, bookmark in
+            if let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host {
+                if (bookmark.favoriteFolders?.count ?? 0) > 0 {
+                    if let ids = partialResult.removeValue(forKey: domain) {
+                        favoritesDomainsToUUIDs[domain] = ids + [uuid]
+                    } else {
+                        favoritesDomainsToUUIDs[domain] = [uuid]
+                    }
+                } else if bookmark.parent == nil {
+                    if let ids = partialResult.removeValue(forKey: domain) {
+                        topLevelBookmarksDomainsToUUIDs[domain] = ids + [uuid]
+                    } else {
+                        topLevelBookmarksDomainsToUUIDs[domain] = [uuid]
+                    }
+                } else {
+                    if let ids = partialResult[domain] {
+                        partialResult[domain] = ids + [uuid]
+                    } else {
+                        partialResult[domain] = [uuid]
+                    }
+                }
+            }
+        }
+
+        self.init(
+            domainsToUUIDs: idsByDomain,
+            favoritesDomainsToUUIDs: favoritesDomainsToUUIDs,
+            topLevelBookmarksDomainsToUUIDs: topLevelBookmarksDomainsToUUIDs
+        )
+    }
+
+    init(domainsToUUIDs: [String : [String]], favoritesDomainsToUUIDs: [String : [String]], topLevelBookmarksDomainsToUUIDs: [String : [String]]) {
+        self.domainsToUUIDs = domainsToUUIDs
+        self.favoritesDomainsToUUIDs = favoritesDomainsToUUIDs
+        self.topLevelBookmarksDomainsToUUIDs = topLevelBookmarksDomainsToUUIDs
     }
 }
