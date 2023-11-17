@@ -29,7 +29,7 @@ public enum RoutingRange {
         .range("127.0.0.0/8"    /* 255.0.0.0 */, description: "Loopback"),
         .range("169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local"),
         .range("224.0.0.0/4"    /* 240.0.0.0 */, description: "Multicast"),
-        .range("240.0.0.0/8"    /* 255.0.0.0 */, description: "Multicast"),
+        .range("240.0.0.0/4"    /* 240.0.0.0 */, description: "Class E"),
 
         .section("duckduckgo.com"),
         .range("52.142.124.215/32"),
