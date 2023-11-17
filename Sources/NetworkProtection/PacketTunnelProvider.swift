@@ -790,11 +790,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         handleSettingsChange(change, completionHandler: completionHandler)
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:
             Task {
-                try? await updateTunnelConfiguration(reassert: false)
+                if case .connected = connectionStatus {
+                    try? await updateTunnelConfiguration(reassert: false)
+                }
                 completionHandler?(nil)
             }
         case .setSelectedServer(let selectedServer):
