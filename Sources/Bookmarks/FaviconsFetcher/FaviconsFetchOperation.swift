@@ -360,7 +360,7 @@ private struct BookmarkDomains {
         )
     }
 
-    init(domainsToUUIDs: [String : [String]], favoritesDomainsToUUIDs: [String : [String]], topLevelBookmarksDomainsToUUIDs: [String : [String]]) {
+    init(domainsToUUIDs: [String: [String]], favoritesDomainsToUUIDs: [String: [String]], topLevelBookmarksDomainsToUUIDs: [String: [String]]) {
         self.domainsToUUIDs = domainsToUUIDs
         self.favoritesDomainsToUUIDs = favoritesDomainsToUUIDs
         self.topLevelBookmarksDomainsToUUIDs = topLevelBookmarksDomainsToUUIDs
