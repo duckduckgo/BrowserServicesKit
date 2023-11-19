@@ -137,7 +137,7 @@ final class FaviconsFetchOperation: Operation {
             let domainsToFetch = Array(allDomains.prefix(upTo: numberOfDomainsToFetch))
             allDomains = Array(allDomains.dropFirst(numberOfDomainsToFetch))
 
-            let handledIds = try await withThrowingTaskGroup(of: [String].self, returning: Set<String>.self) { group in
+            let handledIds = try await withThrowingTaskGroup(of: Set<String>.self, returning: Set<String>.self) { group in
                 for domain in domainsToFetch {
                     let url = URL(string: "\(URL.NavigationalScheme.https.separated())\(domain)")
                     if let idsForDomain = bookmarkDomains.ids(for: domain), let url {
@@ -171,7 +171,7 @@ final class FaviconsFetchOperation: Operation {
      * of success, favicon not found or request error, or an empty array in case of cancellation
      * or connection error.
      */
-    private func handleDomain(with url: URL, bookmarkIDs: [String]) async throws -> [String] {
+    private func handleDomain(with url: URL, bookmarkIDs: Set<String>) async throws -> Set<String> {
         do {
             try await self.fetchAndStoreFavicon(for: url)
             return bookmarkIDs
@@ -229,7 +229,12 @@ final class FaviconsFetchOperation: Operation {
 
     private func mapBookmarkDomainsToUUIDs(for uuids: any Sequence & CVarArg) -> BookmarkDomains {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K IN %@ AND %K == NO", #keyPath(BookmarkEntity.uuid), uuids, #keyPath(BookmarkEntity.isFolder))
+        request.predicate = NSPredicate(
+            format: "%K IN %@ AND %K == NO AND %K == NO",
+            #keyPath(BookmarkEntity.uuid), uuids,
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.isPendingDeletion)
+        )
         request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.favoriteFolders), #keyPath(BookmarkEntity.parent)]
 
@@ -300,69 +305,72 @@ final class FaviconsFetchOperation: Operation {
  *
  * Fetcher first processes favorites, then top level bookmarks and then all other bookmarks.
  */
-private struct BookmarkDomains {
-    var domainsToUUIDs: [String: [String]]
-    var favoritesDomainsToUUIDs: [String: [String]]
-    var topLevelBookmarksDomainsToUUIDs: [String: [String]]
+struct BookmarkDomains {
+    var favoritesDomainsToUUIDs: [String: Set<String>]
+    var topLevelBookmarksDomainsToUUIDs: [String: Set<String>]
+    var otherBookmarksDomainsToUUIDs: [String: Set<String>]
 
-    func ids(for domain: String) -> [String]? {
-        favoritesDomainsToUUIDs[domain] ?? topLevelBookmarksDomainsToUUIDs[domain] ?? domainsToUUIDs[domain]
+    func ids(for domain: String) -> Set<String>? {
+        favoritesDomainsToUUIDs[domain] ?? topLevelBookmarksDomainsToUUIDs[domain] ?? otherBookmarksDomainsToUUIDs[domain]
     }
 
     var allDomains: [String] {
-        Array(favoritesDomainsToUUIDs.keys) + topLevelBookmarksDomainsToUUIDs.keys + domainsToUUIDs.keys
+        Array(favoritesDomainsToUUIDs.keys) + topLevelBookmarksDomainsToUUIDs.keys + otherBookmarksDomainsToUUIDs.keys
     }
 
     var allUUIDs: Set<String> {
-        Set(domainsToUUIDs.values.flatMap { $0 })
+        Set(otherBookmarksDomainsToUUIDs.values.flatMap { $0 })
             .union(favoritesDomainsToUUIDs.values.flatMap { $0 })
             .union(topLevelBookmarksDomainsToUUIDs.values.flatMap { $0 })
     }
 
     mutating func filterDomains(by isIncluded: (String) -> Bool) {
-        domainsToUUIDs = domainsToUUIDs.filter { isIncluded($0.key) }
+        otherBookmarksDomainsToUUIDs = otherBookmarksDomainsToUUIDs.filter { isIncluded($0.key) }
         favoritesDomainsToUUIDs = favoritesDomainsToUUIDs.filter { isIncluded($0.key) }
         topLevelBookmarksDomainsToUUIDs = topLevelBookmarksDomainsToUUIDs.filter { isIncluded($0.key) }
     }
 
     init(bookmarks: [BookmarkEntity]) {
-        var favoritesDomainsToUUIDs = [String: [String]]()
-        var topLevelBookmarksDomainsToUUIDs = [String: [String]]()
+        var favoritesDomainsToUUIDs = [String: Set<String>]()
+        var topLevelBookmarksDomainsToUUIDs = [String: Set<String>]()
+        var otherBookmarksDomainsToUUIDs = [String: Set<String>]()
 
-        let idsByDomain = bookmarks.reduce(into: [String: [String]]()) { partialResult, bookmark in
-            if let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host {
-                if (bookmark.favoriteFolders?.count ?? 0) > 0 {
-                    if let ids = partialResult.removeValue(forKey: domain) {
-                        favoritesDomainsToUUIDs[domain] = ids + [uuid]
-                    } else {
-                        favoritesDomainsToUUIDs[domain] = [uuid]
-                    }
-                } else if bookmark.parent == nil {
-                    if let ids = partialResult.removeValue(forKey: domain) {
-                        topLevelBookmarksDomainsToUUIDs[domain] = ids + [uuid]
-                    } else {
-                        topLevelBookmarksDomainsToUUIDs[domain] = [uuid]
-                    }
-                } else {
-                    if let ids = partialResult[domain] {
-                        partialResult[domain] = ids + [uuid]
-                    } else {
-                        partialResult[domain] = [uuid]
-                    }
-                }
+        bookmarks.forEach { bookmark in
+            guard let uuid = bookmark.uuid, let domain = bookmark.url.flatMap(URL.init(string:))?.host else {
+                return
+            }
+
+            if let favoritesUUIDs = favoritesDomainsToUUIDs[domain] {
+                favoritesDomainsToUUIDs[domain] = favoritesUUIDs.union([uuid])
+            } else if (bookmark.favoriteFolders?.count ?? 0) > 0 {
+                let topLevelUUIDs = topLevelBookmarksDomainsToUUIDs.removeValue(forKey: domain) ?? []
+                let otherUUIDs = otherBookmarksDomainsToUUIDs.removeValue(forKey: domain) ?? []
+                favoritesDomainsToUUIDs[domain] = topLevelUUIDs.union(otherUUIDs).union([uuid])
+            } else if let topLevelUUIDs = topLevelBookmarksDomainsToUUIDs[domain] {
+                topLevelBookmarksDomainsToUUIDs[domain] = topLevelUUIDs.union([uuid])
+            } else if bookmark.parent?.uuid == BookmarkEntity.Constants.rootFolderID {
+                let otherUUIDs = otherBookmarksDomainsToUUIDs.removeValue(forKey: domain) ?? []
+                topLevelBookmarksDomainsToUUIDs[domain] = otherUUIDs.union([uuid])
+            } else if let uuids = otherBookmarksDomainsToUUIDs[domain] {
+                otherBookmarksDomainsToUUIDs[domain] = uuids.union([uuid])
+            } else {
+                otherBookmarksDomainsToUUIDs[domain] = [uuid]
             }
         }
 
         self.init(
-            domainsToUUIDs: idsByDomain,
             favoritesDomainsToUUIDs: favoritesDomainsToUUIDs,
-            topLevelBookmarksDomainsToUUIDs: topLevelBookmarksDomainsToUUIDs
+            topLevelBookmarksDomainsToUUIDs: topLevelBookmarksDomainsToUUIDs,
+            otherBookmarksDomainsToUUIDs: otherBookmarksDomainsToUUIDs
         )
     }
 
-    init(domainsToUUIDs: [String: [String]], favoritesDomainsToUUIDs: [String: [String]], topLevelBookmarksDomainsToUUIDs: [String: [String]]) {
-        self.domainsToUUIDs = domainsToUUIDs
+    init(
+        favoritesDomainsToUUIDs: [String: Set<String>],
+        topLevelBookmarksDomainsToUUIDs: [String: Set<String>],
+        otherBookmarksDomainsToUUIDs: [String: Set<String>]) {
         self.favoritesDomainsToUUIDs = favoritesDomainsToUUIDs
         self.topLevelBookmarksDomainsToUUIDs = topLevelBookmarksDomainsToUUIDs
+        self.otherBookmarksDomainsToUUIDs = otherBookmarksDomainsToUUIDs
     }
 }
