@@ -65,6 +65,7 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public var url: String?
     @NSManaged public var uuid: String?
     @NSManaged public var children: NSOrderedSet?
+    @NSManaged public var lastChildrenSyncPayload: String?
     @NSManaged public fileprivate(set) var favoriteFolders: NSSet?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?

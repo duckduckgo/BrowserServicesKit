@@ -79,15 +79,25 @@ extension Syncable {
                 payload["title"] = try encrypt(title)
             }
             if bookmark.isFolder {
-                if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
-                    payload["folder"] = [
-                        "children": bookmark.favoritesArray.map(\.uuid)
+                let children: [String] = {
+                    if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
+                        return bookmark.favoritesArray.compactMap(\.uuid)
+                    }
+                    return bookmark.childrenArray.compactMap(\.uuid)
+                }()
+
+                let lastReceivedChildren = bookmark.lastReceivedChildrenArray
+                let insert = Array(Set(children).subtracting(lastReceivedChildren))
+                let remove = Array(Set(lastReceivedChildren).subtracting(children))
+
+                payload["folder"] = [
+                    "children": [
+                        "current": children,
+                        "insert": insert,
+                        "remove": remove
                     ]
-                } else {
-                    payload["folder"] = [
-                        "children": bookmark.childrenArray.map(\.uuid)
-                    ]
-                }
+                ]
+
             } else if let url = bookmark.url {
                 payload["page"] = ["url": try encrypt(url)]
             }
@@ -102,4 +112,10 @@ extension Syncable {
         ISO8601DateFormatter()
     }
 
+}
+
+extension BookmarkEntity {
+    var lastReceivedChildrenArray: [String] {
+        (lastChildrenSyncPayload ?? "").split(separator: ",").map(String.init)
+    }
 }
