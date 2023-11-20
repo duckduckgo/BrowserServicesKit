@@ -613,7 +613,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
             .bookmark(id: "6")
         ]
 
-        rootFolder = try await handleSyncResponse(with: bookmarkTree, received: received, in: context)
+        rootFolder = try await handleSyncResponse(received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "4", "3"]) {
             Bookmark(id: "1")
             Bookmark(id: "2")
@@ -632,7 +632,7 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
             .bookmark(id: "5", isDeleted: true)
         ]
 
-        rootFolder = try await handleSyncResponse(with: bookmarkTree, received: received, in: context)
+        rootFolder = try await handleSyncResponse(received: received, in: context)
         assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["3", "4"]) {
             Bookmark(id: "3")
             Folder(id: "4", lastChildrenArrayReceivedFromSync: ["6"]) {
@@ -659,7 +659,6 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         }
 
         return try await handleSyncResponse(
-            with: bookmarkTree,
             sent: sent,
             received: received,
             clientTimestamp: clientTimestamp,
@@ -669,7 +668,6 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
     }
 
     func handleSyncResponse(
-        with bookmarkTree: BookmarkTree,
         sent: [Syncable] = [],
         received: [Syncable],
         clientTimestamp: Date = Date(),
