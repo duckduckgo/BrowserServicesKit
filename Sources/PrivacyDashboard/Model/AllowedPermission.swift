@@ -26,7 +26,7 @@ public struct AllowedPermission: Codable {
     var used: Bool
     var paused: Bool
     var options: [[String: String]]
-
+    
     public init(key: String,
                 icon: String,
                 title: String,
