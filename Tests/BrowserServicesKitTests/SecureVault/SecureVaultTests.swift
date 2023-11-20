@@ -225,4 +225,24 @@ class SecureVaultTests: XCTestCase {
         }
     }
 
+    func testWhenRetrievingNeverPromptWebsites_ThenDatabaseIsCalled() throws {
+        mockDatabaseProvider._neverPromptWebsites = [
+            .init(domain: "example.com")
+        ]
+
+        let neverPromptWebsites = try testVault.neverPromptWebsites()
+        XCTAssertEqual(neverPromptWebsites.count, 1)
+        XCTAssertEqual(neverPromptWebsites.first?.domain, "example.com")
+    }
+
+    func testWhenDeletingAllNeverPromptWebsites_ThenDatabaseIsCalled() throws {
+        mockDatabaseProvider._neverPromptWebsites = [
+            .init(domain: "example.com")
+        ]
+
+        try testVault.deleteAllNeverPromptWebsites()
+
+        let neverPromptWebsites = try testVault.neverPromptWebsites()
+        XCTAssertEqual(neverPromptWebsites.count, 0)
+    }
 }
