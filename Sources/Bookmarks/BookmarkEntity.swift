@@ -99,7 +99,10 @@ public class BookmarkEntity: NSManagedObject {
             return
         }
         let changedKeys = changedValues().keys
-        guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
+        guard !changedKeys.isEmpty,
+              !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))),
+              Array(changedKeys) != [NSStringFromSelector(#selector(getter: lastChildrenPayloadReceivedFromSync))]
+        else {
             return
         }
         if isInserted, let uuid, uuid == Constants.rootFolderID || Self.isValidFavoritesFolderID(uuid) {
