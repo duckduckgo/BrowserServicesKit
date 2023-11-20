@@ -221,6 +221,8 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(deduplicatedEntity)
             }
 
+            deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable)
+
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
                 guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
@@ -237,6 +239,8 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(existingEntity)
             }
 
+            existingEntity.updateLastChildrenSyncPayload(with: syncable)
+
         } else if !syncable.isDeleted {
 
             assert(syncable.uuid != BookmarkEntity.Constants.rootFolderID, "Trying to make another root folder")
@@ -245,6 +249,8 @@ final class BookmarksResponseHandler {
             parent?.addToChildren(newEntity)
             try updateEntity(newEntity, with: syncable)
             entitiesByUUID[syncableUUID] = newEntity
+
+            newEntity.updateLastChildrenSyncPayload(with: syncable)
         }
     }
 

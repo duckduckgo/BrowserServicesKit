@@ -125,6 +125,12 @@ extension BookmarkEntity {
             }
         }
     }
+
+    func updateLastChildrenSyncPayload(with syncable: SyncableBookmarkAdapter) {
+        if isFolder {
+            lastChildrenSyncPayload = syncable.children.joined(separator: ",")
+        }
+    }
 }
 
 extension Array where Element == BookmarkEntity {
