@@ -42,11 +42,11 @@ public enum PrivacyDashboardTheme: String, Encodable {
 public struct ProtectionState: Decodable {
     public let isProtected: Bool
     public let eventOrigin: EventOrigin
-
+    
     public struct EventOrigin: Decodable {
         public let screen: EventOriginScreen
     }
-
+    
     public enum EventOriginScreen: String, Decodable {
         case primaryScreen
         case breakageForm
@@ -54,7 +54,7 @@ public struct ProtectionState: Decodable {
 }
 
 final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
-
+    
     enum MessageNames: String, CaseIterable {
         case privacyDashboardSetProtection
         case privacyDashboardSetSize
@@ -66,21 +66,21 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSetPermission
         case privacyDashboardSetPermissionPaused
     }
-
+    
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     static var forMainFrameOnly: Bool { false }
     static var source: String = ""
     static var script: WKUserScript = PrivacyDashboardUserScript.makeWKUserScript()
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
-
+    
     weak var delegate: PrivacyDashboardUserScriptDelegate?
-
+    
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let messageType = MessageNames(rawValue: message.name) else {
             assertionFailure("PrivacyDashboardUserScript: unexpected message name \(message.name)")
             return
         }
-
+        
         switch messageType {
         case .privacyDashboardSetProtection:
             handleSetProtection(message: message)
@@ -102,37 +102,37 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleOpenSettings(message: message)
         }
     }
-
+    
     // MARK: - JS message handlers
-
+    
     private func handleSetProtection(message: WKScriptMessage) {
-
+        
         guard let protectionState: ProtectionState = DecodableHelper.decode(from: message.messageBody) else {
             assertionFailure("privacyDashboardSetProtection: expected ProtectionState")
             return
         }
-
+        
         delegate?.userScript(self, didChangeProtectionState: protectionState)
     }
-
+    
     private func handleSetSize(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let height = dict["height"] as? Int else {
             assertionFailure("privacyDashboardSetHeight: expected height to be an Int")
             return
         }
-
+        
         delegate?.userScript(self, setHeight: height)
     }
-
+    
     private func handleClose() {
         delegate?.userScriptDidRequestClosing(self)
     }
-
+    
     private func handleShowReportBrokenSite() {
         delegate?.userScriptDidRequestShowReportBrokenSite(self)
     }
-
+    
     private func handleSubmitBrokenSiteReport(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let category = dict["category"] as? String,
@@ -140,10 +140,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("privacyDashboardSetHeight: expected { category: String, description: String }")
             return
         }
-
+        
         delegate?.userScript(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
-
+    
     private func handleOpenUrlInNewTab(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let urlString = dict["url"] as? String,
@@ -152,10 +152,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("handleOpenUrlInNewTab: expected { url: '...' } ")
             return
         }
-
+        
         delegate?.userScript(self, didRequestOpenUrlInNewTab: url)
     }
-
+    
     private func handleOpenSettings(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let target = dict["target"] as? String
@@ -163,10 +163,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("handleOpenSettings: expected { target: '...' } ")
             return
         }
-
+        
         delegate?.userScript(self, didRequestOpenSettings: target)
     }
-
+    
     private func handleSetPermission(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let permission = dict["permission"] as? String,
@@ -175,10 +175,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("privacyDashboardSetPermission: expected { permission: PermissionType, value: PermissionAuthorizationState }")
             return
         }
-
+        
         delegate?.userScript(self, didSetPermission: permission, to: state)
     }
-
+    
     private func handleSetPermissionPaused(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let permission = dict["permission"] as? String,
@@ -187,86 +187,86 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("handleSetPermissionPaused: expected { permission: PermissionType, paused: Bool }")
             return
         }
-
+        
         delegate?.userScript(self, setPermission: permission, paused: paused)
     }
-
+    
     // MARK: - Calls to script's JS API
-
+    
     func setTrackerInfo(_ tabUrl: URL, trackerInfo: TrackerInfo, webView: WKWebView) {
         guard let trackerBlockingDataJson = try? JSONEncoder().encode(trackerInfo).utf8String() else {
             assertionFailure("Can't encode trackerInfoViewModel into JSON")
             return
         }
-
+        
         guard let safeTabUrl = try? JSONEncoder().encode(tabUrl).utf8String() else {
             assertionFailure("Can't encode tabUrl into JSON")
             return
         }
-
+        
         evaluate(js: "window.onChangeRequestData(\(safeTabUrl), \(trackerBlockingDataJson))", in: webView)
     }
-
+    
     func setProtectionStatus(_ protectionStatus: ProtectionStatus, webView: WKWebView) {
         guard let protectionStatusJson = try? JSONEncoder().encode(protectionStatus).utf8String() else {
             assertionFailure("Can't encode mockProtectionStatus into JSON")
             return
         }
-
+        
         evaluate(js: "window.onChangeProtectionStatus(\(protectionStatusJson))", in: webView)
     }
-
+    
     func setUpgradedHttps(_ upgradedHttps: Bool, webView: WKWebView) {
         evaluate(js: "window.onChangeUpgradedHttps(\(upgradedHttps))", in: webView)
     }
-
+    
     func setParentEntity(_ parentEntity: Entity?, webView: WKWebView) {
         if parentEntity == nil { return }
-
+        
         guard let parentEntityJson = try? JSONEncoder().encode(parentEntity).utf8String() else {
             assertionFailure("Can't encode parentEntity into JSON")
             return
         }
-
+        
         evaluate(js: "window.onChangeParentEntity(\(parentEntityJson))", in: webView)
     }
-
+    
     func setTheme(_ theme: PrivacyDashboardTheme?, webView: WKWebView) {
         if theme == nil { return }
-
+        
         guard let themeJson = try? JSONEncoder().encode(theme).utf8String() else {
             assertionFailure("Can't encode themeName into JSON")
             return
         }
-
+        
         evaluate(js: "window.onChangeTheme(\(themeJson))", in: webView)
     }
-
+    
     func setServerTrust(_ serverTrustViewModel: ServerTrustViewModel, webView: WKWebView) {
         guard let certificateDataJson = try? JSONEncoder().encode(serverTrustViewModel).utf8String() else {
             assertionFailure("Can't encode serverTrustViewModel into JSON")
             return
         }
-
+        
         evaluate(js: "window.onChangeCertificateData(\(certificateDataJson))", in: webView)
     }
-
+    
     func setIsPendingUpdates(_ isPendingUpdates: Bool, webView: WKWebView) {
         evaluate(js: "window.onIsPendingUpdates(\(isPendingUpdates))", in: webView)
     }
-
+    
     func setLocale(_ currentLocale: String, webView: WKWebView) {
         struct LocaleSetting: Encodable {
             var locale: String
         }
-
+        
         guard let localeSettingJson = try? JSONEncoder().encode(LocaleSetting(locale: currentLocale)).utf8String() else {
             assertionFailure("Can't encode consentInfo into JSON")
             return
         }
         evaluate(js: "window.onChangeLocale(\(localeSettingJson))", in: webView)
     }
-
+    
     func setConsentManaged(_ consentManaged: CookieConsentInfo?, webView: WKWebView) {
         guard let consentDataJson = try? JSONEncoder().encode(consentManaged).utf8String() else {
             assertionFailure("Can't encode consentInfo into JSON")
@@ -274,26 +274,26 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
         evaluate(js: "window.onChangeConsentManaged(\(consentDataJson))", in: webView)
     }
-
+    
     func setPermissions(allowedPermissions: [AllowedPermission], webView: WKWebView) {
         guard let allowedPermissionsJson = try? JSONEncoder().encode(allowedPermissions).utf8String() else {
             assertionFailure("PrivacyDashboardUserScript: could not serialize permissions object")
             return
         }
-
+        
         self.evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
     }
-
+    
     private func evaluate(js: String, in webView: WKWebView) {
         webView.evaluateJavaScript(js)
     }
-
+    
 }
 
 extension Data {
-
+    
     func utf8String() -> String? {
         return String(data: self, encoding: .utf8)
     }
-
+    
 }
