@@ -93,7 +93,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         try provider.prepareForFirstSync()
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
@@ -128,7 +129,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
 
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
@@ -164,7 +166,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableBookmarkAdapter.init)
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
         let changedFolder = try XCTUnwrap(changedObjects.first(where: { $0.uuid == "2"}))
 
         XCTAssertEqual(Set(changedObjects.compactMap(\.uuid)), Set(["2", "4"]))
