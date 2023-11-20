@@ -156,7 +156,11 @@ public class BookmarkEntity: NSManagedObject {
             lastChildrenPayloadReceivedFromSync?.components(separatedBy: ",") ?? []
         }
         set {
-            lastChildrenPayloadReceivedFromSync = newValue.joined(separator: ",")
+            if newValue.isEmpty {
+                lastChildrenPayloadReceivedFromSync = nil
+            } else {
+                lastChildrenPayloadReceivedFromSync = newValue.joined(separator: ",")
+            }
         }
     }
 
