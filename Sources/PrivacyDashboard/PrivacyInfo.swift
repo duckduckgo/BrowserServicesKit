@@ -21,32 +21,32 @@ import TrackerRadarKit
 import Common
 
 public final class PrivacyInfo {
-
+    
     public private(set) var url: URL
     private(set) var parentEntity: Entity?
-
+    
     @Published public var trackerInfo: TrackerInfo
     @Published private(set) var protectionStatus: ProtectionStatus
     @Published public var serverTrust: SecTrust?
     @Published public var connectionUpgradedTo: URL?
     @Published public var cookieConsentManaged: CookieConsentInfo?
-
+    
     public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus) {
         self.url = url
         self.parentEntity = parentEntity
         self.protectionStatus = protectionStatus
-
+        
         trackerInfo = TrackerInfo()
     }
-
+    
     public var https: Bool {
         return url.isHttps
     }
-
+    
     public var domain: String? {
         return url.host
     }
-
+    
     public func isFor(_ url: URL?) -> Bool {
         return self.url.host == url?.host
     }
