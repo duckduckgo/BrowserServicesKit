@@ -168,10 +168,10 @@ public struct Folder: BookmarkTreeNodeConvertible {
     var children: [BookmarkTreeNode]
 
     public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, lastChildrenArrayReceivedFromSync: [String]? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
-        self.init(name, id: id, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, lastChildrenArrayReceivedFromSync: lastChildrenArrayReceivedFromSync, modifiedAtConstraint: nil, children: children)
+        self.init(name, id: id, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: nil, lastChildrenArrayReceivedFromSync: lastChildrenArrayReceivedFromSync, children: children)
     }
 
-    public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, lastChildrenArrayReceivedFromSync: [String]? = nil, modifiedAtConstraint: ModifiedAtConstraint? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
+    public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil, lastChildrenArrayReceivedFromSync: [String]? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.modifiedAt = modifiedAt
@@ -320,7 +320,7 @@ public extension BookmarkEntity {
 }
 
 public extension XCTestCase {
-    func assertEquivalent(withTimestamps: Bool = true, withLastChildrenArrayReceivedFromSync: Bool = false, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
+    func assertEquivalent(withTimestamps: Bool = true, withLastChildrenArrayReceivedFromSync: Bool = true, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
         let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = bookmarkEntity.managedObjectContext?.persistentStoreCoordinator
 

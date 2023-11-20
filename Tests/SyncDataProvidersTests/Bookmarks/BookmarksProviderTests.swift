@@ -233,8 +233,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
-                Folder(id: "1") {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "4", "5"]) {
+                Folder(id: "1", lastChildrenArrayReceivedFromSync: ["2", "3"]) {
                     Bookmark(id: "2")
                     Bookmark(id: "3")
                 }
@@ -267,7 +267,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2"]) {
                 Bookmark("test", id: "2", url: "test")
             })
         }
@@ -299,7 +299,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .notNil()) {
+            assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .notNil(), lastChildrenArrayReceivedFromSync: ["3", "4"]) {
                 Bookmark(id: "1", modifiedAtConstraint: .notNil())
                 Bookmark(id: "2", modifiedAtConstraint: .notNil())
                 Bookmark(id: "3", modifiedAtConstraint: .nil())
@@ -337,8 +337,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .nil()) {
-                Folder("Folder", id: "4", modifiedAtConstraint: .greaterThan(clientTimestamp)) {
+            assertEquivalent(rootFolder, BookmarkTree(modifiedAtConstraint: .nil(), lastChildrenArrayReceivedFromSync: ["4"]) {
+                Folder("Folder", id: "4", modifiedAtConstraint: .greaterThan(clientTimestamp), lastChildrenArrayReceivedFromSync: ["5", "6"]) {
                     Bookmark(id: "2", modifiedAtConstraint: .notNil())
                     Bookmark(id: "3", modifiedAtConstraint: .notNil())
                     Bookmark(id: "5", modifiedAtConstraint: .nil())
@@ -374,8 +374,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
-                Folder("Folder", id: "4") {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["4"]) {
+                Folder("Folder", id: "4", lastChildrenArrayReceivedFromSync: ["5", "6"]) {
                     Bookmark(id: "5")
                     Bookmark(id: "6")
                 }
@@ -422,7 +422,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
                 Bookmark("test-local", id: "1", modifiedAt: bookmarkModificationDate)
             })
         }
@@ -455,7 +455,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
                 Bookmark("test2", id: "1")
             })
         }
@@ -593,7 +593,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
                 Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
             })
         }
@@ -678,7 +678,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
             assertEquivalent(rootFolder, BookmarkTree {
                 Folder(id: "1")
-                Folder(id: "2") {
+                Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
                     // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
                     // because it's updated after sync context save (bookmark object is not included in synced data
                     // but it gets updated as a side effect of sync – an update to parent).
@@ -725,7 +725,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
                 Bookmark("test3", id: "1", url: "test", modifiedAt: bookmarkModificationDate)
             })
         }
@@ -761,7 +761,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         context.performAndWait {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "3"]) {
                 Bookmark("test1", id: "1")
                 Bookmark("test3", id: "3")
             })

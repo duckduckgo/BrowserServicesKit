@@ -139,6 +139,8 @@ final class BookmarksResponseHandler {
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
             }
+
+            favoritesFolder.lastChildrenArrayReceivedFromSync = favoritesUUIDs
         }
     }
 
