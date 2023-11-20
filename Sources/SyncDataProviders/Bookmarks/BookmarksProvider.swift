@@ -58,6 +58,7 @@ public final class BookmarksProvider: DataProvider {
             let bookmarks = (try? context.fetch(fetchRequest)) ?? []
             for bookmark in bookmarks {
                 bookmark.modifiedAt = Date()
+                bookmark.lastChildrenArrayReceivedFromSync = []
             }
 
             do {

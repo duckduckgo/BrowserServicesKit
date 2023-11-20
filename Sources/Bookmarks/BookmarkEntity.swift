@@ -65,7 +65,7 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public var url: String?
     @NSManaged public var uuid: String?
     @NSManaged public var children: NSOrderedSet?
-    @NSManaged public var lastChildrenSyncPayload: String?
+    @NSManaged public fileprivate(set) var lastChildrenPayloadReceivedFromSync: String?
     @NSManaged public fileprivate(set) var favoriteFolders: NSSet?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
@@ -146,6 +146,15 @@ public class BookmarkEntity: NSManagedObject {
 
     public var favoriteFoldersSet: Set<BookmarkEntity> {
         return favoriteFolders.flatMap(Set<BookmarkEntity>.init) ?? []
+    }
+
+    public var lastChildrenArrayReceivedFromSync: [String] {
+        get {
+            lastChildrenPayloadReceivedFromSync?.components(separatedBy: ",") ?? []
+        }
+        set {
+            lastChildrenPayloadReceivedFromSync = newValue.joined(separator: ",")
+        }
     }
 
     public static func makeFolder(title: String,

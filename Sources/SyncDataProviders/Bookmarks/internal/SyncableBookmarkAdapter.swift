@@ -86,7 +86,7 @@ extension Syncable {
                     return bookmark.childrenArray.compactMap(\.uuid)
                 }()
 
-                let lastReceivedChildren = bookmark.lastReceivedChildrenArray
+                let lastReceivedChildren = bookmark.lastChildrenArrayReceivedFromSync
                 let insert = Array(Set(children).subtracting(lastReceivedChildren))
                 let remove = Array(Set(lastReceivedChildren).subtracting(children))
 
@@ -112,10 +112,4 @@ extension Syncable {
         ISO8601DateFormatter()
     }
 
-}
-
-extension BookmarkEntity {
-    var lastReceivedChildrenArray: [String] {
-        (lastChildrenSyncPayload ?? "").split(separator: ",").map(String.init)
-    }
 }

@@ -3,7 +3,7 @@
     <entity name="BookmarkEntity" representedClassName="BookmarkEntity" syncable="YES">
         <attribute name="isFolder" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isPendingDeletion" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES" versionHashModifier="3"/>
-        <attribute name="lastChildrenSyncPayload" optional="YES" attributeType="String"/>
+        <attribute name="lastChildrenPayloadReceivedFromSync" optional="YES" attributeType="String"/>
         <attribute name="modifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String" versionHashModifier="3"/>
