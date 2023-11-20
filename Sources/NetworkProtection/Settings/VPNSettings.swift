@@ -18,6 +18,7 @@
 
 import Combine
 import Foundation
+import os.log
 
 // swiftlint:disable type_body_length
 
@@ -42,7 +43,7 @@ public final class VPNSettings {
         case setShowInMenuBar(_ showInMenuBar: Bool)
     }
 
-    public enum RegistrationKeyValidity: Codable {
+    public enum RegistrationKeyValidity: Codable, Equatable {
         case automatic
         case custom(_ timeInterval: TimeInterval)
     }
@@ -88,8 +89,26 @@ public final class VPNSettings {
     }
 
     private let defaults: UserDefaults
+    private let log: OSLog
+
+    public init(defaults: UserDefaults, log: OSLog = .disabled) {
+        self.defaults = defaults
+        self.log = log
+    }
+
+    // MARK: - Change Management
 
     private(set) public lazy var changePublisher: AnyPublisher<Change, Never> = {
+
+        let logChange = { [weak self] (change: Change) in
+            guard let self else { return }
+
+            os_log("VPNSettings(%{public}@): publishing change %{public}@",
+                   log: self.log,
+                   type: .info,
+                   String(describing: Bundle.main.bundleIdentifier!),
+                   String(describing: change))
+        }
 
         let connectOnLoginPublisher = connectOnLoginPublisher.map { connectOnLogin in
             Change.setConnectOnLogin(connectOnLogin)
@@ -140,16 +159,20 @@ public final class VPNSettings {
             serverChangePublisher,
             locationChangePublisher,
             environmentChangePublisher,
-            showInMenuBarPublisher).eraseToAnyPublisher()
+            showInMenuBarPublisher)
+        .handleEvents(receiveOutput: { change in
+            logChange(change)
+        }).eraseToAnyPublisher()
     }()
-
-    public init(defaults: UserDefaults) {
-        self.defaults = defaults
-    }
 
     // MARK: - Resetting to Defaults
 
     public func resetToDefaults() {
+        os_log("VPNSettings(%{public}@): resetting to defaults",
+               log: log,
+               type: .info,
+               String(describing: Bundle.main.bundleIdentifier!))
+
         defaults.resetNetworkProtectionSettingConnectOnLogin()
         defaults.resetNetworkProtectionSettingEnforceRoutes()
         defaults.resetNetworkProtectionSettingExcludeLocalNetworks()
@@ -163,29 +186,69 @@ public final class VPNSettings {
 
     // MARK: - Applying Changes
 
-    public func apply(change: Change) {
+    /// - Returns: true if the setting was truly changed.
+    ///
+    public func apply(change: Change) -> Bool {
+        os_log("VPNSettings(%{public}@): applying change %{public}@",
+               log: log,
+               type: .info,
+               String(describing: Bundle.main.bundleIdentifier!),
+               String(describing: change))
+
         switch change {
         case .setConnectOnLogin(let connectOnLogin):
+            guard self.connectOnLogin != connectOnLogin else {
+                return false
+            }
             self.connectOnLogin = connectOnLogin
         case .setEnforceRoutes(let enforceRoutes):
+            guard self.enforceRoutes != enforceRoutes else {
+                return false
+            }
             self.enforceRoutes = enforceRoutes
         case .setExcludeLocalNetworks(let excludeLocalNetworks):
+            guard self.excludeLocalNetworks != excludeLocalNetworks else {
+                return false
+            }
             self.excludeLocalNetworks = excludeLocalNetworks
         case .setIncludeAllNetworks(let includeAllNetworks):
+            guard self.includeAllNetworks != includeAllNetworks else {
+                return false
+            }
             self.includeAllNetworks = includeAllNetworks
         case .setNotifyStatusChanges(let notifyStatusChanges):
+            guard self.notifyStatusChanges != notifyStatusChanges else {
+                return false
+            }
             self.notifyStatusChanges = notifyStatusChanges
         case .setRegistrationKeyValidity(let registrationKeyValidity):
+            guard self.registrationKeyValidity != registrationKeyValidity else {
+                return false
+            }
             self.registrationKeyValidity = registrationKeyValidity
         case .setSelectedServer(let selectedServer):
+            guard self.selectedServer != selectedServer else {
+                return false
+            }
             self.selectedServer = selectedServer
         case .setSelectedLocation(let selectedLocation):
+            guard self.selectedLocation != selectedLocation else {
+                return false
+            }
             self.selectedLocation = selectedLocation
         case .setSelectedEnvironment(let selectedEnvironment):
+            guard self.selectedEnvironment != selectedEnvironment else {
+                return false
+            }
             self.selectedEnvironment = selectedEnvironment
         case .setShowInMenuBar(let showInMenuBar):
+            guard self.showInMenuBar != showInMenuBar else {
+                return false
+            }
             self.showInMenuBar = showInMenuBar
         }
+
+        return true
     }
 
     // MARK: - Connect on Login

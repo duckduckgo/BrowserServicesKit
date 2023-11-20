@@ -53,6 +53,10 @@ extension OSLog {
         Logging.networkProtectionPixelLoggingEnabled ? Logging.networkProtectionPixel : .disabled
     }
 
+    public static var networkProtectionSettings: OSLog {
+        Logging.networkProtectionSettingsLoggingEnabled ? Logging.networkProtectionSettings : .disabled
+    }
+
     public static var networkProtectionStatusReporterLog: OSLog {
         Logging.networkProtectionStatusReporterLoggingEnabled ? Logging.networkProtectionStatusReporterLog : .disabled
     }
@@ -90,6 +94,9 @@ struct Logging {
 
     fileprivate static let networkProtectionPixelLoggingEnabled = true
     fileprivate static let networkProtectionPixel: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Pixel")
+
+    fileprivate static let networkProtectionSettingsLoggingEnabled = true
+    fileprivate static let networkProtectionSettings: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Settings")
 
     fileprivate static let networkProtectionStatusReporterLoggingEnabled = true
     fileprivate static let networkProtectionStatusReporterLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Status Reporter")
