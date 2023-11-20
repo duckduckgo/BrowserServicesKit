@@ -51,10 +51,23 @@ struct SyncableBookmarkAdapter {
     }
 
     var children: [String] {
-        guard let folder = syncable.payload["folder"] as? [String: Any], let folderChildren = folder["children"] as? [String] else {
+        guard let folder = syncable.payload["folder"] as? [String: Any] else {
             return []
         }
-        return folderChildren
+
+        // Sync response format
+        if let folderChildren = folder["children"] as? [String] {
+            return folderChildren
+        }
+
+        // Sync request payload format
+        if let folderChildrenDictionary = folder["children"] as? [String: Any],
+           let currentFolderChildren = folderChildrenDictionary["current"] as? [String] {
+
+            return currentFolderChildren
+        }
+
+        return []
     }
 }
 
