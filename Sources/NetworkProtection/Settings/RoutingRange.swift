@@ -38,7 +38,7 @@ public enum RoutingRange {
     ]
 
     public static let alwaysExcludedIPv6Ranges: [RoutingRange] = [
-        // When need to figure out what will happen to these when
+        // We need to figure out what will happen to these when
         // excludeLocalNetworks is OFF.
         // For now though, I'm keeping these but leaving these always excluded
         // as IPv6 is out of scope.
