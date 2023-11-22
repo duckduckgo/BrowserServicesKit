@@ -235,7 +235,7 @@ final class FaviconsFetchOperation: Operation {
             #keyPath(BookmarkEntity.isFolder),
             #keyPath(BookmarkEntity.isPendingDeletion)
         )
-        request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
+        request.propertiesToFetch = [#keyPath(BookmarkEntity.uuid), #keyPath(BookmarkEntity.url)]
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.favoriteFolders), #keyPath(BookmarkEntity.parent)]
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
