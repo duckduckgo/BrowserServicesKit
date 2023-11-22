@@ -227,14 +227,10 @@ public final class BookmarksFaviconsFetcher {
 
     private func fetchAllBookmarksUUIDs() -> Set<String> {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
         var ids = [String]()
-
         context.performAndWait {
-            let bookmarks = BookmarkUtils.fetchAllBookmarks(in: context)
-            ids = bookmarks.compactMap(\.uuid)
+            ids = BookmarkUtils.fetchAllBookmarksUUIDs(in: context)
         }
-
         return Set(ids)
     }
 
