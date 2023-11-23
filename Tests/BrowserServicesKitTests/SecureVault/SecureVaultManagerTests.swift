@@ -757,6 +757,8 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
 
     func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String) {}
 
+    func secureVaultManager(_: SecureVaultManager, didRequestRuntimeConfigurationForDomain domain: String, completionHandler: @escaping (String?) -> Void) {}
+
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel) {}
 
 }

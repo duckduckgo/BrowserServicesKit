@@ -447,6 +447,19 @@ class AutofillVaultUserScriptTests: XCTestCase {
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
+
+    func testWhenGetRuntimeConfigurationIsCalled_ThenDelegateIsCalled() {
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        let mockWebView = MockWebView()
+        let message = MockUserScriptMessage(name: "getRuntimeConfiguration", body: encryptedMessagingParams,
+                                            host: "example.com", webView: mockWebView)
+
+        userScript.processEncryptedMessage(message, from: userContentController)
+
+        XCTAssertEqual(delegate.lastDomain, "example.com")
+    }
     
     func testWhenInitializingAutofillData_WhenCredentialsAreProvidedWithoutAUsername_ThenAutofillDataIsStillInitialized() {
         let password = "password"
@@ -557,6 +570,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         case didRequestStoreDataForDomain
         case didRequestAccountsForDomain
         case didRequestCredentialsForDomain
+        case didRequestRuntimeConfigurationForDomain
     }
 
     var receivedCallbacks: [CallbackType] = []
@@ -636,6 +650,11 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
     func autofillUserScriptDidAskToUnlockCredentialsProvider(_: BrowserServicesKit.AutofillUserScript, andProvideCredentialsForDomain domain: String, completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
 
+    }
+
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript, didRequestRuntimeConfigurationForDomain domain: String, completionHandler: @escaping (String?) -> Void) {
+        lastDomain = domain
+        receivedCallbacks.append(.didRequestRuntimeConfigurationForDomain)
     }
 
     func autofillUserScriptDidOfferGeneratedPassword(_: BrowserServicesKit.AutofillUserScript, password: String, completionHandler: @escaping (Bool) -> Void) {

@@ -162,6 +162,18 @@ public struct SecureVaultModels {
 
     }
 
+    public struct NeverPromptWebsites {
+        public var id: Int64?
+        public var domain: String
+
+        public init(id: Int64? = nil,
+                    domain: String) {
+            self.id = id
+            self.domain = domain
+        }
+
+    }
+
     public struct CreditCard {
 
         private enum Constants {

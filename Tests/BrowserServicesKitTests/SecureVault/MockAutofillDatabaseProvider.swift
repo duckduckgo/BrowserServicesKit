@@ -24,6 +24,7 @@ import GRDB
 internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     var _accounts = [SecureVaultModels.WebsiteAccount]()
+    var _neverPromptWebsites = [SecureVaultModels.NeverPromptWebsites]()
     var _notes = [SecureVaultModels.Note]()
     var _identities = [Int64: SecureVaultModels.Identity]()
     var _creditCards = [Int64: SecureVaultModels.CreditCard]()
@@ -179,6 +180,33 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
         []
+    }
+
+    func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites] {
+        return _neverPromptWebsites
+    }
+
+    func hasNeverPromptWebsitesFor(domain: String) throws -> Bool {
+        return !_neverPromptWebsites.filter { $0.domain == domain }.isEmpty
+    }
+
+    func storeNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        if let neverPromptWebsiteId = neverPromptWebsite.id {
+            _neverPromptWebsites.append(neverPromptWebsite)
+            return neverPromptWebsiteId
+        } else {
+            return -1
+        }
+    }
+
+    func deleteAllNeverPromptWebsites() throws {
+        _neverPromptWebsites.removeAll()
+    }
+
+    func updateNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws {
+    }
+
+    func insertNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws {
     }
 
 }
