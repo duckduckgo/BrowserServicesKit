@@ -30,11 +30,6 @@ public enum RoutingRange {
         .range("169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local"),
         .range("224.0.0.0/4"    /* 240.0.0.0 */, description: "Multicast"),
         .range("240.0.0.0/4"    /* 240.0.0.0 */, description: "Class E"),
-
-        .section("duckduckgo.com"),
-        .range("52.142.124.215/32"),
-        .range("52.250.42.157/32"),
-        .range("40.114.177.156/32"),
     ]
 
     public static let alwaysExcludedIPv6Ranges: [RoutingRange] = [
