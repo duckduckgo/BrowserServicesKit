@@ -61,6 +61,9 @@ final class BookmarkUtilsTests: XCTestCase {
         let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "2", favoritedOn: [.unified])
+            Folder(id: "10") {
+                Bookmark(id: "12", favoritedOn: [.unified])
+            }
             Bookmark(id: "3", favoritedOn: [.unified])
             Bookmark(id: "4", favoritedOn: [.unified])
         }
@@ -69,15 +72,22 @@ final class BookmarkUtilsTests: XCTestCase {
             bookmarkTree.createEntities(in: context)
 
             try! context.save()
+            let favoritesArray = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)?.favoritesArray.compactMap(\.uuid)
 
             BookmarkUtils.migrateToFormFactorSpecificFavorites(byCopyingExistingTo: .mobile, in: context)
 
             try! context.save()
 
+            let mobileFavoritesArray = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context)?.favoritesArray.compactMap(\.uuid)
+            XCTAssertEqual(favoritesArray, mobileFavoritesArray)
+
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
             assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
                 Bookmark(id: "1")
                 Bookmark(id: "2", favoritedOn: [.mobile, .unified])
+                Folder(id: "10") {
+                    Bookmark(id: "12", favoritedOn: [.mobile, .unified])
+                }
                 Bookmark(id: "3", favoritedOn: [.mobile, .unified])
                 Bookmark(id: "4", favoritedOn: [.mobile, .unified])
             })
