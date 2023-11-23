@@ -126,9 +126,9 @@ extension BookmarkEntity {
         }
     }
 
-    func updateLastChildrenSyncPayload(with syncable: SyncableBookmarkAdapter) {
+    func updateLastChildrenSyncPayload(with uuids: [String]) {
         if isFolder {
-            lastChildrenArrayReceivedFromSync = syncable.children
+            lastChildrenArrayReceivedFromSync = uuids
         }
     }
 }

@@ -42,7 +42,7 @@ public class BookmarkEntity: NSManagedObject {
     }
 
     public static func isValidFavoritesFolderID(_ value: String) -> Bool {
-        FavoritesFolderID.allCases.contains { $0.rawValue == value }
+        Constants.favoriteFoldersIDs.contains(value)
     }
 
     public enum Error: Swift.Error {
@@ -151,16 +151,12 @@ public class BookmarkEntity: NSManagedObject {
         return favoriteFolders.flatMap(Set<BookmarkEntity>.init) ?? []
     }
 
-    public var lastChildrenArrayReceivedFromSync: [String] {
+    public var lastChildrenArrayReceivedFromSync: [String]? {
         get {
-            lastChildrenPayloadReceivedFromSync?.components(separatedBy: ",") ?? []
+            lastChildrenPayloadReceivedFromSync?.components(separatedBy: ",")
         }
         set {
-            if newValue.isEmpty {
-                lastChildrenPayloadReceivedFromSync = nil
-            } else {
-                lastChildrenPayloadReceivedFromSync = newValue.joined(separator: ",")
-            }
+            lastChildrenPayloadReceivedFromSync = newValue?.joined(separator: ",")
         }
     }
 

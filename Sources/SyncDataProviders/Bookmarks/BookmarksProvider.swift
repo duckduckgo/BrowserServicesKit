@@ -58,7 +58,7 @@ public final class BookmarksProvider: DataProvider {
             let bookmarks = (try? context.fetch(fetchRequest)) ?? []
             for bookmark in bookmarks {
                 bookmark.modifiedAt = Date()
-                bookmark.lastChildrenArrayReceivedFromSync = []
+                bookmark.lastChildrenArrayReceivedFromSync = nil
             }
 
             do {
@@ -168,6 +168,13 @@ public final class BookmarksProvider: DataProvider {
             if bookmark.isPendingDeletion, !isLocalChangeRejectedBySync {
                 context.delete(bookmark)
             } else {
+                if !isLocalChangeRejectedBySync, bookmark.isFolder {
+                    if bookmark.uuid.flatMap(BookmarkEntity.isValidFavoritesFolderID) == true {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.favoritesArray.compactMap(\.uuid))
+                    } else {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.childrenArray.compactMap(\.uuid))
+                    }
+                }
                 bookmark.modifiedAt = nil
                 if let uuid = bookmark.uuid {
                     idsOfItemsToClearModifiedAt.insert(uuid)

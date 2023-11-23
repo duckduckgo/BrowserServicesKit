@@ -223,7 +223,7 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(deduplicatedEntity)
             }
 
-            deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable)
+            deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable.children)
 
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
@@ -241,7 +241,7 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(existingEntity)
             }
 
-            existingEntity.updateLastChildrenSyncPayload(with: syncable)
+            existingEntity.updateLastChildrenSyncPayload(with: syncable.children)
 
         } else if !syncable.isDeleted {
 
@@ -252,7 +252,7 @@ final class BookmarksResponseHandler {
             try updateEntity(newEntity, with: syncable)
             entitiesByUUID[syncableUUID] = newEntity
 
-            newEntity.updateLastChildrenSyncPayload(with: syncable)
+            newEntity.updateLastChildrenSyncPayload(with: syncable.children)
         }
     }
 

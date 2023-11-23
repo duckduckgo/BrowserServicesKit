@@ -101,17 +101,22 @@ extension Syncable {
                     return bookmark.childrenArray.compactMap(\.uuid)
                 }()
 
-                let lastReceivedChildren = bookmark.lastChildrenArrayReceivedFromSync
-                let insert = Array(Set(children).subtracting(lastReceivedChildren))
-                let remove = Array(Set(lastReceivedChildren).subtracting(children))
+                if let lastReceivedChildren = bookmark.lastChildrenArrayReceivedFromSync {
+                    let insert = Array(Set(children).subtracting(lastReceivedChildren))
+                    let remove = Array(Set(lastReceivedChildren).subtracting(children))
 
-                payload["folder"] = [
-                    "children": [
-                        "current": children,
-                        "insert": insert,
-                        "remove": remove
+                    payload["folder"] = [
+                        "children": [
+                            "current": children,
+                            "insert": insert,
+                            "remove": remove
+                        ]
                     ]
-                ]
+                } else {
+                    payload["folder"] = [
+                        "children": children
+                    ]
+                }
 
             } else if let url = bookmark.url {
                 payload["page"] = ["url": try encrypt(url)]
