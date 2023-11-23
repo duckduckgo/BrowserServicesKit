@@ -82,38 +82,6 @@ public struct BookmarkUtils {
         }
     }
 
-    public static func migrateToFormFactorSpecificFavorites(byCopyingExistingTo folderID: FavoritesFolderID, in context: NSManagedObjectContext) {
-        assert(folderID != .unified, "You must specify either desktop or mobile folder")
-
-        guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context) else {
-            return
-        }
-
-        if BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.desktop.rawValue, in: context) == nil {
-            let desktopFavoritesFolder = insertRootFolder(uuid: FavoritesFolderID.desktop.rawValue, into: context)
-
-            if folderID == .desktop {
-                favoritesFolder.favoritesArray.forEach { bookmark in
-                    bookmark.addToFavorites(favoritesRoot: desktopFavoritesFolder)
-                }
-            } else {
-                desktopFavoritesFolder.shouldManageModifiedAt = false
-            }
-        }
-
-        if BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context) == nil {
-            let mobileFavoritesFolder = insertRootFolder(uuid: FavoritesFolderID.mobile.rawValue, into: context)
-
-            if folderID == .mobile {
-                favoritesFolder.favoritesArray.forEach { bookmark in
-                    bookmark.addToFavorites(favoritesRoot: mobileFavoritesFolder)
-                }
-            } else {
-                mobileFavoritesFolder.shouldManageModifiedAt = false
-            }
-        }
-    }
-
     public static func copyFavorites(
         from sourceFolderID: FavoritesFolderID,
         to targetFolderID: FavoritesFolderID,
