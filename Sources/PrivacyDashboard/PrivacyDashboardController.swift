@@ -26,77 +26,58 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
     case cookiePopupManagement = "cpm"
 }
 
-/// Navigation delegate for the pages provided by the PrivacyDashboardController
-public protocol PrivacyDashboardNavigationDelegate: AnyObject {
+public protocol PrivacyDashboardControllerDelegate: AnyObject {
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didChangeProtectionSwitch protectionState: ProtectionState)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
+
 #if os(iOS)
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
-#endif
-    
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
-}
-
-/// `Report broken site` web page delegate
-public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
-    
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
-}
-
-/// `Privacy Dasboard` web page delegate
-public protocol PrivacyDashboardControllerDelegate: AnyObject {
-    
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    didChangeProtectionSwitch protectionState: ProtectionState)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    didRequestOpenUrlInNewTab url: URL)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
     func privacyDashboardControllerDidRequestShowReportBrokenSite(_ privacyDashboardController: PrivacyDashboardController)
-    
-#if os(macOS)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    didSetPermission permissionName: String, to state: PermissionAuthorizationState)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, 
-                                    setPermission permissionName: String, paused: Bool)
 #endif
+
+#if os(macOS)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didSetPermission permissionName: String,
+                                    to state: PermissionAuthorizationState)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    setPermission permissionName: String,
+                                    paused: Bool)
+#endif
+    
 }
 
-/// This controller provides two type of user experiences
-/// 1- `Privacy Dashboard` with the possibility to navigate to the `Report broken site` page
-/// 2- Direct access to the `Report broken site` page
-/// Which flow is used is decided at `setup(...)` time, where if `reportBrokenSiteOnly` is true then the `Report broken site` page is opened directly.
-@MainActor public final class PrivacyDashboardController: NSObject {
+@MainActor
+public final class PrivacyDashboardController: NSObject {
     
-    // Delegates
-    public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
-    public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
-    public weak var privacyDashboardReportBrokenSiteDelegate: PrivacyDashboardReportBrokenSiteDelegate?
+    public weak var delegate: PrivacyDashboardControllerDelegate?
     
     @Published public var theme: PrivacyDashboardTheme?
     public var preferredLocale: String?
     @Published public var allowedPermissions: [AllowedPermission] = []
-    public private(set) weak var privacyInfo: PrivacyInfo?
     
+    public private(set) weak var privacyInfo: PrivacyInfo?
     private weak var webView: WKWebView?
+    
     private let privacyDashboardScript = PrivacyDashboardUserScript()
     private var cancellables = Set<AnyCancellable>()
-    
+
     public init(privacyInfo: PrivacyInfo?) {
         self.privacyInfo = privacyInfo
     }
     
-    /// Configure the webview for showing `Privacy Dasboard` or `Report broken site`
-    /// - Parameters:
-    ///   - webView: The webview to use
-    ///   - reportBrokenSiteOnly: true = `Report broken site`, false = `Privacy Dasboard`
-    public func setup(for webView: WKWebView, reportBrokenSiteOnly: Bool) {
+    public func setup(for webView: WKWebView) {
         self.webView = webView
+        
         webView.navigationDelegate = self
         
         setupPrivacyDashboardUserScript()
-        loadPrivacyDashboardHTML(reportBrokenSiteOnly: reportBrokenSiteOnly)
+        loadPrivacyDashboardHTML()
     }
     
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
@@ -131,25 +112,20 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         privacyDashboardScript.delegate = self
         
         webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScriptSync())
-        
+    
         privacyDashboardScript.messageNames.forEach { messageName in
             webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
         }
     }
     
-    private func loadPrivacyDashboardHTML(reportBrokenSiteOnly: Bool) {
-        guard var url = Bundle.privacyDashboardURL else { return }
-        
-        if reportBrokenSiteOnly {
-            url = url.appendingParameter(name: "screen", value: ProtectionState.EventOriginScreen.breakageForm.rawValue)
-        }
-        
+    private func loadPrivacyDashboardHTML() {
+        guard let url = Bundle.privacyDashboardURL else { return }
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
 }
 
 extension PrivacyDashboardController: WKNavigationDelegate {
-    
+
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         subscribeToDataModelChanges()
         
@@ -179,7 +155,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             })
             .store(in: &cancellables)
     }
-    
+
     private func subscribeToTrackerInfo() {
         privacyInfo?.$trackerInfo
             .receive(on: DispatchQueue.main)
@@ -258,57 +234,53 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 }
 
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
-    
+
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings target: String) {
         let settingsTarget = PrivacyDashboardOpenSettingsTarget(rawValue: target) ?? .general
-        privacyDashboardDelegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
+        delegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
     }
-    
+
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
-        
-        switch protectionState.eventOrigin.screen {
-        case .primaryScreen:
-            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
-        case .breakageForm:
-            privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        }
-        
+        delegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
-        privacyDashboardDelegate?.privacyDashboardController(self, didRequestOpenUrlInNewTab: url)
+        delegate?.privacyDashboardController(self, didRequestOpenUrlInNewTab: url)
     }
-    
+
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript) {
 #if os(iOS)
-        privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
+        delegate?.privacyDashboardControllerDidTapClose(self)
 #endif
     }
     
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
 #if os(iOS)
-        privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowReportBrokenSite(self)
+        delegate?.privacyDashboardControllerDidRequestShowReportBrokenSite(self)
 #endif
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
-        privacyDashboardNavigationDelegate?.privacyDashboardController(self, didSetHeight: height)
+#if os(macOS)
+        delegate?.privacyDashboardController(self, didSetHeight: height)
+#endif
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
-        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, 
-                                                                             description: description)
+#if os(macOS)
+        delegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
+#endif
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState) {
 #if os(macOS)
-        privacyDashboardDelegate?.privacyDashboardController(self, didSetPermission: permission, to: state)
+        delegate?.privacyDashboardController(self, didSetPermission: permission, to: state)
 #endif
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool) {
 #if os(macOS)
-        privacyDashboardDelegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
+        delegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
 #endif
     }
 }
