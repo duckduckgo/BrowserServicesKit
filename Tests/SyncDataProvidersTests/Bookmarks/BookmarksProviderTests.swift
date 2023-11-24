@@ -201,7 +201,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             context.refreshAllObjects()
             let rootFolder = BookmarkUtils.fetchRootFolder(context)!
 
-            assertEquivalent(rootFolder, BookmarkTree {
+            assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "5", "6"]) {
                 Bookmark("Bookmark 1", id: "1")
                 Bookmark("Bookmark 5", id: "5")
                 Bookmark("Bookmark 6", id: "6")
@@ -467,7 +467,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         let rootFolder = try await handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
-        assertEquivalent(rootFolder, BookmarkTree {
+        assertEquivalent(withLastChildrenArrayReceivedFromSync: false, rootFolder, BookmarkTree {
             Bookmark("test2", id: "1")
         })
     }
@@ -493,7 +493,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         let rootFolder = try await handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
-        assertEquivalent(rootFolder, BookmarkTree {
+        assertEquivalent(withLastChildrenArrayReceivedFromSync: false, rootFolder, BookmarkTree {
             Bookmark("test2", id: "1")
             Bookmark(id: "2")
         })
@@ -592,7 +592,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let rootFolder = try await handleSyncResponse(sent: sent, received: received, clientTimestamp: Date().addingTimeInterval(-1), serverTimestamp: "1234", in: context)
-        assertEquivalent(rootFolder, BookmarkTree {})
+        assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: []) {})
     }
 
     func testWhenBookmarkIsMovedBetweenFoldersRemotelyAndUpdatedLocallyAfterStartingSyncThenItsModifiedAtIsNotCleared() async throws {
@@ -633,9 +633,9 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let rootFolder = try await handleSyncResponse(sent: sent, received: received, clientTimestamp: bookmarkModificationDate.addingTimeInterval(-1), serverTimestamp: "1234", in: context)
-        assertEquivalent(rootFolder, BookmarkTree {
+        assertEquivalent(withLastChildrenArrayReceivedFromSync: false, rootFolder, BookmarkTree {
             Folder(id: "1")
-            Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
+            Folder(id: "2") {
                 // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
                 // because it's updated after sync context save (bookmark object is not included in synced data
                 // but it gets updated as a side effect of sync – an update to parent).
@@ -745,7 +745,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
         rootFolder = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["3"]) {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3"]) {
             Bookmark(id: "1")
             Bookmark(id: "2")
             Bookmark(id: "3")
