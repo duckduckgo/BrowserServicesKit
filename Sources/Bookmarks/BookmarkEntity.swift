@@ -153,11 +153,17 @@ public class BookmarkEntity: NSManagedObject {
 
     public var lastChildrenArrayReceivedFromSync: [String]? {
         get {
-            lastChildrenPayloadReceivedFromSync?.components(separatedBy: ",")
+            guard let lastChildrenPayloadReceivedFromSync else {
+                return nil
+            }
+            guard !lastChildrenPayloadReceivedFromSync.isEmpty else {
+                return []
+            }
+            return lastChildrenPayloadReceivedFromSync.components(separatedBy: ",")
         }
         set {
-            lastChildrenPayloadReceivedFromSync = newValue?.joined(separator: ",")
-        }
+            lastChildrenPayloadReceivedFromSync = newValue?.filter({ !$0.isEmpty }).joined(separator: ",")
+      }
     }
 
     public static func makeFolder(title: String,

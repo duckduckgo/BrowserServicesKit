@@ -27,6 +27,40 @@ import Persistence
 
 final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
+    func testThatLastChildrenArrayReceivedFromSyncIsSerializedAndDeserializedCorrectly() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let bookmarkEntity = BookmarkEntity(context: context)
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = nil
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, nil)
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = []
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, [])
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = ["1"]
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, ["1"])
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = [""]
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, [])
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = ["1", "2", "3"]
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, ["1", "2", "3"])
+    }
+
+    func testThatLastChildrenArrayReceivedFromSyncIgnoresEmptyIdentifiers() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let bookmarkEntity = BookmarkEntity(context: context)
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = [""]
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, [])
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = ["", "", ""]
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, [])
+
+        bookmarkEntity.lastChildrenArrayReceivedFromSync = ["", "1", "", "", "2", ""]
+        XCTAssertEqual(bookmarkEntity.lastChildrenArrayReceivedFromSync, ["1", "2"])
+    }
+
     func testThatAddingBookmarksToRootFolderReportsAllBookmarksAsInserted() async throws {
         let bookmarkTree = BookmarkTree(modifiedAt: Date(), lastChildrenArrayReceivedFromSync: []) {
             Bookmark(id: "1")
@@ -115,7 +149,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         XCTAssertEqual(rootFolderSyncable.removed, ["7", "6", "8"])
     }
 
-    func testThatFolderChildrenOnInitialSyncAreAllReportedAsInserted() async throws {
+    func testThatUponInitialSyncFolderOnlySubmitsChildrenWithoutInsertedOrRemoved() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
@@ -138,11 +172,11 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3", "16", "2"])
-        XCTAssertEqual(rootFolderSyncable.inserted, ["1", "4", "3", "16", "2"])
+        XCTAssertEqual(rootFolderSyncable.inserted, [])
         XCTAssertEqual(rootFolderSyncable.removed, [])
     }
 
-    func testThatSubfolderChildrenOnInitialSyncAreAllReportedAsInserted() async throws {
+    func testThatUponInitialSyncSubfolderOnlySubmitsChildrenWithoutInsertedOrRemoved() async throws {
         let bookmarkTree = BookmarkTree {
             Bookmark(id: "1")
             Bookmark(id: "4")
@@ -163,7 +197,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["7", "6", "8"])
-        XCTAssertEqual(rootFolderSyncable.inserted, ["7", "6", "8"])
+        XCTAssertEqual(rootFolderSyncable.inserted, [])
         XCTAssertEqual(rootFolderSyncable.removed, [])
     }
 

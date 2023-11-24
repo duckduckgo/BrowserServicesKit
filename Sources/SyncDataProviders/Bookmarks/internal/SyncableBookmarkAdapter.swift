@@ -57,12 +57,12 @@ struct SyncableBookmarkAdapter {
             return []
         }
 
-        if isPatchRequestPayload {
-            if let folderChildrenDictionary = folder["children"] as? [String: Any],
-               let currentChildren = folderChildrenDictionary["current"] as? [String] {
+        if isPatchRequestPayload,
+           let folderChildrenDictionary = folder["children"] as? [String: Any],
+           let currentChildren = folderChildrenDictionary["current"] as? [String] {
 
-                return currentChildren
-            }
+            return currentChildren
+
         } else {
             if let children = folder["children"] as? [String] {
                 return children
