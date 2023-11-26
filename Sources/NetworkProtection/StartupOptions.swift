@@ -94,7 +94,8 @@ struct StartupOptions {
     let simulateCrash: Bool
     let simulateMemoryCrash: Bool
     let keyValidity: StoredOption<TimeInterval>
-    let selectedServer: StoredOption<SelectedNetworkProtectionServer>
+    let selectedEnvironment: StoredOption<TunnelSettings.SelectedEnvironment>
+    let selectedServer: StoredOption<TunnelSettings.SelectedServer>
     let authToken: StoredOption<String>
     let enableTester: StoredOption<Bool>
 
@@ -121,6 +122,7 @@ struct StartupOptions {
         authToken = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
+        selectedEnvironment = Self.readSelectedEnvironment(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
     }
 
@@ -150,7 +152,18 @@ struct StartupOptions {
         }
     }
 
-    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<SelectedNetworkProtectionServer> {
+    private static func readSelectedEnvironment(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TunnelSettings.SelectedEnvironment> {
+
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let environment = options[NetworkProtectionOptionKey.selectedEnvironment] as? String else {
+                return nil
+            }
+
+            return TunnelSettings.SelectedEnvironment(rawValue: environment) ?? .default
+        }
+    }
+
+    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TunnelSettings.SelectedServer> {
 
         StoredOption(resetIfNil: resetIfNil) {
             guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {

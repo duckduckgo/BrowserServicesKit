@@ -111,6 +111,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
     var metadataDatabaseLocation: URL!
     var crypter = CryptingMock()
     var provider: SettingsProvider!
+    var testSettingSyncHandler: TestSettingSyncHandler!
 
     func setUpSyncMetadataDatabase() {
         metadataDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -127,14 +128,17 @@ internal class SettingsProviderTestsBase: XCTestCase {
     override func setUpWithError() throws {
         super.setUp()
 
-        setUpSyncMetadataDatabase()
-
         emailManagerStorage = MockEmailManagerStorage()
         emailManager = EmailManager(storage: emailManagerStorage)
+        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
+        testSettingSyncHandler = .init()
+
+        setUpSyncMetadataDatabase()
+
         provider = SettingsProvider(
             metadataDatabase: metadataDatabase,
             metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
-            emailManager: emailManager,
+            settingsHandlers: [emailProtectionSyncHandler, testSettingSyncHandler],
             syncDidUpdateData: {}
         )
     }

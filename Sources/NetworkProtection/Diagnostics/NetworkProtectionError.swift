@@ -34,6 +34,8 @@ public enum NetworkProtectionError: LocalizedError {
     // Client errors
     case failedToFetchServerList(Error?)
     case failedToParseServerListResponse(Error)
+    case failedToFetchLocationList(Error?)
+    case failedToParseLocationListResponse(Error)
     case failedToEncodeRegisterKeyRequest
     case failedToFetchRegisteredServers(Error?)
     case failedToParseRegisteredServersResponse(Error)

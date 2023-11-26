@@ -47,6 +47,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case pmHandlerOpenManageIdentities
         case pmHandlerOpenManagePasswords
 
+        case getRuntimeConfiguration
         case getAvailableInputTypes
         case getAutofillData
         case storeFormData
@@ -67,6 +68,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     /// Serialized JSON string of any format to be passed from child to parent autofill.
     ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
     public var serializedInputContext: String?
+
+    public var sessionKey: String?
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
@@ -131,7 +134,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .emailHandlerCheckAppSignedInStatus: return emailCheckSignedInStatus
 
         case .pmHandlerGetAutofillInitData: return pmGetAutoFillInitData
-            
+
+        case .getRuntimeConfiguration: return getRuntimeConfiguration
         case .getAvailableInputTypes: return getAvailableInputTypes
         case .getAutofillData: return getAutofillData
         case .storeFormData: return pmStoreData

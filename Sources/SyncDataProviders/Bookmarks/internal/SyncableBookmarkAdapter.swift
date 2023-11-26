@@ -79,7 +79,7 @@ extension Syncable {
                 payload["title"] = try encrypt(title)
             }
             if bookmark.isFolder {
-                if bookmark.uuid == BookmarkEntity.Constants.favoritesFolderID {
+                if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
                     payload["folder"] = [
                         "children": bookmark.favoritesArray.map(\.uuid)
                     ]

@@ -18,7 +18,7 @@
 //
 
 import Foundation
-import NetworkProtection
+@testable import NetworkProtection
 import Common
 
 public extension NetworkProtectionCodeRedemptionCoordinator {

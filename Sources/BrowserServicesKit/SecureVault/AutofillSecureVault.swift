@@ -65,6 +65,12 @@ public protocol AutofillSecureVault: SecureVault {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func deleteWebsiteCredentialsFor(accountId: Int64) throws
 
+    func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites]
+    func hasNeverPromptWebsitesFor(domain: String) throws -> Bool
+    @discardableResult
+    func storeNeverPromptWebsites(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64
+    func deleteAllNeverPromptWebsites() throws
+
     func notes() throws -> [SecureVaultModels.Note]
     func noteFor(id: Int64) throws -> SecureVaultModels.Note?
     @discardableResult
@@ -358,6 +364,45 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        }
+    }
+
+    // MARK: NeverPromptWebsites
+
+    public func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.neverPromptWebsites()
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func hasNeverPromptWebsitesFor(domain: String) throws -> Bool {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        do {
+            return try self.providers.database.hasNeverPromptWebsitesFor(domain: domain)
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func storeNeverPromptWebsites(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.storeNeverPromptWebsite(neverPromptWebsite)
+        }
+    }
+
+    public func deleteAllNeverPromptWebsites() throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteAllNeverPromptWebsites()
         }
     }
 
