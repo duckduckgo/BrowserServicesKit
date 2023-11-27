@@ -68,14 +68,25 @@ class BookmarkMigrationTests: XCTestCase {
     }
 
     func testWhenMigratingFromV1ThenRootFoldersContentsArePreservedInOrder() throws {
+        try commonMigrationTestForDatabase(name: "Bookmarks_V1")
+    }
 
-        try copyDatabase(name: "Bookmarks_V1", formDirectory: resourceURLDir, toDirectory: location)
-        print(location)
+    func testWhenMigratingFromV2ThenRootFoldersContentsArePreservedInOrder() throws {
+        try commonMigrationTestForDatabase(name: "Bookmarks_V2")
+    }
+
+    func testWhenMigratingFromV3ThenRootFoldersContentsArePreservedInOrder() throws {
+        try commonMigrationTestForDatabase(name: "Bookmarks_V3")
+    }
+
+    func commonMigrationTestForDatabase(name: String) throws {
+
+        try copyDatabase(name: name, formDirectory: resourceURLDir, toDirectory: location)
         let legacyFavoritesInOrder = BookmarkFormFactorFavoritesMigration.getFavoritesOrderFromPreV4Model(dbContainerLocation: location,
-                                                                                                          dbFileURL: location.appendingPathComponent("Bookmarks_V1.sqlite", conformingTo: .database))
+                                                                                                          dbFileURL: location.appendingPathComponent("\(name).sqlite", conformingTo: .database))
 
         // Now perform migration and test it
-        guard let migratedStack = loadDatabase(name: "Bookmarks_V1") else {
+        guard let migratedStack = loadDatabase(name: name) else {
             XCTFail("Could not initialize legacy stack")
             return
         }

@@ -246,6 +246,9 @@ let package = Package(
                 .copy("Resources/Bookmarks_V1.sqlite"),
                 .copy("Resources/Bookmarks_V1.sqlite-shm"),
                 .copy("Resources/Bookmarks_V1.sqlite-wal"),
+                .copy("Resources/Bookmarks_V2.sqlite"),
+                .copy("Resources/Bookmarks_V2.sqlite-shm"),
+                .copy("Resources/Bookmarks_V2.sqlite-wal"),
                 .copy("Resources/Bookmarks_V3.sqlite"),
                 .copy("Resources/Bookmarks_V3.sqlite-shm"),
                 .copy("Resources/Bookmarks_V3.sqlite-wal")
