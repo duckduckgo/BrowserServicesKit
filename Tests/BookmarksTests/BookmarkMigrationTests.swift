@@ -37,7 +37,14 @@ class BookmarkMigrationTests: XCTestCase {
             XCTFail("Failed to find bundle URL")
             return
         }
-        resourceURLDir = location.appending(path: "BrowserServicesKit_BookmarksTests.bundle/Contents/Resources/")
+
+        let resourcesLocation = location.appending(path: "BrowserServicesKit_BookmarksTests.bundle/Contents/Resources/")
+        if FileManager.default.fileExists(atPath: resourcesLocation.path) == false {
+            resourceURLDir = Bundle.module.resourceURL
+        } else {
+            resourceURLDir = resourcesLocation
+        }
+
     }
 
     override func tearDown() {
