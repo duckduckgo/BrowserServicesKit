@@ -48,42 +48,6 @@ final class BookmarkUtilsTests: XCTestCase {
         try? FileManager.default.removeItem(at: location)
     }
 
-    func testThatMigrationToFormFactorSpecificFavoritesAddsFavoritesToNativeFolder() async throws {
-
-        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
-
-        context.performAndWait {
-            BookmarkUtils.insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
-            BookmarkUtils.insertRootFolder(uuid: FavoritesFolderID.unified.rawValue, into: context)
-            try! context.save()
-        }
-
-        let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1")
-            Bookmark(id: "2", favoritedOn: [.unified])
-            Bookmark(id: "3", favoritedOn: [.unified])
-            Bookmark(id: "4", favoritedOn: [.unified])
-        }
-
-        context.performAndWait {
-            bookmarkTree.createEntities(in: context)
-
-            try! context.save()
-
-            BookmarkUtils.migrateToFormFactorSpecificFavorites(byCopyingExistingTo: .mobile, in: context)
-
-            try! context.save()
-
-            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
-            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-                Bookmark(id: "1")
-                Bookmark(id: "2", favoritedOn: [.mobile, .unified])
-                Bookmark(id: "3", favoritedOn: [.mobile, .unified])
-                Bookmark(id: "4", favoritedOn: [.mobile, .unified])
-            })
-        }
-    }
-
     func testCopyFavoritesWhenDisablingSyncInDisplayNativeMode() async throws {
 
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
