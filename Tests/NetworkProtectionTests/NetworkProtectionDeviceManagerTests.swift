@@ -18,7 +18,6 @@
 
 import Foundation
 import XCTest
-import NetworkProtectionTestUtils
 @testable import NetworkProtection
 @testable import NetworkProtectionTestUtils
 
