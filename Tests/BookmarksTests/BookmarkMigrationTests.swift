@@ -107,11 +107,16 @@ class BookmarkMigrationTests: XCTestCase {
             Bookmark(id: "2", favoritedOn: [.unified, .mobile])
             Folder(id: "3") {
                 Folder(id: "31") {}
-                Bookmark(id: "32", favoritedOn: [.unified, .desktop])
-                Bookmark(id: "33", favoritedOn: [.unified, .desktop, .mobile])
+                Bookmark(id: "32", favoritedOn: [.unified, .mobile])
+                Bookmark(id: "33", favoritedOn: [.unified, .mobile])
             }
-            Bookmark(id: "4", favoritedOn: [.unified, .desktop, .mobile])
-            Bookmark(id: "5", favoritedOn: [.unified, .desktop])
+            Bookmark(id: "4", favoritedOn: [.unified, .mobile])
+            Bookmark(id: "5", favoritedOn: [.unified, .mobile])
+        }
+
+        latestContext.performAndWait {
+            let rootFolder = BookmarkUtils.fetchRootFolder(latestContext)!
+            assertEquivalent(withTimestamps: false, rootFolder, bookmarkTree)
         }
 
         try? migratedStack.tearDown(deleteStores: true)
@@ -171,7 +176,4 @@ class BookmarkMigrationTests: XCTestCase {
 
         try? bookmarksDatabase.tearDown(deleteStores: true)
     }
-
-
-    
 }
