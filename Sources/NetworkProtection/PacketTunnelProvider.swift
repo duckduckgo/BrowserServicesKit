@@ -657,7 +657,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
                                                                         serverSelectionMethod: serverSelectionMethod,
                                                                         includedRoutes: includedRoutes ?? [],
-                                                                        excludedRoutes: settings.excludedRanges ?? [])
+                                                                        excludedRoutes: settings.excludedRanges)
 
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             guard let self = self else {
