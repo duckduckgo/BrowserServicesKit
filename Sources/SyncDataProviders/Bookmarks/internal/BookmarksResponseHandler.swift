@@ -140,7 +140,7 @@ final class BookmarksResponseHandler {
                 }
             }
 
-            favoritesFolder.lastChildrenArrayReceivedFromSync = favoritesUUIDs
+            favoritesFolder.updateLastChildrenSyncPayload(with: favoritesUUIDs)
         }
     }
 
