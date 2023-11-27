@@ -22,7 +22,10 @@ import Foundation
 import CoreData
 import Persistence
 import Bookmarks
-//import BookmarksTestsUtils
+
+// swiftlint:disable force_try
+// swiftlint:disable line_length
+// swiftlint:disable function_body_length
 
 @main
 struct BookmarksTestDBBuilder {
@@ -228,7 +231,6 @@ public struct BookmarkTree {
         return (rootFolder, orphans)
     }
 
-    // swiftlint:disable large_tuple
     @discardableResult
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity]) {
         BookmarkUtils.prepareLegacyFoldersStructure(in: context)
@@ -245,7 +247,6 @@ public struct BookmarkTree {
         }
         return (rootFolder, orphans)
     }
-    // swiftlint:enable large_tuple
 
     let modifiedAt: Date?
     let bookmarkTreeNodes: [BookmarkTreeNode]
@@ -257,8 +258,8 @@ public extension BookmarkEntity {
         makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolders: favoritesFolders, in: context)
     }
 
-    @discardableResult
-    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> BookmarkEntity {
+    // swiftlint:disable:next cyclomatic_complexity
+    @discardableResult static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> BookmarkEntity {
         var entity: BookmarkEntity!
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
@@ -319,3 +320,7 @@ public extension BookmarkEntity {
         return entity
     }
 }
+
+// swiftlint:enable force_try
+// swiftlint:enable line_length
+// swiftlint:enable function_body_length

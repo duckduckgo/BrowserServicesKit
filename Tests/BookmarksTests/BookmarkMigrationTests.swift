@@ -34,7 +34,7 @@ class BookmarkMigrationTests: XCTestCase {
         location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 
         guard let location = Bundle(for: BookmarkMigrationTests.self).resourceURL else {
-            XCTFail()
+            XCTFail("Failed to find bundle URL")
             return
         }
         resourceURLDir = location.appending(path: "BrowserServicesKit_BookmarksTests.bundle/Contents/Resources/")
