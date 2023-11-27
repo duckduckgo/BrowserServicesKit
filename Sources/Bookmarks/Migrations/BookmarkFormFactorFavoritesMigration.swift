@@ -25,43 +25,35 @@ public class BookmarkFormFactorFavoritesMigration {
         case couldNotLoadDatabase
     }
 
-    public static func modelURL(forVersion version: Int) -> URL? {
-        let bundle = Bookmarks.bundle
-        var momUrl: URL?
-        if version == 1 {
-            momUrl = bundle.url(forResource: "BookmarksModel.momd/BookmarksModel", withExtension: "mom")
-        } else {
-            momUrl = bundle.url(forResource: "BookmarksModel.momd/BookmarksModel \(version)", withExtension: "mom")
-        }
-        return momUrl
-    }
-
     public static func getFavoritesOrderFromPreV4Model(dbContainerLocation: URL,
                                                        dbFileURL: URL,
                                                        errorEvents: EventMapping<MigrationErrors>? = nil) -> [String]? {
+
+        guard let metadata = try? NSPersistentStoreCoordinator.metadataForPersistentStore(ofType: NSSQLiteStoreType, at: dbFileURL),
+              let latestModel = CoreDataDatabase.loadModel(from: bundle, named: "BookmarksModel"),
+              !latestModel.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata) 
+        else {
+            return nil
+        }
+
+        // Before migrating to latest scheme version, read order of favorites from DB
+
+        let oldBookmarksModel = NSManagedObjectModel.mergedModel(from: [Bookmarks.bundle], forStoreMetadata: metadata)!
+        let oldDB = CoreDataDatabase(name: dbFileURL.deletingPathExtension().lastPathComponent,
+                                     containerLocation: dbContainerLocation,
+                                     model: oldBookmarksModel)
+
         var oldFavoritesOrder: [String]?
 
-        guard let metadata = try? NSPersistentStoreCoordinator.metadataForPersistentStore(ofType: NSSQLiteStoreType,
-                                                                                    at: dbFileURL),
-              let latestModel = CoreDataDatabase.loadModel(from: bundle, named: "BookmarksModel") else { return nil }
-        
-        if latestModel.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata) == false{
-            // Before migrating to latest scheme version, read order of favorites from DB
-
-            let oldBookmarksModel = NSManagedObjectModel.mergedModel(from: [Bookmarks.bundle], forStoreMetadata: metadata)!
-            let oldDB = CoreDataDatabase(name: dbFileURL.deletingPathExtension().lastPathComponent,
-                                         containerLocation: dbContainerLocation,
-                                         model: oldBookmarksModel)
-            oldDB.loadStore { context, error in
-                guard let context = context else {
-                    errorEvents?.fire(.couldNotLoadDatabase, error: error)
-                    return
-                }
-
-                let favs = BookmarkUtils.fetchLegacyFavoritesFolder(context)
-                let orderedFavorites = favs?.favorites?.array as? [BookmarkEntity] ?? []
-                oldFavoritesOrder = orderedFavorites.compactMap { $0.uuid }
+        oldDB.loadStore { context, error in
+            guard let context = context else {
+                errorEvents?.fire(.couldNotLoadDatabase, error: error)
+                return
             }
+
+            let favs = BookmarkUtils.fetchLegacyFavoritesFolder(context)
+            let orderedFavorites = favs?.favorites?.array as? [BookmarkEntity] ?? []
+            oldFavoritesOrder = orderedFavorites.compactMap { $0.uuid }
         }
         return oldFavoritesOrder
     }
