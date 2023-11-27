@@ -38,7 +38,7 @@ class BookmarkMigrationTests: XCTestCase {
             return
         }
 
-        let resourcesLocation = location.appending(path: "BrowserServicesKit_BookmarksTests.bundle/Contents/Resources/")
+        let resourcesLocation = location.appendingPathComponent( "BrowserServicesKit_BookmarksTests.bundle/Contents/Resources/")
         if FileManager.default.fileExists(atPath: resourcesLocation.path) == false {
             resourceURLDir = Bundle.module.resourceURL
         } else {
@@ -59,7 +59,7 @@ class BookmarkMigrationTests: XCTestCase {
         try fileManager.createDirectory(at: toDirectory, withIntermediateDirectories: false)
         for ext in ["sqlite", "sqlite-shm", "sqlite-wal"] {
 
-            try fileManager.copyItem(at: formDirectory.appendingPathComponent("\(name).\(ext)", conformingTo: .database),
+            try fileManager.copyItem(at: formDirectory.appendingPathComponent("\(name).\(ext)"),
                                      to: toDirectory.appendingPathComponent("\(name).\(ext)"))
         }
     }
@@ -75,21 +75,18 @@ class BookmarkMigrationTests: XCTestCase {
     }
 
     func testWhenMigratingFromV1ThenRootFoldersContentsArePreservedInOrder() throws {
-        XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
-        return
-//        try commonMigrationTestForDatabase(name: "Bookmarks_V1")
+        throw XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
+        try commonMigrationTestForDatabase(name: "Bookmarks_V1")
     }
 
     func testWhenMigratingFromV2ThenRootFoldersContentsArePreservedInOrder() throws {
-        XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
-        return
-//        try commonMigrationTestForDatabase(name: "Bookmarks_V2")
+        throw XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
+        try commonMigrationTestForDatabase(name: "Bookmarks_V2")
     }
 
     func testWhenMigratingFromV3ThenRootFoldersContentsArePreservedInOrder() throws {
-        XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
-        return
-//        try commonMigrationTestForDatabase(name: "Bookmarks_V3")
+        throw XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
+        try commonMigrationTestForDatabase(name: "Bookmarks_V3")
     }
 
     func commonMigrationTestForDatabase(name: String) throws {
