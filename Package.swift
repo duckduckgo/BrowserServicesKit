@@ -82,6 +82,13 @@ let package = Package(
                 .process("BookmarksModel.xcdatamodeld")
             ]
         ),
+        .executableTarget(name: "BookmarksTestDBBuilder",
+                          dependencies: [
+                            "Bookmarks",
+                            "Persistence"
+                          ],
+                          path: "Sources/BookmarksTestDBBuilder"
+        ),
         .target(
             name: "BookmarksTestsUtils",
             dependencies: [
@@ -234,6 +241,14 @@ let package = Package(
             dependencies: [
                 "Bookmarks",
                 "BookmarksTestsUtils"
+            ],
+            resources: [
+                .copy("Resources/Bookmarks_V1.sqlite"),
+                .copy("Resources/Bookmarks_V1.sqlite-shm"),
+                .copy("Resources/Bookmarks_V1.sqlite-wal"),
+                .copy("Resources/Bookmarks_V3.sqlite"),
+                .copy("Resources/Bookmarks_V3.sqlite-shm"),
+                .copy("Resources/Bookmarks_V3.sqlite-wal")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
