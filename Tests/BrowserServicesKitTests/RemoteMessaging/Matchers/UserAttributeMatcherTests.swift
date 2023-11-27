@@ -53,7 +53,9 @@ class UserAttributeMatcherTests: XCTestCase {
                                                     bookmarksCount: 44,
                                                     favoritesCount: 88,
                                                     appTheme: "default",
-                                                    isWidgetInstalled: true)
+                                                    isWidgetInstalled: true,
+                                                    isNetPWaitlistUser: true,
+                                                    daysSinceNetPEnabled: 5)
     }
 
     override func tearDownWithError() throws {

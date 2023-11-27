@@ -30,6 +30,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let bookmarksCount: Int
     private let favoritesCount: Int
     private let isWidgetInstalled: Bool
+    private let isNetPWaitlistUser: Bool
+    private let daysSinceNetPEnabled: Int
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -37,7 +39,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 bookmarksCount: Int,
                 favoritesCount: Int,
                 appTheme: String,
-                isWidgetInstalled: Bool
+                isWidgetInstalled: Bool,
+                isNetPWaitlistUser: Bool,
+                daysSinceNetPEnabled: Int
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -46,6 +50,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
         self.isWidgetInstalled = isWidgetInstalled
+        self.isNetPWaitlistUser = isNetPWaitlistUser
+        self.daysSinceNetPEnabled = daysSinceNetPEnabled
     }
 
     // swiftlint:disable cyclomatic_complexity
