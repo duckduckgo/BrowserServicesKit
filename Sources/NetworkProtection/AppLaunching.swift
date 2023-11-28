@@ -25,6 +25,7 @@ public enum AppLaunchCommand: Codable {
     case justOpen
     case shareFeedback
     case showStatus
+    case showSettings
     case startVPN
     case stopVPN
     case enableOnDemand

@@ -35,7 +35,7 @@ extension UserDefaults {
         }
     }
 
-    private func registrationKeyValidityFromRawValue(_ rawValue: NSNumber?) -> TunnelSettings.RegistrationKeyValidity {
+    private func registrationKeyValidityFromRawValue(_ rawValue: NSNumber?) -> VPNSettings.RegistrationKeyValidity {
         guard let timeInterval = networkProtectionSettingRegistrationKeyValidityRawValue?.doubleValue else {
             return .automatic
         }
@@ -43,7 +43,7 @@ extension UserDefaults {
         return .custom(timeInterval)
     }
 
-    var networkProtectionSettingRegistrationKeyValidity: TunnelSettings.RegistrationKeyValidity {
+    var networkProtectionSettingRegistrationKeyValidity: VPNSettings.RegistrationKeyValidity {
         get {
             registrationKeyValidityFromRawValue(networkProtectionSettingRegistrationKeyValidityRawValue)
         }
@@ -58,7 +58,7 @@ extension UserDefaults {
         }
     }
 
-    var networkProtectionSettingRegistrationKeyValidityPublisher: AnyPublisher<TunnelSettings.RegistrationKeyValidity, Never> {
+    var networkProtectionSettingRegistrationKeyValidityPublisher: AnyPublisher<VPNSettings.RegistrationKeyValidity, Never> {
         let registrationKeyValidityFromRawValue = self.registrationKeyValidityFromRawValue
 
         return publisher(for: \.networkProtectionSettingRegistrationKeyValidityRawValue).map { serverName in

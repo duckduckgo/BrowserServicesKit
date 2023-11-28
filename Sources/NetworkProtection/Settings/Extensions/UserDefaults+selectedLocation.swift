@@ -52,7 +52,7 @@ extension UserDefaults {
         }
     }
 
-    private static func selectedLocationFromStorageValue(_ storageValue: StorableLocation?) -> TunnelSettings.SelectedLocation {
+    private static func selectedLocationFromStorageValue(_ storageValue: StorableLocation?) -> VPNSettings.SelectedLocation {
         guard let storageValue else {
             return .nearest
         }
@@ -61,7 +61,7 @@ extension UserDefaults {
         return .location(selectedLocation)
     }
 
-    var networkProtectionSettingSelectedLocation: TunnelSettings.SelectedLocation {
+    var networkProtectionSettingSelectedLocation: VPNSettings.SelectedLocation {
         get {
             Self.selectedLocationFromStorageValue(networkProtectionSettingSelectedLocationStorageValue)
         }
@@ -76,7 +76,7 @@ extension UserDefaults {
         }
     }
 
-    var networkProtectionSettingSelectedLocationPublisher: AnyPublisher<TunnelSettings.SelectedLocation, Never> {
+    var networkProtectionSettingSelectedLocationPublisher: AnyPublisher<VPNSettings.SelectedLocation, Never> {
         return publisher(for: \.networkProtectionSettingSelectedLocationStorageValue)
             .map(Self.selectedLocationFromStorageValue(_:))
             .eraseToAnyPublisher()
