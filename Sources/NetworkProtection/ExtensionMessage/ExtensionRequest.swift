@@ -26,6 +26,6 @@ public enum DebugCommand: Codable {
 }
 
 public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: TunnelSettings.Change)
+    case changeTunnelSetting(_ change: VPNSettings.Change)
     case debugCommand(_ command: DebugCommand)
 }

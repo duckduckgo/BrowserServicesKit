@@ -21,13 +21,13 @@ import XCTest
 
 final class NetworkProtectionClientTests: XCTestCase {
     var testDefaults: UserDefaults!
-    var tunnelSettings: TunnelSettings!
+    var settings: VPNSettings!
     var client: NetworkProtectionBackendClient!
 
     override func setUp() {
         super.setUp()
         testDefaults = UserDefaults(suiteName: "com.duckduckgo.browserserviceskit.tests.\(String(describing: type(of: self)))")!
-        tunnelSettings = TunnelSettings(defaults: testDefaults)
+        settings = VPNSettings(defaults: testDefaults)
         client = NetworkProtectionBackendClient(environment: .default)
     }
 
