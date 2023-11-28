@@ -37,7 +37,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.40.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.52.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "2.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -81,6 +81,13 @@ let package = Package(
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
             ]
+        ),
+        .executableTarget(name: "BookmarksTestDBBuilder",
+                          dependencies: [
+                            "Bookmarks",
+                            "Persistence"
+                          ],
+                          path: "Sources/BookmarksTestDBBuilder"
         ),
         .target(
             name: "BookmarksTestsUtils",
@@ -234,6 +241,17 @@ let package = Package(
             dependencies: [
                 "Bookmarks",
                 "BookmarksTestsUtils"
+            ],
+            resources: [
+                .copy("Resources/Bookmarks_V1.sqlite"),
+                .copy("Resources/Bookmarks_V1.sqlite-shm"),
+                .copy("Resources/Bookmarks_V1.sqlite-wal"),
+                .copy("Resources/Bookmarks_V2.sqlite"),
+                .copy("Resources/Bookmarks_V2.sqlite-shm"),
+                .copy("Resources/Bookmarks_V2.sqlite-wal"),
+                .copy("Resources/Bookmarks_V3.sqlite"),
+                .copy("Resources/Bookmarks_V3.sqlite-shm"),
+                .copy("Resources/Bookmarks_V3.sqlite-wal")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
