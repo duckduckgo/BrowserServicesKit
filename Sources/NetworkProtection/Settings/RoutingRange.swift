@@ -29,16 +29,11 @@ public enum RoutingRange {
         .range("127.0.0.0/8"    /* 255.0.0.0 */, description: "Loopback"),
         .range("169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local"),
         .range("224.0.0.0/4"    /* 240.0.0.0 */, description: "Multicast"),
-        .range("240.0.0.0/8"    /* 255.0.0.0 */, description: "Multicast"),
-
-        .section("duckduckgo.com"),
-        .range("52.142.124.215/32"),
-        .range("52.250.42.157/32"),
-        .range("40.114.177.156/32"),
+        .range("240.0.0.0/4"    /* 240.0.0.0 */, description: "Class E"),
     ]
 
     public static let alwaysExcludedIPv6Ranges: [RoutingRange] = [
-        // When need to figure out what will happen to these when
+        // We need to figure out what will happen to these when
         // excludeLocalNetworks is OFF.
         // For now though, I'm keeping these but leaving these always excluded
         // as IPv6 is out of scope.

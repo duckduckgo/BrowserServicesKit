@@ -43,6 +43,7 @@ public struct NetworkProtectionServerInfo: Codable, Equatable, Sendable {
     public let publicKey: String
     public let hostNames: [String]
     public let ips: [AnyIPAddress]
+    public let internalIP: AnyIPAddress
     public let port: UInt16
     public let attributes: ServerAttributes
 
@@ -51,6 +52,7 @@ public struct NetworkProtectionServerInfo: Codable, Equatable, Sendable {
         case publicKey
         case hostNames = "hostnames"
         case ips
+        case internalIP = "internalIp"
         case port
         case attributes
     }

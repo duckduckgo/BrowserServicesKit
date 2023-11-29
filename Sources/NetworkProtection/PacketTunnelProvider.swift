@@ -711,6 +711,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                log: .networkProtection,
                selectedServerInfo.serverLocation,
                selectedServerInfo.name)
+        os_log("🔵 Excluded routes: %{public}@", log: .networkProtection, type: .info, String(describing: excludedRoutes))
 
         let tunnelConfiguration = configurationResult.0
 
