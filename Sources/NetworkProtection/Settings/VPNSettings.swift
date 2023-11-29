@@ -40,6 +40,7 @@ public final class VPNSettings {
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
+        case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -131,6 +132,10 @@ public final class VPNSettings {
             Change.setShowInMenuBar(showInMenuBar)
         }.eraseToAnyPublisher()
 
+        let vpnFirstEnabledPublisher = vpnFirstEnabledPublisher.map { vpnFirstEnabled in
+            Change.setVPNFirstEnabled(vpnFirstEnabled)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
@@ -140,7 +145,8 @@ public final class VPNSettings {
             serverChangePublisher,
             locationChangePublisher,
             environmentChangePublisher,
-            showInMenuBarPublisher).eraseToAnyPublisher()
+            showInMenuBarPublisher,
+            vpnFirstEnabledPublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -185,6 +191,8 @@ public final class VPNSettings {
             self.selectedEnvironment = selectedEnvironment
         case .setShowInMenuBar(let showInMenuBar):
             self.showInMenuBar = showInMenuBar
+        case .setVPNFirstEnabled(let vpnFirstEnabled):
+            self.vpnFirstEnabled = vpnFirstEnabled
         }
     }
 
@@ -373,6 +381,22 @@ public final class VPNSettings {
             case .range(let range, _):
                 return range
             }
+        }
+    }
+
+    // MARK: - First time VPN is enabled
+
+    public var vpnFirstEnabledPublisher: AnyPublisher<Date?, Never> {
+        defaults.vpnFirstEnabledPublisher
+    }
+
+    public var vpnFirstEnabled: Date? {
+        get {
+            defaults.vpnFirstEnabled
+        }
+
+        set {
+            defaults.vpnFirstEnabled = newValue
         }
     }
 }
