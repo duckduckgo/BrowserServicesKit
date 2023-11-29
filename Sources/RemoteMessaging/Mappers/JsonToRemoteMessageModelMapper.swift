@@ -189,6 +189,8 @@ struct JsonToRemoteMessageModelMapper {
             return .macComputer
         case .newForMacAndWindows:
             return .newForMacAndWindows
+        case .vpnAnnounce:
+            return .vpnAnnounce
         case .none:
             return .announce
         }
