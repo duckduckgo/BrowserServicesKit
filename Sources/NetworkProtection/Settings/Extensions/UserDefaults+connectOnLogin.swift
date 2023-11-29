@@ -1,5 +1,5 @@
 //
-//  UserDefaults+excludeLocalNetworks.swift
+//  UserDefaults+connectOnLogin.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,28 +20,26 @@ import Combine
 import Foundation
 
 extension UserDefaults {
-    private var excludeLocalNetworksKey: String {
-        "networkProtectionSettingExcludeLocalNetworks"
+    private var connectOnLoginKey: String {
+        "networkProtectionSettingConnectOnLogin"
     }
 
-    static let excludeLocalNetworksDefaultValue = true
-
     @objc
-    dynamic var networkProtectionSettingExcludeLocalNetworks: Bool {
+    dynamic var networkProtectionSettingConnectOnLogin: Bool {
         get {
-            value(forKey: excludeLocalNetworksKey) as? Bool ?? Self.excludeLocalNetworksDefaultValue
+            bool(forKey: connectOnLoginKey)
         }
 
         set {
-            set(newValue, forKey: excludeLocalNetworksKey)
+            set(newValue, forKey: connectOnLoginKey)
         }
     }
 
-    var networkProtectionSettingExcludeLocalNetworksPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.networkProtectionSettingExcludeLocalNetworks).eraseToAnyPublisher()
+    var networkProtectionSettingConnectOnLoginPublisher: AnyPublisher<Bool, Never> {
+        publisher(for: \.networkProtectionSettingConnectOnLogin).eraseToAnyPublisher()
     }
 
-    func resetNetworkProtectionSettingExcludeLocalNetworks() {
-        removeObject(forKey: excludeLocalNetworksKey)
+    func resetNetworkProtectionSettingConnectOnLogin() {
+        removeObject(forKey: connectOnLoginKey)
     }
 }
