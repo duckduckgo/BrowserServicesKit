@@ -1,5 +1,5 @@
 //
-//  UserDefaults+excludeLocalNetworks.swift
+//  UserDefaults+notifyStatusChanges.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,28 +20,28 @@ import Combine
 import Foundation
 
 extension UserDefaults {
-    private var excludeLocalNetworksKey: String {
-        "networkProtectionSettingExcludeLocalNetworks"
+    private var notifyStatusChangesKey: String {
+        "networkProtectionNotifyStatusChanges"
     }
 
-    static let excludeLocalNetworksDefaultValue = true
+    private static let notifyStatusChangesDefaultValue = true
 
     @objc
-    dynamic var networkProtectionSettingExcludeLocalNetworks: Bool {
+    dynamic var networkProtectionNotifyStatusChanges: Bool {
         get {
-            value(forKey: excludeLocalNetworksKey) as? Bool ?? Self.excludeLocalNetworksDefaultValue
+            value(forKey: notifyStatusChangesKey) as? Bool ?? Self.notifyStatusChangesDefaultValue
         }
 
         set {
-            set(newValue, forKey: excludeLocalNetworksKey)
+            set(newValue, forKey: notifyStatusChangesKey)
         }
     }
 
-    var networkProtectionSettingExcludeLocalNetworksPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.networkProtectionSettingExcludeLocalNetworks).eraseToAnyPublisher()
+    var networkProtectionNotifyStatusChangesPublisher: AnyPublisher<Bool, Never> {
+        publisher(for: \.networkProtectionNotifyStatusChanges).eraseToAnyPublisher()
     }
 
-    func resetNetworkProtectionSettingExcludeLocalNetworks() {
-        removeObject(forKey: excludeLocalNetworksKey)
+    func resetNetworkProtectionSettingNotifyStatusChanges() {
+        removeObject(forKey: notifyStatusChangesKey)
     }
 }
