@@ -98,7 +98,20 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
+        case let matchingAttribute as IsNetPWaitlistUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isNetPWaitlistUser)
+        case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceNetPEnabled)
+            }
         default:
+            assertionFailure("Could not find matching attribute")
             return nil
         }
     }

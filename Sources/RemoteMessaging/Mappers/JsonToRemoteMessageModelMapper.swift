@@ -162,6 +162,8 @@ struct JsonToRemoteMessageModelMapper {
             return .share(value: jsonAction.value, title: jsonAction.additionalParameters?["title"])
         case .url:
             return .url(value: jsonAction.value)
+        case .surveyURL:
+            return .surveyURL(value: jsonAction.value)
         case .appStore:
             return .appStore
         case .dismiss:

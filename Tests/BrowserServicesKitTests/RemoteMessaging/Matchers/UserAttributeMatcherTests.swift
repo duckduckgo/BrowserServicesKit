@@ -55,7 +55,7 @@ class UserAttributeMatcherTests: XCTestCase {
                                                     appTheme: "default",
                                                     isWidgetInstalled: true,
                                                     isNetPWaitlistUser: true,
-                                                    daysSinceNetPEnabled: 5)
+                                                    daysSinceNetPEnabled: 3)
     }
 
     override func tearDownWithError() throws {
@@ -183,6 +183,7 @@ class UserAttributeMatcherTests: XCTestCase {
     }
 
     // MARK: - EmailEnabled
+
     func testWhenEmailEnabledMatchesThenReturnMatch() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: EmailEnabledMatchingAttribute(value: true, fallback: nil)),
                        .match)
@@ -194,6 +195,7 @@ class UserAttributeMatcherTests: XCTestCase {
     }
 
     // MARK: - WidgetAdded
+
     func testWhenWidgetAddedMatchesThenReturnMatch() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: true, fallback: nil)),
                        .match)
@@ -201,6 +203,28 @@ class UserAttributeMatcherTests: XCTestCase {
 
     func testWhenWidgetAddedDoesNotMatchThenReturnFail() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: false, fallback: nil)),
+                       .fail)
+    }
+
+    // MARK: - Network Protection Waitlist
+
+    func testWhenIsNetPWaitlistUserMatchesThenReturnMatch() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenIsNetPWaitlistUserDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsNetPWaitlistUserMatchingAttribute(value: false, fallback: nil)),
+                       .fail)
+    }
+
+    func testWhenDaysSinceNetPEnabledMatchesThenReturnMatch() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 1, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenDaysSinceNetPEnabledDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 7, fallback: nil)),
                        .fail)
     }
 
