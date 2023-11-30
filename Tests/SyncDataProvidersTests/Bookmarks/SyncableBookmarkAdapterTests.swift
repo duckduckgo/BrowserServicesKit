@@ -72,7 +72,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "2", "16", "3", "4"])
@@ -96,7 +96,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["7", "6", "8"])
@@ -116,7 +116,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, [])
@@ -141,7 +141,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, [])
@@ -168,7 +168,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         try provider.prepareForFirstSync()
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3", "16", "2"])
@@ -193,7 +193,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         try provider.prepareForFirstSync()
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["7", "6", "8"])
@@ -213,7 +213,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3", "16", "2"])
@@ -233,7 +233,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3"])
@@ -253,7 +253,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "2", "16", "3", "4"])
@@ -280,7 +280,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         populateBookmarks(with: bookmarkTree)
 
         let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
-            .map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: true) }
+            .map(SyncableBookmarkAdapter.init(syncable:))
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["8", "9", "6"])
@@ -302,30 +302,24 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
 private extension SyncableBookmarkAdapter {
     var inserted: Set<String> {
-        guard let folder = syncable.payload["folder"] as? [String: Any], isPatchRequestPayload else {
+        guard let folder = syncable.payload["folder"] as? [String: Any],
+              let folderChildrenDictionary = folder["children"] as? [String: Any],
+              let insertedChildren = folderChildrenDictionary["insert"] as? [String]
+        else {
             return []
         }
 
-        if let folderChildrenDictionary = folder["children"] as? [String: Any],
-           let insertedChildren = folderChildrenDictionary["insert"] as? [String] {
-
-            return Set(insertedChildren)
-        }
-
-        return []
+        return Set(insertedChildren)
     }
 
     var removed: Set<String> {
-        guard let folder = syncable.payload["folder"] as? [String: Any], isPatchRequestPayload else {
+        guard let folder = syncable.payload["folder"] as? [String: Any],
+              let folderChildrenDictionary = folder["children"] as? [String: Any],
+              let removedChildren = folderChildrenDictionary["remove"] as? [String]
+        else {
             return []
         }
 
-        if let folderChildrenDictionary = folder["children"] as? [String: Any],
-           let removedChildren = folderChildrenDictionary["remove"] as? [String] {
-
-            return Set(removedChildren)
-        }
-
-        return []
+        return Set(removedChildren)
     }
 }

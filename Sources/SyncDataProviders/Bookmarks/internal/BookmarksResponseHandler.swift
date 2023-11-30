@@ -46,7 +46,7 @@ final class BookmarksResponseHandler {
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
-        self.received = received.map { SyncableBookmarkAdapter(syncable: $0, isPatchRequestPayload: false) }
+        self.received = received.map { SyncableBookmarkAdapter(syncable: $0) }
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
 

@@ -24,11 +24,9 @@ import Foundation
 struct SyncableBookmarkAdapter {
 
     let syncable: Syncable
-    let isPatchRequestPayload: Bool
 
-    init(syncable: Syncable, isPatchRequestPayload: Bool) {
+    init(syncable: Syncable) {
         self.syncable = syncable
-        self.isPatchRequestPayload = isPatchRequestPayload
     }
 
     var uuid: String? {
@@ -57,16 +55,13 @@ struct SyncableBookmarkAdapter {
             return []
         }
 
-        if isPatchRequestPayload,
-           let folderChildrenDictionary = folder["children"] as? [String: Any],
+        if let folderChildrenDictionary = folder["children"] as? [String: Any],
            let currentChildren = folderChildrenDictionary["current"] as? [String] {
 
             return currentChildren
 
-        } else {
-            if let children = folder["children"] as? [String] {
-                return children
-            }
+        } else if let children = folder["children"] as? [String] {
+            return children
         }
 
         return []
