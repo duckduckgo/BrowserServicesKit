@@ -32,6 +32,8 @@ internal class BookmarksProviderTestsBase: XCTestCase {
     var crypter = CryptingMock()
     var provider: BookmarksProvider!
 
+    var expectedSyncResult: BookmarksProvider.SyncResult?
+
     func setUpBookmarksDatabase() {
         bookmarksDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 
@@ -62,7 +64,12 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        provider = BookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), syncDidUpdateData: {})
+        provider = BookmarksProvider(
+            database: bookmarksDatabase,
+            metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
+            syncDidUpdateData: {},
+            syncDidFinish: { _ in }
+        )
     }
 
     override func tearDown() {
