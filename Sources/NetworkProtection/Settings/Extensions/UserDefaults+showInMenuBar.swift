@@ -1,5 +1,5 @@
 //
-//  UserDefaults+excludeLocalNetworks.swift
+//  UserDefaults+showInMenuBar.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,28 +20,28 @@ import Combine
 import Foundation
 
 extension UserDefaults {
-    private var excludeLocalNetworksKey: String {
-        "networkProtectionSettingExcludeLocalNetworks"
+    private var showInMenuBarKey: String {
+        "networkProtectionSettingShowInMenuBar"
     }
 
-    static let excludeLocalNetworksDefaultValue = true
+    static let showInMenuBarDefaultValue = true
 
     @objc
-    dynamic var networkProtectionSettingExcludeLocalNetworks: Bool {
+    dynamic var networkProtectionSettingShowInMenuBar: Bool {
         get {
-            value(forKey: excludeLocalNetworksKey) as? Bool ?? Self.excludeLocalNetworksDefaultValue
+            value(forKey: showInMenuBarKey) as? Bool ?? Self.showInMenuBarDefaultValue
         }
 
         set {
-            set(newValue, forKey: excludeLocalNetworksKey)
+            set(newValue, forKey: showInMenuBarKey)
         }
     }
 
-    var networkProtectionSettingExcludeLocalNetworksPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.networkProtectionSettingExcludeLocalNetworks).eraseToAnyPublisher()
+    var networkProtectionSettingShowInMenuBarPublisher: AnyPublisher<Bool, Never> {
+        publisher(for: \.networkProtectionSettingShowInMenuBar).eraseToAnyPublisher()
     }
 
-    func resetNetworkProtectionSettingExcludeLocalNetworks() {
-        removeObject(forKey: excludeLocalNetworksKey)
+    func resetNetworkProtectionSettingShowInMenuBar() {
+        removeObject(forKey: showInMenuBarKey)
     }
 }

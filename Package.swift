@@ -8,7 +8,7 @@ let package = Package(
     name: "BrowserServicesKit",
     platforms: [
         .iOS("14.0"),
-        .macOS("10.15")
+        .macOS("11.4")
     ],
     products: [
         // Exported libraries
@@ -38,7 +38,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.52.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "2.0.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1")

@@ -27,7 +27,7 @@ extension UserDefaults {
     @objc
     dynamic var networkProtectionSettingSelectedEnvironmentRawValue: String {
         get {
-            value(forKey: selectedEnvironmentKey) as? String ?? TunnelSettings.SelectedEnvironment.default.rawValue
+            value(forKey: selectedEnvironmentKey) as? String ?? VPNSettings.SelectedEnvironment.default.rawValue
         }
 
         set {
@@ -35,9 +35,9 @@ extension UserDefaults {
         }
     }
 
-    var networkProtectionSettingSelectedEnvironment: TunnelSettings.SelectedEnvironment {
+    var networkProtectionSettingSelectedEnvironment: VPNSettings.SelectedEnvironment {
         get {
-            TunnelSettings.SelectedEnvironment(rawValue: networkProtectionSettingSelectedEnvironmentRawValue) ?? .default
+            VPNSettings.SelectedEnvironment(rawValue: networkProtectionSettingSelectedEnvironmentRawValue) ?? .default
         }
 
         set {
@@ -45,9 +45,9 @@ extension UserDefaults {
         }
     }
 
-    var networkProtectionSettingSelectedEnvironmentPublisher: AnyPublisher<TunnelSettings.SelectedEnvironment, Never> {
+    var networkProtectionSettingSelectedEnvironmentPublisher: AnyPublisher<VPNSettings.SelectedEnvironment, Never> {
         publisher(for: \.networkProtectionSettingSelectedEnvironmentRawValue).map { value in
-            TunnelSettings.SelectedEnvironment(rawValue: value) ?? .default
+            VPNSettings.SelectedEnvironment(rawValue: value) ?? .default
         }.eraseToAnyPublisher()
     }
 
