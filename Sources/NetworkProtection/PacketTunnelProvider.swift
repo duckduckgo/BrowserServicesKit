@@ -73,7 +73,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Timers Support
 
-    private let timerQueue = DispatchQueue(label: "com.duckduckgo.network-protection.PacketTunnelProvider.timerQueue")
+    public let timerQueue = DispatchQueue(label: "com.duckduckgo.network-protection.PacketTunnelProvider.timerQueue")
 
     // MARK: - Status
 
@@ -218,6 +218,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         bandwidthAnalyzer.record(rxBytes: rx, txBytes: tx)
     }
 
+    /// MARK: - Most recent handshake
+    ///
+    public func mostRecentHandshake() async -> TimeInterval? {
+        try? await adapter.getMostRecentHandshake()
+    }
+
     // MARK: - Connection tester
 
     private var isConnectionTesterEnabled: Bool = true
@@ -255,6 +261,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
     }()
+
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self, timerQueue: timerQueue, log: .networkProtectionPixel)
 
     @MainActor
     private func startLatencyReporter() {
@@ -1013,6 +1021,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             let testImmediately = startReason == .reconnected || startReason == .onDemand
 
             try await startConnectionTester(testImmediately: testImmediately)
+            
+            try await tunnelFailureMonitor.start()
         } catch {
             os_log("🔵 Connection Tester error: %{public}@", log: .networkProtectionConnectionTesterLog, type: .error, String(reflecting: error))
             throw error
@@ -1022,6 +1032,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public func handleAdapterStopped() async {
         connectionStatus = .disconnected
         await self.connectionTester.stop()
+        await self.tunnelFailureMonitor.stop()
     }
 
     // MARK: - Connection Tester
