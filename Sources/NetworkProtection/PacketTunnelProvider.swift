@@ -924,7 +924,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
-        let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.description) }
+        let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.host.description) }
         completionHandler?(response?.rawValue)
     }
 
