@@ -218,8 +218,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         bandwidthAnalyzer.record(rxBytes: rx, txBytes: tx)
     }
 
-    /// MARK: - Most recent handshake
-    ///
+    // MARK: - Most recent handshake
+
     public func mostRecentHandshake() async -> TimeInterval? {
         try? await adapter.getMostRecentHandshake()
     }
