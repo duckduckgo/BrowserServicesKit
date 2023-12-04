@@ -421,6 +421,30 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     // MARK: - Regular Sync
 
+    func testWhenObjectDeleteIsSentAndTheSameObjectDeleteIsReceivedThenObjectIsDeleted() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", isDeleted: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: []),
+            .bookmark("test2", id: "1", isDeleted: true)
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        let rootFolder = try await handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: []) {})
+    }
+
     func testWhenObjectDeleteIsSentAndTheSameObjectUpdateIsReceivedThenObjectIsNotDeleted() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
@@ -496,6 +520,32 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         assertEquivalent(withLastChildrenArrayReceivedFromSync: false, rootFolder, BookmarkTree {
             Bookmark("test2", id: "1")
             Bookmark(id: "2")
+        })
+    }
+
+    func testWhenFolderUpdateIsSentAndTheSameFolderUpdateIsReceivedThenServerVersionIsApplied() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("test", id: "1", isDeleted: true)
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["2"]),
+            .bookmark("test2", id: "2")
+        ]
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        let rootFolder = try await handleSyncResponse(sent: sent, received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2"]) {
+            Bookmark("test2", id: "2")
         })
     }
 
