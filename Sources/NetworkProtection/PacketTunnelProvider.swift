@@ -830,7 +830,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
-                .setShowInMenuBar:
+                .setShowInMenuBar,
+                .setVPNFirstEnabled:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
@@ -923,7 +924,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
-        let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.description) }
+        let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.host.description) }
         completionHandler?(response?.rawValue)
     }
 
