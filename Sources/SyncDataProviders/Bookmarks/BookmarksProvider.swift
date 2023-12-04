@@ -164,11 +164,11 @@ public final class BookmarksProvider: DataProvider {
             if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
-            if bookmark.isPendingDeletion, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
+            if bookmark.isPendingDeletion, !hasNewerVersionOnServer {
                 context.delete(bookmark)
             } else {
-                if !isLocalChangeRejectedBySync, bookmark.isFolder {
+                if !hasNewerVersionOnServer, bookmark.isFolder {
                     if bookmark.uuid.flatMap(BookmarkEntity.isValidFavoritesFolderID) == true {
                         bookmark.updateLastChildrenSyncPayload(with: bookmark.favoritesArray.compactMap(\.uuid))
                     } else {
