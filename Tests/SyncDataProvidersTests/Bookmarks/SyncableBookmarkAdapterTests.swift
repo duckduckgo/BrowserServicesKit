@@ -172,7 +172,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3", "16", "2"])
-        XCTAssertEqual(rootFolderSyncable.inserted, [])
+        XCTAssertEqual(rootFolderSyncable.inserted, ["1", "4", "3", "16", "2"])
         XCTAssertEqual(rootFolderSyncable.removed, [])
     }
 
@@ -197,7 +197,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["7", "6", "8"])
-        XCTAssertEqual(rootFolderSyncable.inserted, [])
+        XCTAssertEqual(rootFolderSyncable.inserted, ["7", "6", "8"])
         XCTAssertEqual(rootFolderSyncable.removed, [])
     }
 

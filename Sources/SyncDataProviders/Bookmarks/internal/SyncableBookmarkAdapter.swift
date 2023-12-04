@@ -109,7 +109,10 @@ extension Syncable {
                     ]
                 } else {
                     payload["folder"] = [
-                        "children": children
+                        "children": [
+                            "current": children,
+                            "insert": children
+                        ]
                     ]
                 }
 
