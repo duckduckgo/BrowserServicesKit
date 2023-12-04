@@ -30,7 +30,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
         case userBecameActive
-        case reportLatency(ms: Int, server: String, networkType: NetworkConnectionType)
+        case reportLatency(ms: Int, server: String)
         case rekeyCompleted
     }
 
@@ -279,8 +279,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.latencyReporter.stop()
         }
 
-        self.latencyReporter.start(ip: ip) { [serverName=lastSelectedServerInfo.name, providerEvents] latency, networkType in
-            providerEvents.fire(.reportLatency(ms: Int(latency * 1000), server: serverName, networkType: networkType))
+        self.latencyReporter.start(ip: ip) { [serverName=lastSelectedServerInfo.name, providerEvents] latency in
+            providerEvents.fire(.reportLatency(ms: Int(latency * 1000), server: serverName))
         }
     }
 

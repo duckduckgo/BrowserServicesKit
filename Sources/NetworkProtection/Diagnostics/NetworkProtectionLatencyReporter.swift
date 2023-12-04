@@ -29,29 +29,20 @@ extension Pinger: LatencyMeasurer {}
 actor NetworkProtectionLatencyReporter {
 
     struct Configuration {
-        let firstPingDelay: TimeInterval
         let pingInterval: TimeInterval
-
         let timeout: TimeInterval
-        let waitForNextConnectionTypeQuery: TimeInterval
 
-        init(firstPingDelay: TimeInterval = .minutes(15),
-             pingInterval: TimeInterval = .hours(4),
-             timeout: TimeInterval = .seconds(5),
-             waitForNextConnectionTypeQuery: TimeInterval = .seconds(15)) {
+        init(pingInterval: TimeInterval = .seconds(20),
+             timeout: TimeInterval = .seconds(5)) {
 
-            self.firstPingDelay = firstPingDelay
             self.pingInterval = pingInterval
             self.timeout = timeout
-            self.waitForNextConnectionTypeQuery = waitForNextConnectionTypeQuery
         }
 
         static let `default` = Configuration()
     }
 
     private let configuration: Configuration
-    private let networkPathMonitor: NWPathMonitor
-    private var currentConnectionType: NetworkConnectionType?
 
     private nonisolated let getLogger: (@Sendable () -> OSLog)
 
@@ -81,45 +72,22 @@ actor NetworkProtectionLatencyReporter {
         self.pingerFactory = pingerFactory ?? { ip, timeout in
             Pinger(ip: ip, timeout: timeout, log: log())
         }
-
-        let networkPathMonitor = NWPathMonitor()
-        self.networkPathMonitor = networkPathMonitor
-
-        networkPathMonitor.pathUpdateHandler = { [weak self] path in
-            guard let connectionType = NetworkConnectionType(nwPath: path) else { return }
-            Task { [weak self] in
-                await self?.updateCurrentNetworkConnectionType(connectionType)
-            }
-        }
-        networkPathMonitor.start(queue: .global())
     }
 
     @MainActor
-    func start(ip: IPv4Address, reportCallback: @escaping @Sendable (TimeInterval, NetworkConnectionType) -> Void) {
+    func start(ip: IPv4Address, reportCallback: @escaping @Sendable (TimeInterval) -> Void) {
         let log = { @Sendable [weak self] in self?.getLogger() ?? .disabled }
         let pinger = pingerFactory(ip, configuration.timeout)
         self.currentIP = ip
 
         // run periodic latency measurement with initial delay and following interval
-        task = Task.periodic(delay: configuration.firstPingDelay, interval: configuration.pingInterval) { [weak self, configuration] in
-            guard let self else { return }
+        task = Task.periodic(interval: configuration.pingInterval) {
             do {
-                // poll for current connection type (cellular/wifi/eth) set by NWPathMonitor
-                let networkPath: NetworkConnectionType = try await {
-                    while true {
-                        if let currentConnectionType = await self.currentConnectionType {
-                            return currentConnectionType
-                        }
-                        try await Task.sleep(interval: configuration.waitForNextConnectionTypeQuery)
-                    }
-                }()
-
                 // ping the host
                 let latency = try await pinger.ping().get().time
 
                 // report
-                reportCallback(latency, networkPath)
-
+                reportCallback(latency)
             } catch {
                 os_log("ping failed: %s", log: log(), type: .error, error.localizedDescription)
             }
@@ -131,13 +99,8 @@ actor NetworkProtectionLatencyReporter {
         task = nil
     }
 
-    private func updateCurrentNetworkConnectionType(_ connectionType: NetworkConnectionType) {
-        self.currentConnectionType = connectionType
-    }
-
     deinit {
         task?.cancel()
-        networkPathMonitor.cancel()
     }
 
 }
