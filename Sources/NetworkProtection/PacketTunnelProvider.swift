@@ -92,7 +92,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    public var connectionStatus: ConnectionStatus = .disconnected {
+    public var connectionStatus: ConnectionStatus = .default {
         didSet {
             guard connectionStatus != oldValue else {
                 return
