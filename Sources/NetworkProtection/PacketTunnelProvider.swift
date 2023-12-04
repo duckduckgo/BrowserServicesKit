@@ -104,7 +104,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    public let connectionStatusPublisher = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
+    public let connectionStatusPublisher = CurrentValueSubject<ConnectionStatus, Never>(.default)
 
     public var isKillSwitchEnabled: Bool {
         guard #available(macOS 11.0, iOS 14.2, *) else { return false }
