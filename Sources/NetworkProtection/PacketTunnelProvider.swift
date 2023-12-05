@@ -30,7 +30,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
         case userBecameActive
-        case reportLatency(ms: Int, server: String)
         case rekeyCompleted
     }
 
@@ -236,17 +235,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .connected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
-                self.startLatencyReporter()
 
             case .reconnected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
-                self.startLatencyReporter()
 
             case .disconnected(let failureCount):
                 self.tunnelHealth.isHavingConnectivityIssues = true
                 self.bandwidthAnalyzer.reset()
-                self.latencyReporter.stop()
 
                 if failureCount == 1 {
                     self.notificationsPresenter.showReconnectingNotification()
@@ -262,33 +258,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self, timerQueue: timerQueue, log: .networkProtectionPixel)
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self, 
+                                                                                timerQueue: timerQueue,
+                                                                                log: .networkProtectionPixel)
 
-    @MainActor
-    private func startLatencyReporter() {
-        guard let lastSelectedServerInfo,
-              let ip = lastSelectedServerInfo.ipv4 else {
-            assertionFailure("could not get server IPv4 address")
-            self.latencyReporter.stop()
-            return
-        }
-        if self.latencyReporter.isStarted {
-            if self.latencyReporter.currentIP == ip {
-                return
-            }
-            self.latencyReporter.stop()
-        }
-
-        self.latencyReporter.start(ip: ip) { [serverName=lastSelectedServerInfo.name, providerEvents] latency in
-            providerEvents.fire(.reportLatency(ms: Int(latency * 1000), server: serverName))
-        }
-    }
+    public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
+                                                                     timerQueue: timerQueue,
+                                                                     log: .networkProtectionPixel)
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
-    private let latencyReporter = NetworkProtectionLatencyReporter(log: .networkProtection)
 
     // MARK: - Cancellables
 
@@ -1016,13 +997,25 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
 
         do {
+            try await tunnelFailureMonitor.start()
+        } catch {
+            os_log("⚫️ Tunnel health monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
+            throw error
+        }
+
+        do {
+            try await latencyMonitor.start()
+        } catch {
+            os_log("⚫️ Latency monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
+            throw error
+        }
+
+        do {
             // These cases only make sense in the context of a connection that had trouble
             // and is being fixed, so we want to test the connection immediately.
             let testImmediately = startReason == .reconnected || startReason == .onDemand
 
             try await startConnectionTester(testImmediately: testImmediately)
-            
-            try await tunnelFailureMonitor.start()
         } catch {
             os_log("🔵 Connection Tester error: %{public}@", log: .networkProtectionConnectionTesterLog, type: .error, String(reflecting: error))
             throw error
@@ -1033,6 +1026,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         connectionStatus = .disconnected
         await self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
+        await self.latencyMonitor.stop()
     }
 
     // MARK: - Connection Tester
@@ -1072,6 +1066,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
 
         await connectionTester.stop()
+        await tunnelFailureMonitor.stop()
+        await latencyMonitor.stop()
     }
 
     public override func wake() {
