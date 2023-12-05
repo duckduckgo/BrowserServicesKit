@@ -35,7 +35,6 @@ public class ModelAccessHelper {
             let momc = "\(developerDir)/usr/bin/momc"
             compileDataModel.executableURL = URL(fileURLWithPath: momc)
             compileDataModel.arguments = [xcDataModelUrl.path, momdUrl.path]
-            print("---> \(momdUrl.path)")
             try? compileDataModel.run()
             compileDataModel.waitUntilExit()
         }
