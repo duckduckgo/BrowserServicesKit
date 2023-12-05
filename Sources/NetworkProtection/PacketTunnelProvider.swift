@@ -81,7 +81,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Timers Support
 
-    public let timerQueue = DispatchQueue(label: "com.duckduckgo.network-protection.PacketTunnelProvider.timerQueue")
+    private let timerQueue = DispatchQueue(label: "com.duckduckgo.network-protection.PacketTunnelProvider.timerQueue")
 
     // MARK: - Status
 
