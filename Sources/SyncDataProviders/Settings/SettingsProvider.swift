@@ -291,9 +291,9 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             if let lastModified = metadata.lastModified, lastModified > clientTimestamp {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedKeys.contains(metadata.key)
+            let hasNewerVersionOnServer: Bool = receivedKeys.contains(metadata.key)
             let isPendingDeletion = originalValues[setting] == nil
-            if isPendingDeletion, !isLocalChangeRejectedBySync {
+            if isPendingDeletion, !hasNewerVersionOnServer {
                 try handler.setValue(nil)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadata.key)
