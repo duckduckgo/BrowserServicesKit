@@ -251,7 +251,10 @@ let package = Package(
                 .copy("Resources/Bookmarks_V2.sqlite-wal"),
                 .copy("Resources/Bookmarks_V3.sqlite"),
                 .copy("Resources/Bookmarks_V3.sqlite-shm"),
-                .copy("Resources/Bookmarks_V3.sqlite-wal")
+                .copy("Resources/Bookmarks_V3.sqlite-wal"),
+                .copy("Resources/Bookmarks_V4.sqlite"),
+                .copy("Resources/Bookmarks_V4.sqlite-shm"),
+                .copy("Resources/Bookmarks_V4.sqlite-wal")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
