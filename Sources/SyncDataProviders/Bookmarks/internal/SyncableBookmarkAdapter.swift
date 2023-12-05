@@ -100,13 +100,16 @@ extension Syncable {
                 let insert = Array(Set(children).subtracting(lastReceivedChildren))
                 let remove = Array(Set(lastReceivedChildren).subtracting(children))
 
-                payload["folder"] = [
-                    "children": [
-                        "current": children,
-                        "insert": insert,
-                        "remove": remove
-                    ]
-                ]
+                var childrenDict = [String: [String]]()
+                childrenDict["current"] = children
+                if !insert.isEmpty {
+                    childrenDict["insert"] = insert
+                }
+                if !remove.isEmpty {
+                    childrenDict["remove"] = remove
+                }
+
+                payload["folder"] = ["children": childrenDict]
 
             } else if let url = bookmark.url {
                 payload["page"] = ["url": try encrypt(url)]
