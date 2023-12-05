@@ -41,6 +41,7 @@ public final class VPNSettings {
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
+        case setDisableRekeying(_ disableRekeying: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -136,6 +137,10 @@ public final class VPNSettings {
             Change.setVPNFirstEnabled(vpnFirstEnabled)
         }.eraseToAnyPublisher()
 
+        let disableRekeyingPublisher = disableRekeyingPublisher.map { disableRekeying in
+            Change.setDisableRekeying(disableRekeying)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
@@ -146,7 +151,8 @@ public final class VPNSettings {
             locationChangePublisher,
             environmentChangePublisher,
             showInMenuBarPublisher,
-            vpnFirstEnabledPublisher).eraseToAnyPublisher()
+            vpnFirstEnabledPublisher,
+            disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -194,6 +200,8 @@ public final class VPNSettings {
             self.showInMenuBar = showInMenuBar
         case .setVPNFirstEnabled(let vpnFirstEnabled):
             self.vpnFirstEnabled = vpnFirstEnabled
+        case .setDisableRekeying(let disableRekeying):
+            self.disableRekeying = disableRekeying
         }
     }
     // swiftlint:enable cyclomatic_complexity
@@ -399,6 +407,22 @@ public final class VPNSettings {
 
         set {
             defaults.vpnFirstEnabled = newValue
+        }
+    }
+
+    // MARK: - Disable Rekeying
+
+    public var disableRekeyingPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingDisableRekeyingPublisher
+    }
+
+    public var disableRekeying: Bool {
+        get {
+            defaults.networkProtectionSettingDisableRekeying
+        }
+
+        set {
+            defaults.networkProtectionSettingDisableRekeying = newValue
         }
     }
 }

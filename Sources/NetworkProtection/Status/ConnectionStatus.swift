@@ -52,9 +52,9 @@ public enum ConnectionStatus: Codable, Equatable {
 /// This is useful to know whether we have processed or still need to process the status, in case the notification
 /// is sent out more than once.
 ///
-public struct ConnectionStatusChange: Codable, Equatable {
-    public let status: ConnectionStatus
-    public let timestamp: Date
+public struct ConnectionStatusChange: Codable {
+    let status: ConnectionStatus
+    let timestamp: Date
 
     public init(status: ConnectionStatus, on timestamp: Date) {
         self.status = status

@@ -30,7 +30,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
         case userBecameActive
+        case reportConnectionAttempt(attempt: ConnectionAttempt)
+        case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
+        case reportLatency(ms: Int, server: String, networkType: NetworkConnectionType)
         case rekeyCompleted
+    }
+
+    public enum ConnectionAttempt {
+        case connecting
+        case success
+        case failure
     }
 
     // MARK: - Error Handling
@@ -72,7 +81,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Timers Support
 
-    public let timerQueue = DispatchQueue(label: "com.duckduckgo.network-protection.PacketTunnelProvider.timerQueue")
+    private let timerQueue = DispatchQueue(label: "com.duckduckgo.network-protection.PacketTunnelProvider.timerQueue")
 
     // MARK: - Status
 
@@ -155,11 +164,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func rekey() async {
+        providerEvents.fire(.userBecameActive)
+
+        // Experimental option to disable rekeying.
+        guard !settings.disableRekeying else {
+            return
+        }
+
         os_log("Rekeying...", log: .networkProtectionKeyManagement)
 
-        providerEvents.fire(.userBecameActive)
         providerEvents.fire(.rekeyCompleted)
-
         self.resetRegistrationKey()
 
         do {
@@ -302,11 +316,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         super.init()
 
-        settings.changePublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] change in
-                self?.handleSettingsChange(change)
-            }.store(in: &cancellables)
+        observeSettingChanges()
+        observeConnectionStatusChanges()
+        observeTunnelFailures()
     }
 
     deinit {
@@ -348,6 +360,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadSelectedServer(from: options)
         loadTesterEnabled(from: options)
         try loadAuthToken(from: options)
+    }
+
+    open func prepareToConnect(using provider: NETunnelProviderProtocol?) {
+        // no-op
     }
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
@@ -418,9 +434,50 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.includedRoutes = (options?[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:)) ?? []
     }
 
+    // MARK: - Observing Changes
+
+    private func observeSettingChanges() {
+        settings.changePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] change in
+                self?.handleSettingsChange(change)
+            }.store(in: &cancellables)
+    }
+
+    private func observeConnectionStatusChanges() {
+        connectionStatusPublisher
+            .removeDuplicates()
+            .scan((old: ConnectionStatus.default, new: ConnectionStatus.default), { ($0.new, $1) })
+            .sink { [weak self] changes in
+                os_log("⚫️ Connection Status Change: %{public}s -> %{public}s", log: .networkProtectionPixel, type: .debug, changes.old.description, changes.new.description)
+
+                switch changes {
+                case (_, .connecting), (_, .reasserting):
+                    self?.providerEvents.fire(.reportConnectionAttempt(attempt: .connecting))
+                case (_, .connected):
+                    self?.providerEvents.fire(.reportConnectionAttempt(attempt: .success))
+                case (.connecting, _), (.reasserting, _):
+                    self?.providerEvents.fire(.reportConnectionAttempt(attempt: .failure))
+                default:
+                    break
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func observeTunnelFailures() {
+        tunnelFailureMonitor.publisher
+            .sink { [weak self] result in
+                self?.providerEvents.fire(.reportTunnelFailure(result: result))
+            }
+            .store(in: &cancellables)
+    }
+
     // MARK: - Tunnel Start
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
+        prepareToConnect(using: tunnelProviderProtocol)
+
         connectionStatus = .connecting
 
         os_log("Will load options\n%{public}@", log: .networkProtection, String(describing: options))
@@ -820,7 +877,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
                 .setShowInMenuBar,
-                .setVPNFirstEnabled:
+                .setVPNFirstEnabled,
+                .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
@@ -999,7 +1057,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         do {
             try await tunnelFailureMonitor.start()
         } catch {
-            os_log("⚫️ Tunnel health monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
+            os_log("⚫️ Tunnel failure monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
             throw error
         }
 
