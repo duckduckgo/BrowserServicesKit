@@ -46,7 +46,7 @@ final class BookmarksResponseHandler {
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
-        self.received = received.map(SyncableBookmarkAdapter.init)
+        self.received = received.map { SyncableBookmarkAdapter(syncable: $0) }
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
 
@@ -139,6 +139,8 @@ final class BookmarksResponseHandler {
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
             }
+
+            favoritesFolder.updateLastChildrenSyncPayload(with: favoritesUUIDs)
         }
     }
 
@@ -221,6 +223,8 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(deduplicatedEntity)
             }
 
+            deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable.children)
+
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
                 guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
@@ -237,6 +241,8 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(existingEntity)
             }
 
+            existingEntity.updateLastChildrenSyncPayload(with: syncable.children)
+
         } else if !syncable.isDeleted {
 
             assert(syncable.uuid != BookmarkEntity.Constants.rootFolderID, "Trying to make another root folder")
@@ -245,6 +251,8 @@ final class BookmarksResponseHandler {
             parent?.addToChildren(newEntity)
             try updateEntity(newEntity, with: syncable)
             entitiesByUUID[syncableUUID] = newEntity
+
+            newEntity.updateLastChildrenSyncPayload(with: syncable.children)
         }
     }
 

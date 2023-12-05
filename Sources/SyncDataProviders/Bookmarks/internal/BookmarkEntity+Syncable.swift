@@ -125,6 +125,12 @@ extension BookmarkEntity {
             }
         }
     }
+
+    func updateLastChildrenSyncPayload(with uuids: [String]) {
+        if isFolder {
+            lastChildrenArrayReceivedFromSync = uuids
+        }
+    }
 }
 
 extension Array where Element == BookmarkEntity {
