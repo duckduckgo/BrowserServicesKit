@@ -164,11 +164,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func rekey() async {
+        providerEvents.fire(.userBecameActive)
+
+        // Experimental option to disable rekeying.
+        guard !settings.disableRekeying else {
+            return
+        }
+
         os_log("Rekeying...", log: .networkProtectionKeyManagement)
 
-        providerEvents.fire(.userBecameActive)
         providerEvents.fire(.rekeyCompleted)
-
         self.resetRegistrationKey()
 
         do {
@@ -890,7 +895,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
                 .setShowInMenuBar,
-                .setVPNFirstEnabled:
+                .setVPNFirstEnabled,
+                .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }

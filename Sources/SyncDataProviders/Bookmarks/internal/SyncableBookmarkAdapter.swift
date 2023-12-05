@@ -51,10 +51,20 @@ struct SyncableBookmarkAdapter {
     }
 
     var children: [String] {
-        guard let folder = syncable.payload["folder"] as? [String: Any], let folderChildren = folder["children"] as? [String] else {
+        guard let folder = syncable.payload["folder"] as? [String: Any] else {
             return []
         }
-        return folderChildren
+
+        if let folderChildrenDictionary = folder["children"] as? [String: Any],
+           let currentChildren = folderChildrenDictionary["current"] as? [String] {
+
+            return currentChildren
+
+        } else if let children = folder["children"] as? [String] {
+            return children
+        }
+
+        return []
     }
 }
 
@@ -79,15 +89,28 @@ extension Syncable {
                 payload["title"] = try encrypt(title)
             }
             if bookmark.isFolder {
-                if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
-                    payload["folder"] = [
-                        "children": bookmark.favoritesArray.map(\.uuid)
-                    ]
-                } else {
-                    payload["folder"] = [
-                        "children": bookmark.childrenArray.map(\.uuid)
-                    ]
+                let children: [String] = {
+                    if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
+                        return bookmark.favoritesArray.compactMap(\.uuid)
+                    }
+                    return bookmark.childrenArray.compactMap(\.uuid)
+                }()
+
+                let lastReceivedChildren = bookmark.lastChildrenArrayReceivedFromSync ?? []
+                let insert = Array(Set(children).subtracting(lastReceivedChildren))
+                let remove = Array(Set(lastReceivedChildren).subtracting(children))
+
+                var childrenDict = [String: [String]]()
+                childrenDict["current"] = children
+                if !insert.isEmpty {
+                    childrenDict["insert"] = insert
                 }
+                if !remove.isEmpty {
+                    childrenDict["remove"] = remove
+                }
+
+                payload["folder"] = ["children": childrenDict]
+
             } else if let url = bookmark.url {
                 payload["page"] = ["url": try encrypt(url)]
             }

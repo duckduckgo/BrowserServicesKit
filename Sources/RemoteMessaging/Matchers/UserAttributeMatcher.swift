@@ -30,6 +30,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let bookmarksCount: Int
     private let favoritesCount: Int
     private let isWidgetInstalled: Bool
+    private let isNetPWaitlistUser: Bool
+    private let daysSinceNetPEnabled: Int
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -37,7 +39,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 bookmarksCount: Int,
                 favoritesCount: Int,
                 appTheme: String,
-                isWidgetInstalled: Bool
+                isWidgetInstalled: Bool,
+                isNetPWaitlistUser: Bool,
+                daysSinceNetPEnabled: Int
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -46,9 +50,11 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
         self.isWidgetInstalled = isWidgetInstalled
+        self.isNetPWaitlistUser = isNetPWaitlistUser
+        self.daysSinceNetPEnabled = daysSinceNetPEnabled
     }
 
-    // swiftlint:disable cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:
@@ -92,9 +98,22 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
+        case let matchingAttribute as IsNetPWaitlistUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isNetPWaitlistUser)
+        case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceNetPEnabled)
+            }
         default:
+            assertionFailure("Could not find matching attribute")
             return nil
         }
     }
-    // swiftlint:enable cyclomatic_complexity
+
 }
