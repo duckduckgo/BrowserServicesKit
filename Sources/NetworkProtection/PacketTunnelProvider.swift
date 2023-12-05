@@ -30,8 +30,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
         case userBecameActive
+        case reportConnectionAttempt(attempt: ConnectionAttempt)
+        case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(ms: Int, server: String, networkType: NetworkConnectionType)
         case rekeyCompleted
+    }
+
+    public enum ConnectionAttempt {
+        case connecting
+        case success
+        case failure
     }
 
     // MARK: - Error Handling
@@ -321,11 +329,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         super.init()
 
-        settings.changePublisher
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] change in
-                self?.handleSettingsChange(change)
-            }.store(in: &cancellables)
+        observeSettingChanges()
+        observeConnectionStatusChanges()
+        observeTunnelFailures()
     }
 
     deinit {
@@ -367,6 +373,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadSelectedServer(from: options)
         loadTesterEnabled(from: options)
         try loadAuthToken(from: options)
+    }
+
+    open func prepareToConnect(using provider: NETunnelProviderProtocol?) {
+        // no-op
     }
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
@@ -437,9 +447,50 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.includedRoutes = (options?[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:)) ?? []
     }
 
+    // MARK: - Observing Changes
+
+    private func observeSettingChanges() {
+        settings.changePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] change in
+                self?.handleSettingsChange(change)
+            }.store(in: &cancellables)
+    }
+
+    private func observeConnectionStatusChanges() {
+        connectionStatusPublisher
+            .removeDuplicates()
+            .scan((old: ConnectionStatus.default, new: ConnectionStatus.default), { ($0.new, $1) })
+            .sink { [weak self] changes in
+                os_log("⚫️ Connection Status Change: %{public}s -> %{public}s", log: .networkProtection, type: .info, changes.old.description, changes.new.description)
+
+                switch changes {
+                case (_, .connecting), (_, .reasserting):
+                    self?.providerEvents.fire(.reportConnectionAttempt(attempt: .connecting))
+                case (_, .connected):
+                    self?.providerEvents.fire(.reportConnectionAttempt(attempt: .success))
+                case (.connecting, _), (.reasserting, _):
+                    self?.providerEvents.fire(.reportConnectionAttempt(attempt: .failure))
+                default:
+                    break
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func observeTunnelFailures() {
+        tunnelFailureMonitor.publisher
+            .sink { [weak self] result in
+                self?.providerEvents.fire(.reportTunnelFailure(result: result))
+            }
+            .store(in: &cancellables)
+    }
+
     // MARK: - Tunnel Start
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
+        prepareToConnect(using: tunnelProviderProtocol)
+
         connectionStatus = .connecting
 
         os_log("Will load options\n%{public}@", log: .networkProtection, String(describing: options))
