@@ -201,8 +201,8 @@ public final class CredentialsProvider: DataProvider {
             if let modifiedAt = metadataRecord.lastModified, modifiedAt.compareWithMillisecondPrecision(to: clientTimestamp) == .orderedDescending {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataRecord.uuid)
-            if metadataRecord.objectId == nil, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = receivedUUIDs.contains(metadataRecord.uuid)
+            if metadataRecord.objectId == nil, !hasNewerVersionOnServer {
                 try metadataRecord.delete(database)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadataRecord.uuid)

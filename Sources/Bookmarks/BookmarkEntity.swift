@@ -42,7 +42,7 @@ public class BookmarkEntity: NSManagedObject {
     }
 
     public static func isValidFavoritesFolderID(_ value: String) -> Bool {
-        FavoritesFolderID.allCases.contains { $0.rawValue == value }
+        Constants.favoriteFoldersIDs.contains(value)
     }
 
     public enum Error: Swift.Error {
@@ -65,6 +65,7 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public var url: String?
     @NSManaged public var uuid: String?
     @NSManaged public var children: NSOrderedSet?
+    @NSManaged public fileprivate(set) var lastChildrenPayloadReceivedFromSync: String?
     @NSManaged public fileprivate(set) var favoriteFolders: NSSet?
     @NSManaged public fileprivate(set) var favorites: NSOrderedSet?
     @NSManaged public var parent: BookmarkEntity?
@@ -98,7 +99,10 @@ public class BookmarkEntity: NSManagedObject {
             return
         }
         let changedKeys = changedValues().keys
-        guard !changedKeys.isEmpty, !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))) else {
+        guard !changedKeys.isEmpty,
+              !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))),
+              Array(changedKeys) != [NSStringFromSelector(#selector(getter: lastChildrenPayloadReceivedFromSync))]
+        else {
             return
         }
         if isInserted, let uuid, uuid == Constants.rootFolderID || Self.isValidFavoritesFolderID(uuid) {
@@ -145,6 +149,21 @@ public class BookmarkEntity: NSManagedObject {
 
     public var favoriteFoldersSet: Set<BookmarkEntity> {
         return favoriteFolders.flatMap(Set<BookmarkEntity>.init) ?? []
+    }
+
+    public var lastChildrenArrayReceivedFromSync: [String]? {
+        get {
+            guard let lastChildrenPayloadReceivedFromSync else {
+                return nil
+            }
+            guard !lastChildrenPayloadReceivedFromSync.isEmpty else {
+                return []
+            }
+            return lastChildrenPayloadReceivedFromSync.components(separatedBy: ",")
+        }
+        set {
+            lastChildrenPayloadReceivedFromSync = newValue?.filter({ !$0.isEmpty }).joined(separator: ",")
+      }
     }
 
     public static func makeFolder(title: String,
