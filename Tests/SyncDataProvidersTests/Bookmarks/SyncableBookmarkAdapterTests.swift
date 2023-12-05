@@ -77,7 +77,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "2", "16", "3", "4"])
         XCTAssertEqual(rootFolderSyncable.inserted, ["1", "2", "16", "3", "4"])
-        XCTAssertEqual(rootFolderSyncable.removed, [])
+        XCTAssertEqual(rootFolderSyncable.removed, nil)
     }
 
     func testThatAddingBookmarksToSubfolderReportsAllBookmarksAsInserted() async throws {
@@ -101,7 +101,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["7", "6", "8"])
         XCTAssertEqual(rootFolderSyncable.inserted, ["7", "6", "8"])
-        XCTAssertEqual(rootFolderSyncable.removed, [])
+        XCTAssertEqual(rootFolderSyncable.removed, nil)
     }
 
     func testThatDeletingAllBookmarksReportsAllBookmarksAsRemoved() async throws {
@@ -120,7 +120,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, [])
-        XCTAssertEqual(rootFolderSyncable.inserted, [])
+        XCTAssertEqual(rootFolderSyncable.inserted, nil)
         XCTAssertEqual(rootFolderSyncable.removed, ["1", "2", "16", "3", "4"])
     }
 
@@ -145,7 +145,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, [])
-        XCTAssertEqual(rootFolderSyncable.inserted, [])
+        XCTAssertEqual(rootFolderSyncable.inserted, nil)
         XCTAssertEqual(rootFolderSyncable.removed, ["7", "6", "8"])
     }
 
@@ -173,7 +173,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3", "16", "2"])
         XCTAssertEqual(rootFolderSyncable.inserted, ["1", "4", "3", "16", "2"])
-        XCTAssertEqual(rootFolderSyncable.removed, [])
+        XCTAssertEqual(rootFolderSyncable.removed, nil)
     }
 
     func testThatUponInitialSyncSubfolderOnlySubmitsChildrenWithoutInsertedOrRemoved() async throws {
@@ -198,7 +198,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
         XCTAssertEqual(rootFolderSyncable.children, ["7", "6", "8"])
         XCTAssertEqual(rootFolderSyncable.inserted, ["7", "6", "8"])
-        XCTAssertEqual(rootFolderSyncable.removed, [])
+        XCTAssertEqual(rootFolderSyncable.removed, nil)
     }
 
     func testThatNewChildrenOfExistingFolderAreReportedAsInserted() async throws {
@@ -218,7 +218,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3", "16", "2"])
         XCTAssertEqual(rootFolderSyncable.inserted, ["16", "2"])
-        XCTAssertEqual(rootFolderSyncable.removed, [])
+        XCTAssertEqual(rootFolderSyncable.removed, nil)
     }
 
     func testThatDeletedChildrenOfExistingFolderAreReportedAsRemoved() async throws {
@@ -237,7 +237,7 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "4", "3"])
-        XCTAssertEqual(rootFolderSyncable.inserted, [])
+        XCTAssertEqual(rootFolderSyncable.inserted, nil)
         XCTAssertEqual(rootFolderSyncable.removed, ["16", "2"])
     }
 
@@ -257,8 +257,8 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 
         let rootFolderSyncable = try XCTUnwrap(changedObjects.first { $0.uuid == BookmarkEntity.Constants.rootFolderID })
         XCTAssertEqual(rootFolderSyncable.children, ["1", "2", "16", "3", "4"])
-        XCTAssertEqual(rootFolderSyncable.inserted, [])
-        XCTAssertEqual(rootFolderSyncable.removed, [])
+        XCTAssertEqual(rootFolderSyncable.inserted, nil)
+        XCTAssertEqual(rootFolderSyncable.removed, nil)
     }
 
     func testThatInsertedAndRemovedChildrenOfExistingFolderAreReportedInInsertedAndRemoved() async throws {
@@ -301,23 +301,23 @@ final class SyncableBookmarkAdapterTests: BookmarksProviderTestsBase {
 }
 
 private extension SyncableBookmarkAdapter {
-    var inserted: Set<String> {
+    var inserted: Set<String>? {
         guard let folder = syncable.payload["folder"] as? [String: Any],
               let folderChildrenDictionary = folder["children"] as? [String: Any],
               let insertedChildren = folderChildrenDictionary["insert"] as? [String]
         else {
-            return []
+            return nil
         }
 
         return Set(insertedChildren)
     }
 
-    var removed: Set<String> {
+    var removed: Set<String>? {
         guard let folder = syncable.payload["folder"] as? [String: Any],
               let folderChildrenDictionary = folder["children"] as? [String: Any],
               let removedChildren = folderChildrenDictionary["remove"] as? [String]
         else {
-            return []
+            return nil
         }
 
         return Set(removedChildren)
