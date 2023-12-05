@@ -1072,6 +1072,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
 
         await connectionTester.stop()
+        await tunnelFailureMonitor.stop()
     }
 
     public override func wake() {

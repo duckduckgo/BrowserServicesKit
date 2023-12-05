@@ -182,7 +182,7 @@ final public class NetworkProtectionTunnelFailureMonitor {
                 failureSubject.send(.failureDetected)
                 failureReported = true
             }
-        } else if difference <= Result.failureDetected.threshold, failureReported {
+        } else if difference <= Result.failureRecovered.threshold, failureReported {
             failureSubject.send(.failureRecovered)
             failureReported = false
         }
