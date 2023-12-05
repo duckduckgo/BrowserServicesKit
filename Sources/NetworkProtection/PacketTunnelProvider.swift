@@ -467,7 +467,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             .removeDuplicates()
             .scan((old: ConnectionStatus.default, new: ConnectionStatus.default), { ($0.new, $1) })
             .sink { [weak self] changes in
-                os_log("⚫️ Connection Status Change: %{public}s -> %{public}s", log: .networkProtection, type: .info, changes.old.description, changes.new.description)
+                os_log("⚫️ Connection Status Change: %{public}s -> %{public}s", log: .networkProtectionPixel, type: .debug, changes.old.description, changes.new.description)
 
                 switch changes {
                 case (_, .connecting), (_, .reasserting):
@@ -1073,13 +1073,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
 
         do {
+            try await tunnelFailureMonitor.start()
+        } catch {
+            os_log("⚫️ Tunnel failure monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
+            throw error
+        }
+
+        do {
             // These cases only make sense in the context of a connection that had trouble
             // and is being fixed, so we want to test the connection immediately.
             let testImmediately = startReason == .reconnected || startReason == .onDemand
 
             try await startConnectionTester(testImmediately: testImmediately)
-            
-            try await tunnelFailureMonitor.start()
         } catch {
             os_log("🔵 Connection Tester error: %{public}@", log: .networkProtectionConnectionTesterLog, type: .error, String(reflecting: error))
             throw error
