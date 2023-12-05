@@ -49,10 +49,11 @@ final public class NetworkProtectionLatencyMonitor {
     }
 
     public enum Result {
-        case unknown
+        case error
         case quality(ConnectionQuality)
     }
 
+    private static let reportThreshold: TimeInterval = .minutes(10)
     private static let measurementInterval: TimeInterval = .seconds(5)
     private static let pingTimeout: TimeInterval = 0.3
 
@@ -81,6 +82,21 @@ final public class NetworkProtectionLatencyMonitor {
     private var timer: DispatchSourceTimer?
     private let timerRunCoordinator = TimerRunCoordinator()
     private let timerQueue: DispatchQueue
+
+    private let lock = NSLock()
+
+    private var _lastLatencyReported: Date = .distantPast
+    private(set) var lastLatencyReported: Date {
+        get {
+            lock.lock(); defer { lock.unlock() }
+            return _lastLatencyReported
+        }
+        set {
+            lock.lock()
+            self._lastLatencyReported = newValue
+            lock.unlock()
+        }
+    }
 
     private let serverIP: () -> IPv4Address?
 
@@ -118,7 +134,7 @@ final public class NetworkProtectionLatencyMonitor {
                     measurements.addMeasurement(latency)
                     os_log("⚫️ Latency: %{public}f seconds", log: .networkProtectionPixel, type: .debug, latency)
                 } else {
-                    self?.subject.send(.unknown)
+                    self?.subject.send(.error)
                 }
                 
                 os_log("⚫️ Average: %{public}f seconds", log: .networkProtectionPixel, type: .debug, measurements.average)
@@ -127,7 +143,11 @@ final public class NetworkProtectionLatencyMonitor {
             }
             .map { ConnectionQuality(average: $0.average) }
             .sink { [weak self] quality in
-                self?.subject.send(.quality(quality))
+                let now = Date()
+                if let self, now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold {
+                    self.subject.send(.quality(quality))
+                    self.lastLatencyReported = now
+                }
             }
 
         do {

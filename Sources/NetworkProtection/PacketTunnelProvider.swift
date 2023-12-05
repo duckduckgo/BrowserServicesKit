@@ -32,7 +32,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case userBecameActive
         case reportConnectionAttempt(attempt: ConnectionAttempt)
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
-        case reportLatency(ms: Int, server: String, networkType: NetworkConnectionType)
+        case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
         case rekeyCompleted
     }
 
@@ -319,6 +319,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         observeSettingChanges()
         observeConnectionStatusChanges()
         observeTunnelFailures()
+        observeConnectionQuality()
     }
 
     deinit {
@@ -469,6 +470,23 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         tunnelFailureMonitor.publisher
             .sink { [weak self] result in
                 self?.providerEvents.fire(.reportTunnelFailure(result: result))
+            }
+            .store(in: &cancellables)
+    }
+
+    private func observeConnectionQuality() {
+        latencyMonitor.publisher
+            .flatMap { [weak self] result in
+                switch result {
+                case .error:
+                    self?.providerEvents.fire(.reportLatency(result: .error))
+                    return Empty<NetworkProtectionLatencyMonitor.ConnectionQuality, Never>().eraseToAnyPublisher()
+                case .quality(let quality):
+                    return Just(quality).eraseToAnyPublisher()
+                }
+            }
+            .sink { [weak self] quality in
+                self?.providerEvents.fire(.reportLatency(result: .quality(quality)))
             }
             .store(in: &cancellables)
     }
