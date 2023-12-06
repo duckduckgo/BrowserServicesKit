@@ -1,6 +1,5 @@
 //
 //  APIRequest.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -24,7 +23,7 @@ public typealias APIResponse = (data: Data?, response: HTTPURLResponse)
 public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
 
 public struct APIRequest {
-    
+
     private let request: URLRequest
     private let requirements: APIResponseRequirements
     private let urlSession: URLSession
@@ -41,10 +40,10 @@ public struct APIRequest {
         self.requirements = requirements
         self.urlSession = urlSession
         self.getLog = log
-        
+
         assertUserAgentIsPresent()
     }
-    
+
     private func assertUserAgentIsPresent() {
         guard request.allHTTPHeaderFields?[HTTPHeaderField.userAgent] != nil else {
             assertionFailure("A user agent must be included in the request's HTTP header fields.")
@@ -77,7 +76,7 @@ public struct APIRequest {
         task.resume()
         return task
     }
-    
+
     private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
         let httpResponse = try response.asHTTPURLResponse()
 
@@ -87,7 +86,7 @@ public struct APIRequest {
                request.httpMethod ?? "",
                request.url?.absoluteString ?? "",
                httpResponse.statusCode)
-        
+
         var data = data
         if requirements.contains(.allowHTTPNotModified), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
             data = nil // avoid returning empty data
@@ -98,11 +97,11 @@ public struct APIRequest {
                 throw APIRequest.Error.emptyData
             }
         }
-        
+
         if requirements.contains(.requireETagHeader), httpResponse.etag == nil {
             throw APIRequest.Error.missingEtagInResponse
         }
-        
+
         return (data, httpResponse)
     }
 
@@ -116,7 +115,7 @@ public struct APIRequest {
         let (data, response) = try await fetch(for: request)
         return try validateAndUnwrap(data: data, response: response)
     }
-        
+
     private func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
         do {
             return try await urlSession.data(for: request)

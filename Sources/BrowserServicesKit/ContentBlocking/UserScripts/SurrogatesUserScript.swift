@@ -1,6 +1,5 @@
 //
 //  SurrogatesUserScript.swift
-//  Core
 //
 //  Copyright © 2020 DuckDuckGo. All rights reserved.
 //
@@ -24,7 +23,7 @@ import ContentBlocking
 import Common
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
-    
+
     func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool
     func surrogatesUserScript(_ script: SurrogatesUserScript,
                               detectedTracker tracker: DetectedRequest,
@@ -51,7 +50,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     public let tld: TLD
 
     public let source: String
-    
+
     public init(privacyConfig: PrivacyConfiguration,
                 surrogates: String,
                 trackerData: TrackerData?,

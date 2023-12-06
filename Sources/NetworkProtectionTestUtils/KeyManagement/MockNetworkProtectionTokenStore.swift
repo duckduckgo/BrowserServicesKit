@@ -1,6 +1,5 @@
 //
 //  MockNetworkProtectionTokenStorage.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +22,7 @@ import NetworkProtection
 public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStore {
 
     public init() {
-        
+
     }
 
     var spyToken: String?

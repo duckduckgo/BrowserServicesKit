@@ -1,6 +1,5 @@
 //
 //  CredentialsProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -81,7 +80,7 @@ public final class CredentialsProvider: DataProvider {
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
         return try syncableCredentials.map { credentials in
-            try Syncable.init(
+            try Syncable(
                 syncableCredentials: credentials,
                 encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
             )

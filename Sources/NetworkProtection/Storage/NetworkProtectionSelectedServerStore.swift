@@ -19,7 +19,7 @@
 import Foundation
 /*
 protocol NetworkProtectionSelectedServerStore: AnyObject {
-    
+
     var selectedServer: SelectedNetworkProtectionServer { get set }
     func reset()
 }

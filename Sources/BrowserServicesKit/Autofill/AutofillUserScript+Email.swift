@@ -1,6 +1,5 @@
 //
 //  AutofillUserScript+Email.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -213,7 +212,7 @@ extension AutofillUserScript {
     }
 
     func closeEmailProtectionTab(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        emailDelegate?.autofillUserScriptDidCompleteInContextSignup(self)        
+        emailDelegate?.autofillUserScriptDidCompleteInContextSignup(self)
         replyHandler(nil)
     }
 

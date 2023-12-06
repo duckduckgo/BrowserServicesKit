@@ -1,6 +1,5 @@
 //
 //  NetworkProtectionLocationListCompositeRepositoryTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -34,7 +33,7 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
         repository = NetworkProtectionLocationListCompositeRepository(client: client, tokenStore: tokenStore)
     }
 
-    @MainActor 
+    @MainActor
     override func tearDown() {
         NetworkProtectionLocationListCompositeRepository.clearCache()
         client = nil
@@ -108,12 +107,12 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
 
 private extension NetworkProtectionLocation {
     static func testData(country: String = "", cities: [City] = []) -> NetworkProtectionLocation {
-        return Self.init(country: country, cities: cities)
+        return Self(country: country, cities: cities)
     }
 }
 
 private extension NetworkProtectionLocation.City {
     static func testData(name: String = "") -> NetworkProtectionLocation.City {
-        Self.init(name: name)
+        Self(name: name)
     }
 }

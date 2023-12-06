@@ -1,6 +1,5 @@
 //
 //  RemoteMessageModel.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -83,7 +82,7 @@ public struct RemoteMessageModel: Equatable, Codable {
                                             placeholder: placeholder,
                                             actionText: translation.primaryActionText ?? actionText,
                                             action: action)
-            
+
         }
     }
 }

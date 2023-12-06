@@ -25,7 +25,7 @@ public protocol HTTPSUpgradeStore {
 
     func loadBloomFilter() -> BloomFilter?
     func persistBloomFilter(specification: HTTPSBloomFilterSpecification, data: Data) throws
-    
+
     // MARK: - Excluded domains
 
     func hasExcludedDomain(_ domain: String) -> Bool

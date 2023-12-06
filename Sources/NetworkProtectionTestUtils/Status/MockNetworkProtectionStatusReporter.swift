@@ -54,7 +54,7 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
     // MARK: - Forcing Refreshes
 
     public func forceRefresh() {
-        
+
     }
 }
 
