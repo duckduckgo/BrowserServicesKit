@@ -43,6 +43,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             return []
         }
         return try createBuildCommands(
+            target: sourceTarget.name,
             config: sourceTarget.kind == .test ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
             inputFiles: sourceTarget.sourceFiles(withSuffix: "swift").map(\.path),
             packageDirectory: context.package.directory,
@@ -52,6 +53,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
     }
 
     private func createBuildCommands(
+        target: String,
         config: String,
         inputFiles: [Path],
         packageDirectory: Path,
@@ -62,6 +64,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             // Don't lint anything if there are no Swift source files in this target
             return []
         }
+        let fm = FileManager()
 
         // read cached data
         let cacheURL = URL(fileURLWithPath: workingDirectory.appending("cache.json").string)
@@ -116,11 +119,11 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
         // We are not producing output files and this is needed only to not include cache files into bundle
         let outputFilesDirectory = workingDirectory.appending("Output")
-        try? FileManager.default.removeItem(at: cacheURL.appendingPathExtension("tmp"))
-        try? FileManager.default.removeItem(atPath: outputPath + ".tmp")
+        try? fm.createDirectory(at: outputFilesDirectory.url, withIntermediateDirectories: true)
+        try? fm.removeItem(at: cacheURL.appendingPathExtension("tmp"))
+        try? fm.removeItem(atPath: outputPath + ".tmp")
 
         var result = [Command]()
-
         if !filesToProcess.isEmpty {
             // write updated cache into temporary file, cache file will be overwritten when linting completes
             try JSONEncoder().encode(newCache).write(to: cacheURL.appendingPathExtension("tmp"))
@@ -133,7 +136,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
                 // respected.
                 "--force-exclude",
                 "--cache-path", "\(workingDirectory)",
-                // output both to build log and to temporary output cache file
+                // output both to a temporary output cache file
                 "--output", "\(outputPath).tmp",
             ]
 
@@ -158,11 +161,10 @@ struct SwiftLintPlugin: BuildToolPlugin {
             try "".write(toFile: outputPath, atomically: false, encoding: .utf8)
         }
 
-
-        // output cached diagnostic messages
+        // output cached diagnostic messages from previous run
         result.append(.prebuildCommand(
             displayName: "SwiftLint: cached \(cacheURL.path)",
-            executable: Path("/bin/echo"),
+            executable: .echo,
             arguments: [cachedDiagnostics.joined(separator: "\n")],
             outputFilesDirectory: outputFilesDirectory
         ))
@@ -181,6 +183,13 @@ struct SwiftLintPlugin: BuildToolPlugin {
                 arguments: [cacheURL.appendingPathExtension("tmp").path, cacheURL.path],
                 outputFilesDirectory: outputFilesDirectory
             ))
+            // duplicate SwiftLint output saved to output.txt to Build Log
+            result.append(.prebuildCommand(
+                displayName: "Print SwiftLint output to Build Log",
+                executable: .cat,
+                arguments: [outputPath],
+                outputFilesDirectory: outputFilesDirectory
+            ))
         }
 
         return result
@@ -197,6 +206,7 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
             .filter { $0.type == .source && $0.path.extension == "swift" }
             .map(\.path)
         return try createBuildCommands(
+            target: target.displayName,
             config: target.product?.kind == .other(.unitTestsKind) ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
             inputFiles: inputFilePaths,
             packageDirectory: context.xcodeProject.directory,
@@ -232,6 +242,8 @@ extension String {
 extension Path {
 
     static let mv = Path("/bin/mv")
+    static let echo = Path("/bin/echo")
+    static let cat = Path("/bin/cat")
 
     /// Scans the receiver, then all of its parents looking for a configuration file with the name ".swiftlint.yml".
     ///
@@ -269,6 +281,10 @@ extension Path {
         get throws {
             try FileManager.default.attributesOfItem(atPath: self.string)[.modificationDate] as? Date ?? { throw CocoaError(.fileReadUnknown) }()
         }
+    }
+
+    var url: URL {
+        URL(fileURLWithPath: self.string)
     }
 
 }

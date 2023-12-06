@@ -87,12 +87,14 @@ let package = Package(
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
-        .executableTarget(name: "BookmarksTestDBBuilder",
-                          dependencies: [
-                            "Bookmarks",
-                            "Persistence"
-                          ],
-                          path: "Sources/BookmarksTestDBBuilder"
+        .executableTarget(
+            name: "BookmarksTestDBBuilder",
+            dependencies: [
+                "Bookmarks",
+                "Persistence"
+            ],
+            path: "Sources/BookmarksTestDBBuilder",
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "BookmarksTestsUtils",
@@ -205,7 +207,8 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit"
-            ]
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "SyncDataProviders",
