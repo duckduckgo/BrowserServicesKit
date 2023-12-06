@@ -87,6 +87,10 @@ class BookmarkMigrationTests: XCTestCase {
         try commonMigrationTestForDatabase(name: "Bookmarks_V3")
     }
 
+    func testWhenMigratingFromV4ThenRootFoldersContentsArePreservedInOrder() throws {
+        try commonMigrationTestForDatabase(name: "Bookmarks_V4")
+    }
+
     func commonMigrationTestForDatabase(name: String) throws {
 
         try copyDatabase(name: name, formDirectory: resourceURLDir, toDirectory: location)
@@ -130,7 +134,7 @@ class BookmarkMigrationTests: XCTestCase {
         try? migratedStack.tearDown(deleteStores: true)
     }
 
-    func atestThatMigrationToFormFactorSpecificFavoritesAddsFavoritesToNativeFolder() async throws {
+    func testThatMigrationToFormFactorSpecificFavoritesAddsFavoritesToNativeFolder() async throws {
 
         guard let bookmarksDatabase = loadDatabase(name: "Any") else {
             XCTFail("Failed to load model")
