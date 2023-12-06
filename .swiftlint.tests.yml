@@ -16,9 +16,11 @@ disabled_rules:
   - implicit_getter
   - trailing_comma
   - blanket_disable_command
+  - nesting
 
 opt_in_rules:
   - file_header
+  - explicit_init
 
 # Rule Config
 file_length:
@@ -27,8 +29,6 @@ file_length:
 type_body_length:
   warning: 1000
   error: 1500
-nesting:
-  type_level: 4
 large_tuple:
   warning: 6
   error: 10
