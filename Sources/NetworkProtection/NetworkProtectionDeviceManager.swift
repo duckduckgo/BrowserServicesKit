@@ -277,6 +277,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                addressRange: interfaceAddressRange,
                                                includedRoutes: includedRoutes,
                                                excludedRoutes: excludedRoutes,
+                                               dns: [DNSServer(address: server.serverInfo.internalIP)],
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
         return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])
@@ -291,15 +292,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         return peerConfiguration
     }
 
+    // swiftlint:disable function_parameter_count
     func interfaceConfiguration(privateKey: PrivateKey,
                                 addressRange: IPAddressRange,
                                 includedRoutes: [IPAddressRange],
                                 excludedRoutes: [IPAddressRange],
+                                dns: [DNSServer],
                                 isKillSwitchEnabled: Bool) -> InterfaceConfiguration {
-        // TO BE moved out to config
-        let dns = [
-            DNSServer(from: "10.11.12.1")!
-        ]
         var includedRoutes = includedRoutes
         // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP/addressRange is in includedRoutes
         if !isKillSwitchEnabled {
@@ -313,6 +312,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                       listenPort: 51821,
                                       dns: dns)
     }
+    // swiftlint:enable function_parameter_count
 
     private func handle(clientError: NetworkProtectionClientError) {
         if case .invalidAuthToken = clientError {

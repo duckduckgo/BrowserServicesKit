@@ -19,7 +19,7 @@
 import Combine
 import Foundation
 
-// swiftlint:disable type_body_length
+// swiftlint:disable type_body_length file_length
 
 /// Persists and publishes changes to tunnel settings.
 ///
@@ -40,6 +40,8 @@ public final class VPNSettings {
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
+        case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
+        case setDisableRekeying(_ disableRekeying: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -131,6 +133,14 @@ public final class VPNSettings {
             Change.setShowInMenuBar(showInMenuBar)
         }.eraseToAnyPublisher()
 
+        let vpnFirstEnabledPublisher = vpnFirstEnabledPublisher.map { vpnFirstEnabled in
+            Change.setVPNFirstEnabled(vpnFirstEnabled)
+        }.eraseToAnyPublisher()
+
+        let disableRekeyingPublisher = disableRekeyingPublisher.map { disableRekeying in
+            Change.setDisableRekeying(disableRekeying)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
@@ -140,7 +150,9 @@ public final class VPNSettings {
             serverChangePublisher,
             locationChangePublisher,
             environmentChangePublisher,
-            showInMenuBarPublisher).eraseToAnyPublisher()
+            showInMenuBarPublisher,
+            vpnFirstEnabledPublisher,
+            disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -163,6 +175,7 @@ public final class VPNSettings {
 
     // MARK: - Applying Changes
 
+    // swiftlint:disable cyclomatic_complexity
     public func apply(change: Change) {
         switch change {
         case .setConnectOnLogin(let connectOnLogin):
@@ -185,8 +198,13 @@ public final class VPNSettings {
             self.selectedEnvironment = selectedEnvironment
         case .setShowInMenuBar(let showInMenuBar):
             self.showInMenuBar = showInMenuBar
+        case .setVPNFirstEnabled(let vpnFirstEnabled):
+            self.vpnFirstEnabled = vpnFirstEnabled
+        case .setDisableRekeying(let disableRekeying):
+            self.disableRekeying = disableRekeying
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     // MARK: - Connect on Login
 
@@ -375,6 +393,38 @@ public final class VPNSettings {
             }
         }
     }
+
+    // MARK: - First time VPN is enabled
+
+    public var vpnFirstEnabledPublisher: AnyPublisher<Date?, Never> {
+        defaults.vpnFirstEnabledPublisher
+    }
+
+    public var vpnFirstEnabled: Date? {
+        get {
+            defaults.vpnFirstEnabled
+        }
+
+        set {
+            defaults.vpnFirstEnabled = newValue
+        }
+    }
+
+    // MARK: - Disable Rekeying
+
+    public var disableRekeyingPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingDisableRekeyingPublisher
+    }
+
+    public var disableRekeying: Bool {
+        get {
+            defaults.networkProtectionSettingDisableRekeying
+        }
+
+        set {
+            defaults.networkProtectionSettingDisableRekeying = newValue
+        }
+    }
 }
 
-// swiftlint:enable type_body_length
+// swiftlint:enable type_body_length file_length

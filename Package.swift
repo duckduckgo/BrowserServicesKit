@@ -8,7 +8,7 @@ let package = Package(
     name: "BrowserServicesKit",
     platforms: [
         .iOS("14.0"),
-        .macOS("10.15")
+        .macOS("11.4")
     ],
     products: [
         // Exported libraries
@@ -251,7 +251,10 @@ let package = Package(
                 .copy("Resources/Bookmarks_V2.sqlite-wal"),
                 .copy("Resources/Bookmarks_V3.sqlite"),
                 .copy("Resources/Bookmarks_V3.sqlite-shm"),
-                .copy("Resources/Bookmarks_V3.sqlite-wal")
+                .copy("Resources/Bookmarks_V3.sqlite-wal"),
+                .copy("Resources/Bookmarks_V4.sqlite"),
+                .copy("Resources/Bookmarks_V4.sqlite-shm"),
+                .copy("Resources/Bookmarks_V4.sqlite-wal")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",

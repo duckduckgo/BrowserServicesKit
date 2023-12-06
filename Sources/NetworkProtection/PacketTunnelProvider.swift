@@ -156,11 +156,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func rekey() async {
+        providerEvents.fire(.userBecameActive)
+
+        // Experimental option to disable rekeying.
+        guard !settings.disableRekeying else {
+            return
+        }
+
         os_log("Rekeying...", log: .networkProtectionKeyManagement)
 
-        providerEvents.fire(.userBecameActive)
         providerEvents.fire(.rekeyCompleted)
-
         self.resetRegistrationKey()
 
         do {
@@ -711,6 +716,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                log: .networkProtection,
                selectedServerInfo.serverLocation,
                selectedServerInfo.name)
+        os_log("🔵 Excluded routes: %{public}@", log: .networkProtection, type: .info, String(describing: excludedRoutes))
 
         let tunnelConfiguration = configurationResult.0
 
@@ -829,7 +835,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
-                .setShowInMenuBar:
+                .setShowInMenuBar,
+                .setVPNFirstEnabled,
+                .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
@@ -922,7 +930,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
-        let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.description) }
+        let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.host.description) }
         completionHandler?(response?.rawValue)
     }
 

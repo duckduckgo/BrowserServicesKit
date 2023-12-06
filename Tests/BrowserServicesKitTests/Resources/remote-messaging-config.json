@@ -133,6 +133,23 @@
                 "value": ""
             }
         }
+    },
+    {
+        "id": "8E909844-C809-4543-AAFE-2C75DC285B3B",
+        "content": {
+            "messageType": "promo_single_action",
+            "titleText": "Survey Title",
+            "descriptionText": "Survey Description",
+            "placeholder": "VPNAnnounce",
+            "actionText": "Survey Action",
+            "action": {
+                "type": "survey_url",
+                "value": "https://duckduckgo.com/survey"
+            }
+        },
+        "matchingRules": [
+            8
+        ]
     }
   ],
   "rules": [
@@ -214,6 +231,17 @@
       "attributes": {
         "widgetAdded": {
           "value": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "attributes": {
+        "isNetPWaitlistUser": {
+          "value": true
+        },
+        "daysSinceNetPEnabled": {
+          "min": 5
         }
       }
     }
