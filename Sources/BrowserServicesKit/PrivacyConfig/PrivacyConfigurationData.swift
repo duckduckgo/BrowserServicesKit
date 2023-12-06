@@ -19,7 +19,6 @@
 
 import Foundation
 
-// swiftlint:disable nesting
 public struct PrivacyConfigurationData {
 
     public typealias FeatureName = String
@@ -281,4 +280,3 @@ public struct PrivacyConfigurationData {
         }
     }
 }
-// swiftlint:enable nesting

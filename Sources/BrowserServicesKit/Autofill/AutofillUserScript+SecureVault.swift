@@ -261,7 +261,6 @@ extension AutofillUserScript {
 
     // MARK: - Responses
 
-    // swiftlint:disable nesting
     struct RequestAutoFillInitDataResponse: Codable {
 
         struct AutofillInitSuccess: Codable {
@@ -339,8 +338,6 @@ extension AutofillUserScript {
         let success: IncontextSignupDismissedAt
     }
 
-    // swiftlint:enable nesting
-
     struct RequestAutoFillCreditCardResponse: Codable {
         let success: CreditCardObject
         let error: String?
@@ -396,7 +393,6 @@ extension AutofillUserScript {
     }
 
     // GetAutofillDataResponse: https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.result.json
-    // swiftlint:disable nesting
     struct RequestVaultCredentialsForDomainResponse: Codable {
 
         struct RequestVaultCredentialsResponseContents: Codable {
@@ -427,8 +423,6 @@ extension AutofillUserScript {
     struct RequestVaultCredentialsForAccountResponse: Codable {
         let success: CredentialResponse
     }
-
-    // swiftlint:enable nesting
 
     // MARK: - Message Handlers
 
