@@ -68,7 +68,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
         workingDirectory: Path,
         tool: (String) throws -> PluginContext.Tool
     ) throws -> [Command] {
-        if inputFiles.isEmpty {
+        if inputFiles.isEmpty || ProcessInfo().environment["GITHUB_ACTIONS"] != nil {
             // Don't lint anything if there are no Swift source files in this target
             return []
         }
