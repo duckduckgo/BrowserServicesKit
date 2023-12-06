@@ -40,7 +40,7 @@ final class AutofillWebsiteAccountMatcherTests: XCTestCase {
 
     func testWhenOnlyOnePerfectMatchThenCorrectlyPutIntoPerfectMatches() {
         let accounts = [websiteAccountFor(domain: "example.com")]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.perfectMatches.count, 1)
         XCTAssertEqual(matches.partialMatches.count, 0)
     }
@@ -49,21 +49,21 @@ final class AutofillWebsiteAccountMatcherTests: XCTestCase {
         let accounts = [websiteAccountFor(domain: "example.com"),
                         websiteAccountFor(domain: "example.com"),
                         websiteAccountFor(domain: "example.com")]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.perfectMatches.count, 3)
         XCTAssertEqual(matches.partialMatches.count, 0)
     }
 
     func testWhenNotAMatchThenNotIncludedInGroups() {
         let accounts = [websiteAccountFor(domain: "example.com")]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.org")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.org")
         XCTAssertEqual(matches.perfectMatches.count, 0)
         XCTAssertEqual(matches.partialMatches.count, 0)
     }
 
     func testWhenSinglePartialMatchThenGetsItsOwnGroup() {
         let accounts = [websiteAccountFor(domain: "foo.example.com")]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.perfectMatches.count, 0)
         XCTAssertEqual(matches.partialMatches.count, 1)
     }
@@ -71,7 +71,7 @@ final class AutofillWebsiteAccountMatcherTests: XCTestCase {
     func testWhenMultiplePartialMatchesWithSameSubdomainThenAllShareAGroup() {
         let accounts = [websiteAccountFor(domain: "foo.example.com"),
                         websiteAccountFor(domain: "foo.example.com")]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.perfectMatches.count, 0)
         XCTAssertEqual(matches.partialMatches.count, 1)
         XCTAssertEqual(matches.partialMatches["foo.example.com"]?.count, 2)
@@ -81,7 +81,7 @@ final class AutofillWebsiteAccountMatcherTests: XCTestCase {
         let accounts = [websiteAccountFor(domain: "foo.example.com"),
                         websiteAccountFor(domain: "bar.example.com"),
                         websiteAccountFor(domain: "bar.example.com")]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.perfectMatches.count, 0)
         XCTAssertEqual(matches.partialMatches.count, 2)
         XCTAssertEqual(matches.partialMatches["foo.example.com"]?.count, 1)
@@ -90,24 +90,24 @@ final class AutofillWebsiteAccountMatcherTests: XCTestCase {
 
     func testWhenSortingPerfectMatchesThenLastEditedSortedFirst() {
         let now = Date()
-        let accounts = [websiteAccountFor(domain: "example.com", lastUpdated: now.addingTimeInterval(-100)),
-                        websiteAccountFor(domain: "example.com", lastUpdated: now.addingTimeInterval(-10)),
+        let accounts = [websiteAccountFor(domain: "example.com", lastUpdated: now.addingTimeInterval(-24*60*60*2)),
+                        websiteAccountFor(domain: "example.com", lastUpdated: now.addingTimeInterval(-24*60*60)),
                         websiteAccountFor(domain: "example.com", lastUpdated: now.addingTimeInterval(-1))]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.perfectMatches[0].lastUpdated, now.addingTimeInterval(-1))
-        XCTAssertEqual(matches.perfectMatches[1].lastUpdated, now.addingTimeInterval(-10))
-        XCTAssertEqual(matches.perfectMatches[2].lastUpdated, now.addingTimeInterval(-100))
+        XCTAssertEqual(matches.perfectMatches[1].lastUpdated, now.addingTimeInterval(-24*60*60))
+        XCTAssertEqual(matches.perfectMatches[2].lastUpdated, now.addingTimeInterval(-24*60*60*2))
     }
 
     func testWhenSortingPartialMatchesThenLastEditedSortedFirst() {
         let now = Date()
-        let accounts = [websiteAccountFor(domain: "foo.example.com", lastUpdated: now.addingTimeInterval(-100)),
-                        websiteAccountFor(domain: "foo.example.com", lastUpdated: now.addingTimeInterval(-10)),
+        let accounts = [websiteAccountFor(domain: "foo.example.com", lastUpdated: now.addingTimeInterval(-24*60*60*2)),
+                        websiteAccountFor(domain: "foo.example.com", lastUpdated: now.addingTimeInterval(-24*60*60)),
                         websiteAccountFor(domain: "foo.example.com", lastUpdated: now.addingTimeInterval(-1))]
-        let matches = autofillWebsiteAccountMatcher.findMatchesSortedByLastUpdated(accounts: accounts, for: "example.com")
+        let matches = autofillWebsiteAccountMatcher.findDeduplicatedSortedMatches(accounts: accounts, for: "example.com")
         XCTAssertEqual(matches.partialMatches["foo.example.com"]?[0].lastUpdated, now.addingTimeInterval(-1))
-        XCTAssertEqual(matches.partialMatches["foo.example.com"]?[1].lastUpdated, now.addingTimeInterval(-10))
-        XCTAssertEqual(matches.partialMatches["foo.example.com"]?[2].lastUpdated, now.addingTimeInterval(-100))
+        XCTAssertEqual(matches.partialMatches["foo.example.com"]?[1].lastUpdated, now.addingTimeInterval(-24*60*60))
+        XCTAssertEqual(matches.partialMatches["foo.example.com"]?[2].lastUpdated, now.addingTimeInterval(-24*60*60*2))
     }
 
     func websiteAccountFor(domain: String = "", lastUpdated: Date = Date()) -> SecureVaultModels.WebsiteAccount {

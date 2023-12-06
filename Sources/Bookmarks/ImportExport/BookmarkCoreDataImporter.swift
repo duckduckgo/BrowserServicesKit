@@ -23,9 +23,11 @@ import Persistence
 public class BookmarkCoreDataImporter {
     
     let context: NSManagedObjectContext
+    let favoritesDisplayMode: FavoritesDisplayMode
     
-    public init(database: CoreDataDatabase) {
+    public init(database: CoreDataDatabase, favoritesDisplayMode: FavoritesDisplayMode) {
         self.context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        self.favoritesDisplayMode = favoritesDisplayMode
     }
     
     public func importBookmarks(_ bookmarks: [BookmarkOrFolder]) async throws {
@@ -34,8 +36,9 @@ public class BookmarkCoreDataImporter {
             
             context.performAndWait { () -> Void in
                 do {
-                    guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context),
-                    let topLevelFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+                    let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
+
+                    guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context) else {
                         throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
                     
@@ -43,7 +46,7 @@ public class BookmarkCoreDataImporter {
                     
                     try recursivelyCreateEntities(from: bookmarks,
                                                   parent: topLevelBookmarksFolder,
-                                                  favoritesRoot: topLevelFavoritesFolder,
+                                                  favoritesFolders: favoritesFolders,
                                                   bookmarkURLToIDMap: &bookmarkURLToIDMap)
                     try context.save()
                     continuation.resume()
@@ -85,7 +88,7 @@ public class BookmarkCoreDataImporter {
 
     private func recursivelyCreateEntities(from bookmarks: [BookmarkOrFolder],
                                            parent: BookmarkEntity,
-                                           favoritesRoot: BookmarkEntity,
+                                           favoritesFolders: [BookmarkEntity],
                                            bookmarkURLToIDMap: inout [String: NSManagedObjectID]) throws {
         for bookmarkOrFolder in bookmarks {
             if bookmarkOrFolder.isInvalidBookmark {
@@ -100,20 +103,20 @@ public class BookmarkCoreDataImporter {
                 if let children = bookmarkOrFolder.children {
                     try recursivelyCreateEntities(from: children,
                                                   parent: folder,
-                                                  favoritesRoot: favoritesRoot,
+                                                  favoritesFolders: favoritesFolders,
                                                   bookmarkURLToIDMap: &bookmarkURLToIDMap)
                 }
             case .favorite:
                 if let url = bookmarkOrFolder.url {
                     if let objectID = bookmarkURLToIDMap[url.absoluteString],
                        let bookmark = try? context.existingObject(with: objectID) as? BookmarkEntity {
-                        bookmark.addToFavorites(favoritesRoot: favoritesRoot)
+                        bookmark.addToFavorites(folders: favoritesFolders)
                     } else {
                         let newFavorite = BookmarkEntity.makeBookmark(title: bookmarkOrFolder.name,
                                                                       url: url.absoluteString,
                                                                       parent: parent,
                                                                       context: context)
-                        newFavorite.addToFavorites(favoritesRoot: favoritesRoot)
+                        newFavorite.addToFavorites(folders: favoritesFolders)
                         bookmarkURLToIDMap[url.absoluteString] = newFavorite.objectID
                     }
                 }

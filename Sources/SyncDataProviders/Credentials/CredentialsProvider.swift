@@ -40,7 +40,6 @@ public final class CredentialsProvider: DataProvider {
     // MARK: - DataProviding
 
     public override func prepareForFirstSync() throws {
-        lastSyncTimestamp = nil
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
         try secureVault.inDatabaseTransaction { database in
 
@@ -183,6 +182,7 @@ public final class CredentialsProvider: DataProvider {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in database: Database) throws -> Set<String> {
@@ -201,8 +201,8 @@ public final class CredentialsProvider: DataProvider {
             if let modifiedAt = metadataRecord.lastModified, modifiedAt.compareWithMillisecondPrecision(to: clientTimestamp) == .orderedDescending {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataRecord.uuid)
-            if metadataRecord.objectId == nil, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = receivedUUIDs.contains(metadataRecord.uuid)
+            if metadataRecord.objectId == nil, !hasNewerVersionOnServer {
                 try metadataRecord.delete(database)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadataRecord.uuid)

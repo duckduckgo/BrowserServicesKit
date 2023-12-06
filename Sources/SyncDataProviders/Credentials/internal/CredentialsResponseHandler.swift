@@ -160,11 +160,14 @@ final class CredentialsResponseHandler {
         }
 
         if let password, let passwordData = password.data(using: .utf8) {
-            return try syncableCredentials.first(where: { credentials in
+            var matchingSyncableCredentials = try syncableCredentials.first(where: { credentials in
                 let decryptedPassword = try credentials.credentialsRecord?.password
                     .flatMap { try secureVault.decrypt($0, using: secureVaultEncryptionKey) }
                 return decryptedPassword == passwordData
             })
+            // update matched credentials with decrypted password, as that's what Secure Vault expects
+            matchingSyncableCredentials?.credentials?.password = passwordData
+            return matchingSyncableCredentials
         }
         return syncableCredentials.first(where: { $0.credentialsRecord?.password == nil })
     }

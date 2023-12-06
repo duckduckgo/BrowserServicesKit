@@ -8,7 +8,7 @@ let package = Package(
     name: "BrowserServicesKit",
     platforms: [
         .iOS("14.0"),
-        .macOS("10.15")
+        .macOS("11.4")
     ],
     products: [
         // Exported libraries
@@ -17,6 +17,7 @@ let package = Package(
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
+        .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
@@ -32,13 +33,13 @@ let package = Package(
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "8.2.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.32.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "1.4.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.52.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
@@ -60,7 +61,8 @@ let package = Package(
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
                 .process("ContentBlocking/UserScripts/surrogates.js"),
-                .process("SmarterEncryption/Store/HTTPSUpgrade.xcdatamodeld")
+                .process("SmarterEncryption/Store/HTTPSUpgrade.xcdatamodeld"),
+                .copy("../../PrivacyInfo.xcprivacy")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -85,6 +87,13 @@ let package = Package(
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
+        .executableTarget(name: "BookmarksTestDBBuilder",
+                          dependencies: [
+                            "Bookmarks",
+                            "Persistence"
+                          ],
+                          path: "Sources/BookmarksTestDBBuilder"
+        ),
         .target(
             name: "BookmarksTestsUtils",
             dependencies: [
@@ -92,10 +101,15 @@ let package = Package(
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
-         .target(
-            name: "BloomFilterWrapper",
+        .target(
+            name: "BloomFilterObjC",
             dependencies: [
                 .product(name: "BloomFilter", package: "bloom_cpp")
+            ]),
+        .target(
+            name: "BloomFilterWrapper",
+            dependencies: [
+                "BloomFilterObjC"
             ]),
         .target(
             name: "Crashes",
@@ -219,6 +233,9 @@ let package = Package(
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common"
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
@@ -252,6 +269,17 @@ let package = Package(
             dependencies: [
                 "Bookmarks",
                 "BookmarksTestsUtils"
+            ],
+            resources: [
+                .copy("Resources/Bookmarks_V1.sqlite"),
+                .copy("Resources/Bookmarks_V1.sqlite-shm"),
+                .copy("Resources/Bookmarks_V1.sqlite-wal"),
+                .copy("Resources/Bookmarks_V2.sqlite"),
+                .copy("Resources/Bookmarks_V2.sqlite-shm"),
+                .copy("Resources/Bookmarks_V2.sqlite-wal"),
+                .copy("Resources/Bookmarks_V3.sqlite"),
+                .copy("Resources/Bookmarks_V3.sqlite-shm"),
+                .copy("Resources/Bookmarks_V3.sqlite-wal")
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -361,11 +389,13 @@ let package = Package(
         .testTarget(
             name: "NetworkProtectionTests",
             dependencies: [
-                "NetworkProtection"
+                "NetworkProtection",
+                "NetworkProtectionTestUtils"
             ],
             resources: [
                 .copy("Resources/servers-original-endpoint.json"),
-                .copy("Resources/servers-updated-endpoint.json")
+                .copy("Resources/servers-updated-endpoint.json"),
+                .copy("Resources/locations-endpoint.json")
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),

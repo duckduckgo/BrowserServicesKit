@@ -23,12 +23,27 @@ import CoreData
 import DDGSync
 import Persistence
 
+public struct FaviconsFetcherInput {
+    public var modifiedBookmarksUUIDs: Set<String>
+    public var deletedBookmarksUUIDs: Set<String>
+}
+
 // swiftlint:disable line_length
 public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) throws {
+    public private(set) var faviconsFetcherInput: FaviconsFetcherInput = .init(modifiedBookmarksUUIDs: [], deletedBookmarksUUIDs: [])
+
+    public init(
+        database: CoreDataDatabase,
+        metadataStore: SyncMetadataStore,
+        syncDidUpdateData: @escaping () -> Void,
+        syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
+    ) {
         self.database = database
         super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        self.syncDidFinish = { [weak self] in
+            syncDidFinish(self?.faviconsFetcherInput)
+        }
     }
 
     // MARK: - DataProviding
@@ -43,6 +58,7 @@ public final class BookmarksProvider: DataProvider {
             let bookmarks = (try? context.fetch(fetchRequest)) ?? []
             for bookmark in bookmarks {
                 bookmark.modifiedAt = Date()
+                bookmark.lastChildrenArrayReceivedFromSync = nil
             }
 
             do {
@@ -99,6 +115,8 @@ public final class BookmarksProvider: DataProvider {
                     )
                     let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedBookmarks()
+                    faviconsFetcherInput.modifiedBookmarksUUIDs = responseHandler.idsOfBookmarksWithModifiedURLs
+                    faviconsFetcherInput.deletedBookmarksUUIDs = responseHandler.idsOfDeletedBookmarks
 
 #if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
@@ -130,6 +148,7 @@ public final class BookmarksProvider: DataProvider {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
@@ -145,10 +164,17 @@ public final class BookmarksProvider: DataProvider {
             if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
-            if bookmark.isPendingDeletion, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
+            if bookmark.isPendingDeletion, !hasNewerVersionOnServer {
                 context.delete(bookmark)
             } else {
+                if !hasNewerVersionOnServer, bookmark.isFolder {
+                    if bookmark.uuid.flatMap(BookmarkEntity.isValidFavoritesFolderID) == true {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.favoritesArray.compactMap(\.uuid))
+                    } else {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.childrenArray.compactMap(\.uuid))
+                    }
+                }
                 bookmark.modifiedAt = nil
                 if let uuid = bookmark.uuid {
                     idsOfItemsToClearModifiedAt.insert(uuid)
@@ -182,8 +208,9 @@ public final class BookmarksProvider: DataProvider {
     private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
         let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
         let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
+        let modifiedObjects = insertedObjects + updatedObjects
 
-        (insertedObjects + updatedObjects).forEach { bookmarkEntity in
+        modifiedObjects.forEach { bookmarkEntity in
             if let uuid = bookmarkEntity.uuid, uuids.contains(uuid) {
                 bookmarkEntity.shouldManageModifiedAt = false
                 if let modifiedAt = bookmarkEntity.modifiedAt, modifiedAt < clientTimestamp {
@@ -192,7 +219,7 @@ public final class BookmarksProvider: DataProvider {
             }
         }
         try context.save()
-    }
+     }
 
     private let database: CoreDataDatabase
 

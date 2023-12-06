@@ -39,8 +39,8 @@ public struct AutofillData {
 
 public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting {
     
-    func secureVaultManagerIsEnabledStatus(_: SecureVaultManager) -> Bool
-
+    func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType?) -> Bool
+    
     func secureVaultManagerShouldSaveData(_: SecureVaultManager) -> Bool
 
     func secureVaultManager(_: SecureVaultManager,
@@ -56,7 +56,11 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
     func secureVaultManager(_: SecureVaultManager,
                             promptUserWithGeneratedPassword password: String,
                             completionHandler: @escaping (Bool) -> Void)
-
+    
+    func secureVaultManager(_: SecureVaultManager,
+                            isAuthenticatedFor type: AutofillType,
+                            completionHandler: @escaping (Bool) -> Void)
+    
     func secureVaultManager(_: SecureVaultManager, didAutofill type: AutofillType, withObjectId objectId: String)
 
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void)
@@ -67,8 +71,18 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
 
     func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String)
 
+    func secureVaultManager(_: SecureVaultManager,
+                            didRequestRuntimeConfigurationForDomain domain: String,
+                            completionHandler: @escaping (String?) -> Void)
+
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel)
 
+}
+
+extension SecureVaultManagerDelegate {
+    func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType? = nil) -> Bool {
+        return secureVaultManagerIsEnabledStatus(manager, forType: type)
+    }
 }
 
 public protocol PasswordManager: AnyObject {
@@ -149,21 +163,34 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 return
             }
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
-            let identities = try vault.identities()
-            let cards = try vault.creditCards()
-
-            getAccounts(for: domain,
-                        from: vault,
-                        or: passwordManager,
-                        withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
-                guard let self = self else { return }
-                if let error = error {
-                    os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
-                    completionHandler([], [], [], self.credentialsProvider)
-                } else {
-                    completionHandler(accounts, identities, cards, self.credentialsProvider)
-                }
+            
+            var identities: [SecureVaultModels.Identity] = []
+            if delegate.secureVaultManagerIsEnabledStatus(self, forType: .identity) {
+                identities = try vault.identities()
             }
+            
+            var cards: [SecureVaultModels.CreditCard] = []
+            if delegate.secureVaultManagerIsEnabledStatus(self, forType: .card) {
+                cards = try vault.creditCards()
+            }
+                        
+            if delegate.secureVaultManagerIsEnabledStatus(self, forType: .password) {
+                getAccounts(for: domain,
+                            from: vault,
+                            or: passwordManager,
+                            withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+                    guard let self = self else { return }
+                    if let error = error {
+                        os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
+                        completionHandler([], [], [], self.credentialsProvider)
+                    } else {
+                        completionHandler(accounts, identities, cards, self.credentialsProvider)
+                    }
+                }
+            } else {
+                completionHandler([], identities, cards, self.credentialsProvider)
+            }
+
         } catch {
             os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
             completionHandler([], [], [], credentialsProvider)
@@ -204,7 +231,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 autosaveAccount = nil                
                 autosaveAccountCreatedInSession = false
             }
-            
+
+            // Do not autosave anything if user has requested to never be prompted to save credentials for this domain
+            if let neverPrompt = try vault?.hasNeverPromptWebsitesFor(domain: domain), neverPrompt {
+                return
+            }
+
             // Validate the existing account exists and matches the domain and fetch the credentials
             if let stringId = autosaveAccount?.id,
                let id = Int64(stringId),
@@ -252,10 +284,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     autosaveAccountCreatedInSession = false
                 }
             }
-            
-            try storeOrUpdateAutogeneratedCredentials(domain: domain, autofillData: autofilldata)
 
-            // Update/Prompt in 3rd party password manager
+            // Update/Prompt in 3rd party password manager (if enabled)
             if let passwordManager = passwordManager, passwordManager.isEnabled {
                 if !shouldSilentlySave {
                     let dataToPrompt = try existingEntries(for: domain, autofillData: autofilldata)
@@ -264,6 +294,9 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     autosaveAccountCreatedInSession = false
                 }
                 return
+            } else {
+                // Store or update silently (if required)
+                try storeOrUpdateAutogeneratedCredentials(domain: domain, autofillData: autofilldata)
             }
 
             // Prompt or notify on form submissions and clean any partial accounts for this instance (tab)
@@ -377,16 +410,24 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
-            getCredentials(for: accountId, from: vault, or: self.passwordManager) { [weak self] credentials, error in
-                guard let self = self else { return }
-                if let error = error {
-                    os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
-                    completionHandler(nil, self.credentialsProvider)
+            
+            self.delegate?.secureVaultManager(self, isAuthenticatedFor: .password, completionHandler: { result in
+                if result == true {
+                    self.getCredentials(for: accountId, from: vault, or: self.passwordManager) { [weak self] credentials, error in
+                        guard let self = self else { return }
+                        if let error = error {
+                            os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                            completionHandler(nil, self.credentialsProvider)
+                        } else {
+                            completionHandler(credentials, self.credentialsProvider)
+                            self.delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
+                        }
+                    }
                 } else {
-                    completionHandler(credentials, self.credentialsProvider)
-                    self.delegate?.secureVaultManager(self, didAutofill: .password, withObjectId: accountId)
+                    return
                 }
-            }
+            })            
+            
         } catch {
             os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
             completionHandler(nil, credentialsProvider)
@@ -492,6 +533,14 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     
     public func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel) {
         delegate?.secureVaultManager(self, didReceivePixel: pixel)
+    }
+
+    public func autofillUserScript(_: AutofillUserScript,
+                                   didRequestRuntimeConfigurationForDomain domain: String,
+                                   completionHandler: @escaping (String?) -> Void) {
+        delegate?.secureVaultManager(self, didRequestRuntimeConfigurationForDomain: domain, completionHandler: { response in
+            completionHandler(response)
+        })
     }
 
     /// Stores autogenerated credentials sent by the AutofillUserScript, or updates an existing row in the database if credentials already exist.

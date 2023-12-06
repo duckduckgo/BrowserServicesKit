@@ -21,8 +21,10 @@ import Foundation
 
 public class EmailKeychainManager {
 
-    public init() {
-        Self.migrateItemsToDataProtectionKeychainIfNecessary()
+    public init(needsMigration: Bool = true) {
+        if needsMigration {
+            Self.migrateItemsToDataProtectionKeychain()
+        }
     }
 
 }
@@ -140,9 +142,14 @@ private extension EmailKeychainManager {
         }
 
         try deleteAuthenticationState()
-        
+
         try add(data: tokenData, forField: .token)
-        try add(data: usernameData, forField: .username)
+
+        do {
+            try add(data: usernameData, forField: .username)
+        } catch let EmailKeychainAccessError.keychainSaveFailure(status) {
+            throw EmailKeychainAccessError.keychainFailedToSaveUsernameAfterSavingToken(status)
+        }
 
         if let cohortData = cohort?.data(using: .utf8) {
             try add(data: cohortData, forField: .cohort)
@@ -227,7 +234,7 @@ extension EmailKeychainManager {
     
     /// Takes data from the login keychain and moves it to the data protection keychain.
     /// Reference: https://developer.apple.com/documentation/security/ksecusedataprotectionkeychain
-    static func migrateItemsToDataProtectionKeychainIfNecessary() {
+    static func migrateItemsToDataProtectionKeychain() {
         #if os(macOS)
         
         for field in EmailKeychainField.allCases {

@@ -731,6 +731,8 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
         self.promptedAutofillData = data
     }
 
+    func secureVaultManager(_: BrowserServicesKit.SecureVaultManager, isAuthenticatedFor type: BrowserServicesKit.AutofillType, completionHandler: @escaping (Bool) -> Void) {}
+    
     func secureVaultManager(_: SecureVaultManager,
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
@@ -754,6 +756,8 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
     func secureVaultManager(_: SecureVaultManager, didRequestIdentitiesManagerForDomain domain: String) {}
 
     func secureVaultManager(_: SecureVaultManager, didRequestPasswordManagerForDomain domain: String) {}
+
+    func secureVaultManager(_: SecureVaultManager, didRequestRuntimeConfigurationForDomain domain: String, completionHandler: @escaping (String?) -> Void) {}
 
     func secureVaultManager(_: SecureVaultManager, didReceivePixel: AutofillUserScript.JSPixel) {}
 

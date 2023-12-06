@@ -78,7 +78,7 @@ class EmailManagerTests: XCTestCase {
         XCTAssertEqual(generatedAddress, "test-alias@duck.com")
     }
 
-    func testWhenSignOutThenDeletesAllStorage() {
+    func testWhenSignOutThenDeletesAllStorage() throws {
         let storage = MockEmailManagerStorage()
         let emailManager = EmailManager(storage: storage)
 
@@ -87,7 +87,7 @@ class EmailManagerTests: XCTestCase {
             expect.fulfill()
         }
 
-        emailManager.signOut()
+        try emailManager.signOut()
         waitForExpectations(timeout: 1.0, handler: nil)
     }
 
@@ -391,7 +391,9 @@ class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     var keychainAccessErrorAccessType: EmailKeychainAccessType?
     var keychainAccessError: EmailKeychainAccessError?
 
-    func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError) {
+    func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
+                                          accessType: EmailKeychainAccessType,
+                                          error: EmailKeychainAccessError) {
         keychainAccessErrorAccessType = accessType
         keychainAccessError = error
     }

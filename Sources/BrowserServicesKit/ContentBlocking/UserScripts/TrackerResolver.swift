@@ -200,11 +200,8 @@ public class TrackerResolver {
 fileprivate extension KnownTracker.Rule {
 
     func isMatchingUrl(_ urlString: String) -> Bool {
-        guard let pattern = rule, let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
-            return false
-        }
-        let range = NSRange(location: 0, length: urlString.utf16.count)
-        return regex.firstMatch(in: urlString, options: [], range: range) != nil
+        guard let pattern = rule, let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return false }
+        return regex.firstMatch(in: urlString, options: [], range: urlString.fullRange) != nil
     }
     
     func action(type: String, host: String) -> TrackerResolver.RuleAction? {

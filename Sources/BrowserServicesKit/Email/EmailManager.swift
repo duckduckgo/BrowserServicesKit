@@ -18,6 +18,7 @@
 //
 
 import Foundation
+import Common
 
 // swiftlint:disable file_length
 
@@ -41,6 +42,7 @@ public enum EmailKeychainAccessError: Error, Equatable {
     case keychainSaveFailure(OSStatus)
     case keychainDeleteFailure(OSStatus)
     case keychainLookupFailure(OSStatus)
+    case keychainFailedToSaveUsernameAfterSavingToken(OSStatus)
     
     public var errorDescription: String {
         switch self {
@@ -50,6 +52,7 @@ public enum EmailKeychainAccessError: Error, Equatable {
         case .keychainSaveFailure: return "keychainSaveFailure"
         case .keychainDeleteFailure: return "keychainDeleteFailure"
         case .keychainLookupFailure: return "keychainLookupFailure"
+        case .keychainFailedToSaveUsernameAfterSavingToken: return "keychainFailedtoSaveUsernameAfterSavingToken"
         }
     }
 }
@@ -101,8 +104,10 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       httpBody: Data?,
                       timeoutInterval: TimeInterval) async throws -> Data
 
-    func emailManagerKeychainAccessFailed(accessType: EmailKeychainAccessType, error: EmailKeychainAccessError)
-    
+    func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
+                                          accessType: EmailKeychainAccessType, 
+                                          error: EmailKeychainAccessError)
+
 }
 // swiftlint:enable function_parameter_count
 
@@ -161,19 +166,28 @@ public class EmailManager {
     
     public enum NotificationParameter {
         public static let cohort = "cohort"
+        public static let isForcedSignOut = "isForcedSignOut"
     }
     
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
 
+    /// This lock is static to prevent data races when using multiple instances of EmailManager to store data.
+    private static let lock = NSRecursiveLock()
+
     private var dateFormatter = ISO8601DateFormatter()
-    
+
     private var username: String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             return try storage.getUsername()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getUsername, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getUsername, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -183,11 +197,16 @@ public class EmailManager {
     }
 
     private var token: String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             return try storage.getToken()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getToken, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getToken, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -197,11 +216,16 @@ public class EmailManager {
     }
 
     private var alias: String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             return try storage.getAlias()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getAlias, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getAlias, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -211,11 +235,16 @@ public class EmailManager {
     }
 
     public var cohort: String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             return try storage.getCohort()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getCohort, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getCohort, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -225,11 +254,16 @@ public class EmailManager {
     }
 
     public var lastUseDate: String {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             return try storage.getLastUseDate() ?? ""
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .getLastUseData, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .getLastUseData, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -239,13 +273,18 @@ public class EmailManager {
     }
 
     public func updateLastUseDate() {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         let dateString = dateFormatter.string(from: Date())
         
         do {
             try storage.store(lastUseDate: dateString)
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeLastUseDate, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .storeLastUseDate, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -278,27 +317,39 @@ public class EmailManager {
         dateFormatter.timeZone = TimeZone(identifier: "America/New_York") // Use ET time zone
     }
     
-    public func signOut() {
+    public func signOut(isForced: Bool = false) throws {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         // Retrieve the cohort before it gets removed from storage, so that it can be passed as a notification parameter.
         let currentCohortValue = try? storage.getCohort()
 
         do {
             try storage.deleteAuthenticationState()
+
+            var notificationParameters: [String: String] = [:]
+
+            if let currentCohortValue = currentCohortValue {
+                notificationParameters[NotificationParameter.cohort] = currentCohortValue
+            }
+            notificationParameters[NotificationParameter.isForcedSignOut] = isForced ? "true" : nil
+
+            NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
+
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAuthenticationState, error: error)
+                self.requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .deleteAuthenticationState, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
+            throw error
         }
-        
-        var notificationParameters: [String: String] = [:]
-        
-        if let currentCohortValue = currentCohortValue {
-            notificationParameters[NotificationParameter.cohort] = currentCohortValue
-        }
+    }
 
-        NotificationCenter.default.post(name: .emailDidSignOut, object: self, userInfo: notificationParameters)
+    public func forceSignOut() {
+        try? signOut(isForced: true)
     }
 
     public func emailAddressFor(_ alias: String) -> String {
@@ -374,7 +425,7 @@ extension EmailManager: AutofillEmailDelegate {
     }
 
     public func autofillUserScriptDidRequestSignOut(_: AutofillUserScript) {
-        self.signOut()
+        try? self.signOut()
     }
     
     public func autofillUserScript(_: AutofillUserScript,
@@ -427,15 +478,7 @@ extension EmailManager: AutofillEmailDelegate {
     }
     
     public func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
-        storeToken(token, username: username, cohort: cohort)
-        
-        var notificationParameters: [String: String] = [:]
-        
-        if let cohort = cohort {
-            notificationParameters[NotificationParameter.cohort] = cohort
-        }
-
-        NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
+        try? storeToken(token, username: username, cohort: cohort)
     }
 
     public func autofillUserScript(_: AutofillUserScript, didRequestSetInContextPromptValue value: Double) {
@@ -462,18 +505,54 @@ extension EmailManager: AutofillEmailDelegate {
 
 }
 
+// MARK: - Sync Support
+
+public extension EmailManager {
+
+    func getUsername() throws -> String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+        return try storage.getUsername()
+    }
+
+    func getToken() throws -> String? {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+        return try storage.getToken()
+    }
+}
+
 // MARK: - Token Management
 
-private extension EmailManager {
-    func storeToken(_ token: String, username: String, cohort: String?) {
+public extension EmailManager {
+    func storeToken(_ token: String, username: String, cohort: String?) throws {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             try storage.store(token: token, username: username, cohort: cohort)
+
+            var notificationParameters: [String: String] = [:]
+
+            if let cohort = cohort {
+                notificationParameters[NotificationParameter.cohort] = cohort
+            }
+
+            NotificationCenter.default.post(name: .emailDidSignIn, object: self, userInfo: notificationParameters)
+
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeTokenUsernameCohort, error: error)
+                requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .storeTokenUsernameCohort, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
+            throw error
         }
 
         fetchAndStoreAlias()
@@ -517,11 +596,16 @@ private extension EmailManager {
     }
     
     func consumeAliasAndReplace() {
+        Self.lock.lock()
+        defer {
+            Self.lock.unlock()
+        }
+
         do {
             try storage.deleteAlias()
         } catch {
             if let error = error as? EmailKeychainAccessError {
-                self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .deleteAlias, error: error)
+                self.requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .deleteAlias, error: error)
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
@@ -556,12 +640,17 @@ private extension EmailManager {
                 completionHandler?(nil, .signedOut)
                 return
             }
-            
+
+            Self.lock.lock()
+            defer {
+                Self.lock.unlock()
+            }
+
             do {
                 try self.storage.store(alias: alias)
             } catch {
                 if let error = error as? EmailKeychainAccessError {
-                    self.requestDelegate?.emailManagerKeychainAccessFailed(accessType: .storeAlias, error: error)
+                    self.requestDelegate?.emailManagerKeychainAccessFailed(self, accessType: .storeAlias, error: error)
                 } else {
                     assertionFailure("Expected EmailKeychainAccessFailure")
                 }

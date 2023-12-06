@@ -27,7 +27,7 @@ import Common
 ///  * Generated Password - a password generated for a site, but not used yet
 ///  * Duck Address - a duck address used on a partcular site
 public struct SecureVaultModels {
-
+    
     /// A username and password was saved for a given site.  Password is stored seperately so that
     ///  it can be queried independently.
     public struct WebsiteCredentials {
@@ -52,6 +52,19 @@ public struct SecureVaultModels {
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
+        
+        public enum CommonTitlePatterns: String, CaseIterable {
+            /*
+             Matches the following title patterns
+             duck.com (test@duck.com) -> duck.com
+             signin.duck.com -> signin.duck.com
+             signin.duck.com (test@duck.com.co) -> signin.duck.com
+             https://signin.duck.com -> signin.duck.com
+             https://signin.duck.com (test@duck.com.co) -> signin.duck.com
+             (See SecureVaultModelTests.testPatternMatchedTitle() for more examples)
+             */
+            case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)(?=\s*\(|\s*\/|\s*\?|$)"#
+        }
 
         public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
             self.id = nil
@@ -119,7 +132,46 @@ public struct SecureVaultModels {
         public func firstTLDLetter(tld: TLD, autofillDomainNameUrlSort: AutofillDomainNameUrlSort) -> String? {
             return autofillDomainNameUrlSort.firstCharacterForGrouping(self, tld: tld)?.uppercased()
         }
-  
+        
+        public func patternMatchedTitle() -> String {
+            guard let title = title, !title.isEmpty else {
+                return ""
+            }
+
+            for pattern in SecureVaultModels.WebsiteAccount.CommonTitlePatterns.allCases {
+                if let regex = try? NSRegularExpression(pattern: pattern.rawValue, options: [.caseInsensitive]) {
+                    let matches = regex.matches(in: title, options: [], range: NSRange(title.startIndex..., in: title))
+
+                    if let firstMatch = matches.first,
+                       let range = Range(firstMatch.range(at: 1), in: title) { // range(at: 1) gets the first capturing group
+                        let host = String(title[range]).lowercased()
+
+                        // Drop the title if equal to the domain
+                        if host.caseInsensitiveCompare(domain ?? "") == .orderedSame {
+                            return ""
+                        }
+
+                        return host.isEmpty ? "" : host
+                    }
+                }
+            }
+            
+            // If no pattern matched, return the original title
+            return title
+        }
+
+    }
+
+    public struct NeverPromptWebsites {
+        public var id: Int64?
+        public var domain: String
+
+        public init(id: Int64? = nil,
+                    domain: String) {
+            self.id = id
+            self.domain = domain
+        }
+
     }
 
     public struct CreditCard {

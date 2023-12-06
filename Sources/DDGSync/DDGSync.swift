@@ -26,12 +26,6 @@ public class DDGSync: DDGSyncing {
     public static let bundle = Bundle.module
 
     enum Constants {
-        // #if DEBUG
-        public static let baseUrl = URL(string: "https://dev-sync-use.duckduckgo.com")!
-        // #else
-        //        public static let baseUrl = URL(string: "https://sync.duckduckgo.com")!
-        // #endif
-
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }
 
@@ -59,8 +53,9 @@ public class DDGSync: DDGSyncing {
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
-                            log: @escaping @autoclosure () -> OSLog = .disabled) {
-        let dependencies = ProductionDependencies(baseUrl: Constants.baseUrl, errorEvents: errorEvents, log: log())
+                            log: @escaping @autoclosure () -> OSLog = .disabled,
+                            environment: ServerEnvironment = .production) {
+        let dependencies = ProductionDependencies(serverEnvironment: environment, errorEvents: errorEvents, log: log())
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -171,36 +166,36 @@ public class DDGSync: DDGSyncing {
         }
     }
 
+    public var serverEnvironment: ServerEnvironment {
+        if dependencies.endpoints.baseURL == ServerEnvironment.production.baseURL {
+            return .production
+        }
+        return .development
+    }
+
+    public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
+        try? updateAccount(nil)
+        dependencies.updateServerEnvironment(serverEnvironment)
+        authState = .initializing
+        initializeIfNeeded()
+    }
+
     // MARK: -
 
-    let dependencies: SyncDependencies
+    var dependencies: SyncDependencies
 
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
     }
 
-    public func initializeIfNeeded(isInternalUser: Bool) {
+    public func initializeIfNeeded() {
         guard authState == .initializing else { return }
 
         let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
         guard syncEnabled else {
-            // This is for initial tests only
-            if isInternalUser {
-                // Migrate and start using user defaults flag
-                do {
-                    let account = try dependencies.secureStore.account()
-                    authState = account?.state ?? .inactive
-                    try updateAccount(account)
-
-                } catch {
-                    dependencies.errorEvents.fire(.failedToMigrate, error: error)
-                }
-            } else {
-                try? dependencies.secureStore.removeAccount()
-                authState = .inactive
-            }
-
+            try? dependencies.secureStore.removeAccount()
+            authState = .inactive
             return
         }
 
@@ -221,6 +216,7 @@ public class DDGSync: DDGSyncing {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     private func updateAccount(_ account: SyncAccount? = nil) throws {
         guard account?.state != .initializing else {
             assertionFailure("Sync has not been initialized properly")
@@ -253,6 +249,9 @@ public class DDGSync: DDGSyncing {
         dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
 
         syncQueueCancellable = syncQueue.isSyncInProgressPublisher
+            .handleEvents(receiveCancel: { [weak self] in
+                self?.isSyncInProgress = false
+            })
             .sink(receiveCompletion: { [weak self] _ in
                 self?.isSyncInProgress = false
             }, receiveValue: { [weak self] isInProgress in
@@ -262,6 +261,13 @@ public class DDGSync: DDGSyncing {
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
                 self?.syncQueue?.startSync()
+            }
+
+        syncQueueRequestErrorCancellable = syncQueue.syncHTTPRequestErrorPublisher
+            .sink { [weak self] error in
+                // Safe to try? because the error is reported to Sync Data Provider anyway
+                // and here we only care about logging the user out of Sync
+                try? self?.handleUnauthenticated(error)
             }
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
@@ -303,4 +309,5 @@ public class DDGSync: DDGSyncing {
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
+    private var syncQueueRequestErrorCancellable: AnyCancellable?
 }

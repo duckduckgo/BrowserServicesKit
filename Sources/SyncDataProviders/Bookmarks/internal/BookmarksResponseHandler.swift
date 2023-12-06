@@ -33,17 +33,20 @@ final class BookmarksResponseHandler {
 
     let topLevelFoldersSyncables: [SyncableBookmarkAdapter]
     let bookmarkSyncablesWithoutParent: [SyncableBookmarkAdapter]
-    let favoritesUUIDs: [String]
+    let favoritesUUIDsByFolderUUID: [String: [String]]
 
     var entitiesByUUID: [String: BookmarkEntity] = [:]
     var idsOfItemsThatRetainModifiedAt = Set<String>()
     var deduplicatedFolderUUIDs = Set<String>()
 
+    var idsOfBookmarksWithModifiedURLs = Set<String>()
+    var idsOfDeletedBookmarks = Set<String>()
+
     private let decrypt: (String) throws -> String
 
     init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
         self.clientTimestamp = clientTimestamp
-        self.received = received.map(SyncableBookmarkAdapter.init)
+        self.received = received.map { SyncableBookmarkAdapter(syncable: $0) }
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
 
@@ -54,7 +57,7 @@ final class BookmarksResponseHandler {
         var allUUIDs: Set<String> = []
         var childrenToParents: [String: String] = [:]
         var parentFoldersToChildren: [String: [String]] = [:]
-        var favoritesUUIDs: [String] = []
+        var favoritesUUIDsByFolderUUID: [String: [String]] = [:]
 
         self.received.forEach { syncable in
             guard let uuid = syncable.uuid else {
@@ -67,8 +70,8 @@ final class BookmarksResponseHandler {
                 allUUIDs.formUnion(syncable.children)
             }
 
-            if uuid == BookmarkEntity.Constants.favoritesFolderID {
-                favoritesUUIDs = syncable.children
+            if BookmarkEntity.isValidFavoritesFolderID(uuid) {
+                favoritesUUIDsByFolderUUID[uuid] = syncable.children
             } else {
                 if syncable.isFolder {
                     parentFoldersToChildren[uuid] = syncable.children
@@ -81,13 +84,13 @@ final class BookmarksResponseHandler {
 
         self.allReceivedIDs = allUUIDs
         self.receivedByUUID = syncablesByUUID
-        self.favoritesUUIDs = favoritesUUIDs
+        self.favoritesUUIDsByFolderUUID = favoritesUUIDsByFolderUUID
 
         let foldersWithoutParent = Set(parentFoldersToChildren.keys).subtracting(childrenToParents.keys)
         topLevelFoldersSyncables = foldersWithoutParent.compactMap { syncablesByUUID[$0] }
 
         bookmarkSyncablesWithoutParent = allUUIDs.subtracting(childrenToParents.keys)
-            .subtracting(foldersWithoutParent + [BookmarkEntity.Constants.favoritesFolderID])
+            .subtracting(foldersWithoutParent.union(BookmarkEntity.Constants.favoriteFoldersIDs))
             .compactMap { syncablesByUUID[$0] }
 
         BookmarkEntity.fetchBookmarks(with: allReceivedIDs, in: context)
@@ -109,32 +112,37 @@ final class BookmarksResponseHandler {
         }
         try processOrphanedBookmarks()
 
-        // populate favorites
-        if !favoritesUUIDs.isEmpty {
-            guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context) else {
+        processReceivedFavorites()
+    }
+
+    // MARK: - Private
+
+    private func processReceivedFavorites() {
+        for (favoritesFolderUUID, favoritesUUIDs) in favoritesUUIDsByFolderUUID {
+            guard let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoritesFolderUUID, in: context) else {
                 // Error - unable to process favorites
                 return
             }
 
             // For non-first sync we rely fully on the server response
             if !shouldDeduplicateEntities {
-                favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites() }
+                favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites(favoritesRoot: favoritesFolder) }
             } else if !favoritesFolder.favoritesArray.isEmpty {
-                // If we're deduplicating and there are favorires locally, we'll need to sync favorites folder back later.
+                // If we're deduplicating and there are favorites locally, we'll need to sync favorites folder back later.
                 // Let's keep its modifiedAt.
-                idsOfItemsThatRetainModifiedAt.insert(BookmarkEntity.Constants.favoritesFolderID)
+                idsOfItemsThatRetainModifiedAt.insert(favoritesFolderUUID)
             }
 
             favoritesUUIDs.forEach { uuid in
                 if let bookmark = entitiesByUUID[uuid] {
-                    bookmark.removeFromFavorites()
+                    bookmark.removeFromFavorites(favoritesRoot: favoritesFolder)
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
             }
+
+            favoritesFolder.updateLastChildrenSyncPayload(with: favoritesUUIDs)
         }
     }
-
-    // MARK: - Private
 
     private func processTopLevelFolder(_ topLevelFolderSyncable: SyncableBookmarkAdapter) throws {
         guard let topLevelFolderUUID = topLevelFolderSyncable.uuid else {
@@ -215,6 +223,8 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(deduplicatedEntity)
             }
 
+            deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable.children)
+
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
                 guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
@@ -223,7 +233,7 @@ final class BookmarksResponseHandler {
                 return modifiedAt > clientTimestamp
             }()
             if !isModifiedAfterSyncTimestamp {
-                try existingEntity.update(with: syncable, in: context, decryptedUsing: decrypt)
+                try updateEntity(existingEntity, with: syncable)
             }
 
             if parent != nil, !existingEntity.isDeleted {
@@ -231,15 +241,30 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(existingEntity)
             }
 
+            existingEntity.updateLastChildrenSyncPayload(with: syncable.children)
+
         } else if !syncable.isDeleted {
 
             assert(syncable.uuid != BookmarkEntity.Constants.rootFolderID, "Trying to make another root folder")
 
             let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
             parent?.addToChildren(newEntity)
-            try newEntity.update(with: syncable, in: context, decryptedUsing: decrypt)
+            try updateEntity(newEntity, with: syncable)
             entitiesByUUID[syncableUUID] = newEntity
+
+            newEntity.updateLastChildrenSyncPayload(with: syncable.children)
         }
     }
 
+    private func updateEntity(_ entity: BookmarkEntity, with syncable: SyncableBookmarkAdapter) throws {
+        let url = entity.url
+        try entity.update(with: syncable, in: context, decryptedUsing: decrypt)
+        if let uuid = entity.uuid {
+            if entity.isDeleted {
+                idsOfDeletedBookmarks.insert(uuid)
+            } else if entity.url != url {
+                idsOfBookmarksWithModifiedURLs.insert(uuid)
+            }
+        }
+    }
 }

@@ -21,6 +21,9 @@ import Foundation
 public enum NetworkProtectionSimulationOption: Sendable {
     case controllerFailure
     case tunnelFailure
+    case crashFatalError
+    case crashMemory
+    case connectionInterruption
 }
 
 public class NetworkProtectionSimulationOptions {

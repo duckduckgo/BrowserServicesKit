@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionFeatureVisibility.swift
+//  VPNConfigurationManager.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,20 +17,20 @@
 //
 
 import Foundation
+import NetworkExtension
 
-public protocol NetworkProtectionFeatureVisibility {
+public final class VPNConfigurationManager {
 
-    /// Has the invite code flow been completed and an oAuth token stored?
-    ///
-    var isFeatureActivated: Bool { get }
-}
+    public init() {}
 
-extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureVisibility {
-    public var isFeatureActivated: Bool {
-        do {
-            return try fetchToken() != nil
-        } catch {
-            return false
+    public func removeVPNConfiguration() async {
+        let tunnels = try? await NETunnelProviderManager.loadAllFromPreferences()
+
+        if let tunnels = tunnels {
+            for tunnel in tunnels {
+                tunnel.connection.stopVPNTunnel()
+                try? await tunnel.removeFromPreferences()
+            }
         }
     }
 }

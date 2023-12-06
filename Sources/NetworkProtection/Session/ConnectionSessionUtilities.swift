@@ -22,6 +22,24 @@ import NetworkExtension
 /// These are only usable from the App that owns the tunnel.
 ///
 public class ConnectionSessionUtilities {
+    public static func activeSession(networkExtensionBundleID: String) async throws -> NETunnelProviderSession? {
+        let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+
+        guard let manager = managers.first(where: {
+            ($0.protocolConfiguration as? NETunnelProviderProtocol)?.providerBundleIdentifier == networkExtensionBundleID
+        }) else {
+            // No active connection, this is acceptable
+            return nil
+        }
+
+        guard let session = manager.connection as? NETunnelProviderSession else {
+            // The active connection is not running, so there's no session, this is acceptable
+            return nil
+        }
+
+        return session
+    }
+
     public static func activeSession() async throws -> NETunnelProviderSession? {
         let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
@@ -51,10 +69,40 @@ public class ConnectionSessionUtilities {
 
 public extension NETunnelProviderSession {
 
+    // MARK: - ExtensionMessage
+
+    func sendProviderMessage(_ message: ExtensionMessage,
+                             responseHandler: @escaping () -> Void) throws {
+        try sendProviderMessage(message.rawValue) { _ in
+            responseHandler()
+        }
+    }
+
     func sendProviderMessage<T: RawRepresentable>(_ message: ExtensionMessage,
                                                   responseHandler: @escaping (T?) -> Void) throws where T.RawValue == Data {
         try sendProviderMessage(message.rawValue) { response in
             responseHandler(response.flatMap(T.init(rawValue:)))
+        }
+    }
+
+    func sendProviderRequest(_ request: ExtensionRequest) async throws {
+        try await sendProviderMessage(.request(request))
+    }
+
+    func sendProviderRequest<T: RawRepresentable>(_ request: ExtensionRequest) async throws -> T? where T.RawValue == Data {
+
+        try await sendProviderMessage(.request(request))
+    }
+
+    func sendProviderMessage(_ message: ExtensionMessage) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            do {
+                try sendProviderMessage(message) {
+                    continuation.resume()
+                }
+            } catch {
+                continuation.resume(throwing: error)
+            }
         }
     }
 
@@ -69,11 +117,4 @@ public extension NETunnelProviderSession {
             }
         }
     }
-
-    func sendProviderMessage(_ message: ExtensionMessage, completionHandler: (() -> Void)? = nil) throws {
-        try sendProviderMessage(message.rawValue) { _ in
-            completionHandler?()
-        }
-    }
-
 }
