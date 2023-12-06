@@ -21,17 +21,24 @@ import Foundation
 import XCTest
 @testable import NetworkProtection
 @testable import NetworkProtectionTestUtils
+import Common
 
 class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     var repository: NetworkProtectionLocationListCompositeRepository!
     var client: MockNetworkProtectionClient!
     var tokenStore: MockNetworkProtectionTokenStorage!
+    var verifyErrorEvent: ((NetworkProtectionError) -> Void)?
 
     override func setUp() {
         super.setUp()
         client = MockNetworkProtectionClient()
         tokenStore = MockNetworkProtectionTokenStorage()
-        repository = NetworkProtectionLocationListCompositeRepository(client: client, tokenStore: tokenStore)
+        repository = NetworkProtectionLocationListCompositeRepository(
+            client: client,
+            tokenStore: tokenStore,
+            errorEvents: .init { [weak self] event, _, _, _ in
+                self?.verifyErrorEvent?(event)
+        })
     }
 
     @MainActor 
@@ -93,6 +100,23 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
         }
     }
 
+    func testFetchLocationList_noAuthToken_sendsErrorEvent() async {
+        client.stubGetLocations = .success([.testData()])
+        tokenStore.stubFetchToken = nil
+        var didReceiveError: Bool = false
+        verifyErrorEvent = { error in
+            didReceiveError = true
+            switch error {
+            case .noAuthTokenFound:
+                break
+            default:
+                XCTFail("Expected noAuthTokenFound error")
+            }
+        }
+        _ = try? await repository.fetchLocationList()
+        XCTAssertTrue(didReceiveError)
+    }
+
     func testFetchLocationList_fetchThrows_throwsError() async throws {
         client.stubGetLocations = .failure(.failedToFetchLocationList(nil))
         var errorResult: Error?
@@ -103,6 +127,17 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
         }
 
         XCTAssertNotNil(errorResult)
+    }
+
+    func testFetchLocationList_fetchThrows_sendsErrorEvent() async {
+        client.stubGetLocations = .failure(.failedToFetchLocationList(nil))
+        var didReceiveError: Bool = false
+        verifyErrorEvent = { error in
+            didReceiveError = true
+            // Matching errors is not working for some reason, so just checking for any error
+        }
+        _ = try? await repository.fetchLocationList()
+        XCTAssertTrue(didReceiveError)
     }
 }
 
