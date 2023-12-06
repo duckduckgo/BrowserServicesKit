@@ -286,9 +286,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
     
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
-#if os(iOS)
         privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowReportBrokenSite(self)
-#endif
     }
     
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
