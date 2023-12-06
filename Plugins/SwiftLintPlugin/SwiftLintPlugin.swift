@@ -66,12 +66,27 @@ struct SwiftLintPlugin: BuildToolPlugin {
         }
         let fm = FileManager()
 
-        // read cached data
         let cacheURL = URL(fileURLWithPath: workingDirectory.appending("cache.json").string)
-        var cache = (try? JSONDecoder().decode([String: InputListItem].self, from: Data(contentsOf: cacheURL))) ?? [:]
-
-        // read diagnostics from last pass
         let outputPath = workingDirectory.appending("output.txt").string
+
+        // if clean build: clear cache
+        let buildDir = workingDirectory.removingLastComponent() // BrowserServicesKit
+            .removingLastComponent() // browserserviceskit.output
+            .removingLastComponent() // plugins
+            .removingLastComponent() // SourcePackages
+            .removingLastComponent() // DerivedData/DuckDuckGo-xxxx
+            .appending("Build")
+        if let buildDirContents = try? fm.contentsOfDirectory(atPath: buildDir.string),
+           !buildDirContents.contains("Products") {
+            print("\(target): SwiftLint: Clean Build")
+
+            try? fm.removeItem(at: cacheURL)
+            try? fm.removeItem(atPath: outputPath)
+        }
+
+        // read cached data
+        var cache = (try? JSONDecoder().decode([String: InputListItem].self, from: Data(contentsOf: cacheURL))) ?? [:]
+        // read diagnostics from last pass
         let lastOutput = cache.isEmpty ? "" : (try? String(contentsOfFile: outputPath)) ?? {
             // no diagnostics file – reset
             cache = [:]
@@ -149,7 +164,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
             result = [
                 .prebuildCommand(
-                    displayName: "SwiftLint",
+                    displayName: "\(target): SwiftLint",
                     executable: try tool("swiftlint").path,
                     arguments: arguments,
                     outputFilesDirectory: outputFilesDirectory
@@ -163,7 +178,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
         // output cached diagnostic messages from previous run
         result.append(.prebuildCommand(
-            displayName: "SwiftLint: cached \(cacheURL.path)",
+            displayName: "\(target): SwiftLint: cached \(cacheURL.path)",
             executable: .echo,
             arguments: [cachedDiagnostics.joined(separator: "\n")],
             outputFilesDirectory: outputFilesDirectory
@@ -172,20 +187,20 @@ struct SwiftLintPlugin: BuildToolPlugin {
         if !filesToProcess.isEmpty {
             // when ready put temporary cache and output into place
             result.append(.prebuildCommand(
-                displayName: "Cache SwiftLint results",
+                displayName: "\(target): SwiftLint: Cache results",
                 executable: .mv,
                 arguments: ["\(outputPath).tmp", outputPath],
                 outputFilesDirectory: outputFilesDirectory
             ))
             result.append(.prebuildCommand(
-                displayName: "Cache source files modification dates for SwiftLint",
+                displayName: "\(target): SwiftLint: Cache source files modification dates",
                 executable: .mv,
                 arguments: [cacheURL.appendingPathExtension("tmp").path, cacheURL.path],
                 outputFilesDirectory: outputFilesDirectory
             ))
             // duplicate SwiftLint output saved to output.txt to Build Log
             result.append(.prebuildCommand(
-                displayName: "Print SwiftLint output to Build Log",
+                displayName: "\(target): SwiftLint: print output to Build Log",
                 executable: .cat,
                 arguments: [outputPath],
                 outputFilesDirectory: outputFilesDirectory
