@@ -132,7 +132,7 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     func testFetchLocationList_fetchThrows_sendsErrorEvent() async {
         client.stubGetLocations = .failure(.failedToFetchLocationList(nil))
         var didReceiveError: Bool = false
-        verifyErrorEvent = { error in
+        verifyErrorEvent = { _ in
             didReceiveError = true
             // Matching errors is not working for some reason, so just checking for any error
         }
