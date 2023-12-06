@@ -41,15 +41,6 @@ struct SwiftLintPlugin: BuildToolPlugin {
         guard let sourceTarget = target as? SourceModuleTarget else {
             return []
         }
-        if (sourceTarget as! SwiftSourceModuleTarget).compilationConditions.contains("CI") {
-//            fatalError("!")
-        }
-        if sourceTarget.dependencies.contains(where: {
-            if case .target(let target as SwiftSourceModuleTarget) = $0, target.compilationConditions.contains("CI") { return true }
-            return false
-        }) {
-//            fatalError("2")
-        }
         return try createBuildCommands(
             target: "\(sourceTarget)",
             config: sourceTarget.kind == .test ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
@@ -228,17 +219,6 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
         let inputFilePaths = target.inputFiles
             .filter { $0.type == .source && $0.path.extension == "swift" }
             .map(\.path)
-
-//        if (target as! SwiftSourceModuleTarget).compilationConditions.contains("CI") {
-            //            fatalError("!")
-//        }
-//        if target.dependencies.contains(where: {
-//            if case .target(let target as SwiftSourceModuleTarget) = $0, target.compilationConditions.contains("CI") { return true }
-//            return false
-//        }) {
-            //            fatalError("2")
-//        }
-        fatalError("\(ProcessInfo().environment)\n\(target)")
 
         return try createBuildCommands(
             target: target.displayName,
