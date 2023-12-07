@@ -1,3 +1,5 @@
+allow_zero_lintable_files: true
+
 disabled_rules:
   - no_space_in_method_call
   - multiple_closures_with_trailing_closure
@@ -54,7 +56,7 @@ large_tuple:
 file_header:
   required_pattern: |
                     \/\/
-                    \/\/  .*?\.swift
+                    \/\/  SWIFTLINT_CURRENT_FILENAME
                     \/\/
                     \/\/  Copyright © \d{4} DuckDuckGo\. All rights reserved\.
                     \/\/
@@ -73,8 +75,9 @@ file_header:
 
 # General Config
 excluded:
+  - Package.swift
   - .build
   - scripts/
   - Sources/RemoteMessaging/Model/AnyDecodable.swift
   - Sources/Common/Concurrency/AsyncStream.swift
-  - Sources/NetworkProtection/WireGuardKit/
+

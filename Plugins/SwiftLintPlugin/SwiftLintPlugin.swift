@@ -1,6 +1,5 @@
 //
 //  SwiftLintPlugin.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -25,15 +24,24 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
     func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
         // disable output for SPM modules built in RELEASE mode
-        guard let target = target as? SwiftSourceModuleTarget,
-              target.compilationConditions.contains(.debug) else { return [] }
+        guard let target = target as? SourceModuleTarget else {
+            assertionFailure("invalid target")
+            return []
+        }
+
+        guard (target as? SwiftSourceModuleTarget)?.compilationConditions.contains(.debug) != false || target.kind == .test else {
+            print("SwiftLint: \(target.name): Skipping for RELEASE build")
+            return []
+        }
 
         let inputFiles = target.sourceFiles(withSuffix: "swift").map(\.path)
-        guard !inputFiles.isEmpty else { return [] }
+        guard !inputFiles.isEmpty else {
+            print("SwiftLint: \(target.name): No input files")
+            return []
+        }
 
         return try createBuildCommands(
             target: target.name,
-            config: target.kind == .test ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
             inputFiles: inputFiles,
             packageDirectory: context.package.directory,
             workingDirectory: context.pluginWorkDirectory,
@@ -41,9 +49,9 @@ struct SwiftLintPlugin: BuildToolPlugin {
         )
     }
 
+    // swiftlint:disable function_body_length
     private func createBuildCommands(
         target: String,
-        config: String,
         inputFiles: [Path],
         packageDirectory: Path,
         workingDirectory: Path,
@@ -67,7 +75,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             .appending("Build")
         if let buildDirContents = try? fm.contentsOfDirectory(atPath: buildDir.string),
            !buildDirContents.contains("Products") {
-            print("\(target): SwiftLint: Clean Build")
+            print("SwiftLint: \(target): Clean Build")
 
             try? fm.removeItem(at: cacheURL)
             try? fm.removeItem(atPath: outputPath)
@@ -107,13 +115,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             guard let filePath = outputLint.split(separator: ":", maxSplits: 1).first.map(String.init),
                   !filesToProcess.contains(filePath) else { continue }
 
-            withUnsafeMutablePointer(to: &newCache[filePath]) { itemPtr in
-                guard itemPtr.pointee != nil else { return }
-
-                itemPtr.pointee!.diagnostics?.append(String(outputLint)) ?? {
-                    itemPtr.pointee!.diagnostics = [String(outputLint)]
-                }()
-            }
+            newCache[filePath]?.appendDiagnosticsMessage(String(outputLint))
         }
 
         // collect cached diagnostic messages from cache
@@ -129,45 +131,37 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
         var result = [Command]()
         if !filesToProcess.isEmpty {
+            print("SwiftLint: \(target): Processing \(filesToProcess.count) files")
+
             // write updated cache into temporary file, cache file will be overwritten when linting completes
             try JSONEncoder().encode(newCache).write(to: cacheURL.appendingPathExtension("tmp"))
 
-            var arguments = [
-                "lint",
-                "--quiet",
-                // We always pass all of the Swift source files in the target to the tool,
-                // so we need to ensure that any exclusion rules in the configuration are
-                // respected.
-                "--force-exclude",
-                "--cache-path", "\(workingDirectory)",
-                // output both to a temporary output cache file
-                "--output", "\(outputPath).tmp",
-            ]
+            let swiftlint = try tool("swiftlint").path
+            let lintCommand = """
+            cd "\(packageDirectory)" && "\(swiftlint)" lint --quiet --force-exclude --cache-path "\(workingDirectory)" \
+                \(filesToProcess.map { "\"\($0)\"" }.joined(separator: " ")) \
+                | tee -a "\(outputPath).tmp"
+            """
 
-            // Manually look for configuration files, to avoid issues when the plugin does not execute our tool from the
-            // package source directory.
-            if let configuration = packageDirectory.firstConfigurationFileInParentDirectories(named: config) {
-                arguments.append(contentsOf: ["--config", "\(configuration.string)"])
-            }
-            arguments += filesToProcess
-
+            print(lintCommand)
             result = [
                 .prebuildCommand(
                     displayName: "\(target): SwiftLint",
-                    executable: try tool("swiftlint").path,
-                    arguments: arguments,
+                    executable: .sh,
+                    arguments: ["-c", lintCommand],
                     outputFilesDirectory: outputFilesDirectory
                 )
             ]
 
         } else {
+            print("SwiftLint: \(target): No new files to process")
             try JSONEncoder().encode(newCache).write(to: cacheURL)
             try "".write(toFile: outputPath, atomically: false, encoding: .utf8)
         }
 
         // output cached diagnostic messages from previous run
         result.append(.prebuildCommand(
-            displayName: "\(target): SwiftLint: cached \(cacheURL.path)",
+            displayName: "SwiftLint: \(target): cached \(cacheURL.path)",
             executable: .echo,
             arguments: [cachedDiagnostics.joined(separator: "\n")],
             outputFilesDirectory: outputFilesDirectory
@@ -176,28 +170,23 @@ struct SwiftLintPlugin: BuildToolPlugin {
         if !filesToProcess.isEmpty {
             // when ready put temporary cache and output into place
             result.append(.prebuildCommand(
-                displayName: "\(target): SwiftLint: Cache results",
+                displayName: "SwiftLint: \(target): Cache results",
                 executable: .mv,
                 arguments: ["\(outputPath).tmp", outputPath],
                 outputFilesDirectory: outputFilesDirectory
             ))
             result.append(.prebuildCommand(
-                displayName: "\(target): SwiftLint: Cache source files modification dates",
+                displayName: "SwiftLint: \(target): Cache source files modification dates",
                 executable: .mv,
                 arguments: [cacheURL.appendingPathExtension("tmp").path, cacheURL.path],
-                outputFilesDirectory: outputFilesDirectory
-            ))
-            // duplicate SwiftLint output saved to output.txt to Build Log
-            result.append(.prebuildCommand(
-                displayName: "\(target): SwiftLint: print output to Build Log",
-                executable: .cat,
-                arguments: [outputPath],
                 outputFilesDirectory: outputFilesDirectory
             ))
         }
 
         return result
     }
+    // swiftlint:enable function_body_length
+
 }
 
 #if canImport(XcodeProjectPlugin)
@@ -206,17 +195,17 @@ import XcodeProjectPlugin
 
 extension SwiftLintPlugin: XcodeBuildToolPlugin {
     func createBuildCommands(context: XcodePluginContext, target: XcodeTarget) throws -> [Command] {
-        guard let product = target.product else { return [] }
-
         let inputFiles = target.inputFiles.filter {
             $0.type == .source && $0.path.extension == "swift"
         }.map(\.path)
 
-        guard !inputFiles.isEmpty else { return [] }
+        guard !inputFiles.isEmpty else {
+            print("SwiftLint: \(target): No input files")
+            return []
+        }
 
         return try createBuildCommands(
             target: target.displayName,
-            config: product.kind.isUnitTests ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
             inputFiles: inputFiles,
             packageDirectory: context.xcodeProject.directory,
             workingDirectory: context.pluginWorkDirectory,
@@ -225,20 +214,10 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
     }
 }
 
-extension XcodeProduct.Kind {
-
-    var isUnitTests: Bool {
-        if case .other("com.apple.product-type.bundle.unit-test") = self { return true }
-        return false
-    }
-
-}
-
 #endif
 
 extension String {
-    static let defaultSwiftlintConfigFileName = ".swiftlint.yml"
-    static let testsSwiftlintConfigFileName = ".swiftlint.tests.yml"
+    static let swiftlintConfigFileName = ".swiftlint.yml"
 
     static let debug = "DEBUG"
 }
