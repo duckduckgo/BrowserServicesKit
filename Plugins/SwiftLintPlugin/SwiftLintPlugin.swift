@@ -20,32 +20,21 @@
 import Foundation
 import PackagePlugin
 
-struct InputListItem: Codable {
-
-    let modified: Date
-    var diagnostics: [String]?
-
-    init(modified: Date) {
-        self.modified = modified
-    }
-
-}
-
 @main
 struct SwiftLintPlugin: BuildToolPlugin {
-    enum ConfigKind {
-        case `default`
-        case tests
-    }
 
     func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
-        guard let sourceTarget = target as? SourceModuleTarget else {
-            return []
-        }
+        // disable output for SPM modules built in RELEASE mode
+        guard let target = target as? SwiftSourceModuleTarget,
+              target.compilationConditions.contains(.debug) else { return [] }
+
+        let inputFiles = target.sourceFiles(withSuffix: "swift").map(\.path)
+        guard !inputFiles.isEmpty else { return [] }
+
         return try createBuildCommands(
-            target: sourceTarget.name,
-            config: sourceTarget.kind == .test ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
-            inputFiles: sourceTarget.sourceFiles(withSuffix: "swift").map(\.path),
+            target: target.name,
+            config: target.kind == .test ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
+            inputFiles: inputFiles,
             packageDirectory: context.package.directory,
             workingDirectory: context.pluginWorkDirectory,
             tool: context.tool(named:)
@@ -60,10 +49,10 @@ struct SwiftLintPlugin: BuildToolPlugin {
         workingDirectory: Path,
         tool: (String) throws -> PluginContext.Tool
     ) throws -> [Command] {
-        if inputFiles.isEmpty || ProcessInfo().environment["GITHUB_ACTIONS"] != nil {
-            // Don't lint anything if there are no Swift source files in this target
-            return []
-        }
+
+        // only lint when built from Xcode (disable for CI or xcodebuild)
+        guard case .xcode = ProcessInfo().environmentType else { return [] }
+
         let fm = FileManager()
 
         let cacheURL = URL(fileURLWithPath: workingDirectory.appending("cache.json").string)
@@ -217,13 +206,18 @@ import XcodeProjectPlugin
 
 extension SwiftLintPlugin: XcodeBuildToolPlugin {
     func createBuildCommands(context: XcodePluginContext, target: XcodeTarget) throws -> [Command] {
-        let inputFilePaths = target.inputFiles
-            .filter { $0.type == .source && $0.path.extension == "swift" }
-            .map(\.path)
+        guard let product = target.product else { return [] }
+
+        let inputFiles = target.inputFiles.filter {
+            $0.type == .source && $0.path.extension == "swift"
+        }.map(\.path)
+
+        guard !inputFiles.isEmpty else { return [] }
+
         return try createBuildCommands(
             target: target.displayName,
-            config: target.product?.kind == .other(.unitTestsKind) ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
-            inputFiles: inputFilePaths,
+            config: product.kind.isUnitTests ? .testsSwiftlintConfigFileName : .defaultSwiftlintConfigFileName,
+            inputFiles: inputFiles,
             packageDirectory: context.xcodeProject.directory,
             workingDirectory: context.pluginWorkDirectory,
             tool: context.tool(named:)
@@ -231,75 +225,20 @@ extension SwiftLintPlugin: XcodeBuildToolPlugin {
     }
 }
 
-extension XcodeProduct.Kind: Equatable {
-    public static func == (lhs: XcodeProduct.Kind, rhs: XcodeProduct.Kind) -> Bool {
-        switch lhs {
-        case .application: if case .application = rhs { return true }
-        case .executable: if case .executable = rhs { return true }
-        case .framework: if case .framework = rhs { return true }
-        case .library: if case .library = rhs { return true }
-        case .other(let value): if case .other(value) = rhs { return true }
-        @unknown default: break
-        }
+extension XcodeProduct.Kind {
+
+    var isUnitTests: Bool {
+        if case .other("com.apple.product-type.bundle.unit-test") = self { return true }
         return false
     }
+
 }
 
 #endif
 
 extension String {
-    static let unitTestsKind = "com.apple.product-type.bundle.unit-test"
-
     static let defaultSwiftlintConfigFileName = ".swiftlint.yml"
     static let testsSwiftlintConfigFileName = ".swiftlint.tests.yml"
-}
 
-extension Path {
-
-    static let mv = Path("/bin/mv")
-    static let echo = Path("/bin/echo")
-    static let cat = Path("/bin/cat")
-
-    /// Scans the receiver, then all of its parents looking for a configuration file with the name ".swiftlint.yml".
-    ///
-    /// - returns: Path to the configuration file, or nil if one cannot be found.
-    func firstConfigurationFileInParentDirectories(named fileName: String = .defaultSwiftlintConfigFileName) -> Path? {
-        let proposedDirectory = sequence(
-            first: self,
-            next: { path in
-                guard path.stem.count > 1 else {
-                    // Check we're not at the root of this filesystem, as `removingLastComponent()`
-                    // will continually return the root from itself.
-                    return nil
-                }
-
-                return path.removingLastComponent()
-            }
-        ).first { path in
-            let potentialConfigurationFile = path.appending(subpath: fileName)
-            return potentialConfigurationFile.isAccessible()
-        }
-        return proposedDirectory?.appending(subpath: fileName)
-    }
-
-    /// Safe way to check if the file is accessible from within the current process sandbox.
-    private func isAccessible() -> Bool {
-        let result = string.withCString { pointer in
-            access(pointer, R_OK)
-        }
-
-        return result == 0
-    }
-
-    /// Get file modification date
-    var modified: Date {
-        get throws {
-            try FileManager.default.attributesOfItem(atPath: self.string)[.modificationDate] as? Date ?? { throw CocoaError(.fileReadUnknown) }()
-        }
-    }
-
-    var url: URL {
-        URL(fileURLWithPath: self.string)
-    }
-
+    static let debug = "DEBUG"
 }
