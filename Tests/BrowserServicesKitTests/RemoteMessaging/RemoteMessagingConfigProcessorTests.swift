@@ -1,5 +1,5 @@
 //
-//  JsonRemoteMessagingConfigMapperTests.swift
+//  RemoteMessagingConfigProcessorTests.swift
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
