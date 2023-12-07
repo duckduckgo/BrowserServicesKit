@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public protocol NetworkProtectionLocationListRepository {
     func fetchLocationList() async throws -> [NetworkProtectionLocation]
@@ -26,17 +27,24 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     @MainActor private static var locationList: [NetworkProtectionLocation] = []
     private let client: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
+    private let errorEvents: EventMapping<NetworkProtectionError>
 
-    convenience public init(environment: VPNSettings.SelectedEnvironment, tokenStore: NetworkProtectionTokenStore) {
+    convenience public init(environment: VPNSettings.SelectedEnvironment, 
+                            tokenStore: NetworkProtectionTokenStore,
+                            errorEvents: EventMapping<NetworkProtectionError>) {
         self.init(
             client: NetworkProtectionBackendClient(environment: environment),
-            tokenStore: tokenStore
+            tokenStore: tokenStore,
+            errorEvents: errorEvents
         )
     }
 
-    init(client: NetworkProtectionClient, tokenStore: NetworkProtectionTokenStore) {
+    init(client: NetworkProtectionClient, 
+         tokenStore: NetworkProtectionTokenStore,
+         errorEvents: EventMapping<NetworkProtectionError>) {
         self.client = client
         self.tokenStore = tokenStore
+        self.errorEvents = errorEvents
     }
 
     @MainActor
@@ -50,11 +58,15 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()
         } catch let error as NetworkProtectionErrorConvertible {
+            errorEvents.fire(error.networkProtectionError)
             throw error.networkProtectionError
         } catch let error as NetworkProtectionError {
+            errorEvents.fire(error)
             throw error
         } catch {
-            throw NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
+            let unhandledError = NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
+            errorEvents.fire(unhandledError)
+            throw unhandledError
         }
         return Self.locationList
     }
