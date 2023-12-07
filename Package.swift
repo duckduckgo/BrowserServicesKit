@@ -74,6 +74,9 @@ let package = Package(
             dependencies: [
                 "Common"
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
@@ -84,6 +87,9 @@ let package = Package(
             ],
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -128,6 +134,9 @@ let package = Package(
                 .process("SyncMetadata.xcdatamodeld"),
                 .process("SyncPDFTemplate.png")
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
@@ -147,6 +156,9 @@ let package = Package(
             name: "ContentBlocking",
             dependencies: [
                 "TrackerRadarKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -172,6 +184,9 @@ let package = Package(
             dependencies: [
                 "Common"
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
@@ -184,6 +199,9 @@ let package = Package(
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
@@ -193,12 +211,18 @@ let package = Package(
                 "BrowserServicesKit",
                 "Common"
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
         .target(
             name: "Networking",
             dependencies: [
                 "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -207,6 +231,9 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -219,6 +246,9 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
                 "Persistence",
                 "SecureStorage"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -246,6 +276,9 @@ let package = Package(
             dependencies: [
                 "Common",
                 .product(name: "GRDB", package: "GRDB.swift")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
