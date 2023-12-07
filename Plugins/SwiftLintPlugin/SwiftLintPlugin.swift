@@ -43,7 +43,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
         return try createBuildCommands(
             target: target.name,
             inputFiles: inputFiles,
-            packageDirectory: context.package.directory,
+            packageDirectory: context.package.directory.firstParentContainingConfigFile() ?? context.package.directory,
             workingDirectory: context.pluginWorkDirectory,
             tool: context.tool(named:)
         )
