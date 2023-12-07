@@ -1,5 +1,5 @@
 //
-//  ContentBlockerDebugEvents.swift
+//  HTTPSUpgrade.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //

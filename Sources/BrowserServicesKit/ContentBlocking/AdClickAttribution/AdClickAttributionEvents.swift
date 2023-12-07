@@ -1,5 +1,5 @@
 //
-//  AdClickAttributionDebugEvents.swift
+//  AdClickAttributionEvents.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //

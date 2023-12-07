@@ -1,5 +1,5 @@
 //
-//  ContentBlockerDebugEvents.swift
+//  AMPProtectionDebugEvents.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //

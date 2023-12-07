@@ -40,6 +40,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
         )
     }
 
+    // swiftlint:disable function_body_length
     private func createBuildCommands(
         target: String,
         config: String,
@@ -106,13 +107,7 @@ struct SwiftLintPlugin: BuildToolPlugin {
             guard let filePath = outputLint.split(separator: ":", maxSplits: 1).first.map(String.init),
                   !filesToProcess.contains(filePath) else { continue }
 
-            withUnsafeMutablePointer(to: &newCache[filePath]) { itemPtr in
-                guard itemPtr.pointee != nil else { return }
-
-                itemPtr.pointee!.diagnostics?.append(String(outputLint)) ?? {
-                    itemPtr.pointee!.diagnostics = [String(outputLint)]
-                }()
-            }
+            newCache[filePath]?.appendDiagnosticsMessage(String(outputLint))
         }
 
         // collect cached diagnostic messages from cache
@@ -197,6 +192,8 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
         return result
     }
+    // swiftlint:enable function_body_length
+
 }
 
 #if canImport(XcodeProjectPlugin)

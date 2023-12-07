@@ -1,5 +1,7 @@
 # swiftlint config applied for Tests
 
+allow_zero_lintable_files: true
+
 disabled_rules:
   - no_space_in_method_call
   - multiple_closures_with_trailing_closure

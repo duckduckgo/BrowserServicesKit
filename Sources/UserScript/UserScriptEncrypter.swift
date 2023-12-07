@@ -1,5 +1,5 @@
 //
-//  AutofillUserScript+Encryption.swift
+//  UserScriptEncrypter.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
