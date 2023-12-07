@@ -40,7 +40,7 @@ extension RemoteAPIRequestCreating {
     func createAuthenticatedJSONRequest(url: URL,
                                         method: HTTPRequestMethod,
                                         authToken: String,
-                                        json: Data,
+                                        json: Data? = nil,
                                         headers: [String: String] = [:],
                                         parameters: [String: String] = [:]) -> HTTPRequesting {
         var headers = headers
