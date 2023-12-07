@@ -21,10 +21,16 @@ import Foundation
 struct InputListItem: Codable {
 
     let modified: Date
-    var diagnostics: [String]?
+    private(set) var diagnostics: [String]?
 
     init(modified: Date) {
         self.modified = modified
+    }
+
+    mutating func appendDiagnosticsMessage(_ message: String) {
+        diagnostics?.append(message) ?? {
+            diagnostics = [message]
+        }()
     }
 
 }
