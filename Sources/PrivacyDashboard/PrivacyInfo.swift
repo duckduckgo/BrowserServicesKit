@@ -35,7 +35,7 @@ public final class PrivacyInfo {
         self.url = url
         self.parentEntity = parentEntity
         self.protectionStatus = protectionStatus
-        
+
         trackerInfo = TrackerInfo()
     }
 

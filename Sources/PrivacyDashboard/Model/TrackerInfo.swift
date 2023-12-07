@@ -26,11 +26,11 @@ public struct TrackerInfo: Encodable {
         case requests
         case installedSurrogates
     }
-    
+
     public private (set) var trackers = Set<DetectedRequest>()
     private(set) var thirdPartyRequests = Set<DetectedRequest>()
     public private(set) var installedSurrogates = Set<String>()
-    
+
     public init() { }
 
     // MARK: - Collecting detected elements
@@ -43,12 +43,12 @@ public struct TrackerInfo: Encodable {
     public mutating func add(detectedThirdPartyRequest request: DetectedRequest) {
         thirdPartyRequests.insert(request)
     }
-    
+
     public mutating func addInstalledSurrogateHost(_ host: String, for tracker: DetectedRequest, onPageWithURL url: URL) {
         guard tracker.pageUrl == url.absoluteString else { return }
         installedSurrogates.insert(host)
     }
-    
+
     // MARK: - Helper accessors
 
     public var trackersBlocked: [DetectedRequest] {
@@ -67,5 +67,5 @@ public struct TrackerInfo: Encodable {
         try container.encode(allRequests, forKey: .requests)
         try container.encode(installedSurrogates, forKey: .installedSurrogates)
     }
-    
+
 }

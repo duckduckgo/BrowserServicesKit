@@ -19,7 +19,7 @@
 import Foundation
 
 public struct ProtectionStatus: Encodable {
-    
+
     let unprotectedTemporary: Bool
     let enabledFeatures: [String]
     let allowlisted: Bool
