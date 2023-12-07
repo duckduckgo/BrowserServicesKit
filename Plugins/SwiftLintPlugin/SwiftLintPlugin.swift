@@ -143,7 +143,6 @@ struct SwiftLintPlugin: BuildToolPlugin {
                 | tee -a "\(outputPath).tmp"
             """
 
-            print(lintCommand)
             result = [
                 .prebuildCommand(
                     displayName: "\(target): SwiftLint",
