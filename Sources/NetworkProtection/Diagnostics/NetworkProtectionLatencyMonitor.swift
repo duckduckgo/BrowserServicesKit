@@ -32,15 +32,15 @@ final public class NetworkProtectionLatencyMonitor {
 
         init(average: TimeInterval) {
             switch average {
-            case let x where x > 3:
+            case 300...:
                 self = .terrible
-            case 2..<3:
+            case 200..<300:
                 self = .poor
-            case 0.5..<2:
+            case 50..<200:
                 self = .moderate
-            case 0.2..<0.5:
+            case 20..<50:
                 self = .good
-            case 0.0..<0.2:
+            case 0..<20:
                 self = .excellent
             default:
                 self = .unknown
@@ -102,6 +102,19 @@ final public class NetworkProtectionLatencyMonitor {
 
     private let log: OSLog
 
+    private var _ignoreThreshold = false
+    private(set) var ignoreThreshold: Bool {
+        get {
+            lock.lock(); defer { lock.unlock() }
+            return _ignoreThreshold
+        }
+        set {
+            lock.lock()
+            self._ignoreThreshold = newValue
+            lock.unlock()
+        }
+    }
+
     // MARK: - Init & deinit
 
     init(serverIP: @escaping () -> IPv4Address?, timerQueue: DispatchQueue, log: OSLog) {
@@ -120,7 +133,7 @@ final public class NetworkProtectionLatencyMonitor {
 
     // MARK: - Start/Stop monitoring
 
-    func start() async throws {
+    public func start() async throws {
         guard await !timerRunCoordinator.isRunning else {
             os_log("Will not start the latency monitor as it's already running", log: log)
             return
@@ -132,19 +145,20 @@ final public class NetworkProtectionLatencyMonitor {
             .scan(ExponentialGeometricAverage()) { [weak self] measurements, latency in
                 if latency >= 0 {
                     measurements.addMeasurement(latency)
-                    os_log("⚫️ Latency: %{public}f seconds", log: .networkProtectionPixel, type: .debug, latency)
+                    os_log("⚫️ Latency: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, latency)
                 } else {
                     self?.subject.send(.error)
                 }
                 
-                os_log("⚫️ Average: %{public}f seconds", log: .networkProtectionPixel, type: .debug, measurements.average)
+                os_log("⚫️ Average: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, measurements.average)
 
                 return measurements
             }
             .map { ConnectionQuality(average: $0.average) }
             .sink { [weak self] quality in
                 let now = Date()
-                if let self, now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold {
+                if let self, 
+                    (now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold) || ignoreThreshold {
                     self.subject.send(.quality(quality))
                     self.lastLatencyReported = now
                 }
@@ -158,7 +172,7 @@ final public class NetworkProtectionLatencyMonitor {
         }
     }
 
-    func stop() async {
+    public func stop() async {
         os_log("⚫️ Stopping latency monitor", log: log)
         await stopScheduledTimer()
     }
@@ -208,7 +222,7 @@ final public class NetworkProtectionLatencyMonitor {
     // MARK: - Latency monitor
 
     @MainActor
-    func measureLatency() async {
+    public func measureLatency() async {
         guard let serverIP = serverIP() else {
             latencySubject.send(Self.unknownLatency)
             return
@@ -220,26 +234,32 @@ final public class NetworkProtectionLatencyMonitor {
 
         switch result {
         case .success(let pingResult):
-            latencySubject.send(pingResult.time)
+            latencySubject.send(pingResult.time * 1000)
         case .failure(let error):
             os_log("⚫️ Ping error: %{public}s", log: .networkProtectionPixel, type: .debug, error.localizedDescription)
             latencySubject.send(Self.unknownLatency)
         }
     }
+
+    public func simulateLatency(_ timeInterval: TimeInterval) {
+        ignoreThreshold = true
+        latencySubject.send(timeInterval)
+        ignoreThreshold = false
+    }
 }
 
-final class ExponentialGeometricAverage {
+public final class ExponentialGeometricAverage {
     private static let decayConstant = 0.1
     private let cutover = ceil(1 / decayConstant)
 
     private var count = TimeInterval(0)
     private var value = TimeInterval(-1)
 
-    var average: TimeInterval {
+    public var average: TimeInterval {
         value
     }
 
-    func addMeasurement(_ measurement: TimeInterval) {
+    public func addMeasurement(_ measurement: TimeInterval) {
         let keepConstant = 1 - Self.decayConstant
 
         if count > cutover {
@@ -254,7 +274,7 @@ final class ExponentialGeometricAverage {
         count += 1
     }
 
-    func reset() {
+    public func reset() {
         value = -1.0
         count = 0
     }
