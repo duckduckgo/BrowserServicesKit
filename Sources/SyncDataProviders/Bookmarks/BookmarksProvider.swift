@@ -19,6 +19,7 @@
 import Foundation
 import Bookmarks
 import Combine
+import Common
 import CoreData
 import DDGSync
 import Persistence
@@ -36,10 +37,12 @@ public final class BookmarksProvider: DataProvider {
     public init(
         database: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void,
         syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
     ) {
         self.database = database
+        self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
         self.syncDidFinish = { [weak self] in
             syncDidFinish(self?.faviconsFetcherInput)
@@ -111,7 +114,8 @@ public final class BookmarksProvider: DataProvider {
                         clientTimestamp: clientTimestamp,
                         context: context,
                         crypter: crypter,
-                        deduplicateEntities: isInitial
+                        deduplicateEntities: isInitial,
+                        metricsEvents: metricsEvents
                     )
                     let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedBookmarks()
@@ -222,6 +226,7 @@ public final class BookmarksProvider: DataProvider {
      }
 
     private let database: CoreDataDatabase
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

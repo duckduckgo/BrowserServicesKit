@@ -193,6 +193,7 @@ let package = Package(
             dependencies: [
                 "Bookmarks",
                 "BrowserServicesKit",
+                "Common",
                 "DDGSync",
                 .product(name: "GRDB", package: "GRDB.swift"),
                 "Persistence",

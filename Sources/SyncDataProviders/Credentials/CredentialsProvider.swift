@@ -20,6 +20,7 @@
 import Foundation
 import BrowserServicesKit
 import Combine
+import Common
 import DDGSync
 import GRDB
 import SecureStorage
@@ -30,10 +31,12 @@ public final class CredentialsProvider: DataProvider {
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
+        self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
@@ -138,7 +141,9 @@ public final class CredentialsProvider: DataProvider {
                         secureVault: secureVault,
                         database: database,
                         crypter: crypter,
-                        deduplicateEntities: isInitial)
+                        deduplicateEntities: isInitial,
+                        metricsEvents: self.metricsEvents
+                    )
 
                     let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
                         sent,
@@ -231,6 +236,7 @@ public final class CredentialsProvider: DataProvider {
 
     private let secureVaultFactory: AutofillVaultFactory
     private let secureVaultErrorReporter: SecureVaultErrorReporting
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

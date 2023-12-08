@@ -18,6 +18,7 @@
 //
 
 import Combine
+import Common
 import Foundation
 
 open class SettingSyncHandler: SettingSyncHandling {
@@ -37,11 +38,12 @@ open class SettingSyncHandler: SettingSyncHandling {
         return nil
     }
 
-    open func setValue(_ value: String?) throws {
+    open func setValue(_ value: String?, shouldDetectOverride: Bool) throws {
         assertionFailure("implementation missing for \(#function)")
     }
 
-    public init() {
+    public init(metricsEvents: EventMapping<MetricsEvent>? = nil) {
+        self.metricsEvents = metricsEvents
         valueDidChangeCancellable = valueDidChangePublisher
             .sink { [weak self] in
                 guard let self else {
@@ -52,6 +54,7 @@ open class SettingSyncHandler: SettingSyncHandling {
             }
     }
 
+    let metricsEvents: EventMapping<MetricsEvent>?
     weak var delegate: SettingSyncHandlingDelegate?
     private var valueDidChangeCancellable: AnyCancellable?
 }
