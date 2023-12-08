@@ -47,12 +47,15 @@ public class WireGuardAdapter {
     private enum ConfigurationFields: String {
         case rxBytes = "rx_bytes"
         case txBytes = "tx_bytes"
+        case mostRecentHandshake = "last_handshake_time_sec"
 
         var configLinePrefix: String {
             switch self {
             case .rxBytes:
                 return "\(rawValue)="
             case .txBytes:
+                return "\(rawValue)="
+            case .mostRecentHandshake:
                 return "\(rawValue)="
             }
         }
@@ -209,6 +212,31 @@ public class WireGuardAdapter {
                 })
 
                 continuation.resume(returning: bytesTransmitted)
+            }
+        }
+    }
+
+    /// Retrieves the number of seconds of the most recent handshake for the previously added peer entry, expressed relative to the Unix epoch.
+    ///
+    /// - Throws: ConfigReadingError
+    /// - Returns: Interval between the most recent handshake and the Unix epoch.
+    ///
+    public func getMostRecentHandshake() async throws -> TimeInterval {
+        try await withCheckedThrowingContinuation { continuation in
+            getRuntimeConfiguration { configuration in
+                guard let configuration = configuration else {
+                    continuation.resume(throwing: GetBytesTransmittedError.couldNotObtainAdapterConfiguration)
+                    return
+                }
+                
+                var numberOfSeconds = UInt64(0)
+                let lines = configuration.components(separatedBy: .newlines)
+                for line in lines where line.hasPrefix(ConfigurationFields.mostRecentHandshake.configLinePrefix) {
+                    numberOfSeconds = UInt64(line.dropFirst(ConfigurationFields.mostRecentHandshake.configLinePrefix.count)) ?? 0
+                    break
+                }
+                
+                continuation.resume(returning: TimeInterval(numberOfSeconds))
             }
         }
     }
