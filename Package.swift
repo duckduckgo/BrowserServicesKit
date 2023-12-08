@@ -32,13 +32,13 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.0.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.0.1"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.1"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.1.1" ),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.52.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1")
@@ -251,7 +251,10 @@ let package = Package(
                 .copy("Resources/Bookmarks_V2.sqlite-wal"),
                 .copy("Resources/Bookmarks_V3.sqlite"),
                 .copy("Resources/Bookmarks_V3.sqlite-shm"),
-                .copy("Resources/Bookmarks_V3.sqlite-wal")
+                .copy("Resources/Bookmarks_V3.sqlite-wal"),
+                .copy("Resources/Bookmarks_V4.sqlite"),
+                .copy("Resources/Bookmarks_V4.sqlite-shm"),
+                .copy("Resources/Bookmarks_V4.sqlite-wal")
             ]),
         .testTarget(
             name: "BrowserServicesKitTests",
