@@ -89,7 +89,7 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
                 case .quality(let quality):
                     reportedQuality = quality
                 case .error:
-                    XCTFail()
+                    XCTFail("Unexpected result")
                 }
             }
 
