@@ -35,7 +35,13 @@ public struct LinkProtection {
                                              contentBlockingManager: contentBlockingManager,
                                              errorReporting: errorReporting)
     }
-    
+
+    private func getNewRequest(changingUrl url: URL, inRequest request: URLRequest) -> URLRequest {
+        var newRequest = request
+        newRequest.url = url
+        return newRequest
+    }
+
     public mutating func setMainFrameUrl(_ url: URL?) {
         mainFrameUrl = url
     }
@@ -77,11 +83,12 @@ public struct LinkProtection {
     
     // swiftlint:disable function_parameter_count
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
-                                           destinationURL: URL,
+                                           destinationRequest: URLRequest,
                                            onStartExtracting: () -> Void,
                                            onFinishExtracting: @escaping () -> Void,
-                                           onLinkRewrite: @escaping (URL) -> Void,
+                                           onLinkRewrite: @escaping (URLRequest) -> Void,
                                            policyDecisionHandler: @escaping (Bool) -> Void) -> Bool {
+        let destinationURL = destinationRequest.url
         if let mainFrameUrl = mainFrameUrl, destinationURL != mainFrameUrl {
             // If mainFrameUrl is set and is different from destinationURL we will assume this is a redirect
             // We do not rewrite redirects due to breakage concerns
@@ -91,7 +98,7 @@ public struct LinkProtection {
         var didRewriteLink = false
         if let newURL = linkCleaner.extractCanonicalFromAMPLink(initiator: initiatingURL, destination: destinationURL) {
             policyDecisionHandler(false)
-            onLinkRewrite(newURL)
+            onLinkRewrite(getNewRequest(changingUrl: newURL, inRequest: destinationRequest))
             didRewriteLink = true
         } else if ampExtractor.urlContainsAMPKeyword(destinationURL) {
             onStartExtracting()
@@ -103,13 +110,13 @@ public struct LinkProtection {
                 }
                 
                 policyDecisionHandler(false)
-                onLinkRewrite(canonical)
+                onLinkRewrite(getNewRequest(changingUrl: canonical, inRequest: destinationRequest))
             }
             didRewriteLink = true
         } else if let newURL = linkCleaner.cleanTrackingParameters(initiator: initiatingURL, url: destinationURL) {
             if newURL != destinationURL {
                 policyDecisionHandler(false)
-                onLinkRewrite(newURL)
+                onLinkRewrite(getNewRequest(changingUrl: newURL, inRequest: destinationRequest))
                 didRewriteLink = true
             }
         }
@@ -121,10 +128,10 @@ public struct LinkProtection {
                                            navigationAction: WKNavigationAction,
                                            onStartExtracting: () -> Void,
                                            onFinishExtracting: @escaping () -> Void,
-                                           onLinkRewrite: @escaping (URL, WKNavigationAction) -> Void,
+                                           onLinkRewrite: @escaping (URLRequest, WKNavigationAction) -> Void,
                                            policyDecisionHandler: @escaping (WKNavigationActionPolicy) -> Void) -> Bool {
         requestTrackingLinkRewrite(initiatingURL: initiatingURL,
-                                   destinationURL: navigationAction.request.url!,
+                                   destinationRequest: navigationAction.request,
                                    onStartExtracting: onStartExtracting,
                                    onFinishExtracting: onFinishExtracting,
                                    onLinkRewrite: { onLinkRewrite($0, navigationAction) },
@@ -134,13 +141,13 @@ public struct LinkProtection {
 
     @MainActor
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
-                                           destinationURL: URL,
+                                           destinationRequest: URLRequest,
                                            onStartExtracting: () -> Void,
                                            onFinishExtracting: @escaping () -> Void,
-                                           onLinkRewrite: @escaping (URL) -> Void) async -> Bool? {
+                                           onLinkRewrite: @escaping (URLRequest) -> Void) async -> Bool? {
         await withCheckedContinuation { continuation in
             let didRewriteLink = requestTrackingLinkRewrite(initiatingURL: initiatingURL,
-                                                            destinationURL: destinationURL,
+                                                            destinationRequest: destinationRequest,
                                                             onStartExtracting: onStartExtracting,
                                                             onFinishExtracting: onFinishExtracting,
                                                             onLinkRewrite: onLinkRewrite) { navigationActionPolicy in
