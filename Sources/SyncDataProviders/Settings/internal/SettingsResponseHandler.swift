@@ -18,11 +18,14 @@
 //
 
 import Bookmarks
+import Common
 import CoreData
 import DDGSync
 import Foundation
 
 final class SettingsResponseHandler {
+    let feature: Feature = .init(name: "settings")
+
     let clientTimestamp: Date?
     let received: [SyncableSettingAdapter]
     let context: NSManagedObjectContext
@@ -34,6 +37,7 @@ final class SettingsResponseHandler {
     var idsOfItemsThatRetainModifiedAt = Set<String>()
 
     private let decrypt: (String) throws -> String
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     init(
         received: [Syncable],
@@ -41,7 +45,8 @@ final class SettingsResponseHandler {
         settingsHandlers: [SettingsProvider.Setting: any SettingSyncHandling],
         context: NSManagedObjectContext,
         crypter: Crypting,
-        deduplicateEntities: Bool
+        deduplicateEntities: Bool,
+        metricsEvents: EventMapping<MetricsEvent>? = nil
     ) throws {
 
         self.clientTimestamp = clientTimestamp
@@ -49,6 +54,7 @@ final class SettingsResponseHandler {
         self.settingsHandlers = settingsHandlers
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
+        self.metricsEvents = metricsEvents
 
         let secretKey = try crypter.fetchSecretKey()
         self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
@@ -86,10 +92,10 @@ final class SettingsResponseHandler {
 
     private func update(_ setting: SettingsProvider.Setting, with syncable: SyncableSettingAdapter) throws {
         if syncable.isDeleted {
-            try settingsHandlers[setting]?.setValue(nil)
+            try settingsHandlers[setting]?.setValue(nil, shouldDetectOverride: shouldDeduplicateEntities)
         } else {
             let value = try syncable.encryptedValue.flatMap { try decrypt($0) }
-            try settingsHandlers[setting]?.setValue(value)
+            try settingsHandlers[setting]?.setValue(value, shouldDetectOverride: shouldDeduplicateEntities)
         }
         if let metadata = metadataByKey[setting.key] {
             metadata.lastModified = nil
@@ -111,7 +117,9 @@ final class SettingsResponseHandler {
                 }
                 return lastModified > clientTimestamp
             }()
-            if !isModifiedAfterSyncTimestamp {
+            if isModifiedAfterSyncTimestamp {
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
+            } else {
                 try update(setting, with: syncable)
             }
         } else {
