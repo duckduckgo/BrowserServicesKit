@@ -30,7 +30,16 @@ extension Endpoint: Hashable {
 extension Endpoint: CustomStringConvertible {
 
     public var description: String {
-        "\(host):\(port)"
+        switch host {
+        case .name(let hostname, _):
+            return "\(hostname):\(port)"
+        case .ipv4(let address):
+            return "\(address):\(port)"
+        case .ipv6(let address):
+            return "[\(address)]:\(port)"
+        @unknown default:
+            fatalError()
+        }
     }
 
     public init?(from string: String) {
@@ -80,8 +89,8 @@ extension Endpoint {
     }
 }
 
-extension NWEndpoint.Host: CustomStringConvertible {
-    public var description: String {
+extension NWEndpoint.Host {
+    public var hostWithoutPort: String {
         switch self {
         case .name(let hostname, _):
             return hostname
