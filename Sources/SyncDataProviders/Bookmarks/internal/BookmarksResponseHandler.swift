@@ -24,6 +24,8 @@ import DDGSync
 import Foundation
 
 final class BookmarksResponseHandler {
+    let feature: Feature = .init(name: "bookmarks")
+
     let clientTimestamp: Date?
     let received: [SyncableBookmarkAdapter]
     let context: NSManagedObjectContext
@@ -243,7 +245,7 @@ final class BookmarksResponseHandler {
                 return modifiedAt > clientTimestamp
             }()
             if isModifiedAfterSyncTimestamp {
-                metricsEvents?.fire(.localTimestampResolutionTriggered(featureName: "bookmarks"))
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
             } else {
                 try updateEntity(existingEntity, with: syncable)
             }

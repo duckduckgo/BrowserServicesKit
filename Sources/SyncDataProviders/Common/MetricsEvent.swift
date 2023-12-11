@@ -17,10 +17,10 @@
 //  limitations under the License.
 //
 
-
+import DDGSync
 import Foundation
 
 public enum MetricsEvent {
     case overrideEmailProtectionSettings
-    case localTimestampResolutionTriggered(featureName: String)
+    case localTimestampResolutionTriggered(feature: Feature)
 }

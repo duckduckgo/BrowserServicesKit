@@ -24,6 +24,8 @@ import DDGSync
 import Foundation
 
 final class SettingsResponseHandler {
+    let feature: Feature = .init(name: "settings")
+
     let clientTimestamp: Date?
     let received: [SyncableSettingAdapter]
     let context: NSManagedObjectContext
@@ -116,7 +118,7 @@ final class SettingsResponseHandler {
                 return lastModified > clientTimestamp
             }()
             if isModifiedAfterSyncTimestamp {
-                metricsEvents?.fire(.localTimestampResolutionTriggered(featureName: "settings"))
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
             } else {
                 try update(setting, with: syncable)
             }

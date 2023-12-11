@@ -24,6 +24,8 @@ import Foundation
 import GRDB
 
 final class CredentialsResponseHandler {
+    let feature: Feature = .init(name: "credentials")
+
     let clientTimestamp: Date
     let received: [SyncableCredentialsAdapter]
     let secureVault: any AutofillSecureVault
@@ -113,7 +115,7 @@ final class CredentialsResponseHandler {
             if syncable.isDeleted {
                 try secureVault.deleteSyncableCredentials(existingEntity, in: database)
             } else if isModifiedAfterSyncTimestamp {
-                metricsEvents?.fire(.localTimestampResolutionTriggered(featureName: "credentials"))
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
             } else {
                 try existingEntity.update(with: syncable, decryptedUsing: decrypt)
                 existingEntity.metadata.lastModified = nil
