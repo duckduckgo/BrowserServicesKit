@@ -28,10 +28,8 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
 
 /// Navigation delegate for the pages provided by the PrivacyDashboardController
 public protocol PrivacyDashboardNavigationDelegate: AnyObject {
-#if os(iOS)
-    func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
-#endif
     
+    func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
 }
 
@@ -280,9 +278,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
     
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript) {
-#if os(iOS)
         privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
-#endif
     }
     
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {

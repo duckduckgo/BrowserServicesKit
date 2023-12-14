@@ -41,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
-        "revision" : "38336a574e13090764ba09a6b877d15ee514e371",
-        "version" : "3.1.1"
+        "branch" : "12-14-feat_macos_allow_direct_navigation_to_breakage_form",
+        "revision" : "97f6acbf9318045fbfb9b0ff098e307450d7457b"
       }
     },
     {
