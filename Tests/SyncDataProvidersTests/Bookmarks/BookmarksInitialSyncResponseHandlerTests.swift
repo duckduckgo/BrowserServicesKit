@@ -38,7 +38,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let received: [Syncable] = [.rootFolder(children: ["2", "1"])]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2", "1"]) {
             Bookmark(id: "2")
             Bookmark(id: "1")
         })
@@ -58,7 +58,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3"]) {
             Bookmark(id: "1")
             Bookmark(id: "2")
             Bookmark(id: "3")
@@ -79,7 +79,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3"]) {
             Bookmark(id: "1")
             Bookmark(id: "2")
             Bookmark(id: "3")
@@ -100,7 +100,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["3"]) {
             Bookmark(id: "1")
             Bookmark(id: "2")
             Bookmark(id: "3")
@@ -124,8 +124,8 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder("Folder", id: "1") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
+            Folder("Folder", id: "1", lastChildrenArrayReceivedFromSync: ["4"]) {
                 Bookmark(id: "2")
                 Bookmark(id: "3")
                 Bookmark(id: "4")
@@ -137,21 +137,23 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "2", favoritedOn: [.mobile, .unified])
         }
 
         let received: [Syncable] = [
             .rootFolder(children: ["1", "2", "3"]),
             .favoritesFolder(favorites: ["1", "2", "3"]),
+            .mobileFavoritesFolder(favorites: ["1", "2"]),
+            .desktopFavoritesFolder(favorites: ["3"]),
             .bookmark(id: "3")
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
-            Bookmark(id: "3", isFavorite: true)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3"]) {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "2", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "3", favoritedOn: [.desktop, .unified])
         })
     }
 
@@ -159,21 +161,22 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "4", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "4", favoritedOn: [.mobile, .unified])
         }
 
         let received: [Syncable] = [
             .rootFolder(children: ["3"]),
             .favoritesFolder(favorites: ["3"]),
+            .mobileFavoritesFolder(favorites: ["3"]),
             .bookmark(id: "3")
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "4", isFavorite: true)
-            Bookmark(id: "3", isFavorite: true)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["3"]) {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "4", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "3", favoritedOn: [.mobile, .unified])
         })
     }
 
@@ -193,7 +196,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["3", "remote2", "4"]) {
             Bookmark(id: "1")
             Bookmark(id: "3")
             Bookmark("2", id: "remote2")
@@ -215,7 +218,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2"]) {
             Bookmark(id: "2")
         })
     }
@@ -238,7 +241,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
             Bookmark(id: "1")
             Bookmark(id: "2")
         })
@@ -261,7 +264,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["3", "remote2", "4"]) {
             Bookmark(id: "3")
             Bookmark("2", id: "remote2")
             Bookmark(id: "4")
@@ -283,7 +286,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(rootFolder, BookmarkTree {
+        assertEquivalent(withLastChildrenArrayReceivedFromSync: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2"]) {
             Bookmark("name", id: "2", url: "url")
         })
     }
@@ -310,10 +313,10 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder(id: "1") {
-                Folder(id: "2") {
-                    Folder(id: "3") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: ["2"]) {
+                Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
+                    Folder(id: "3", lastChildrenArrayReceivedFromSync: ["5"]) {
                         Bookmark("name", id: "5", url: "url")
                     }
                 }
@@ -338,9 +341,9 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder(id: "1")
-            Folder(id: "2") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
                 Bookmark("name", id: "3", url: "url")
             }
         })
@@ -350,26 +353,28 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let bookmarkTree = BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
         }
 
         let received: [Syncable] = [
             .rootFolder(children: ["2"]),
             .favoritesFolder(favorites: ["2"]),
+            .mobileFavoritesFolder(favorites: ["2"]),
             .bookmark(id: "2")
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Bookmark(id: "1", isFavorite: true)
-            Bookmark(id: "2", isFavorite: true)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2"]) {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "2", favoritedOn: [.mobile, .unified])
         })
 
         var favoritesFolder: BookmarkEntity!
         context.performAndWait {
-            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)
+            favoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
         }
         XCTAssertNotNil(favoritesFolder.modifiedAt)
+        XCTAssertEqual(favoritesFolder.lastChildrenArrayReceivedFromSync, ["2"])
     }
 
     func testThatFoldersWithTheSameNameAndParentAreDeduplicated() async throws {
@@ -394,10 +399,10 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder("1st level", id: "remote1") {
-                Folder("2nd level", id: "remote2") {
-                    Folder("Duplicated folder", id: "remote5") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["remote1"]) {
+            Folder("1st level", id: "remote1", lastChildrenArrayReceivedFromSync: ["remote2"]) {
+                Folder("2nd level", id: "remote2", lastChildrenArrayReceivedFromSync: ["remote5"]) {
+                    Folder("Duplicated folder", id: "remote5", lastChildrenArrayReceivedFromSync: ["remote6"]) {
                         Bookmark(id: "local4")
                         Bookmark(id: "remote6")
                     }
@@ -436,10 +441,10 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder("1", id: "remote1") {
-                Folder("2", id: "remote2") {
-                    Folder("Duplicated folder", id: "remote9") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["remote1"]) {
+            Folder("1", id: "remote1", lastChildrenArrayReceivedFromSync: ["remote2"]) {
+                Folder("2", id: "remote2", lastChildrenArrayReceivedFromSync: ["remote9"]) {
+                    Folder("Duplicated folder", id: "remote9", lastChildrenArrayReceivedFromSync: ["remote10", "remote11", "remote12"]) {
                         Folder("4", id: "local4") {
                             Bookmark("5", id: "local5")
                         }
@@ -448,7 +453,7 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
                         Bookmark("8", id: "local8")
                         Bookmark(id: "remote10")
                         Bookmark(id: "remote11")
-                        Folder(id: "remote12") {
+                        Folder(id: "remote12", lastChildrenArrayReceivedFromSync: ["remote13"]) {
                             Bookmark(id: "remote13")
                         }
                     }
@@ -472,8 +477,8 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder("1", id: "11")
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["11", "12"]) {
+            Folder("1", id: "11", lastChildrenArrayReceivedFromSync: [])
             Bookmark("2", id: "12")
         })
     }
@@ -533,16 +538,16 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder("01", id: "101") {
-                Folder("02", id: "102") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["101", "115", "116", "119"]) {
+            Folder("01", id: "101", lastChildrenArrayReceivedFromSync: ["102", "104", "105", "114"]) {
+                Folder("02", id: "102", lastChildrenArrayReceivedFromSync: ["103"]) {
                     Bookmark("03", id: "103")
                 }
                 Bookmark("04", id: "104")
-                Folder("05", id: "105") {
+                Folder("05", id: "105", lastChildrenArrayReceivedFromSync: ["106", "107", "112", "113"]) {
                     Bookmark("06", id: "106")
-                    Folder("07", id: "107") {
-                        Folder("08", id: "108")
+                    Folder("07", id: "107", lastChildrenArrayReceivedFromSync: ["108", "109", "110", "111"]) {
+                        Folder("08", id: "108", lastChildrenArrayReceivedFromSync: [])
                         Bookmark("09", id: "109")
                         Bookmark("10", id: "110")
                         Bookmark("11", id: "111")
@@ -553,8 +558,8 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
                 Bookmark("14", id: "114")
             }
             Bookmark("15", id: "115")
-            Folder("16", id: "116") {
-                Folder("17", id: "117") {
+            Folder("16", id: "116", lastChildrenArrayReceivedFromSync: ["117"]) {
+                Folder("17", id: "117", lastChildrenArrayReceivedFromSync: ["118"]) {
                     Bookmark("18", id: "118")
                 }
             }
@@ -579,12 +584,12 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder(id: "1")
-            Folder(id: "2") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
                 Bookmark("name", id: "3", url: "url")
             }
-            Folder(id: "4", isOrphaned: true) {
+            Folder(id: "4", isOrphaned: true, lastChildrenArrayReceivedFromSync: ["5"]) {
                 Bookmark(id: "5")
             }
         })
@@ -605,12 +610,12 @@ final class BookmarksInitialSyncResponseHandlerTests: BookmarksProviderTestsBase
         ]
 
         let rootFolder = try await createEntitiesAndHandleInitialSyncResponse(with: bookmarkTree, received: received, in: context)
-        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
-            Folder(id: "1")
-            Folder(id: "2") {
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
                 Bookmark("name", id: "3", url: "url")
             }
-            Folder(id: "4", isOrphaned: true) {
+            Folder(id: "4", isOrphaned: true, lastChildrenArrayReceivedFromSync: ["5"]) {
                 Bookmark(id: "5")
             }
         })

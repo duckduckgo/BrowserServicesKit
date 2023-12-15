@@ -60,14 +60,14 @@ public struct ModifiedAtConstraint {
 }
 
 public enum BookmarkTreeNode {
-    case bookmark(id: String, name: String?, url: String?, isFavorite: Bool, modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
-    case folder(id: String, name: String?, children: [BookmarkTreeNode], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
+    case bookmark(id: String, name: String?, url: String?, favoritedOn: [FavoritesFolderID], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, modifiedAtConstraint: ModifiedAtConstraint?)
+    case folder(id: String, name: String?, children: [BookmarkTreeNode], modifiedAt: Date?, isDeleted: Bool, isOrphaned: Bool, lastChildrenArrayReceivedFromSync: [String]?, modifiedAtConstraint: ModifiedAtConstraint?)
 
     public var id: String {
         switch self {
         case .bookmark(let id, _, _, _, _, _, _, _):
             return id
-        case .folder(let id, _, _, _, _, _, _):
+        case .folder(let id, _, _, _, _, _, _, _):
             return id
         }
     }
@@ -76,7 +76,7 @@ public enum BookmarkTreeNode {
         switch self {
         case .bookmark(_, let name, _, _, _, _, _, _):
             return name
-        case .folder(_, let name, _, _, _, _, _):
+        case .folder(_, let name, _, _, _, _, _, _):
             return name
         }
     }
@@ -85,7 +85,7 @@ public enum BookmarkTreeNode {
         switch self {
         case .bookmark(_, _, _, _, let modifiedAt, _, _, _):
             return modifiedAt
-        case .folder(_, _, _, let modifiedAt, _, _, _):
+        case .folder(_, _, _, let modifiedAt, _, _, _, _):
             return modifiedAt
         }
     }
@@ -94,7 +94,7 @@ public enum BookmarkTreeNode {
         switch self {
         case .bookmark(_, _, _, _, _, let isDeleted, _, _):
             return isDeleted
-        case .folder(_, _, _, _, let isDeleted, _, _):
+        case .folder(_, _, _, _, let isDeleted, _, _, _):
             return isDeleted
         }
     }
@@ -103,8 +103,17 @@ public enum BookmarkTreeNode {
         switch self {
         case .bookmark(_, _, _, _, _, _, let isOrphaned, _):
             return isOrphaned
-        case .folder(_, _, _, _, _, let isOrphaned, _):
+        case .folder(_, _, _, _, _, let isOrphaned, _, _):
             return isOrphaned
+        }
+    }
+
+    public var lastChildrenArrayReceivedFromSync: [String]? {
+        switch self {
+        case .bookmark:
+            return nil
+        case .folder(_, _, _, _, _, _, let lastChildrenArrayReceivedFromSync, _):
+            return lastChildrenArrayReceivedFromSync
         }
     }
 
@@ -112,7 +121,7 @@ public enum BookmarkTreeNode {
         switch self {
         case .bookmark(_, _, _, _, _, _, _, let modifiedAtConstraint):
             return modifiedAtConstraint
-        case .folder(_, _, _, _, _, _, let modifiedAtConstraint):
+        case .folder(_, _, _, _, _, _, _, let modifiedAtConstraint):
             return modifiedAtConstraint
         }
     }
@@ -126,17 +135,17 @@ public struct Bookmark: BookmarkTreeNodeConvertible {
     var id: String
     var name: String?
     var url: String?
-    var isFavorite: Bool
+    var favoritedOn: [FavoritesFolderID]
     var modifiedAt: Date?
     var isDeleted: Bool
     var isOrphaned: Bool
     var modifiedAtConstraint: ModifiedAtConstraint?
 
-    public init(_ name: String? = nil, id: String? = nil, url: String? = nil, isFavorite: Bool = false, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil) {
+    public init(_ name: String? = nil, id: String? = nil, url: String? = nil, favoritedOn: [FavoritesFolderID] = [], modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.url = (url ?? name) ?? id
-        self.isFavorite = isFavorite
+        self.favoritedOn = favoritedOn
         self.modifiedAt = modifiedAt
         self.isDeleted = isDeleted
         self.modifiedAtConstraint = modifiedAtConstraint
@@ -144,7 +153,7 @@ public struct Bookmark: BookmarkTreeNodeConvertible {
     }
 
     public func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .bookmark(id: id, name: name, url: url, isFavorite: isFavorite, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: modifiedAtConstraint)
+        .bookmark(id: id, name: name, url: url, favoritedOn: favoritedOn, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: modifiedAtConstraint)
     }
 }
 
@@ -155,24 +164,26 @@ public struct Folder: BookmarkTreeNodeConvertible {
     var isDeleted: Bool
     var isOrphaned: Bool
     var modifiedAtConstraint: ModifiedAtConstraint?
+    var lastChildrenArrayReceivedFromSync: [String]?
     var children: [BookmarkTreeNode]
 
-    public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
-        self.init(name, id: id, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: nil, children: children)
+    public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, lastChildrenArrayReceivedFromSync: [String]? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
+        self.init(name, id: id, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: nil, lastChildrenArrayReceivedFromSync: lastChildrenArrayReceivedFromSync, children: children)
     }
 
-    public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
+    public init(_ name: String? = nil, id: String? = nil, modifiedAt: Date? = nil, isDeleted: Bool = false, isOrphaned: Bool = false, modifiedAtConstraint: ModifiedAtConstraint? = nil, lastChildrenArrayReceivedFromSync: [String]? = nil, @BookmarkTreeBuilder children: () -> [BookmarkTreeNode] = { [] }) {
         self.id = id ?? UUID().uuidString
         self.name = name ?? id
         self.modifiedAt = modifiedAt
         self.isDeleted = isDeleted
         self.isOrphaned = isOrphaned
+        self.lastChildrenArrayReceivedFromSync = lastChildrenArrayReceivedFromSync
         self.modifiedAtConstraint = modifiedAtConstraint
         self.children = children()
     }
 
     public func asBookmarkTreeNode() -> BookmarkTreeNode {
-        .folder(id: id, name: name, children: children, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, modifiedAtConstraint: modifiedAtConstraint)
+        .folder(id: id, name: name, children: children, modifiedAt: modifiedAt, isDeleted: isDeleted, isOrphaned: isOrphaned, lastChildrenArrayReceivedFromSync: lastChildrenArrayReceivedFromSync, modifiedAtConstraint: modifiedAtConstraint)
     }
 }
 
@@ -186,9 +197,10 @@ public struct BookmarkTreeBuilder {
 
 public struct BookmarkTree {
 
-    public init(modifiedAt: Date? = nil, modifiedAtConstraint: ModifiedAtConstraint? = nil, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
+    public init(modifiedAt: Date? = nil, modifiedAtConstraint: ModifiedAtConstraint? = nil, lastChildrenArrayReceivedFromSync: [String]? = nil, @BookmarkTreeBuilder builder: () -> [BookmarkTreeNode]) {
         self.modifiedAt = modifiedAt
         self.modifiedAtConstraint = modifiedAtConstraint
+        self.lastChildrenArrayReceivedFromSync = lastChildrenArrayReceivedFromSync
         self.bookmarkTreeNodes = builder()
     }
 
@@ -203,14 +215,17 @@ public struct BookmarkTree {
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         rootFolder.modifiedAt = modifiedAt
-        let favoritesFolder = BookmarkUtils.fetchFavoritesFolder(context)!
+        if let lastChildrenArrayReceivedFromSync {
+            rootFolder.lastChildrenArrayReceivedFromSync = lastChildrenArrayReceivedFromSync
+        }
+        let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(withUUIDs: Set(FavoritesFolderID.allCases.map(\.rawValue)), in: context)
         var orphans = [BookmarkEntity]()
         var modifiedAtConstraints = [String: ModifiedAtConstraint]()
         if let modifiedAtConstraint {
             modifiedAtConstraints[BookmarkEntity.Constants.rootFolderID] = modifiedAtConstraint
         }
         for bookmarkTreeNode in bookmarkTreeNodes {
-            let (entity, checks) = BookmarkEntity.makeWithModifiedAtConstraints(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context)
+            let (entity, checks) = BookmarkEntity.makeWithModifiedAtConstraints(with: bookmarkTreeNode, rootFolder: rootFolder, favoritesFolders: favoritesFolders, in: context)
             if bookmarkTreeNode.isOrphaned {
                 orphans.append(entity)
             }
@@ -224,18 +239,19 @@ public struct BookmarkTree {
     // swiftlint:enable large_tuple
 
     let modifiedAt: Date?
+    let lastChildrenArrayReceivedFromSync: [String]?
     let modifiedAtConstraint: ModifiedAtConstraint?
     let bookmarkTreeNodes: [BookmarkTreeNode]
 }
 
 public extension BookmarkEntity {
     @discardableResult
-    static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> BookmarkEntity {
-        makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolder: favoritesFolder, in: context).0
+    static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> BookmarkEntity {
+        makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolders: favoritesFolders, in: context).0
     }
 
     @discardableResult
-    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolder: BookmarkEntity, in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
+    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
         var entity: BookmarkEntity!
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
@@ -250,7 +266,7 @@ public extension BookmarkEntity {
                 let node = queue.removeFirst()
 
                 switch node {
-                case .bookmark(let id, let name, let url, let isFavorite, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtConstraint):
+                case .bookmark(let id, let name, let url, let favoritedOn, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtConstraint):
                     let bookmarkEntity = BookmarkEntity(context: context)
                     if entity == nil {
                         entity = bookmarkEntity
@@ -261,16 +277,20 @@ public extension BookmarkEntity {
                     bookmarkEntity.url = url
                     bookmarkEntity.modifiedAt = modifiedAt
                     modifiedAtConstraints[id] = modifiedAtConstraint
-                    if isFavorite {
-                        bookmarkEntity.addToFavorites(favoritesRoot: favoritesFolder)
+
+                    for platform in favoritedOn {
+                        if let favoritesFolder = favoritesFolders.first(where: { $0.uuid == platform.rawValue }) {
+                            bookmarkEntity.addToFavorites(favoritesRoot: favoritesFolder)
+                        }
                     }
+
                     if isDeleted {
                         bookmarkEntity.markPendingDeletion()
                     }
                     if !isOrphaned {
                         bookmarkEntity.parent = parent
                     }
-                case .folder(let id, let name, let children, let modifiedAt, let isDeleted, let isOrphaned, let modifiedAtConstraint):
+                case .folder(let id, let name, let children, let modifiedAt, let isDeleted, let isOrphaned, let lastChildrenArrayReceivedFromSync, let modifiedAtConstraint):
                     let bookmarkEntity = BookmarkEntity(context: context)
                     if entity == nil {
                         entity = bookmarkEntity
@@ -286,6 +306,9 @@ public extension BookmarkEntity {
                     if !isOrphaned {
                         bookmarkEntity.parent = parent
                     }
+                    if let lastChildrenArrayReceivedFromSync {
+                        bookmarkEntity.lastChildrenArrayReceivedFromSync = lastChildrenArrayReceivedFromSync
+                    }
                     parents.append(bookmarkEntity)
                     queues.append(children)
                 }
@@ -297,7 +320,7 @@ public extension BookmarkEntity {
 }
 
 public extension XCTestCase {
-    func assertEquivalent(withTimestamps: Bool = true, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
+    func assertEquivalent(withTimestamps: Bool = true, withLastChildrenArrayReceivedFromSync: Bool = true, _ bookmarkEntity: BookmarkEntity, _ tree: BookmarkTree, file: StaticString = #file, line: UInt = #line) {
         let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = bookmarkEntity.managedObjectContext?.persistentStoreCoordinator
 
@@ -321,6 +344,9 @@ public extension XCTestCase {
 
         let thisFolder = bookmarkEntity
         XCTAssertEqual(expectedRootFolder.uuid, thisFolder.uuid, "root folder uuid mismatch", file: file, line: line)
+        if withLastChildrenArrayReceivedFromSync {
+            XCTAssertEqual(expectedRootFolder.lastChildrenArrayReceivedFromSync, thisFolder.lastChildrenArrayReceivedFromSync, "root folder lastChildrenArrayReceivedFromSync mismatch", file: file, line: line)
+        }
 
         var expectedTreeQueue: [BookmarkEntity] = [[expectedRootFolder], expectedOrphans].flatMap { $0 }
         var thisTreeQueue: [BookmarkEntity] = [[thisFolder], orphans].flatMap { $0 }
@@ -341,7 +367,7 @@ public extension XCTestCase {
             XCTAssertEqual(expectedNode.isFolder, thisNode.isFolder, "isFolder mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.isPendingDeletion, thisNode.isPendingDeletion, "isPendingDeletion mismatch for \(thisUUID)", file: file, line: line)
             XCTAssertEqual(expectedNode.children?.count, thisNode.children?.count, "children count mismatch for \(thisUUID)", file: file, line: line)
-            XCTAssertEqual(expectedNode.isFavorite, thisNode.isFavorite, "isFavorite mismatch for \(thisUUID)", file: file, line: line)
+            XCTAssertEqual(Set(expectedNode.favoritedOn), Set(thisNode.favoritedOn), "favoritedOn mismatch for \(thisUUID)", file: file, line: line)
             if withTimestamps {
                 if let modifiedAtConstraint = modifiedAtConstraints[thisUUID] {
                     modifiedAtConstraint.check(thisNode.modifiedAt)
@@ -351,6 +377,9 @@ public extension XCTestCase {
             }
 
             if expectedNode.isFolder {
+                if withLastChildrenArrayReceivedFromSync {
+                    XCTAssertEqual(expectedNode.lastChildrenArrayReceivedFromSync, thisNode.lastChildrenArrayReceivedFromSync, "lastChildrenArrayReceivedFromSync mismatch for \(thisUUID)", file: file, line: line)
+                }
                 XCTAssertEqual(expectedNode.childrenArray.count, thisNode.childrenArray.count, "children count mismatch for \(thisUUID)", file: file, line: line)
                 expectedTreeQueue.append(contentsOf: expectedNode.childrenArray)
                 thisTreeQueue.append(contentsOf: thisNode.childrenArray)

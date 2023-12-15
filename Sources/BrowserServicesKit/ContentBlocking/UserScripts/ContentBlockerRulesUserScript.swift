@@ -105,10 +105,17 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
     
     public weak var delegate: ContentBlockerRulesUserScriptDelegate?
 
+    private var _temporaryUnprotectedDomainsCache = [String: [String]]()
+
     var temporaryUnprotectedDomains: [String] {
+        if let domains = _temporaryUnprotectedDomainsCache[configuration.privacyConfiguration.identifier] {
+            return domains
+        }
+
         let privacyConfiguration = configuration.privacyConfiguration
         var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         temporaryUnprotectedDomains.append(contentsOf: privacyConfiguration.exceptionsList(forFeature: .contentBlocking))
+        _temporaryUnprotectedDomainsCache = [configuration.privacyConfiguration.identifier: temporaryUnprotectedDomains]
         return temporaryUnprotectedDomains
     }
 

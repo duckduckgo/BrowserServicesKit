@@ -20,6 +20,7 @@
 import Foundation
 import BrowserServicesKit
 import Combine
+import Common
 import CoreData
 import DDGSync
 import Persistence
@@ -27,7 +28,7 @@ import Persistence
 /**
  * Error that may occur while updating timestamp when a setting changes.
  *
- * This error should be published via `SettingsSyncHandling.errorPublisher`
+ * This error should be published via `SettingSyncHandling.errorPublisher`
  * whenever settings metadata database fails to save changes after updating
  * timestamp for a given setting.
  *
@@ -42,42 +43,54 @@ public struct SettingsSyncMetadataSaveError: Error {
 }
 
 // swiftlint:disable:next type_body_length
-public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate {
+public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
     public struct Setting: Hashable {
-        let key: String
+        public let key: String
+
+        public init(key: String) {
+            self.key = key
+        }
     }
 
     public convenience init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        emailManager: EmailManagerSyncSupporting,
+        settingsHandlers: [SettingSyncHandler],
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void
     ) {
-        let emailProtectionSyncHandler = EmailProtectionSyncHandler(emailManager: emailManager)
+        let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
+            partialResult[handler.setting] = handler
+        }
+
+        let settingsHandlers = settingsHandlersBySetting
 
         self.init(
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
-            settingsHandlers: [
-                .emailProtectionGeneration: emailProtectionSyncHandler
-            ],
+            settingsHandlersBySetting: settingsHandlers,
+            metricsEvents: metricsEvents,
             syncDidUpdateData: syncDidUpdateData
         )
 
         register(errorPublisher: errorSubject.eraseToAnyPublisher())
 
-        emailProtectionSyncHandler.delegate = self
+        settingsHandlers.values.forEach { handler in
+            handler.delegate = self
+        }
     }
 
     init(
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
-        settingsHandlers: [Setting: any SettingsSyncHandling],
+        settingsHandlersBySetting: [Setting: any SettingSyncHandling],
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
-        self.settingsHandlers = settingsHandlers
+        self.settingsHandlers = settingsHandlersBySetting
+        self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
@@ -210,7 +223,8 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
                         settingsHandlers: settingsHandlers,
                         context: context,
                         crypter: crypter,
-                        deduplicateEntities: isInitial
+                        deduplicateEntities: isInitial,
+                        metricsEvents: metricsEvents
                     )
                     let idsOfItemsToClearModifiedAt = try cleanUpSentItems(
                         sent,
@@ -253,6 +267,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(
@@ -282,10 +297,10 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
             if let lastModified = metadata.lastModified, lastModified > clientTimestamp {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedKeys.contains(metadata.key)
+            let hasNewerVersionOnServer: Bool = receivedKeys.contains(metadata.key)
             let isPendingDeletion = originalValues[setting] == nil
-            if isPendingDeletion, !isLocalChangeRejectedBySync {
-                try handler.setValue(nil)
+            if isPendingDeletion, !hasNewerVersionOnServer {
+                try handler.setValue(nil, shouldDetectOverride: false)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadata.key)
             }
@@ -295,7 +310,7 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
         return idsOfItemsToClearModifiedAt
     }
 
-    func syncHandlerDidUpdateSettingValue(_ handler: SettingsSyncHandling) {
+    func syncHandlerDidUpdateSettingValue(_ handler: SettingSyncHandling) {
         updateMetadataTimestamp(for: handler.setting)
     }
 
@@ -332,8 +347,9 @@ public final class SettingsProvider: DataProvider, SettingsSyncHandlingDelegate 
     }
 
     private let metadataDatabase: CoreDataDatabase
-    private let settingsHandlers: [Setting: any SettingsSyncHandling]
+    private let settingsHandlers: [Setting: any SettingSyncHandling]
     private let errorSubject = PassthroughSubject<Error, Never>()
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

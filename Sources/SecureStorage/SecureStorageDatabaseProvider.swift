@@ -104,10 +104,18 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         try FileManager.default.moveItem(at: newDbFile, to: databaseURL)
     }
 
-    public static func databaseFilePath(directoryName: String, fileName: String) -> URL {
+    public static func databaseFilePath(directoryName: String, fileName: String, appGroupIdentifier: String? = nil) -> URL {
 
         let fm = FileManager.default
-        let subDir = fm.applicationSupportDirectoryForComponent(named: directoryName)
+        let subDir: URL
+        if let appGroupIdentifier = appGroupIdentifier {
+            guard let dir = fm.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+                fatalError("Failed to get appGroup for identifier \(appGroupIdentifier)")
+            }
+            subDir = dir.appendingPathComponent(directoryName)
+        } else {
+            subDir = fm.applicationSupportDirectoryForComponent(named: directoryName)
+        }
 
         var isDir: ObjCBool = false
         if !fm.fileExists(atPath: subDir.path, isDirectory: &isDir) {

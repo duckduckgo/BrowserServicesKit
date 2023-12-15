@@ -30,13 +30,30 @@ public struct BookmarkUtils {
         return try? context.fetch(request).first
     }
 
-    public static func fetchFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
+    public static func fetchFavoritesFolders(for displayMode: FavoritesDisplayMode, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        fetchFavoritesFolders(withUUIDs: displayMode.folderUUIDs, in: context)
+    }
+
+    public static func fetchFavoritesFolder(withUUID uuid: String, in context: NSManagedObjectContext) -> BookmarkEntity? {
+        assert(BookmarkEntity.isValidFavoritesFolderID(uuid))
+
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.favoritesFolderID)
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
-        
+
         return try? context.fetch(request).first
+    }
+
+    public static func fetchFavoritesFolders(withUUIDs uuids: Set<String>, in context: NSManagedObjectContext) -> [BookmarkEntity] {
+        assert(uuids.allSatisfy { BookmarkEntity.isValidFavoritesFolderID($0) })
+
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K in %@", #keyPath(BookmarkEntity.uuid), uuids)
+        request.returnsObjectsAsFaults = false
+        request.fetchLimit = uuids.count
+
+        return (try? context.fetch(request)) ?? []
     }
 
     public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
@@ -44,7 +61,7 @@ public struct BookmarkUtils {
         request.predicate = NSPredicate(
             format: "NOT %K IN %@ AND %K == NO AND %K == nil",
             #keyPath(BookmarkEntity.uuid),
-            [BookmarkEntity.Constants.rootFolderID, BookmarkEntity.Constants.favoritesFolderID],
+            BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID]),
             #keyPath(BookmarkEntity.isPendingDeletion),
             #keyPath(BookmarkEntity.parent)
         )
@@ -55,24 +72,61 @@ public struct BookmarkUtils {
     }
 
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) {
-        
-        func insertRootFolder(uuid: String, into context: NSManagedObjectContext) {
-            let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
-                                        insertInto: context)
-            folder.uuid = uuid
-            folder.title = uuid
-            folder.isFolder = true
-        }
-        
+
         if fetchRootFolder(context) == nil {
             insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
         }
-        
-        if fetchFavoritesFolder(context) == nil {
-            insertRootFolder(uuid: BookmarkEntity.Constants.favoritesFolderID, into: context)
+
+        for uuid in BookmarkEntity.Constants.favoriteFoldersIDs where fetchFavoritesFolder(withUUID: uuid, in: context) == nil {
+            insertRootFolder(uuid: uuid, into: context)
         }
     }
-    
+
+    public static func copyFavorites(
+        from sourceFolderID: FavoritesFolderID,
+        to targetFolderID: FavoritesFolderID,
+        clearingNonNativeFavoritesFolder nonNativeFolderID: FavoritesFolderID,
+        in context: NSManagedObjectContext
+    ) {
+        assert(nonNativeFolderID != .unified, "You must specify either desktop or mobile folder")
+        assert(Set([sourceFolderID, targetFolderID, nonNativeFolderID]).count == 3, "You must pass 3 different folder IDs to this function")
+        assert([sourceFolderID, targetFolderID].contains(FavoritesFolderID.unified), "You must copy to or from a unified folder")
+
+        let allFavoritesFolders = BookmarkUtils.fetchFavoritesFolders(withUUIDs: Set(FavoritesFolderID.allCases.map(\.rawValue)), in: context)
+        assert(allFavoritesFolders.count == FavoritesFolderID.allCases.count, "Favorites folders missing")
+
+        guard let sourceFavoritesFolder = allFavoritesFolders.first(where: { $0.uuid == sourceFolderID.rawValue }),
+              let targetFavoritesFolder = allFavoritesFolders.first(where: { $0.uuid == targetFolderID.rawValue }),
+              let nonNativeFormFactorFavoritesFolder = allFavoritesFolders.first(where: { $0.uuid == nonNativeFolderID.rawValue })
+        else {
+            return
+        }
+
+        nonNativeFormFactorFavoritesFolder.favoritesArray.forEach { bookmark in
+            bookmark.removeFromFavorites(favoritesRoot: nonNativeFormFactorFavoritesFolder)
+        }
+
+        targetFavoritesFolder.favoritesArray.forEach { bookmark in
+            bookmark.removeFromFavorites(favoritesRoot: targetFavoritesFolder)
+        }
+
+        sourceFavoritesFolder.favoritesArray.forEach { bookmark in
+            bookmark.addToFavorites(favoritesRoot: targetFavoritesFolder)
+        }
+    }
+
+    public static func fetchAllBookmarksUUIDs(in context: NSManagedObjectContext) -> [String] {
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
+        request.predicate = NSPredicate(format: "%K == NO AND %K == NO",
+                                        #keyPath(BookmarkEntity.isFolder),
+                                        #keyPath(BookmarkEntity.isPendingDeletion))
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = [#keyPath(BookmarkEntity.uuid)]
+
+        let result = (try? context.fetch(request) as? [Dictionary<String, Any>]) ?? []
+        return result.compactMap { $0[#keyPath(BookmarkEntity.uuid)] as? String }
+    }
+
     public static func fetchBookmark(for url: URL,
                                      predicate: NSPredicate = NSPredicate(value: true),
                                      context: NSManagedObjectContext) -> BookmarkEntity? {
@@ -101,4 +155,39 @@ public struct BookmarkUtils {
 
         return (try? context.fetch(request)) ?? []
     }
+
+    // MARK: Internal
+
+    @discardableResult
+    static func insertRootFolder(uuid: String, into context: NSManagedObjectContext) -> BookmarkEntity {
+        let folder = BookmarkEntity(entity: BookmarkEntity.entity(in: context),
+                                    insertInto: context)
+        folder.uuid = uuid
+        folder.title = uuid
+        folder.isFolder = true
+
+        return folder
+    }
+}
+
+// MARK: - Legacy Migration Support
+
+extension BookmarkUtils {
+
+    public static func prepareLegacyFoldersStructure(in context: NSManagedObjectContext) {
+
+        if fetchRootFolder(context) == nil {
+            insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
+        }
+
+        if fetchLegacyFavoritesFolder(context) == nil {
+            insertRootFolder(uuid: legacyFavoritesFolderID, into: context)
+        }
+    }
+
+    public static func fetchLegacyFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
+        fetchFavoritesFolder(withUUID: legacyFavoritesFolderID, in: context)
+    }
+
+    static let legacyFavoritesFolderID = FavoritesFolderID.unified.rawValue
 }

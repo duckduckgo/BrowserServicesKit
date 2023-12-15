@@ -24,6 +24,7 @@ public enum NetworkProtectionServerSelectionMethod {
     case automatic
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
+    case preferredLocation(NetworkProtectionSelectedLocation)
 }
 
 public protocol NetworkProtectionDeviceManagement {
@@ -43,11 +44,23 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    public init(networkClient: NetworkProtectionClient = NetworkProtectionBackendClient(),
+    public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                  tokenStore: tokenStore,
+                  keyStore: keyStore,
+                  serverListStore: serverListStore,
+                  errorEvents: errorEvents)
+    }
+
+    init(networkClient: NetworkProtectionClient,
+         tokenStore: NetworkProtectionTokenStore,
+         keyStore: NetworkProtectionKeyStore,
+         serverListStore: NetworkProtectionServerListStore? = nil,
+         errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
@@ -118,39 +131,45 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
     }
 
-    /// Registers the client with a server following the specified server selection method.  Returns the precise server that was selected and the keyPair to use
-    /// for the tunnel configuration.
-    ///
-    /// - Parameters:
-    ///     - selectionMethod: the server selection method
-    ///     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
-    ///
-    /// - Throws:`NetworkProtectionError`
-    ///
+    // Registers the client with a server following the specified server selection method.  Returns the precise server that was selected and the keyPair to use
+    // for the tunnel configuration.
+    //
+    // - Parameters:
+    //     - selectionMethod: the server selection method
+    //     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
+    //
+    // - Throws:`NetworkProtectionError`
+    // This cannot be a doc comment because of the swiftlint command below
+    // swiftlint:disable cyclomatic_complexity
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
 
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        var keyPair = keyStore.currentKeyPair()
 
-        let selectedServerName: String?
+        let serverSelection: RegisterServerSelection
         let excludedServerName: String?
 
         switch selectionMethod {
         case .automatic:
-            selectedServerName = nil
+            serverSelection = .automatic
             excludedServerName = nil
         case .preferredServer(let serverName):
-            selectedServerName = serverName
+            serverSelection = .server(name: serverName)
             excludedServerName = nil
         case .avoidServer(let serverToAvoid):
-            selectedServerName = nil
+            serverSelection = .automatic
             excludedServerName = serverToAvoid
+        case .preferredLocation(let location):
+            serverSelection = .location(country: location.country, city: location.city)
+            excludedServerName = nil
         }
 
-        var keyPair = keyStore.currentKeyPair()
+        let requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey,
+                                                 serverSelection: serverSelection)
+
         let registeredServersResult = await networkClient.register(authToken: token,
-                                                                   publicKey: keyPair.publicKey,
-                                                                   withServerNamed: selectedServerName)
+                                                                   requestBody: requestBody)
         let selectedServer: NetworkProtectionServer
 
         switch registeredServersResult {
@@ -193,6 +212,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             return (cachedServer, keyPair)
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     /// Retrieves the first cached server that's registered with the specified key pair.
     ///
@@ -257,6 +277,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                addressRange: interfaceAddressRange,
                                                includedRoutes: includedRoutes,
                                                excludedRoutes: excludedRoutes,
+                                               dns: [DNSServer(address: server.serverInfo.internalIP)],
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
         return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])
@@ -271,15 +292,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         return peerConfiguration
     }
 
+    // swiftlint:disable function_parameter_count
     func interfaceConfiguration(privateKey: PrivateKey,
                                 addressRange: IPAddressRange,
                                 includedRoutes: [IPAddressRange],
                                 excludedRoutes: [IPAddressRange],
+                                dns: [DNSServer],
                                 isKillSwitchEnabled: Bool) -> InterfaceConfiguration {
-        // TO BE moved out to config
-        let dns = [
-            DNSServer(from: "10.11.12.1")!
-        ]
         var includedRoutes = includedRoutes
         // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP/addressRange is in includedRoutes
         if !isKillSwitchEnabled {
@@ -293,6 +312,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                       listenPort: 51821,
                                       dns: dns)
     }
+    // swiftlint:enable function_parameter_count
 
     private func handle(clientError: NetworkProtectionClientError) {
         if case .invalidAuthToken = clientError {

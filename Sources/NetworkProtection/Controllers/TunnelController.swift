@@ -31,4 +31,8 @@ public protocol TunnelController {
     /// Stops the VPN connection used for Network Protection
     ///
     func stop() async
+
+    /// Whether the tunnel is connected
+    /// 
+    var isConnected: Bool { get async }
 }

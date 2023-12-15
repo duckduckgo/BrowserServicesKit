@@ -48,7 +48,11 @@ jobs:
         if: env.cache_key_hash
         uses: actions/cache@v3
         with:
-          path: .build
+          path: |
+            .build/artifacts
+            .build/checkouts
+            .build/repositories
+            .build/workspace-state.json
           key: ${{ runner.os }}-spm-${{ env.cache_key_hash }}
           restore-keys: |
             ${{ runner.os }}-spm-

@@ -88,3 +88,18 @@ extension Endpoint {
         }
     }
 }
+
+extension NWEndpoint.Host {
+    public var hostWithoutPort: String {
+        switch self {
+        case .name(let hostname, _):
+            return hostname
+        case .ipv4(let address):
+            return "\(address)"
+        case .ipv6(let address):
+            return "\(address)"
+        @unknown default:
+            fatalError()
+        }
+    }
+}
