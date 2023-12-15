@@ -64,7 +64,7 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     /**
      Describes current availability of sync features.
      */
-    var featureFlag: SyncFeatureFlag { get }
+    var featureFlag: SyncFeatureFlag { get set }
 
     /**
      Emits changes to current availability of sync features
