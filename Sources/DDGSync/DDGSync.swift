@@ -25,6 +25,11 @@ public class DDGSync: DDGSyncing {
 
     public static let bundle = Bundle.module
 
+    @Published public private(set) var featureFlag: SyncFeatureFlag = .fullyAvailable
+    public var featureFlagPublisher: AnyPublisher<SyncFeatureFlag, Never> {
+        $featureFlag.eraseToAnyPublisher()
+    }
+
     enum Constants {
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
     }

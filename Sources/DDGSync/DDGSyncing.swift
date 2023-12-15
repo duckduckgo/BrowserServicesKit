@@ -20,6 +20,19 @@ import Foundation
 import DDGSyncCrypto
 import Combine
 
+public enum SyncFeatureFlag: Int, Sendable, Codable {
+    /// Sync UI is not visible in the app (L0 disabled)
+    case unavailable = -1
+    /// Sync UI is visible but disabled (L1 disabled)
+    case dataSyncingNotAvailable = 0
+    /// Sync works but creating accounts and adding new devices is disabled (L2 disabled)
+    case setupFlowsNotAvailable = 1
+    /// Sync works, but creating account is disabled. (L3 disabled)
+    case accountCreationNotAvailable = 2
+    /// All functionality is available (L3 enabled)
+    case fullyAvailable = 3
+}
+
 public enum SyncAuthState: String, Sendable, Codable {
     /// Sync engine is not initialized.
     case initializing
@@ -47,6 +60,16 @@ public protocol DataProvidersSource: AnyObject {
 public protocol DDGSyncing: DDGSyncingDebuggingSupport {
 
     var dataProvidersSource: DataProvidersSource? { get set }
+
+    /**
+     Describes current availability of sync features.
+     */
+    var featureFlag: SyncFeatureFlag { get }
+
+    /**
+     Emits changes to current availability of sync features
+     */
+    var featureFlagPublisher: AnyPublisher<SyncFeatureFlag, Never> { get }
 
     /**
      Describes current state of sync account.
