@@ -31,6 +31,22 @@ public enum SyncFeatureFlag: Int, Sendable, Codable {
     case accountCreationNotAvailable = 2
     /// All functionality is available (L3 enabled)
     case fullyAvailable = 3
+
+    public var isSyncAvailable: Bool {
+        rawValue > Self.dataSyncingNotAvailable.rawValue
+    }
+
+    public var canCreateAccount: Bool {
+        self == .fullyAvailable
+    }
+
+    public var canConnectNewDevice: Bool {
+        self == .fullyAvailable
+    }
+
+    public var canRestoreAccount: Bool {
+        rawValue >= Self.accountCreationNotAvailable.rawValue
+    }
 }
 
 public enum SyncAuthState: String, Sendable, Codable {
