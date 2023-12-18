@@ -1,6 +1,5 @@
 //
 //  MatchingAttributes.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -19,8 +18,6 @@
 
 import Foundation
 import Common
-
-// swiftlint:disable file_length
 
 private enum RuleAttributes {
     static let min = "min"

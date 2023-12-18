@@ -105,7 +105,7 @@ public extension NavigationType {
         if case .redirect = self { return true }
         return false
     }
-    
+
     var redirect: RedirectType? {
         if case .redirect(let redirect) = self { return redirect }
         return nil

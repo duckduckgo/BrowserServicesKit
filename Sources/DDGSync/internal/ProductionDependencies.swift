@@ -44,7 +44,6 @@ struct ProductionDependencies: SyncDependencies {
         errorEvents: EventMapping<SyncError>,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
-
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   serverEnvironment: serverEnvironment,
                   keyValueStore: KeyValueStore(),
@@ -53,7 +52,7 @@ struct ProductionDependencies: SyncDependencies {
                   errorEvents: errorEvents,
                   log: log())
     }
-    
+
     init(
         fileStorageUrl: URL,
         serverEnvironment: ServerEnvironment,

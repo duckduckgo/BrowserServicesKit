@@ -1,6 +1,5 @@
 //
-//  AdClickAttributionDebugEvents.swift
-//  DuckDuckGo
+//  AdClickAttributionEvents.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -20,21 +19,21 @@
 import Foundation
 
 public enum AdClickAttributionEvents {
-    
+
     public enum Parameters {
         public static let domainDetection = "domainDetection"
         public static let heuristicDetectionEnabled = "heuristicDetectionEnabled"
         public static let domainDetectionEnabled = "domainDetectionEnabled"
         public static let count = "count"
     }
- 
+
     case adAttributionDetected
     case adAttributionActive
     case adAttributionPageLoads
 }
 
 public enum AdClickAttributionDebugEvents {
- 
+
     case adAttributionGlobalAttributedRulesDoNotExist
     case adAttributionCompilationFailedForAttributedRulesList
     case adAttributionLogicRequestingAttributionTimedOut
@@ -45,5 +44,5 @@ public enum AdClickAttributionDebugEvents {
     case adAttributionLogicWrongVendorOnFailedCompilation
     case adAttributionDetectionInvalidDomainInParameter
     case adAttributionDetectionHeuristicsDidNotMatchDomain
-    
+
 }

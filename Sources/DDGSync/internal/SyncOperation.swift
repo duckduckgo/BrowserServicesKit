@@ -1,6 +1,5 @@
 //
 //  SyncOperation.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +20,7 @@ import Foundation
 import Combine
 import Common
 
-class SyncOperation: Operation {
+final class SyncOperation: Operation {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring

@@ -19,12 +19,12 @@
 import Foundation
 
 public struct HTTPSBloomFilterSpecification: Equatable, Decodable, Sendable {
-   
+
     public let bitCount: Int
     public let errorRate: Double
     public let totalEntries: Int
     public let sha256: String
-    
+
     public init(bitCount: Int, errorRate: Double, totalEntries: Int, sha256: String) {
         self.bitCount = bitCount
         self.errorRate = errorRate

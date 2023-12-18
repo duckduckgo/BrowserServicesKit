@@ -1,6 +1,5 @@
 //
 //  TestSchemeHandler.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -26,7 +25,7 @@ final class TestSchemeHandler: NSObject, WKURLSchemeHandler {
     public var requestHandlers = [URL: RequestResponse]()
 
     public let scheme = "test"
-    
+
     public var genericHandler: RequestResponse = { _ in
         return Data()
     }

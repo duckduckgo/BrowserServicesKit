@@ -1,5 +1,5 @@
 //
-//  RemoteAPIRequestCreating.swift
+//  RemoteConnector.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,8 +18,8 @@
 
 import Foundation
 
-class RemoteConnector: RemoteConnecting {
-    
+final class RemoteConnector: RemoteConnecting {
+
     let code: String
     let connectInfo: ConnectInfo
 

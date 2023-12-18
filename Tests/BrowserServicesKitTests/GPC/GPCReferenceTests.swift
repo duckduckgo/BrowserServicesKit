@@ -1,6 +1,5 @@
 //
 //  GPCReferenceTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -48,44 +47,44 @@ final class GPCReferenceTests: XCTestCase {
                                            localProtection: localProtection,
                                            internalUserDecider: DefaultInternalUserDecider())
     }
-    
+
     func testGPCHeader() throws {
         let dataLoader = JsonTestDataLoader()
 
         let testsData = dataLoader.fromJsonFile(Resource.tests)
         let referenceTests = try JSONDecoder().decode(GPCTestData.self, from: testsData)
- 
+
         let privacyConfig = privacyManager.privacyConfig
 
         for test in referenceTests.gpcHeader.tests {
-            
+
             if test.exceptPlatforms.contains("ios-browser") || test.exceptPlatforms.contains("macos-browser") {
                 os_log("Skipping test, ignore platform for [%s]", type: .info, test.name)
                 continue
             }
-            
+
             os_log("Testing [%s]", type: .info, test.name)
-            
+
             let factory = GPCRequestFactory()
             var testRequest = URLRequest(url: URL(string: test.requestURL)!)
-            
+
             // Simulate request with actual headers
             testRequest.addValue("DDG-Test", forHTTPHeaderField: "User-Agent")
             let request = factory.requestForGPC(basedOn: testRequest,
                                                 config: privacyConfig,
                                                 gpcEnabled: test.gpcUserSettingOn)
-                        
+
             if !test.gpcUserSettingOn {
                 XCTAssertNil(request, "User opt out, request should not exist \([test.name])")
             }
-            
+
             let hasHeader = request?.allHTTPHeaderFields?[GPCRequestFactory.Constants.secGPCHeader] != nil
             let headerValue = request?.allHTTPHeaderFields?[GPCRequestFactory.Constants.secGPCHeader]
 
             if test.expectGPCHeader {
                 XCTAssertNotNil(request, "Request should exist if expectGPCHeader is true [\(test.name)]")
                 XCTAssert(hasHeader, "Couldn't find header for [\(test.requestURL)]")
-                
+
                 if let expectedHeaderValue = test.expectGPCHeaderValue {
                     let headerValue = request?.allHTTPHeaderFields?[GPCRequestFactory.Constants.secGPCHeader]
                     XCTAssertEqual(expectedHeaderValue, headerValue, "Header should be equal [\(test.name)]")
@@ -95,41 +94,41 @@ final class GPCReferenceTests: XCTestCase {
             }
         }
     }
-    
+
     func testGPCJavascriptAPI() throws {
         let dataLoader = JsonTestDataLoader()
 
         let testsData = dataLoader.fromJsonFile(Resource.tests)
         let referenceTests = try JSONDecoder().decode(GPCTestData.self, from: testsData)
- 
+
         javascriptTests = referenceTests.gpcJavaScriptAPI.tests.filter {
             $0.exceptPlatforms.contains("macos-browser") == false
         }
-        
+
         let testsExecuted = expectation(description: "tests executed")
         testsExecuted.expectedFulfillmentCount = javascriptTests.count
-        
+
         runJavascriptTests(onTestExecuted: testsExecuted)
-        
+
         waitForExpectations(timeout: 30, handler: nil)
     }
-    
+
     private func runJavascriptTests(onTestExecuted: XCTestExpectation) {
-        
+
         guard let test = javascriptTests.popLast() else {
             return
         }
-        
+
         let siteURL = URL(string: test.siteURL.testSchemeNormalized)!
-        
+
         schemeHandler.reset()
         schemeHandler.requestHandlers[siteURL] = { _ in
             return "<html></html>".data(using: .utf8)!
         }
-        
+
         let request = URLRequest(url: siteURL)
         let webView = createWebViewForUserScripTests(gpcEnabled: test.gpcUserSettingOn, privacyConfig: privacyManager.privacyConfig)
-        
+
         WKWebsiteDataStore.default().removeData(ofTypes: [WKWebsiteDataTypeDiskCache,
                                                           WKWebsiteDataTypeMemoryCache,
                                                           WKWebsiteDataTypeOfflineWebApplicationCache],
@@ -137,15 +136,15 @@ final class GPCReferenceTests: XCTestCase {
                                                 completionHandler: {
             webView.load(request)
         })
-        
+
         let javascriptToEvaluate = "Navigator.prototype.globalPrivacyControl"
-                
+
         navigationDelegateMock.onDidFinishNavigation = {
-            
+
             webView.evaluateJavaScript(javascriptToEvaluate, completionHandler: { result, err in
-                
+
                 XCTAssertNil(err, "Evaluation should not fail")
-                            
+
                 if let expectedValue = test.expectGPCAPIValue {
                     switch expectedValue {
                     case "false":
@@ -156,7 +155,7 @@ final class GPCReferenceTests: XCTestCase {
                         XCTAssertNil(result, "Test \(test.name) expected value should be nil")
                     }
                 }
-                
+
                 DispatchQueue.main.async {
                     onTestExecuted.fulfill()
                     self.runJavascriptTests(onTestExecuted: onTestExecuted)
@@ -164,31 +163,31 @@ final class GPCReferenceTests: XCTestCase {
             })
         }
     }
-    
+
     private func createWebViewForUserScripTests(gpcEnabled: Bool, privacyConfig: PrivacyConfiguration) -> WKWebView {
-        
+
         let properties = ContentScopeProperties(gpcEnabled: gpcEnabled,
                                                 sessionKey: UUID().uuidString,
                                                 featureToggles: ContentScopeFeatureToggles.allTogglesOn)
-        
+
         let contentScopeScript = ContentScopeUserScript(privacyManager,
                                                         properties: properties)
-        
+
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(self.schemeHandler, forURLScheme: self.schemeHandler.scheme)
-        
+
         let webView = WKWebView(frame: .init(origin: .zero, size: .init(width: 500, height: 1000)),
                                 configuration: configuration)
         webView.navigationDelegate = self.navigationDelegateMock
-        
+
         for messageName in contentScopeScript.messageNames {
             configuration.userContentController.add(contentScopeScript, name: messageName)
         }
-        
+
         configuration.userContentController.addUserScript(WKUserScript(source: contentScopeScript.source,
                                                                        injectionTime: .atDocumentStart,
                                                                        forMainFrameOnly: false))
-        
+
         return webView
     }
 }

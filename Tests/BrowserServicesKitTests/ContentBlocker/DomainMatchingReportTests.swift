@@ -1,6 +1,5 @@
 //
 //  DomainMatchingReportTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -32,25 +31,25 @@ class DomainMatchingReportTests: XCTestCase {
         let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
 
         let trackerData = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
-        
+
         let refTests = try JSONDecoder().decode(RefTests.self, from: testJSON)
         let tests = refTests.domainTests.tests
-        
+
         let resolver = TrackerResolver(tds: trackerData, unprotectedSites: [], tempList: [], tld: TLD())
 
         for test in tests {
-            
+
             let skip = test.exceptPlatforms?.contains("ios-browser")
             if skip == true {
                 os_log("!!SKIPPING TEST: %s", test.name)
                 continue
             }
-            
+
             let tracker = resolver.trackerFromUrl(test.requestURL,
                                                   pageUrlString: test.siteURL,
                                                   resourceType: test.requestType,
                                                   potentiallyBlocked: true)
-            
+
             if test.expectAction == "block" {
                 XCTAssertNotNil(tracker)
                 XCTAssert(tracker?.isBlocked ?? false)

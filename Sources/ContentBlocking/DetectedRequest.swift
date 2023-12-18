@@ -1,6 +1,5 @@
 //
 //  DetectedRequest.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -32,10 +31,10 @@ public enum AllowReason: String, Codable {
     case adClickAttribution
     case otherThirdPartyRequest
 }
-    
+
 // Populated with relevant info at the point of detection.
 public struct DetectedRequest: Encodable {
-    
+
     public let url: String
     public let eTLDplus1: String?
     public let state: BlockingState
@@ -44,7 +43,7 @@ public struct DetectedRequest: Encodable {
     public let category: String?
     public let prevalence: Double?
     public let pageUrl: String
-    
+
     public init(url: String, eTLDplus1: String?, knownTracker: KnownTracker?, entity: Entity?, state: BlockingState, pageUrl: String) {
         self.url = url
         self.eTLDplus1 = eTLDplus1
@@ -60,11 +59,11 @@ public struct DetectedRequest: Encodable {
         guard let escapedStringURL = url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
         return URL(string: escapedStringURL)?.host
     }
-    
+
     public var networkNameForDisplay: String {
         entityName ?? eTLDplus1 ?? url
     }
-    
+
     public var isBlocked: Bool {
         state == .blocked
     }
@@ -88,7 +87,7 @@ extension DetectedRequest: Hashable, Equatable {
 }
 
 extension BlockingState: Equatable, Hashable {
-    
+
     public static func == (lhs: BlockingState, rhs: BlockingState) -> Bool {
         switch (lhs, rhs) {
         case (.blocked, .blocked):
@@ -99,5 +98,5 @@ extension BlockingState: Equatable, Hashable {
             return false
         }
     }
-    
+
 }

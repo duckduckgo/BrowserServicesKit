@@ -1,5 +1,5 @@
 //
-//  UserDefaults+showInMenuBar.swift
+//  UserDefaults+vpnFirstEnabled.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //

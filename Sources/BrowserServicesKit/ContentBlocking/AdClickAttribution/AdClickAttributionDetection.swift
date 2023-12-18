@@ -1,6 +1,5 @@
 //
 //  AdClickAttributionDetection.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -21,24 +20,24 @@ import Foundation
 import Common
 
 public protocol AdClickAttributionDetectionDelegate: AnyObject {
-    
+
     func attributionDetection(_ detection: AdClickAttributionDetection, didDetectVendor vendorHost: String)
 
 }
 
 public class AdClickAttributionDetection {
-    
+
     enum State {
 
         case idle // Waiting for detection to start
         case detecting(String?) // Detection is in progress, parameter is vendor obtained from domain detection mechanism
 
     }
-    
+
     private let attributionFeature: AdClickAttributing
-    
+
     private var state = State.idle
-    
+
     private let tld: TLD
     private let getLog: () -> OSLog
     private var log: OSLog {
@@ -46,9 +45,9 @@ public class AdClickAttributionDetection {
     }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
-    
+
     public weak var delegate: AdClickAttributionDetectionDelegate?
-    
+
     public init(feature: AdClickAttributing,
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
@@ -60,21 +59,21 @@ public class AdClickAttributionDetection {
         self.errorReporting = errorReporting
         self.getLog = log
     }
-    
+
     // MARK: - Public API
 
     public func onStartNavigation(url: URL?) {
         guard attributionFeature.isEnabled,
               let url = url, attributionFeature.isMatchingAttributionFormat(url) else { return }
-        
+
         os_log(.debug, log: log, "Starting Attribution detection for %{private}s", url.host ?? "nil")
-        
+
         var vendorDomain: String?
         if attributionFeature.isDomainDetectionEnabled,
            let adDomainParameterName = attributionFeature.attributionDomainParameterName(for: url),
            let domainFromParameter = url.getParameter(named: adDomainParameterName),
            !domainFromParameter.isEmpty {
-            
+
             if let eTLDp1 = tld.eTLDplus1(domainFromParameter)?.lowercased() {
                 vendorDomain = eTLDp1
                 delegate?.attributionDetection(self, didDetectVendor: eTLDp1)
@@ -82,45 +81,45 @@ public class AdClickAttributionDetection {
                 errorReporting?.fire(.adAttributionDetectionInvalidDomainInParameter)
             }
         }
-        
+
         if attributionFeature.isHeuristicDetectionEnabled {
             state = .detecting(vendorDomain)
         } else {
             fireDetectionPixel(serpBasedDomain: vendorDomain, heuristicBasedDomain: nil)
         }
     }
-    
+
     public func on2XXResponse(url: URL?) {
         guard let host = url?.host else {
             return
         }
-        
+
         heuristicDetection(forHost: host)
     }
-    
+
     public func onDidFailNavigation() {
         os_log(.debug, log: log, "Attribution detection has been cancelled")
         state = .idle
     }
-    
+
     public func onDidFinishNavigation(url: URL?) {
         guard let host = url?.host else {
             return
         }
-        
+
         heuristicDetection(forHost: host)
     }
-    
+
     // MARK: - Private functionality
-    
+
     private func heuristicDetection(forHost host: String) {
         guard case .detecting(let domainFromParameter) = state else {
             return
         }
-        
+
         os_log(.debug, log: log, "Attribution detected for %{private}s", host)
         state = .idle
-        
+
         let detectedDomain = tld.eTLDplus1(host)?.lowercased()
         if domainFromParameter == nil {
             if let vendorDomain = detectedDomain {
@@ -129,14 +128,14 @@ public class AdClickAttributionDetection {
                 errorReporting?.fire(.adAttributionDetectionHeuristicsDidNotMatchDomain)
             }
         }
-        
+
         fireDetectionPixel(serpBasedDomain: domainFromParameter, heuristicBasedDomain: detectedDomain)
     }
-    
+
     private func fireDetectionPixel(serpBasedDomain: String?, heuristicBasedDomain: String?) {
-        
+
         let domainDetection: String
-        
+
         if serpBasedDomain != nil && serpBasedDomain == heuristicBasedDomain {
             domainDetection = "matched"
         } else if serpBasedDomain != nil && !attributionFeature.isHeuristicDetectionEnabled {
@@ -148,7 +147,7 @@ public class AdClickAttributionDetection {
         } else {
             domainDetection = "none"
         }
-        
+
         let parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
                           AdClickAttributionEvents.Parameters.domainDetectionEnabled: attributionFeature.isDomainDetectionEnabled ? "1" : "0",
                           AdClickAttributionEvents.Parameters.heuristicDetectionEnabled: attributionFeature.isHeuristicDetectionEnabled ? "1" : "0"]

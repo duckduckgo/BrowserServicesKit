@@ -69,7 +69,7 @@ class DistributedNavigationDelegateTestsBase: XCTestCase {
         self.usedDelegates.append(navigationDelegateProxy)
         navigationDelegateProxy = DistributedNavigationDelegateTests.makeNavigationDelegateProxy()
     }
-    
+
 }
 
 @available(macOS 12.0, iOS 15.0, *)

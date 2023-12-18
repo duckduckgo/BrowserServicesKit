@@ -1034,7 +1034,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, from: history[2], src: main(urls.local2))),
             .didCancel(navAct(3), expected: 2),
-            
+
             // .navigationAction(NavAction(req(urls.local4, defaultHeaders.allowingExtraKeys), .redirect(.developer), from: history[2], src: main(urls.local2))),
             // .willStart(Nav(action: navAct(4), redirects: [navAct(3)], .approved, isCurrent: false)),
             // .didFail(Nav(action: NavAction(req(urls.local4, defaultHeaders.allowingExtraKeys), .redirect(.developer), from: history[2], src: main(urls.local2)), redirects: [navAct(3)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
