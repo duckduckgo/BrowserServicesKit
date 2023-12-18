@@ -42,6 +42,7 @@ public enum PrivacyFeature: String {
     case newTabContinueSetUp
     case networkProtection
     case dbp
+    case sync
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -82,4 +83,15 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
+}
+
+public enum SyncSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .sync
+    }
+
+    case level0ShowSync
+    case level1AllowDataSyncing
+    case level2AllowSetupFlows
+    case level3AllowCreateAccount
 }
