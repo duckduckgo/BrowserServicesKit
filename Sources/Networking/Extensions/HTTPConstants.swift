@@ -1,6 +1,5 @@
 //
 //  HTTPConstants.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,20 +19,20 @@
 import Foundation
 
 extension APIRequest {
-    
+
     public enum HTTPHeaderField {
-        
+
         public static let acceptEncoding = "Accept-Encoding"
         public static let acceptLanguage = "Accept-Language"
         public static let userAgent = "User-Agent"
         public static let etag = "ETag"
         public static let ifNoneMatch = "If-None-Match"
         public static let moreInfo = "X-DuckDuckGo-MoreInfo"
-        
+
     }
-    
+
     public enum HTTPMethod: String {
-        
+
         case get = "GET"
         case head = "HEAD"
         case post = "POST"
@@ -43,7 +42,7 @@ extension APIRequest {
         case options = "OPTIONS"
         case trace = "TRACE"
         case patch = "PATCH"
-        
+
     }
-    
+
 }

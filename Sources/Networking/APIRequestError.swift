@@ -1,6 +1,5 @@
 //
 //  APIRequestError.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,15 +19,15 @@
 import Foundation
 
 extension APIRequest {
-    
+
     public enum Error: Swift.Error, LocalizedError {
-        
+
         case urlSession(Swift.Error)
         case invalidResponse
         case missingEtagInResponse
         case emptyData
         case invalidStatusCode(Int)
-        
+
         public var errorDescription: String? {
             switch self {
             case .urlSession(let error):
@@ -44,5 +43,5 @@ extension APIRequest {
             }
         }
     }
-    
+
 }

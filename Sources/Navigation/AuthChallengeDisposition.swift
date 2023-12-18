@@ -48,7 +48,7 @@ public enum AuthChallengeDisposition: Sendable {
             return "rejectProtectionSpace"
         }
     }
-    
+
 }
 
 extension AuthChallengeDisposition? {

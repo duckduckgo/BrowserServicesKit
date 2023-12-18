@@ -1,6 +1,5 @@
 //
 //  BookmarkTree.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -210,7 +209,6 @@ public struct BookmarkTree {
         return (rootFolder, orphans)
     }
 
-    // swiftlint:disable large_tuple
     @discardableResult
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity], [String: ModifiedAtConstraint]) {
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
@@ -236,7 +234,6 @@ public struct BookmarkTree {
         }
         return (rootFolder, orphans, modifiedAtConstraints)
     }
-    // swiftlint:enable large_tuple
 
     let modifiedAt: Date?
     let lastChildrenArrayReceivedFromSync: [String]?

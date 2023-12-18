@@ -1,6 +1,5 @@
 //
 //  CalendarExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -24,5 +23,5 @@ extension Calendar {
 		let numberOfDays = dateComponents([.day], from: from, to: to)
 		return numberOfDays.day
 	}
-    
+
 }

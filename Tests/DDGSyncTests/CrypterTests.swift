@@ -28,32 +28,32 @@ class CrypterTests: XCTestCase {
         let crypter = Crypter(secureStore: storage)
 
         let userId = "Simple User Name"
-        
+
         let account = try crypter.createAccountCreationKeys(userId: userId, password: "password")
         let recoveryKey = SyncCode.RecoveryKey(userId: userId, primaryKey: account.primaryKey)
         let login = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
         XCTAssertEqual(account.passwordHash, login.passwordHash)
 
         // The login flow calls the server to retreve the protected secret key, but we already have it so check we can decrypt it.
-        
+
         let secretKey = try crypter.extractSecretKey(protectedSecretKey: account.protectedSecretKey, stretchedPrimaryKey: login.stretchedPrimaryKey)
         XCTAssertEqual(account.secretKey, secretKey)
     }
-    
+
     func testWhenGivenRecoveryKeyThenCanExtractUserIdAndPrimaryKey() throws {
         let storage = SecureStorageStub()
         let crypter = Crypter(secureStore: storage)
-        
+
         let userId = "Simple User Name"
         let primaryKey = Data([UInt8](repeating: 1, count: Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)))
-        
+
         let recoveryKey = SyncCode.RecoveryKey(userId: userId, primaryKey: primaryKey)
         let loginInfo = try crypter.extractLoginInfo(recoveryKey: recoveryKey)
-        
+
         XCTAssertEqual(loginInfo.userId, userId)
         XCTAssertEqual(loginInfo.primaryKey, primaryKey)
     }
-    
+
     func testWhenDecryptingNoneBase64ThenErrorIsThrown() throws {
         let storage = SecureStorageStub()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))

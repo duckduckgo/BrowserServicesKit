@@ -57,7 +57,7 @@ public final class NetworkProtectionTunnelHealthStore {
         get {
             userDefaults.bool(forKey: Self.isHavingConnectivityIssuesKey)
         }
-        
+
         set {
             guard newValue != userDefaults.bool(forKey: Self.isHavingConnectivityIssuesKey) else {
                 return

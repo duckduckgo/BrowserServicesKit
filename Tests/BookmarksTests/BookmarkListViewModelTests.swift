@@ -1,6 +1,5 @@
 //
 //  BookmarkListViewModelTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -95,7 +94,7 @@ final class BookmarkListViewModelTests: XCTestCase {
 
         context.performAndWait {
             bookmarkTree.createEntities(in: context)
-            
+
             try! context.save()
 
             let bookmark = BookmarkEntity.fetchBookmark(withUUID: "2", context: context)!

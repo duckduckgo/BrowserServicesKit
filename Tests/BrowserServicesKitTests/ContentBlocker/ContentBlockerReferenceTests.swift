@@ -1,6 +1,5 @@
 //
 //  ContentBlockerReferenceTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -205,5 +204,5 @@ class ContentBlockerReferenceTests: XCTestCase {
         }
     }
     // swiftlint:enable function_body_length
-    
+
 }

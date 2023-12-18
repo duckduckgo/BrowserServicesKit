@@ -19,8 +19,6 @@
 import Combine
 import Foundation
 
-// swiftlint:disable type_body_length file_length
-
 /// Persists and publishes changes to tunnel settings.
 ///
 /// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `VPNSettings`
@@ -426,5 +424,3 @@ public final class VPNSettings {
         }
     }
 }
-
-// swiftlint:enable type_body_length file_length

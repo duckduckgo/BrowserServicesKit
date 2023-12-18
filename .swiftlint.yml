@@ -10,7 +10,6 @@ disabled_rules:
   - type_name
   - implicit_getter
   - function_parameter_count
-  - trailing_whitespace
   - trailing_comma
   - nesting
   - opening_brace

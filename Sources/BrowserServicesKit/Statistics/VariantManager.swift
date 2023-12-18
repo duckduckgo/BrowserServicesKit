@@ -1,6 +1,5 @@
 //
 //  VariantManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -21,16 +20,16 @@ import Foundation
 
 /// Define new experimental features by extending the struct in client project.
 public struct FeatureName: RawRepresentable, Equatable {
-    
+
     public var rawValue: String
 
     // Used for unit tests
     public static let dummy = FeatureName(rawValue: "dummy")
-    
+
     public init(rawValue: String) {
         self.rawValue = rawValue
     }
-    
+
 }
 
 public protocol VariantManager {
