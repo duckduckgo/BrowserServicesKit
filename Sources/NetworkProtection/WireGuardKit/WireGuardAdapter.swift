@@ -225,14 +225,14 @@ public class WireGuardAdapter {
                     continuation.resume(throwing: GetBytesTransmittedError.couldNotObtainAdapterConfiguration)
                     return
                 }
-                
+
                 var numberOfSeconds = UInt64(0)
                 let lines = configuration.components(separatedBy: .newlines)
                 for line in lines where line.hasPrefix(ConfigurationFields.mostRecentHandshake.configLinePrefix) {
                     numberOfSeconds = UInt64(line.dropFirst(ConfigurationFields.mostRecentHandshake.configLinePrefix.count)) ?? 0
                     break
                 }
-                
+
                 continuation.resume(returning: TimeInterval(numberOfSeconds))
             }
         }

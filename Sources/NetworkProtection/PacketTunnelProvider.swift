@@ -255,9 +255,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self, 
-                                                                                timerQueue: timerQueue,
-                                                                                log: .networkProtectionPixel)
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self,
+                                                                                 timerQueue: timerQueue,
+                                                                                 log: .networkProtectionPixel)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
                                                                      timerQueue: timerQueue,
