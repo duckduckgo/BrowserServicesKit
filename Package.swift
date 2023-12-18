@@ -111,6 +111,7 @@ let package = Package(
         .target(
             name: "DDGSync",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
                 "Networking"

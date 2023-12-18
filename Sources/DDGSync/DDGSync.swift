@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
-import Foundation
+import BrowserServicesKit
 import Combine
-import DDGSyncCrypto
 import Common
+import DDGSyncCrypto
+import Foundation
 
 public class DDGSync: DDGSyncing {
 
@@ -58,9 +59,15 @@ public class DDGSync: DDGSyncing {
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
+                            privacyConfigurationManager: PrivacyConfigurationManaging,
                             log: @escaping @autoclosure () -> OSLog = .disabled,
                             environment: ServerEnvironment = .production) {
-        let dependencies = ProductionDependencies(serverEnvironment: environment, errorEvents: errorEvents, log: log())
+        let dependencies = ProductionDependencies(
+            serverEnvironment: environment,
+            privacyConfigurationManager: privacyConfigurationManager,
+            errorEvents: errorEvents,
+            log: log()
+        )
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -192,6 +199,15 @@ public class DDGSync: DDGSyncing {
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
+
+        featureFlagsCancellable = self.dependencies.privacyConfigurationManager.updatesPublisher
+            .compactMap { [weak self] in
+                self?.dependencies.privacyConfigurationManager.privacyConfig
+            }
+            .prepend(self.dependencies.privacyConfigurationManager.privacyConfig)
+            .map(SyncFeatureFlag.init)
+            .removeDuplicates()
+            .assign(to: \.featureFlag, onWeaklyHeld: self)
     }
 
     public func initializeIfNeeded() {
@@ -311,6 +327,7 @@ public class DDGSync: DDGSyncing {
     private var startSyncCancellable: AnyCancellable?
     private var cancelSyncCancellable: AnyCancellable?
     private var resumeSyncCancellable: AnyCancellable?
+    private var featureFlagsCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?

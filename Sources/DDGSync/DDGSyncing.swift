@@ -16,9 +16,10 @@
 //  limitations under the License.
 //
 
-import Foundation
-import DDGSyncCrypto
+import BrowserServicesKit
 import Combine
+import DDGSyncCrypto
+import Foundation
 
 public enum SyncFeatureFlag: Int, Sendable, Codable {
     /// Sync UI is not visible in the app (L0 disabled)
@@ -46,6 +47,21 @@ public enum SyncFeatureFlag: Int, Sendable, Codable {
 
     public var canRestoreAccount: Bool {
         rawValue >= Self.accountCreationNotAvailable.rawValue
+    }
+
+    init(privacyConfig: PrivacyConfiguration) {
+        let isSyncFeatureEnabled = privacyConfig.isEnabled(featureKey: .sync)
+        if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level0ShowSync) {
+            self = .unavailable
+        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level1AllowDataSyncing) {
+            self = .dataSyncingNotAvailable
+        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level2AllowSetupFlows) {
+            self = .setupFlowsNotAvailable
+        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level3AllowCreateAccount) {
+            self = .accountCreationNotAvailable
+        } else {
+            self = .fullyAvailable
+        }
     }
 }
 
@@ -80,7 +96,7 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     /**
      Describes current availability of sync features.
      */
-    var featureFlag: SyncFeatureFlag { get set }
+    var featureFlag: SyncFeatureFlag { get }
 
     /**
      Emits changes to current availability of sync features
