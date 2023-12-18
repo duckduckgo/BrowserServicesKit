@@ -450,3 +450,20 @@ let package = Package(
     ],
     cxxLanguageStandard: .cxx11
 )
+
+// validate all targets have swiftlint plugin
+for target in package.targets {
+    let targetsWithSwiftlintDisabled: Set<String> = [
+        "SwiftLintPlugin",
+        "SwiftLintBinary",
+        "BloomFilterObjC",
+        "BloomFilterWrapper",
+        "WireGuardC",
+    ]
+    guard !targetsWithSwiftlintDisabled.contains(target.name) else { continue }
+    guard target.plugins?.contains(where: { "\($0)" == "\(Target.PluginUsage.plugin(name: "SwiftLintPlugin"))" }) == true else {
+        assertionFailure("\nTarget \(target.name) is missing SwiftLintPlugin dependency.\nIf this is intended, add \"\(target.name)\" to targetsWithSwiftlintDisabled\nTarget plugins: "
+                         + (target.plugins?.map { "\($0)" }.joined(separator: ", ") ?? "<nil>"))
+        continue
+    }
+}
