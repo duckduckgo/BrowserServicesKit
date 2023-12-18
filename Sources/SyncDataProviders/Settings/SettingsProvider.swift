@@ -19,6 +19,7 @@
 import Foundation
 import BrowserServicesKit
 import Combine
+import Common
 import CoreData
 import DDGSync
 import Persistence
@@ -54,6 +55,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlers: [SettingSyncHandler],
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void
     ) {
         let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
@@ -66,6 +68,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             metadataDatabase: metadataDatabase,
             metadataStore: metadataStore,
             settingsHandlersBySetting: settingsHandlers,
+            metricsEvents: metricsEvents,
             syncDidUpdateData: syncDidUpdateData
         )
 
@@ -80,10 +83,12 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataDatabase: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         settingsHandlersBySetting: [Setting: any SettingSyncHandling],
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
         self.settingsHandlers = settingsHandlersBySetting
+        self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
@@ -216,7 +221,8 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
                         settingsHandlers: settingsHandlers,
                         context: context,
                         crypter: crypter,
-                        deduplicateEntities: isInitial
+                        deduplicateEntities: isInitial,
+                        metricsEvents: metricsEvents
                     )
                     let idsOfItemsToClearModifiedAt = try cleanUpSentItems(
                         sent,
@@ -292,7 +298,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             let hasNewerVersionOnServer: Bool = receivedKeys.contains(metadata.key)
             let isPendingDeletion = originalValues[setting] == nil
             if isPendingDeletion, !hasNewerVersionOnServer {
-                try handler.setValue(nil)
+                try handler.setValue(nil, shouldDetectOverride: false)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadata.key)
             }
@@ -341,6 +347,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
     private let metadataDatabase: CoreDataDatabase
     private let settingsHandlers: [Setting: any SettingSyncHandling]
     private let errorSubject = PassthroughSubject<Error, Never>()
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

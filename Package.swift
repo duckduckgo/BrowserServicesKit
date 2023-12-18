@@ -33,7 +33,7 @@ let package = Package(
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.0.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.0.2"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.2.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
@@ -242,6 +242,7 @@ let package = Package(
             dependencies: [
                 "Bookmarks",
                 "BrowserServicesKit",
+                "Common",
                 "DDGSync",
                 .product(name: "GRDB", package: "GRDB.swift"),
                 "Persistence",

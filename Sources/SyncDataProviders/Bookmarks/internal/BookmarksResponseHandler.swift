@@ -17,11 +17,14 @@
 //
 
 import Bookmarks
+import Common
 import CoreData
 import DDGSync
 import Foundation
 
 final class BookmarksResponseHandler {
+    let feature: Feature = .init(name: "bookmarks")
+
     let clientTimestamp: Date?
     let received: [SyncableBookmarkAdapter]
     let context: NSManagedObjectContext
@@ -42,12 +45,21 @@ final class BookmarksResponseHandler {
     var idsOfDeletedBookmarks = Set<String>()
 
     private let decrypt: (String) throws -> String
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
-    init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
+    init(
+        received: [Syncable],
+        clientTimestamp: Date? = nil,
+        context: NSManagedObjectContext,
+        crypter: Crypting,
+        deduplicateEntities: Bool,
+        metricsEvents: EventMapping<MetricsEvent>? = nil
+    ) throws {
         self.clientTimestamp = clientTimestamp
         self.received = received.map { SyncableBookmarkAdapter(syncable: $0) }
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
+        self.metricsEvents = metricsEvents
 
         let secretKey = try crypter.fetchSecretKey()
         self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
@@ -231,7 +243,9 @@ final class BookmarksResponseHandler {
                 }
                 return modifiedAt > clientTimestamp
             }()
-            if !isModifiedAfterSyncTimestamp {
+            if isModifiedAfterSyncTimestamp {
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
+            } else {
                 try updateEntity(existingEntity, with: syncable)
             }
 

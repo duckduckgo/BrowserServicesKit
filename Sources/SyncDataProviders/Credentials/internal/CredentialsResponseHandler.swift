@@ -17,11 +17,14 @@
 //
 
 import BrowserServicesKit
+import Common
 import DDGSync
 import Foundation
 import GRDB
 
 final class CredentialsResponseHandler {
+    let feature: Feature = .init(name: "credentials")
+
     let clientTimestamp: Date
     let received: [SyncableCredentialsAdapter]
     let secureVault: any AutofillSecureVault
@@ -32,18 +35,23 @@ final class CredentialsResponseHandler {
     private var credentialsByUUID: [String: SecureVaultModels.SyncableCredentials] = [:]
 
     private let decrypt: (String) throws -> String
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
-    init(received: [Syncable],
-         clientTimestamp: Date,
-         secureVault: any AutofillSecureVault,
-         database: Database,
-         crypter: Crypting,
-         deduplicateEntities: Bool) throws {
+    init(
+        received: [Syncable],
+        clientTimestamp: Date,
+        secureVault: any AutofillSecureVault,
+        database: Database,
+        crypter: Crypting,
+        deduplicateEntities: Bool,
+        metricsEvents: EventMapping<MetricsEvent>? = nil
+    ) throws {
         self.clientTimestamp = clientTimestamp
         self.received = received.map(SyncableCredentialsAdapter.init)
         self.secureVault = secureVault
         self.database = database
         self.shouldDeduplicateEntities = deduplicateEntities
+        self.metricsEvents = metricsEvents
 
         let secretKey = try crypter.fetchSecretKey()
         self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
@@ -102,17 +110,18 @@ final class CredentialsResponseHandler {
                 }
                 return modifiedAt > clientTimestamp
             }()
-            if !isModifiedAfterSyncTimestamp || syncable.isDeleted {
-                if syncable.isDeleted {
-                    try secureVault.deleteSyncableCredentials(existingEntity, in: database)
-                } else {
-                    try existingEntity.update(with: syncable, decryptedUsing: decrypt)
-                    existingEntity.metadata.lastModified = nil
-                    try secureVault.storeSyncableCredentials(existingEntity,
-                                                             in: database,
-                                                             encryptedUsing: secureVaultEncryptionKey,
-                                                             hashedUsing: secureVaultHashingSalt)
-                }
+
+            if syncable.isDeleted {
+                try secureVault.deleteSyncableCredentials(existingEntity, in: database)
+            } else if isModifiedAfterSyncTimestamp {
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
+            } else {
+                try existingEntity.update(with: syncable, decryptedUsing: decrypt)
+                existingEntity.metadata.lastModified = nil
+                try secureVault.storeSyncableCredentials(existingEntity,
+                                                         in: database,
+                                                         encryptedUsing: secureVaultEncryptionKey,
+                                                         hashedUsing: secureVaultHashingSalt)
             }
 
         } else if !syncable.isDeleted {

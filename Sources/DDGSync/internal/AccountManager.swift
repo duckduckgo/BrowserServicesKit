@@ -143,17 +143,12 @@ struct AccountManager: AccountManaging {
             throw SyncError.noToken
         }
 
-        let devices = try await fetchDevicesForAccount(account)
+        let request = api.createAuthenticatedJSONRequest(url: endpoints.deleteAccount, method: .POST, authToken: token)
+        let result = try await request.execute()
+        let statusCode = result.response.statusCode
 
-        // Logout other devices first or the call will fail
-        for device in devices.filter({ $0.id != account.deviceId }) {
-            try await logout(deviceId: device.id, token: token)
-        }
-
-        // This is the last device, the backend will perge the data after this
-        //  An explicit delete account endpoint might be better though
-        if let thisDevice = devices.first(where: { $0.id == account.deviceId }) {
-            try await logout(deviceId: thisDevice.id, token: token)
+        guard statusCode == 204 else {
+            throw SyncError.unexpectedStatusCode(statusCode)
         }
     }
 
