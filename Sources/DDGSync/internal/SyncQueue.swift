@@ -118,18 +118,41 @@ class SyncQueue {
         }
     }
 
+    var isSyncFeatureFlagEnabled: Bool = true {
+        didSet {
+            if isSyncFeatureFlagEnabled {
+                os_log(.debug, log: self.log, "Sync Feature has been disabled, cancelling all operations")
+                operationQueue.cancelAllOperations()
+            } else {
+                os_log(.debug, log: self.log, "Sync Feature has been enabled")
+            }
+        }
+    }
+
     func startSync() {
+        guard isSyncFeatureFlagEnabled else {
+            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not starting sync")
+            return
+        }
         let operation = makeSyncOperation()
         operationQueue.addOperation(operation)
     }
 
     func cancelOngoingSyncAndSuspendQueue() {
+        guard isSyncFeatureFlagEnabled else {
+            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not adjusting sync queue")
+            return
+        }
         os_log(.debug, log: self.log, "Cancelling sync and suspending sync queue")
         operationQueue.cancelAllOperations()
         operationQueue.isSuspended = true
     }
 
     func resumeQueue() {
+        guard isSyncFeatureFlagEnabled else {
+            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not adjusting sync queue")
+            return
+        }
         os_log(.debug, log: self.log, "Resuming sync queue")
         operationQueue.isSuspended = false
     }

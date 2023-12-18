@@ -204,7 +204,7 @@ public class DDGSync: DDGSyncing {
             .compactMap { [weak self] in
                 self?.dependencies.privacyConfigurationManager.privacyConfig
             }
-            .prepend(self.dependencies.privacyConfigurationManager.privacyConfig)
+            .prepend(dependencies.privacyConfigurationManager.privacyConfig)
             .map(SyncFeatureFlag.init)
             .removeDuplicates()
             .assign(to: \.featureFlag, onWeaklyHeld: self)
@@ -248,6 +248,7 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
+            isSyncAvailableCancellable?.cancel()
             try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
@@ -301,6 +302,9 @@ public class DDGSync: DDGSyncing {
                 self?.syncQueue?.resumeQueue()
             }
 
+        isSyncAvailableCancellable = featureFlagPublisher.prepend(featureFlag).map(\.isSyncAvailable)
+            .assign(to: \.isSyncFeatureFlagEnabled, onWeaklyHeld: syncQueue)
+
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
     }
@@ -328,6 +332,7 @@ public class DDGSync: DDGSyncing {
     private var cancelSyncCancellable: AnyCancellable?
     private var resumeSyncCancellable: AnyCancellable?
     private var featureFlagsCancellable: AnyCancellable?
+    private var isSyncAvailableCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
