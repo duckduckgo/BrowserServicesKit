@@ -121,10 +121,10 @@ class SyncQueue {
     var isSyncFeatureFlagEnabled: Bool = true {
         didSet {
             if isSyncFeatureFlagEnabled {
+                os_log(.debug, log: self.log, "Sync Feature has been enabled")
+            } else {
                 os_log(.debug, log: self.log, "Sync Feature has been disabled, cancelling all operations")
                 operationQueue.cancelAllOperations()
-            } else {
-                os_log(.debug, log: self.log, "Sync Feature has been enabled")
             }
         }
     }
