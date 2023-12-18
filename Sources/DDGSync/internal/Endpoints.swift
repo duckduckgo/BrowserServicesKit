@@ -18,7 +18,7 @@
 
 import Foundation
 
-class Endpoints {
+final class Endpoints {
 
     private(set) var baseURL: URL
 

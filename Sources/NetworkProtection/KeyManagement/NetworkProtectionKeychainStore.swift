@@ -44,7 +44,7 @@ final class NetworkProtectionKeychainStore {
     init(label: String,
          serviceName: String,
          keychainType: KeychainType) {
-        
+
         self.label = label
         self.serviceName = serviceName
         self.keychainType = keychainType

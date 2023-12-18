@@ -95,5 +95,5 @@ final class ScoreTests: XCTestCase {
 
         XCTAssert(score1 < score2)
     }
-    
+
 }

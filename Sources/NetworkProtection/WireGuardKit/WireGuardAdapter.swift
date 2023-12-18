@@ -7,8 +7,6 @@ import NetworkExtension
 import WireGuard
 import Common
 
-// swiftlint:disable file_length
-
 public enum WireGuardAdapterError: Error {
     /// Failure to locate tunnel file descriptor.
     case cannotLocateTunnelFileDescriptor
@@ -38,7 +36,6 @@ private enum State {
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
 }
 
-// swiftlint:disable:next type_body_length
 public class WireGuardAdapter {
     public typealias LogHandler = (WireGuardLogLevel, String) -> Void
 
@@ -228,14 +225,14 @@ public class WireGuardAdapter {
                     continuation.resume(throwing: GetBytesTransmittedError.couldNotObtainAdapterConfiguration)
                     return
                 }
-                
+
                 var numberOfSeconds = UInt64(0)
                 let lines = configuration.components(separatedBy: .newlines)
                 for line in lines where line.hasPrefix(ConfigurationFields.mostRecentHandshake.configLinePrefix) {
                     numberOfSeconds = UInt64(line.dropFirst(ConfigurationFields.mostRecentHandshake.configLinePrefix.count)) ?? 0
                     break
                 }
-                
+
                 continuation.resume(returning: TimeInterval(numberOfSeconds))
             }
         }
@@ -582,5 +579,3 @@ private extension Network.NWPath.Status {
         }
     }
 }
-
-// swiftlint:enable file_length

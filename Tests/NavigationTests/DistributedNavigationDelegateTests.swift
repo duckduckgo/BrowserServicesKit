@@ -24,8 +24,6 @@ import XCTest
 @testable import Navigation
 
 // swiftlint:disable unused_closure_parameter
-// swiftlint:disable trailing_comma
-// swiftlint:disable opening_brace
 
 @available(macOS 12.0, iOS 15.0, *)
 class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase {
@@ -51,18 +49,18 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             XCTAssertEqual(nav.state, .finished)
             eDidFinish.fulfill()
         }
-        
+
         server.middleware = [{ [data] request in
             return .ok(.data(data.html))
         }]
-        
+
         // regular navigation from an empty state
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
-        
+
         XCTAssertFalse(navAct(1).navigationAction.isTargetingNewWindow)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
@@ -73,7 +71,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
         ])
     }
-    
+
     func testWhenResponderCancelsNavigationAction_followingRespondersNotCalled() {
         navigationDelegate.setResponders(
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
@@ -92,9 +90,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         withWebView { webView in
             _=webView.load(req(urls.local1))
         }
-        
+
         waitForExpectations(timeout: 5)
-        
+
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1), .other, src: main()),
             .didCancel(navAct(1))
@@ -104,14 +102,14 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .didCancel(navAct(1))
         ])
     }
-    
+
     func testWhenResponderCancelsNavigationResponse_followingRespondersNotCalled() throws {
         navigationDelegate.setResponders(
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
             .strong(NavigationResponderMock(defaultHandler: { _ in }))
         )
-        
+
         responder(at: 0).onNavigationResponse = { resp in
             XCTAssertEqual(resp.isSuccessful, false)
             XCTAssertEqual(resp.httpResponse?.statusCode, 404)
@@ -120,7 +118,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         }
         responder(at: 1).onNavigationResponse = { _ in .cancel }
         responder(at: 2).onNavigationResponse = { _ in XCTFail("Unexpected decidePolicyForNavigationAction:"); return .next }
-        
+
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 2).onDidFail = { @MainActor [urls] nav, error in
             XCTAssertEqual(error._nsError.domain, WKError.WebKitErrorDomain)
@@ -129,13 +127,13 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             XCTAssertEqual(error.failingUrl?.matches(urls.local1), true)
             eDidFail.fulfill()
         }
-        
+
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local1))
         }
         waitForExpectations(timeout: 5)
-        
+
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local1), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
@@ -151,18 +149,18 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .didFail(Nav(action: navAct(1), .failed(WKError(.frameLoadInterruptedByPolicyChange)), resp: resp(0)), WKError.Code.frameLoadInterruptedByPolicyChange.rawValue)
         ])
     }
-    
+
     func testWhenNavigationFails_didFailIsCalled() {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         let eDidFail = expectation(description: "onDidFail")
         responder(at: 0).onDidFail = { _, _ in eDidFail.fulfill() }
-        
+
         // not calling server.start
         withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
-        
+
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
@@ -170,14 +168,14 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .didFail( Nav(action: navAct(1), .failed(WKError(NSURLErrorCannotConnectToHost))), NSURLErrorCannotConnectToHost)
         ])
     }
-    
+
     func testWhenNavigationActionIsAllowed_followingRespondersNotCalled() throws {
         navigationDelegate.setResponders(
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
             .strong(NavigationResponderMock(defaultHandler: { _ in }))
         )
-        
+
         // Regular navigation without redirects
         // 1st: .next
         let eOnNavigationAction1 = expectation(description: "onNavigationAction 1")
@@ -187,20 +185,20 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         responder(at: 1).onNavigationAction = { _, _ in eOnNavigationAction2.fulfill(); return .allow }
         // 3rd: not called
         responder(at: 2).onNavigationAction = { _, _ in XCTFail("Unexpected navAction"); return .cancel }
-        
+
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
-        
+
         server.middleware = [{ [data] request in
             return .ok(.data(data.html))
         }]
-        
+
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
-        
+
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
@@ -218,30 +216,30 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
         ])
     }
-    
+
     func testWhenNavigationResponseAllowed_followingRespondersNotCalled() throws {
         navigationDelegate.setResponders(
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
             .strong(NavigationResponderMock(defaultHandler: { _ in })),
             .strong(NavigationResponderMock(defaultHandler: { _ in }))
         )
-        
+
         responder(at: 1).onNavigationResponse = { _ in return .allow }
         responder(at: 2).onNavigationResponse = { _ in XCTFail("Unexpected decidePolicyForNavigationAction:"); return .next }
-        
+
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 2).onDidFinish = { _ in eDidFinish.fulfill() }
-        
+
         server.middleware = [{ [data] request in
             return .ok(.data(data.html))
         }]
-        
+
         try server.start(8084)
         withWebView { webView in
             _=webView.load(req(urls.local))
         }
         waitForExpectations(timeout: 5)
-        
+
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(req(urls.local), .other, src: main()),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
@@ -1663,5 +1661,4 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 }
 
 // swiftlint:enable unused_closure_parameter
-// swiftlint:enable trailing_comma
 // swiftlint:enable opening_brace

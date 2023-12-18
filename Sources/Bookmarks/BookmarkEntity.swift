@@ -1,6 +1,5 @@
 //
 //  BookmarkEntity.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -35,7 +34,7 @@ public enum FavoritesFolderID: String, CaseIterable {
 
 @objc(BookmarkEntity)
 public class BookmarkEntity: NSManagedObject {
-    
+
     public enum Constants {
         public static let rootFolderID = "bookmarks_root"
         public static let favoriteFoldersIDs: Set<String> = Set(FavoritesFolderID.allCases.map(\.rawValue))
@@ -51,11 +50,11 @@ public class BookmarkEntity: NSManagedObject {
         case invalidFavoritesFolder
         case invalidFavoritesStatus
     }
-    
+
     @nonobjc public class func fetchRequest() -> NSFetchRequest<BookmarkEntity> {
         return NSFetchRequest<BookmarkEntity>(entityName: "BookmarkEntity")
     }
-    
+
     public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
         return NSEntityDescription.entity(forEntityName: "BookmarkEntity", in: context)!
     }
@@ -87,10 +86,10 @@ public class BookmarkEntity: NSManagedObject {
         self.init(entity: BookmarkEntity.entity(in: moc),
                   insertInto: moc)
     }
-    
+
     public override func awakeFromInsert() {
         super.awakeFromInsert()
-        
+
         uuid = UUID().uuidString
     }
 
@@ -127,16 +126,16 @@ public class BookmarkEntity: NSManagedObject {
         try super.validateForUpdate()
         try validate()
     }
-    
+
     public var urlObject: URL? {
         guard let url = url else { return nil }
         return url.isBookmarklet() ? url.toEncodedBookmarklet() : URL(string: url)
     }
-    
+
     public var isRoot: Bool {
         uuid == Constants.rootFolderID
     }
-    
+
     public var childrenArray: [BookmarkEntity] {
         let children = children?.array as? [BookmarkEntity] ?? []
         return children.filter { $0.isPendingDeletion == false }
@@ -174,7 +173,7 @@ public class BookmarkEntity: NSManagedObject {
         let object = BookmarkEntity(context: context)
         object.title = title
         object.isFolder = true
-        
+
         if insertAtBeginning {
             parent.insertIntoChildren(object, at: 0)
         } else {
@@ -182,7 +181,7 @@ public class BookmarkEntity: NSManagedObject {
         }
         return object
     }
-    
+
     public static func makeBookmark(title: String,
                                     url: String,
                                     parent: BookmarkEntity,
@@ -192,7 +191,7 @@ public class BookmarkEntity: NSManagedObject {
         object.title = title
         object.url = url
         object.isFolder = false
-        
+
         if insertAtBeginning {
             parent.insertIntoChildren(object, at: 0)
         } else {
@@ -200,7 +199,7 @@ public class BookmarkEntity: NSManagedObject {
         }
         return object
     }
-    
+
     // If `insertAt` is nil, it is inserted at the end.
     public func addToFavorites(insertAt: Int? = nil,
                                favoritesRoot root: BookmarkEntity) {
@@ -325,7 +324,7 @@ extension BookmarkEntity {
 
 // MARK: Generated accessors for favorites
 extension BookmarkEntity {
-    
+
     @objc(insertObject:inFavoritesAtIndex:)
     @NSManaged private func insertIntoFavorites(_ value: BookmarkEntity, at idx: Int)
 
@@ -340,7 +339,7 @@ extension BookmarkEntity {
 
     @objc(removeFavorites:)
     @NSManaged private func removeFromFavorites(_ values: NSOrderedSet)
-    
+
 }
 
 // MARK: Generated accessors for favoriteFolders

@@ -78,7 +78,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
             }
         }
     }
-    
+
     public func makeSecureStorageProviders() throws -> SecureStorageProviders<Vault.DatabaseProvider> {
         let (cryptoProvider, keystoreProvider): (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider)
         do {
@@ -95,11 +95,11 @@ public class SecureVaultFactory<Vault: SecureVault> {
             throw SecureStorageError.failedToOpenDatabase(cause: error)
         }
     }
-    
+
     public func createAndInitializeEncryptionProviders() throws -> (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider) {
         let cryptoProvider = makeCryptoProvider()
         let keystoreProvider = makeKeyStoreProvider()
-        
+
         if try keystoreProvider.l1Key() != nil {
             return (cryptoProvider, keystoreProvider)
         } else {
@@ -112,7 +112,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
             try keystoreProvider.storeEncryptedL2Key(encryptedL2Key)
             try keystoreProvider.storeGeneratedPassword(password)
             try keystoreProvider.storeL1Key(l1Key)
-            
+
             return (cryptoProvider, keystoreProvider)
         }
     }

@@ -40,7 +40,7 @@ final class DetectedRequestTests: XCTestCase {
         XCTAssertEqual(tracker1.hashValue, tracker2.hashValue)
         XCTAssertEqual(tracker1, tracker2)
     }
-    
+
     func testWhenTrackerRequestsHaveSameEntityButDifferentBlockedStatusThenHashIsNotEqualAndIsEqualsIsFalse() {
         let entity = Entity(displayName: "Entity", domains: nil, prevalence: nil)
 

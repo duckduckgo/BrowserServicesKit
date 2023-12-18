@@ -1,6 +1,5 @@
 //
 //  Logging.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +17,7 @@
 //
 
 import Foundation
-import os
+import os // swiftlint:disable:this enforce_os_log_wrapper
 
 public typealias OSLog = os.OSLog
 

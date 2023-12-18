@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2020 DuckDuckGo. All rights reserved.
 //
@@ -23,16 +22,14 @@ import TrackerRadarKit
 import Combine
 import Common
 
-// swiftlint:disable file_length type_body_length
-
 public protocol CompiledRuleListsSource {
-    
+
     // Represent set of all latest rules that has been compiled
     var currentRules: [ContentBlockerRulesManager.Rules] { get }
-    
+
     // Set of core rules: TDS minus Ad Attribution rules
     var currentMainRules: ContentBlockerRulesManager.Rules? { get }
-    
+
     // Rules related to Ad Attribution feature, extracted from TDS set.
     var currentAttributionRules: ContentBlockerRulesManager.Rules? { get }
 }
@@ -80,7 +77,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             self.etag = etag
             self.identifier = identifier
         }
-        
+
         internal init(compilationResult: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)) {
             let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: compilationResult.model.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
@@ -131,7 +128,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     private var compilationStartTime: TimeInterval?
 
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
-    
+
     private let lastCompiledRulesStore: LastCompiledRulesStore?
 
     public init(rulesSource: ContentBlockerRulesListsSource,
@@ -159,7 +156,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             }
         }
     }
-    
+
     /**
      Variables protected by this lock:
       - state
@@ -181,11 +178,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             lock.unlock()
         }
     }
-    
+
     public var currentMainRules: Rules? {
         currentRules.first(where: { $0.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName })
     }
-    
+
     public var currentAttributionRules: Rules? {
         currentRules.first(where: {
             let tdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
@@ -295,7 +292,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             }
         }
     }
-    
+
     private func startCompilationProcess() {
         prepareSourceManagers()
 
@@ -380,10 +377,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         lock.unlock()
     }
-    
+
     private func applyRules(_ rules: [Rules], changes: [String: ContentBlockerRulesIdentifier.Difference] = [:]) {
         lock.lock()
-        
+
         _currentRules = rules
 
         let completionTokens: [CompletionToken]
@@ -408,9 +405,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             assertionFailure("Unexpected state")
             completionTokens = []
         }
-        
+
         lock.unlock()
-        
+
         let currentIdentifiers: [String] = rules.map { $0.identifier.stringValue }
         updatesSubject.send(UpdateEvent(rules: rules, changes: changes, completionTokens: completionTokens))
 
@@ -449,5 +446,3 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
 }
-
-// swiftlint:enable file_length type_body_length

@@ -19,7 +19,7 @@
 import Foundation
 
 public enum Suggestion: Equatable {
-    
+
     case phrase(phrase: String)
     case website(url: URL)
     case bookmark(title: String, url: URL, isFavorite: Bool, allowedInTopHits: Bool)

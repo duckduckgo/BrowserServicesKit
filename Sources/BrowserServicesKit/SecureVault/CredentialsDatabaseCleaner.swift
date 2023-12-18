@@ -1,6 +1,5 @@
 //
 //  CredentialsDatabaseCleaner.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
