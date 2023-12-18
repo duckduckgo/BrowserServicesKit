@@ -33,6 +33,10 @@ public enum SyncFeatureFlag: Int, Sendable, Codable {
     /// All functionality is available (L3 enabled)
     case fullyAvailable = 3
 
+    public var isSyncVisible: Bool {
+        self != .unavailable
+    }
+
     public var isSyncAvailable: Bool {
         rawValue > Self.dataSyncingNotAvailable.rawValue
     }
@@ -50,7 +54,10 @@ public enum SyncFeatureFlag: Int, Sendable, Codable {
     }
 
     init(privacyConfig: PrivacyConfiguration) {
-        let isSyncFeatureEnabled = privacyConfig.isEnabled(featureKey: .sync)
+        guard privacyConfig.isEnabled(featureKey: .sync) else {
+            self = .unavailable
+            return
+        }
         if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level0ShowSync) {
             self = .unavailable
         } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level1AllowDataSyncing) {
