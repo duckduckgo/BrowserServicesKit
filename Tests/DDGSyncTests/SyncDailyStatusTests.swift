@@ -22,15 +22,132 @@ import TestUtils
 
 class SyncDailyStatusTests: XCTestCase {
 
+    static let featureA = Feature(name: "featureA")
+    static let featureB = Feature(name: "featureB")
+
+    static let error1 = SyncError.unexpectedStatusCode(400)
+    static let error2 = SyncError.unexpectedStatusCode(413)
+
+    let store = MockKeyValueStore()
+    var status: SyncDailyStatus!
+
+    var statusDict: [String: Int]? {
+        store.object(forKey: SyncDailyStatus.Constants.dailyStatusDictKey) as? [String: Int]
+    }
+
+    override func setUp() {
+        super.setUp()
+
+        status = SyncDailyStatus(store: store)
+
+        XCTAssertNil(store.object(forKey: SyncDailyStatus.Constants.lastSentDate))
+        XCTAssertNil(store.object(forKey: SyncDailyStatus.Constants.syncCountParam))
+    }
+
     func testWhenSyncIsFinishedThenCountIncreases() {
+        status.onSyncFinished(with: nil)
 
-        var store = MockKeyValueStore()
-        let status = SyncDailyStatus(store: store)
+        XCTAssertEqual(statusDict?[SyncDailyStatus.Constants.syncCountParam], 1)
 
+        status.onSyncFinished(with: nil)
+
+        XCTAssertEqual(statusDict?[SyncDailyStatus.Constants.syncCountParam], 2)
     }
 
     func testWhenErrorIsFoundThenCountsIncrease() {
+        status.onSyncFinished(with: SyncOperationError(featureErrors: [.init(feature: Self.featureA,
+                                                                             underlyingError: Self.error1)]))
 
+        XCTAssertEqual(statusDict?[SyncDailyStatus.Constants.syncCountParam], 1)
+        XCTAssertEqual(statusDict?[SyncDailyStatus.ErrorType(syncError: Self.error1)?.key(for: Self.featureA) ?? ""], 1)
+
+        status.onSyncFinished(with: SyncOperationError(featureErrors: [.init(feature: Self.featureA,
+                                                                             underlyingError: Self.error1),
+                                                                       .init(feature: Self.featureB,
+                                                                             underlyingError: Self.error2)]))
+
+        XCTAssertEqual(statusDict?[SyncDailyStatus.Constants.syncCountParam], 2)
+        XCTAssertEqual(statusDict?[SyncDailyStatus.ErrorType(syncError: Self.error1)?.key(for: Self.featureA) ?? ""], 2)
+        XCTAssertEqual(statusDict?[SyncDailyStatus.ErrorType(syncError: Self.error2)?.key(for: Self.featureB) ?? ""], 1)
+    }
+
+    func testWhenNewInstallThenSendNothing() {
+
+        status.sendStatusIfNeeded { _ in
+            XCTFail("Should not execute")
+        }
+
+        XCTAssertNotNil(store.object(forKey: SyncDailyStatus.Constants.lastSentDate))
+    }
+
+    func testWhenSameDayThenSendNothing() {
+        status.sendStatusIfNeeded { _ in
+            XCTFail("Should not execute")
+        }
+
+        let firstStoredDate = store.object(forKey: SyncDailyStatus.Constants.lastSentDate) as? Date
+        XCTAssertNotNil(firstStoredDate)
+
+        Thread.sleep(forTimeInterval: 0.1)
+
+        status.sendStatusIfNeeded { _ in
+            XCTFail("Should not execute")
+        }
+
+        XCTAssertNotNil(store.object(forKey: SyncDailyStatus.Constants.lastSentDate))
+        XCTAssertEqual(store.object(forKey: SyncDailyStatus.Constants.lastSentDate) as? Date, firstStoredDate)
+    }
+
+    func testWhenNextDayThenSendData() {
+        let currentDate = Date()
+        guard let yesterday = Calendar.current.date(byAdding: DateComponents(day: -1), to: currentDate) else {
+            XCTFail("Could not create date")
+            return
+        }
+
+        XCTAssertFalse(Calendar.current.isDate(currentDate, inSameDayAs: yesterday))
+        XCTAssertFalse(Calendar.current.isDateInToday(yesterday))
+
+        status.sendStatusIfNeeded(currentDate: yesterday)  { _ in
+            XCTFail("Should not execute")
+        }
+
+        XCTAssertEqual(store.object(forKey: SyncDailyStatus.Constants.lastSentDate) as? Date, yesterday)
+
+        let exp = expectation(description: "Should send data")
+
+        status.onSyncFinished(with: nil)
+        status.sendStatusIfNeeded(currentDate: currentDate) { data in
+            XCTAssertEqual(data[SyncDailyStatus.Constants.syncCountParam], "1")
+            exp.fulfill()
+        }
+
+        XCTAssertEqual(store.object(forKey: SyncDailyStatus.Constants.lastSentDate) as? Date, currentDate)
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testWhenNextDayButNoDataThenDontSendData() {
+        let currentDate = Date()
+        guard let yesterday = Calendar.current.date(byAdding: DateComponents(day: -1), to: currentDate) else {
+            XCTFail("Could not create date")
+            return
+        }
+
+        XCTAssertFalse(Calendar.current.isDate(currentDate, inSameDayAs: yesterday))
+        XCTAssertFalse(Calendar.current.isDateInToday(yesterday))
+
+        status.sendStatusIfNeeded(currentDate: yesterday)  { _ in
+            XCTFail("Should not execute")
+        }
+
+        XCTAssertEqual(store.object(forKey: SyncDailyStatus.Constants.lastSentDate) as? Date, yesterday)
+
+        status.sendStatusIfNeeded(currentDate: currentDate) { _ in
+            XCTFail("Should not execute - no data")
+        }
+
+        XCTAssertEqual(store.object(forKey: SyncDailyStatus.Constants.lastSentDate) as? Date, currentDate)
     }
 
 }

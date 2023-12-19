@@ -23,7 +23,7 @@ public class SyncDailyStatus {
 
     public enum Constants {
         public static let dailyStatusDictKey = "dailyStatusDictKey"
-        public static let syncCountParam = "dailyStatus_sync_count"
+        public static let syncCountParam = "sync_count"
         public static let lastSentDate = "dailyStatus_last_sent_date"
     }
 
@@ -49,7 +49,7 @@ public class SyncDailyStatus {
 
         lock.lock()
 
-        var storeValues: [String: Int] = (store.object(forKey: Constants.dailyStatusDictKey) as?  [String: Int]) ?? [:]
+        var storeValues: [String: Int] = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) ?? [:]
 
         for updatedKey in updatedKeys {
             storeValues[updatedKey] = (storeValues[updatedKey] ?? 0) + 1
@@ -67,7 +67,7 @@ public class SyncDailyStatus {
             return
         }
 
-        guard Calendar.current.isDateInToday(lastDate) else { return }
+        guard !Calendar.current.isDateInToday(lastDate) else { return }
 
         lock.lock()
         if let currentStatusData = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) {
