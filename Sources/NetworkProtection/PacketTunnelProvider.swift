@@ -891,7 +891,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         resetRegistrationKey()
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
-        try? serverCache.removeServerList()
+        serverCache.removeServerList()
 
         try? tokenStore.deleteToken()
 

@@ -7,12 +7,18 @@ import NetworkExtension
 import WireGuard
 import Common
 
+public enum WireGuardAdapterErrorInvalidStateReason: String {
+    case alreadyStarted
+    case alreadyStopped
+    case updatedTunnelWhileStopped
+}
+
 public enum WireGuardAdapterError: Error {
     /// Failure to locate tunnel file descriptor.
     case cannotLocateTunnelFileDescriptor
 
-    /// Failure to perform an operation in such state.
-    case invalidState
+    /// Failure to perform an operation in such state. Includes a reason why the error was returned.
+    case invalidState(WireGuardAdapterErrorInvalidStateReason)
 
     /// Failure to resolve endpoints.
     case dnsResolution([DNSResolutionError])
@@ -263,7 +269,7 @@ public class WireGuardAdapter {
     public func start(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
             guard case .stopped = self.state else {
-                completionHandler(.invalidState)
+                completionHandler(.invalidState(.alreadyStarted))
                 return
             }
 
@@ -307,7 +313,7 @@ public class WireGuardAdapter {
                 break
 
             case .stopped:
-                completionHandler(.invalidState)
+                completionHandler(.invalidState(.alreadyStopped))
                 return
             }
 
@@ -323,14 +329,14 @@ public class WireGuardAdapter {
     /// Update runtime configuration.
     /// - Parameters:
     ///   - tunnelConfiguration: tunnel configuration.
-    ///   - reassert: wether the connection should reassert or not.
+    ///   - reassert: whether the connection should reassert or not.
     ///   - completionHandler: completion handler.
     public func update(tunnelConfiguration: TunnelConfiguration,
                        reassert: Bool = true,
                        completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
             if case .stopped = self.state {
-                completionHandler(.invalidState)
+                completionHandler(.invalidState(.updatedTunnelWhileStopped))
                 return
             }
 
