@@ -1,6 +1,5 @@
 //
 //  ConfigurationFetching.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -31,9 +30,9 @@ protocol ConfigurationFetching {
 typealias ConfigurationFetchResult = (etag: String, data: Data?)
 
 public final class ConfigurationFetcher: ConfigurationFetching {
-    
+
     public enum Error: Swift.Error {
-        
+
         case apiRequest(APIRequest.Error)
         case invalidPayload
 
@@ -83,7 +82,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         }
         try store(fetchResult, for: configuration)
     }
-    
+
     /**
      Downloads and stores the configurations provided in parallel using a throwing task group.
      This function throws an error if any of the configurations fail to fetch or validate.
@@ -121,14 +120,14 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             }
         }
     }
-    
+
     private func etag(for configuration: Configuration) -> String? {
         if let etag = store.loadEtag(for: configuration), store.loadData(for: configuration) != nil {
             return etag
         }
         return store.loadEmbeddedEtag(for: configuration)
     }
-    
+
     private func fetch(from url: URL, withEtag etag: String?, requirements: APIResponseRequirements) async throws -> ConfigurationFetchResult {
         let configuration = APIRequest.Configuration(url: url,
                                                      headers: APIRequest.Headers(etag: etag),
@@ -145,5 +144,5 @@ public final class ConfigurationFetcher: ConfigurationFetching {
             try store.saveEtag(result.etag, for: configuration)
         }
     }
-    
+
 }

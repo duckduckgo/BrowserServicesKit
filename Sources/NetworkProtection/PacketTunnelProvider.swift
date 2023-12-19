@@ -25,7 +25,7 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable file_length type_body_length line_length
+// swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -125,7 +125,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>.init(nil)
+    public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>(nil)
 
     private var includedRoutes: [IPAddressRange]?
 
@@ -255,9 +255,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self, 
-                                                                                timerQueue: timerQueue,
-                                                                                log: .networkProtectionPixel)
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self,
+                                                                                 timerQueue: timerQueue,
+                                                                                 log: .networkProtectionPixel)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
                                                                      timerQueue: timerQueue,
@@ -581,7 +581,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func startTunnel(with tunnelConfiguration: TunnelConfiguration, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
-        
+
         adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
             if let error {
                 os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
@@ -891,7 +891,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         resetRegistrationKey()
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
-        try? serverCache.removeServerList()
+        serverCache.removeServerList()
 
         try? tokenStore.deleteToken()
 
@@ -1144,4 +1144,3 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     }
 
 }
-// swiftlint:enable file_length type_body_length line_length

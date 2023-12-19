@@ -1,6 +1,5 @@
 //
 //  AdClickAttributionRulesSplitterTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +21,7 @@ import XCTest
 @testable import TrackerRadarKit
 
 final class AdClickAttributionRulesSplitterTests: XCTestCase {
-    
+
     func testShouldNotSplitIfThereAreNoTrackerNames() {
         // given
         let trackerData = TrackerData(trackers: [:], entities: [:], domains: [:], cnames: nil)
@@ -71,13 +70,13 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
 
         // original list
         XCTAssertEqual(result!.0.name, rulesList.name)
-        
+
         let attributionNamePrefix = AdClickAttributionRulesSplitter.Constants.attributionRuleListNamePrefix
         let attributionEtagPrefix = AdClickAttributionRulesSplitter.Constants.attributionRuleListETagPrefix
-        
+
         XCTAssertEqual(result!.0.trackerData!.etag, attributionEtagPrefix + rulesList.trackerData!.etag)
         XCTAssertEqual(result!.0.fallbackTrackerData.etag, attributionEtagPrefix + rulesList.fallbackTrackerData.etag)
-        
+
         XCTAssertTrue(result!.0.trackerData!.tds.trackers.isEmpty)
         XCTAssertTrue(result!.0.fallbackTrackerData.tds.trackers.isEmpty)
 
@@ -89,9 +88,9 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
         XCTAssertEqual(result!.1.fallbackTrackerData.tds, rulesList.fallbackTrackerData.tds)
 
     }
-    
+
     func testWhenSplittingManyTrackersThenDomainsRelatedToEntitiesArePreserved() {
-        
+
         // given
         let allowlistedTrackerNames = ["trackerone.com"]
         let trackerData = TrackerData(trackers: ["trackerone.com": makeKnownTracker(withName: "trackerone.com",
@@ -113,23 +112,23 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
 
         // when
         let result = splitter.split()
-        
+
         // attribution list
-        
+
         guard let attributionTDS = result!.1.trackerData else {
             XCTFail("No attribution list found")
             return
         }
-        
+
         let attributionEtagPrefix = AdClickAttributionRulesSplitter.Constants.attributionRuleListETagPrefix
         XCTAssertEqual(attributionTDS.etag, attributionEtagPrefix + rulesList.trackerData!.etag)
-        
+
         XCTAssertEqual(attributionTDS.tds.trackers.count, 1)
         XCTAssertEqual(attributionTDS.tds.trackers.first?.key, "trackerone.com")
         XCTAssertEqual(attributionTDS.tds.entities.count, 1)
         XCTAssertEqual(attributionTDS.tds.entities.first?.key, "Tracker Owner")
         XCTAssertEqual(Set(attributionTDS.tds.domains.keys), Set(["example.com", "trackerone.com"]))
-        
+
     }
 
     private func makeKnownTracker(withName name: String, ownerName: String) -> KnownTracker {
@@ -145,5 +144,5 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
     private func makeEntity(withName name: String, domains: [String]) -> Entity {
         Entity(displayName: name, domains: domains, prevalence: 5.0)
     }
-    
+
 }

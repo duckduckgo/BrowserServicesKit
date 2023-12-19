@@ -1,6 +1,5 @@
 //
 //  AutofillUserScript.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -51,10 +50,10 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case getAvailableInputTypes
         case getAutofillData
         case storeFormData
-        
+
         case askToUnlockProvider
         case checkCredentialsProviderStatus
-        
+
         case sendJSPixel
 
         case setIncontextSignupPermanentlyDismissedAt
@@ -120,7 +119,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
             os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
             return nil
         }
-        
+
         os_log("AutofillUserScript: received '%{public}s'", log: .userScripts, type: .debug, messageName)
 
         switch message {
@@ -148,7 +147,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .pmHandlerOpenManageCreditCards: return pmOpenManageCreditCards
         case .pmHandlerOpenManageIdentities: return pmOpenManageIdentities
         case .pmHandlerOpenManagePasswords: return pmOpenManagePasswords
-            
+
         case .askToUnlockProvider: return askToUnlockProvider
         case .checkCredentialsProviderStatus: return checkCredentialsProviderStatus
 

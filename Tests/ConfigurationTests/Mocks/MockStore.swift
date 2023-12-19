@@ -1,6 +1,5 @@
 //
 //  MockStore.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,34 +20,34 @@ import Foundation
 @testable import Configuration
 
 final class MockStore: ConfigurationStoring {
-    
+
     var configToEmbeddedEtag = [Configuration: String?]()
     var configToStoredEtagAndData = [Configuration: (etag: String?, data: Data?)]()
     var defaultSaveData: ((_ data: Data, _ configuration: Configuration) throws -> Void)?
     var defaultSaveEtag: ((_ etag: String, _ configuration: Configuration) throws -> Void)?
-    
+
     init() {
         defaultSaveData = { data, configuration in
             let (currentEtag, _) = self.configToStoredEtagAndData[configuration] ?? (nil, nil)
             self.configToStoredEtagAndData[configuration] = (currentEtag, data)
         }
-        
+
         defaultSaveEtag = { etag, configuration in
             let (_, currentData) = self.configToStoredEtagAndData[configuration] ?? (nil, nil)
             self.configToStoredEtagAndData[configuration] = (etag, currentData)
         }
     }
-    
+
     func loadData(for configuration: Configuration) -> Data? { configToStoredEtagAndData[configuration]?.data }
     func loadEtag(for configuration: Configuration) -> String? { configToStoredEtagAndData[configuration]?.etag }
     func loadEmbeddedEtag(for configuration: Configuration) -> String? { configToEmbeddedEtag[configuration] ?? nil }
-    
+
     func saveData(_ data: Data, for configuration: Configuration) throws {
         try defaultSaveData?(data, configuration)
     }
-    
+
     func saveEtag(_ etag: String, for configuration: Configuration) throws {
         try defaultSaveEtag?(etag, configuration)
     }
-    
+
 }

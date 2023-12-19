@@ -1,6 +1,5 @@
 //
 //  AppVersionTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -34,7 +33,7 @@ final class AppVersionTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        
+
         mockBundle = MockBundle()
         testee = AppVersion(bundle: mockBundle)
     }
@@ -48,7 +47,7 @@ final class AppVersionTests: XCTestCase {
         mockBundle.add(name: Bundle.Key.versionNumber, value: Constants.version)
         XCTAssertEqual("2", testee.majorVersionNumber)
     }
-    
+
     func testVersionNumber() {
         mockBundle.add(name: Bundle.Key.versionNumber, value: Constants.version)
         XCTAssertEqual(Constants.version, testee.versionNumber)

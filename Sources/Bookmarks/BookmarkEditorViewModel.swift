@@ -65,7 +65,7 @@ public class BookmarkEditorViewModel: ObservableObject {
                 bookmarksDatabase: CoreDataDatabase,
                 favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
-        
+
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
@@ -87,12 +87,12 @@ public class BookmarkEditorViewModel: ObservableObject {
             self.observer = nil
         }
     }
-    
+
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
                 favoritesDisplayMode: FavoritesDisplayMode,
                 errorEvents: EventMapping<BookmarksModelError>?) {
-        
+
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
@@ -105,7 +105,7 @@ public class BookmarkEditorViewModel: ObservableObject {
             parent = BookmarkUtils.fetchRootFolder(context)
         }
         assert(parent != nil)
-        
+
         // We don't support creating bookmarks from scratch at this time, so it must be a folder
         self.bookmark = BookmarkEntity.makeFolder(title: "",
                                                   parent: parent!,
@@ -152,7 +152,7 @@ public class BookmarkEditorViewModel: ObservableObject {
 
         func descendInto(_ folders: [BookmarkEntity], depth: Int) {
             folders.forEach { entity in
-                if entity.isFolder,                    
+                if entity.isFolder,
                     entity.uuid != bookmark.uuid {
 
                     locations.append(Location(bookmark: entity, depth: depth))

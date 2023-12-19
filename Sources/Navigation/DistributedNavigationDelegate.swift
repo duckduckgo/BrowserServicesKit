@@ -21,8 +21,6 @@ import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable file_length
-// swiftlint:disable line_length
 public final class DistributedNavigationDelegate: NSObject {
 
     internal var responders = ResponderChain()
@@ -951,7 +949,7 @@ extension DistributedNavigationDelegate {
         assert((handler.ref.responder as? NSObject)!.responds(to: selector))
         customDelegateMethodHandlers[selector] = handler.ref
     }
-    
+
     public func registerCustomDelegateMethodHandler(_ handler: ResponderRefMaker, forSelectorsNamed selectors: [String]) {
         for selector in selectors {
             registerCustomDelegateMethodHandler(handler, forSelectorNamed: selector)
@@ -970,6 +968,3 @@ extension DistributedNavigationDelegate {
     }
 
 }
-
-// swiftlint:enable line_length
-// swiftlint:enable file_length

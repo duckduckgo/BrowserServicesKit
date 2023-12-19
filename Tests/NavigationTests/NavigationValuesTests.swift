@@ -113,7 +113,7 @@ class NavigationValuesTests: DistributedNavigationDelegateTestsBase {
     @MainActor
     func testNavigationTypes() {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        
+
         let webView = withWebView { $0 }
         var navAction = WKNavigationActionMock(sourceFrame: .mock(for: webView, isMain: false), targetFrame: nil, navigationType: .formSubmitted, request: req(urls.local)).navigationAction
         var e = expectation(description: "decisionHandler 1 called")

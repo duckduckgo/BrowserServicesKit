@@ -42,7 +42,7 @@ public enum SecureStorageError: Error {
     case duplicateRecord
     case keystoreError(status: Int32)
     case secError(status: Int32)
-    case generalCryptoError    
+    case generalCryptoError
     case encodingFailed
 }
 

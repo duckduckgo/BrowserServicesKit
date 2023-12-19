@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesManagerTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -25,7 +24,7 @@ import Combine
 import Common
 
 class ContentBlockerRulesManagerTests: XCTestCase {
-    
+
     static let validRules = """
     {
       "trackers": {
@@ -72,7 +71,7 @@ class ContentBlockerRulesManagerTests: XCTestCase {
       }
     }
     """
-    
+
     static let invalidRules = """
     {
       "trackers": {
@@ -139,35 +138,35 @@ class ContentBlockerRulesManagerTests: XCTestCase {
       }
     }
     """
-    
+
     let validTempSites = ["example.com"]
     let invalidTempSites = ["This is not valid.. ."]
 
     let validAllowList = [TrackerException(rule: "tracker.com/", matching: .all)]
     let invalidAllowList = [TrackerException(rule: "tracker.com/", matching: .domains(["broken site Ltd. . 😉.com"]))]
-    
+
     static var fakeEmbeddedDataSet: TrackerDataManager.DataSet!
-    
+
     override class func setUp() {
         super.setUp()
-        
+
         fakeEmbeddedDataSet = makeDataSet(tds: validRules, etag: "\"\(UUID().uuidString)\"")
     }
-    
+
     static func makeDataSet(tds: String) -> TrackerDataManager.DataSet {
         return makeDataSet(tds: tds, etag: makeEtag())
     }
-    
+
     static func makeDataSet(tds: String, etag: String) -> TrackerDataManager.DataSet {
         let data = tds.data(using: .utf8)!
         let decoded = try? JSONDecoder().decode(TrackerData.self, from: data)
         return (decoded!, etag)
     }
-    
+
     static func makeEtag() -> String {
         return "\"\(UUID().uuidString)\""
     }
-    
+
 }
 
 final class RulesUpdateListener: ContentBlockerRulesUpdating {
@@ -185,9 +184,9 @@ final class RulesUpdateListener: ContentBlockerRulesUpdating {
 class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
     private let rulesUpdateListener = RulesUpdateListener()
-    
+
     func test_ValidTDS_NoTempList_NoAllowList_NoUnprotectedSites() {
-                
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: (Self.fakeEmbeddedDataSet.tds, Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
@@ -198,11 +197,11 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
-        
+
         let errorExp = expectation(description: "No error reported")
         errorExp.isInverted = true
         let compilationTimeExp = expectation(description: "Compilation Time reported")
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, _, params, _ in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
                 switch component {
@@ -211,7 +210,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                 default:
                     XCTFail("Unexpected component: \(component)")
                 }
-                
+
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
                 compilationTimeExp.fulfill()
@@ -226,7 +225,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler)
 
         wait(for: [exp, errorExp, compilationTimeExp], timeout: 15.0)
-        
+
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
 
@@ -237,22 +236,22 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
     }
-    
+
     func test_InvalidTDS_NoTempList_NoAllowList_NoUnprotectedSites() {
 
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.invalidRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
-                                                       
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
-        
+
         let errorExp = expectation(description: "Error reported")
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, _, params, _ in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
                 switch component {
@@ -261,7 +260,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                 default:
                     XCTFail("Unexpected component: \(component)")
                 }
-                
+
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
             } else {
@@ -275,7 +274,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
-        
+
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
 
@@ -286,7 +285,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
     }
-    
+
     func test_ValidTDS_ValidTempList_NoAllowList_NoUnprotectedSites() {
 
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
@@ -294,9 +293,9 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = validTempSites
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
@@ -307,7 +306,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -319,7 +318,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
     }
-    
+
     func test_InvalidTDS_ValidTempList_NoAllowList_NoUnprotectedSites() {
 
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.invalidRules, etag: Self.makeEtag()),
@@ -327,9 +326,9 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = validTempSites
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
@@ -340,12 +339,12 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
-        
+
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
-        
+
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -355,17 +354,17 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
     }
-    
+
     func test_ValidTDS_InvalidTempList_NoAllowList_NoUnprotectedSites() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = invalidTempSites
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
@@ -376,14 +375,14 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         // TDS is also marked as invalid to simplify flow
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier, mockRulesSource.trackerData?.etag)
-        
+
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier, mockExceptionsSource.tempListId)
 
@@ -394,18 +393,18 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
     }
-    
+
     func test_ValidTDS_ValidTempList_NoAllowList_ValidUnprotectedSites() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = validTempSites
         mockExceptionsSource.unprotectedSites = ["example.com"]
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
@@ -416,14 +415,14 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
-        
+
         XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
         XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
         XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
-        
+
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
                        ContentBlockerRulesIdentifier(name: DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName,
                                                      tdsEtag: mockRulesSource.trackerData?.etag ?? "\"\"",
@@ -433,7 +432,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
     }
 
     func test_ValidTDS_ValidTempList_ValidAllowList_ValidUnprotectedSites() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
@@ -516,9 +515,9 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: mockExceptionsSource.unprotectedSitesHash))
     }
-    
+
     func test_ValidTDS_ValidTempList_ValidAllowList_BrokenUnprotectedSites() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
@@ -527,18 +526,18 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         mockExceptionsSource.allowListId = Self.makeEtag()
         mockExceptionsSource.allowList = validAllowList
         mockExceptionsSource.unprotectedSites = ["broken site Ltd. . 😉.com"]
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
-        
+
         let errorExp = expectation(description: "Error reported")
         errorExp.expectedFulfillmentCount = 5
         var errorEvents = [ContentBlockerDebugEvents.Component]()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, _, params, _ in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
                 errorEvents.append(component)
@@ -548,7 +547,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                 default:
                     XCTFail("Unexpected component: \(component)")
                 }
-                
+
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
                 errorExp.fulfill()
@@ -563,20 +562,20 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
-        
+
         XCTAssertEqual(Set(errorEvents), Set([.tds,
                                               .tempUnprotected,
                                               .allowlist,
                                               .localUnprotected]))
-        
+
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         // TDS is also marked as invalid to simplify flow
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier,
                        mockRulesSource.trackerData?.etag)
-        
+
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier,
                        mockExceptionsSource.tempListId)
@@ -584,7 +583,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier,
                        mockExceptionsSource.allowListId)
-        
+
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier,
                        mockExceptionsSource.unprotectedSitesHash)
@@ -596,9 +595,9 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
     }
-    
+
     func test_CurrentTDSEqualToFallbackTDS_ValidTempList_ValidAllowList_BrokenUnprotectedSites() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.fakeEmbeddedDataSet,
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
@@ -607,18 +606,18 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         mockExceptionsSource.allowListId = Self.makeEtag()
         mockExceptionsSource.allowList = validAllowList
         mockExceptionsSource.unprotectedSites = ["broken site Ltd. . 😉.com"]
-        
+
         XCTAssertEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
-        
+
         let errorExp = expectation(description: "Error reported")
         errorExp.expectedFulfillmentCount = 4
         var errorEvents = [ContentBlockerDebugEvents.Component]()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, _, params, _ in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
                 errorEvents.append(component)
@@ -628,7 +627,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                 default:
                     XCTFail("Unexpected component: \(component)")
                 }
-                
+
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
                 errorExp.fulfill()
@@ -643,16 +642,16 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
-        
+
         XCTAssertEqual(Set(errorEvents), Set([.tempUnprotected,
                                               .allowlist,
                                               .localUnprotected]))
-        
+
         XCTAssertNotNil(cbrm.currentRules.first?.etag)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         XCTAssertNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tdsIdentifier)
-        
+
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.tempListIdentifier,
                        mockExceptionsSource.tempListId)
@@ -660,7 +659,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.allowListIdentifier,
                        mockExceptionsSource.allowListId)
-        
+
         XCTAssertNotNil(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier)
         XCTAssertEqual(cbrm.sourceManagers[mockRulesSource.ruleListName]?.brokenSources?.unprotectedSitesIdentifier,
                        mockExceptionsSource.unprotectedSitesHash)
@@ -677,17 +676,17 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
 
     private let rulesUpdateListener = RulesUpdateListener()
-    
+
     func test_InvalidTDS_BeingFixed() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.invalidRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = validTempSites
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let initialLoading = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
@@ -696,7 +695,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener)
-        
+
         wait(for: [initialLoading], timeout: 15.0)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -705,9 +704,9 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
                                                      tempListId: mockExceptionsSource.tempListId,
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
-        
+
         mockRulesSource.trackerData = Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag())
-        
+
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
@@ -716,7 +715,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         }
 
         cbrm.scheduleCompilation()
-        
+
         wait(for: [updating], timeout: 15.0)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier.stringValue,
@@ -725,10 +724,10 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
                                                      tempListId: mockExceptionsSource.tempListId,
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil).stringValue)
-        
+
         if let oldId = identifier, let newId = cbrm.currentRules.first?.identifier {
             let diff = oldId.compare(with: newId)
-            
+
             XCTAssert(diff.contains(.tdsEtag))
             XCTAssertFalse(diff.contains(.tempListId))
             XCTAssertFalse(diff.contains(.unprotectedSites))
@@ -736,17 +735,17 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
             XCTFail("Missing identifiers")
         }
     }
-    
+
     func test_InvalidTempList_BeingFixed() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = invalidTempSites
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let initialLoading = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
@@ -755,7 +754,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener)
-        
+
         wait(for: [initialLoading], timeout: 15.0)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -764,19 +763,19 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
                                                      tempListId: nil,
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
-        
+
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = validTempSites
-        
+
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
-        
+
         cbrm.scheduleCompilation()
-        
+
         wait(for: [updating], timeout: 15.0)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -785,10 +784,10 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
                                                      tempListId: mockExceptionsSource.tempListId,
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
-        
+
         if let oldId = identifier, let newId = cbrm.currentRules.first?.identifier {
             let diff = oldId.compare(with: newId)
-            
+
             XCTAssert(diff.contains(.tdsEtag))
             XCTAssert(diff.contains(.tempListId))
             XCTAssertFalse(diff.contains(.unprotectedSites))
@@ -856,7 +855,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
             XCTFail("Missing identifiers")
         }
     }
-    
+
     func test_InvalidUnprotectedSites_BeingFixed() {
 
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: Self.makeDataSet(tds: Self.validRules, etag: Self.makeEtag()),
@@ -865,9 +864,9 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         mockExceptionsSource.tempListId = Self.makeEtag()
         mockExceptionsSource.tempList = validTempSites
         mockExceptionsSource.unprotectedSites = ["broken site Ltd. . 😉.com"]
-        
+
         XCTAssertNotEqual(mockRulesSource.trackerData?.etag, mockRulesSource.embeddedTrackerData.etag)
-        
+
         let initialLoading = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             initialLoading.fulfill()
@@ -876,7 +875,7 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               updateListener: rulesUpdateListener)
-        
+
         wait(for: [initialLoading], timeout: 15.0)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -885,18 +884,18 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
                                                      tempListId: nil,
                                                      allowListId: nil,
                                                      unprotectedSitesHash: nil))
-        
+
         mockExceptionsSource.unprotectedSites = ["example.com"]
-        
+
         let identifier = cbrm.currentRules.first?.identifier
 
         let updating = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             updating.fulfill()
         }
-        
+
         cbrm.scheduleCompilation()
-        
+
         wait(for: [updating], timeout: 15.0)
 
         XCTAssertEqual(cbrm.currentRules.first?.identifier,
@@ -905,10 +904,10 @@ class ContentBlockerRulesManagerUpdatingTests: ContentBlockerRulesManagerTests {
                                                      tempListId: mockExceptionsSource.tempListId,
                                                      allowListId: nil,
                                                      unprotectedSitesHash: mockExceptionsSource.unprotectedSitesHash))
-        
+
         if let oldId = identifier, let newId = cbrm.currentRules.first?.identifier {
             let diff = oldId.compare(with: newId)
-            
+
             XCTAssert(diff.contains(.tdsEtag))
             XCTAssert(diff.contains(.tempListId))
             XCTAssert(diff.contains(.unprotectedSites))
@@ -1098,7 +1097,7 @@ class ContentBlockerRulesManagerCleanupTests: ContentBlockerRulesManagerTests, C
 }
 
 class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
-    
+
     var trackerData: TrackerDataManager.DataSet? {
         didSet {
             let trackerData = trackerData
@@ -1117,20 +1116,20 @@ class MockSimpleContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
                                                                 fallbackTrackerData: embeddedTrackerData)]
         }
     }
-    
+
     var contentBlockerRulesLists: [ContentBlockerRulesList]
-    
+
     var ruleListName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
-    
+
     init(trackerData: TrackerDataManager.DataSet?, embeddedTrackerData: TrackerDataManager.DataSet) {
         self.trackerData = trackerData
         self.embeddedTrackerData = embeddedTrackerData
-        
+
         contentBlockerRulesLists = [ContentBlockerRulesList(name: ruleListName,
                                                             trackerData: trackerData,
                                                             fallbackTrackerData: embeddedTrackerData)]
     }
-    
+
 }
 
 class MockContentBlockerRulesExceptionsSource: ContentBlockerRulesExceptionsSource {
@@ -1140,7 +1139,7 @@ class MockContentBlockerRulesExceptionsSource: ContentBlockerRulesExceptionsSour
     var allowListId: String = ""
     var allowList: [TrackerException] = []
     var unprotectedSites: [String] = []
-    
+
     var unprotectedSitesHash: String {
         return ContentBlockerRulesIdentifier.hash(domains: unprotectedSites)
     }
