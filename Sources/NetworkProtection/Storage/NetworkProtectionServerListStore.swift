@@ -163,7 +163,7 @@ public class NetworkProtectionServerListFileSystemStore: NetworkProtectionServer
         do {
             data = try Data(contentsOf: fileURL)
         } catch {
-            try removeServerList()
+            removeServerList()
             throw NetworkProtectionServerListStoreError.failedToReadServerList(error)
         }
 
