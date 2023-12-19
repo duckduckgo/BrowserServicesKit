@@ -260,6 +260,15 @@ public class DDGSync: DDGSyncing {
                 self?.isSyncInProgress = isInProgress
             })
 
+        syncDidFinishCancellable = syncQueue.syncDidFinishPublisher
+            .sink(receiveValue: { [weak self] result in
+                var syncError: SyncOperationError?
+                if case let .failure(error) = result {
+                    syncError = error as? SyncOperationError
+                }
+                self?.syncDailyInfo.onSyncFinished(with: syncError)
+            })
+
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
                 self?.syncQueue?.startSync()
@@ -311,5 +320,6 @@ public class DDGSync: DDGSyncing {
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
+    private var syncDidFinishCancellable: AnyCancellable?
     private var syncQueueRequestErrorCancellable: AnyCancellable?
 }
