@@ -27,3 +27,5 @@ public protocol KeyValueStoring {
     func removeObject(forKey defaultName: String)
 
 }
+
+extension UserDefaults: KeyValueStoring { }

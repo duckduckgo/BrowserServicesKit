@@ -19,6 +19,7 @@
 import Foundation
 import Combine
 import Common
+import Persistence
 
 protocol SyncDependenciesDebuggingSupport {
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
@@ -52,12 +53,6 @@ protocol AccountManaging {
 
     func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice]
 
-}
-
-protocol KeyValueStoring {
-
-    func object(forKey: String) -> Any?
-    func set(_ value: Any?, forKey: String)
 }
 
 protocol SecureStoring {

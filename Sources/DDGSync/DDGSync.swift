@@ -42,6 +42,8 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
+    public let syncDailyInfo = SyncDailyStatusInfo()
+
     @Published public var isSyncInProgress: Bool = false
 
     public var isSyncInProgressPublisher: AnyPublisher<Bool, Never> {
