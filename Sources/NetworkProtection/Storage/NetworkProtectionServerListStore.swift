@@ -170,19 +170,19 @@ public class NetworkProtectionServerListFileSystemStore: NetworkProtectionServer
         do {
             return try JSONDecoder().decode([NetworkProtectionServer].self, from: data)
         } catch {
-            try removeServerList()
+            removeServerList()
             throw NetworkProtectionServerListStoreError.failedToDecodeServerList(error)
         }
     }
 
-    public func removeServerList() throws {
-        if FileManager.default.fileExists(atPath: fileURL.relativePath) {
-            try FileManager.default.removeItem(at: fileURL)
+    public func removeServerList() {
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try? FileManager.default.removeItem(at: fileURL)
         }
     }
 
     private func replaceServerList(with newList: [NetworkProtectionServer]) throws {
-        try removeServerList()
+        removeServerList()
 
         let serializedJSONData: Data
 
