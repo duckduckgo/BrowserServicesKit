@@ -202,7 +202,8 @@ let package = Package(
         .target(
             name: "TestUtils",
             dependencies: [
-                "Networking"
+                "Networking",
+                "Persistence"
             ]),
         .target(
             name: "NetworkProtection",
@@ -262,7 +263,8 @@ let package = Package(
             dependencies: [
                 "BrowserServicesKit",
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
-                "SecureStorageTestsUtils"
+                "SecureStorageTestsUtils",
+                "TestUtils"
             ],
             resources: [
                 .copy("Resources")
@@ -271,7 +273,8 @@ let package = Package(
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
-                "DDGSync"
+                "DDGSync",
+                "TestUtils"
             ]),
         .testTarget(
             name: "DDGSyncCryptoTests",

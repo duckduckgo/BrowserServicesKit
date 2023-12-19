@@ -20,16 +20,13 @@
 import Combine
 import Common
 import XCTest
+import TestUtils
 @testable import DDGSync
 
 final class DDGSyncLifecycleTests: XCTestCase {
 
     var dataProvidersSource: MockDataProvidersSource!
     var dependencies: MockSyncDependencies!
-
-    var mockKeyValueStore: MockKeyValueStore {
-        dependencies.keyValueStore as! MockKeyValueStore
-    }
 
     var secureStorageStub: SecureStorageStub {
         dependencies.secureStore as! SecureStorageStub
@@ -48,7 +45,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
 
     func testWhenInitializingAndOffThenStateIsInactive() {
         secureStorageStub.theAccount = nil
-        mockKeyValueStore.isSyncEnabled = false
+        dependencies.keyValueStore.set(false, forKey: DDGSync.Constants.syncEnabledKey)
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)
@@ -69,7 +66,6 @@ final class DDGSyncLifecycleTests: XCTestCase {
 
     func testWhenInitializingAndAfterReinstallThenStateIsInactive() {
         secureStorageStub.theAccount = .mock
-        mockKeyValueStore.isSyncEnabled = nil
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)
@@ -81,7 +77,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
 
     func testWhenInitializingAndKeysBeenRemovedThenStateIsInactive() {
         secureStorageStub.theAccount = nil
-        mockKeyValueStore.isSyncEnabled = true
+        dependencies.keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)

@@ -20,6 +20,8 @@
 import Combine
 import Common
 import Foundation
+import Persistence
+import TestUtils
 @testable import DDGSync
 
 extension SyncAccount {
@@ -131,22 +133,6 @@ class MockErrorHandler: EventMapping<SyncError> {
     }
 }
 
-class MockKeyValueStore: KeyValueStoring {
-    var isSyncEnabled: Bool? = true
-
-    func object(forKey: String) -> Any? {
-        if forKey == DDGSync.Constants.syncEnabledKey {
-            return isSyncEnabled
-        }
-        return nil
-    }
-    func set(_ value: Any?, forKey: String) {
-        if forKey == DDGSync.Constants.syncEnabledKey, let boolValue = value as? Bool {
-            isSyncEnabled = boolValue
-        }
-    }
-}
-
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
     var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
@@ -162,6 +148,7 @@ struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport 
 
     init() {
         (api as! RemoteAPIRequestCreatingMock).request = request
+        keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
     }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting {

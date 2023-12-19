@@ -1,5 +1,5 @@
 //
-//  SyncDailyStatusInfo.swift
+//  SyncDailyStatus.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 import Persistence
 
-public class SyncDailyStatusInfo {
+public class SyncDailyStatus {
 
     public enum Constants {
         public static let dailyStatusDictKey = "dailyStatusDictKey"
