@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-
 import XCTest
 import TestUtils
 @testable import DDGSync
@@ -28,7 +27,6 @@ class SyncDailyStatusTests: XCTestCase {
         var store = MockKeyValueStore()
         let status = SyncDailyStatus(store: store)
 
-        
     }
 
     func testWhenErrorIsFoundThenCountsIncrease() {
