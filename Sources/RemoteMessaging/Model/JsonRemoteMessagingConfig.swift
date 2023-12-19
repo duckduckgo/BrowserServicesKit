@@ -1,6 +1,5 @@
 //
 //  JsonRemoteMessagingConfig.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -15,6 +14,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+//
 
 import Foundation
 
@@ -82,6 +82,7 @@ public enum RemoteMessageResponse {
         case url
         case appStore = "appstore"
         case dismiss
+        case surveyURL = "survey_url"
     }
 
     enum JsonPlaceholder: String, CaseIterable {
@@ -91,6 +92,7 @@ public enum RemoteMessageResponse {
         case appUpdate = "AppUpdate"
         case macComputer = "MacComputer"
         case newForMacAndWindows = "NewForMacAndWindows"
+        case vpnAnnounce = "VPNAnnounce"
     }
 
     public enum StatusError: Error {

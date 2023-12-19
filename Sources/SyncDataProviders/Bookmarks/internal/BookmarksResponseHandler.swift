@@ -1,6 +1,5 @@
 //
 //  BookmarksResponseHandler.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,11 +17,14 @@
 //
 
 import Bookmarks
+import Common
 import CoreData
 import DDGSync
 import Foundation
 
 final class BookmarksResponseHandler {
+    let feature: Feature = .init(name: "bookmarks")
+
     let clientTimestamp: Date?
     let received: [SyncableBookmarkAdapter]
     let context: NSManagedObjectContext
@@ -43,12 +45,21 @@ final class BookmarksResponseHandler {
     var idsOfDeletedBookmarks = Set<String>()
 
     private let decrypt: (String) throws -> String
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
-    init(received: [Syncable], clientTimestamp: Date? = nil, context: NSManagedObjectContext, crypter: Crypting, deduplicateEntities: Bool) throws {
+    init(
+        received: [Syncable],
+        clientTimestamp: Date? = nil,
+        context: NSManagedObjectContext,
+        crypter: Crypting,
+        deduplicateEntities: Bool,
+        metricsEvents: EventMapping<MetricsEvent>? = nil
+    ) throws {
         self.clientTimestamp = clientTimestamp
-        self.received = received.map(SyncableBookmarkAdapter.init)
+        self.received = received.map { SyncableBookmarkAdapter(syncable: $0) }
         self.context = context
         self.shouldDeduplicateEntities = deduplicateEntities
+        self.metricsEvents = metricsEvents
 
         let secretKey = try crypter.fetchSecretKey()
         self.decrypt = { try crypter.base64DecodeAndDecrypt($0, using: secretKey) }
@@ -139,6 +150,8 @@ final class BookmarksResponseHandler {
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
                 }
             }
+
+            favoritesFolder.updateLastChildrenSyncPayload(with: favoritesUUIDs)
         }
     }
 
@@ -221,6 +234,8 @@ final class BookmarksResponseHandler {
                 parent?.addToChildren(deduplicatedEntity)
             }
 
+            deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable.children)
+
         } else if let existingEntity = entitiesByUUID[syncableUUID] {
             let isModifiedAfterSyncTimestamp: Bool = {
                 guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
@@ -228,7 +243,9 @@ final class BookmarksResponseHandler {
                 }
                 return modifiedAt > clientTimestamp
             }()
-            if !isModifiedAfterSyncTimestamp {
+            if isModifiedAfterSyncTimestamp {
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
+            } else {
                 try updateEntity(existingEntity, with: syncable)
             }
 
@@ -236,6 +253,8 @@ final class BookmarksResponseHandler {
                 existingEntity.parent?.removeFromChildren(existingEntity)
                 parent?.addToChildren(existingEntity)
             }
+
+            existingEntity.updateLastChildrenSyncPayload(with: syncable.children)
 
         } else if !syncable.isDeleted {
 
@@ -245,6 +264,8 @@ final class BookmarksResponseHandler {
             parent?.addToChildren(newEntity)
             try updateEntity(newEntity, with: syncable)
             entitiesByUUID[syncableUUID] = newEntity
+
+            newEntity.updateLastChildrenSyncPayload(with: syncable.children)
         }
     }
 

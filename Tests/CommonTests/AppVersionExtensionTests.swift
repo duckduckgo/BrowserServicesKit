@@ -1,6 +1,5 @@
 //
 //  AppVersionExtensionTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -33,7 +32,7 @@ final class AppVersionExtensionTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        
+
         mockBundle = MockBundle()
         testee = AppVersion(bundle: mockBundle)
     }
@@ -44,7 +43,7 @@ final class AppVersionExtensionTests: XCTestCase {
         mockBundle.add(name: Bundle.Key.buildNumber, value: Constants.build)
         XCTAssertEqual("2.0.4.14", testee.versionAndBuildNumber)
     }
-    
+
     func testLocalisedTextContainsNameVersionAndBuild() {
         mockBundle.add(name: Bundle.Key.name, value: Constants.name)
         mockBundle.add(name: Bundle.Key.versionNumber, value: Constants.version)

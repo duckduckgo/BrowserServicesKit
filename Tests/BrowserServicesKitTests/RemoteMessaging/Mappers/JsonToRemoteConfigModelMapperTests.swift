@@ -1,6 +1,5 @@
 //
 //  JsonToRemoteConfigModelMapperTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -27,7 +26,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenMessagesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertEqual(config.messages.count, 7)
+        XCTAssertEqual(config.messages.count, 8)
 
         XCTAssertEqual(config.messages[0], RemoteMessageModel(
                 id: "8274589c-8aeb-4322-a737-3852911569e3",
@@ -86,11 +85,24 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
             exclusionRules: [])
         )
 
+        XCTAssertEqual(config.messages[7], RemoteMessageModel(
+            id: "8E909844-C809-4543-AAFE-2C75DC285B3B",
+            content: .promoSingleAction(
+                titleText: "Survey Title",
+                descriptionText: "Survey Description",
+                placeholder: .vpnAnnounce,
+                actionText: "Survey Action",
+                action: .surveyURL(value: "https://duckduckgo.com/survey")
+            ),
+            matchingRules: [8],
+            exclusionRules: [])
+        )
+
     }
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertTrue(config.rules.count == 3)
+        XCTAssertTrue(config.rules.count == 4)
 
         let rule5 = config.rules.filter { $0.key == 5 }.first
         XCTAssertNotNil(rule5)
@@ -112,6 +124,17 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         attribs = rule7?.value.filter { $0 is WidgetAddedMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? WidgetAddedMatchingAttribute, WidgetAddedMatchingAttribute(value: false, fallback: nil))
+
+        let rule8 = config.rules.filter { $0.key == 8 }.first
+        XCTAssertNotNil(rule8)
+        XCTAssertTrue(rule8?.value.count == 2)
+        attribs = rule8?.value.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
+        XCTAssertEqual(attribs?.count, 1)
+        XCTAssertEqual(attribs?.first as? DaysSinceNetPEnabledMatchingAttribute, DaysSinceNetPEnabledMatchingAttribute(min: 5, fallback: nil))
+
+        attribs = rule8?.value.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
+        XCTAssertEqual(attribs?.count, 1)
+        XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {

@@ -1,6 +1,5 @@
 //
 //  RemoteMessagingConfigMatcherTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -43,7 +42,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            bookmarksCount: 10,
                                                            favoritesCount: 0,
                                                            appTheme: "light",
-                                                           isWidgetInstalled: false),
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
                 dismissedMessageIds: []
         )
     }
@@ -111,7 +112,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            bookmarksCount: 0,
                                                            favoritesCount: 0,
                                                            appTheme: "light",
-                                                           isWidgetInstalled: false),
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
@@ -178,7 +181,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            bookmarksCount: 10,
                                                            favoritesCount: 0,
                                                            appTheme: "light",
-                                                           isWidgetInstalled: false),
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
                 dismissedMessageIds: ["1"])
 
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
@@ -206,7 +211,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            bookmarksCount: 0,
                                                            favoritesCount: 0,
                                                            appTheme: "light",
-                                                           isWidgetInstalled: false),
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: []),

@@ -74,7 +74,6 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 }
 
-// swiftlint:disable:next type_body_length
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
     public static func defaultDatabaseURL() -> URL {
@@ -226,7 +225,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
-            
+
             try account.update(database)
             try database.execute(sql: """
                 UPDATE
@@ -258,7 +257,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
-            
+
             try account.insert(database)
             let id = database.lastInsertedRowID
             try database.execute(sql: """
@@ -765,9 +764,9 @@ extension DefaultAutofillDatabaseProvider {
 
         let oldTableName = SecureVaultModels.CreditCard.databaseTableName + "Old"
         try database.rename(table: SecureVaultModels.CreditCard.databaseTableName, to: oldTableName)
-        
+
         // 2. Create the new table with suffix and card data values:
-        
+
         try database.create(table: SecureVaultModels.CreditCard.databaseTableName) {
             $0.autoIncrementedPrimaryKey(SecureVaultModels.CreditCard.Columns.id.name)
 
@@ -782,13 +781,13 @@ extension DefaultAutofillDatabaseProvider {
             $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
         }
-        
+
         // 3. Iterate over existing records - read their numbers, store the suffixes, and then update the new table:
-        
+
         let rows = try Row.fetchCursor(database, sql: "SELECT * FROM \(oldTableName)")
 
         while let row = try rows.next() {
-            
+
             // Generate the encrypted card number and plaintext suffix:
 
             let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
@@ -796,9 +795,9 @@ extension DefaultAutofillDatabaseProvider {
             let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!,
                                                                      cryptoProvider: cryptoProvider,
                                                                      keyStoreProvider: keyStoreProvider)
-            
+
             // Insert data from the old table into the new one:
-            
+
             try database.execute(sql: """
                 INSERT INTO
                     \(SecureVaultModels.CreditCard.databaseTableName)
@@ -831,19 +830,19 @@ extension DefaultAutofillDatabaseProvider {
                              row[SecureVaultModels.CreditCard.Columns.expirationYear.name]
                             ])
         }
-        
+
         // 4. Drop the old database:
 
         try database.drop(table: oldTableName)
 
     }
-    
+
     static func migrateV7(database: Database) throws {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.notes.name, .text)
         }
     }
-    
+
     static func migrateV8(database: Database) throws {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.signature.name, .text)
@@ -913,9 +912,9 @@ extension DefaultAutofillDatabaseProvider {
             ifNotExists: false
         )
     }
-        
+
     static func migrateV11(database: Database) throws {
-        
+
         // Remove WWW from titles and ignore titles containing known export format
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         while let accountRow = try accountRows.next() {
@@ -925,9 +924,9 @@ extension DefaultAutofillDatabaseProvider {
                                                            domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
                                                            created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
                                                            lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
-            
+
             let cleanTitle = account.patternMatchedTitle()
-            
+
             // Update the accounts table with the new hash value
             try database.execute(sql: """
                 UPDATE
@@ -937,7 +936,7 @@ extension DefaultAutofillDatabaseProvider {
                 WHERE
                     \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
             """, arguments: [cleanTitle, account.id])
-            
+
         }
     }
 
@@ -1009,10 +1008,10 @@ extension DefaultAutofillDatabaseProvider {
 // MARK: - Utility functions
 
 struct MigrationUtility {
-    
+
     static func l2encrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = try AutofillSecureVaultFactory.createAndInitializeEncryptionProviders()
-        
+
         guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureStorageError.noL2Key
         }
@@ -1024,13 +1023,13 @@ struct MigrationUtility {
         }
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
-        
+
         return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
-    
+
     static func l2decrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = (cryptoProvider, keyStoreProvider)
-        
+
         guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureStorageError.noL2Key
         }
@@ -1071,7 +1070,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
-        container[Columns.signature] = signature        
+        container[Columns.signature] = signature
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
@@ -1118,7 +1117,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         case title
         case created
         case lastUpdated
-        
+
         case cardNumberData
         case cardSuffix
         case cardholderName
@@ -1127,7 +1126,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         case expirationMonth
         case expirationYear
     }
-    
+
     enum DeprecatedColumns: String, ColumnExpression {
         case cardNumber
     }
@@ -1176,7 +1175,7 @@ extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
         lastUpdated = row[Columns.lastUpdated]
         associatedDomain = row[Columns.associatedDomain]
         text = row[Columns.text]
-        
+
         displayTitle = generateDisplayTitle()
         displaySubtitle = generateDisplaySubtitle()
     }
@@ -1246,7 +1245,7 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
         homePhone = row[Columns.homePhone]
         mobilePhone = row[Columns.mobilePhone]
         emailAddress = row[Columns.emailAddress]
-        
+
         autofillEqualityName = normalizedAutofillName()
         autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
     }

@@ -19,15 +19,13 @@
 import Foundation
 import Common
 
-// swiftlint:disable file_length type_body_length
-
 /// The models used by the secure vault.
-/// 
+///
 /// Future models include:
 ///  * Generated Password - a password generated for a site, but not used yet
 ///  * Duck Address - a duck address used on a partcular site
 public struct SecureVaultModels {
-    
+
     /// A username and password was saved for a given site.  Password is stored seperately so that
     ///  it can be queried independently.
     public struct WebsiteCredentials {
@@ -52,7 +50,7 @@ public struct SecureVaultModels {
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
-        
+
         public enum CommonTitlePatterns: String, CaseIterable {
             /*
              Matches the following title patterns
@@ -120,7 +118,7 @@ public struct SecureVaultModels {
             }
             return hash
         }
-        
+
         public func name(tld: TLD, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher) -> String {
             if let title = self.title, !title.isEmpty {
                 return title
@@ -128,11 +126,11 @@ public struct SecureVaultModels {
                 return autofillDomainNameUrlMatcher.normalizeUrlForWeb(domain ?? "")
             }
         }
-        
+
         public func firstTLDLetter(tld: TLD, autofillDomainNameUrlSort: AutofillDomainNameUrlSort) -> String? {
             return autofillDomainNameUrlSort.firstCharacterForGrouping(self, tld: tld)?.uppercased()
         }
-        
+
         public func patternMatchedTitle() -> String {
             guard let title = title, !title.isEmpty else {
                 return ""
@@ -155,7 +153,7 @@ public struct SecureVaultModels {
                     }
                 }
             }
-            
+
             // If no pattern matched, return the original title
             return title
         }
@@ -632,5 +630,3 @@ private extension Date {
         return calendar.date(from: dateComponents) ?? self
     }
 }
-
-// swiftlint:enable file_length type_body_length

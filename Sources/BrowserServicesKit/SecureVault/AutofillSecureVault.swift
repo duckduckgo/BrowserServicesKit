@@ -21,8 +21,6 @@ import Common
 import GRDB
 import SecureStorage
 
-// swiftlint:disable file_length type_body_length
-
 public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
 
 // swiftlint:disable:next identifier_name
@@ -54,7 +52,7 @@ public protocol AutofillSecureVault: SecureVault {
 
     func authWith(password: Data) throws -> any AutofillSecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
-    
+
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
@@ -458,10 +456,10 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             try self.providers.database.deleteIdentityForIdentityId(identityId)
         }
     }
-    
+
     public func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
         let identities = try self.identities()
-        
+
         return identities.first { existingIdentity in
             existingIdentity.hasAutofillEquality(comparedTo: proposedIdentity)
         }
@@ -472,14 +470,14 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try executeThrowingDatabaseOperation {
             let cards =  try self.providers.database.creditCards()
-            
+
             let decryptedCards: [SecureVaultModels.CreditCard] = try cards.map { card in
                 var mutableCard = card
                 mutableCard.cardNumberData = try self.l2Decrypt(data: mutableCard.cardNumberData)
-                
+
                 return mutableCard
             }
-            
+
             return decryptedCards
         }
     }
@@ -495,10 +493,10 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             return card
         }
     }
-    
+
     public func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
         let cards = try self.creditCards()
-        
+
         return cards.first { existingCard in
             existingCard.hasAutofillEquality(comparedTo: proposedCard)
         }
@@ -508,10 +506,10 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             var mutableCard = card
-            
+
             mutableCard.cardSuffix = SecureVaultModels.CreditCard.suffix(from: mutableCard.cardNumber)
             mutableCard.cardNumberData = try self.l2Encrypt(data: mutableCard.cardNumberData)
-            
+
             return try self.providers.database.storeCreditCard(mutableCard)
         }
     }
@@ -596,7 +594,7 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }
-    
+
     private func l2Encrypt(data: Data, using l2Key: Data? = nil) throws -> Data {
         let key: Data = try {
             if let l2Key {
@@ -619,5 +617,3 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         return try providers.crypto.decrypt(data, withKey: key)
     }
 }
-
-// swiftlint:enable file_length type_body_length

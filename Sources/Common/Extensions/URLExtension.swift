@@ -18,7 +18,6 @@
 
 import Foundation
 
-// swiftlint:disable file_length
 extension URL {
 
     public static let empty = (NSURL(string: "") ?? NSURL()) as URL
@@ -59,7 +58,7 @@ extension URL {
         components.password = nil
         return components.url
     }
-    
+
     public var isRoot: Bool {
         (path.isEmpty || path == "/") &&
         query == nil &&
@@ -73,7 +72,7 @@ extension URL {
                        host: self.host ?? "",
                        port: self.port ?? 0)
     }
-    
+
     public func isPart(ofDomain domain: String) -> Bool {
         guard let host = host else { return false }
         return host == domain || host.hasSuffix(".\(domain)")
@@ -112,7 +111,7 @@ extension URL {
         public static var schemesWithRemovableBasicAuth: [NavigationalScheme] {
             return [.http, .https, .ftp, .file]
         }
-        
+
         public static var hypertextSchemes: [NavigationalScheme] {
             return [.http, .https]
         }
@@ -240,7 +239,6 @@ extension URL {
         self.init(string: url)
     }
 
-    // swiftlint:disable:next large_tuple
     private static func fixupAndSplitURLString(_ s: String) -> (authData: String.SubSequence?, domainAndPath: String.SubSequence, query: String)? {
         let urlAndFragment = s.split(separator: "#", maxSplits: 1)
         guard !urlAndFragment.isEmpty else { return nil }
@@ -284,15 +282,15 @@ extension URL {
                 domainAndPath: urlAndQuery[0],
                 query: query)
     }
-    
+
     public func replacing(host: String?) -> URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.host = host
         return components.url
     }
-    
+
     // MARK: - HTTP/HTTPS
-    
+
     public enum URLProtocol: String {
         case http
         case https
@@ -308,20 +306,20 @@ extension URL {
         components.scheme = URLProtocol.https.rawValue
         return components.url
     }
-    
+
     public var isHttp: Bool {
         scheme == "http"
     }
-    
+
     public var isHttps: Bool {
         scheme == "https"
     }
 
     // MARK: - Parameters
-    
+
     public func appendingParameters<QueryParams: Collection>(_ parameters: QueryParams, allowedReservedCharacters: CharacterSet? = nil) -> URL
     where QueryParams.Element == (key: String, value: String) {
-        
+
         return parameters.reduce(self) { partialResult, parameter in
             partialResult.appendingParameter(
                 name: parameter.key,
@@ -358,7 +356,7 @@ extension URL {
         })
         return queryItem?.value
     }
-    
+
     public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
         guard let thisHost = host else {
             return false
@@ -368,7 +366,7 @@ extension URL {
         }
         let thisRoot = tld.eTLDplus1(thisHost)
         let otherRoot = tld.eTLDplus1(otherHost)
-        
+
         return thisRoot != otherRoot
     }
 
@@ -452,4 +450,3 @@ extension URLQueryItem {
     }
 
 }
-// swiftlint:enable file_length

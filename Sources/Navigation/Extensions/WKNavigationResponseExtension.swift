@@ -1,5 +1,5 @@
 //
-//  WKNavigationActionExtension.swift
+//  WKNavigationResponseExtension.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //

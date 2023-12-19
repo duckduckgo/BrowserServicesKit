@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-// swiftlint:disable file_length identifier_name
+// swiftlint:disable identifier_name
 
 import Darwin
 import Foundation
@@ -493,7 +493,9 @@ struct Socket {
 
     func setopt<T>(_ level: Int32, _ opt: Int32, value: T) {
         var value = value
-        let result = setsockopt(socket, level, opt, &value, socklen_t(MemoryLayout<T>.size))
+        let result = withUnsafePointer(to: &value) { valuePtr in
+            setsockopt(socket, level, opt, valuePtr, socklen_t(MemoryLayout<T>.size))
+        }
         assert(result == 0)
     }
 
@@ -626,4 +628,4 @@ struct Socket {
 
 }
 
-// swiftlint:enable file_length identifier_name
+// swiftlint:enable identifier_name

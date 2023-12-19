@@ -19,6 +19,7 @@
 import Foundation
 import Bookmarks
 import Combine
+import Common
 import CoreData
 import DDGSync
 import Persistence
@@ -36,10 +37,12 @@ public final class BookmarksProvider: DataProvider {
     public init(
         database: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void,
         syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
     ) {
         self.database = database
+        self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
         self.syncDidFinish = { [weak self] in
             syncDidFinish(self?.faviconsFetcherInput)
@@ -58,6 +61,7 @@ public final class BookmarksProvider: DataProvider {
             let bookmarks = (try? context.fetch(fetchRequest)) ?? []
             for bookmark in bookmarks {
                 bookmark.modifiedAt = Date()
+                bookmark.lastChildrenArrayReceivedFromSync = nil
             }
 
             do {
@@ -110,7 +114,8 @@ public final class BookmarksProvider: DataProvider {
                         clientTimestamp: clientTimestamp,
                         context: context,
                         crypter: crypter,
-                        deduplicateEntities: isInitial
+                        deduplicateEntities: isInitial,
+                        metricsEvents: metricsEvents
                     )
                     let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedBookmarks()
@@ -163,10 +168,17 @@ public final class BookmarksProvider: DataProvider {
             if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
-            if bookmark.isPendingDeletion, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
+            if bookmark.isPendingDeletion, !hasNewerVersionOnServer {
                 context.delete(bookmark)
             } else {
+                if !hasNewerVersionOnServer, bookmark.isFolder {
+                    if bookmark.uuid.flatMap(BookmarkEntity.isValidFavoritesFolderID) == true {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.favoritesArray.compactMap(\.uuid))
+                    } else {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.childrenArray.compactMap(\.uuid))
+                    }
+                }
                 bookmark.modifiedAt = nil
                 if let uuid = bookmark.uuid {
                     idsOfItemsToClearModifiedAt.insert(uuid)
@@ -214,6 +226,7 @@ public final class BookmarksProvider: DataProvider {
      }
 
     private let database: CoreDataDatabase
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

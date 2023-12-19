@@ -1,6 +1,5 @@
 //
 //  AdClickAttributionLogic.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,15 +21,14 @@ import ContentBlocking
 import Common
 
 public protocol AdClickAttributionLogicDelegate: AnyObject {
-    
+
     func attributionLogic(_ logic: AdClickAttributionLogic,
                           didRequestRuleApplication rules: ContentBlockerRulesManager.Rules?,
                           forVendor vendor: String?)
 }
 
-// swiftlint:disable:next type_body_length
 public class AdClickAttributionLogic {
-    
+
     public enum State {
 
         case noAttribution
@@ -42,19 +40,19 @@ public class AdClickAttributionLogic {
             return false
         }
     }
-    
+
     public struct SessionInfo {
         // Start of the attribution
         public let attributionStartedAt: Date
         // Present when we leave webpage associated with the attribution
         public let leftAttributionContextAt: Date?
-        
+
         init(start: Date = Date(), leftContextAt: Date? = nil) {
             attributionStartedAt = start
             leftAttributionContextAt = leftContextAt
         }
     }
-    
+
     private let featureConfig: AdClickAttributing
     private let rulesProvider: AdClickAttributionRulesProviding
     private let tld: TLD
@@ -71,11 +69,11 @@ public class AdClickAttributionLogic {
     public private(set) var state = State.noAttribution
 
     private var registerFirstActivity = false
-    
+
     private var attributionTimeout: DispatchWorkItem?
-    
+
     public weak var delegate: AdClickAttributionLogicDelegate?
-    
+
     public init(featureConfig: AdClickAttributing,
                 rulesProvider: AdClickAttributionRulesProviding,
                 tld: TLD,
@@ -92,12 +90,12 @@ public class AdClickAttributionLogic {
 
     public func applyInheritedAttribution(state: State?) {
         guard let state = state else { return }
-        
+
         if case .noAttribution = self.state {} else {
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnInheritedAttribution)
             assert(NSClassFromString("XCTest") != nil /* allow when running tests */, "unexpected initial attribution state \(self.state)")
         }
-        
+
         switch state {
         case .noAttribution:
             self.state = state
@@ -111,7 +109,7 @@ public class AdClickAttributionLogic {
             }
         }
     }
-    
+
     public func onRulesChanged(latestRules: [ContentBlockerRulesManager.Rules]) {
         switch state {
         case .noAttribution:
@@ -122,18 +120,18 @@ public class AdClickAttributionLogic {
             requestAttribution(forVendor: vendor)
         }
     }
-    
+
     public func reapplyCurrentRules() {
         applyRules()
     }
-    
+
     public func onBackForwardNavigation(mainFrameURL: URL?) {
         guard case .activeAttribution(let vendor, let session, let rules) = state,
         let host = mainFrameURL?.host,
         let currentETLDp1 = tld.eTLDplus1(host) else {
             return
         }
-        
+
         if vendor == currentETLDp1 {
             if session.leftAttributionContextAt != nil {
                 state = .activeAttribution(vendor: vendor,
@@ -170,7 +168,7 @@ public class AdClickAttributionLogic {
             completion()
         }
     }
-    
+
     @MainActor
     public func onProvisionalNavigation() async {
         await withCheckedContinuation { continuation in
@@ -188,13 +186,13 @@ public class AdClickAttributionLogic {
         if tld.eTLDplus1(host) == vendor {
             counter.onAttributionActive()
         }
-        
+
         if currentTime.timeIntervalSince(session.attributionStartedAt) >= featureConfig.totalExpiration {
             os_log(.debug, log: log, "Attribution has expired - total expiration")
             disableAttribution()
             return
         }
-        
+
         if let leftAttributionContextAt = session.leftAttributionContextAt {
            if currentTime.timeIntervalSince(leftAttributionContextAt) >= featureConfig.navigationExpiration {
                os_log(.debug, log: log, "Attribution has expired - navigational expiration")
@@ -213,11 +211,11 @@ public class AdClickAttributionLogic {
                                        rules: rules)
         }
     }
-    
+
     public func onRequestDetected(request: DetectedRequest) {
         guard registerFirstActivity,
             BlockingState.allowed(reason: .adClickAttribution) == request.state else { return }
-        
+
         eventReporting?.fire(.adAttributionActive)
         registerFirstActivity = false
     }
@@ -227,7 +225,7 @@ public class AdClickAttributionLogic {
         state = .noAttribution
         applyRules()
     }
-    
+
     private func onAttributedRulesCompiled(forVendor vendor: String, _ rules: ContentBlockerRulesManager.Rules) {
         guard case .preparingAttribution(let expectedVendor, let session, let completionBlocks) = state else {
             os_log(.error, log: log, "Attributed Rules received unexpectedly")
@@ -273,13 +271,13 @@ public class AdClickAttributionLogic {
             delegate?.attributionLogic(self, didRequestRuleApplication: rulesProvider.globalAttributionRules, forVendor: nil)
         }
     }
-    
+
     /// Request attribution when we detect it is needed
     private func requestAttribution(forVendor vendorHost: String, attributionStartedAt: Date = Date(), completionBlocks: [() -> Void] = []) {
         state = .preparingAttribution(vendor: vendorHost,
                                       session: SessionInfo(start: attributionStartedAt),
                                       completionBlocks: completionBlocks)
-        
+
         scheduleTimeout(forVendor: vendorHost)
         rulesProvider.requestAttribution(forVendor: vendorHost) { [weak self] rules in
             self?.cancelTimeout()
@@ -290,7 +288,7 @@ public class AdClickAttributionLogic {
             }
         }
     }
-    
+
     private func scheduleTimeout(forVendor vendor: String) {
         let timeoutWorkItem = DispatchWorkItem { [weak self] in
             self?.onAttributedRulesCompilationFailed(forVendor: vendor)
@@ -303,12 +301,12 @@ public class AdClickAttributionLogic {
         DispatchQueue.main.asyncAfter(deadline: .now() + 4.0,
                                       execute: timeoutWorkItem)
     }
-    
+
     private func cancelTimeout() {
         attributionTimeout?.cancel()
         attributionTimeout = nil
     }
-    
+
     /// Respond to new requests for attribution
     private func onAttributionRequested(forVendor vendorHost: String) {
 
@@ -332,16 +330,16 @@ public class AdClickAttributionLogic {
             }
         }
     }
-    
+
 }
 
 extension AdClickAttributionLogic: AdClickAttributionDetectionDelegate {
-    
+
     public func attributionDetection(_ detection: AdClickAttributionDetection,
                                      didDetectVendor vendorHost: String) {
         os_log(.debug, log: log, "Detected attribution requests for %{private}s", vendorHost)
         onAttributionRequested(forVendor: vendorHost)
         registerFirstActivity = true
     }
-    
+
 }

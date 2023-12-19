@@ -1,5 +1,5 @@
 //
-//  MockProviders.swift
+//  MockAutofillDatabaseProvider.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -72,7 +72,7 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
-        self._credentialsDict.removeValue(forKey: accountId)        
+        self._credentialsDict.removeValue(forKey: accountId)
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 

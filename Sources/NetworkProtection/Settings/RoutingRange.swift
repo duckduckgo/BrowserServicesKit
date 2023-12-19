@@ -24,7 +24,11 @@ public enum RoutingRange {
 
     public static let alwaysExcludedIPv4Ranges: [RoutingRange] = [
         .section("IPv4 - Always Excluded"),
-        .range("10.0.0.0/8"     /* 255.0.0.0 */, description: "disabled for enforceRoutes"),
+        // This is disabled because excluded routes seem to trump included routes, and our DNS
+        // server's IP address lives in this range.
+        // Ref: https://app.asana.com/0/1203708860857015/1206099277258514/f
+        //
+        // .range("10.0.0.0/8"     /* 255.0.0.0 */, description: "disabled for enforceRoutes"),
         .range("100.64.0.0/16"  /* 255.255.0.0 */, description: "Shared Address Space"),
         .range("127.0.0.0/8"    /* 255.0.0.0 */, description: "Loopback"),
         .range("169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local"),

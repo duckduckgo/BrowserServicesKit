@@ -72,7 +72,7 @@ public extension WKFrameInfo {
             breakByRaisingSigInt("Don‘t use `WKFrameInfo.request` as it has incorrect nullability\n" +
                                  "Use `WKFrameInfo.safeRequest` instead")
         }
-        
+
         return self.swizzledRequest() // call the original
     }
 

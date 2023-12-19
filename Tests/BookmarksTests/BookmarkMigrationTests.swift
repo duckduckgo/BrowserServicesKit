@@ -1,6 +1,5 @@
 //
 //  BookmarkMigrationTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -30,6 +29,8 @@ class BookmarkMigrationTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+
+        ModelAccessHelper.compileModel(from: Bundle(for: BookmarkMigrationTests.self), named: "BookmarksModel")
 
         location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 
@@ -75,18 +76,19 @@ class BookmarkMigrationTests: XCTestCase {
     }
 
     func testWhenMigratingFromV1ThenRootFoldersContentsArePreservedInOrder() throws {
-        throw XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
         try commonMigrationTestForDatabase(name: "Bookmarks_V1")
     }
 
     func testWhenMigratingFromV2ThenRootFoldersContentsArePreservedInOrder() throws {
-        throw XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
         try commonMigrationTestForDatabase(name: "Bookmarks_V2")
     }
 
     func testWhenMigratingFromV3ThenRootFoldersContentsArePreservedInOrder() throws {
-        throw XCTSkip("Won't run on CI or from command line as momd is not compiled. Tested through Xcode")
         try commonMigrationTestForDatabase(name: "Bookmarks_V3")
+    }
+
+    func testWhenMigratingFromV4ThenRootFoldersContentsArePreservedInOrder() throws {
+        try commonMigrationTestForDatabase(name: "Bookmarks_V4")
     }
 
     func commonMigrationTestForDatabase(name: String) throws {
@@ -132,13 +134,13 @@ class BookmarkMigrationTests: XCTestCase {
         try? migratedStack.tearDown(deleteStores: true)
     }
 
-    func atestThatMigrationToFormFactorSpecificFavoritesAddsFavoritesToNativeFolder() async throws {
+    func testThatMigrationToFormFactorSpecificFavoritesAddsFavoritesToNativeFolder() async throws {
 
         guard let bookmarksDatabase = loadDatabase(name: "Any") else {
             XCTFail("Failed to load model")
             return
         }
-        
+
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {

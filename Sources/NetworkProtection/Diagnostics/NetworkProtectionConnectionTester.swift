@@ -94,13 +94,13 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Test result handling
 
     private var failureCount = 0
-    private let resultHandler: @MainActor (Result, Bool) -> Void
+    private let resultHandler: @MainActor (Result) -> Void
 
     private var simulateFailure = false
 
     // MARK: - Init & deinit
 
-    init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result, Bool) -> Void) {
+    init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result) -> Void) {
         self.timerQueue = timerQueue
         self.log = log
         self.resultHandler = resultHandler
@@ -182,7 +182,7 @@ final class NetworkProtectionConnectionTester {
 
         if testImmediately {
             do {
-                try await testConnection(isStartupTest: true)
+                try await testConnection()
             } catch {
                 os_log("Rethrowing exception", log: log)
                 throw error
@@ -194,17 +194,13 @@ final class NetworkProtectionConnectionTester {
 
         timer.schedule(deadline: .now() + self.intervalBetweenTests, repeating: self.intervalBetweenTests)
         timer.setEventHandler { [weak self] in
-            guard let testConnection = self?.testConnection(isStartupTest:) else {
-                return
-            }
-
-            Task {
+            Task { [self] in
                 // During regular connection tests we don't care about the error thrown
                 // by this method, as it'll be handled through the result handler callback.
                 // The error we're ignoring here is only used when this class is initialized
                 // with an immediate test, to know whether the connection is up while the user
                 // still sees "Connecting..."
-                try? await testConnection(false)
+                try? await self?.testConnection()
             }
         }
 
@@ -235,7 +231,7 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Testing the connection
 
-    func testConnection(isStartupTest: Bool) async throws {
+    func testConnection() async throws {
         guard let tunnelInterface = tunnelInterface else {
             os_log("No interface to test!", log: log, type: .error)
             return
@@ -267,11 +263,11 @@ final class NetworkProtectionConnectionTester {
 
         if onlyVPNIsDown {
             os_log("👎 VPN is DOWN", log: log)
-            await handleDisconnected(isStartupTest: isStartupTest)
+            await handleDisconnected()
         } else {
             os_log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")", log: log)
 
-            await handleConnected(isStartupTest: isStartupTest)
+            await handleConnected()
         }
     }
 
@@ -303,19 +299,19 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Result handling
 
     @MainActor
-    private func handleConnected(isStartupTest: Bool) {
+    private func handleConnected() {
         if failureCount == 0 {
-            resultHandler(.connected, isStartupTest)
+            resultHandler(.connected)
         } else if failureCount > 0 {
             failureCount = 0
 
-            resultHandler(.reconnected, isStartupTest)
+            resultHandler(.reconnected)
         }
     }
 
     @MainActor
-    private func handleDisconnected(isStartupTest: Bool) {
+    private func handleDisconnected() {
         failureCount += 1
-        resultHandler(.disconnected(failureCount: failureCount), isStartupTest)
+        resultHandler(.disconnected(failureCount: failureCount))
     }
 }

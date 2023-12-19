@@ -1,6 +1,5 @@
 //
-//  JsonRemoteMessagingConfigMapperTests.swift
-//  DuckDuckGo
+//  RemoteMessagingConfigProcessorTests.swift
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -36,7 +35,9 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        bookmarksCount: 0,
                                                        favoritesCount: 0,
                                                        appTheme: "light",
-                                                       isWidgetInstalled: false),
+                                                       isWidgetInstalled: false,
+                                                       isNetPWaitlistUser: false,
+                                                       daysSinceNetPEnabled: -1),
             dismissedMessageIds: []
         )
 
@@ -62,7 +63,9 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            bookmarksCount: 0,
                                                            favoritesCount: 0,
                                                            appTheme: "light",
-                                                           isWidgetInstalled: false),
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
                 dismissedMessageIds: [])
 
         let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)

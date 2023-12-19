@@ -1,6 +1,5 @@
 //
-//  RemoteAPIRequestCreating.swift
-//  DuckDuckGo
+//  RemoteAPIRequestCreatingExtensions.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -40,7 +39,7 @@ extension RemoteAPIRequestCreating {
     func createAuthenticatedJSONRequest(url: URL,
                                         method: HTTPRequestMethod,
                                         authToken: String,
-                                        json: Data,
+                                        json: Data? = nil,
                                         headers: [String: String] = [:],
                                         parameters: [String: String] = [:]) -> HTTPRequesting {
         var headers = headers

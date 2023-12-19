@@ -1,6 +1,5 @@
 //
 //  RemoteMessageModel.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -83,7 +82,7 @@ public struct RemoteMessageModel: Equatable, Codable {
                                             placeholder: placeholder,
                                             actionText: translation.primaryActionText ?? actionText,
                                             action: action)
-            
+
         }
     }
 }
@@ -103,6 +102,7 @@ public enum RemoteMessageModelType: Codable, Equatable {
 public enum RemoteAction: Codable, Equatable {
     case share(value: String, title: String?)
     case url(value: String)
+    case surveyURL(value: String)
     case appStore
     case dismiss
 }
@@ -114,4 +114,5 @@ public enum RemotePlaceholder: String, Codable {
     case appUpdate = "RemoteMessageAppUpdate"
     case macComputer = "RemoteMessageMacComputer"
     case newForMacAndWindows = "RemoteMessageNewForMacAndWindows"
+    case vpnAnnounce = "RemoteMessageVPNAnnounce"
 }
