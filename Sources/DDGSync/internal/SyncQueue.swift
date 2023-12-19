@@ -138,20 +138,12 @@ final class SyncQueue {
     }
 
     func cancelOngoingSyncAndSuspendQueue() {
-        guard isDataSyncingFeatureFlagEnabled else {
-            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not adjusting sync queue")
-            return
-        }
         os_log(.debug, log: self.log, "Cancelling sync and suspending sync queue")
         operationQueue.cancelAllOperations()
         operationQueue.isSuspended = true
     }
 
     func resumeQueue() {
-        guard isDataSyncingFeatureFlagEnabled else {
-            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not adjusting sync queue")
-            return
-        }
         os_log(.debug, log: self.log, "Resuming sync queue")
         operationQueue.isSuspended = false
     }
