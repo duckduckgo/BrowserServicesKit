@@ -147,7 +147,6 @@ struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport 
 
     init() {
         (api as! RemoteAPIRequestCreatingMock).request = request
-        keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
     }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting {

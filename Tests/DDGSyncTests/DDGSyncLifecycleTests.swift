@@ -55,6 +55,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
 
     func testWhenInitializingAndOnThenStateIsActive() {
         secureStorageStub.theAccount = .mock
+        dependencies.keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)
@@ -95,6 +96,8 @@ final class DDGSyncLifecycleTests: XCTestCase {
         secureStorageStub.theAccount = .mock
         secureStorageStub.mockReadError = expectedError
 
+        dependencies.keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
+
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)
         syncService.initializeIfNeeded()
@@ -106,6 +109,8 @@ final class DDGSyncLifecycleTests: XCTestCase {
         let expectedError = SyncError.failedToWriteSecureStore(status: 0)
         secureStorageStub.theAccount = .mock
         secureStorageStub.mockWriteError = expectedError
+
+        dependencies.keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
         XCTAssertEqual(syncService.authState, .initializing)
