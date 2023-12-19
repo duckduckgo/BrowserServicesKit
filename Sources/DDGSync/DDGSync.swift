@@ -42,7 +42,7 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
-    public let syncDailyInfo = SyncDailyStatus()
+    public let syncDailyStats = SyncDailyStats()
 
     @Published public var isSyncInProgress: Bool = false
 
@@ -266,7 +266,7 @@ public class DDGSync: DDGSyncing {
                 if case let .failure(error) = result {
                     syncError = error as? SyncOperationError
                 }
-                self?.syncDailyInfo.onSyncFinished(with: syncError)
+                self?.syncDailyStats.onSyncFinished(with: syncError)
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher

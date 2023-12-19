@@ -1,5 +1,5 @@
 //
-//  SyncDailyStatus.swift
+//  SyncDailyStats.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -19,11 +19,12 @@
 import Foundation
 import Persistence
 
-public class SyncDailyStatus {
+public class SyncDailyStats {
 
     public enum Constants {
         public static let dailyStatusDictKey = "dailyStatusDictKey"
         public static let syncCountParam = "sync_count"
+        public static let syncDateParam = "date"
         public static let lastSentDate = "dailyStatus_last_sent_date"
     }
 
@@ -48,6 +49,7 @@ public class SyncDailyStatus {
         }
 
         lock.lock()
+        defer { lock.unlock() }
 
         var storeValues: [String: Int] = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) ?? [:]
 
@@ -56,8 +58,6 @@ public class SyncDailyStatus {
         }
 
         store.set(storeValues, forKey: Constants.dailyStatusDictKey)
-
-        lock.unlock()
     }
 
     public func sendStatusIfNeeded(currentDate: Date = Date(),
@@ -70,13 +70,19 @@ public class SyncDailyStatus {
         guard !Calendar.current.isDateInToday(lastDate) else { return }
 
         lock.lock()
-        if let currentStatusData = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) {
-            handler(currentStatusData.mapValues({ "\($0)" }))
+        defer { lock.unlock() }
+
+        if let currentStats = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) {
+            var parameters = currentStats.mapValues({ "\($0)" })
+
+            let dateFormater = DateFormatter()
+            dateFormater.dateFormat = "dd-MM-yyyy"
+            parameters[Constants.syncDateParam] = dateFormater.string(from: lastDate)
+            handler(parameters)
         }
 
         store.removeObject(forKey: Constants.dailyStatusDictKey)
         store.set(currentDate, forKey: Constants.lastSentDate)
-        lock.unlock()
     }
 
     enum ErrorType {
