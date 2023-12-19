@@ -117,9 +117,9 @@ final class SyncQueue {
         }
     }
 
-    var isSyncFeatureFlagEnabled: Bool = true {
+    var isDataSyncingFeatureFlagEnabled: Bool = true {
         didSet {
-            if isSyncFeatureFlagEnabled {
+            if isDataSyncingFeatureFlagEnabled {
                 os_log(.debug, log: self.log, "Sync Feature has been enabled")
             } else {
                 os_log(.debug, log: self.log, "Sync Feature has been disabled, cancelling all operations")
@@ -129,7 +129,7 @@ final class SyncQueue {
     }
 
     func startSync() {
-        guard isSyncFeatureFlagEnabled else {
+        guard isDataSyncingFeatureFlagEnabled else {
             os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not starting sync")
             return
         }
@@ -138,7 +138,7 @@ final class SyncQueue {
     }
 
     func cancelOngoingSyncAndSuspendQueue() {
-        guard isSyncFeatureFlagEnabled else {
+        guard isDataSyncingFeatureFlagEnabled else {
             os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not adjusting sync queue")
             return
         }
@@ -148,7 +148,7 @@ final class SyncQueue {
     }
 
     func resumeQueue() {
-        guard isSyncFeatureFlagEnabled else {
+        guard isDataSyncingFeatureFlagEnabled else {
             os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not adjusting sync queue")
             return
         }

@@ -21,57 +21,6 @@ import Combine
 import DDGSyncCrypto
 import Foundation
 
-public enum SyncFeatureFlag: Int, Sendable, Codable {
-    /// Sync UI is not visible in the app (L0 disabled)
-    case unavailable = -1
-    /// Sync UI is visible but disabled (L1 disabled)
-    case dataSyncingNotAvailable = 0
-    /// Sync works but creating accounts and adding new devices is disabled (L2 disabled)
-    case setupFlowsNotAvailable = 1
-    /// Sync works, but creating account is disabled. (L3 disabled)
-    case accountCreationNotAvailable = 2
-    /// All functionality is available (L3 enabled)
-    case fullyAvailable = 3
-
-    public var isSyncVisible: Bool {
-        self != .unavailable
-    }
-
-    public var isSyncAvailable: Bool {
-        rawValue > Self.dataSyncingNotAvailable.rawValue
-    }
-
-    public var canConnectNewDevice: Bool {
-        rawValue > Self.setupFlowsNotAvailable.rawValue
-    }
-
-    public var canCreateAccount: Bool {
-        self == .fullyAvailable
-    }
-
-    public var canRestoreAccount: Bool {
-        canConnectNewDevice
-    }
-
-    init(privacyConfig: PrivacyConfiguration) {
-        guard privacyConfig.isEnabled(featureKey: .sync) else {
-            self = .unavailable
-            return
-        }
-        if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level0ShowSync) {
-            self = .unavailable
-        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level1AllowDataSyncing) {
-            self = .dataSyncingNotAvailable
-        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level2AllowSetupFlows) {
-            self = .setupFlowsNotAvailable
-        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level3AllowCreateAccount) {
-            self = .accountCreationNotAvailable
-        } else {
-            self = .fullyAvailable
-        }
-    }
-}
-
 public enum SyncAuthState: String, Sendable, Codable {
     /// Sync engine is not initialized.
     case initializing
@@ -103,12 +52,12 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     /**
      Describes current availability of sync features.
      */
-    var featureFlag: SyncFeatureFlag { get }
+    var featureFlags: SyncFeatureFlags { get }
 
     /**
      Emits changes to current availability of sync features
      */
-    var featureFlagPublisher: AnyPublisher<SyncFeatureFlag, Never> { get }
+    var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> { get }
 
     /**
      Describes current state of sync account.

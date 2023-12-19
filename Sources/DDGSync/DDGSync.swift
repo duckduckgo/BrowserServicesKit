@@ -26,9 +26,9 @@ public class DDGSync: DDGSyncing {
 
     public static let bundle = Bundle.module
 
-    @Published public var featureFlag: SyncFeatureFlag = .fullyAvailable
-    public var featureFlagPublisher: AnyPublisher<SyncFeatureFlag, Never> {
-        $featureFlag.eraseToAnyPublisher()
+    @Published public var featureFlags: SyncFeatureFlags = .all
+    public var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> {
+        $featureFlags.eraseToAnyPublisher()
     }
 
     enum Constants {
@@ -205,9 +205,9 @@ public class DDGSync: DDGSyncing {
                 self?.dependencies.privacyConfigurationManager.privacyConfig
             }
             .prepend(dependencies.privacyConfigurationManager.privacyConfig)
-            .map(SyncFeatureFlag.init)
+            .map(SyncFeatureFlags.init)
             .removeDuplicates()
-            .assign(to: \.featureFlag, onWeaklyHeld: self)
+            .assign(to: \.featureFlags, onWeaklyHeld: self)
     }
 
     public func initializeIfNeeded() {
@@ -248,7 +248,7 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
-            isSyncAvailableCancellable?.cancel()
+            isDataSyncingFeatureFlagEnabledCancellable?.cancel()
             try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
@@ -302,8 +302,8 @@ public class DDGSync: DDGSyncing {
                 self?.syncQueue?.resumeQueue()
             }
 
-        isSyncAvailableCancellable = featureFlagPublisher.prepend(featureFlag).map(\.isSyncAvailable)
-            .assign(to: \.isSyncFeatureFlagEnabled, onWeaklyHeld: syncQueue)
+        isDataSyncingFeatureFlagEnabledCancellable = featureFlagsPublisher.prepend(featureFlags).map { $0.contains(.dataSyncing) }
+            .assign(to: \.isDataSyncingFeatureFlagEnabled, onWeaklyHeld: syncQueue)
 
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
@@ -332,7 +332,7 @@ public class DDGSync: DDGSyncing {
     private var cancelSyncCancellable: AnyCancellable?
     private var resumeSyncCancellable: AnyCancellable?
     private var featureFlagsCancellable: AnyCancellable?
-    private var isSyncAvailableCancellable: AnyCancellable?
+    private var isDataSyncingFeatureFlagEnabledCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
