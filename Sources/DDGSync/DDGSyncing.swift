@@ -41,16 +41,16 @@ public enum SyncFeatureFlag: Int, Sendable, Codable {
         rawValue > Self.dataSyncingNotAvailable.rawValue
     }
 
+    public var canConnectNewDevice: Bool {
+        rawValue > Self.setupFlowsNotAvailable.rawValue
+    }
+
     public var canCreateAccount: Bool {
         self == .fullyAvailable
     }
 
-    public var canConnectNewDevice: Bool {
-        self == .fullyAvailable
-    }
-
     public var canRestoreAccount: Bool {
-        rawValue >= Self.accountCreationNotAvailable.rawValue
+        canConnectNewDevice
     }
 
     init(privacyConfig: PrivacyConfiguration) {
