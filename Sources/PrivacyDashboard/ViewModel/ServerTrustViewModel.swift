@@ -19,28 +19,28 @@
 import Foundation
 
 public struct ServerTrustViewModel: Encodable {
-    
+
     struct SecCertificateViewModel: Encodable {
-        
+
         let summary: String?
         let commonName: String?
         let emails: [String]?
         let publicKey: SecKeyViewModel?
-        
+
         public init(secCertificate: SecCertificate) {
             summary = SecCertificateCopySubjectSummary(secCertificate) as String? ?? ""
-            
+
             var commonName: CFString?
             SecCertificateCopyCommonName(secCertificate, &commonName)
             self.commonName = commonName as String? ?? ""
-            
+
             var emails: CFArray?
             if errSecSuccess == SecCertificateCopyEmailAddresses(secCertificate, &emails) {
                 self.emails = emails as? [String]
             } else {
                 self.emails = nil
             }
-            
+
             var secTrust: SecTrust?
             if errSecSuccess == SecTrustCreateWithCertificates(secCertificate, SecPolicyCreateBasicX509(), &secTrust), let certTrust = secTrust {
                 if #available(iOS 14.0, macOS 11.0, *) {
@@ -53,11 +53,11 @@ public struct ServerTrustViewModel: Encodable {
                 publicKey = nil
             }
         }
-        
+
     }
-    
+
     struct SecKeyViewModel: Encodable {
-        
+
         static func typeToString(_ type: String) -> String? {
             switch type as CFString {
             case kSecAttrKeyTypeRSA: return "RSA"
@@ -66,14 +66,14 @@ public struct ServerTrustViewModel: Encodable {
             default: return nil
             }
         }
-        
+
         let keyId: Data?
         let externalRepresentation: Data?
-        
+
         let bitSize: Int?
         let blockSize: Int?
         let effectiveSize: Int?
-        
+
         let canDecrypt: Bool
         let canDerive: Bool
         let canEncrypt: Bool
@@ -81,20 +81,20 @@ public struct ServerTrustViewModel: Encodable {
         let canUnwrap: Bool
         let canVerify: Bool
         let canWrap: Bool
-        
+
         let isPermanent: Bool?
         let type: String?
-        
+
         init?(secKey: SecKey?) {
             guard let secKey = secKey else {
                 return nil
             }
-            
+
             blockSize = SecKeyGetBlockSize(secKey)
             externalRepresentation = SecKeyCopyExternalRepresentation(secKey, nil) as Data?
-            
+
             let attrs: NSDictionary? = SecKeyCopyAttributes(secKey)
-            
+
             bitSize = attrs?[kSecAttrKeySizeInBits] as? Int
             effectiveSize = attrs?[kSecAttrEffectiveKeySize] as? Int
             canDecrypt = attrs?[kSecAttrCanDecrypt] as? Bool ?? false
@@ -106,36 +106,36 @@ public struct ServerTrustViewModel: Encodable {
             canWrap = attrs?[kSecAttrCanWrap] as? Bool ?? false
             isPermanent = attrs?[kSecAttrIsPermanent] as? Bool ?? false
             keyId = attrs?[kSecAttrApplicationLabel] as? Data
-            
+
             if let type = attrs?[kSecAttrType] as? String {
                 self.type = Self.typeToString(type)
             } else {
                 self.type = nil
             }
-            
+
         }
-        
+
     }
-    
+
     let secCertificateViewModels: [SecCertificateViewModel]
-    
+
     public init?(serverTrust: SecTrust?) {
         guard let serverTrust = serverTrust else {
             return nil
         }
-        
+
         let secTrust = serverTrust
         let count = SecTrustGetCertificateCount(secTrust)
         guard count != 0 else { return nil }
-        
+
         var secCertificateViewModels = [SecCertificateViewModel]()
         for i in 0 ..< count {
             guard let certificate = SecTrustGetCertificateAtIndex(secTrust, i) else { return nil }
             let certificateViewModel = SecCertificateViewModel(secCertificate: certificate)
             secCertificateViewModels.append(certificateViewModel)
         }
-        
+
         self.secCertificateViewModels = secCertificateViewModels
     }
-    
+
 }

@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionTunnelFailureMonitor.swift
+//  NetworkProtectionLatencyMonitor.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -149,7 +149,7 @@ final public class NetworkProtectionLatencyMonitor {
                 } else {
                     self?.subject.send(.error)
                 }
-                
+
                 os_log("⚫️ Average: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, measurements.average)
 
                 return measurements
@@ -157,7 +157,7 @@ final public class NetworkProtectionLatencyMonitor {
             .map { ConnectionQuality(average: $0.average) }
             .sink { [weak self] quality in
                 let now = Date()
-                if let self, 
+                if let self,
                     (now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold) || ignoreThreshold {
                     self.subject.send(.quality(quality))
                     self.lastLatencyReported = now

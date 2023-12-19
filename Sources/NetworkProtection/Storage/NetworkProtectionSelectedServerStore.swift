@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionServerSelection.swift
+//  NetworkProtectionSelectedServerStore.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 /*
 protocol NetworkProtectionSelectedServerStore: AnyObject {
-    
+
     var selectedServer: SelectedNetworkProtectionServer { get set }
     func reset()
 }

@@ -1,6 +1,6 @@
 //
 //  BookmarkCoreDataImporter.swift
-//  
+//
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,29 +21,29 @@ import CoreData
 import Persistence
 
 public class BookmarkCoreDataImporter {
-    
+
     let context: NSManagedObjectContext
     let favoritesDisplayMode: FavoritesDisplayMode
-    
+
     public init(database: CoreDataDatabase, favoritesDisplayMode: FavoritesDisplayMode) {
         self.context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         self.favoritesDisplayMode = favoritesDisplayMode
     }
-    
+
     public func importBookmarks(_ bookmarks: [BookmarkOrFolder]) async throws {
-        
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            
-            context.performAndWait { () -> Void in
+
+            context.performAndWait { () in
                 do {
                     let favoritesFolders = BookmarkUtils.fetchFavoritesFolders(for: favoritesDisplayMode, in: context)
 
                     guard let topLevelBookmarksFolder = BookmarkUtils.fetchRootFolder(context) else {
                         throw BookmarksCoreDataError.fetchingExistingItemFailed
                     }
-                    
+
                     var bookmarkURLToIDMap = try bookmarkURLToID(in: context)
-                    
+
                     try recursivelyCreateEntities(from: bookmarks,
                                                   parent: topLevelBookmarksFolder,
                                                   favoritesFolders: favoritesFolders,
@@ -56,7 +56,7 @@ public class BookmarkCoreDataImporter {
             }
         }
     }
-    
+
     private func bookmarkURLToID(in context: NSManagedObjectContext) throws -> [String: NSManagedObjectID] {
         let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
         fetch.predicate = NSPredicate(
@@ -65,20 +65,20 @@ public class BookmarkCoreDataImporter {
             #keyPath(BookmarkEntity.isPendingDeletion)
         )
         fetch.resultType = .dictionaryResultType
-        
+
         let idDescription = NSExpressionDescription()
         idDescription.name = "objectID"
         idDescription.expression = NSExpression.expressionForEvaluatedObject()
         idDescription.expressionResultType = .objectIDAttributeType
-        
+
         fetch.propertiesToFetch = [idDescription, #keyPath(BookmarkEntity.url)]
-        
+
         let dict = try context.fetch(fetch) as? [Dictionary<String, Any>]
-        
+
         if let result = dict?.reduce(into: [String: NSManagedObjectID](), { partialResult, data in
             guard let urlString = data[#keyPath(BookmarkEntity.url)] as? String,
                   let objectID = data["objectID"] as? NSManagedObjectID else { return }
-                
+
             partialResult[urlString] = objectID
         }) {
             return result
@@ -136,7 +136,7 @@ public class BookmarkCoreDataImporter {
             }
         }
     }
-    
+
     private func containsBookmark(with url: URL) -> Bool {
         return false
     }

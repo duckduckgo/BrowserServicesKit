@@ -22,26 +22,26 @@ import TrackerRadarKit
 import Common
 
 public class ReferrerTrimming {
-    
+
     struct Constants {
         static let headerName = "Referer"
         static let policyName = "Referrer-Policy"
     }
-    
+
     public enum TrimmingState {
         case idle
         case navigating(destination: URL)
     }
-    
+
     private let privacyManager: PrivacyConfigurationManaging
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
-    
+
     private let contentBlockingManager: CompiledRuleListsSource
-    
+
     private var state: TrimmingState = .idle
-    
+
     private var tld: TLD
-    
+
     public init(privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: CompiledRuleListsSource,
                 tld: TLD) {
@@ -49,39 +49,39 @@ public class ReferrerTrimming {
         self.contentBlockingManager = contentBlockingManager
         self.tld = tld
     }
-    
+
     public func onBeginNavigation(to destination: URL?) {
         guard let destination = destination else {
             return
         }
-        
+
         state = .navigating(destination: destination)
     }
-    
+
     public func onFinishNavigation() {
         state = .idle
     }
-    
+
     public func onFailedNavigation() {
         state = .idle
     }
-    
+
     func getTrimmedReferrer(originUrl: URL, destUrl: URL, referrerUrl: URL?, trackerData: TrackerData) -> String? {
         func isSameEntity(a: Entity?, b: Entity?) -> Bool {
             if a == nil && b == nil {
                 return !originUrl.isThirdParty(to: destUrl, tld: tld)
             }
-            
+
             return a?.displayName == b?.displayName
         }
-        
+
         guard let originHost = originUrl.host else {
             return nil
         }
         guard let destHost = destUrl.host else {
             return nil
         }
-        
+
         guard privacyConfig.isFeature(.referrer, enabledForDomain: originHost),
               privacyConfig.isFeature(.referrer, enabledForDomain: destHost) else {
             return nil
@@ -91,10 +91,10 @@ public class ReferrerTrimming {
               let referrerHost = referrerUrl.host else {
             return nil
         }
-        
+
         let referEntity = trackerData.findEntity(forHost: originHost)
         let destEntity = trackerData.findEntity(forHost: destHost)
-        
+
         var newReferrer: String?
         if !isSameEntity(a: referEntity, b: destEntity) {
             newReferrer = "\(referrerScheme)://\(referrerHost)/"
@@ -105,11 +105,11 @@ public class ReferrerTrimming {
            !isSameEntity(a: referEntity, b: destEntity) {
             newReferrer = "\(referrerScheme)://\(referrerHost)/"
         }
-        
+
         if newReferrer == referrerUrl.absoluteString {
             return nil
         }
-        
+
         return newReferrer
     }
 
@@ -134,15 +134,15 @@ public class ReferrerTrimming {
         case .idle:
             onBeginNavigation(to: destUrl)
         }
-        
+
         guard let trackerData = contentBlockingManager.currentMainRules?.trackerData else {
             return nil
         }
-        
+
         guard let referrerHeader = request.value(forHTTPHeaderField: Constants.headerName) else {
             return nil
         }
-        
+
         if let newReferrer = getTrimmedReferrer(originUrl: originUrl,
                                                 destUrl: destUrl,
                                                 referrerUrl: URL(string: referrerHeader) ?? nil,
@@ -151,7 +151,7 @@ public class ReferrerTrimming {
             request.setValue(newReferrer, forHTTPHeaderField: Constants.headerName)
             return request
         }
-        
+
         return nil
     }
 }

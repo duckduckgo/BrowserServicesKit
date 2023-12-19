@@ -1,6 +1,5 @@
 //
-//  TestSecureVaultFactory.swift
-//  DuckDuckGo
+//  TestAutofillSecureVaultFactory.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //

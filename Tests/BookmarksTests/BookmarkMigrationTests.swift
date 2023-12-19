@@ -1,6 +1,5 @@
 //
 //  BookmarkMigrationTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -141,7 +140,7 @@ class BookmarkMigrationTests: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        
+
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {

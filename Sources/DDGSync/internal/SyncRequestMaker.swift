@@ -1,6 +1,5 @@
 //
 //  SyncRequestMaker.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -26,7 +25,7 @@ protocol SyncRequestMaking {
 
 struct SyncRequestMaker: SyncRequestMaking {
     let storage: SecureStoring
-    let api: RemoteAPIRequestCreating 
+    let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
     let dateFormatter = ISO8601DateFormatter()
 
