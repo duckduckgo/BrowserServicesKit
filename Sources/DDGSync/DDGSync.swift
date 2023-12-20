@@ -207,6 +207,7 @@ public class DDGSync: DDGSyncing {
             .prepend(dependencies.privacyConfigurationManager.privacyConfig)
             .map(SyncFeatureFlags.init)
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .assign(to: \.featureFlags, onWeaklyHeld: self)
     }
 
