@@ -256,7 +256,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }()
 
     public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self,
-                                                                                 timerQueue: timerQueue,
                                                                                  log: .networkProtectionPixel)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
@@ -1033,12 +1032,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
 
-        do {
-            try await tunnelFailureMonitor.start()
-        } catch {
-            os_log("⚫️ Tunnel failure monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
-            throw error
-        }
+        await startTunnelFailureMonitor()
 
         do {
             try await latencyMonitor.start()
@@ -1064,6 +1058,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
+    }
+
+    // MARK: - Monitors
+
+    @MainActor
+    private func startTunnelFailureMonitor() {
+        if tunnelFailureMonitor.isStarted {
+            tunnelFailureMonitor.stop()
+        }
+
+        tunnelFailureMonitor.start()
     }
 
     // MARK: - Connection Tester
