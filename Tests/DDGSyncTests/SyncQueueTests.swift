@@ -52,6 +52,31 @@ class SyncQueueTests: XCTestCase {
         requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
     }
 
+    func testWhenDataSyncingFeatureFlagIsDisabledThenNewOperationsAreNotEnqueued() async {
+        let syncQueue = SyncQueue(dataProviders: [], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        XCTAssertFalse(syncQueue.operationQueue.isSuspended)
+
+        var syncDidStartEvents = [Bool]()
+        let cancellable = syncQueue.isSyncInProgressPublisher.removeDuplicates().filter({ $0 }).sink { syncDidStartEvents.append($0) }
+
+        syncQueue.isDataSyncingFeatureFlagEnabled = false
+
+        await syncQueue.startSync()
+        await syncQueue.startSync()
+        await syncQueue.startSync()
+
+        XCTAssertTrue(syncDidStartEvents.isEmpty)
+
+        syncQueue.isDataSyncingFeatureFlagEnabled = true
+
+        await syncQueue.startSync()
+        await syncQueue.startSync()
+        await syncQueue.startSync()
+
+        cancellable.cancel()
+        XCTAssertEqual(syncDidStartEvents.count, 3)
+    }
+
     func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
