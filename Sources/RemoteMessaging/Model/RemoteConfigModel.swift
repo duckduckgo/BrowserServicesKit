@@ -1,6 +1,5 @@
 //
 //  RemoteConfigModel.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //

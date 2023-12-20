@@ -1,6 +1,5 @@
 //
 //  InternalUserDecider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,10 +20,10 @@ import Foundation
 import Combine
 
 public protocol InternalUserDecider {
-    
+
     var isInternalUser: Bool { get }
     var isInternalUserPublisher: AnyPublisher<Bool, Never> { get }
-    
+
     @discardableResult
     func markUserAsInternalIfNeeded(forUrl url: URL?, response: HTTPURLResponse?) -> Bool
 }
@@ -37,7 +36,7 @@ public class DefaultInternalUserDecider: InternalUserDecider {
     var store: InternalUserStoring
     private static let internalUserVerificationURLHost = "use-login.duckduckgo.com"
     private let isInternalUserSubject: CurrentValueSubject<Bool, Never>
-    
+
     public init(store: InternalUserStoring) {
         self.store = store
         isInternalUserSubject = CurrentValueSubject(store.isInternalUser)
@@ -62,20 +61,20 @@ public class DefaultInternalUserDecider: InternalUserDecider {
         if isInternalUser { // If we're already an internal user, we don't need to do anything
             return false
         }
-        
+
         if shouldMarkUserAsInternal(forUrl: url, statusCode: response?.statusCode) {
             isInternalUser = true
             return true
         }
         return false
     }
-    
+
     func shouldMarkUserAsInternal(forUrl url: URL?, statusCode: Int?) -> Bool {
         if let statusCode = statusCode,
            statusCode == 200,
            let url = url,
            url.host == DefaultInternalUserDecider.internalUserVerificationURLHost {
-            
+
             return true
         }
         return false

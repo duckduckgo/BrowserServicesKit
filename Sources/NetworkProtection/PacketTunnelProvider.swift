@@ -25,7 +25,7 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable file_length type_body_length line_length
+// swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -47,7 +47,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     enum TunnelError: LocalizedError {
         case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
-        case couldNotFixConnection
         case simulateTunnelFailureError
 
         var errorDescription: String? {
@@ -58,11 +57,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
                 return "Simulated a tunnel error as requested"
-            default:
-                // This is probably not the most elegant error to show to a user but
-                // it's a great way to get detailed reports for those cases we haven't
-                // provided good descriptions for yet.
-                return "Tunnel error: \(String(describing: self))"
             }
         }
     }
@@ -131,7 +125,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>.init(nil)
+    public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>(nil)
 
     private var includedRoutes: [IPAddressRange]?
 
@@ -242,7 +236,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private var isConnectionTesterEnabled: Bool = true
 
     private lazy var connectionTester: NetworkProtectionConnectionTester = {
-        NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] (result, isStartupTest) in
+        NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] result in
             guard let self else { return }
 
             switch result {
@@ -257,24 +251,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .disconnected(let failureCount):
                 self.tunnelHealth.isHavingConnectivityIssues = true
                 self.bandwidthAnalyzer.reset()
-
-                if failureCount == 1 {
-                    self.notificationsPresenter.showReconnectingNotification()
-
-                    // Only do these things if this is not a connection startup test.
-                    if !isStartupTest {
-                        self.fixTunnel()
-                    }
-                } else if failureCount == 2 {
-                    self.stopTunnel(with: TunnelError.couldNotFixConnection)
-                }
             }
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self, 
-                                                                                timerQueue: timerQueue,
-                                                                                log: .networkProtectionPixel)
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self,
+                                                                                 timerQueue: timerQueue,
+                                                                                 log: .networkProtectionPixel)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
                                                                      timerQueue: timerQueue,
@@ -598,7 +581,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func startTunnel(with tunnelConfiguration: TunnelConfiguration, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
-        
+
         adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
             if let error {
                 os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
@@ -684,28 +667,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         tunnelHealth.isHavingConnectivityIssues = false
         controllerErrorStore.lastErrorMessage = nil
-    }
-
-    /// Intentionally not async, so that we won't lock whoever called this method.  This method will race against the tester
-    /// to see if it can fix the connection before the next failure.
-    ///
-    private func fixTunnel() {
-        Task {
-            let serverSelectionMethod: NetworkProtectionServerSelectionMethod
-
-            if let lastServerName = lastSelectedServerInfo?.name {
-                serverSelectionMethod = .avoidServer(serverName: lastServerName)
-            } else {
-                assertionFailure("We should not have a situation where the VPN is trying to fix the tunnel and there's no previous server info")
-                serverSelectionMethod = .automatic
-            }
-
-            do {
-                try await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
-            } catch {
-                return
-            }
-        }
     }
 
     // MARK: - Tunnel Configuration
@@ -930,7 +891,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         resetRegistrationKey()
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
-        try? serverCache.removeServerList()
+        serverCache.removeServerList()
 
         try? tokenStore.deleteToken()
 
@@ -1183,4 +1144,3 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     }
 
 }
-// swiftlint:enable file_length type_body_length line_length

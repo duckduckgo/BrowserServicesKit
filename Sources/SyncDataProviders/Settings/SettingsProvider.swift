@@ -1,6 +1,5 @@
 //
 //  SettingsProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -42,7 +41,6 @@ public struct SettingsSyncMetadataSaveError: Error {
     }
 }
 
-// swiftlint:disable:next type_body_length
 public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
 
     public struct Setting: Hashable {

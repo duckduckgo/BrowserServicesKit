@@ -1,6 +1,5 @@
 //
 //  TrackerDataManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
@@ -29,17 +28,17 @@ public protocol TrackerDataProvider {
 }
 
 public class TrackerDataManager {
-    
+
     public enum ReloadResult: Equatable {
         case embedded
         case embeddedFallback
         case downloaded
     }
-    
+
     public typealias DataSet = (tds: TrackerData, etag: String)
-    
+
     private let lock = NSLock()
-    
+
     private var _fetchedData: DataSet?
     private(set) public var fetchedData: DataSet? {
         get {
@@ -54,7 +53,7 @@ public class TrackerDataManager {
             lock.unlock()
         }
     }
-    
+
     private var _embeddedData: DataSet!
     private(set) public var embeddedData: DataSet {
         get {
@@ -78,7 +77,7 @@ public class TrackerDataManager {
             lock.unlock()
         }
     }
-    
+
     public var trackerData: TrackerData {
         if let data = fetchedData {
             return data.tds
@@ -101,13 +100,13 @@ public class TrackerDataManager {
 
     @discardableResult
     public func reload(etag: String?, data: Data?) -> ReloadResult {
-        
+
         let result: ReloadResult
-        
+
         if let etag = etag,
             let data = data {
             result = .downloaded
-            
+
             do {
                 // This might fail if the downloaded data is corrupt or format has changed unexpectedly
                 let data = try JSONDecoder().decode(TrackerData.self, from: data)
@@ -121,7 +120,7 @@ public class TrackerDataManager {
             fetchedData = nil
             result = .embedded
         }
-        
+
         return result
     }
 }

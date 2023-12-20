@@ -1,6 +1,5 @@
 //
 //  MockNetworkProtectionClient.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -35,7 +34,7 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         spyGetLocationsAuthToken = authToken
         return stubGetLocations
     }
-    
+
     public var spyRedeemInviteCode: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
     public var redeemCalled: Bool {

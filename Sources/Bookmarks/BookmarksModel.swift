@@ -35,7 +35,7 @@ public protocol BookmarkListInteracting: BookmarkStoring, AnyObject {
     var currentFolder: BookmarkEntity? { get }
     var bookmarks: [BookmarkEntity] { get }
     var totalBookmarksCount: Int { get }
-    
+
     func bookmark(at index: Int) -> BookmarkEntity?
 
     func bookmark(with id: NSManagedObjectID) -> BookmarkEntity?
@@ -74,9 +74,9 @@ public protocol MenuBookmarksInteracting {
     var favoritesDisplayMode: FavoritesDisplayMode { get set }
 
     func createOrToggleFavorite(title: String, url: URL)
-    
+
     func createBookmark(title: String, url: URL)
-    
+
     func favorite(for url: URL) -> BookmarkEntity?
     func bookmark(for url: URL) -> BookmarkEntity?
 }

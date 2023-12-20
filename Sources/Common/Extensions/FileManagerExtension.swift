@@ -1,6 +1,5 @@
 //
 //  FileManagerExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,7 @@
 import Foundation
 
 extension FileManager {
-    
+
     public func applicationSupportDirectoryForComponent(named name: String) -> URL {
 #if os(macOS)
         let sandboxPathComponent = "Containers/\(Bundle.main.bundleIdentifier!)/Data/Library/Application Support/"
@@ -33,5 +32,5 @@ extension FileManager {
 #endif
         return dir.appendingPathComponent(name)
     }
-    
+
 }

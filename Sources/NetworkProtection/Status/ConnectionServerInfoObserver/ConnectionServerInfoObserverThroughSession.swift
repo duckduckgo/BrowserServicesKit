@@ -32,7 +32,7 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
     }
 
     private let subject = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
-    
+
     // MARK: - Notifications
 
     private let notificationCenter: NotificationCenter

@@ -1,6 +1,5 @@
 //
-//  File.swift
-//  DuckDuckGo
+//  EndpointTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
