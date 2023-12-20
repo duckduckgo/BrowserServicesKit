@@ -32,7 +32,7 @@ class SyncDailyStatsTests: XCTestCase {
     var stats: SyncDailyStats!
 
     var statusDict: [String: Int]? {
-        store.object(forKey: SyncDailyStats.Constants.dailyStatusDictKey) as? [String: Int]
+        store.object(forKey: SyncDailyStats.Constants.dailyStatsDictKey) as? [String: Int]
     }
 
     override func setUp() {

@@ -22,10 +22,12 @@ import Persistence
 public class SyncDailyStats {
 
     public enum Constants {
-        public static let dailyStatusDictKey = "dailyStatusDictKey"
+        public static let dailyStatsDictKey = "dailyStatsDictKey"
+        public static let lastSentDate = "dailyStats_last_sent_date"
+
+        // Dict Parameters
         public static let syncCountParam = "sync_count"
         public static let syncDateParam = "date"
-        public static let lastSentDate = "dailyStatus_last_sent_date"
     }
 
     private let store: KeyValueStoring
@@ -51,17 +53,17 @@ public class SyncDailyStats {
         lock.lock()
         defer { lock.unlock() }
 
-        var storeValues: [String: Int] = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) ?? [:]
+        var storeValues: [String: Int] = (store.object(forKey: Constants.dailyStatsDictKey) as? [String: Int]) ?? [:]
 
         for updatedKey in updatedKeys {
             storeValues[updatedKey] = (storeValues[updatedKey] ?? 0) + 1
         }
 
-        store.set(storeValues, forKey: Constants.dailyStatusDictKey)
+        store.set(storeValues, forKey: Constants.dailyStatsDictKey)
     }
 
-    public func sendStatusIfNeeded(currentDate: Date = Date(),
-                                   handler: ([String: String]) -> Void) {
+    public func sendStatsIfNeeded(currentDate: Date = Date(),
+                                  handler: ([String: String]) -> Void) {
         guard let lastDate = store.object(forKey: Constants.lastSentDate) as? Date else {
             store.set(currentDate, forKey: Constants.lastSentDate)
             return
@@ -72,7 +74,7 @@ public class SyncDailyStats {
         lock.lock()
         defer { lock.unlock() }
 
-        if let currentStats = (store.object(forKey: Constants.dailyStatusDictKey) as? [String: Int]) {
+        if let currentStats = (store.object(forKey: Constants.dailyStatsDictKey) as? [String: Int]) {
             var parameters = currentStats.mapValues({ "\($0)" })
 
             let dateFormater = DateFormatter()
@@ -81,7 +83,7 @@ public class SyncDailyStats {
             handler(parameters)
         }
 
-        store.removeObject(forKey: Constants.dailyStatusDictKey)
+        store.removeObject(forKey: Constants.dailyStatsDictKey)
         store.set(currentDate, forKey: Constants.lastSentDate)
     }
 
