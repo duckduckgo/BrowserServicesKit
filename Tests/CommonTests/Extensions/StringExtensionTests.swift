@@ -25,47 +25,47 @@ final class StringExtensionTests: XCTestCase {
     func testWhenNormalizingStringsForAutofill_ThenDiacriticsAreRemoved() {
         let stringToNormalize = "Dáx Thê Dûck"
         let normalizedString = stringToNormalize.autofillNormalized()
-        
+
         XCTAssertEqual(normalizedString, "daxtheduck")
     }
-    
+
     func testWhenNormalizingStringsForAutofill_ThenWhitespaceIsRemoved() {
         let stringToNormalize = "Dax The Duck"
         let normalizedString = stringToNormalize.autofillNormalized()
-        
+
         XCTAssertEqual(normalizedString, "daxtheduck")
     }
-    
+
     func testWhenNormalizingStringsForAutofill_ThenPunctuationIsRemoved() {
         let stringToNormalize = ",Dax+The_Duck."
         let normalizedString = stringToNormalize.autofillNormalized()
-        
+
         XCTAssertEqual(normalizedString, "daxtheduck")
     }
-    
+
     func testWhenNormalizingStringsForAutofill_ThenNumbersAreRetained() {
         let stringToNormalize = "Dax123"
         let normalizedString = stringToNormalize.autofillNormalized()
-        
+
         XCTAssertEqual(normalizedString, "dax123")
     }
-    
+
     func testWhenNormalizingStringsForAutofill_ThenStringsThatDoNotNeedNormalizationAreUntouched() {
         let stringToNormalize = "firstmiddlelast"
         let normalizedString = stringToNormalize.autofillNormalized()
-        
+
         XCTAssertEqual(normalizedString, "firstmiddlelast")
     }
-    
+
     func testWhenNormalizingStringsForAutofill_ThenEmojiAreRemoved() {
         let stringToNormalize = "Dax 🤔"
         let normalizedString = stringToNormalize.autofillNormalized()
-        
+
         XCTAssertEqual(normalizedString, "dax")
     }
-    
+
     func testWhenEmojisArePresentInDomains_ThenTheseCanBePunycoded() {
-        
+
         XCTAssertEqual("example.com".punycodeEncodedHostname, "example.com")
         XCTAssertEqual("Dax🤔.com".punycodeEncodedHostname, "xn--dax-v153b.com")
         XCTAssertEqual("🤔.com".punycodeEncodedHostname, "xn--wp9h.com")

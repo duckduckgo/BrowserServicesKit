@@ -95,7 +95,7 @@ struct Crypter: CryptingInternal {
 
     func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
-        
+
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
         var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
         var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
@@ -106,7 +106,7 @@ struct Crypter: CryptingInternal {
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToCreateAccountKeys("ddgSyncPrepareForLogin failed: \(result)")
         }
-        
+
         return ExtractedLoginInfo(
             userId: recoveryKey.userId,
             primaryKey: Data(primaryKeyBytes),

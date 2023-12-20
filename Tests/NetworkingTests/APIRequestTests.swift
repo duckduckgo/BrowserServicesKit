@@ -1,6 +1,5 @@
 //
 //  APIRequestTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -22,21 +21,21 @@ import XCTest
 @testable import TestUtils
 
 final class APIRequestTests: XCTestCase {
-    
+
     enum MockError: Error {
         case someError
     }
-        
+
     override class func setUp() {
         APIRequest.Headers.setUserAgent("")
     }
-    
+
     private var mockURLSession: URLSession {
         let testConfiguration = URLSessionConfiguration.default
         testConfiguration.protocolClasses = [MockURLProtocol.self]
         return URLSession(configuration: testConfiguration)
     }
-        
+
     func testWhenUrlSessionThrowsErrorThenWrappedUrlSessionErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in throw MockError.someError }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -52,7 +51,7 @@ final class APIRequestTests: XCTestCase {
             }
         }
     }
-    
+
     func testWhenThereIsNoDataInResponseThenEmptyDataIsReturned() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -64,7 +63,7 @@ final class APIRequestTests: XCTestCase {
             XCTFail("Unexpected error thrown: \(error).")
         }
     }
-    
+
     func testWhenThereIsNoDataInResponseButItIsRequiredThenEmptyDataErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -79,9 +78,9 @@ final class APIRequestTests: XCTestCase {
             }
         }
     }
-    
+
     let privacyConfigurationData = Data("Privacy Config".utf8)
-    
+
     func testWhenEtagIsMissingInResponseThenResponseIsReturned() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.okNoEtag, self.privacyConfigurationData) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -94,7 +93,7 @@ final class APIRequestTests: XCTestCase {
             XCTFail("Unexpected error thrown: \(error).")
         }
     }
-    
+
     func testWhenEtagIsMissingInResponseButItIsRequiredThenMissingEtagErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.okNoEtag, self.privacyConfigurationData) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -109,7 +108,7 @@ final class APIRequestTests: XCTestCase {
             }
         }
     }
-    
+
     func testWhenInternalServerErrorThenInvalidStatusCodeErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -124,7 +123,7 @@ final class APIRequestTests: XCTestCase {
             }
         }
     }
-    
+
     func testWhenNotModifiedResponseThenInvalidResponseErrorIsThrown() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -139,7 +138,7 @@ final class APIRequestTests: XCTestCase {
             }
         }
     }
-    
+
     func testWhenNotModifiedResponseButItIsAllowedThenResponseWithNilDataIsReturned() async {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
         let configuration = APIRequest.Configuration(url: HTTPURLResponse.testUrl)
@@ -152,5 +151,5 @@ final class APIRequestTests: XCTestCase {
             XCTFail("Unexpected error thrown: \(error).")
         }
     }
-    
+
 }

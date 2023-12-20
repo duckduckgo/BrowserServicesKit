@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import Persistence
 
 struct ProductionDependencies: SyncDependencies {
 
@@ -37,15 +38,15 @@ struct ProductionDependencies: SyncDependencies {
     private let getLog: () -> OSLog
 
     init(serverEnvironment: ServerEnvironment, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
-        
+
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   serverEnvironment: serverEnvironment,
-                  keyValueStore: KeyValueStore(),
+                  keyValueStore: UserDefaults(),
                   secureStore: SecureStorage(),
                   errorEvents: errorEvents,
                   log: log())
     }
-    
+
     init(
         fileStorageUrl: URL,
         serverEnvironment: ServerEnvironment,

@@ -1,6 +1,5 @@
 //
 //  AppVersion.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +21,7 @@ import Foundation
 public struct AppVersion {
 
     public static let shared = AppVersion()
-    
+
     private let bundle: InfoBundle
 
     public init(bundle: InfoBundle = Bundle.main) {
@@ -36,7 +35,7 @@ public struct AppVersion {
     public var identifier: String {
         return bundle.object(forInfoDictionaryKey: Bundle.Key.identifier) as? String ?? ""
     }
-    
+
     public var majorVersionNumber: String {
         return String(versionNumber.split(separator: ".").first ?? "")
     }
@@ -48,11 +47,11 @@ public struct AppVersion {
     public var buildNumber: String {
         return bundle.object(forInfoDictionaryKey: Bundle.Key.buildNumber) as? String ?? ""
     }
-    
+
     public var versionAndBuildNumber: String {
         return "\(versionNumber).\(buildNumber)"
     }
-    
+
     public var localized: String {
         return "\(name) \(versionAndBuildNumber)"
     }
@@ -61,5 +60,5 @@ public struct AppVersion {
         let os = ProcessInfo().operatingSystemVersion
         return "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }
-    
+
 }

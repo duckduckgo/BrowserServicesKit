@@ -1,6 +1,5 @@
 //
 //  SyncOperation.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +20,7 @@ import Foundation
 import Combine
 import Common
 
-class SyncOperation: Operation {
+final class SyncOperation: Operation {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring
@@ -167,9 +166,7 @@ class SyncOperation: Operation {
                                                           fetchOnly: fetchOnly,
                                                           timestamp: clientTimestamp)
                         default:
-                            let error = SyncError.unexpectedStatusCode(httpResult.response.statusCode)
-                            didReceiveHTTPRequestError?(error)
-                            throw FeatureError(feature: dataProvider.feature, underlyingError: error)
+                            throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch is CancellationError {
                         os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)

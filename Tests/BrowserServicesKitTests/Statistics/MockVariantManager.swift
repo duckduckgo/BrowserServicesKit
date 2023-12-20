@@ -1,6 +1,5 @@
 //
 //  MockVariantManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2018 DuckDuckGo. All rights reserved.
 //
@@ -28,7 +27,7 @@ struct MockVariantManager: VariantManager {
             isSupportedBlock = { _ in return newValue }
         }
     }
-    
+
     var isSupportedBlock: (FeatureName) -> Bool
 
     var currentVariant: Variant?
@@ -41,7 +40,7 @@ struct MockVariantManager: VariantManager {
 
     func assignVariantIfNeeded(_ newInstallCompletion: (VariantManager) -> Void) {
     }
-    
+
     func isSupported(feature: FeatureName) -> Bool {
         return isSupportedBlock(feature)
     }

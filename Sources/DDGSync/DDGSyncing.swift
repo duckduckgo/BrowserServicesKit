@@ -75,6 +75,11 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     var scheduler: Scheduling { get }
 
     /**
+     Used to aggregate success and error stats of sync operations.
+     */
+    var syncDailyStats: SyncDailyStats { get }
+
+    /**
      Returns true if there is an ongoing sync operation.
      */
     var isSyncInProgress: Bool { get }
@@ -97,7 +102,7 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
      * Generate secure keys
      * Call /signup endpoint
      * Store Primary Key, Secret Key, User Id and JWT token
-     
+
      Notes:
      * The primary key in combination with the user id, is the recovery code.  This can be used to (re)connect devices.
      * The JWT token contains the authorisation required to call an endpoint.  If a device is removed from sync the token will be invalidated on the server and subsequent calls will fail.

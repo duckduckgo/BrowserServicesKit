@@ -1,6 +1,5 @@
 //
-//  FeatureFlaggingTests.swift
-//  DuckDuckGo
+//  DefaultInternalUserDeciderTests.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -21,10 +20,10 @@ import XCTest
 @testable import BrowserServicesKit
 
 class DefaultInternalUserDeciderTests: XCTestCase {
-    
+
     let correctURL = URL(string: "http://use-login.duckduckgo.com")!
     let correctStatusCode = 200
-    
+
     func testShouldMarkUserAsInternalWhenURLAndStatusCodeCorrectThenReturnsTrue() {
         let featureFlagger = DefaultInternalUserDecider()
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: correctURL, statusCode: correctStatusCode)

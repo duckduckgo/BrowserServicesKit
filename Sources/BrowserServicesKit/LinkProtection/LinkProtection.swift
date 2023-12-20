@@ -20,12 +20,12 @@ import WebKit
 import Common
 
 public struct LinkProtection {
-    
+
     private let linkCleaner: LinkCleaner
     private let ampExtractor: AMPCanonicalExtractor
-    
+
     private var mainFrameUrl: URL?
-    
+
     public init(privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: CompiledRuleListsSource,
                 errorReporting: EventMapping<AMPProtectionDebugEvents>) {
@@ -45,7 +45,7 @@ public struct LinkProtection {
     public mutating func setMainFrameUrl(_ url: URL?) {
         mainFrameUrl = url
     }
-    
+
     public func getCleanURL(from url: URL,
                             onStartExtracting: () -> Void,
                             onFinishExtracting: @escaping () -> Void,
@@ -54,7 +54,7 @@ public struct LinkProtection {
         if let cleanURL = linkCleaner.cleanTrackingParameters(initiator: nil, url: urlToLoad) {
             urlToLoad = cleanURL
         }
-        
+
         if let cleanURL = linkCleaner.extractCanonicalFromAMPLink(initiator: nil, destination: urlToLoad) {
             completion(cleanURL)
         } else if ampExtractor.urlContainsAMPKeyword(urlToLoad) {
@@ -80,7 +80,7 @@ public struct LinkProtection {
             }
         }
     }
-    
+
     // swiftlint:disable function_parameter_count
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            destinationRequest: URLRequest,
@@ -94,7 +94,7 @@ public struct LinkProtection {
             // We do not rewrite redirects due to breakage concerns
             return false
         }
-        
+
         var didRewriteLink = false
         if let newURL = linkCleaner.extractCanonicalFromAMPLink(initiator: initiatingURL, destination: destinationURL) {
             policyDecisionHandler(false)
@@ -108,7 +108,7 @@ public struct LinkProtection {
                     policyDecisionHandler(true)
                     return
                 }
-                
+
                 policyDecisionHandler(false)
                 onLinkRewrite(getNewRequest(changingUrl: canonical, inRequest: destinationRequest))
             }
@@ -120,7 +120,7 @@ public struct LinkProtection {
                 didRewriteLink = true
             }
         }
-        
+
         return didRewriteLink
     }
 
@@ -153,16 +153,16 @@ public struct LinkProtection {
                                                             onLinkRewrite: onLinkRewrite) { navigationActionPolicy in
                 continuation.resume(returning: navigationActionPolicy)
             }
-            
+
             if !didRewriteLink {
                 continuation.resume(returning: nil)
             }
         }
     }
-    
+
     public func cancelOngoingExtraction() { ampExtractor.cancelOngoingExtraction() }
-    
+
     public var lastAMPURLString: String? { linkCleaner.lastAMPURLString }
     public var urlParametersRemoved: Bool { linkCleaner.urlParametersRemoved }
-    
+
 }

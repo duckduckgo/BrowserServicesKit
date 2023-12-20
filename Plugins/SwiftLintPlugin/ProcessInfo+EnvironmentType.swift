@@ -1,7 +1,7 @@
 //
-//  SecureStorage.swift
+//  ProcessInfo+EnvironmentType.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,14 +18,22 @@
 
 import Foundation
 
-struct KeyValueStore: KeyValueStoring {
+extension ProcessInfo {
 
-    func object(forKey key: String) -> Any? {
-        return UserDefaults().object(forKey: key)
+    enum EnvironmentType {
+        case xcode
+        case xcodebuild
+        case ci
     }
 
-    func set(_ value: Any?, forKey key: String) {
-        UserDefaults().set(value, forKey: key)
+    var environmentType: EnvironmentType {
+        if self.environment["GITHUB_ACTIONS"] != nil {
+            return .ci
+        } else if self.environment["UsePerConfigurationBuildLocations"] != nil {
+            return .xcode
+        } else {
+            return .xcodebuild
+        }
     }
 
 }

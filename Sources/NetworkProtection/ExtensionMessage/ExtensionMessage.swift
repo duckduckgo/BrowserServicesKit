@@ -133,7 +133,7 @@ public enum ExtensionMessage: RawRepresentable {
 
         case .simulateConnectionInterruption:
             self = .simulateConnectionInterruption
-            
+
         case .none:
             assertionFailure("Invalid data")
             return nil

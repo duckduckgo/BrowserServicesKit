@@ -1,6 +1,5 @@
 //
 //  ProtectionStatus.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -20,12 +19,12 @@
 import Foundation
 
 public struct ProtectionStatus: Encodable {
-    
+
     let unprotectedTemporary: Bool
     let enabledFeatures: [String]
     let allowlisted: Bool
     let denylisted: Bool
-    
+
     public init(unprotectedTemporary: Bool, enabledFeatures: [String], allowlisted: Bool, denylisted: Bool) {
         self.unprotectedTemporary = unprotectedTemporary
         self.enabledFeatures = enabledFeatures

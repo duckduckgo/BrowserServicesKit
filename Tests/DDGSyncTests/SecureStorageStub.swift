@@ -20,12 +20,12 @@ import Foundation
 @testable import DDGSync
 
 class SecureStorageStub: SecureStoring {
-    
+
     var theAccount: SyncAccount?
 
     var mockReadError: SyncError?
     var mockWriteError: SyncError?
-    
+
     func persistAccount(_ account: SyncAccount) throws {
         if let mockWriteError {
             throw mockWriteError
@@ -44,5 +44,5 @@ class SecureStorageStub: SecureStoring {
     func removeAccount() throws {
         theAccount = nil
     }
-    
+
 }

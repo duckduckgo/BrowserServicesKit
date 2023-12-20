@@ -14,6 +14,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+//
 
 import Foundation
 import XCTest
@@ -155,7 +156,6 @@ class SecureVaultModelTests: XCTestCase {
 
     // MARK: - Test Utilities
 
-    // swiftlint:disable:next large_tuple
     private func identity(named name: (String, String, String), addressStreet: String?) -> SecureVaultModels.Identity {
         return SecureVaultModels.Identity(id: nil,
                                           title: nil,
@@ -331,7 +331,7 @@ class SecureVaultModelTests: XCTestCase {
     }
 
     func testPatternMatchedTitle() {
-        
+
         let domainTitles: [String] = [
             "duck.com",
             "duck.com (test@duck.com)",
@@ -347,7 +347,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://www.duck.com/section/page.php?test=variable1&b=variable2",
             "https://WwW.dUck.com/section/page"
         ]
-        
+
         let subdomainTitles: [String] = [
             "signin.duck.com",
             "signin.duck.com (test@duck.com.co)",
@@ -357,7 +357,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://signin.duck.com/section/page.php?test=variable1&b=variable2",
             "https://SiGnIn.dUck.com/section/page"
         ]
-        
+
         let tldPlusOneTitles: [String] = [
             "signin.duck.com.co",
             "signin.duck.com.co (test@duck.com.co)",
@@ -367,7 +367,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://signin.duck.com.co/section/page.php?test=variable1&b=variable2",
             "https://SiGnIn.dUck.com.CO/section/page"
         ]
-        
+
         let randomTitles: [String] = [
             "John's Work Gmail",
             "Chase Bank - Main Account",
@@ -422,36 +422,36 @@ class SecureVaultModelTests: XCTestCase {
             "twitter.com my account",
             "fill.dev  personal email"
         ]
-                        
+
         for title in domainTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
-            
+
             let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "duck.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
         for title in subdomainTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("signin.duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
-            
+
             let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
         for title in tldPlusOneTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("signin.duck.com.co", account.patternMatchedTitle(), "Failed for title: \(title)")
-            
+
             let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com.co", created: Date(), lastUpdated: Date())
             XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
         for title in randomTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual(title, account.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
     }
-    
+
 }

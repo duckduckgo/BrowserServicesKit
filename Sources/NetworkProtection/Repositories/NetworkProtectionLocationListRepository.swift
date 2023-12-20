@@ -29,7 +29,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     private let tokenStore: NetworkProtectionTokenStore
     private let errorEvents: EventMapping<NetworkProtectionError>
 
-    convenience public init(environment: VPNSettings.SelectedEnvironment, 
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
                             errorEvents: EventMapping<NetworkProtectionError>) {
         self.init(
@@ -39,7 +39,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
         )
     }
 
-    init(client: NetworkProtectionClient, 
+    init(client: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.client = client

@@ -1,6 +1,5 @@
 //
 //  AppAttributeMatcher.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -55,7 +54,7 @@ public struct AppAttributeMatcher: AttributeMatcher {
             guard let value = matchingAttribute.value else {
                 return .fail
             }
-            
+
             return BooleanMatchingAttribute(value).matches(value: isInternalUser)
         case let matchingAttribute as AppIdMatchingAttribute:
             guard let value = matchingAttribute.value, !value.isEmpty else {

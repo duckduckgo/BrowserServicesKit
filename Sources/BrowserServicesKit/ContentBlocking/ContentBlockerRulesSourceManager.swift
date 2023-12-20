@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesSourceManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -73,7 +72,7 @@ public class ContentBlockerRulesSourceModel: ContentBlockerRulesSourceIdentifier
  Manages sources that are used to compile Content Blocking Rules, handles possible broken state by filtering out sources that are potentially corrupted.
  */
 public class ContentBlockerRulesSourceManager {
-    
+
     public class RulesSourceBreakageInfo {
 
         public internal(set) var tdsIdentifier: String?
@@ -177,7 +176,7 @@ public class ContentBlockerRulesSourceManager {
 
         return result
     }
-    
+
     /**
      Process information about last failed compilation in order to update `brokenSources` state.
      */
@@ -199,7 +198,7 @@ public class ContentBlockerRulesSourceManager {
     private func compilationFailed(for input: ContentBlockerRulesSourceIdentifiers,
                                    with error: Error,
                                    brokenSources: RulesSourceBreakageInfo) {
-        
+
         if input.tdsIdentifier != rulesList.fallbackTrackerData.etag {
             os_log(.debug, log: log, "Falling back to embedded TDS")
             // We failed compilation for non-embedded TDS, marking it as broken.
@@ -261,5 +260,5 @@ public class ContentBlockerRulesSourceManager {
             fatalError("Could not compile embedded rules list")
         }
     }
-    
+
 }
