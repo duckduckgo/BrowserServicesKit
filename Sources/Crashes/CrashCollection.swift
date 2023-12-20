@@ -35,9 +35,21 @@ public struct CrashCollection {
                              firePixelHandler: @escaping ([String: String]) -> Void,
                              showPromptIfCanSendCrashReport: @escaping ( @escaping (Bool) -> Void ) -> Void) {
 
-        CrashCollection.collectCrashesAsync { params in
-            firePixelHandler(params)
-        } crashDiagnosticsPayloadHandler: { payloads in
+        CrashCollection.collectCrashesAsync { payloads in
+            // Send pixels
+            payloads
+                .compactMap { $0.crashDiagnostics }
+                .flatMap { $0 }
+                .forEach {
+                    firePixelHandler([
+                        "appVersion": "\($0.applicationVersion).\($0.metaData.applicationBuildVersion)",
+                        "code": "\($0.exceptionCode ?? -1)",
+                        "type": "\($0.exceptionType ?? -1)",
+                        "signal": "\($0.signal ?? -1)"
+                    ])
+                }
+
+            // Show prompt to send crash reports
             showPromptIfCanSendCrashReport { canSend in
                 print("-- sendCrashReportHandler { shouldSend : \(canSend)")
                 if canSend {
@@ -51,8 +63,7 @@ public struct CrashCollection {
         }
     }
 
-    private static func collectCrashesAsync(firePixel: @escaping ([String: String]) -> Void,
-                                            crashDiagnosticsPayloadHandler: @escaping ([MXDiagnosticPayload]) -> Void) {
+    private static func collectCrashesAsync(crashDiagnosticsPayloadHandler: @escaping ([MXDiagnosticPayload]) -> Void) {
 
         // TODO: Remove, only for testing
 
@@ -84,8 +95,6 @@ public struct CrashCollection {
         }
         ////////////////////////////////////////////
 
-        
-        crashHandler.firePixelHandler = firePixel
         crashHandler.crashDiagnosticsPayloadHandler = crashDiagnosticsPayloadHandler
 
         MXMetricManager.shared.add(crashHandler)

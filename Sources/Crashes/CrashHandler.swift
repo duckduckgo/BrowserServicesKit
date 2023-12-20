@@ -24,24 +24,10 @@ import MetricKit
 @available(iOS 13, macOS 12, *)
 final class CrashHandler: NSObject, MXMetricManagerSubscriber {
 
-    var firePixelHandler: ([String: String]) -> Void = { _ in }
     var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
 
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         let payloadsWithCrash = payloads.filter { !($0.crashDiagnostics?.isEmpty ?? true) }
-
-        payloadsWithCrash
-            .compactMap { $0.crashDiagnostics }
-            .flatMap { $0 }
-            .forEach {
-                firePixelHandler([
-                    "appVersion": "\($0.applicationVersion).\($0.metaData.applicationBuildVersion)",
-                    "code": "\($0.exceptionCode ?? -1)",
-                    "type": "\($0.exceptionType ?? -1)",
-                    "signal": "\($0.signal ?? -1)"
-                ])
-            }
-
         crashDiagnosticsPayloadHandler(payloadsWithCrash)
     }
 
