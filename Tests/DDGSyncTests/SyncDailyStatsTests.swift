@@ -73,7 +73,7 @@ class SyncDailyStatsTests: XCTestCase {
 
     func testWhenNewInstallThenSendNothing() {
 
-        stats.sendStatusIfNeeded { _ in
+        stats.sendStatsIfNeeded { _ in
             XCTFail("Should not execute")
         }
 
@@ -81,7 +81,7 @@ class SyncDailyStatsTests: XCTestCase {
     }
 
     func testWhenSameDayThenSendNothing() {
-        stats.sendStatusIfNeeded { _ in
+        stats.sendStatsIfNeeded { _ in
             XCTFail("Should not execute")
         }
 
@@ -90,7 +90,7 @@ class SyncDailyStatsTests: XCTestCase {
 
         Thread.sleep(forTimeInterval: 0.1)
 
-        stats.sendStatusIfNeeded { _ in
+        stats.sendStatsIfNeeded { _ in
             XCTFail("Should not execute")
         }
 
@@ -108,7 +108,7 @@ class SyncDailyStatsTests: XCTestCase {
         XCTAssertFalse(Calendar.current.isDate(currentDate, inSameDayAs: yesterday))
         XCTAssertFalse(Calendar.current.isDateInToday(yesterday))
 
-        stats.sendStatusIfNeeded(currentDate: yesterday)  { _ in
+        stats.sendStatsIfNeeded(currentDate: yesterday)  { _ in
             XCTFail("Should not execute")
         }
 
@@ -117,7 +117,7 @@ class SyncDailyStatsTests: XCTestCase {
         let exp = expectation(description: "Should send data")
 
         stats.onSyncFinished(with: nil)
-        stats.sendStatusIfNeeded(currentDate: currentDate) { data in
+        stats.sendStatsIfNeeded(currentDate: currentDate) { data in
             XCTAssertEqual(data[SyncDailyStats.Constants.syncCountParam], "1")
             exp.fulfill()
         }
@@ -137,13 +137,13 @@ class SyncDailyStatsTests: XCTestCase {
         XCTAssertFalse(Calendar.current.isDate(currentDate, inSameDayAs: yesterday))
         XCTAssertFalse(Calendar.current.isDateInToday(yesterday))
 
-        stats.sendStatusIfNeeded(currentDate: yesterday)  { _ in
+        stats.sendStatsIfNeeded(currentDate: yesterday)  { _ in
             XCTFail("Should not execute")
         }
 
         XCTAssertEqual(store.object(forKey: SyncDailyStats.Constants.lastSentDate) as? Date, yesterday)
 
-        stats.sendStatusIfNeeded(currentDate: currentDate) { _ in
+        stats.sendStatsIfNeeded(currentDate: currentDate) { _ in
             XCTFail("Should not execute - no data")
         }
 
