@@ -26,7 +26,7 @@ public class DDGSync: DDGSyncing {
 
     public static let bundle = Bundle.module
 
-    @Published public var featureFlags: SyncFeatureFlags = .all
+    @Published public private(set) var featureFlags: SyncFeatureFlags = .all
     public var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> {
         $featureFlags.eraseToAnyPublisher()
     }
