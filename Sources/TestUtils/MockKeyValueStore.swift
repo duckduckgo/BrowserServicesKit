@@ -1,7 +1,7 @@
 //
-//  KeyValueStore.swift
+//  MockKeyValueStore.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,15 +17,24 @@
 //
 
 import Foundation
+import Persistence
 
-struct KeyValueStore: KeyValueStoring {
+public class MockKeyValueStore: KeyValueStoring {
 
-    func object(forKey key: String) -> Any? {
-        return UserDefaults().object(forKey: key)
+    var store = [String: Any?]()
+
+    public init() { }
+
+    public func object(forKey defaultName: String) -> Any? {
+        return store[defaultName] as Any?
     }
 
-    func set(_ value: Any?, forKey key: String) {
-        UserDefaults().set(value, forKey: key)
+    public func set(_ value: Any?, forKey defaultName: String) {
+        store[defaultName] = value
+    }
+
+    public func removeObject(forKey defaultName: String) {
+        store[defaultName] = nil
     }
 
 }

@@ -14,6 +14,7 @@ let package = Package(
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "TestUtils", targets: ["TestUtils"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
@@ -256,7 +257,8 @@ let package = Package(
         .target(
             name: "TestUtils",
             dependencies: [
-                "Networking"
+                "Networking",
+                "Persistence"
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -328,7 +330,8 @@ let package = Package(
             dependencies: [
                 "BrowserServicesKit",
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
-                "SecureStorageTestsUtils"
+                "SecureStorageTestsUtils",
+                "TestUtils"
             ],
             resources: [
                 .copy("Resources")
@@ -338,7 +341,8 @@ let package = Package(
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
-                "DDGSync"
+                "DDGSync",
+                "TestUtils"
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
