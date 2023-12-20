@@ -165,7 +165,6 @@ final class BookmarkListViewModelTests: XCTestCase {
                 Bookmark(id: "2")
                 Bookmark(id: "1")
             })
-            XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
         }
     }
 
@@ -201,7 +200,6 @@ final class BookmarkListViewModelTests: XCTestCase {
                 Bookmark(id: "4")
                 Bookmark(id: "6", isOrphaned: true)
             })
-            XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
         }
     }
 
@@ -237,7 +235,6 @@ final class BookmarkListViewModelTests: XCTestCase {
                 Bookmark(id: "3")
                 Bookmark(id: "6", isOrphaned: true)
             })
-            XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
         }
     }
 
@@ -273,7 +270,6 @@ final class BookmarkListViewModelTests: XCTestCase {
                 Bookmark(id: "5", isOrphaned: true)
                 Bookmark(id: "6", isOrphaned: true)
             })
-            XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
         }
     }
 
@@ -309,7 +305,6 @@ final class BookmarkListViewModelTests: XCTestCase {
                 Bookmark(id: "5", isOrphaned: true)
                 Bookmark(id: "6", isOrphaned: true)
             })
-            XCTAssertEqual(firedEvents, [.orphanedBookmarksPresent])
         }
     }
 

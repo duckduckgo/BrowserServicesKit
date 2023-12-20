@@ -86,6 +86,11 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     var scheduler: Scheduling { get }
 
     /**
+     Used to aggregate success and error stats of sync operations.
+     */
+    var syncDailyStats: SyncDailyStats { get }
+
+    /**
      Returns true if there is an ongoing sync operation.
      */
     var isSyncInProgress: Bool { get }

@@ -20,6 +20,8 @@ import BrowserServicesKit
 import Combine
 import Common
 import Foundation
+import Persistence
+import TestUtils
 @testable import DDGSync
 
 extension SyncAccount {
@@ -128,22 +130,6 @@ class MockErrorHandler: EventMapping<SyncError> {
             handledErrors.add(e)
         }
         _handledErrors = handledErrors
-    }
-}
-
-class MockKeyValueStore: KeyValueStoring {
-    var isSyncEnabled: Bool? = true
-
-    func object(forKey: String) -> Any? {
-        if forKey == DDGSync.Constants.syncEnabledKey {
-            return isSyncEnabled
-        }
-        return nil
-    }
-    func set(_ value: Any?, forKey: String) {
-        if forKey == DDGSync.Constants.syncEnabledKey, let boolValue = value as? Bool {
-            isSyncEnabled = boolValue
-        }
     }
 }
 

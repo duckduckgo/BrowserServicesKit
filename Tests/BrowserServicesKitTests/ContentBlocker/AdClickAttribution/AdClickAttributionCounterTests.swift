@@ -18,25 +18,8 @@
 
 import XCTest
 import Persistence
+import TestUtils
 @testable import BrowserServicesKit
-
-class MockKeyValueStore: KeyValueStoring {
-
-    var store = [String: Any?]()
-
-    func object(forKey defaultName: String) -> Any? {
-        return store[defaultName] as Any?
-    }
-
-    func set(_ value: Any?, forKey defaultName: String) {
-        store[defaultName] = value
-    }
-
-    func removeObject(forKey defaultName: String) {
-        store[defaultName] = nil
-    }
-
-}
 
 class AdClickAttributionCounterTests: XCTestCase {
 
