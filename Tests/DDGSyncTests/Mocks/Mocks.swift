@@ -163,43 +163,29 @@ class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
 
 class MockPrivacyConfiguration: PrivacyConfiguration {
 
-    func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool {
-        true
-    }
+    func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool {
+    func isSubfeatureEnabled(
+        _ subfeature: any PrivacySubfeature,
+        versionProvider: AppVersionProvider,
+        randomizer: (Range<Double>) -> Double
+    ) -> Bool {
         true
     }
 
     var identifier: String = "abcd"
     var userUnprotectedDomains: [String] = []
     var tempUnprotectedDomains: [String] = []
-    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist = .init(json: [:])!
-    func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {
-        []
-    }
-    func isFeature(_ feature: PrivacyFeature, enabledForDomain: String?) -> Bool {
-        true
-    }
-    func isProtected(domain: String?) -> Bool {
-        false
-    }
-    func isUserUnprotected(domain: String?) -> Bool {
-        false
-    }
-    func isTempUnprotected(domain: String?) -> Bool {
-        false
-    }
-    func isInExceptionList(domain: String?, forFeature featureKey: PrivacyFeature) -> Bool {
-        false
-    }
-    func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings {
-        .init()
-    }
-    func userEnabledProtection(forDomain: String) {
-    }
-    func userDisabledProtection(forDomain: String) {
-    }
+    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist = .init(json: ["state": "disabled"])!
+    func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] { [] }
+    func isFeature(_ feature: PrivacyFeature, enabledForDomain: String?) -> Bool { true }
+    func isProtected(domain: String?) -> Bool { false }
+    func isUserUnprotected(domain: String?) -> Bool { false }
+    func isTempUnprotected(domain: String?) -> Bool { false }
+    func isInExceptionList(domain: String?, forFeature featureKey: PrivacyFeature) -> Bool { false }
+    func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings { .init() }
+    func userEnabledProtection(forDomain: String) {}
+    func userDisabledProtection(forDomain: String) {}
 }
 
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
