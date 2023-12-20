@@ -35,17 +35,8 @@ public struct CrashCollection {
                              firePixelHandler: @escaping ([String: String]) -> Void,
                              showPromptIfCanSendCrashReport: @escaping ( @escaping (Bool) -> Void ) -> Void) {
 
-        let first = Self.firstCrash
-
         CrashCollection.collectCrashesAsync { params in
-            var params = params
-            if first {
-                params["first"] = "1"
-            }
             firePixelHandler(params)
-
-            // Turn the flag off for next time
-            Self.firstCrash = false
         } crashDiagnosticsPayloadHandler: { payloads in
             showPromptIfCanSendCrashReport { canSend in
                 print("-- sendCrashReportHandler { shouldSend : \(canSend)")
@@ -98,18 +89,6 @@ public struct CrashCollection {
         crashHandler.crashDiagnosticsPayloadHandler = crashDiagnosticsPayloadHandler
 
         MXMetricManager.shared.add(crashHandler)
-    }
-
-    static let firstCrashKey = "CrashCollection.first"
-
-    static var firstCrash: Bool {
-        get {
-            UserDefaults().object(forKey: Self.firstCrashKey) as? Bool ?? true
-        }
-
-        set {
-            UserDefaults().set(newValue, forKey: Self.firstCrashKey)
-        }
     }
 }
 
