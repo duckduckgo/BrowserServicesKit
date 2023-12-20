@@ -14,6 +14,7 @@ let package = Package(
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
+        .library(name: "TestUtils", targets: ["TestUtils"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
