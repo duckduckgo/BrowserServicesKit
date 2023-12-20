@@ -76,7 +76,7 @@ public class SyncDailyStats {
             var parameters = currentStats.mapValues({ "\($0)" })
 
             let dateFormater = DateFormatter()
-            dateFormater.dateFormat = "dd-MM-yyyy"
+            dateFormater.dateFormat = "yyyy-MM-dd"
             parameters[Constants.syncDateParam] = dateFormater.string(from: lastDate)
             handler(parameters)
         }
