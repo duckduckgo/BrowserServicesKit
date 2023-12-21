@@ -16,14 +16,20 @@
 //  limitations under the License.
 //
 
-import Foundation
+import BrowserServicesKit
 import Combine
-import DDGSyncCrypto
 import Common
+import DDGSyncCrypto
+import Foundation
 
 public class DDGSync: DDGSyncing {
 
     public static let bundle = Bundle.module
+
+    @Published public private(set) var featureFlags: SyncFeatureFlags = .all
+    public var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> {
+        $featureFlags.eraseToAnyPublisher()
+    }
 
     enum Constants {
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
@@ -55,9 +61,15 @@ public class DDGSync: DDGSyncing {
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
+                            privacyConfigurationManager: PrivacyConfigurationManaging,
                             log: @escaping @autoclosure () -> OSLog = .disabled,
                             environment: ServerEnvironment = .production) {
-        let dependencies = ProductionDependencies(serverEnvironment: environment, errorEvents: errorEvents, log: log())
+        let dependencies = ProductionDependencies(
+            serverEnvironment: environment,
+            privacyConfigurationManager: privacyConfigurationManager,
+            errorEvents: errorEvents,
+            log: log()
+        )
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -189,6 +201,18 @@ public class DDGSync: DDGSyncing {
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
+
+        featureFlagsCancellable = Publishers.Merge(
+            self.dependencies.privacyConfigurationManager.updatesPublisher,
+            self.dependencies.privacyConfigurationManager.internalUserDecider.isInternalUserPublisher.map { _ in () })
+            .compactMap { [weak self] in
+                self?.dependencies.privacyConfigurationManager.privacyConfig
+            }
+            .prepend(dependencies.privacyConfigurationManager.privacyConfig)
+            .map(SyncFeatureFlags.init)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.featureFlags, onWeaklyHeld: self)
     }
 
     public func initializeIfNeeded() {
@@ -229,6 +253,7 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
+            isDataSyncingFeatureFlagEnabledCancellable?.cancel()
             try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
@@ -291,6 +316,9 @@ public class DDGSync: DDGSyncing {
                 self?.syncQueue?.resumeQueue()
             }
 
+        isDataSyncingFeatureFlagEnabledCancellable = featureFlagsPublisher.prepend(featureFlags).map { $0.contains(.dataSyncing) }
+            .assign(to: \.isDataSyncingFeatureFlagEnabled, onWeaklyHeld: syncQueue)
+
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
     }
@@ -317,6 +345,8 @@ public class DDGSync: DDGSyncing {
     private var startSyncCancellable: AnyCancellable?
     private var cancelSyncCancellable: AnyCancellable?
     private var resumeSyncCancellable: AnyCancellable?
+    private var featureFlagsCancellable: AnyCancellable?
+    private var isDataSyncingFeatureFlagEnabledCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
