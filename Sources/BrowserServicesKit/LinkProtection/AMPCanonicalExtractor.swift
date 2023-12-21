@@ -144,7 +144,7 @@ public final class AMPCanonicalExtractor: NSObject {
         }
 
         window.webkit.messageHandlers.\(Constants.sendCanonical).postMessage({
-            \(Constants.canonicalKey): canonicalLinks.length > 0 ? canonicalLinks[0].href : undefined
+            \(Constants.canonicalKey): result
         })
     })
 })()
