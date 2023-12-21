@@ -21,7 +21,7 @@ import Network
 import Common
 import Combine
 
-final public class NetworkProtectionLatencyMonitor {
+public actor NetworkProtectionLatencyMonitor {
     public enum ConnectionQuality: String {
         case terrible
         case poor
@@ -59,67 +59,42 @@ final public class NetworkProtectionLatencyMonitor {
 
     private static let unknownLatency: TimeInterval = -1
 
-    public var publisher: AnyPublisher<Result, Never> {
+    public nonisolated var publisher: AnyPublisher<Result, Never> {
         subject.eraseToAnyPublisher()
     }
     private let subject = PassthroughSubject<Result, Never>()
 
     private let latencySubject = PassthroughSubject<TimeInterval, Never>()
+
+    @MainActor
     private var latencyCancellable: AnyCancellable?
 
-    private actor TimerRunCoordinator {
-        private(set) var isRunning = false
-
-        func start() {
-            isRunning = true
-        }
-
-        func stop() {
-            isRunning = false
+    @MainActor
+    private var task: Task<Never, Error>? {
+        willSet {
+            task?.cancel()
         }
     }
 
-    private var timer: DispatchSourceTimer?
-    private let timerRunCoordinator = TimerRunCoordinator()
-    private let timerQueue: DispatchQueue
-
-    private let lock = NSLock()
-
-    private var _lastLatencyReported: Date = .distantPast
-    private(set) var lastLatencyReported: Date {
-        get {
-            lock.lock(); defer { lock.unlock() }
-            return _lastLatencyReported
-        }
-        set {
-            lock.lock()
-            self._lastLatencyReported = newValue
-            lock.unlock()
-        }
+    @MainActor
+    var isStarted: Bool {
+        task?.isCancelled == false
     }
+
+    @MainActor
+    private var lastLatencyReported: Date = .distantPast
+
+    @MainActor
+    private var ignoreThreshold = false
 
     private let serverIP: () -> IPv4Address?
 
     private let log: OSLog
 
-    private var _ignoreThreshold = false
-    private(set) var ignoreThreshold: Bool {
-        get {
-            lock.lock(); defer { lock.unlock() }
-            return _ignoreThreshold
-        }
-        set {
-            lock.lock()
-            self._ignoreThreshold = newValue
-            lock.unlock()
-        }
-    }
-
     // MARK: - Init & deinit
 
-    init(serverIP: @escaping () -> IPv4Address?, timerQueue: DispatchQueue, log: OSLog) {
+    init(serverIP: @escaping () -> IPv4Address?, log: OSLog) {
         self.serverIP = serverIP
-        self.timerQueue = timerQueue
         self.log = log
 
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
@@ -127,18 +102,12 @@ final public class NetworkProtectionLatencyMonitor {
 
     deinit {
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
-
-        cancelTimerImmediately()
     }
 
     // MARK: - Start/Stop monitoring
 
-    public func start() async throws {
-        guard await !timerRunCoordinator.isRunning else {
-            os_log("Will not start the latency monitor as it's already running", log: log)
-            return
-        }
-
+    @MainActor
+    public func start() {
         os_log("⚫️ Starting latency monitor", log: log)
 
         latencyCancellable = latencySubject.eraseToAnyPublisher()
@@ -164,59 +133,17 @@ final public class NetworkProtectionLatencyMonitor {
                 }
             }
 
-        do {
-            try await scheduleTimer()
-        } catch {
-            os_log("⚫️ Stopping latency monitor prematurely", log: log)
-            throw error
+        task = Task.periodic(interval: Self.measurementInterval) { [weak self] in
+            await self?.measureLatency()
         }
     }
 
-    public func stop() async {
+    @MainActor
+    public func stop() {
         os_log("⚫️ Stopping latency monitor", log: log)
-        await stopScheduledTimer()
-    }
 
-    // MARK: - Timer scheduling
-
-    private func scheduleTimer() async throws {
-        await stopScheduledTimer()
-
-        await timerRunCoordinator.start()
-
-        let timer = DispatchSource.makeTimerSource(queue: timerQueue)
-        self.timer = timer
-
-        timer.schedule(deadline: .now() + Self.measurementInterval, repeating: Self.measurementInterval)
-        timer.setEventHandler { [weak self] in
-            guard let self else { return }
-
-            Task {
-                await self.measureLatency()
-            }
-        }
-
-        timer.setCancelHandler { [weak self] in
-            self?.timer = nil
-        }
-
-        timer.resume()
-    }
-
-    private func stopScheduledTimer() async {
-        await timerRunCoordinator.stop()
-
-        cancelTimerImmediately()
-    }
-
-    private func cancelTimerImmediately() {
-        guard let timer else { return }
-
-        if !timer.isCancelled {
-            timer.cancel()
-        }
-
-        self.timer = nil
+        latencyCancellable = nil
+        task = nil
     }
 
     // MARK: - Latency monitor
@@ -241,6 +168,7 @@ final public class NetworkProtectionLatencyMonitor {
         }
     }
 
+    @MainActor
     public func simulateLatency(_ timeInterval: TimeInterval) {
         ignoreThreshold = true
         latencySubject.send(timeInterval)

@@ -259,7 +259,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                                  log: .networkProtectionPixel)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
-                                                                     timerQueue: timerQueue,
                                                                      log: .networkProtectionPixel)
 
     private var lastTestFailed = false
@@ -1033,13 +1032,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
 
         await startTunnelFailureMonitor()
-
-        do {
-            try await latencyMonitor.start()
-        } catch {
-            os_log("⚫️ Latency monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
-            throw error
-        }
+        await startLatencyMonitor()
 
         do {
             // These cases only make sense in the context of a connection that had trouble
@@ -1069,6 +1062,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         tunnelFailureMonitor.start()
+    }
+
+    @MainActor
+    private func startLatencyMonitor() {
+        if latencyMonitor.isStarted {
+            latencyMonitor.stop()
+        }
+
+        latencyMonitor.start()
     }
 
     // MARK: - Connection Tester

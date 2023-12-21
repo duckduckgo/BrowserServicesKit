@@ -27,7 +27,7 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
 
-        monitor = NetworkProtectionLatencyMonitor(serverIP: { nil }, timerQueue: DispatchQueue.main, log: .networkProtectionPixel)
+        monitor = NetworkProtectionLatencyMonitor(serverIP: { nil }, log: .networkProtectionPixel)
 
         try await monitor?.start()
     }
@@ -62,7 +62,7 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
                     break
                 }
             }
-        monitor?.simulateLatency(-1)
+        await monitor?.simulateLatency(-1)
         await fulfillment(of: [expectation], timeout: 1)
     }
 
@@ -80,7 +80,7 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     }
 
     private func testConnectionLatency(_ timeInterval: TimeInterval, expecting expectedQuality: NetworkProtectionLatencyMonitor.ConnectionQuality) async {
-        let monitor = NetworkProtectionLatencyMonitor(serverIP: { nil }, timerQueue: DispatchQueue.main, log: .networkProtectionPixel)
+        let monitor = NetworkProtectionLatencyMonitor(serverIP: { .init("127.0.0.1") }, log: .networkProtectionPixel)
 
         var reportedQuality = NetworkProtectionLatencyMonitor.ConnectionQuality.unknown
         cancellable = monitor.publisher
@@ -94,7 +94,7 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
             }
 
         try? await monitor.start()
-        monitor.simulateLatency(timeInterval)
+        await monitor.simulateLatency(timeInterval)
         await monitor.stop()
 
         XCTAssertEqual(expectedQuality, reportedQuality)
