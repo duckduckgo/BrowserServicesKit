@@ -22,7 +22,7 @@ import Networking
 
 protocol ConfigurationFetching {
 
-    func fetch(_ configuration: Configuration) async throws
+    func fetch(_ configuration: Configuration, isDebug: Bool) async throws
     func fetch(all configurations: [Configuration]) async throws
 
 }
@@ -74,8 +74,9 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     - Throws:
       An error of type Error is thrown if the configuration fails to fetch or validate.
     */
-    public func fetch(_ configuration: Configuration) async throws {
-        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: .default)
+    public func fetch(_ configuration: Configuration, isDebug: Bool = false) async throws {
+        let requirements: APIResponseRequirements = isDebug ? .requireNonEmptyData : .default
+        let fetchResult = try await fetch(from: configuration.url, withEtag: etag(for: configuration), requirements: requirements)
         if let data = fetchResult.data {
             try validator.validate(data, for: configuration)
         }
@@ -134,7 +135,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         let log = log
         let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession, log: log)
         let (data, response) = try await request.fetch()
-        return (response.etag!, data)
+        return (response.etag ?? "", data)
     }
 
     private func store(_ result: ConfigurationFetchResult, for configuration: Configuration) throws {
