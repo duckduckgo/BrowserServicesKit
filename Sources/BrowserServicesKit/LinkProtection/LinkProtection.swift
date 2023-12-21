@@ -36,7 +36,7 @@ public struct LinkProtection {
                                              errorReporting: errorReporting)
     }
 
-    private func getNewRequest(changingUrl url: URL, inRequest request: URLRequest) -> URLRequest {
+    private func makeNewRequest(changingUrl url: URL, inRequest request: URLRequest) -> URLRequest {
         var newRequest = request
         newRequest.url = url
         return newRequest
@@ -98,7 +98,7 @@ public struct LinkProtection {
         var didRewriteLink = false
         if let newURL = linkCleaner.extractCanonicalFromAMPLink(initiator: initiatingURL, destination: destinationURL) {
             policyDecisionHandler(false)
-            onLinkRewrite(getNewRequest(changingUrl: newURL, inRequest: destinationRequest))
+            onLinkRewrite(makeNewRequest(changingUrl: newURL, inRequest: destinationRequest))
             didRewriteLink = true
         } else if ampExtractor.urlContainsAMPKeyword(destinationURL) {
             onStartExtracting()
@@ -110,13 +110,13 @@ public struct LinkProtection {
                 }
 
                 policyDecisionHandler(false)
-                onLinkRewrite(getNewRequest(changingUrl: canonical, inRequest: destinationRequest))
+                onLinkRewrite(makeNewRequest(changingUrl: canonical, inRequest: destinationRequest))
             }
             didRewriteLink = true
         } else if let newURL = linkCleaner.cleanTrackingParameters(initiator: initiatingURL, url: destinationURL) {
             if newURL != destinationURL {
                 policyDecisionHandler(false)
-                onLinkRewrite(getNewRequest(changingUrl: newURL, inRequest: destinationRequest))
+                onLinkRewrite(makeNewRequest(changingUrl: newURL, inRequest: destinationRequest))
                 didRewriteLink = true
             }
         }
