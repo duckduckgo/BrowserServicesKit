@@ -128,6 +128,21 @@ public final class AMPCanonicalExtractor: NSObject {
 (function() {
     document.addEventListener('DOMContentLoaded', (event) => {
         const canonicalLinks = document.querySelectorAll('[rel="canonical"]')
+
+        let result = undefined
+        if (canonicalLinks.length > 0) {
+            result = canonicalLinks[0].href
+        }
+
+        // Loop prevention
+        if (window.location.href === result) {
+            result = undefined
+        }
+
+        if (!document.documentElement.hasAttribute('amp') && !document.documentElement.hasAttribute('⚡')) {
+            result = undefined
+        }
+
         window.webkit.messageHandlers.\(Constants.sendCanonical).postMessage({
             \(Constants.canonicalKey): canonicalLinks.length > 0 ? canonicalLinks[0].href : undefined
         })
