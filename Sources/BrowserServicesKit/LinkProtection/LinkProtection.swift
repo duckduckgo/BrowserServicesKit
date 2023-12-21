@@ -46,6 +46,16 @@ public struct LinkProtection {
         mainFrameUrl = url
     }
 
+    public func getCleanURLRequest(from urlRequest: URLRequest,
+                                   onStartExtracting: () -> Void,
+                                   onFinishExtracting: @escaping () -> Void,
+                                   completion: @escaping (URLRequest) -> Void) {
+        getCleanURL(from: urlRequest.url!, onStartExtracting: onStartExtracting, onFinishExtracting: onFinishExtracting) { newUrl in
+            let newRequest = makeNewRequest(changingUrl: newUrl, inRequest: urlRequest)
+            completion(newRequest)
+        }
+    }
+
     public func getCleanURL(from url: URL,
                             onStartExtracting: () -> Void,
                             onFinishExtracting: @escaping () -> Void,
