@@ -59,11 +59,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     private static let unknownLatency: TimeInterval = -1
 
-    public nonisolated var publisher: AnyPublisher<Result, Never> {
-        subject.eraseToAnyPublisher()
-    }
-    private let subject = PassthroughSubject<Result, Never>()
-
+    @MainActor
     private let latencySubject = PassthroughSubject<TimeInterval, Never>()
 
     @MainActor
@@ -107,16 +103,16 @@ public actor NetworkProtectionLatencyMonitor {
     // MARK: - Start/Stop monitoring
 
     @MainActor
-    public func start() {
+    public func start(callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting latency monitor", log: log)
 
         latencyCancellable = latencySubject.eraseToAnyPublisher()
-            .scan(ExponentialGeometricAverage()) { [weak self] measurements, latency in
+            .scan(ExponentialGeometricAverage()) { measurements, latency in
                 if latency >= 0 {
                     measurements.addMeasurement(latency)
                     os_log("⚫️ Latency: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, latency)
                 } else {
-                    self?.subject.send(.error)
+                    callback(.error)
                 }
 
                 os_log("⚫️ Average: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, measurements.average)
@@ -128,7 +124,7 @@ public actor NetworkProtectionLatencyMonitor {
                 let now = Date()
                 if let self,
                     (now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold) || ignoreThreshold {
-                    self.subject.send(.quality(quality))
+                    callback(.quality(quality))
                     self.lastLatencyReported = now
                 }
             }

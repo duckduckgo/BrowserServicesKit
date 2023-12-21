@@ -39,11 +39,6 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     private static let monitoringInterval: TimeInterval = .seconds(10)
 
-    public nonisolated var publisher: AnyPublisher<Result, Never> {
-        failureSubject.eraseToAnyPublisher()
-    }
-    private let failureSubject = PassthroughSubject<Result, Never>()
-
     @MainActor
     private var task: Task<Never, Error>? {
         willSet {
@@ -80,14 +75,14 @@ public actor NetworkProtectionTunnelFailureMonitor {
     // MARK: - Start/Stop monitoring
 
     @MainActor
-    func start() {
+    func start(callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting tunnel failure monitor", log: log)
 
         failureReported = false
         networkMonitor.start(queue: .global())
 
         task = Task.periodic(interval: Self.monitoringInterval) { [weak self] in
-            await self?.monitorHandshakes()
+            await self?.monitorHandshakes(callback: callback)
         }
     }
 
@@ -102,7 +97,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     // MARK: - Handshake monitor
 
     @MainActor
-    private func monitorHandshakes() async {
+    private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
         let mostRecentHandshake = await tunnelProvider.mostRecentHandshake() ?? 0
 
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
@@ -112,11 +107,11 @@ public actor NetworkProtectionTunnelFailureMonitor {
             if failureReported {
                 os_log("⚫️ Tunnel failure already reported", log: .networkProtectionPixel, type: .debug)
             } else {
-                failureSubject.send(.failureDetected)
+                callback(.failureDetected)
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
-            failureSubject.send(.failureRecovered)
+            callback(.failureRecovered)
             failureReported = false
         }
     }
