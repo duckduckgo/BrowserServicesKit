@@ -112,11 +112,15 @@ public final class AMPCanonicalExtractor: NSObject {
 
     public func urlContainsAMPKeyword(_ url: URL?) -> Bool {
         linkCleaner.lastAMPURLString = nil
+
+        let settings = TrackingLinkSettings(fromConfig: privacyConfig)
+
         guard privacyConfig.isEnabled(featureKey: .ampLinks) else { return false }
+        guard settings.deepExtractionEnabled else { return false }
         guard let url = url, !linkCleaner.isURLExcluded(url: url) else { return false }
         let urlStr = url.absoluteString
 
-        let ampKeywords = TrackingLinkSettings(fromConfig: privacyConfig).ampKeywords
+        let ampKeywords = settings.ampKeywords
 
         return ampKeywords.contains { keyword in
             return urlStr.contains(keyword)
@@ -164,6 +168,10 @@ public final class AMPCanonicalExtractor: NSObject {
                                 completion: @escaping ((URL?) -> Void)) {
         cancelOngoingExtraction()
         guard privacyConfig.isEnabled(featureKey: .ampLinks) else {
+            completion(nil)
+            return
+        }
+        guard TrackingLinkSettings(fromConfig: privacyConfig).deepExtractionEnabled else {
             completion(nil)
             return
         }

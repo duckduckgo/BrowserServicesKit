@@ -23,11 +23,13 @@ struct TrackingLinkSettings {
     let ampLinkFormats: [String]
     let ampKeywords: [String]
     let trackingParameters: [String]
+    let deepExtractionEnabled: Bool
 
     struct Constants {
         static let ampLinkFormats = "linkFormats"
         static let ampKeywords = "keywords"
         static let trackingParameters = "parameters"
+        static let deepExtractionEnabled = "deepExtractionEnabled"
     }
 
     init(fromConfig config: PrivacyConfiguration) {
@@ -36,6 +38,7 @@ struct TrackingLinkSettings {
 
         ampLinkFormats = ampFeatureSettings[Constants.ampLinkFormats] as? [String] ?? []
         ampKeywords = ampFeatureSettings[Constants.ampKeywords] as? [String] ?? []
+        deepExtractionEnabled = ampFeatureSettings[Constants.deepExtractionEnabled] as? Bool ?? false
         trackingParameters = trackingParametersSettings[Constants.trackingParameters] as? [String] ?? []
     }
 
