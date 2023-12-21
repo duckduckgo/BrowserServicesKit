@@ -202,7 +202,9 @@ public class DDGSync: DDGSyncing {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
 
-        featureFlagsCancellable = self.dependencies.privacyConfigurationManager.updatesPublisher
+        featureFlagsCancellable = Publishers.Merge(
+            self.dependencies.privacyConfigurationManager.updatesPublisher,
+            self.dependencies.privacyConfigurationManager.internalUserDecider.isInternalUserPublisher.map { _ in () })
             .compactMap { [weak self] in
                 self?.dependencies.privacyConfigurationManager.privacyConfig
             }
