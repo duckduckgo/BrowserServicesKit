@@ -19,7 +19,7 @@
 import Foundation
 
 /// This protocol offers an interface to control the tunnel.
-/// 
+///
 public protocol TunnelController {
 
     // MARK: - Starting & Stopping the VPN
@@ -33,6 +33,6 @@ public protocol TunnelController {
     func stop() async
 
     /// Whether the tunnel is connected
-    /// 
+    ///
     var isConnected: Bool { get async }
 }

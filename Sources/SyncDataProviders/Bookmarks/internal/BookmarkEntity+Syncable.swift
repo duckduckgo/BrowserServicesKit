@@ -1,6 +1,5 @@
 //
 //  BookmarkEntity+Syncable.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -123,6 +122,12 @@ extension BookmarkEntity {
             if let encryptedUrl = syncable.encryptedUrl {
                 url = try decrypt(encryptedUrl)
             }
+        }
+    }
+
+    func updateLastChildrenSyncPayload(with uuids: [String]) {
+        if isFolder {
+            lastChildrenArrayReceivedFromSync = uuids
         }
     }
 }

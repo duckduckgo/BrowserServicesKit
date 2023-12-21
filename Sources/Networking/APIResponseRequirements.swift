@@ -1,6 +1,5 @@
 //
-//  APIResponseRequirement.swift
-//  DuckDuckGo
+//  APIResponseRequirements.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,12 +19,12 @@
 import Foundation
 
 public struct APIResponseRequirements: OptionSet {
-    
+
     public let rawValue: Int
     public init(rawValue: Int) {
         self.rawValue = rawValue
     }
-    
+
     /// The API response must have non-empty data.
     public static let requireNonEmptyData = APIResponseRequirements(rawValue: 1 << 0)
     /// The API response must include an ETag header.
@@ -33,8 +32,8 @@ public struct APIResponseRequirements: OptionSet {
     /// Allows HTTP 304 (Not Modified) response status code.
     /// When this is set, requireNonEmptyData is not honored, since URLSession returns empty data on HTTP 304.
     public static let allowHTTPNotModified = APIResponseRequirements(rawValue: 1 << 2)
-    
+
     public static let `default`: APIResponseRequirements = [.requireNonEmptyData, .requireETagHeader]
     public static let all: APIResponseRequirements = [.requireNonEmptyData, .requireETagHeader, .allowHTTPNotModified]
-    
+
 }

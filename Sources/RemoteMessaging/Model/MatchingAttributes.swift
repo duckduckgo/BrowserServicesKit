@@ -1,6 +1,5 @@
 //
 //  MatchingAttributes.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -19,8 +18,6 @@
 
 import Foundation
 import Common
-
-// swiftlint:disable file_length
 
 private enum RuleAttributes {
     static let min = "min"
@@ -593,6 +590,69 @@ struct RangeStringNumericMatchingAttribute: Equatable {
 
     static func == (lhs: RangeStringNumericMatchingAttribute, rhs: RangeStringNumericMatchingAttribute) -> Bool {
         return lhs.min == rhs.min && lhs.max == rhs.max
+    }
+}
+
+struct IsNetPWaitlistUserMatchingAttribute: MatchingAttribute, Equatable {
+    var value: Bool?
+    var fallback: Bool?
+
+    init(jsonMatchingAttribute: AnyDecodable) {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
+            self.value = value
+        }
+        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
+            self.fallback = fallback
+        }
+    }
+
+    init(value: Bool?, fallback: Bool?) {
+        self.value = value
+        self.fallback = fallback
+    }
+
+    static func == (lhs: IsNetPWaitlistUserMatchingAttribute, rhs: IsNetPWaitlistUserMatchingAttribute) -> Bool {
+        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
+    }
+}
+
+struct DaysSinceNetPEnabledMatchingAttribute: MatchingAttribute, Equatable {
+    var min: Int = MatchingAttributeDefaults.intDefaultValue
+    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
+    var value: Int = MatchingAttributeDefaults.intDefaultValue
+    var fallback: Bool?
+
+    init(jsonMatchingAttribute: AnyDecodable) {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+
+        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
+            self.min = min
+        }
+        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
+            self.max = max
+        }
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
+            self.value = value
+        }
+        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
+            self.fallback = fallback
+        }
+    }
+
+    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
+         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
+         value: Int = MatchingAttributeDefaults.intDefaultValue,
+         fallback: Bool?) {
+        self.min = min
+        self.max = max
+        self.value = value
+        self.fallback = fallback
+    }
+
+    static func == (lhs: DaysSinceNetPEnabledMatchingAttribute, rhs: DaysSinceNetPEnabledMatchingAttribute) -> Bool {
+        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
     }
 }
 

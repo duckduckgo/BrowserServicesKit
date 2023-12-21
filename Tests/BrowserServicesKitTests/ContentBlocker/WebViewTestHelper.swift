@@ -1,6 +1,5 @@
 //
 //  WebViewTestHelper.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -63,7 +62,7 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
         detectedTrackers.insert(tracker)
         onTrackerDetected?(tracker)
     }
-    
+
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
                                        detectedThirdPartyRequest request: DetectedRequest) {
         detectedThirdPartyRequests.insert(request)

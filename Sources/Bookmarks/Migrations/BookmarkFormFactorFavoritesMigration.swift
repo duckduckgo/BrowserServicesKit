@@ -1,5 +1,7 @@
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  BookmarkFormFactorFavoritesMigration.swift
+//
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -28,27 +30,46 @@ public class BookmarkFormFactorFavoritesMigration {
     public static func getFavoritesOrderFromPreV4Model(dbContainerLocation: URL,
                                                        dbFileURL: URL,
                                                        errorEvents: EventMapping<MigrationErrors>? = nil) -> [String]? {
+
+        guard let metadata = try? NSPersistentStoreCoordinator.metadataForPersistentStore(ofType: NSSQLiteStoreType, at: dbFileURL),
+              let latestModel = CoreDataDatabase.loadModel(from: bundle, named: "BookmarksModel"),
+              !latestModel.isConfiguration(withName: nil, compatibleWithStoreMetadata: metadata)
+        else {
+            return nil
+        }
+
+        // Before migrating to latest scheme version, read order of favorites from DB
+
+        let oldBookmarksModel: NSManagedObjectModel = {
+            var mergedModel = NSManagedObjectModel.mergedModel(from: [Bookmarks.bundle], forStoreMetadata: metadata)
+#if DEBUG && os(macOS)
+            if mergedModel == nil {
+                /// Look for individual model files in the bundle because if they have just
+                /// been added there by `ModelAccessHelper.compileModel(from:named:)` in the same run,
+                /// they wouldn't be visible to `NSManagedObjectModel.mergedModel(from:forStoreMetadata:)`.
+                let modelURLs = Bookmarks.bundle.urls(forResourcesWithExtension: "mom", subdirectory: "BookmarksModel.momd") ?? []
+                let models = modelURLs.compactMap(NSManagedObjectModel.init(contentsOf:))
+                mergedModel = NSManagedObjectModel(byMerging: models, forStoreMetadata: metadata)
+            }
+#endif
+            return mergedModel!
+        }()
+
+        let oldDB = CoreDataDatabase(name: dbFileURL.deletingPathExtension().lastPathComponent,
+                                     containerLocation: dbContainerLocation,
+                                     model: oldBookmarksModel)
+
         var oldFavoritesOrder: [String]?
 
-        let metadata = try? NSPersistentStoreCoordinator.metadataForPersistentStore(ofType: NSSQLiteStoreType,
-                                                                                    at: dbFileURL)
-        if let metadata, let version = metadata["NSStoreModelVersionHashesVersion"] as? Int, version < 4 {
-            // Before migrating to latest scheme version, read order of favorites from DB
-
-            let v3BookmarksModel = NSManagedObjectModel.mergedModel(from: [Bookmarks.bundle], forStoreMetadata: metadata)!
-
-            let oldDB = CoreDataDatabase(name: "Bookmarks",
-                                         containerLocation: dbContainerLocation,
-                                         model: v3BookmarksModel)
-            oldDB.loadStore { context, error in
-                guard let context = context else {
-                    errorEvents?.fire(.couldNotLoadDatabase, error: error)
-                    return
-                }
-
-                let favs = BookmarkUtils.fetchLegacyFavoritesFolder(context)
-                oldFavoritesOrder = favs?.favoritesArray.compactMap { $0.uuid }
+        oldDB.loadStore { context, error in
+            guard let context = context else {
+                errorEvents?.fire(.couldNotLoadDatabase, error: error)
+                return
             }
+
+            let favs = BookmarkUtils.fetchLegacyFavoritesFolder(context)
+            let orderedFavorites = favs?.favorites?.array as? [BookmarkEntity] ?? []
+            oldFavoritesOrder = orderedFavorites.compactMap { $0.uuid }
         }
         return oldFavoritesOrder
     }

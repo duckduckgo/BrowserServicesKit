@@ -1,5 +1,5 @@
 //
-//  TunnelSettings.swift
+//  VPNSettings.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,20 +21,25 @@ import Foundation
 
 /// Persists and publishes changes to tunnel settings.
 ///
-/// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `TunnelSettingsUpdater`
+/// It's strongly recommended to use shared `UserDefaults` to initialize this class, as `VPNSettings`
 /// can then detect settings changes using KVO even if they're applied by a different process or even by the user through
 /// the command line.
 ///
-public final class TunnelSettings {
+public final class VPNSettings {
 
     public enum Change: Codable {
+        case setConnectOnLogin(_ connectOnLogin: Bool)
         case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
         case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
+        case setNotifyStatusChanges(_ notifyStatusChanges: Bool)
         case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
         case setSelectedServer(_ selectedServer: SelectedServer)
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
+        case setShowInMenuBar(_ showInMenuBar: Bool)
+        case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
+        case setDisableRekeying(_ disableRekeying: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable {
@@ -86,6 +91,10 @@ public final class TunnelSettings {
 
     private(set) public lazy var changePublisher: AnyPublisher<Change, Never> = {
 
+        let connectOnLoginPublisher = connectOnLoginPublisher.map { connectOnLogin in
+            Change.setConnectOnLogin(connectOnLogin)
+        }.eraseToAnyPublisher()
+
         let includeAllNetworksPublisher = includeAllNetworksPublisher.map { includeAllNetworks in
             Change.setIncludeAllNetworks(includeAllNetworks)
         }.eraseToAnyPublisher()
@@ -96,6 +105,10 @@ public final class TunnelSettings {
 
         let excludeLocalNetworksPublisher = excludeLocalNetworksPublisher.map { excludeLocalNetworks in
             Change.setExcludeLocalNetworks(excludeLocalNetworks)
+        }.eraseToAnyPublisher()
+
+        let notifyStatusChangesPublisher = notifyStatusChangesPublisher.map { notifyStatusChanges in
+            Change.setNotifyStatusChanges(notifyStatusChanges)
         }.eraseToAnyPublisher()
 
         let registrationKeyValidityPublisher = registrationKeyValidityPublisher.map { validity in
@@ -114,13 +127,30 @@ public final class TunnelSettings {
             Change.setSelectedEnvironment(environment)
         }.eraseToAnyPublisher()
 
+        let showInMenuBarPublisher = showInMenuBarPublisher.map { showInMenuBar in
+            Change.setShowInMenuBar(showInMenuBar)
+        }.eraseToAnyPublisher()
+
+        let vpnFirstEnabledPublisher = vpnFirstEnabledPublisher.map { vpnFirstEnabled in
+            Change.setVPNFirstEnabled(vpnFirstEnabled)
+        }.eraseToAnyPublisher()
+
+        let disableRekeyingPublisher = disableRekeyingPublisher.map { disableRekeying in
+            Change.setDisableRekeying(disableRekeying)
+        }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
+            connectOnLoginPublisher,
             includeAllNetworksPublisher,
             enforceRoutesPublisher,
             excludeLocalNetworksPublisher,
+            notifyStatusChangesPublisher,
             serverChangePublisher,
             locationChangePublisher,
-            environmentChangePublisher).eraseToAnyPublisher()
+            environmentChangePublisher,
+            showInMenuBarPublisher,
+            vpnFirstEnabledPublisher,
+            disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
     public init(defaults: UserDefaults) {
@@ -130,24 +160,32 @@ public final class TunnelSettings {
     // MARK: - Resetting to Defaults
 
     public func resetToDefaults() {
+        defaults.resetNetworkProtectionSettingConnectOnLogin()
         defaults.resetNetworkProtectionSettingEnforceRoutes()
         defaults.resetNetworkProtectionSettingExcludeLocalNetworks()
         defaults.resetNetworkProtectionSettingIncludeAllNetworks()
+        defaults.resetNetworkProtectionSettingNotifyStatusChanges()
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
         defaults.resetNetworkProtectionSettingSelectedEnvironment()
+        defaults.resetNetworkProtectionSettingShowInMenuBar()
     }
 
     // MARK: - Applying Changes
 
+    // swiftlint:disable cyclomatic_complexity
     public func apply(change: Change) {
         switch change {
+        case .setConnectOnLogin(let connectOnLogin):
+            self.connectOnLogin = connectOnLogin
         case .setEnforceRoutes(let enforceRoutes):
             self.enforceRoutes = enforceRoutes
         case .setExcludeLocalNetworks(let excludeLocalNetworks):
             self.excludeLocalNetworks = excludeLocalNetworks
         case .setIncludeAllNetworks(let includeAllNetworks):
             self.includeAllNetworks = includeAllNetworks
+        case .setNotifyStatusChanges(let notifyStatusChanges):
+            self.notifyStatusChanges = notifyStatusChanges
         case .setRegistrationKeyValidity(let registrationKeyValidity):
             self.registrationKeyValidity = registrationKeyValidity
         case .setSelectedServer(let selectedServer):
@@ -156,6 +194,29 @@ public final class TunnelSettings {
             self.selectedLocation = selectedLocation
         case .setSelectedEnvironment(let selectedEnvironment):
             self.selectedEnvironment = selectedEnvironment
+        case .setShowInMenuBar(let showInMenuBar):
+            self.showInMenuBar = showInMenuBar
+        case .setVPNFirstEnabled(let vpnFirstEnabled):
+            self.vpnFirstEnabled = vpnFirstEnabled
+        case .setDisableRekeying(let disableRekeying):
+            self.disableRekeying = disableRekeying
+        }
+    }
+    // swiftlint:enable cyclomatic_complexity
+
+    // MARK: - Connect on Login
+
+    public var connectOnLoginPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingConnectOnLoginPublisher
+    }
+
+    public var connectOnLogin: Bool {
+        get {
+            defaults.networkProtectionSettingConnectOnLogin
+        }
+
+        set {
+            defaults.networkProtectionSettingConnectOnLogin = newValue
         }
     }
 
@@ -275,33 +336,91 @@ public final class TunnelSettings {
         }
     }
 
-    // MARK: - Routes
+    // MARK: - Show in Menu Bar
 
-    public enum ExclusionListItem {
-        case section(String)
-        case exclusion(range: NetworkProtection.IPAddressRange, description: String? = nil, `default`: Bool)
+    public var showInMenuBarPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingShowInMenuBarPublisher
     }
 
-    public let exclusionList: [ExclusionListItem] = [
-        .section("IPv4 Local Routes"),
+    public var showInMenuBar: Bool {
+        get {
+            defaults.networkProtectionSettingShowInMenuBar
+        }
 
-        .exclusion(range: "10.0.0.0/8"     /* 255.0.0.0 */, description: "disabled for enforceRoutes", default: true),
-        .exclusion(range: "172.16.0.0/12"  /* 255.240.0.0 */, default: true),
-        .exclusion(range: "192.168.0.0/16" /* 255.255.0.0 */, default: true),
-        .exclusion(range: "169.254.0.0/16" /* 255.255.0.0 */, description: "Link-local", default: true),
-        .exclusion(range: "127.0.0.0/8"    /* 255.0.0.0 */, description: "Loopback", default: true),
-        .exclusion(range: "224.0.0.0/4"    /* 240.0.0.0 (corrected subnet mask) */, description: "Multicast", default: true),
-        .exclusion(range: "100.64.0.0/16"  /* 255.255.0.0 */, description: "Shared Address Space", default: true),
+        set {
+            defaults.networkProtectionSettingShowInMenuBar = newValue
+        }
+    }
 
-        .section("IPv6 Local Routes"),
-        .exclusion(range: "fe80::/10", description: "link local", default: false),
-        .exclusion(range: "ff00::/8", description: "multicast", default: false),
-        .exclusion(range: "fc00::/7", description: "local unicast", default: false),
-        .exclusion(range: "::1/128", description: "loopback", default: false),
+    // MARK: - Notify Status Changes
 
-        .section("duckduckgo.com"),
-        .exclusion(range: "52.142.124.215/32", default: false),
-        .exclusion(range: "52.250.42.157/32", default: false),
-        .exclusion(range: "40.114.177.156/32", default: false),
-    ]
+    public var notifyStatusChangesPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionNotifyStatusChangesPublisher
+    }
+
+    public var notifyStatusChanges: Bool {
+        get {
+            defaults.networkProtectionNotifyStatusChanges
+        }
+
+        set {
+            defaults.networkProtectionNotifyStatusChanges = newValue
+        }
+    }
+
+    // MARK: - Routes
+
+    public var excludedRoutes: [RoutingRange] {
+        var ipv4Ranges = RoutingRange.alwaysExcludedIPv4Ranges
+
+        if excludeLocalNetworks {
+            ipv4Ranges += RoutingRange.localNetworkRanges
+        }
+
+        return ipv4Ranges + RoutingRange.alwaysExcludedIPv6Ranges
+    }
+
+    public var excludedRanges: [IPAddressRange] {
+        excludedRoutes.compactMap { entry in
+            switch entry {
+            case .section:
+                // Nothing to map
+                return nil
+            case .range(let range, _):
+                return range
+            }
+        }
+    }
+
+    // MARK: - First time VPN is enabled
+
+    public var vpnFirstEnabledPublisher: AnyPublisher<Date?, Never> {
+        defaults.vpnFirstEnabledPublisher
+    }
+
+    public var vpnFirstEnabled: Date? {
+        get {
+            defaults.vpnFirstEnabled
+        }
+
+        set {
+            defaults.vpnFirstEnabled = newValue
+        }
+    }
+
+    // MARK: - Disable Rekeying
+
+    public var disableRekeyingPublisher: AnyPublisher<Bool, Never> {
+        defaults.networkProtectionSettingDisableRekeyingPublisher
+    }
+
+    public var disableRekeying: Bool {
+        get {
+            defaults.networkProtectionSettingDisableRekeying
+        }
+
+        set {
+            defaults.networkProtectionSettingDisableRekeying = newValue
+        }
+    }
 }

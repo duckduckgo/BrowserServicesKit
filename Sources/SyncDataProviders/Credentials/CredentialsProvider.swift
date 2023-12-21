@@ -1,6 +1,5 @@
 //
 //  CredentialsProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,6 +19,7 @@
 import Foundation
 import BrowserServicesKit
 import Combine
+import Common
 import DDGSync
 import GRDB
 import SecureStorage
@@ -30,10 +30,12 @@ public final class CredentialsProvider: DataProvider {
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
         syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
+        self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
@@ -81,7 +83,7 @@ public final class CredentialsProvider: DataProvider {
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
         return try syncableCredentials.map { credentials in
-            try Syncable.init(
+            try Syncable(
                 syncableCredentials: credentials,
                 encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
             )
@@ -138,7 +140,9 @@ public final class CredentialsProvider: DataProvider {
                         secureVault: secureVault,
                         database: database,
                         crypter: crypter,
-                        deduplicateEntities: isInitial)
+                        deduplicateEntities: isInitial,
+                        metricsEvents: self.metricsEvents
+                    )
 
                     let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
                         sent,
@@ -182,6 +186,7 @@ public final class CredentialsProvider: DataProvider {
             lastSyncTimestamp = serverTimestamp
             syncDidUpdateData()
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in database: Database) throws -> Set<String> {
@@ -200,8 +205,8 @@ public final class CredentialsProvider: DataProvider {
             if let modifiedAt = metadataRecord.lastModified, modifiedAt.compareWithMillisecondPrecision(to: clientTimestamp) == .orderedDescending {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataRecord.uuid)
-            if metadataRecord.objectId == nil, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = receivedUUIDs.contains(metadataRecord.uuid)
+            if metadataRecord.objectId == nil, !hasNewerVersionOnServer {
                 try metadataRecord.delete(database)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadataRecord.uuid)
@@ -230,6 +235,7 @@ public final class CredentialsProvider: DataProvider {
 
     private let secureVaultFactory: AutofillVaultFactory
     private let secureVaultErrorReporter: SecureVaultErrorReporting
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

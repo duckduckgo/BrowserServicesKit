@@ -36,7 +36,7 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
     private let versionStore: NetworkProtectionLastVersionRunStore
     private let errorEvents: EventMapping<NetworkProtectionError>
 
-    convenience public init(environment: TunnelSettings.SelectedEnvironment,
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
                             versionStore: NetworkProtectionLastVersionRunStore = .init(),
                             errorEvents: EventMapping<NetworkProtectionError>) {

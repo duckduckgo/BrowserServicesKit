@@ -1,6 +1,5 @@
 //
 //  DataProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -177,8 +176,38 @@ public protocol DataProviding: AnyObject {
  */
 open class DataProvider: DataProviding {
 
+    public enum SyncResult: Equatable {
+        case noData
+        case someNewData
+        case newData(modifiedIds: Set<String>, deletedIds: Set<String>)
+
+        public var hasNewData: Bool {
+            switch self {
+            case .noData:
+                return false
+            case .someNewData, .newData:
+                return true
+            }
+        }
+
+        public var modifiedIds: Set<String> {
+            guard case .newData(let modifiedIds, _) = self else {
+                return []
+            }
+            return modifiedIds
+        }
+
+        public var deletedIds: Set<String> {
+            guard case .newData(_, let deletedIds) = self else {
+                return []
+            }
+            return deletedIds
+        }
+    }
+
     public let feature: Feature
-    public let syncDidUpdateData: () -> Void
+    public var syncDidUpdateData: () -> Void
+    public var syncDidFinish: () -> Void
     public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     public var isFeatureRegistered: Bool {
@@ -210,10 +239,16 @@ open class DataProvider: DataProviding {
         }
     }
 
-    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) {
+    public init(
+        feature: Feature,
+        metadataStore: SyncMetadataStore,
+        syncDidUpdateData: @escaping () -> Void = {},
+        syncDidFinish: @escaping () -> Void = {}
+    ) {
         self.feature = feature
         self.metadataStore = metadataStore
         self.syncDidUpdateData = syncDidUpdateData
+        self.syncDidFinish = syncDidFinish
         self.syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
 

@@ -1,6 +1,5 @@
 //
 //  HashExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
@@ -21,17 +20,17 @@ import Foundation
 import CommonCrypto
 
 extension Data {
-    
+
     private typealias Algorithm = (UnsafeRawPointer?, CC_LONG, UnsafeMutablePointer<UInt8>?) -> UnsafeMutablePointer<UInt8>?
-    
+
     public var sha1: String {
         return hash(algorithm: CC_SHA1, length: CC_SHA1_DIGEST_LENGTH)
     }
-    
+
     public var sha256: String {
         return hash(algorithm: CC_SHA256, length: CC_SHA256_DIGEST_LENGTH)
     }
-    
+
     private func hash(algorithm: Algorithm, length: Int32) -> String {
         var hash = [UInt8](repeating: 0, count: Int(length))
         let dataBytes = [UInt8](self)
@@ -41,10 +40,10 @@ extension Data {
 }
 
 extension String {
-    
+
     public var sha1: String {
         let dataBytes = data(using: .utf8)!
         return dataBytes.sha1
     }
-    
+
 }

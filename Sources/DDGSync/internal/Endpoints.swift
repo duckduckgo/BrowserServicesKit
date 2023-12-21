@@ -18,14 +18,15 @@
 
 import Foundation
 
-class Endpoints {
+final class Endpoints {
 
     private(set) var baseURL: URL
 
     private(set) var signup: URL
+    private(set) var connect: URL
     private(set) var login: URL
     private(set) var logoutDevice: URL
-    private(set) var connect: URL
+    private(set) var deleteAccount: URL
 
     private(set) var syncGet: URL
     private(set) var syncPatch: URL
@@ -47,6 +48,7 @@ class Endpoints {
         signup = baseURL.appendingPathComponent("sync/signup")
         login = baseURL.appendingPathComponent("sync/login")
         logoutDevice = baseURL.appendingPathComponent("sync/logout-device")
+        deleteAccount = baseURL.appendingPathComponent("sync/delete-account")
         connect = baseURL.appendingPathComponent("sync/connect")
 
         syncGet = baseURL.appendingPathComponent("sync")
@@ -63,6 +65,7 @@ extension Endpoints {
         signup = baseURL.appendingPathComponent("sync/signup")
         login = baseURL.appendingPathComponent("sync/login")
         logoutDevice = baseURL.appendingPathComponent("sync/logout-device")
+        deleteAccount = baseURL.appendingPathComponent("sync/delete-account")
         connect = baseURL.appendingPathComponent("sync/connect")
 
         syncGet = baseURL.appendingPathComponent("sync")

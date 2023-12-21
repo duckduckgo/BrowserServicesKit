@@ -36,7 +36,7 @@ extension TestsNavigationEvent {
     static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, _ shouldDownload: NavigationAction.ShouldDownload? = nil, line: UInt = #line) -> TestsNavigationEvent {
         .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: src, shouldDownload), line: line)
     }
-    
+
     static func response(_ nav: Nav, line: UInt = #line) -> TestsNavigationEvent {
         .navigationResponse(.navigation(nav), line: line)
     }

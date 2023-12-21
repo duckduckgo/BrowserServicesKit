@@ -1,6 +1,5 @@
 //
-//  MockNetworkProtectionNotificationsSettingsStore.swift
-//  DuckDuckGo
+//  ProcessInfo+EnvironmentType.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,8 +17,23 @@
 //
 
 import Foundation
-import NetworkProtection
 
-public class MockNetworkProtectionNotificationsSettingsStore: NetworkProtectionNotificationsSettingsStore {
-    public var alertsEnabled: Bool = false
+extension ProcessInfo {
+
+    enum EnvironmentType {
+        case xcode
+        case xcodebuild
+        case ci
+    }
+
+    var environmentType: EnvironmentType {
+        if self.environment["GITHUB_ACTIONS"] != nil {
+            return .ci
+        } else if self.environment["UsePerConfigurationBuildLocations"] != nil {
+            return .xcode
+        } else {
+            return .xcodebuild
+        }
+    }
+
 }

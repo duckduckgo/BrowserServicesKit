@@ -131,7 +131,7 @@ extension AnyIPAddress: Codable {
 
     public init(from decoder: Decoder) throws {
         let string = try decoder.singleValueContainer().decode(String.self)
-        guard let address = Self.init(string) else {
+        guard let address = Self(string) else {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
                                                     debugDescription: "Could not decode IP from \(string)",
                                                     underlyingError: nil))

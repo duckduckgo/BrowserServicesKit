@@ -1,6 +1,5 @@
 //
 //  HTTPSUpgradeParserTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2018 DuckDuckGo. All rights reserved.
 //
@@ -22,41 +21,41 @@ import Common
 @testable import BrowserServicesKit
 
 final class HTTPSUpgradeParserTests: XCTestCase {
-    
+
     func testWhenExcludedDomainsJSONIsUnexpectedThenTypeMismatchErrorThrown() {
         let data = JsonTestDataLoader().unexpected()
         XCTAssertThrowsError(try HTTPSUpgradeParser.convertExcludedDomainsData(data)) { error in
             XCTAssertEqual(error.localizedDescription, JsonError.typeMismatch.localizedDescription)
         }
     }
-    
+
     func testWhenExcludedDomainsJSONIsInvalidThenInvalidJsonErrorThrown() {
         let data = JsonTestDataLoader().invalid()
         XCTAssertThrowsError(try HTTPSUpgradeParser.convertExcludedDomainsData(data)) { error in
             XCTAssertEqual(error.localizedDescription, JsonError.invalidJson.localizedDescription)
         }
     }
-    
+
     func testWhenExcludedDomainsJSONIsValidThenDomainsReturned() {
         let data = JsonTestDataLoader().fromJsonFile("Resources/https_excluded_domains.json")
         let result = try? HTTPSUpgradeParser.convertExcludedDomainsData(data)
         XCTAssertEqual(Set<String>(["www.example.com", "example.com", "test.com", "anothertest.com"]), Set<String>(result!))
     }
-    
+
     func testWhenBloomFilterSpecificationJSONIsUnexpectedThenTypeMismatchErrorThrown() {
         let data = JsonTestDataLoader().unexpected()
         XCTAssertThrowsError(try HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data), "") { error in
             XCTAssertEqual(error.localizedDescription, JsonError.typeMismatch.localizedDescription)
         }
     }
-    
+
     func testWhenBloomFilterSpecificationJSONIsInvalidThenInvalidJsonErrorThrown() {
         let data = JsonTestDataLoader().invalid()
         XCTAssertThrowsError(try HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data)) { error in
             XCTAssertEqual(error.localizedDescription, JsonError.invalidJson.localizedDescription)
         }
     }
-    
+
     func testWhenBloomFilterSpecificationIsValidThenSpecificationReturned() {
         let data = JsonTestDataLoader().fromJsonFile("Resources/https_bloom_spec.json")
         let result = try? HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data)

@@ -1,6 +1,5 @@
 //
 //  NetworkProtectionError.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -63,7 +62,7 @@ public enum NetworkProtectionError: LocalizedError {
 
     // Wireguard errors
     case wireGuardCannotLocateTunnelFileDescriptor
-    case wireGuardInvalidState
+    case wireGuardInvalidState(reason: String)
     case wireGuardDnsResolution
     case wireGuardSetNetworkSettings(Error)
     case startWireGuardBackend(Int32)

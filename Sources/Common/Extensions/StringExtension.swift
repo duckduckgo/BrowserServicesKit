@@ -74,16 +74,16 @@ public extension String {
         }
         return self
     }
-    
+
     func autofillNormalized() -> String {
         let autofillCharacterSet = CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters).union(.symbols)
-        
+
         var normalizedString = self
 
         normalizedString = normalizedString.removingCharacters(in: autofillCharacterSet)
         normalizedString = normalizedString.folding(options: .diacriticInsensitive, locale: .current)
         normalizedString = normalizedString.localizedLowercase
-        
+
         return normalizedString
     }
 

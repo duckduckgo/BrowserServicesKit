@@ -16,9 +16,11 @@
 //  limitations under the License.
 //
 
-import Foundation
+import BrowserServicesKit
 import Combine
 import Common
+import Foundation
+import Persistence
 
 protocol SyncDependenciesDebuggingSupport {
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
@@ -33,6 +35,7 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
+    var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var errorEvents: EventMapping<SyncError> { get }
     var log: OSLog { get }
 
@@ -52,12 +55,6 @@ protocol AccountManaging {
 
     func fetchDevicesForAccount(_ account: SyncAccount) async throws -> [RegisteredDevice]
 
-}
-
-protocol KeyValueStoring {
-
-    func object(forKey: String) -> Any?
-    func set(_ value: Any?, forKey: String)
 }
 
 protocol SecureStoring {

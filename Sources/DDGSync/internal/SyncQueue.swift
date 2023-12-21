@@ -1,6 +1,5 @@
 //
 //  SyncQueue.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -30,9 +29,9 @@ struct SyncOperationError: Error {
     let perFeatureErrors: [Feature: Error]
 
     init(featureErrors: [FeatureError]) {
-        perFeatureErrors = featureErrors.reduce(into: .init(), { partialResult, featureError in
+        perFeatureErrors = featureErrors.reduce(into: .init()) { partialResult, featureError in
             partialResult[featureError.feature] = featureError.underlyingError
-        })
+        }
     }
 }
 
@@ -53,7 +52,7 @@ struct SyncResult {
     }
 }
 
-class SyncQueue {
+final class SyncQueue {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring
@@ -118,7 +117,22 @@ class SyncQueue {
         }
     }
 
+    var isDataSyncingFeatureFlagEnabled: Bool = true {
+        didSet {
+            if isDataSyncingFeatureFlagEnabled {
+                os_log(.debug, log: self.log, "Sync Feature has been enabled")
+            } else {
+                os_log(.debug, log: self.log, "Sync Feature has been disabled, cancelling all operations")
+                operationQueue.cancelAllOperations()
+            }
+        }
+    }
+
     func startSync() {
+        guard isDataSyncingFeatureFlagEnabled else {
+            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not starting sync")
+            return
+        }
         let operation = makeSyncOperation()
         operationQueue.addOperation(operation)
     }

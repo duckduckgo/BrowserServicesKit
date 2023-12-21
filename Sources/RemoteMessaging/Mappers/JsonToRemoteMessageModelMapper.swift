@@ -1,6 +1,5 @@
 //
 //  JsonToRemoteMessageModelMapper.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -37,6 +36,8 @@ private enum AttributesKey: String, CaseIterable {
     case favorites
     case appTheme
     case daysSinceInstalled
+    case isNetPWaitlistUser
+    case daysSinceNetPEnabled
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -55,6 +56,8 @@ private enum AttributesKey: String, CaseIterable {
         case .favorites: return FavoritesMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .appTheme: return AppThemeMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .daysSinceInstalled: return DaysSinceInstalledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .isNetPWaitlistUser: return IsNetPWaitlistUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .daysSinceNetPEnabled: return DaysSinceNetPEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
@@ -158,6 +161,8 @@ struct JsonToRemoteMessageModelMapper {
             return .share(value: jsonAction.value, title: jsonAction.additionalParameters?["title"])
         case .url:
             return .url(value: jsonAction.value)
+        case .surveyURL:
+            return .surveyURL(value: jsonAction.value)
         case .appStore:
             return .appStore
         case .dismiss:
@@ -185,6 +190,8 @@ struct JsonToRemoteMessageModelMapper {
             return .macComputer
         case .newForMacAndWindows:
             return .newForMacAndWindows
+        case .vpnAnnounce:
+            return .vpnAnnounce
         case .none:
             return .announce
         }

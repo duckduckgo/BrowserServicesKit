@@ -23,17 +23,17 @@ struct SecureStorage: SecureStoring {
     // DO NOT CHANGE except if you want to deliberately invalidate all users's sync accounts.
     // The keys have a uid to deter casual hacker from easily seeing which keychain entry is related to what.
     private static let encodedKey = "833CC26A-3804-4D37-A82A-C245BC670692".data(using: .utf8)
-    
+
     private static let defaultQuery: [AnyHashable: Any] = [
         kSecClass: kSecClassGenericPassword,
         kSecAttrService: "\(Bundle.main.bundleIdentifier ?? "com.duckduckgo").sync",
         kSecAttrGeneric: encodedKey as Any,
         kSecAttrAccount: encodedKey as Any
     ]
-    
+
     func persistAccount(_ account: SyncAccount) throws {
         let data = try JSONEncoder.snakeCaseKeys.encode(account)
-        
+
         var query = Self.defaultQuery
         query[kSecUseDataProtectionKeychain] = true
         query[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlocked
@@ -63,11 +63,11 @@ struct SecureStorage: SecureStoring {
         guard [errSecSuccess, errSecItemNotFound].contains(status) else {
             throw SyncError.failedToReadSecureStore(status: status)
         }
-        
+
         if let data = item as? Data {
             return try JSONDecoder.snakeCaseKeys.decode(SyncAccount.self, from: data)
         }
-        
+
         return nil
     }
 
@@ -77,5 +77,5 @@ struct SecureStorage: SecureStoring {
             throw SyncError.failedToRemoveSecureStore(status: status)
         }
     }
-    
+
 }

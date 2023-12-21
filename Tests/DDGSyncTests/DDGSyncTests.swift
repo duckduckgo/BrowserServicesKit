@@ -1,6 +1,5 @@
 //
 //  DDGSyncTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -56,6 +55,7 @@ final class DDGSyncTests: XCTestCase {
         ]
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
+        dependencies.keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
     }
 
     override func tearDownWithError() throws {

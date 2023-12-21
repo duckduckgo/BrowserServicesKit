@@ -1,6 +1,5 @@
 //
 //  EmailProtectionSyncHandler.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -59,13 +58,22 @@ public final class EmailProtectionSyncHandler: SettingSyncHandler {
         return String(bytes: data, encoding: .utf8)
     }
 
-    public override func setValue(_ value: String?) throws {
+    public override func setValue(_ value: String?, shouldDetectOverride: Bool) throws {
+
         guard let value, let valueData = value.data(using: .utf8) else {
+            if shouldDetectOverride, try emailManager.getUsername() != nil {
+                metricsEvents?.fire(.overrideEmailProtectionSettings)
+            }
             try emailManager.signOut(isForced: false)
             return
         }
 
         let payload = try JSONDecoder.snakeCaseKeys.decode(Payload.self, from: valueData)
+
+        if shouldDetectOverride, let username = try emailManager.getUsername(), payload.username != username {
+            metricsEvents?.fire(.overrideEmailProtectionSettings)
+        }
+
         try emailManager.signIn(username: payload.username, token: payload.personalAccessToken)
     }
 

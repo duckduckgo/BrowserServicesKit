@@ -103,7 +103,7 @@ final class SuggestionProcessing {
                 default:
                     score = 0
                 }
-                
+
                 return (item, score)
             }
             // Filter not relevant
@@ -111,7 +111,7 @@ final class SuggestionProcessing {
             // Sort according to the score
             .sorted { $0.score > $1.score }
             // Create suggestion array
-            .compactMap { 
+            .compactMap {
                 switch $0.item {
                 case let bookmark as Bookmark:
                     return Suggestion(bookmark: bookmark)

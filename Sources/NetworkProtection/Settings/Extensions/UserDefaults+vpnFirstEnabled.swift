@@ -1,7 +1,7 @@
 //
-//  SecureStorage.swift
+//  UserDefaults+vpnFirstEnabled.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,16 +16,26 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
 
-struct KeyValueStore: KeyValueStoring {
-
-    func object(forKey key: String) -> Any? {
-        return UserDefaults().object(forKey: key)
+extension UserDefaults {
+    private var vpnFirstEnabledKey: String {
+        "vpnFirstEnabled"
     }
 
-    func set(_ value: Any?, forKey key: String) {
-        UserDefaults().set(value, forKey: key)
+    @objc
+    dynamic var vpnFirstEnabled: Date? {
+        get {
+            value(forKey: vpnFirstEnabledKey) as? Date
+        }
+
+        set {
+            set(newValue, forKey: vpnFirstEnabledKey)
+        }
     }
 
+    var vpnFirstEnabledPublisher: AnyPublisher<Date?, Never> {
+        publisher(for: \.vpnFirstEnabled).eraseToAnyPublisher()
+    }
 }

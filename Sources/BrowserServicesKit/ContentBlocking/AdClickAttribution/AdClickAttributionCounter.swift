@@ -1,6 +1,5 @@
 //
 //  AdClickAttributionCounter.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +21,7 @@ import Persistence
 
 /// This class aggregates detected Ad Attributions on a websites and stores that count over a certain time interval.
 public class AdClickAttributionCounter {
-    
+
     public enum Constant {
 
         public static let pageLoadsCountKey = "AdClickAttributionCounter_Count"
@@ -30,11 +29,11 @@ public class AdClickAttributionCounter {
         public static let sendInterval: Double = 60 * 60 * 24 // 24 hours
 
     }
-    
+
     private let store: KeyValueStoring
     private let onSend: (_ count: Int) -> Void
     private let sendInterval: Double
-    
+
     public init(store: KeyValueStoring = AdClickAttributionCounterStore(),
                 sendInterval: Double = Constant.sendInterval,
                 onSendRequest: @escaping (_ count: Int) -> Void) {
@@ -42,12 +41,12 @@ public class AdClickAttributionCounter {
         self.onSend = onSendRequest
         self.sendInterval = sendInterval
     }
-    
+
     public func onAttributionActive(currentTime: Date = Date()) {
         save(pageLoadsCount: pageLoadsCount + 1)
         sendEventsIfNeeded(currentTime: currentTime)
     }
-    
+
     public func sendEventsIfNeeded(currentTime: Date = Date()) {
         guard let lastSendAt else {
             save(lastSendAt: currentTime)

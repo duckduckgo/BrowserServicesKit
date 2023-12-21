@@ -1,5 +1,5 @@
 //
-//
+//  BookmarkUtils.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -20,13 +20,13 @@ import Foundation
 import CoreData
 
 public struct BookmarkUtils {
-        
+
     public static func fetchRootFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.rootFolderID)
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
-        
+
         return try? context.fetch(request).first
     }
 
@@ -115,6 +115,18 @@ public struct BookmarkUtils {
         }
     }
 
+    public static func fetchAllBookmarksUUIDs(in context: NSManagedObjectContext) -> [String] {
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
+        request.predicate = NSPredicate(format: "%K == NO AND %K == NO",
+                                        #keyPath(BookmarkEntity.isFolder),
+                                        #keyPath(BookmarkEntity.isPendingDeletion))
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = [#keyPath(BookmarkEntity.uuid)]
+
+        let result = (try? context.fetch(request) as? [Dictionary<String, Any>]) ?? []
+        return result.compactMap { $0[#keyPath(BookmarkEntity.uuid)] as? String }
+    }
+
     public static func fetchBookmark(for url: URL,
                                      predicate: NSPredicate = NSPredicate(value: true),
                                      context: NSManagedObjectContext) -> BookmarkEntity? {
@@ -126,7 +138,7 @@ public struct BookmarkUtils {
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [urlPredicate, predicate])
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
-        
+
         return try? context.fetch(request).first
     }
 
