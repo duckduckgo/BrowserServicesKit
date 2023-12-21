@@ -133,11 +133,22 @@ class MockErrorHandler: EventMapping<SyncError> {
     }
 }
 
+final class MockInternalUserStoring: InternalUserStoring {
+    var isInternalUser: Bool = false
+}
+
+extension DefaultInternalUserDecider {
+    convenience init(mockedStore: MockInternalUserStoring = MockInternalUserStoring()) {
+        self.init(store: mockedStore)
+    }
+}
+
 class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
     var currentConfig: Data = .init()
     var updatesSubject = PassthroughSubject<Void, Never>()
     let updatesPublisher: AnyPublisher<Void, Never>
     var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration()
+    let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
     func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
         .downloaded
     }

@@ -31,6 +31,7 @@ public protocol PrivacyConfigurationManaging: AnyObject {
     var currentConfig: Data { get }
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
+    var internalUserDecider: InternalUserDecider { get }
 
     @discardableResult func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
@@ -53,7 +54,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let internalUserDecider: InternalUserDecider
+    public let internalUserDecider: InternalUserDecider
     private let installDate: Date?
 
     private let updatesSubject = PassthroughSubject<Void, Never>()
