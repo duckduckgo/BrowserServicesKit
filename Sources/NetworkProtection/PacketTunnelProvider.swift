@@ -255,11 +255,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self,
-                                                                                 log: .networkProtectionPixel)
-
-    public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
-                                                                     log: .networkProtectionPixel)
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self)
+    public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
@@ -1041,11 +1038,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     private func startLatencyMonitor() {
+        guard let ip = lastSelectedServerInfo?.ipv4 else {
+            latencyMonitor.stop()
+            return
+        }
         if latencyMonitor.isStarted {
+            if latencyMonitor.serverIP == ip {
+                return
+            }
             latencyMonitor.stop()
         }
 
-        latencyMonitor.start { [weak self] result in
+        latencyMonitor.start(serverIP: ip) { [weak self] result in
             switch result {
             case .error:
                 self?.providerEvents.fire(.reportLatency(result: .error))

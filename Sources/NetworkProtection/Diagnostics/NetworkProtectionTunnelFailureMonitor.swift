@@ -54,21 +54,22 @@ public actor NetworkProtectionTunnelFailureMonitor {
     private let tunnelProvider: PacketTunnelProvider
     private let networkMonitor = NWPathMonitor()
 
-    private let log: OSLog
-
     @MainActor
     private var failureReported = false
 
     // MARK: - Init & deinit
 
-    init(tunnelProvider: PacketTunnelProvider, log: OSLog) {
+    init(tunnelProvider: PacketTunnelProvider) {
         self.tunnelProvider = tunnelProvider
-        self.log = log
+        self.networkMonitor.start(queue: .global())
 
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
     deinit {
+        task?.cancel()
+        networkMonitor.cancel()
+
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
@@ -76,10 +77,9 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     @MainActor
     func start(callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting tunnel failure monitor", log: log)
+        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionPixel)
 
         failureReported = false
-        networkMonitor.start(queue: .global())
 
         task = Task.periodic(interval: Self.monitoringInterval) { [weak self] in
             await self?.monitorHandshakes(callback: callback)
@@ -88,10 +88,9 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     @MainActor
     func stop() {
-        os_log("⚫️ Stopping tunnel failure monitor", log: log)
+        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionPixel)
 
         task = nil
-        networkMonitor.cancel()
     }
 
     // MARK: - Handshake monitor

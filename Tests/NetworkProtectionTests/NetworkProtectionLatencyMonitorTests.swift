@@ -27,30 +27,16 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
 
-        monitor = NetworkProtectionLatencyMonitor(serverIP: { nil }, log: .disabled)
+        monitor = NetworkProtectionLatencyMonitor()
     }
 
     override func tearDown() async throws {
         await monitor?.stop()
     }
 
-    func testInvalidIP() async {
-        let expectation = XCTestExpectation(description: "Invalid IP reported")
-        await monitor?.start { result in
-            switch result {
-            case .error:
-                expectation.fulfill()
-            case .quality:
-                break
-            }
-        }
-        await monitor?.measureLatency()
-        await fulfillment(of: [expectation], timeout: 1)
-    }
-
     func testPingFailure() async {
         let expectation = XCTestExpectation(description: "Ping failure reported")
-        await monitor?.start { result in
+        await monitor?.start(serverIP: .init("127.0.0.1")!) { result in
             switch result {
             case .error:
                 expectation.fulfill()
@@ -76,10 +62,10 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     }
 
     private func testConnectionLatency(_ timeInterval: TimeInterval, expecting expectedQuality: NetworkProtectionLatencyMonitor.ConnectionQuality) async {
-        let monitor = NetworkProtectionLatencyMonitor(serverIP: { .init("127.0.0.1") }, log: .disabled)
+        let monitor = NetworkProtectionLatencyMonitor()
 
         var reportedQuality = NetworkProtectionLatencyMonitor.ConnectionQuality.unknown
-        await monitor.start { result in
+        await monitor.start(serverIP: .init("127.0.0.1")!) { result in
             switch result {
             case .quality(let quality):
                 reportedQuality = quality

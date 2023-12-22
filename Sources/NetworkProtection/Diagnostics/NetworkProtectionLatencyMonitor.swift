@@ -83,28 +83,28 @@ public actor NetworkProtectionLatencyMonitor {
     @MainActor
     private var ignoreThreshold = false
 
-    private let serverIP: () -> IPv4Address?
-
-    private let log: OSLog
+    @MainActor
+    private(set) var serverIP: IPv4Address?
 
     // MARK: - Init & deinit
 
-    init(serverIP: @escaping () -> IPv4Address?, log: OSLog) {
-        self.serverIP = serverIP
-        self.log = log
-
+    init() {
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
     deinit {
+        task?.cancel()
+
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
     // MARK: - Start/Stop monitoring
 
     @MainActor
-    public func start(callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting latency monitor", log: log)
+    public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
+        os_log("⚫️ Starting latency monitor", log: .networkProtectionPixel)
+
+        self.serverIP = serverIP
 
         latencyCancellable = latencySubject.eraseToAnyPublisher()
             .scan(ExponentialGeometricAverage()) { measurements, latency in
@@ -136,7 +136,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     @MainActor
     public func stop() {
-        os_log("⚫️ Stopping latency monitor", log: log)
+        os_log("⚫️ Stopping latency monitor", log: .networkProtectionPixel)
 
         latencyCancellable = nil
         task = nil
@@ -146,7 +146,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     @MainActor
     public func measureLatency() async {
-        guard let serverIP = serverIP() else {
+        guard let serverIP else {
             latencySubject.send(Self.unknownLatency)
             return
         }
