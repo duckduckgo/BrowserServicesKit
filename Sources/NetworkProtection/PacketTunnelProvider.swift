@@ -1041,9 +1041,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
         if await latencyMonitor.isStarted {
-            if await latencyMonitor.serverIP == ip {
-                return
-            }
             await latencyMonitor.stop()
         }
 

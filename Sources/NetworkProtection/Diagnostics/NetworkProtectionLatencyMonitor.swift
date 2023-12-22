@@ -75,8 +75,6 @@ public actor NetworkProtectionLatencyMonitor {
 
     private var lastLatencyReported: Date = .distantPast
 
-    private(set) var serverIP: IPv4Address?
-
     // MARK: - Init & deinit
 
     init() {
@@ -93,8 +91,6 @@ public actor NetworkProtectionLatencyMonitor {
 
     public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting latency monitor", log: .networkProtectionLatencyMonitorLog)
-
-        self.serverIP = serverIP
 
         latencyCancellable = latencySubject.eraseToAnyPublisher()
             .receive(on: DispatchQueue.main)
@@ -141,7 +137,7 @@ public actor NetworkProtectionLatencyMonitor {
     // MARK: - Latency monitor
 
     private func measureLatency(to ip: IPv4Address) async {
-        os_log("⚫️ Pinging %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, serverIP.debugDescription)
+        os_log("⚫️ Pinging %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, ip.debugDescription)
 
         let result = await Pinger(ip: ip, timeout: Self.pingTimeout, log: .networkProtectionLatencyMonitorLog).ping()
 
