@@ -49,7 +49,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         task?.isCancelled == false
     }
 
-    private let tunnelProvider: PacketTunnelProvider
+    private weak var tunnelProvider: PacketTunnelProvider?
     private let networkMonitor = NWPathMonitor()
 
     private var failureReported = false
@@ -91,7 +91,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     // MARK: - Handshake monitor
 
     private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
-        let mostRecentHandshake = await tunnelProvider.mostRecentHandshake() ?? 0
+        let mostRecentHandshake = await tunnelProvider?.mostRecentHandshake() ?? 0
 
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
         os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionTunnelFailureMonitorLog, type: .debug, difference)

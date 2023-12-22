@@ -55,7 +55,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     private static let reportThreshold: TimeInterval = .minutes(10)
     private static let measurementInterval: TimeInterval = .seconds(5)
-    private static let pingTimeout: TimeInterval = 0.3
+    private static let pingTimeout: TimeInterval = .seconds(1)
 
     private static let unknownLatency: TimeInterval = -1
 
@@ -123,7 +123,7 @@ public actor NetworkProtectionLatencyMonitor {
             }
 
         task = Task.periodic(interval: Self.measurementInterval) { [weak self] in
-            await self?.measureLatency()
+            await self?.measureLatency(to: serverIP)
         }
     }
 
@@ -140,15 +140,10 @@ public actor NetworkProtectionLatencyMonitor {
 
     // MARK: - Latency monitor
 
-    public func measureLatency() async {
-        guard let serverIP else {
-            latencySubject.send(Self.unknownLatency)
-            return
-        }
-
+    private func measureLatency(to ip: IPv4Address) async {
         os_log("⚫️ Pinging %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, serverIP.debugDescription)
 
-        let result = await Pinger(ip: serverIP, timeout: Self.pingTimeout, log: .networkProtectionLatencyMonitorLog).ping()
+        let result = await Pinger(ip: ip, timeout: Self.pingTimeout, log: .networkProtectionLatencyMonitorLog).ping()
 
         switch result {
         case .success(let pingResult):
