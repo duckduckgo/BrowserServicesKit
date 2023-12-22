@@ -67,32 +67,32 @@ public struct CrashCollection {
 
         // TODO: Remove, only for testing
 
-        class MockPayload: MXDiagnosticPayload {
-            var mockCrashes: [MXCrashDiagnostic]?
-
-            init(mockCrashes: [MXCrashDiagnostic]?) {
-                self.mockCrashes = mockCrashes
-                super.init()
-            }
-
-            required init?(coder: NSCoder) {
-                fatalError("init(coder:) has not been implemented")
-            }
-
-            override var crashDiagnostics: [MXCrashDiagnostic]? {
-                return mockCrashes
-            }
-        }
-
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            let fakePayloads = [MockPayload(mockCrashes: nil),
-                                MockPayload(mockCrashes: []),
-                                MockPayload(mockCrashes: [MXCrashDiagnostic()]),
-                                MockPayload(mockCrashes: [MXCrashDiagnostic(), MXCrashDiagnostic()])]
-
-            crashHandler.didReceive(fakePayloads)
-        }
+//        class MockPayload: MXDiagnosticPayload {
+//            var mockCrashes: [MXCrashDiagnostic]?
+//
+//            init(mockCrashes: [MXCrashDiagnostic]?) {
+//                self.mockCrashes = mockCrashes
+//                super.init()
+//            }
+//
+//            required init?(coder: NSCoder) {
+//                fatalError("init(coder:) has not been implemented")
+//            }
+//
+//            override var crashDiagnostics: [MXCrashDiagnostic]? {
+//                return mockCrashes
+//            }
+//        }
+//
+//
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+//            let fakePayloads = [MockPayload(mockCrashes: nil),
+//                                MockPayload(mockCrashes: []),
+//                                MockPayload(mockCrashes: [MXCrashDiagnostic()]),
+//                                MockPayload(mockCrashes: [MXCrashDiagnostic(), MXCrashDiagnostic()])]
+//
+//            crashHandler.didReceive(fakePayloads)
+//        }
         ////////////////////////////////////////////
 
         crashHandler.crashDiagnosticsPayloadHandler = crashDiagnosticsPayloadHandler
