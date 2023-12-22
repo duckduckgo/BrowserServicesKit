@@ -59,28 +59,22 @@ public actor NetworkProtectionLatencyMonitor {
 
     private static let unknownLatency: TimeInterval = -1
 
-    @MainActor
     private let latencySubject = PassthroughSubject<TimeInterval, Never>()
 
-    @MainActor
     private var latencyCancellable: AnyCancellable?
 
-    @MainActor
     private var task: Task<Never, Error>? {
         willSet {
             task?.cancel()
         }
     }
 
-    @MainActor
     var isStarted: Bool {
         task?.isCancelled == false
     }
 
-    @MainActor
     private var lastLatencyReported: Date = .distantPast
 
-    @MainActor
     private(set) var serverIP: IPv4Address?
 
     // MARK: - Init & deinit
@@ -97,13 +91,13 @@ public actor NetworkProtectionLatencyMonitor {
 
     // MARK: - Start/Stop monitoring
 
-    @MainActor
     public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting latency monitor", log: .networkProtectionLatencyMonitorLog)
 
         self.serverIP = serverIP
 
         latencyCancellable = latencySubject.eraseToAnyPublisher()
+            .receive(on: DispatchQueue.main)
             .scan(ExponentialGeometricAverage()) { measurements, latency in
                 if latency >= 0 {
                     measurements.addMeasurement(latency)
@@ -117,12 +111,14 @@ public actor NetworkProtectionLatencyMonitor {
                 return measurements
             }
             .map { ConnectionQuality(average: $0.average) }
-            .sink { [weak self] quality in
-                let now = Date()
-                if let self,
-                   now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold {
-                    callback(.quality(quality))
-                    self.lastLatencyReported = now
+            .sink { quality in
+                Task { [weak self] in
+                    let now = Date()
+                    if let self,
+                       await now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold {
+                        callback(.quality(quality))
+                        await self.updateLastLatencyReported(date: now)
+                    }
                 }
             }
 
@@ -131,7 +127,6 @@ public actor NetworkProtectionLatencyMonitor {
         }
     }
 
-    @MainActor
     public func stop() {
         os_log("⚫️ Stopping latency monitor", log: .networkProtectionLatencyMonitorLog)
 
@@ -139,9 +134,12 @@ public actor NetworkProtectionLatencyMonitor {
         task = nil
     }
 
+    private func updateLastLatencyReported(date: Date) {
+        lastLatencyReported = date
+    }
+
     // MARK: - Latency monitor
 
-    @MainActor
     public func measureLatency() async {
         guard let serverIP else {
             latencySubject.send(Self.unknownLatency)
@@ -161,7 +159,6 @@ public actor NetworkProtectionLatencyMonitor {
         }
     }
 
-    @MainActor
     public func simulateLatency(_ timeInterval: TimeInterval) {
         latencySubject.send(timeInterval)
     }

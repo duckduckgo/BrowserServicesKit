@@ -1025,31 +1025,29 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Monitors
 
-    @MainActor
-    private func startTunnelFailureMonitor() {
-        if tunnelFailureMonitor.isStarted {
-            tunnelFailureMonitor.stop()
+    private func startTunnelFailureMonitor() async {
+        if await tunnelFailureMonitor.isStarted {
+            await tunnelFailureMonitor.stop()
         }
 
-        tunnelFailureMonitor.start { [weak self] result in
+        await tunnelFailureMonitor.start { [weak self] result in
             self?.providerEvents.fire(.reportTunnelFailure(result: result))
         }
     }
 
-    @MainActor
-    private func startLatencyMonitor() {
+    private func startLatencyMonitor() async {
         guard let ip = lastSelectedServerInfo?.ipv4 else {
-            latencyMonitor.stop()
+            await latencyMonitor.stop()
             return
         }
-        if latencyMonitor.isStarted {
-            if latencyMonitor.serverIP == ip {
+        if await latencyMonitor.isStarted {
+            if await latencyMonitor.serverIP == ip {
                 return
             }
-            latencyMonitor.stop()
+            await latencyMonitor.stop()
         }
 
-        latencyMonitor.start(serverIP: ip) { [weak self] result in
+        await latencyMonitor.start(serverIP: ip) { [weak self] result in
             switch result {
             case .error:
                 self?.providerEvents.fire(.reportLatency(result: .error))

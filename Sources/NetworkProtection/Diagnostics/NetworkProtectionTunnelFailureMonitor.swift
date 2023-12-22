@@ -39,14 +39,12 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     private static let monitoringInterval: TimeInterval = .seconds(10)
 
-    @MainActor
     private var task: Task<Never, Error>? {
         willSet {
             task?.cancel()
         }
     }
 
-    @MainActor
     var isStarted: Bool {
         task?.isCancelled == false
     }
@@ -54,7 +52,6 @@ public actor NetworkProtectionTunnelFailureMonitor {
     private let tunnelProvider: PacketTunnelProvider
     private let networkMonitor = NWPathMonitor()
 
-    @MainActor
     private var failureReported = false
 
     // MARK: - Init & deinit
@@ -75,7 +72,6 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     // MARK: - Start/Stop monitoring
 
-    @MainActor
     func start(callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
@@ -86,7 +82,6 @@ public actor NetworkProtectionTunnelFailureMonitor {
         }
     }
 
-    @MainActor
     func stop() {
         os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
@@ -95,7 +90,6 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     // MARK: - Handshake monitor
 
-    @MainActor
     private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
         let mostRecentHandshake = await tunnelProvider.mostRecentHandshake() ?? 0
 
@@ -115,7 +109,6 @@ public actor NetworkProtectionTunnelFailureMonitor {
         }
     }
 
-    @MainActor
     private var isConnected: Bool {
         let path = networkMonitor.currentPath
         let connectionType = NetworkConnectionType(nwPath: path)
