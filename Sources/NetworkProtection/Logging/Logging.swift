@@ -32,7 +32,7 @@ extension OSLog {
     public static var networkProtectionLatencyMonitorLog: OSLog {
         Logging.networkProtectionLatencyMonitorLoggingEnabled ? Logging.networkProtectionLatencyMonitor : .disabled
     }
-    
+
     public static var networkProtectionTunnelFailureMonitorLog: OSLog {
         Logging.networkProtectionTunnelFailureMonitorLoggingEnabled ? Logging.networkProtectionTunnelFailureMonitor : .disabled
     }
@@ -80,7 +80,7 @@ struct Logging {
 
     fileprivate static let networkProtectionBandwidthAnalysisLoggingEnabled = true
     fileprivate static let networkProtectionBandwidthAnalysis: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Bandwidth Analysis")
-    
+
     fileprivate static let networkProtectionLatencyMonitorLoggingEnabled = true
     fileprivate static let networkProtectionLatencyMonitor: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Latency Monitor")
 
