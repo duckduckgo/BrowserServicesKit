@@ -255,13 +255,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self,
-                                                                                 timerQueue: timerQueue,
-                                                                                 log: .networkProtectionPixel)
-
-    public lazy var latencyMonitor = NetworkProtectionLatencyMonitor(serverIP: { [weak self] in self?.lastSelectedServerInfo?.ipv4 },
-                                                                     timerQueue: timerQueue,
-                                                                     log: .networkProtectionPixel)
+    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self)
+    public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
@@ -301,8 +296,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         observeSettingChanges()
         observeConnectionStatusChanges()
-        observeTunnelFailures()
-        observeConnectionQuality()
     }
 
     deinit {
@@ -445,31 +438,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 default:
                     break
                 }
-            }
-            .store(in: &cancellables)
-    }
-
-    private func observeTunnelFailures() {
-        tunnelFailureMonitor.publisher
-            .sink { [weak self] result in
-                self?.providerEvents.fire(.reportTunnelFailure(result: result))
-            }
-            .store(in: &cancellables)
-    }
-
-    private func observeConnectionQuality() {
-        latencyMonitor.publisher
-            .flatMap { [weak self] result in
-                switch result {
-                case .error:
-                    self?.providerEvents.fire(.reportLatency(result: .error))
-                    return Empty<NetworkProtectionLatencyMonitor.ConnectionQuality, Never>().eraseToAnyPublisher()
-                case .quality(let quality):
-                    return Just(quality).eraseToAnyPublisher()
-                }
-            }
-            .sink { [weak self] quality in
-                self?.providerEvents.fire(.reportLatency(result: .quality(quality)))
             }
             .store(in: &cancellables)
     }
@@ -1033,19 +1001,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
 
-        do {
-            try await tunnelFailureMonitor.start()
-        } catch {
-            os_log("⚫️ Tunnel failure monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
-            throw error
-        }
-
-        do {
-            try await latencyMonitor.start()
-        } catch {
-            os_log("⚫️ Latency monitor error: %{public}@", log: .networkProtectionPixel, type: .error, String(reflecting: error))
-            throw error
-        }
+        await startTunnelFailureMonitor()
+        await startLatencyMonitor()
 
         do {
             // These cases only make sense in the context of a connection that had trouble
@@ -1064,6 +1021,37 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
+    }
+
+    // MARK: - Monitors
+
+    private func startTunnelFailureMonitor() async {
+        if await tunnelFailureMonitor.isStarted {
+            await tunnelFailureMonitor.stop()
+        }
+
+        await tunnelFailureMonitor.start { [weak self] result in
+            self?.providerEvents.fire(.reportTunnelFailure(result: result))
+        }
+    }
+
+    private func startLatencyMonitor() async {
+        guard let ip = lastSelectedServerInfo?.ipv4 else {
+            await latencyMonitor.stop()
+            return
+        }
+        if await latencyMonitor.isStarted {
+            await latencyMonitor.stop()
+        }
+
+        await latencyMonitor.start(serverIP: ip) { [weak self] result in
+            switch result {
+            case .error:
+                self?.providerEvents.fire(.reportLatency(result: .error))
+            case .quality(let quality):
+                self?.providerEvents.fire(.reportLatency(result: .quality(quality)))
+            }
+        }
     }
 
     // MARK: - Connection Tester
