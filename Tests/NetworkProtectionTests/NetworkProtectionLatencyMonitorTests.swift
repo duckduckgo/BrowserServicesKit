@@ -69,13 +69,12 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
             switch result {
             case .quality(let quality):
                 reportedQuality = quality
+                XCTAssertEqual(expectedQuality, reportedQuality)
             case .error:
                 XCTFail("Unexpected result")
             }
         }
         await monitor.simulateLatency(timeInterval)
         await monitor.stop()
-
-        XCTAssertEqual(expectedQuality, reportedQuality)
     }
 }
