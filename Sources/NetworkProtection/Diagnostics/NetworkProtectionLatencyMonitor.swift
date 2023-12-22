@@ -81,9 +81,6 @@ public actor NetworkProtectionLatencyMonitor {
     private var lastLatencyReported: Date = .distantPast
 
     @MainActor
-    private var ignoreThreshold = false
-
-    @MainActor
     private(set) var serverIP: IPv4Address?
 
     // MARK: - Init & deinit
@@ -123,7 +120,7 @@ public actor NetworkProtectionLatencyMonitor {
             .sink { [weak self] quality in
                 let now = Date()
                 if let self,
-                    (now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold) || ignoreThreshold {
+                   now.timeIntervalSince1970 - self.lastLatencyReported.timeIntervalSince1970 >= Self.reportThreshold {
                     callback(.quality(quality))
                     self.lastLatencyReported = now
                 }
@@ -166,9 +163,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     @MainActor
     public func simulateLatency(_ timeInterval: TimeInterval) {
-        ignoreThreshold = true
         latencySubject.send(timeInterval)
-        ignoreThreshold = false
     }
 }
 
