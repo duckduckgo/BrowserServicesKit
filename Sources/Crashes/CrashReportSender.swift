@@ -23,7 +23,8 @@ import MetricKit
 @available(iOS 13, macOS 12, *)
 final class CrashReportSender {
 
-    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+    static let reportServiceUrl = URL(string: "https://d4f4-20-53-134-160.ngrok-free.app/crash.js")!
+//    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
 
     private let session = URLSession(configuration: .ephemeral)
 
