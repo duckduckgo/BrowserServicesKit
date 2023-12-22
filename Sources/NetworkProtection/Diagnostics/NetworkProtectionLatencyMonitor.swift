@@ -99,7 +99,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     @MainActor
     public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting latency monitor", log: .networkProtectionPixel)
+        os_log("⚫️ Starting latency monitor", log: .networkProtectionLatencyMonitorLog)
 
         self.serverIP = serverIP
 
@@ -107,12 +107,12 @@ public actor NetworkProtectionLatencyMonitor {
             .scan(ExponentialGeometricAverage()) { measurements, latency in
                 if latency >= 0 {
                     measurements.addMeasurement(latency)
-                    os_log("⚫️ Latency: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, latency)
+                    os_log("⚫️ Latency: %{public}f milliseconds", log: .networkProtectionLatencyMonitorLog, type: .debug, latency)
                 } else {
                     callback(.error)
                 }
 
-                os_log("⚫️ Average: %{public}f milliseconds", log: .networkProtectionPixel, type: .debug, measurements.average)
+                os_log("⚫️ Average: %{public}f milliseconds", log: .networkProtectionLatencyMonitorLog, type: .debug, measurements.average)
 
                 return measurements
             }
@@ -133,7 +133,7 @@ public actor NetworkProtectionLatencyMonitor {
 
     @MainActor
     public func stop() {
-        os_log("⚫️ Stopping latency monitor", log: .networkProtectionPixel)
+        os_log("⚫️ Stopping latency monitor", log: .networkProtectionLatencyMonitorLog)
 
         latencyCancellable = nil
         task = nil
@@ -148,15 +148,15 @@ public actor NetworkProtectionLatencyMonitor {
             return
         }
 
-        os_log("⚫️ Pinging %{public}s", log: .networkProtectionPixel, type: .debug, serverIP.debugDescription)
+        os_log("⚫️ Pinging %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, serverIP.debugDescription)
 
-        let result = await Pinger(ip: serverIP, timeout: Self.pingTimeout, log: .networkProtectionPixel).ping()
+        let result = await Pinger(ip: serverIP, timeout: Self.pingTimeout, log: .networkProtectionLatencyMonitorLog).ping()
 
         switch result {
         case .success(let pingResult):
             latencySubject.send(pingResult.time * 1000)
         case .failure(let error):
-            os_log("⚫️ Ping error: %{public}s", log: .networkProtectionPixel, type: .debug, error.localizedDescription)
+            os_log("⚫️ Ping error: %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, error.localizedDescription)
             latencySubject.send(Self.unknownLatency)
         }
     }

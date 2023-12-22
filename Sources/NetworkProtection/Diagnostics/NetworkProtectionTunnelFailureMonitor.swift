@@ -77,7 +77,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     @MainActor
     func start(callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionPixel)
+        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
         failureReported = false
 
@@ -88,7 +88,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     @MainActor
     func stop() {
-        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionPixel)
+        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
         task = nil
     }
@@ -100,11 +100,11 @@ public actor NetworkProtectionTunnelFailureMonitor {
         let mostRecentHandshake = await tunnelProvider.mostRecentHandshake() ?? 0
 
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
-        os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionPixel, type: .debug, difference)
+        os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionTunnelFailureMonitorLog, type: .debug, difference)
 
         if difference > Result.failureDetected.threshold, isConnected {
             if failureReported {
-                os_log("⚫️ Tunnel failure already reported", log: .networkProtectionPixel, type: .debug)
+                os_log("⚫️ Tunnel failure already reported", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             } else {
                 callback(.failureDetected)
                 failureReported = true
