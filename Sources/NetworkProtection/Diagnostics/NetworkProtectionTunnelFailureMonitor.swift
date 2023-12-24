@@ -22,7 +22,7 @@ import NetworkExtension
 import Common
 import Combine
 
-final public class NetworkProtectionTunnelFailureMonitor {
+public actor NetworkProtectionTunnelFailureMonitor {
     public enum Result {
         case failureDetected
         case failureRecovered
@@ -39,156 +39,77 @@ final public class NetworkProtectionTunnelFailureMonitor {
 
     private static let monitoringInterval: TimeInterval = .seconds(10)
 
-    public var publisher: AnyPublisher<Result, Never> {
-        failureSubject.eraseToAnyPublisher()
-    }
-    private let failureSubject = PassthroughSubject<Result, Never>()
-
-    private actor TimerRunCoordinator {
-        private(set) var isRunning = false
-
-        func start() {
-            isRunning = true
-        }
-
-        func stop() {
-            isRunning = false
+    private var task: Task<Never, Error>? {
+        willSet {
+            task?.cancel()
         }
     }
 
-    private var timer: DispatchSourceTimer?
-    private let timerRunCoordinator = TimerRunCoordinator()
-    private let timerQueue: DispatchQueue
+    var isStarted: Bool {
+        task?.isCancelled == false
+    }
 
-    private let tunnelProvider: PacketTunnelProvider
+    private weak var tunnelProvider: PacketTunnelProvider?
     private let networkMonitor = NWPathMonitor()
 
-    private let log: OSLog
-
-    private let lock = NSLock()
-
-    private var _failureReported = false
-    private(set) var failureReported: Bool {
-        get {
-            lock.lock(); defer { lock.unlock() }
-            return _failureReported
-        }
-        set {
-            lock.lock()
-            self._failureReported = newValue
-            lock.unlock()
-        }
-    }
+    private var failureReported = false
 
     // MARK: - Init & deinit
 
-    init(tunnelProvider: PacketTunnelProvider, timerQueue: DispatchQueue, log: OSLog) {
+    init(tunnelProvider: PacketTunnelProvider) {
         self.tunnelProvider = tunnelProvider
-        self.timerQueue = timerQueue
-        self.log = log
+        self.networkMonitor.start(queue: .global())
 
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
     deinit {
-        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        task?.cancel()
+        networkMonitor.cancel()
 
-        cancelTimerImmediately()
+        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
     // MARK: - Start/Stop monitoring
 
-    func start() async throws {
-        guard await !timerRunCoordinator.isRunning else {
-            os_log("Will not start the tunnel failure monitor as it's already running", log: log)
-            return
-        }
+    func start(callback: @escaping (Result) -> Void) {
+        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
-        os_log("⚫️ Starting tunnel failure monitor", log: log)
+        failureReported = false
 
-        do {
-            networkMonitor.start(queue: .global())
-
-            failureReported = false
-            try await scheduleTimer()
-        } catch {
-            os_log("⚫️ Stopping tunnel failure monitor prematurely", log: log)
-            throw error
+        task = Task.periodic(interval: Self.monitoringInterval) { [weak self] in
+            await self?.monitorHandshakes(callback: callback)
         }
     }
 
-    func stop() async {
-        os_log("⚫️ Stopping tunnel failure monitor", log: log)
-        await stopScheduledTimer()
+    func stop() {
+        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
-        networkMonitor.cancel()
-    }
-
-    // MARK: - Timer scheduling
-
-    private func scheduleTimer() async throws {
-        await stopScheduledTimer()
-
-        await timerRunCoordinator.start()
-
-        let timer = DispatchSource.makeTimerSource(queue: timerQueue)
-        self.timer = timer
-
-        timer.schedule(deadline: .now() + Self.monitoringInterval, repeating: Self.monitoringInterval)
-        timer.setEventHandler { [weak self] in
-            guard let self else { return }
-
-            Task {
-                try? await self.monitorHandshakes()
-            }
-        }
-
-        timer.setCancelHandler { [weak self] in
-            self?.timer = nil
-        }
-
-        timer.resume()
-    }
-
-    private func stopScheduledTimer() async {
-        await timerRunCoordinator.stop()
-
-        cancelTimerImmediately()
-    }
-
-    private func cancelTimerImmediately() {
-        guard let timer else { return }
-
-        if !timer.isCancelled {
-            timer.cancel()
-        }
-
-        self.timer = nil
+        task = nil
     }
 
     // MARK: - Handshake monitor
 
-    @MainActor
-    func monitorHandshakes() async throws {
-        let mostRecentHandshake = await tunnelProvider.mostRecentHandshake() ?? 0
+    private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
+        let mostRecentHandshake = await tunnelProvider?.mostRecentHandshake() ?? 0
 
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
-        os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionPixel, type: .debug, difference)
+        os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionTunnelFailureMonitorLog, type: .debug, difference)
 
         if difference > Result.failureDetected.threshold, isConnected {
             if failureReported {
-                os_log("⚫️ Tunnel failure already reported", log: .networkProtectionPixel, type: .debug)
+                os_log("⚫️ Tunnel failure already reported", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             } else {
-                failureSubject.send(.failureDetected)
+                callback(.failureDetected)
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
-            failureSubject.send(.failureRecovered)
+            callback(.failureRecovered)
             failureReported = false
         }
     }
 
-    var isConnected: Bool {
+    private var isConnected: Bool {
         let path = networkMonitor.currentPath
         let connectionType = NetworkConnectionType(nwPath: path)
 
