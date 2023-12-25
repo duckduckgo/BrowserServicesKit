@@ -18,8 +18,13 @@
 
 import Foundation
 
+public enum NetworkProtectionAuthenticationMethod {
+    case inviteCode(String)
+    case subscription(String)
+}
+
 protocol NetworkProtectionClient {
-    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
+    func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
@@ -37,6 +42,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToEncodeRedeemRequest
     case invalidInviteCode
     case failedToRedeemInviteCode(Error?)
+    case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
 
@@ -52,6 +58,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToEncodeRedeemRequest: return .failedToEncodeRedeemRequest
         case .invalidInviteCode: return .invalidInviteCode
         case .failedToRedeemInviteCode(let error): return .failedToRedeemInviteCode(error)
+        case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
         }
@@ -90,15 +97,29 @@ enum RegisterServerSelection {
     case location(country: String, city: String?)
 }
 
-struct RedeemRequestBody: Encodable {
+struct RedeemInviteCodeRequestBody: Encodable {
     let code: String
 }
 
-struct RedeemResponse: Decodable {
+struct ExchangeAccessTokenRequestBody: Encodable {
     let token: String
 }
 
+struct AuthenticationSuccessResponse: Decodable {
+    let token: String
+}
+
+public struct AuthenticationFailureResponse: Decodable {
+    public let message: String
+}
+
 final class NetworkProtectionBackendClient: NetworkProtectionClient {
+
+    enum Constants {
+        static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
+        static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
+        static let subscriptionEndpoint = URL(string: "https://staging1.netp.duckduckgo.com")!
+    }
 
     private enum DecoderError: Error {
         case failedToDecode(key: String)
@@ -118,6 +139,10 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     var redeemURL: URL {
         endpointURL.appending("/redeem")
+    }
+
+    var authorizeURL: URL {
+        Constants.subscriptionEndpoint.appending("/authorize")
     }
 
     private let decoder: JSONDecoder = {
@@ -239,16 +264,38 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
-        let requestBody = RedeemRequestBody(code: inviteCode)
+    public func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError> {
+        switch method {
+        case .inviteCode(let code):
+            return await redeem(inviteCode: code)
+        case .subscription(let accessToken):
+            return await exchange(accessToken: accessToken)
+        }
+    }
+
+    private func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
+        let requestBody = RedeemInviteCodeRequestBody(code: inviteCode)
+        return await retrieveAuthToken(requestBody: requestBody, endpoint: redeemURL)
+    }
+
+    private func exchange(accessToken: String) async -> Result<String, NetworkProtectionClientError> {
+        let requestBody = ExchangeAccessTokenRequestBody(token: accessToken)
+        return await retrieveAuthToken(requestBody: requestBody, endpoint: authorizeURL)
+    }
+
+    private func retrieveAuthToken<RequestBody: Encodable>(
+        requestBody: RequestBody,
+        endpoint: URL
+    ) async -> Result<String, NetworkProtectionClientError> {
         let requestBodyData: Data
+
         do {
             requestBodyData = try JSONEncoder().encode(requestBody)
         } catch {
             return .failure(.failedToEncodeRedeemRequest)
         }
 
-        var request = URLRequest(url: redeemURL)
+        var request = URLRequest(url: endpoint)
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
         request.httpBody = requestBodyData
@@ -261,16 +308,25 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 return .failure(.failedToRedeemInviteCode(nil))
             }
             switch response.statusCode {
-            case 200: responseData = data
-            case 400: return .failure(.invalidInviteCode)
-            default: return .failure(.failedToRedeemInviteCode(nil))
+            case 200:
+                responseData = data
+            case 400:
+                return .failure(.invalidInviteCode)
+            default:
+                do {
+                    // Try to redeem the subscription backend error response first:
+                    let decodedRedemptionResponse = try decoder.decode(AuthenticationFailureResponse.self, from: data)
+                    return .failure(.failedToRetrieveAuthToken(decodedRedemptionResponse))
+                } catch {
+                    return .failure(.failedToRedeemInviteCode(nil))
+                }
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToRedeemInviteCode(error))
         }
 
         do {
-            let decodedRedemptionResponse = try decoder.decode(RedeemResponse.self, from: responseData)
+            let decodedRedemptionResponse = try decoder.decode(AuthenticationSuccessResponse.self, from: responseData)
             return .success(decodedRedemptionResponse.token)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
