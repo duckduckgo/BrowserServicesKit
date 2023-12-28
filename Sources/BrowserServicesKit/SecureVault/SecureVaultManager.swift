@@ -229,9 +229,11 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 autosaveAccountCreatedInSession = false
             }
 
-            // Do not autosave anything if user has requested to never be prompted to save credentials for this domain
+            // Do not autosave anything if user has requested to never be prompted to save credentials for this domain and are using DDG as password manager
             if let neverPrompt = try vault?.hasNeverPromptWebsitesFor(domain: domain), neverPrompt {
-                return
+                guard let passwordManager = passwordManager, passwordManager.isEnabled else {
+                    return
+                }
             }
 
             // Validate the existing account exists and matches the domain and fetch the credentials
