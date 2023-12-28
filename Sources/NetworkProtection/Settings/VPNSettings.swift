@@ -42,7 +42,7 @@ public final class VPNSettings {
         case setDisableRekeying(_ disableRekeying: Bool)
     }
 
-    public enum RegistrationKeyValidity: Codable {
+    public enum RegistrationKeyValidity: Codable, Equatable {
         case automatic
         case custom(_ timeInterval: TimeInterval)
     }
@@ -91,53 +91,89 @@ public final class VPNSettings {
 
     private(set) public lazy var changePublisher: AnyPublisher<Change, Never> = {
 
-        let connectOnLoginPublisher = connectOnLoginPublisher.map { connectOnLogin in
-            Change.setConnectOnLogin(connectOnLogin)
-        }.eraseToAnyPublisher()
+        let connectOnLoginPublisher = connectOnLoginPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { connectOnLogin in
+                Change.setConnectOnLogin(connectOnLogin)
+            }.eraseToAnyPublisher()
 
-        let includeAllNetworksPublisher = includeAllNetworksPublisher.map { includeAllNetworks in
-            Change.setIncludeAllNetworks(includeAllNetworks)
-        }.eraseToAnyPublisher()
+        let includeAllNetworksPublisher = includeAllNetworksPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { includeAllNetworks in
+                Change.setIncludeAllNetworks(includeAllNetworks)
+            }.eraseToAnyPublisher()
 
-        let enforceRoutesPublisher = enforceRoutesPublisher.map { enforceRoutes in
-            Change.setEnforceRoutes(enforceRoutes)
-        }.eraseToAnyPublisher()
+        let enforceRoutesPublisher = enforceRoutesPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { enforceRoutes in
+                Change.setEnforceRoutes(enforceRoutes)
+            }.eraseToAnyPublisher()
 
-        let excludeLocalNetworksPublisher = excludeLocalNetworksPublisher.map { excludeLocalNetworks in
-            Change.setExcludeLocalNetworks(excludeLocalNetworks)
-        }.eraseToAnyPublisher()
+        let excludeLocalNetworksPublisher = excludeLocalNetworksPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { excludeLocalNetworks in
+                Change.setExcludeLocalNetworks(excludeLocalNetworks)
+            }.eraseToAnyPublisher()
 
-        let notifyStatusChangesPublisher = notifyStatusChangesPublisher.map { notifyStatusChanges in
-            Change.setNotifyStatusChanges(notifyStatusChanges)
-        }.eraseToAnyPublisher()
+        let notifyStatusChangesPublisher = notifyStatusChangesPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { notifyStatusChanges in
+                Change.setNotifyStatusChanges(notifyStatusChanges)
+            }.eraseToAnyPublisher()
 
-        let registrationKeyValidityPublisher = registrationKeyValidityPublisher.map { validity in
-            Change.setRegistrationKeyValidity(validity)
-        }.eraseToAnyPublisher()
+        let registrationKeyValidityPublisher = registrationKeyValidityPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { validity in
+                Change.setRegistrationKeyValidity(validity)
+            }.eraseToAnyPublisher()
 
-        let serverChangePublisher = selectedServerPublisher.map { server in
-            Change.setSelectedServer(server)
-        }.eraseToAnyPublisher()
+        let serverChangePublisher = selectedServerPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { server in
+                Change.setSelectedServer(server)
+            }.eraseToAnyPublisher()
 
-        let locationChangePublisher = selectedLocationPublisher.map { location in
-            Change.setSelectedLocation(location)
-        }.eraseToAnyPublisher()
+        let locationChangePublisher = selectedLocationPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { location in
+                Change.setSelectedLocation(location)
+            }.eraseToAnyPublisher()
 
-        let environmentChangePublisher = selectedEnvironmentPublisher.map { environment in
-            Change.setSelectedEnvironment(environment)
-        }.eraseToAnyPublisher()
+        let environmentChangePublisher = selectedEnvironmentPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { environment in
+                Change.setSelectedEnvironment(environment)
+            }.eraseToAnyPublisher()
 
-        let showInMenuBarPublisher = showInMenuBarPublisher.map { showInMenuBar in
-            Change.setShowInMenuBar(showInMenuBar)
-        }.eraseToAnyPublisher()
+        let showInMenuBarPublisher = showInMenuBarPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { showInMenuBar in
+                Change.setShowInMenuBar(showInMenuBar)
+            }.eraseToAnyPublisher()
 
-        let vpnFirstEnabledPublisher = vpnFirstEnabledPublisher.map { vpnFirstEnabled in
-            Change.setVPNFirstEnabled(vpnFirstEnabled)
-        }.eraseToAnyPublisher()
+        let vpnFirstEnabledPublisher = vpnFirstEnabledPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { vpnFirstEnabled in
+                Change.setVPNFirstEnabled(vpnFirstEnabled)
+            }.eraseToAnyPublisher()
 
-        let disableRekeyingPublisher = disableRekeyingPublisher.map { disableRekeying in
-            Change.setDisableRekeying(disableRekeying)
-        }.eraseToAnyPublisher()
+        let disableRekeyingPublisher = disableRekeyingPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { disableRekeying in
+                Change.setDisableRekeying(disableRekeying)
+            }.eraseToAnyPublisher()
 
         return Publishers.MergeMany(
             connectOnLoginPublisher,

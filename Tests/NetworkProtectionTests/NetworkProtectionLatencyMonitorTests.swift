@@ -27,42 +27,24 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
 
-        monitor = NetworkProtectionLatencyMonitor(serverIP: { nil }, timerQueue: DispatchQueue.main, log: .networkProtectionPixel)
-
-        try await monitor?.start()
+        monitor = NetworkProtectionLatencyMonitor()
     }
 
     override func tearDown() async throws {
         await monitor?.stop()
     }
 
-    func testInvalidIP() async {
-        let expectation = XCTestExpectation(description: "Invalid IP reported")
-        cancellable = monitor?.publisher
-            .sink { result in
-                switch result {
-                case .error:
-                    expectation.fulfill()
-                case .quality:
-                    break
-                }
-            }
-        await monitor?.measureLatency()
-        await fulfillment(of: [expectation], timeout: 1)
-    }
-
     func testPingFailure() async {
         let expectation = XCTestExpectation(description: "Ping failure reported")
-        cancellable = monitor?.publisher
-            .sink { result in
-                switch result {
-                case .error:
-                    expectation.fulfill()
-                case .quality:
-                    break
-                }
+        await monitor?.start(serverIP: .init("127.0.0.1")!) { result in
+            switch result {
+            case .error:
+                expectation.fulfill()
+            case .quality:
+                break
             }
-        monitor?.simulateLatency(-1)
+        }
+        await monitor?.simulateLatency(-1)
         await fulfillment(of: [expectation], timeout: 1)
     }
 
@@ -80,23 +62,19 @@ final class NetworkProtectionLatencyMonitorTests: XCTestCase {
     }
 
     private func testConnectionLatency(_ timeInterval: TimeInterval, expecting expectedQuality: NetworkProtectionLatencyMonitor.ConnectionQuality) async {
-        let monitor = NetworkProtectionLatencyMonitor(serverIP: { nil }, timerQueue: DispatchQueue.main, log: .networkProtectionPixel)
+        let monitor = NetworkProtectionLatencyMonitor()
 
         var reportedQuality = NetworkProtectionLatencyMonitor.ConnectionQuality.unknown
-        cancellable = monitor.publisher
-            .sink { result in
-                switch result {
-                case .quality(let quality):
-                    reportedQuality = quality
-                case .error:
-                    XCTFail("Unexpected result")
-                }
+        await monitor.start(serverIP: .init("127.0.0.1")!) { result in
+            switch result {
+            case .quality(let quality):
+                reportedQuality = quality
+                XCTAssertEqual(expectedQuality, reportedQuality)
+            case .error:
+                XCTFail("Unexpected result")
             }
-
-        try? await monitor.start()
-        monitor.simulateLatency(timeInterval)
+        }
+        await monitor.simulateLatency(timeInterval)
         await monitor.stop()
-
-        XCTAssertEqual(expectedQuality, reportedQuality)
     }
 }

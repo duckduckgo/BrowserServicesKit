@@ -287,11 +287,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }()
 
         if shouldFetchRootFolder {
-            let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
-            if !orphanedBookmarks.isEmpty {
-                errorEvents?.fire(.orphanedBookmarksPresent)
-            }
-            folderBookmarks += orphanedBookmarks
+            folderBookmarks += BookmarkUtils.fetchOrphanedEntities(context)
         }
         return folderBookmarks
     }

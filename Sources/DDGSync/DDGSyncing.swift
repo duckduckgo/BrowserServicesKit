@@ -16,9 +16,10 @@
 //  limitations under the License.
 //
 
-import Foundation
-import DDGSyncCrypto
+import BrowserServicesKit
 import Combine
+import DDGSyncCrypto
+import Foundation
 
 public enum SyncAuthState: String, Sendable, Codable {
     /// Sync engine is not initialized.
@@ -49,6 +50,16 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
     var dataProvidersSource: DataProvidersSource? { get set }
 
     /**
+     Describes current availability of sync features.
+     */
+    var featureFlags: SyncFeatureFlags { get }
+
+    /**
+     Emits changes to current availability of sync features
+     */
+    var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> { get }
+
+    /**
      Describes current state of sync account.
 
      Must be different than `initializing` to guarantee that querying state info works as expected.
@@ -73,6 +84,11 @@ public protocol DDGSyncing: DDGSyncingDebuggingSupport {
      changes to syncable data or lifecycle-related events.
      */
     var scheduler: Scheduling { get }
+
+    /**
+     Used to aggregate success and error stats of sync operations.
+     */
+    var syncDailyStats: SyncDailyStats { get }
 
     /**
      Returns true if there is an ongoing sync operation.
