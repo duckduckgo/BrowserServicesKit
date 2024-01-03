@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Network
 
 extension URL {
 
@@ -192,6 +193,12 @@ extension URL {
                 guard hostname.contains(".") || String(hostname) == .localhost else {
                     // could be a local domain but user needs to use the protocol to specify that
                     return nil
+                }
+                if IPv4Address(String(hostname)) != nil {
+                    // Require 4 octets specified explicitly for an IPv4 address (avoid 1.4 -> 1.0.0.4 expansion)
+                    guard hostname.split(separator: ".").count == 4 else {
+                        return nil
+                    }
                 }
             } else {
                 return nil
