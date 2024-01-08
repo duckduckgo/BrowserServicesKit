@@ -56,17 +56,14 @@ public enum SyncError: Error, Equatable {
     case emailProtectionUsernamePresentButTokenMissing
     case settingsMetadataNotPresent
 
-    case unauthenticatedWileLogged
+    case unauthenticatedWhileLogged
 
-    case unknownError
-
-
-    var isServerError: Bool {
+    public var isServerError: Bool {
         switch self {
         case .noResponseBody,
-                .unexpectedStatusCode(_),
+                .unexpectedStatusCode,
                 .unexpectedResponseBody,
-                .invalidDataInResponse(_):
+                .invalidDataInResponse:
             return true
         default:
             return false

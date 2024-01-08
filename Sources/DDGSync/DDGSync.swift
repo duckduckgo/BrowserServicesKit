@@ -75,110 +75,77 @@ public class DDGSync: DDGSyncing {
 
     public func createAccount(deviceName: String, deviceType: String) async throws {
         guard try dependencies.secureStore.account() == nil else {
-            dependencies.errorEvents.fire(SyncError.accountAlreadyExists)
             throw SyncError.accountAlreadyExists
         }
 
-        do {
-            let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
-            try updateAccount(account)
-            scheduler.requestSyncImmediately()
-        } catch {
-            firePixelForErrorIfNeeded(error)
-            throw error
-        }
+        let account = try await dependencies.account.createAccount(deviceName: deviceName, deviceType: deviceType)
+        try updateAccount(account)
+        scheduler.requestSyncImmediately()
     }
 
     public func login(_ recoveryKey: SyncCode.RecoveryKey, deviceName: String, deviceType: String) async throws -> [RegisteredDevice] {
         guard try dependencies.secureStore.account() == nil else {
-            dependencies.errorEvents.fire(SyncError.accountAlreadyExists)
             throw SyncError.accountAlreadyExists
         }
-        
-        do {
-            let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
-            try updateAccount(result.account)
-            scheduler.requestSyncImmediately()
-            return result.devices
-        } catch {
-            firePixelForErrorIfNeeded(error)
-            throw error
-        }
+
+        let result = try await dependencies.account.login(recoveryKey, deviceName: deviceName, deviceType: deviceType)
+        try updateAccount(result.account)
+        scheduler.requestSyncImmediately()
+        return result.devices
     }
 
     public func remoteConnect() throws -> RemoteConnecting {
         guard try dependencies.secureStore.account() == nil else {
-            dependencies.errorEvents.fire(SyncError.accountAlreadyExists)
             throw SyncError.accountAlreadyExists
         }
-
-        do {
-            let info = try dependencies.crypter.prepareForConnect()
-            return try dependencies.createRemoteConnector(info)
-        } catch {
-            firePixelForErrorIfNeeded(error)
-            throw error
-        }
+        let info = try dependencies.crypter.prepareForConnect()
+        return try dependencies.createRemoteConnector(info)
     }
 
     public func transmitRecoveryKey(_ connectCode: SyncCode.ConnectCode) async throws {
         guard try dependencies.secureStore.account() != nil else {
-            dependencies.errorEvents.fire(SyncError.accountNotFound)
             throw SyncError.accountNotFound
         }
 
         do {
             try await dependencies.createRecoveryKeyTransmitter().send(connectCode)
         } catch {
-            if !handleUnauthenticated(error) {
-                firePixelForErrorIfNeeded(error)
-                throw error
-            }
+            try handleUnauthenticated(error)
         }
     }
 
     public func disconnect() async throws {
         guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
-            dependencies.errorEvents.fire(SyncError.accountNotFound)
             throw SyncError.accountNotFound
         }
         try await disconnect(deviceId: deviceId)
         do {
             try updateAccount(nil)
         } catch {
-            firePixelForErrorIfNeeded(error)
-            throw error
+            try handleUnauthenticated(error)
         }
     }
 
     public func disconnect(deviceId: String) async throws {
         guard let token = try dependencies.secureStore.account()?.token else {
-            dependencies.errorEvents.fire(SyncError.noToken)
             throw SyncError.noToken
         }
         do {
             try await dependencies.account.logout(deviceId: deviceId, token: token)
         } catch {
-            if !handleUnauthenticated(error) {
-                firePixelForErrorIfNeeded(error)
-                throw error
-            }
+            try handleUnauthenticated(error)
         }
     }
 
     public func fetchDevices() async throws -> [RegisteredDevice] {
         guard let account = try dependencies.secureStore.account() else {
-            dependencies.errorEvents.fire(SyncError.accountNotFound)
             throw SyncError.accountNotFound
         }
 
         do {
             return try await dependencies.account.fetchDevicesForAccount(account)
         } catch {
-            if !handleUnauthenticated(error) {
-                firePixelForErrorIfNeeded(error)
-                throw error
-            }
+            try handleUnauthenticated(error)
         }
 
         return []
@@ -186,7 +153,6 @@ public class DDGSync: DDGSyncing {
 
     public func updateDeviceName(_ name: String) async throws -> [RegisteredDevice] {
         guard let account = try dependencies.secureStore.account() else {
-            dependencies.errorEvents.fire(SyncError.accountNotFound)
             throw SyncError.accountNotFound
         }
 
@@ -195,10 +161,7 @@ public class DDGSync: DDGSyncing {
             try dependencies.secureStore.persistAccount(result.account)
             return result.devices
         } catch {
-            if !handleUnauthenticated(error) {
-                firePixelForErrorIfNeeded(error)
-                throw error
-            }
+            try handleUnauthenticated(error)
         }
 
         return []
@@ -206,7 +169,6 @@ public class DDGSync: DDGSyncing {
 
     public func deleteAccount() async throws {
         guard let account = try dependencies.secureStore.account() else {
-            dependencies.errorEvents.fire(SyncError.accountNotFound)
             throw SyncError.accountNotFound
         }
 
@@ -214,10 +176,7 @@ public class DDGSync: DDGSyncing {
             try await dependencies.account.deleteAccount(account)
             try updateAccount(nil)
         } catch {
-            if !handleUnauthenticated(error) {
-                firePixelForErrorIfNeeded(error)
-                throw error
-            }
+            try handleUnauthenticated(error)
         }
     }
 
@@ -344,7 +303,7 @@ public class DDGSync: DDGSyncing {
             .sink { [weak self] error in
                 // Safe to try? because the error is reported to Sync Data Provider anyway
                 // and here we only care about logging the user out of Sync
-                _ = self?.handleUnauthenticated(error)
+                try? self?.handleUnauthenticated(error)
             }
 
         cancelSyncCancellable = dependencies.scheduler.cancelSyncPublisher
@@ -364,33 +323,22 @@ public class DDGSync: DDGSyncing {
         self.syncQueue = syncQueue
     }
 
-    private func handleUnauthenticated(_ error: Error) -> Bool {
+    private func handleUnauthenticated(_ error: Error) throws {
         guard let syncError = error as? SyncError,
               case .unexpectedStatusCode(let statusCode) = syncError,
               statusCode == 401 else {
-            return false
+            throw error
         }
 
         do {
             try updateAccount(nil)
-            dependencies.errorEvents.fire(SyncError.unauthenticatedWileLogged)
+            throw SyncError.unauthenticatedWhileLogged
         } catch {
             // swiftlint:disable:next line_length
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
             if let syncError = error as? SyncError {
-                dependencies.errorEvents.fire(syncError)
+                throw error
             }
-        }
-        return true
-    }
-
-    private func firePixelForErrorIfNeeded(_ error: Error) {
-        guard let syncError = error as? SyncError else {
-            dependencies.errorEvents.fire(SyncError.unknownError)
-            return
-        }
-        if !syncError.isServerError {
-            dependencies.errorEvents.fire(syncError)
         }
     }
 
