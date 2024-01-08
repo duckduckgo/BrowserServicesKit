@@ -118,8 +118,8 @@ public class DDGSync: DDGSyncing {
         guard let deviceId = try dependencies.secureStore.account()?.deviceId else {
             throw SyncError.accountNotFound
         }
-        try await disconnect(deviceId: deviceId)
         do {
+            try await disconnect(deviceId: deviceId)
             try updateAccount(nil)
         } catch {
             try handleUnauthenticated(error)
