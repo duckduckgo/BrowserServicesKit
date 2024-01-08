@@ -89,6 +89,16 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertNil("localdomain".url)
     }
 
+    func testThatIPv4AddressMustContainFourOctets() {
+        XCTAssertNil("1.4".url)
+        XCTAssertNil("1.4/3.4".url)
+        XCTAssertNil("1.0.4".url)
+        XCTAssertNil("127.0.1".url)
+
+        XCTAssertEqual("127.0.0.1".url?.absoluteString, "http://127.0.0.1")
+        XCTAssertEqual("1.0.0.4/3.4".url?.absoluteString, "http://1.0.0.4/3.4")
+    }
+
     func testWhenNakedIsCalled_ThenURLWithNoSchemeWWWPrefixAndLastSlashIsReturned() {
         let url = URL(string: "http://duckduckgo.com")!
         let duplicate = URL(string: "https://www.duckduckgo.com/")!

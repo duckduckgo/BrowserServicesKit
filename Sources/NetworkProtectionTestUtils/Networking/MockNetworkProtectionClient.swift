@@ -36,14 +36,31 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
     }
 
     public var spyRedeemInviteCode: String?
+    public var spyRedeemAccessToken: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
     public var redeemCalled: Bool {
         spyRedeemInviteCode != nil
     }
 
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
-        spyRedeemInviteCode = inviteCode
-        return stubRedeem
+    public init(stubRedeem: Result<String, NetworkProtectionClientError> = .success(""),
+                stubGetServers: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([]),
+                stubRegister: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([])) {
+        self.stubRedeem = stubRedeem
+        self.stubGetServers = stubGetServers
+        self.stubRegister = stubRegister
+    }
+
+    public func authenticate(
+        withMethod method: NetworkProtection.NetworkProtectionAuthenticationMethod
+    ) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
+        switch method {
+        case .inviteCode(let inviteCode):
+            spyRedeemInviteCode = inviteCode
+            return stubRedeem
+        case .subscription(let accessToken):
+            spyRedeemAccessToken = accessToken
+            return stubRedeem
+        }
     }
 
     public var spyGetServersAuthToken: String?
