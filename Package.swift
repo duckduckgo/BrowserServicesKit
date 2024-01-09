@@ -197,6 +197,7 @@ let package = Package(
                 "TrackerRadarKit",
                 "UserScript",
                 "ContentBlocking",
+                "Persistence",
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",
@@ -448,6 +449,14 @@ let package = Package(
             dependencies: [
                 "SecureStorage",
                 "SecureStorageTestsUtils"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .testTarget(
+            name: "PrivacyDashboardTests",
+            dependencies: [
+                "PrivacyDashboard",
+                "TestUtils"
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),

@@ -15,19 +15,24 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+//  Implementation guidelines: https://app.asana.com/0/1198207348643509/1200202563872939/f
 
 import Foundation
 
-struct WebsiteBreakage {
-
+/// Model containing all the info required for a report broken site submission
+public struct WebsiteBreakage {
+    
+    /// The source of the broken site report
     public enum Source: String {
+        /// The app menu
         case appMenu = "menu"
+        /// From the privacy dashboard
         case dashboard
     }
-
+    
+    let siteUrl: URL
     let category: String
     let description: String?
-    let siteUrlString: String
     let osVersion: String
     let upgradedHttps: Bool
     let tdsETag: String?
@@ -37,21 +42,23 @@ struct WebsiteBreakage {
     let ampURL: String
     let urlParametersRemoved: Bool
     let reportFlow: Source
-    let protectionsState: Bool
-    //iOS Only
-    let isDesktop: Bool
+    let protectionsState: Bool 
+    var lastSentDay: String? = nil
+#if os(iOS)
+    let isDesktop: Bool //?? not in documentation
     let atb: String
     let model: String
-
-    init(
+#endif
+    
+    public init(
+        siteUrl: URL,
         category: String,
         description: String?,
-        siteUrlString: String,
         osVersion: String,
         upgradedHttps: Bool,
         tdsETag: String?,
-        blockedTrackerDomains: [String],
-        installedSurrogates: [String],
+        blockedTrackerDomains: [String]?,
+        installedSurrogates: [String]?,
         isGPCEnabled: Bool,
         ampURL: String,
         urlParametersRemoved: Bool,
@@ -61,30 +68,33 @@ struct WebsiteBreakage {
         atb: String,
         model: String
     ) {
+        self.siteUrl = siteUrl
         self.category = category
         self.description = description
-        self.siteUrlString = siteUrlString
         self.osVersion = osVersion
         self.upgradedHttps = upgradedHttps
         self.tdsETag = tdsETag
-        self.blockedTrackerDomains = blockedTrackerDomains
-        self.installedSurrogates = installedSurrogates
+        self.blockedTrackerDomains = blockedTrackerDomains ?? []
+        self.installedSurrogates = installedSurrogates ?? []
         self.isGPCEnabled = isGPCEnabled
         self.ampURL = ampURL
         self.protectionsState = protectionsState
         self.urlParametersRemoved = urlParametersRemoved
         self.reportFlow = reportFlow
-        //iOS Only
+        
+#if os(iOS)
         self.isDesktop = isDesktop
         self.atb = atb
         self.model = model
+#endif
     }
-
-    var requestParameters: [String: String] {
-        [
+    
+    /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
+    public var requestParameters: [String: String] {
+        var result = [
+            "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
             "category": category,
             "description": description ?? "",
-            "siteUrl": siteUrlString,
             "upgradedHttps": upgradedHttps ? "true" : "false",
             "tds": tdsETag?.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? "",
             "blockedTrackers": blockedTrackerDomains.joined(separator: ","),
@@ -95,11 +105,18 @@ struct WebsiteBreakage {
             "os": osVersion,
             "manufacturer": "Apple",
             "reportFlow": reportFlow.rawValue,
-            "protectionsState": protectionsState ? "true" : "false",
-            //iOS only
-            "siteType": isDesktop ? "desktop" : "mobile",
-            "atb": atb,
-            "model": model
+            "protectionsState": protectionsState ? "true" : "false"
         ]
+        
+        if let lastSentDay = lastSentDay {
+            result["lastSentDay"] = lastSentDay
+        }
+        
+#if os(iOS)
+        result["siteType"] = isDesktop ? "desktop" : "mobile"
+        result["atb"] = atb
+        result["model"] = model
+#endif
+        return result
     }
 }

@@ -146,6 +146,8 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     }
 }
 
+//MARK: - WKNavigationDelegate
+
 extension PrivacyDashboardController: WKNavigationDelegate {
     
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -254,6 +256,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         privacyDashboardScript.setLocale(locale, webView: webView)
     }
 }
+
+//MARK: - PrivacyDashboardUserScriptDelegate
 
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     
