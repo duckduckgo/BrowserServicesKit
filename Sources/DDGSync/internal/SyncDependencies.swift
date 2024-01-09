@@ -16,9 +16,10 @@
 //  limitations under the License.
 //
 
-import Foundation
+import BrowserServicesKit
 import Combine
 import Common
+import Foundation
 import Persistence
 
 protocol SyncDependenciesDebuggingSupport {
@@ -34,6 +35,7 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
     var secureStore: SecureStoring { get }
     var crypter: CryptingInternal { get }
     var scheduler: SchedulingInternal { get }
+    var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var errorEvents: EventMapping<SyncError> { get }
     var log: OSLog { get }
 

@@ -87,13 +87,13 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
         XCTAssertNil(try? keyStore.storedPrivateKey())
         XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
-        XCTAssertFalse(networkClient.registerCalled)
+        XCTAssertNil(networkClient.spyRegister)
 
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic)
 
         XCTAssertNotNil(try? keyStore.storedPrivateKey())
         XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
-        XCTAssertTrue(networkClient.registerCalled)
+        XCTAssertNotNil(networkClient.spyRegister)
     }
 
     func testWhenGeneratingTunnelConfig_AndServerSelectionIsUsingLocation_MakesRequestWithCountryAndCity() async {
@@ -118,7 +118,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
     func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnGettingServers_deletesToken() async {
         _ = NetworkProtectionServer.mockRegisteredServer
-
         networkClient.stubRegister = .failure(.invalidAuthToken)
 
         XCTAssertNotNil(tokenStore.token)

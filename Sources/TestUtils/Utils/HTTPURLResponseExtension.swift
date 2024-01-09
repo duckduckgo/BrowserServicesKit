@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import Networking
+import Networking
 
 extension HTTPURLResponse {
 

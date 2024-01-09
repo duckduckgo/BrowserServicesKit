@@ -16,9 +16,10 @@
 //  limitations under the License.
 //
 
-import Foundation
-import DDGSyncCrypto
+import BrowserServicesKit
 import Combine
+import DDGSyncCrypto
+import Foundation
 
 public enum SyncAuthState: String, Sendable, Codable {
     /// Sync engine is not initialized.
@@ -47,6 +48,16 @@ public protocol DataProvidersSource: AnyObject {
 public protocol DDGSyncing: DDGSyncingDebuggingSupport {
 
     var dataProvidersSource: DataProvidersSource? { get set }
+
+    /**
+     Describes current availability of sync features.
+     */
+    var featureFlags: SyncFeatureFlags { get }
+
+    /**
+     Emits changes to current availability of sync features
+     */
+    var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> { get }
 
     /**
      Describes current state of sync account.

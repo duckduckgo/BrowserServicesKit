@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import Combine
 import Common
 import Foundation
@@ -132,6 +133,58 @@ class MockErrorHandler: EventMapping<SyncError> {
     }
 }
 
+final class MockInternalUserStoring: InternalUserStoring {
+    var isInternalUser: Bool = false
+}
+
+extension DefaultInternalUserDecider {
+    convenience init(mockedStore: MockInternalUserStoring = MockInternalUserStoring()) {
+        self.init(store: mockedStore)
+    }
+}
+
+class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
+    var currentConfig: Data = .init()
+    var updatesSubject = PassthroughSubject<Void, Never>()
+    let updatesPublisher: AnyPublisher<Void, Never>
+    var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration()
+    let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
+    func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
+        .downloaded
+    }
+
+    init() {
+        updatesPublisher = updatesSubject.eraseToAnyPublisher()
+    }
+}
+
+class MockPrivacyConfiguration: PrivacyConfiguration {
+
+    func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
+
+    func isSubfeatureEnabled(
+        _ subfeature: any PrivacySubfeature,
+        versionProvider: AppVersionProvider,
+        randomizer: (Range<Double>) -> Double
+    ) -> Bool {
+        true
+    }
+
+    var identifier: String = "abcd"
+    var userUnprotectedDomains: [String] = []
+    var tempUnprotectedDomains: [String] = []
+    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist = .init(json: ["state": "disabled"])!
+    func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] { [] }
+    func isFeature(_ feature: PrivacyFeature, enabledForDomain: String?) -> Bool { true }
+    func isProtected(domain: String?) -> Bool { false }
+    func isUserUnprotected(domain: String?) -> Bool { false }
+    func isTempUnprotected(domain: String?) -> Bool { false }
+    func isInExceptionList(domain: String?, forFeature featureKey: PrivacyFeature) -> Bool { false }
+    func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings { .init() }
+    func userEnabledProtection(forDomain: String) {}
+    func userDisabledProtection(forDomain: String) {}
+}
+
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
     var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
@@ -140,6 +193,7 @@ struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport 
     var crypter: CryptingInternal = CryptingMock()
     var scheduler: SchedulingInternal = SchedulerMock()
     var log: OSLog = .default
+    var privacyConfigurationManager: PrivacyConfigurationManaging = MockPrivacyConfigurationManager()
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
     var keyValueStore: KeyValueStoring = MockKeyValueStore()
 
