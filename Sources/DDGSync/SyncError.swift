@@ -56,7 +56,7 @@ public enum SyncError: Error, Equatable {
     case emailProtectionUsernamePresentButTokenMissing
     case settingsMetadataNotPresent
 
-    case unauthenticatedWhileLogged
+    case unauthenticatedWhileLoggedIn
 
     public var isServerError: Bool {
         switch self {

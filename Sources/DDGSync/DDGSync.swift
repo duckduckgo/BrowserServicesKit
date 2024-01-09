@@ -332,7 +332,7 @@ public class DDGSync: DDGSyncing {
 
         do {
             try updateAccount(nil)
-            throw SyncError.unauthenticatedWhileLogged
+            throw SyncError.unauthenticatedWhileLoggedIn
         } catch {
             // swiftlint:disable:next line_length
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
