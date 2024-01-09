@@ -103,15 +103,33 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
 
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
-        guard let feature = data.features[featureKey.rawValue] else { return false }
+        switch stateFor(featureKey: featureKey, versionProvider: versionProvider) {
+        case .enabled:
+            return true
+        case .disabled:
+            return false
+        }
+    }
+
+    public func stateFor(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState {
+        guard let feature = data.features[featureKey.rawValue] else { return .disabled(.featureMissing) }
 
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
         let satisfiesInstalledDays = satisfiesInstalledDays(featureKey, installDate: installDate)
 
         switch feature.state {
-        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion && satisfiesInstalledDays
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion && satisfiesInstalledDays
-        default: return false
+        case PrivacyConfigurationData.State.enabled:
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+            guard satisfiesInstalledDays else { return .disabled(.tooOldInstallation) }
+
+            return .enabled
+        case PrivacyConfigurationData.State.internal:
+            guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+            guard satisfiesInstalledDays else { return .disabled(.tooOldInstallation) }
+
+            return .enabled
+        default: return .disabled(.disabledInConfig)
         }
     }
 
@@ -161,24 +179,42 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
 
-        guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
+        switch stateFor(subfeature, versionProvider: versionProvider, randomizer: randomizer) {
+        case .enabled:
+            return true
+        case .disabled:
             return false
         }
+    }
+
+    public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+
+        let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
+        guard case .enabled = parentState else { return parentState }
+
         let subfeatures = subfeatures(for: subfeature.parent)
         let subfeatureData = subfeatures[subfeature.rawValue]
-        let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
 
         // Handle Rollouts
         if let rollout = subfeatureData?.rollout {
             if !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
-                return false
+                return .disabled(.stillInRollout)
             }
         }
 
+        let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
+
         switch subfeatureData?.state {
-        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
-        default: return false
+        case PrivacyConfigurationData.State.enabled:
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+
+            return .enabled
+        case PrivacyConfigurationData.State.internal:
+            guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+
+            return .enabled
+        default: return .disabled(.disabledInConfig)
         }
     }
 
