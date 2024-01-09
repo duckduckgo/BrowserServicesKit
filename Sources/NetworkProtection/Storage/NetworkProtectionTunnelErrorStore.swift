@@ -26,6 +26,7 @@ import Common
 ///
 public final class NetworkProtectionTunnelErrorStore {
     private static let lastErrorMessageKey = "com.duckduckgo.NetworkProtectionTunnelErrorStore.lastErrorMessage"
+    private static let lastDisconnectErrorMessageKey = "com.duckduckgo.NetworkProtectionTunnelErrorStore.lastDisconnectErrorMessage"
     private let userDefaults: UserDefaults
 
 #if os(macOS)
@@ -62,6 +63,16 @@ public final class NetworkProtectionTunnelErrorStore {
             #if os(macOS)
             postLastErrorMessageChangedNotification(newValue)
             #endif
+        }
+    }
+
+    public var lastDisconnectErrorMessage: String? {
+        get {
+            userDefaults.string(forKey: Self.lastDisconnectErrorMessageKey)
+        }
+
+        set {
+            userDefaults.set(newValue, forKey: Self.lastDisconnectErrorMessageKey)
         }
     }
 }
