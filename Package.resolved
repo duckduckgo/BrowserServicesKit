@@ -42,7 +42,7 @@
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
         "branch" : "12-14-feat_macos_allow_direct_navigation_to_breakage_form",
-        "revision" : "97f6acbf9318045fbfb9b0ff098e307450d7457b"
+        "revision" : "24b6260043a888827998124bc12104f4779e010f"
       }
     },
     {
@@ -59,8 +59,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-argument-parser",
       "state" : {
-        "revision" : "8f4d2753f0e4778c76d5f05ad16c74f707390531",
-        "version" : "1.2.3"
+        "revision" : "c8ed701b513cf5177118a175d85fbbbcd707ab41",
+        "version" : "1.3.0"
       }
     },
     {
