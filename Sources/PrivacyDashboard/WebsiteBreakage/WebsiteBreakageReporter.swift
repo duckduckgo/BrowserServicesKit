@@ -64,12 +64,12 @@ public class WebsiteBreakageReporter {
             throw WebsiteBreakageReporterError.failedToGenerateHistoryEntry
         }
 
-        os_log(.debug, "Reporting website breakage for \(breakage.siteUrl.absoluteString)")
+        os_log(.debug, "Reporting website breakage for \(historyEntry.identifier)")
 
         // Check if the report has been sent before
         if let storedHistoryEntry = try persistencyManager.getBreakageHistory(forDomainIdentifier: historyEntry.identifier) {
             breakage.lastSentDay = storedHistoryEntry.lastSentDayString
-            os_log(.debug, "Breakage report sent on the \(breakage.lastSentDay ?? "?") for \(breakage.siteUrl.absoluteString) ID:\(historyEntry.identifier)")
+            os_log(.debug, "Breakage report sent on the \(breakage.lastSentDay ?? "?") for \(historyEntry.identifier)")
         }
 
         let pixelParams = breakage.requestParameters
@@ -80,7 +80,7 @@ public class WebsiteBreakageReporter {
         // persist history entry
         try persistencyManager.persist(breakegeHistory: historyEntry) // this overrides the previously stored entry if existed
 
-        os_log(.debug, "Website breakage reported for \(breakage.siteUrl.absoluteString)")
+        os_log(.debug, "Website breakage reported for \(historyEntry.identifier)")
     }
 }
 
