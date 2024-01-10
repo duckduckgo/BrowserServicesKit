@@ -40,8 +40,8 @@ public class MockKeyValueStore: KeyValueStoring {
 }
 
 extension MockKeyValueStore: DictionaryRepresentable {
-    
-    public func dictionaryRepresentation() -> [String : Any] {
-        return store as [String : Any]
+
+    public func dictionaryRepresentation() -> [String: Any] {
+        return store as [String: Any]
     }
 }

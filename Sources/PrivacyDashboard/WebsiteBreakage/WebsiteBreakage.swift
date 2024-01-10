@@ -21,7 +21,7 @@ import Foundation
 
 /// Model containing all the info required for a report broken site submission
 public struct WebsiteBreakage {
-    
+
     /// The source of the broken site report
     public enum Source: String {
         /// The app menu
@@ -29,7 +29,7 @@ public struct WebsiteBreakage {
         /// From the privacy dashboard
         case dashboard
     }
-    
+
     let siteUrl: URL
     let category: String
     let description: String?
@@ -42,14 +42,14 @@ public struct WebsiteBreakage {
     let ampURL: String
     let urlParametersRemoved: Bool
     let reportFlow: Source
-    let protectionsState: Bool 
-    var lastSentDay: String? = nil
+    let protectionsState: Bool
+    var lastSentDay: String?
 #if os(iOS)
-    let isDesktop: Bool //?? not in documentation
+    let isDesktop: Bool // ?? not in documentation
     let atb: String
     let model: String
 #endif
-    
+
     public init(
         siteUrl: URL,
         category: String,
@@ -81,14 +81,14 @@ public struct WebsiteBreakage {
         self.protectionsState = protectionsState
         self.urlParametersRemoved = urlParametersRemoved
         self.reportFlow = reportFlow
-        
+
 #if os(iOS)
         self.isDesktop = isDesktop
         self.atb = atb
         self.model = model
 #endif
     }
-    
+
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
     public var requestParameters: [String: String] {
         var result = [
@@ -107,11 +107,11 @@ public struct WebsiteBreakage {
             "reportFlow": reportFlow.rawValue,
             "protectionsState": protectionsState ? "true" : "false"
         ]
-        
+
         if let lastSentDay = lastSentDay {
             result["lastSentDay"] = lastSentDay
         }
-        
+
 #if os(iOS)
         result["siteType"] = isDesktop ? "desktop" : "mobile"
         result["atb"] = atb

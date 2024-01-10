@@ -21,22 +21,22 @@ import XCTest
 @testable import PrivacyDashboard
 
 final class WebsiteBreakageHistoryEntryTests: XCTestCase {
-               
+
     func testDates() throws {
         let testDate = Date(timeIntervalSince1970: 1704795829)
         let breakageHistory = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
-        
+
         XCTAssertNotNil(breakageHistory)
         XCTAssertEqual("2024-01-09", breakageHistory?.lastSentDayString)
         XCTAssertEqual(1704795829 + (86400*30), breakageHistory?.expiryDate?.timeIntervalSince1970)
     }
-    
+
     func testUniqueIdentifier() throws {
         let testDate = Date(timeIntervalSince1970: 1704795829)
         let breakageHistory = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
         let breakageHistory2 = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage2, currentDate: testDate)
         let breakageHistory3 = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
-        
+
         XCTAssertEqual(breakageHistory?.identifier, breakageHistory3?.identifier)
         XCTAssertNotEqual(breakageHistory?.identifier, breakageHistory2?.identifier)
     }

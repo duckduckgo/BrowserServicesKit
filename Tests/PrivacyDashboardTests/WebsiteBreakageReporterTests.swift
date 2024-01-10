@@ -24,31 +24,30 @@ import TestUtils
 final class WebsiteBreakageReporterTests: XCTestCase {
 
     func testReport() throws {
-        
+
         let expctation1 = expectation(description: "Pixel sent without lastSentDay")
         let expctation2 = expectation(description: "Pixel sent with lastSentDay ")
         var pixelCount = 0
-        
+
         let keyValueStore = MockKeyValueStore()
         let reporter = WebsiteBreakageReporter(pixelHandler: { parameters in
-            //Send pixel
+            // Send pixel
             print("PIXEL SENT: \n\(parameters)")
             pixelCount += 1
-            
+
             if pixelCount == 1, parameters["lastSentDay"] == nil {
                 expctation1.fulfill()
             } else if pixelCount == 2, parameters["lastSentDay"] != nil {
                 expctation2.fulfill()
             }
         }, keyValueStoring: keyValueStore)
-        
+
         try reporter.report(breakage: WebsiteBreakageMoks.testBreakage)
-        
-        //test second report, the pixel must have `lastSeenDate` param
+
+        // test second report, the pixel must have `lastSeenDate` param
         try reporter.report(breakage: WebsiteBreakageMoks.testBreakage)
-        
+
         waitForExpectations(timeout: 3)
     }
-    
-    
+
 }

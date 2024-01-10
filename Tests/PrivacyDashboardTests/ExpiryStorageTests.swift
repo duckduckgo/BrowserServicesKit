@@ -25,27 +25,27 @@ final class ExpiryStorageTests: XCTestCase {
 
     func testAddAndRetrieveValue() throws {
         let expiryStorage = ExpiryStorage(keyValueStoring: MockKeyValueStore())
-        expiryStorage.set(value: "value1", forKey: "key1", expiryDate: Date().addingTimeInterval(86400)) //+1 day
-        
+        expiryStorage.set(value: "value1", forKey: "key1", expiryDate: Date().addingTimeInterval(86400)) // +1 day
+
         let value = expiryStorage.value(forKey: "key1") as! String
         XCTAssertEqual(value, "value1")
     }
-    
+
     func testExpiry() throws {
         let expiryStorage = ExpiryStorage(keyValueStoring: MockKeyValueStore())
-        
-        expiryStorage.set(value: "value1", forKey: "key1", expiryDate: Date().addingTimeInterval(-86400)) //-1 day
+
+        expiryStorage.set(value: "value1", forKey: "key1", expiryDate: Date().addingTimeInterval(-86400)) // -1 day
         XCTAssertEqual(expiryStorage.value(forKey: "key1") as! String, "value1")
-        
+
         var removedCount = expiryStorage.removeExpiredItems(currentDate: Date())
         XCTAssertEqual(removedCount, 1)
-        
-        expiryStorage.set(value: "value1", forKey: "key1", expiryDate: Date().addingTimeInterval(-86400)) //-1 day
-        expiryStorage.set(value: "value2", forKey: "key2", expiryDate: Date().addingTimeInterval(+86400)) //+1 day
-        
+
+        expiryStorage.set(value: "value1", forKey: "key1", expiryDate: Date().addingTimeInterval(-86400)) // -1 day
+        expiryStorage.set(value: "value2", forKey: "key2", expiryDate: Date().addingTimeInterval(+86400)) // +1 day
+
         removedCount = expiryStorage.removeExpiredItems(currentDate: Date())
         XCTAssertEqual(removedCount, 1)
-        
+
         XCTAssertNil(expiryStorage.value(forKey: "key1"))
         XCTAssertEqual(expiryStorage.value(forKey: "key2") as! String, "value2")
     }

@@ -25,41 +25,41 @@ public typealias KeyValueStoringDictionaryRepresentable = KeyValueStoring & Dict
 /// A storage solution were each entry has an expiry date and a function for removing all expired entries is provided.
 /// Any persistency solution implementing `KeyValueStoringDictionaryRepresentable` can be used.
 public class ExpiryStorage {
-        
+
     enum Keys: String {
         case expiryDatesStorage = "com.duckduckgo.UserDefaultExpiryStorage"
         case valueExpiryDate = "com.duckduckgo.UserDefaultExpiryStorage.valueExpiryDate"
         case valueData = "com.duckduckgo.UserDefaultExpiryStorage.valueData"
     }
-    
+
     let localStorage: KeyValueStoringDictionaryRepresentable
-    
+
     /// Default initialiser
     /// - Parameter keyValueStoring: An object managing the persistency of the key-value pairs that implements `KeyValueStoringDictionaryRepresentable`
     public init(keyValueStoring: KeyValueStoringDictionaryRepresentable) {
         self.localStorage = keyValueStoring
     }
-    
+
     /// Store a value and the desired expiry date (or removes the value if nil is passed as the value) for the provided key
     /// - Parameters:
     ///   - value: The value to store, must be 
     ///   - key: The value key
     ///   - expiryDate: A date stored alongside the value, used by `removeExpiredItems(...)` for removing expired values.
     public func set(value: Any?, forKey key: String, expiryDate: Date) {
-        
+
         let valueDic = [Keys.valueExpiryDate.rawValue: expiryDate, Keys.valueData.rawValue: value]
         localStorage.set(valueDic, forKey: key)
     }
-    
+
     /// - Returns: The stored value assiciated to the key, nil if not existent
     public func value(forKey key: String) -> Any? {
-        
+
         return entry(forKey: key)?.value
     }
-    
+
     /// - Returns: The tuple expiryDate+value associated to the key, nil if they don't exist
     public func entry(forKey key: String) -> (expiryDate: Date, value: Any)? {
-        guard let valueDic = localStorage.object(forKey: key) as? [String : Any],
+        guard let valueDic = localStorage.object(forKey: key) as? [String: Any],
               let expiryDate = valueDic[Keys.valueExpiryDate.rawValue] as? Date,
               let value = valueDic[Keys.valueData.rawValue]
         else {
@@ -67,12 +67,12 @@ public class ExpiryStorage {
         }
         return (expiryDate, value)
     }
-    
+
     /// Search the entire storage for values that a re a dictionary containing 2 keys: `ExpiryStorage.Keys.valueExpiryDate` and `ExpiryStorage.Keys.valueData`, if found compares the `valueExpiryDate` with the `currentDate`, if the `currentDate` > `valueExpiryDate` then the value is removed form the storage
     /// - Parameter currentDate: The date used in the comparison with the values `valueExpiryDate`
     /// - Returns: The number of values removed
     public func removeExpiredItems(currentDate: Date) -> Int {
-        
+
         var removedCount = 0
         let allKeys = localStorage.dictionaryRepresentation().keys
         for key in allKeys {
@@ -83,7 +83,7 @@ public class ExpiryStorage {
                 }
             }
         }
-        
+
         return removedCount
     }
 }

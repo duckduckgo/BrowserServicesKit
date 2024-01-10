@@ -20,20 +20,20 @@
 import Foundation
 import CryptoKit
 
-//public typealias WebsiteBreakageDomainIdentifier = String
+// public typealias WebsiteBreakageDomainIdentifier = String
 
 /// Storage for the last time a WebsiteBreakage has been sent
 public struct WebsiteBreakageHistoryEntry {
-    
+
     /// first 6 chars of the sha256 hash of www.example.com
     let identifier: String
     /// yyyy-mm-dd
     let lastSentDayString: String
     /// Object Creation + 30 days
     let expiryDate: Date?
-    
+
     public init?(withBreakage breakage: WebsiteBreakage, currentDate: Date) {
-        
+
         guard let domainIdentifier = breakage.siteUrl.privacySafeDomainIdentifier,
               let expiryDate = Calendar.current.date(byAdding: .day, value: 30, to: currentDate) else {
             return nil
@@ -42,10 +42,10 @@ public struct WebsiteBreakageHistoryEntry {
         self.lastSentDayString = currentDate.websiteBreakageFormattedString
         self.expiryDate = expiryDate
     }
-    
+
     /// To be used when the entry is created from a UserDefault key value pair
     public init(safeDomainIdentifier: String, lastSentDayString: String) {
-        
+
         self.identifier = safeDomainIdentifier
         self.lastSentDayString = lastSentDayString
         self.expiryDate = nil
@@ -53,30 +53,30 @@ public struct WebsiteBreakageHistoryEntry {
 }
 
 fileprivate extension URL {
-    
+
     /// A string containing the first 6 chars of the sha256 hash of the URL's domain part
     var privacySafeDomainIdentifier: String? {
         guard let domain = self.host else {
             return nil
         }
-        
+
         guard let utf8Data = domain.data(using: .utf8) else {
             return nil
         }
-        
+
         let sha256Digest = SHA256.hash(data: utf8Data)
         let sha256Hex = sha256Digest.compactMap { String(format: "%02x", $0) }.joined()
-        
+
         let startIndex = sha256Hex.startIndex
         let endIndex = sha256Hex.index(startIndex, offsetBy: 6)
         let firstSixCharacters = sha256Hex[startIndex..<endIndex]
-        
+
         return String(firstSixCharacters)
     }
 }
 
 fileprivate extension Date {
-    
+
     /// A string with the date formatted as `yyyy-MM-dd`
     var websiteBreakageFormattedString: String {
         let dateFormatter = DateFormatter()

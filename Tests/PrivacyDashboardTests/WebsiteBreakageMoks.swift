@@ -21,7 +21,7 @@ import Foundation
 import PrivacyDashboard
 
 struct WebsiteBreakageMoks {
-    
+
     static var testBreakage: WebsiteBreakage {
         WebsiteBreakage(siteUrl: URL(string: "https://duckduckgo.com")!,
                         category: "test",
@@ -40,7 +40,7 @@ struct WebsiteBreakageMoks {
                         atb: "test",
                         model: "test")
     }
-    
+
     static var testBreakage2: WebsiteBreakage {
         WebsiteBreakage(siteUrl: URL(string: "https://somethingelse.zz")!,
                         category: "test",

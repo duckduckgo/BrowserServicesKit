@@ -21,10 +21,10 @@ import Foundation
 
 /// Something that can be represented as a Dictionary
 public protocol DictionaryRepresentable {
-    
+
     /// Convenience method to return a Dictionary representation of this metadata.
     /// - Returns: A Dictionary object containing the object representation
-    func dictionaryRepresentation() -> [String : Any]
+    func dictionaryRepresentation() -> [String: Any]
 }
 
 extension UserDefaults: DictionaryRepresentable { }
