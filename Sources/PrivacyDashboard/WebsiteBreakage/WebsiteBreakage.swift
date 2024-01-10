@@ -41,6 +41,7 @@ public struct WebsiteBreakage {
     let category: String
     let description: String?
     let osVersion: String
+    let manufacturer: String
     let upgradedHttps: Bool
     let tdsETag: String?
     let blockedTrackerDomains: [String]
@@ -63,6 +64,7 @@ public struct WebsiteBreakage {
         category: String,
         description: String?,
         osVersion: String,
+        manufacturer: String,
         upgradedHttps: Bool,
         tdsETag: String?,
         blockedTrackerDomains: [String]?,
@@ -77,6 +79,7 @@ public struct WebsiteBreakage {
         self.category = category
         self.description = description
         self.osVersion = osVersion
+        self.manufacturer = manufacturer
         self.upgradedHttps = upgradedHttps
         self.tdsETag = tdsETag
         self.blockedTrackerDomains = blockedTrackerDomains ?? []
@@ -95,6 +98,7 @@ public struct WebsiteBreakage {
         category: String,
         description: String?,
         osVersion: String,
+        manufacturer: String,
         upgradedHttps: Bool,
         tdsETag: String?,
         blockedTrackerDomains: [String]?,
@@ -112,6 +116,7 @@ public struct WebsiteBreakage {
         self.category = category
         self.description = description
         self.osVersion = osVersion
+        self.manufacturer = manufacturer
         self.upgradedHttps = upgradedHttps
         self.tdsETag = tdsETag
         self.blockedTrackerDomains = blockedTrackerDomains ?? []
@@ -141,7 +146,7 @@ public struct WebsiteBreakage {
             "ampUrl": ampURL,
             "urlParametersRemoved": urlParametersRemoved ? "true" : "false",
             "os": osVersion,
-            "manufacturer": "Apple",
+            "manufacturer": manufacturer,
             "reportFlow": reportFlow.rawValue,
             "protectionsState": protectionsState ? "true" : "false"
         ]
