@@ -29,6 +29,11 @@ public struct WebsiteBreakage {
         /// From the privacy dashboard
         case dashboard
     }
+    
+    public enum SiteType: String {
+        case desktop
+        case mobile
+    }
 
     let siteUrl: URL
     let category: String
@@ -45,11 +50,44 @@ public struct WebsiteBreakage {
     let protectionsState: Bool
     var lastSentDay: String?
 #if os(iOS)
-    let isDesktop: Bool // ?? not in documentation
+    let siteType: SiteType // ?? not in documentation
     let atb: String
     let model: String
 #endif
 
+#if os(macOS)
+    public init(
+        siteUrl: URL,
+        category: String,
+        description: String?,
+        osVersion: String,
+        upgradedHttps: Bool,
+        tdsETag: String?,
+        blockedTrackerDomains: [String]?,
+        installedSurrogates: [String]?,
+        isGPCEnabled: Bool,
+        ampURL: String,
+        urlParametersRemoved: Bool,
+        protectionsState: Bool,
+        reportFlow: Source
+    ) {
+        self.siteUrl = siteUrl
+        self.category = category
+        self.description = description
+        self.osVersion = osVersion
+        self.upgradedHttps = upgradedHttps
+        self.tdsETag = tdsETag
+        self.blockedTrackerDomains = blockedTrackerDomains ?? []
+        self.installedSurrogates = installedSurrogates ?? []
+        self.isGPCEnabled = isGPCEnabled
+        self.ampURL = ampURL
+        self.protectionsState = protectionsState
+        self.urlParametersRemoved = urlParametersRemoved
+        self.reportFlow = reportFlow
+    }
+#endif
+    
+#if os(iOS)
     public init(
         siteUrl: URL,
         category: String,
@@ -64,7 +102,7 @@ public struct WebsiteBreakage {
         urlParametersRemoved: Bool,
         protectionsState: Bool,
         reportFlow: Source,
-        isDesktop: Bool,
+        siteType: SiteType,
         atb: String,
         model: String
     ) {
@@ -81,13 +119,11 @@ public struct WebsiteBreakage {
         self.protectionsState = protectionsState
         self.urlParametersRemoved = urlParametersRemoved
         self.reportFlow = reportFlow
-
-#if os(iOS)
-        self.isDesktop = isDesktop
+        self.siteType = siteType
         self.atb = atb
         self.model = model
-#endif
     }
+#endif
 
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
     public var requestParameters: [String: String] {
@@ -113,7 +149,7 @@ public struct WebsiteBreakage {
         }
 
 #if os(iOS)
-        result["siteType"] = isDesktop ? "desktop" : "mobile"
+        result["siteType"] = siteType.rawValue
         result["atb"] = atb
         result["model"] = model
 #endif
