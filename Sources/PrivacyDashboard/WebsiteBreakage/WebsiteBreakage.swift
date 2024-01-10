@@ -29,7 +29,7 @@ public struct WebsiteBreakage {
         /// From the privacy dashboard
         case dashboard
     }
-    
+
     public enum SiteType: String {
         case desktop
         case mobile
@@ -86,7 +86,7 @@ public struct WebsiteBreakage {
         self.reportFlow = reportFlow
     }
 #endif
-    
+
 #if os(iOS)
     public init(
         siteUrl: URL,
