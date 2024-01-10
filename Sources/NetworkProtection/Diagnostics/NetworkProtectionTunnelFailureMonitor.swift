@@ -50,7 +50,9 @@ public actor NetworkProtectionTunnelFailureMonitor {
     }
 
     private weak var tunnelProvider: PacketTunnelProvider?
+
     private let networkMonitor = NWPathMonitor()
+    private let healthStore = NetworkProtectionTunnelHealthStore()
 
     private var failureReported = false
 
@@ -77,6 +79,10 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
         failureReported = false
 
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            self?.healthStore.updateNetworkPath(path)
+        }
+
         task = Task.periodic(interval: Self.monitoringInterval) { [weak self] in
             await self?.monitorHandshakes(callback: callback)
         }
@@ -85,6 +91,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     func stop() {
         os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
+        networkMonitor.pathUpdateHandler = nil
         task = nil
     }
 
