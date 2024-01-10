@@ -34,10 +34,7 @@ struct WebsiteBreakageMoks {
                         ampURL: "test",
                         urlParametersRemoved: true,
                         protectionsState: true,
-                        reportFlow: .appMenu,
-                        isDesktop: true,
-                        atb: "test",
-                        model: "test")
+                        reportFlow: .appMenu)
     }
 
     static var testBreakage2: WebsiteBreakage {
@@ -53,9 +50,6 @@ struct WebsiteBreakageMoks {
                         ampURL: "test",
                         urlParametersRemoved: true,
                         protectionsState: true,
-                        reportFlow: .appMenu,
-                        isDesktop: true,
-                        atb: "test",
-                        model: "test")
+                        reportFlow: .appMenu)
     }
 }
