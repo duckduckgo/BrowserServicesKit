@@ -162,12 +162,20 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
 
+    func stateFor(featureKey: BrowserServicesKit.PrivacyFeature, versionProvider: BrowserServicesKit.AppVersionProvider) -> BrowserServicesKit.PrivacyConfigurationFeatureState {
+        return .enabled
+    }
+
     func isSubfeatureEnabled(
         _ subfeature: any PrivacySubfeature,
         versionProvider: AppVersionProvider,
         randomizer: (Range<Double>) -> Double
     ) -> Bool {
         true
+    }
+
+    func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        return .enabled
     }
 
     var identifier: String = "abcd"
