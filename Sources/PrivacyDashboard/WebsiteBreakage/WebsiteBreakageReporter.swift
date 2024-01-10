@@ -1,6 +1,5 @@
 //
-//  File.swift
-//  DuckDuckGo
+//  WebsiteBreakageReporter.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +17,7 @@
 //
 
 import Foundation
-import OSLog
+import Common
 import Persistence
 
 public protocol WebsiteBreakagePersistencyManaging {

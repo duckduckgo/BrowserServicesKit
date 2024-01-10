@@ -1,6 +1,5 @@
 //
-//  File.swift
-//  DuckDuckGo
+//  URL+Trimming.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
