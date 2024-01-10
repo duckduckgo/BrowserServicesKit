@@ -34,6 +34,8 @@ public struct WebsiteBreakage {
         case desktop
         case mobile
     }
+    
+    static let allowedQueryReservedCharacters = CharacterSet(charactersIn: ",")
 
     let siteUrl: URL
     let category: String
