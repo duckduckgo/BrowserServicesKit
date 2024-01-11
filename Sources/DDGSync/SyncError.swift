@@ -87,8 +87,8 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "failedToLoadAccount"]
         case .failedToSetupEngine:
             return [syncErrorString: "failedToSetupEngine"]
-        case .failedToCreateAccountKeys(let message):
-            return [syncErrorString: "failedToCreateAccountKeys", syncErrorMessage: message]
+        case .failedToCreateAccountKeys:
+            return [syncErrorString: "failedToCreateAccountKeys"]
         case .accountNotFound:
             return [syncErrorString: "accountNotFound"]
         case .accountAlreadyExists:
@@ -99,34 +99,34 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "noFeaturesSpecified"]
         case .noResponseBody:
             return [syncErrorString: "noResponseBody"]
-        case .unexpectedStatusCode(let statusCode):
-            return [syncErrorString: "unexpectedStatusCode", "code": String(statusCode)]
+        case .unexpectedStatusCode:
+            return [syncErrorString: "unexpectedStatusCode"]
         case .unexpectedResponseBody:
             return [syncErrorString: "unexpectedResponseBody"]
-        case .unableToEncodeRequestBody(let message):
-            return [syncErrorString: "unableToEncodeRequestBody", syncErrorMessage: message]
-        case .unableToDecodeResponse(let message):
-            return [syncErrorString: "unableToDecodeResponse", syncErrorMessage: message]
-        case .invalidDataInResponse(let message):
-            return [syncErrorString: "invalidDataInResponse", syncErrorMessage: message]
+        case .unableToEncodeRequestBody:
+            return [syncErrorString: "unableToEncodeRequestBody"]
+        case .unableToDecodeResponse:
+            return [syncErrorString: "unableToDecodeResponse"]
+        case .invalidDataInResponse:
+            return [syncErrorString: "invalidDataInResponse"]
         case .accountRemoved:
             return [syncErrorString: "accountRemoved"]
-        case .failedToEncryptValue(let message):
-            return [syncErrorString: "failedToEncryptValue", syncErrorMessage: message]
-        case .failedToDecryptValue(let message):
-            return [syncErrorString: "failedToDecryptValue", syncErrorMessage: message]
-        case .failedToPrepareForConnect(let message):
-            return [syncErrorString: "failedToPrepareForConnect", syncErrorMessage: message]
-        case .failedToOpenSealedBox(let message):
-            return [syncErrorString: "failedToOpenSealedBox", syncErrorMessage: message]
-        case .failedToSealData(let message):
-            return [syncErrorString: "failedToSealData", syncErrorMessage: message]
-        case .failedToWriteSecureStore(status: let status):
-            return [syncErrorString: "failedToWriteSecureStore", "status": String(status)]
-        case .failedToReadSecureStore(status: let status):
-            return [syncErrorString: "failedToReadSecureStore", "status": String(status)]
-        case .failedToRemoveSecureStore(status: let status):
-            return [syncErrorString: "failedToRemoveSecureStore", "status": String(status)]
+        case .failedToEncryptValue:
+            return [syncErrorString: "failedToEncryptValue"]
+        case .failedToDecryptValue:
+            return [syncErrorString: "failedToDecryptValue"]
+        case .failedToPrepareForConnect:
+            return [syncErrorString: "failedToPrepareForConnect"]
+        case .failedToOpenSealedBox:
+            return [syncErrorString: "failedToOpenSealedBox"]
+        case .failedToSealData:
+            return [syncErrorString: "failedToSealData"]
+        case .failedToWriteSecureStore:
+            return [syncErrorString: "failedToWriteSecureStore"]
+        case .failedToReadSecureStore:
+            return [syncErrorString: "failedToReadSecureStore"]
+        case .failedToRemoveSecureStore:
+            return [syncErrorString: "failedToRemoveSecureStore"]
         case .credentialsMetadataMissingBeforeFirstSync:
             return [syncErrorString: "credentialsMetadataMissingBeforeFirstSync"]
         case .receivedCredentialsWithoutUUID:
