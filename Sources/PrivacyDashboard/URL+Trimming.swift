@@ -20,8 +20,24 @@ import Foundation
 
 extension URL {
 
-    /// To limit privacy risk, site URL is trimmed to not include, path, query and fragments
-    /// - Returns: A privacy-sanitised URL
+    /// To limit privacy risk, site URL is trimmed to not include query and fragment
+    /// - Returns: The original URL without query items and fragment
+    public func trimmingQueryItemsAndFragment() -> URL {
+
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else {
+            return self
+        }
+        components.queryItems = nil
+        components.fragment = nil
+
+        guard let result = components.url else {
+            return self
+        }
+        return result
+    }
+
+    /// To limit privacy risk, site URL is trimmed to include only schema, subdomain and domain
+    /// - Returns: The original URL without query items, fragment and path
     public func privacySanitised() -> URL {
 
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else {

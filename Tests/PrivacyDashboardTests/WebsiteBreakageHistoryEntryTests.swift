@@ -38,9 +38,15 @@ final class WebsiteBreakageHistoryEntryTests: XCTestCase {
 
         let breakageHistory3 = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
         XCTAssertEqual(breakageHistory?.identifier, breakageHistory3?.identifier)
+    }
 
+    func testURLSanitation() {
         let breakage = WebsiteBreakageMoks.testBreakage3
-        let trimmedURL = breakage.siteUrl.privacySanitised()
-        XCTAssertEqual(trimmedURL.absoluteString, "https://www.subdomain.example.com")
+
+        let trimmedURL = breakage.siteUrl.trimmingQueryItemsAndFragment()
+        XCTAssertEqual(trimmedURL.absoluteString, "https://www.subdomain.example.com/some/pathname")
+
+        let privacySanitisedURL = breakage.siteUrl.privacySanitised()
+        XCTAssertEqual(privacySanitisedURL.absoluteString, "https://www.subdomain.example.com")
     }
 }

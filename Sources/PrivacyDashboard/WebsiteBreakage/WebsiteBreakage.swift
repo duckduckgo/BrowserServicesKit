@@ -135,7 +135,7 @@ public struct WebsiteBreakage {
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
     public var requestParameters: [String: String] {
         var result = [
-            "siteUrl": siteUrl.privacySanitised().absoluteString,
+            "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
             "category": category,
             "description": description ?? "",
             "upgradedHttps": upgradedHttps ? "true" : "false",

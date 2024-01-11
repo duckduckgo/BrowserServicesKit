@@ -56,7 +56,7 @@ struct WebsiteBreakageMoks {
     }
 
     static var testBreakage3: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param")!,
+        WebsiteBreakage(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
                         category: "test",
                         description: "test",
                         osVersion: "test",
