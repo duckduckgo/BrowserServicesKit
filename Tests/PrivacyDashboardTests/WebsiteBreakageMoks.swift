@@ -54,4 +54,21 @@ struct WebsiteBreakageMoks {
                         protectionsState: true,
                         reportFlow: .appMenu)
     }
+
+    static var testBreakage3: WebsiteBreakage {
+        WebsiteBreakage(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param")!,
+                        category: "test",
+                        description: "test",
+                        osVersion: "test",
+                        manufacturer: "Apple",
+                        upgradedHttps: true,
+                        tdsETag: "test",
+                        blockedTrackerDomains: [],
+                        installedSurrogates: [],
+                        isGPCEnabled: true,
+                        ampURL: "test",
+                        urlParametersRemoved: true,
+                        protectionsState: true,
+                        reportFlow: .appMenu)
+    }
 }

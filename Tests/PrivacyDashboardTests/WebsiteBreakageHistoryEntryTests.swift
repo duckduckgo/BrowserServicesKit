@@ -34,9 +34,13 @@ final class WebsiteBreakageHistoryEntryTests: XCTestCase {
         let testDate = Date(timeIntervalSince1970: 1704795829)
         let breakageHistory = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
         let breakageHistory2 = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage2, currentDate: testDate)
-        let breakageHistory3 = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
-
-        XCTAssertEqual(breakageHistory?.identifier, breakageHistory3?.identifier)
         XCTAssertNotEqual(breakageHistory?.identifier, breakageHistory2?.identifier)
+
+        let breakageHistory3 = WebsiteBreakageHistoryEntry(withBreakage: WebsiteBreakageMoks.testBreakage, currentDate: testDate)
+        XCTAssertEqual(breakageHistory?.identifier, breakageHistory3?.identifier)
+
+        let breakage = WebsiteBreakageMoks.testBreakage3
+        let trimmedURL = breakage.siteUrl.privacySanitised()
+        XCTAssertEqual(trimmedURL.absoluteString, "https://www.subdomain.example.com")
     }
 }

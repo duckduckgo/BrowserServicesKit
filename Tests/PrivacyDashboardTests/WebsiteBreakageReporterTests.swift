@@ -48,5 +48,4 @@ final class WebsiteBreakageReporterTests: XCTestCase {
 
         waitForExpectations(timeout: 3)
     }
-
 }
