@@ -59,6 +59,9 @@ public final class AMPCanonicalExtractor: NSObject {
 
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
 
+    private var currentUrl: URL?
+    private var lastPositiveAMPUrl: URL?
+
     public init(linkCleaner: LinkCleaner,
                 privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: CompiledRuleListsSource,
@@ -111,6 +114,7 @@ public final class AMPCanonicalExtractor: NSObject {
     }
 
     public func urlContainsAMPKeyword(_ url: URL?) -> Bool {
+        guard url != lastPositiveAMPUrl else { return false }
         linkCleaner.lastAMPURLString = nil
 
         let settings = TrackingLinkSettings(fromConfig: privacyConfig)
@@ -187,7 +191,7 @@ public final class AMPCanonicalExtractor: NSObject {
 
         completionHandler.setCompletionHandler(completion: completion)
 
-        linkCleaner.lastAMPURLString = url.absoluteString
+        currentUrl = url
 
         assert(Thread.isMainThread)
         webView = WKWebView(frame: .zero, configuration: makeConfiguration())
@@ -229,6 +233,10 @@ public final class AMPCanonicalExtractor: NSObject {
 
 extension AMPCanonicalExtractor: WKScriptMessageHandler {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        defer {
+            currentUrl = nil
+        }
+
         guard message.name == Constants.sendCanonical else { return }
 
         webView = nil
@@ -236,13 +244,13 @@ extension AMPCanonicalExtractor: WKScriptMessageHandler {
         if let dict = message.body as? [String: AnyObject],
            let canonical = dict[Constants.canonicalKey] as? String {
             if let canonicalUrl = URL(string: canonical), !linkCleaner.isURLExcluded(url: canonicalUrl) {
+                linkCleaner.lastAMPURLString = currentUrl?.absoluteString
+                lastPositiveAMPUrl = currentUrl
                 completionHandler.completeWithURL(canonicalUrl)
             } else {
-                linkCleaner.lastAMPURLString = nil
                 completionHandler.completeWithURL(nil)
             }
         } else {
-            linkCleaner.lastAMPURLString = nil
             completionHandler.completeWithURL(nil)
         }
     }
