@@ -187,6 +187,8 @@ public final class AMPCanonicalExtractor: NSObject {
 
         completionHandler.setCompletionHandler(completion: completion)
 
+        linkCleaner.lastAMPURLString = url.absoluteString
+
         assert(Thread.isMainThread)
         webView = WKWebView(frame: .zero, configuration: makeConfiguration())
         webView?.navigationDelegate = self
@@ -234,12 +236,13 @@ extension AMPCanonicalExtractor: WKScriptMessageHandler {
         if let dict = message.body as? [String: AnyObject],
            let canonical = dict[Constants.canonicalKey] as? String {
             if let canonicalUrl = URL(string: canonical), !linkCleaner.isURLExcluded(url: canonicalUrl) {
-                linkCleaner.lastAMPURLString = canonicalUrl.absoluteString
                 completionHandler.completeWithURL(canonicalUrl)
             } else {
+                linkCleaner.lastAMPURLString = nil
                 completionHandler.completeWithURL(nil)
             }
         } else {
+            linkCleaner.lastAMPURLString = nil
             completionHandler.completeWithURL(nil)
         }
     }
