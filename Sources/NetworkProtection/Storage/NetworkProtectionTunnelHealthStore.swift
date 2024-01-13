@@ -24,9 +24,6 @@ import Network
 ///
 public final class NetworkProtectionTunnelHealthStore {
     private static let isHavingConnectivityIssuesKey = "com.duckduckgo.isHavingConnectivityIssues"
-    private static let lastNetworkPathChangeDate = "com.duckduckgo.lastNetworkPathChangeDate"
-    private static let previousNetworkPath = "com.duckduckgo.previousNetworkPath"
-    private static let currentNetworkPath = "com.duckduckgo.currentNetworkPath"
     private let userDefaults: UserDefaults
 
 #if os(macOS)
@@ -72,29 +69,5 @@ public final class NetworkProtectionTunnelHealthStore {
             postIssueChangeNotification(newValue: newValue)
 #endif
         }
-    }
-
-    public var lastNetworkPathChangeDate: Date {
-        (userDefaults.object(forKey: Self.lastNetworkPathChangeDate) as? Date) ?? .distantPast
-    }
-
-    public var lastNetworkPathChange: String {
-        let previousNetworkPath = userDefaults.object(forKey: Self.previousNetworkPath) ?? "undefined"
-        let currentNetworkPath = userDefaults.object(forKey: Self.currentNetworkPath) ?? "undefined"
-        return "\(previousNetworkPath) -> \(currentNetworkPath)"
-    }
-
-    public func updateNetworkPath(_ path: NWPath?, updatesTimestamp: Bool = true) {
-        let currentNetworkPath = (userDefaults.object(forKey: Self.currentNetworkPath) as? String) ?? "undefined"
-        guard let newNetworkPath = path?.debugDescription, newNetworkPath != currentNetworkPath else { return }
-
-        userDefaults.set(currentNetworkPath, forKey: Self.previousNetworkPath)
-        userDefaults.set(newNetworkPath, forKey: Self.currentNetworkPath)
-
-        if updatesTimestamp {
-            userDefaults.set(Date(), forKey: Self.lastNetworkPathChangeDate)
-        }
-
-        os_log("⚫️ Network path change: %{public}@", log: .networkProtectionTunnelFailureMonitorLog, type: .debug, lastNetworkPathChange)
     }
 }
