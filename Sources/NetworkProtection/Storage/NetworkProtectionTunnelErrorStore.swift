@@ -27,7 +27,6 @@ import NetworkExtension
 ///
 public final class NetworkProtectionTunnelErrorStore {
     private static let lastErrorMessageKey = "com.duckduckgo.NetworkProtectionTunnelErrorStore.lastErrorMessage"
-    private static let lastDisconnectErrorMessageKey = "com.duckduckgo.NetworkProtectionTunnelErrorStore.lastDisconnectErrorMessage"
     private let userDefaults: UserDefaults
 
 #if os(macOS)
@@ -64,45 +63,6 @@ public final class NetworkProtectionTunnelErrorStore {
             #if os(macOS)
             postLastErrorMessageChangedNotification(newValue)
             #endif
-        }
-    }
-
-    public var lastDisconnectErrorMessage: String? {
-        get {
-            userDefaults.string(forKey: Self.lastDisconnectErrorMessageKey)
-        }
-
-        set {
-            userDefaults.set(newValue, forKey: Self.lastDisconnectErrorMessageKey)
-        }
-    }
-
-    public func saveLastDisconnectError(_ error: Error?) {
-        if #available(iOS 16, *) {
-            let message = {
-                if let error = error as? NSError {
-                    if error.domain == NEVPNConnectionErrorDomain, let code = NEDNSSettingsManagerError(rawValue: error.code) {
-                        switch code {
-                        case .configurationCannotBeRemoved:
-                            return "configurationCannotBeRemoved"
-                        case .configurationDisabled:
-                            return "configurationDisabled"
-                        case .configurationInvalid:
-                            return "configurationInvalid"
-                        case .configurationStale:
-                            return "configurationStale"
-                        default:
-                            return "unknown"
-                        }
-                    } else {
-                        return error.localizedDescription
-                    }
-                }
-
-                return "none"
-            }()
-
-            lastDisconnectErrorMessage = message
         }
     }
 }
