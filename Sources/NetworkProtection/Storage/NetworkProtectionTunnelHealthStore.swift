@@ -18,7 +18,6 @@
 
 import Foundation
 import Common
-import Network
 
 /// Stores information about NetP's tunnel health
 ///
