@@ -33,6 +33,10 @@ extension UserDefaults {
         }
 
         set {
+            guard newValue != networkProtectionSettingShowInMenuBar else {
+                return
+            }
+
             set(newValue, forKey: showInMenuBarKey)
         }
     }
