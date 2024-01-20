@@ -994,9 +994,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             connectionStatus = .connected(connectedDate: Date())
         }
 
-        guard !isKeyExpired else {
-            await rekey()
-            return
+        if !settings.disableRekeying {
+            guard !isKeyExpired else {
+                await rekey()
+                return
+            }
         }
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
