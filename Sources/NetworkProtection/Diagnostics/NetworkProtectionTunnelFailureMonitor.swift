@@ -93,6 +93,11 @@ public actor NetworkProtectionTunnelFailureMonitor {
     private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
         let mostRecentHandshake = await tunnelProvider?.mostRecentHandshake() ?? 0
 
+        guard mostRecentHandshake != 0 else {
+            os_log("⚫️ Got handshake timestamp of 0, skipping check", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
+            return
+        }
+
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
         os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionTunnelFailureMonitorLog, type: .debug, difference)
 
