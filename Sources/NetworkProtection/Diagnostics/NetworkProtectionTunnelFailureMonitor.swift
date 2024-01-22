@@ -26,6 +26,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     public enum Result {
         case failureDetected
         case failureRecovered
+        case networkPathChanged(String)
 
         var threshold: TimeInterval {
             switch self {
@@ -33,6 +34,8 @@ public actor NetworkProtectionTunnelFailureMonitor {
                 return .minutes(5)
             case .failureRecovered:
                 return .minutes(2) // WG handshakes happen every 2 mins
+            case .networkPathChanged:
+                return -1
             }
         }
     }
@@ -50,6 +53,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     }
 
     private weak var tunnelProvider: PacketTunnelProvider?
+
     private let networkMonitor = NWPathMonitor()
 
     private var failureReported = false
@@ -77,6 +81,10 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
         failureReported = false
 
+        networkMonitor.pathUpdateHandler = { path in
+            callback(.networkPathChanged(path.debugDescription))
+        }
+
         task = Task.periodic(interval: Self.monitoringInterval) { [weak self] in
             await self?.monitorHandshakes(callback: callback)
         }
@@ -85,6 +93,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     func stop() {
         os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
+        networkMonitor.pathUpdateHandler = nil
         task = nil
     }
 

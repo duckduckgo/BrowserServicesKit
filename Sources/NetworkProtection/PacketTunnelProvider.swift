@@ -825,6 +825,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setSelectedEnvironment,
                 .setShowInMenuBar,
                 .setVPNFirstEnabled,
+                .setNetworkPathChange,
                 .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             break
