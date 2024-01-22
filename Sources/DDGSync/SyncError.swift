@@ -55,4 +55,88 @@ public enum SyncError: Error, Equatable {
 
     case emailProtectionUsernamePresentButTokenMissing
     case settingsMetadataNotPresent
+
+    case unauthenticatedWhileLoggedIn
+
+    public var isServerError: Bool {
+        switch self {
+        case .noResponseBody,
+                .unexpectedStatusCode,
+                .unexpectedResponseBody,
+                .invalidDataInResponse:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var syncErrorString: String {
+        return "syncError"
+    }
+    var syncErrorMessage: String {
+        return "syncErrorMessage"
+    }
+
+    public var errorParameters: [String: String] {
+        switch self {
+        case .noToken:
+            return [syncErrorString: "noToken"]
+        case .failedToMigrate:
+            return [syncErrorString: "failedToMigrate"]
+        case .failedToLoadAccount:
+            return [syncErrorString: "failedToLoadAccount"]
+        case .failedToSetupEngine:
+            return [syncErrorString: "failedToSetupEngine"]
+        case .failedToCreateAccountKeys:
+            return [syncErrorString: "failedToCreateAccountKeys"]
+        case .accountNotFound:
+            return [syncErrorString: "accountNotFound"]
+        case .accountAlreadyExists:
+            return [syncErrorString: "accountAlreadyExists"]
+        case .invalidRecoveryKey:
+            return [syncErrorString: "invalidRecoveryKey"]
+        case .noFeaturesSpecified:
+            return [syncErrorString: "noFeaturesSpecified"]
+        case .noResponseBody:
+            return [syncErrorString: "noResponseBody"]
+        case .unexpectedStatusCode:
+            return [syncErrorString: "unexpectedStatusCode"]
+        case .unexpectedResponseBody:
+            return [syncErrorString: "unexpectedResponseBody"]
+        case .unableToEncodeRequestBody:
+            return [syncErrorString: "unableToEncodeRequestBody"]
+        case .unableToDecodeResponse:
+            return [syncErrorString: "unableToDecodeResponse"]
+        case .invalidDataInResponse:
+            return [syncErrorString: "invalidDataInResponse"]
+        case .accountRemoved:
+            return [syncErrorString: "accountRemoved"]
+        case .failedToEncryptValue:
+            return [syncErrorString: "failedToEncryptValue"]
+        case .failedToDecryptValue:
+            return [syncErrorString: "failedToDecryptValue"]
+        case .failedToPrepareForConnect:
+            return [syncErrorString: "failedToPrepareForConnect"]
+        case .failedToOpenSealedBox:
+            return [syncErrorString: "failedToOpenSealedBox"]
+        case .failedToSealData:
+            return [syncErrorString: "failedToSealData"]
+        case .failedToWriteSecureStore:
+            return [syncErrorString: "failedToWriteSecureStore"]
+        case .failedToReadSecureStore:
+            return [syncErrorString: "failedToReadSecureStore"]
+        case .failedToRemoveSecureStore:
+            return [syncErrorString: "failedToRemoveSecureStore"]
+        case .credentialsMetadataMissingBeforeFirstSync:
+            return [syncErrorString: "credentialsMetadataMissingBeforeFirstSync"]
+        case .receivedCredentialsWithoutUUID:
+            return [syncErrorString: "receivedCredentialsWithoutUUID"]
+        case .emailProtectionUsernamePresentButTokenMissing:
+            return [syncErrorString: "emailProtectionUsernamePresentButTokenMissing"]
+        case .settingsMetadataNotPresent:
+            return [syncErrorString: "settingsMetadataNotPresent"]
+        case .unauthenticatedWhileLoggedIn:
+            return [syncErrorString: "unauthenticatedWhileLoggedIn"]
+        }
+    }
 }
