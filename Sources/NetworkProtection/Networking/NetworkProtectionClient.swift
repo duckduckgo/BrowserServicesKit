@@ -45,6 +45,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
+    case rekeyDenied
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
@@ -61,6 +62,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
+        case .rekeyDenied: return .vpnAccessRevoked
         }
     }
 }
@@ -250,6 +252,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: responseData = data
             case 401: return .failure(.invalidAuthToken)
+            case 403: return .failure(.rekeyDenied)
             default: return .failure(.failedToFetchRegisteredServers(nil))
             }
         } catch {

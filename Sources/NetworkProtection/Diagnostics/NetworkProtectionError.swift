@@ -70,6 +70,9 @@ public enum NetworkProtectionError: LocalizedError {
     // Auth errors
     case noAuthTokenFound
 
+    // Subscription errors
+    case vpnAccessRevoked
+
     // Unhandled error
     case unhandledError(function: String, line: Int, error: Error)
 

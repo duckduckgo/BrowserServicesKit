@@ -206,6 +206,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
             return (selectedServer, keyPair)
         case .failure(let error):
+            if case .rekeyDenied = error {
+                try tokenStore.deleteToken()
+                errorEvents?.fire(.vpnAccessRevoked)
+                throw NetworkProtectionError.vpnAccessRevoked
+            }
+
             handle(clientError: error)
 
             let cachedServer = try cachedServer(registeredWith: keyPair)

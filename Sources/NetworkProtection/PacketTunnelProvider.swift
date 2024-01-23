@@ -46,6 +46,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     enum TunnelError: LocalizedError {
         case startingTunnelWithoutAuthToken
+        case vpnAccessRevoked
         case couldNotGenerateTunnelConfiguration(internalError: Error)
         case simulateTunnelFailureError
 
@@ -53,6 +54,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             switch self {
             case .startingTunnelWithoutAuthToken:
                 return "Missing auth token at startup"
+            case .vpnAccessRevoked:
+                return "VPN disconnected due to expired subscription"
             case .couldNotGenerateTunnelConfiguration(let internalError):
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
@@ -263,6 +266,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
 
+    private let isEntitlementValid: () -> Bool
+
     // MARK: - Cancellables
 
     private var cancellables = Set<AnyCancellable>()
@@ -280,7 +285,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
-                settings: VPNSettings) {
+                settings: VPNSettings,
+                isEntitlementValid: @escaping () -> Bool) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -291,6 +297,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
+        self.isEntitlementValid = isEntitlementValid
 
         super.init()
 
@@ -694,6 +701,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
+            if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error, !isEntitlementValid() {
+                throw TunnelError.vpnAccessRevoked
+            }
             throw TunnelError.couldNotGenerateTunnelConfiguration(internalError: error)
         }
 
