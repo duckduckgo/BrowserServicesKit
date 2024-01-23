@@ -96,6 +96,7 @@ struct StartupOptions {
     let keyValidity: StoredOption<TimeInterval>
     let selectedEnvironment: StoredOption<VPNSettings.SelectedEnvironment>
     let selectedServer: StoredOption<VPNSettings.SelectedServer>
+    let selectedLocation: StoredOption<VPNSettings.SelectedLocation>
     let authToken: StoredOption<String>
     let enableTester: StoredOption<Bool>
 
@@ -124,6 +125,7 @@ struct StartupOptions {
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedEnvironment = Self.readSelectedEnvironment(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
+        selectedLocation = Self.readSelectedLocation(from: options, resetIfNil: resetStoredOptionsIfNil)
     }
 
     // MARK: - Helpers for reading stored options
@@ -171,6 +173,19 @@ struct StartupOptions {
             }
 
             return .endpoint(serverName)
+        }
+    }
+
+    private static func readSelectedLocation(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedLocation> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard 
+                let data = options[NetworkProtectionOptionKey.selectedLocation] as? Data,
+                let selectedLocation = try? JSONDecoder().decode(VPNSettings.SelectedLocation.self, from: data)
+            else {
+                return nil
+            }
+
+            return selectedLocation
         }
     }
 

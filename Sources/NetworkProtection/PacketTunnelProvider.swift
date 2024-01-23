@@ -335,6 +335,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadKeyValidity(from: options)
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
+        loadSelectedLocation(from: options)
         loadTesterEnabled(from: options)
         try loadAuthToken(from: options)
     }
@@ -375,6 +376,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         switch options.selectedServer {
         case .set(let selectedServer):
             settings.selectedServer = selectedServer
+        case .useExisting:
+            break
+        case .reset:
+            settings.selectedServer = .automatic
+        }
+    }
+
+    private func loadSelectedLocation(from options: StartupOptions) {
+        switch options.selectedLocation {
+        case .set(let selectedServer):
+            settings.selectedLocation = selectedServer
         case .useExisting:
             break
         case .reset:
