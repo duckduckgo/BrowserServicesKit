@@ -39,6 +39,7 @@ public final class VPNSettings {
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
+        case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
     }
 
@@ -168,6 +169,13 @@ public final class VPNSettings {
                 Change.setVPNFirstEnabled(vpnFirstEnabled)
             }.eraseToAnyPublisher()
 
+        let networkPathChangePublisher = networkPathChangePublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { networkPathChange in
+                Change.setNetworkPathChange(networkPathChange?.newPath)
+            }.eraseToAnyPublisher()
+
         let disableRekeyingPublisher = disableRekeyingPublisher
             .dropFirst()
             .removeDuplicates()
@@ -186,6 +194,7 @@ public final class VPNSettings {
             environmentChangePublisher,
             showInMenuBarPublisher,
             vpnFirstEnabledPublisher,
+            networkPathChangePublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
@@ -234,6 +243,10 @@ public final class VPNSettings {
             self.showInMenuBar = showInMenuBar
         case .setVPNFirstEnabled(let vpnFirstEnabled):
             self.vpnFirstEnabled = vpnFirstEnabled
+        case .setNetworkPathChange(let newPath):
+            self.networkPathChange = UserDefaults.NetworkPathChange(
+                oldPath: networkPathChange?.newPath ?? "unknown",
+                newPath: newPath ?? "unknown")
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
         }
@@ -441,6 +454,22 @@ public final class VPNSettings {
 
         set {
             defaults.vpnFirstEnabled = newValue
+        }
+    }
+
+    // MARK: - Network path change info
+
+    public var networkPathChangePublisher: AnyPublisher<UserDefaults.NetworkPathChange?, Never> {
+        defaults.networkPathChangePublisher
+    }
+
+    public var networkPathChange: UserDefaults.NetworkPathChange? {
+        get {
+            defaults.networkPathChange
+        }
+
+        set {
+            defaults.networkPathChange = newValue
         }
     }
 

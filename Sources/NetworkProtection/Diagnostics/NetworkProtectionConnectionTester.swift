@@ -28,6 +28,7 @@ import Common
 /// the HTTPs port (443) both with and without using the tunnel.  The tunnel connection will be considered to be disconnected
 /// whenever the regular connection works fine but the tunnel connection doesn't.
 ///
+@MainActor
 final class NetworkProtectionConnectionTester {
     enum Result {
         case connected
@@ -44,24 +45,13 @@ final class NetworkProtectionConnectionTester {
     /// The reason why this is necessary is that the tester may be stopped while the connection tests are already executing, in a bit
     /// of a race condition which could result in the tester returning results when it's already stopped.
     ///
-    private actor TimerRunCoordinator {
-        private(set) var isRunning = false
-
-        func start() {
-            isRunning = true
-        }
-
-        func stop() {
-            isRunning = false
-        }
-    }
+    private(set) var isRunning = false
 
     static let connectionTestQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.connectionTestQueue")
     static let monitorQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.monitorQueue")
     static let endpoint = NWEndpoint.hostPort(host: .name("www.duckduckgo.com", nil), port: .https)
 
     private var timer: DispatchSourceTimer?
-    private let timerRunCoordinator = TimerRunCoordinator()
 
     // MARK: - Dispatch Queue
 
@@ -110,8 +100,7 @@ final class NetworkProtectionConnectionTester {
 
     deinit {
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
-
-        cancelTimerImmediately()
+        timer?.cancel()
     }
 
     // MARK: - Testing
@@ -123,10 +112,12 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Starting & Stopping the tester
 
     func start(tunnelIfName: String, testImmediately: Bool) async throws {
-        guard await !timerRunCoordinator.isRunning else {
+        guard !isRunning else {
             os_log("Will not start the connection tester as it's already running", log: log)
             return
         }
+
+        isRunning = true
 
         os_log("🟢 Starting connection tester (testImmediately: %{public}@)", log: log, String(reflecting: testImmediately))
         let tunnelInterface = try await networkInterface(forInterfaceNamed: tunnelIfName)
@@ -178,8 +169,6 @@ final class NetworkProtectionConnectionTester {
     private func scheduleTimer(testImmediately: Bool) async throws {
         await stopScheduledTimer()
 
-        await timerRunCoordinator.start()
-
         if testImmediately {
             do {
                 try await testConnection()
@@ -212,8 +201,7 @@ final class NetworkProtectionConnectionTester {
     }
 
     private func stopScheduledTimer() async {
-        await timerRunCoordinator.stop()
-
+        isRunning = false
         cancelTimerImmediately()
     }
 
@@ -256,18 +244,17 @@ final class NetworkProtectionConnectionTester {
 
         // After completing the conection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
-        guard await timerRunCoordinator.isRunning else {
+        guard isRunning else {
             os_log("Tester skipped returning results as it was stopped while running the tests", log: log, type: .info)
             return
         }
 
         if onlyVPNIsDown {
             os_log("👎 VPN is DOWN", log: log)
-            await handleDisconnected()
+            handleDisconnected()
         } else {
             os_log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")", log: log)
-
-            await handleConnected()
+            handleConnected()
         }
     }
 
