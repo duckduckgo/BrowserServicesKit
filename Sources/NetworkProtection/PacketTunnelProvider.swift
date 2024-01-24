@@ -266,7 +266,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
 
-    private let isEntitlementValid: () -> Bool
+    private let isEntitlementValid: () async -> Bool
 
     // MARK: - Cancellables
 
@@ -286,7 +286,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                isEntitlementValid: @escaping () -> Bool) {
+                isEntitlementValid: @escaping () async -> Bool) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -701,9 +701,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
-            if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error, !isEntitlementValid() {
+#if ALPHA
+            if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error, await !isEntitlementValid() {
+                os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 throw TunnelError.vpnAccessRevoked
             }
+#endif
             throw TunnelError.couldNotGenerateTunnelConfiguration(internalError: error)
         }
 
