@@ -90,9 +90,7 @@ public struct SyncFeatureFlags: OptionSet {
                 self = .level3AllowCreateAccount
             }
         case .disabled(let reason):
-            if reason == .appVersionNotSupported {
-                unavailableReason = reason
-            }
+            unavailableReason = reason
             self = .unavailable
         }
 
@@ -102,9 +100,7 @@ public struct SyncFeatureFlags: OptionSet {
             case .enabled:
                 break
             case .disabled(let reason):
-                if reason == .appVersionNotSupported {
-                    unavailableReason = reason
-                }
+                unavailableReason = reason
             }
         }
     }
