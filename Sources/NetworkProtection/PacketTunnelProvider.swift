@@ -238,6 +238,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private var isConnectionTesterEnabled: Bool = true
 
+    @MainActor
     private lazy var connectionTester: NetworkProtectionConnectionTester = {
         NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] result in
             guard let self else { return }
@@ -988,8 +989,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
-        connectionTester.failNextTest()
-        completionHandler?(nil)
+        Task { @MainActor in
+            connectionTester.failNextTest()
+            completionHandler?(nil)
+        }
     }
 
     // MARK: - Adapter start completion handling
@@ -1003,6 +1006,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     /// Called when the adapter reports that the tunnel was successfully started.
     ///
+    @MainActor
     private func handleAdapterStarted(startReason: AdapterStartReason) async throws {
         if startReason != .reconnected && startReason != .wake {
             connectionStatus = .connected(connectedDate: Date())
