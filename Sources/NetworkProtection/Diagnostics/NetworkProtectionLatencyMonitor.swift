@@ -92,6 +92,8 @@ public actor NetworkProtectionLatencyMonitor {
     public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting latency monitor", log: .networkProtectionLatencyMonitorLog)
 
+        lastLatencyReported = Date()
+
         latencyCancellable = latencySubject.eraseToAnyPublisher()
             .receive(on: DispatchQueue.main)
             .scan(ExponentialGeometricAverage()) { measurements, latency in
