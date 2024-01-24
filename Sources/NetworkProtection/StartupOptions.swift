@@ -178,7 +178,7 @@ struct StartupOptions {
 
     private static func readSelectedLocation(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedLocation> {
         StoredOption(resetIfNil: resetIfNil) {
-            guard 
+            guard
                 let data = options[NetworkProtectionOptionKey.selectedLocation] as? Data,
                 let selectedLocation = try? JSONDecoder().decode(VPNSettings.SelectedLocation.self, from: data)
             else {
