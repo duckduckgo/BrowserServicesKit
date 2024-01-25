@@ -59,7 +59,8 @@ public class ConnectionSessionUtilities {
     /// Retrieves a session from a `NEVPNStatusDidChange` notification.
     ///
     public static func session(from notification: Notification) -> NETunnelProviderSession? {
-        guard let session = (notification.object as? NETunnelProviderSession) else {
+        guard let session = (notification.object as? NETunnelProviderSession),
+              session.manager is NETunnelProviderManager else {
             return nil
         }
 

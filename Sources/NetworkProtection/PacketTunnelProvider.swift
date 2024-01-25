@@ -25,6 +25,8 @@ import Foundation
 import NetworkExtension
 import UserNotifications
 
+// swiftlint:disable file_length
+
 // swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
@@ -820,6 +822,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
+                .setExcludedApps,
                 .setEnforceRoutes,
                 .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,
@@ -1137,5 +1140,4 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     public var debugDescription: String {
         errorDescription!
     }
-
 }

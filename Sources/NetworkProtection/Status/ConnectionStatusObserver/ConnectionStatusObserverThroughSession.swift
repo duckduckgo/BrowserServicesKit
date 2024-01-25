@@ -66,7 +66,12 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     }
 
     private func startObservers() {
-        notificationCenter.publisher(for: .NEVPNConfigurationChange).sink { _ in
+        notificationCenter.publisher(for: .NEVPNConfigurationChange).sink { notification in
+            guard let session = ConnectionSessionUtilities.session(from: notification),
+                  session.manager is NETunnelProviderManager else {
+                return
+            }
+
             Task {
                 // As crazy as it seems, this calls fixes an issue with tunnel session
                 // having a nil manager, when in theory it should never be `nil`.  I don't know
@@ -114,7 +119,8 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     }
 
     private func handleStatusChangeNotification(_ notification: Notification) {
-        guard let session = ConnectionSessionUtilities.session(from: notification) else {
+        guard let session = ConnectionSessionUtilities.session(from: notification),
+              session.manager is NETunnelProviderManager else {
             return
         }
 
