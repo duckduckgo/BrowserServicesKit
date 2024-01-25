@@ -24,6 +24,7 @@ import Foundation
  */
 public struct SyncFeatureFlags: OptionSet {
     public let rawValue: Int
+    public private(set) var unavailableReason: PrivacyConfigurationFeatureDisabledReason?
 
     public init(rawValue: Int) {
         self.rawValue = rawValue
@@ -68,20 +69,33 @@ public struct SyncFeatureFlags: OptionSet {
     // MARK: -
 
     init(privacyConfig: PrivacyConfiguration) {
-        guard privacyConfig.isEnabled(featureKey: .sync) else {
+        var disabledSubfeature: SyncSubfeature?
+        let syncState = privacyConfig.stateFor(featureKey: .sync)
+        switch syncState {
+
+        case .enabled:
+            if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level0ShowSync) {
+                disabledSubfeature = .level0ShowSync
+                self = .unavailable
+            } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level1AllowDataSyncing) {
+                disabledSubfeature = .level1AllowDataSyncing
+                self = .level0ShowSync
+            } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level2AllowSetupFlows) {
+                disabledSubfeature = .level2AllowSetupFlows
+                self = .level1AllowDataSyncing
+            } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level3AllowCreateAccount) {
+                disabledSubfeature = SyncSubfeature.level3AllowCreateAccount
+                self = .level2AllowSetupFlows
+            } else {
+                self = .level3AllowCreateAccount
+            }
+        case .disabled(let reason):
+            unavailableReason = reason
             self = .unavailable
-            return
         }
-        if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level0ShowSync) {
-            self = .unavailable
-        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level1AllowDataSyncing) {
-            self = .level0ShowSync
-        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level2AllowSetupFlows) {
-            self = .level1AllowDataSyncing
-        } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level3AllowCreateAccount) {
-            self = .level2AllowSetupFlows
-        } else {
-            self = .level3AllowCreateAccount
+
+        if let disabledSubfeature, case .disabled(let reason) = privacyConfig.stateFor(disabledSubfeature) {
+            unavailableReason = reason
         }
     }
 }

@@ -338,6 +338,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadKeyValidity(from: options)
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
+        loadSelectedLocation(from: options)
         loadTesterEnabled(from: options)
         try loadAuthToken(from: options)
     }
@@ -378,6 +379,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         switch options.selectedServer {
         case .set(let selectedServer):
             settings.selectedServer = selectedServer
+        case .useExisting:
+            break
+        case .reset:
+            settings.selectedServer = .automatic
+        }
+    }
+
+    private func loadSelectedLocation(from options: StartupOptions) {
+        switch options.selectedLocation {
+        case .set(let selectedServer):
+            settings.selectedLocation = selectedServer
         case .useExisting:
             break
         case .reset:
@@ -535,6 +547,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
                 os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
+                os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
                 let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
                                                                                 serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
