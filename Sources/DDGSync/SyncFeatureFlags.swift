@@ -24,7 +24,7 @@ import Foundation
  */
 public struct SyncFeatureFlags: OptionSet {
     public let rawValue: Int
-    public var unavailableReason: PrivacyConfigurationFeatureDisabledReason?
+    public private(set) var unavailableReason: PrivacyConfigurationFeatureDisabledReason?
 
     public init(rawValue: Int) {
         self.rawValue = rawValue
@@ -69,22 +69,22 @@ public struct SyncFeatureFlags: OptionSet {
     // MARK: -
 
     init(privacyConfig: PrivacyConfiguration) {
-        var offFlag: SyncSubfeature?
+        var disabledSubfeature: SyncSubfeature?
         let syncState = privacyConfig.stateFor(featureKey: .sync)
         switch syncState {
 
         case .enabled:
             if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level0ShowSync) {
-                offFlag = .level0ShowSync
+                disabledSubfeature = .level0ShowSync
                 self = .unavailable
             } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level1AllowDataSyncing) {
-                offFlag = .level1AllowDataSyncing
+                disabledSubfeature = .level1AllowDataSyncing
                 self = .level0ShowSync
             } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level2AllowSetupFlows) {
-                offFlag = .level2AllowSetupFlows
+                disabledSubfeature = .level2AllowSetupFlows
                 self = .level1AllowDataSyncing
             } else if !privacyConfig.isSubfeatureEnabled(SyncSubfeature.level3AllowCreateAccount) {
-                offFlag = SyncSubfeature.level3AllowCreateAccount
+                disabledSubfeature = SyncSubfeature.level3AllowCreateAccount
                 self = .level2AllowSetupFlows
             } else {
                 self = .level3AllowCreateAccount
@@ -94,14 +94,8 @@ public struct SyncFeatureFlags: OptionSet {
             self = .unavailable
         }
 
-        if let offFlag {
-            let state = privacyConfig.stateFor(offFlag)
-            switch state {
-            case .enabled:
-                break
-            case .disabled(let reason):
-                unavailableReason = reason
-            }
+        if let disabledSubfeature, case .disabled(let reason) = privacyConfig.stateFor(disabledSubfeature) {
+            unavailableReason = reason
         }
     }
 }
