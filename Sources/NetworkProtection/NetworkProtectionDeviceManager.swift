@@ -20,7 +20,20 @@ import Foundation
 import Common
 import NetworkExtension
 
-public enum NetworkProtectionServerSelectionMethod {
+public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        switch self {
+        case .automatic:
+            "automatic"
+        case .preferredServer(let serverName):
+            "preferredServer: \(serverName)"
+        case .avoidServer(let serverName):
+            "avoidServer: \(serverName)"
+        case .preferredLocation(let location):
+            "preferredLocation: \(location)"
+        }
+    }
+
     case automatic
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
