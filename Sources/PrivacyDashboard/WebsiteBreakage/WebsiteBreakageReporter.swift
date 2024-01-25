@@ -37,7 +37,7 @@ public enum WebsiteBreakageReporterError: Error {
 public class WebsiteBreakageReporter {
 
     /// A closure that receives the Pixel's parameters
-    public typealias PixelHandler = (_ parameters: [String: String]) -> Void
+    public typealias PixelHandler = (_ parameters: [String: Codable]) -> Void
     /// Pixels are sent by the main apps not by BSK, this is the closure called by the class when a pixel need to be sent
     let pixelHandler: PixelHandler
     let persistencyManager: ExpiryStorage

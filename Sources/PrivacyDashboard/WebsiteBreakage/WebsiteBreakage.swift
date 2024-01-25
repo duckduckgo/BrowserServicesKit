@@ -52,6 +52,8 @@ public struct WebsiteBreakage {
     let reportFlow: Source
     let protectionsState: Bool
     var lastSentDay: String?
+    let error: Error?
+    let httpStatusCode: Int?
 #if os(iOS)
     let siteType: SiteType // ?? not in documentation
     let atb: String
@@ -73,7 +75,9 @@ public struct WebsiteBreakage {
         ampURL: String,
         urlParametersRemoved: Bool,
         protectionsState: Bool,
-        reportFlow: Source
+        reportFlow: Source,
+        error: Error?,
+        httpStatusCode: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -89,6 +93,8 @@ public struct WebsiteBreakage {
         self.protectionsState = protectionsState
         self.urlParametersRemoved = urlParametersRemoved
         self.reportFlow = reportFlow
+        self.error = error
+        self.httpStatusCode = httpStatusCode
     }
 #endif
 
@@ -110,7 +116,9 @@ public struct WebsiteBreakage {
         reportFlow: Source,
         siteType: SiteType,
         atb: String,
-        model: String
+        model: String,
+        error: Error?,
+        httpStatusCode: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -129,12 +137,14 @@ public struct WebsiteBreakage {
         self.siteType = siteType
         self.atb = atb
         self.model = model
+        self.error = error
+        self.httpStatusCode = httpStatusCode
     }
 #endif
 
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
-    public var requestParameters: [String: String] {
-        var result = [
+    public var requestParameters: [String: Codable] {
+        var result: [String: Codable] = [
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
             "category": category,
             "description": description ?? "",
@@ -153,6 +163,15 @@ public struct WebsiteBreakage {
 
         if let lastSentDay = lastSentDay {
             result["lastSentDay"] = lastSentDay
+        }
+
+        if let httpStatusCode {
+            result["httpErrorCode"] = String(httpStatusCode)
+        }
+
+        if let error = error as NSError? {
+            let errorDescription = "\(error.code) - \(error.localizedDescription)"
+            result["errorDescriptions"] = [errorDescription]
         }
 
 #if os(iOS)
