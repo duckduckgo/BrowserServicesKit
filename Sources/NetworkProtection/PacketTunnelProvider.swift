@@ -952,16 +952,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
-        notificationsPresenter.showTestNotification()
-
         Task {
             let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+
             guard let manager = managers.first else {
                 return
             }
 
             manager.isOnDemandEnabled = false
             try await manager.saveToPreferences()
+            try await manager.loadFromPreferences()
+
             manager.connection.stopVPNTunnel()
         }
 
