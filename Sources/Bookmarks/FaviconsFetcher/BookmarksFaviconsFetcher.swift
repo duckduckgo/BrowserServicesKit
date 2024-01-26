@@ -199,7 +199,7 @@ public final class BookmarksFaviconsFetcher {
                 self?.fetchingDidFinishSubject.send(.failure(error))
                 if let fetcherError = error as? BookmarksFaviconsFetcherError {
                     self?.errorEvents?.fire(fetcherError)
-                } else {
+                } else if !(error is CancellationError) {
                     self?.errorEvents?.fire(.other(error))
                 }
             } else {
