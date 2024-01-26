@@ -855,6 +855,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
+        case .disableConnectOnDemandAndShutDown:
+            handleShutDown(completionHandler: completionHandler)
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
@@ -946,6 +948,23 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleSendTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
+        completionHandler?(nil)
+    }
+
+    private func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
+        notificationsPresenter.showTestNotification()
+
+        Task {
+            let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+            guard let manager = managers.first else {
+                return
+            }
+
+            manager.isOnDemandEnabled = false
+            try await manager.saveToPreferences()
+            manager.connection.stopVPNTunnel()
+        }
+
         completionHandler?(nil)
     }
 
