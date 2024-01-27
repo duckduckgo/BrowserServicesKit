@@ -34,25 +34,30 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
     private let versionStore: NetworkProtectionLastVersionRunStore
+    private let isManualCodeRedemptionFlow: Bool
     private let errorEvents: EventMapping<NetworkProtectionError>
 
     convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
                             versionStore: NetworkProtectionLastVersionRunStore = .init(),
+                            isManualCodeRedemptionFlow: Bool = false,
                             errorEvents: EventMapping<NetworkProtectionError>) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
                   tokenStore: tokenStore,
                   versionStore: versionStore,
+                  isManualCodeRedemptionFlow: isManualCodeRedemptionFlow,
                   errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          versionStore: NetworkProtectionLastVersionRunStore = .init(),
+         isManualCodeRedemptionFlow: Bool = false,
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.versionStore = versionStore
+        self.isManualCodeRedemptionFlow = isManualCodeRedemptionFlow
         self.errorEvents = errorEvents
     }
 
@@ -65,8 +70,13 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
             versionStore.lastVersionRun = AppVersion.shared.versionNumber
 
         case .failure(let error):
-            errorEvents.fire(error.networkProtectionError)
-            throw error
+            if case .invalidInviteCode = error, isManualCodeRedemptionFlow {
+                // Deliberately ignore cases where invalid invite codes are entered into the redemption form
+                throw error
+            } else {
+                errorEvents.fire(error.networkProtectionError)
+                throw error
+            }
         }
     }
 
