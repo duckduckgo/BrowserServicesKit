@@ -58,10 +58,6 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     public func store(_ token: String) throws {
         let data = token.data(using: .utf8)!
         do {
-            try (try? keychainStore.deleteAll()) ?? {
-                // sometimes it fails from the first try: retry once
-                try keychainStore.deleteAll()
-            }()
             try keychainStore.writeData(data, named: Defaults.tokenStoreName)
         } catch {
             handle(error)
