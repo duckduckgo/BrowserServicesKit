@@ -835,7 +835,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
-                .setExcludedApps,
                 .setEnforceRoutes,
                 .setNotifyStatusChanges,
                 .setRegistrationKeyValidity,

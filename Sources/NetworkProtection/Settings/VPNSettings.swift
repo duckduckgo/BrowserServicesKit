@@ -31,7 +31,6 @@ public final class VPNSettings {
         case setConnectOnLogin(_ connectOnLogin: Bool)
         case setIncludeAllNetworks(_ includeAllNetworks: Bool)
         case setEnforceRoutes(_ enforceRoutes: Bool)
-        case setExcludedApps(_ matchingRules: [AppMatchingRule])
         case setExcludeLocalNetworks(_ excludeLocalNetworks: Bool)
         case setNotifyStatusChanges(_ notifyStatusChanges: Bool)
         case setRegistrationKeyValidity(_ validity: RegistrationKeyValidity)
@@ -226,8 +225,6 @@ public final class VPNSettings {
             self.connectOnLogin = connectOnLogin
         case .setEnforceRoutes(let enforceRoutes):
             self.enforceRoutes = enforceRoutes
-        case .setExcludedApps(let matchingRules):
-            self.excludedApps = matchingRules
         case .setExcludeLocalNetworks(let excludeLocalNetworks):
             self.excludeLocalNetworks = excludeLocalNetworks
         case .setIncludeAllNetworks(let includeAllNetworks):
@@ -301,22 +298,6 @@ public final class VPNSettings {
 
         set {
             defaults.networkProtectionSettingEnforceRoutes = newValue
-        }
-    }
-
-    // MARK: - Exclude Apps
-
-    public var excludedAppsPublisher: AnyPublisher<[AppMatchingRule], Never> {
-        defaults.networkProtectionSettingExcludedAppsPublisher
-    }
-
-    public var excludedApps: [AppMatchingRule] {
-        get {
-            defaults.networkProtectionSettingExcludedApps
-        }
-
-        set {
-            defaults.networkProtectionSettingExcludedApps = newValue
         }
     }
 
