@@ -68,6 +68,7 @@ final class URLExtensionTests: XCTestCase {
             .init("http://[::]:8080")
         ]
         for item in urls {
+            XCTAssertNotNil(item.url, "URL is nil: \(item.rawValue)")
             XCTAssertTrue(item.url!.isValid, item.rawValue, line: item.line)
         }
     }
