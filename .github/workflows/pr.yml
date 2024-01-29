@@ -145,9 +145,9 @@ jobs:
 
       - name: Resolve package dependencies
         run: |
-          swift package resolve
+          set -o pipefail && swift package resolve | tee ios-build-log.txt | xcbeautify
           mkdir -p DerivedData/SourcePackages
-          mv .build/checkouts/* DerivedData/SourcePackages
+          mv .build/* DerivedData/SourcePackages
 
       - name: Run tests
         run: |
@@ -159,7 +159,7 @@ jobs:
             CODE_SIGN_IDENTITY= \
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_TESTABILITY=YES \
-            | tee ios-build-log.txt \
+            | tee -a ios-build-log.txt \
             | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
 
       - name: Publish Unit Tests Report
