@@ -155,6 +155,7 @@ jobs:
             -scheme BrowserServicesKit-Package \
             -destination 'platform=iOS Simulator,name=iPhone 15' \
             -derivedDataPath DerivedData \
+            -skipPackagePluginValidation \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY= \
             CODE_SIGNING_ALLOWED=NO \
