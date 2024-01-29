@@ -142,9 +142,16 @@ jobs:
 
       - name: Resolve package dependencies
         run: |
-          set -o pipefail && swift package resolve | tee ios-build-log.txt | xcbeautify
-          mkdir -p DerivedData/SourcePackages
-          mv .build/* DerivedData/SourcePackages
+          while xcodebuild -resolvePackageDependencies \
+            -scheme BrowserServicesKit-Package \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -derivedDataPath DerivedData \
+            2>&1 | grep Error; do :; done
+
+          # you just can't have good things
+          # set -o pipefail && swift package resolve | tee ios-build-log.txt | xcbeautify
+          # mkdir -p DerivedData/SourcePackages
+          # mv .build/* DerivedData/SourcePackages
 
       - name: Run tests
         run: |
