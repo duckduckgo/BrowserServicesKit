@@ -1,7 +1,7 @@
 //
-//  AppLaunching.swift
+//  DictionaryRepresentable.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,22 +16,14 @@
 //  limitations under the License.
 //
 
-// SPDX-License-Identifier: MIT
-// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
-
 import Foundation
 
-public enum AppLaunchCommand: Codable {
-    case justOpen
-    case shareFeedback
-    case showStatus
-    case showSettings
-    case showVPNLocations
-    case startVPN
-    case stopVPN
-    case enableOnDemand
+/// Something that can be represented as a Dictionary
+public protocol DictionaryRepresentable {
+
+    /// Convenience method to return a Dictionary representation of this metadata.
+    /// - Returns: A Dictionary object containing the object representation
+    func dictionaryRepresentation() -> [String: Any]
 }
 
-public protocol AppLaunching {
-    func launchApp(withCommand command: AppLaunchCommand) async
-}
+extension UserDefaults: DictionaryRepresentable { }
