@@ -58,7 +58,7 @@ final class BookmarksFaviconsFetcherTests: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: location, model: model)
+        bookmarksDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: model)
         bookmarksDatabase.loadStore()
 
         faviconStore = MockFaviconStore()

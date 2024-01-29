@@ -19,6 +19,7 @@
 import XCTest
 import Common
 import DDGSync
+import Foundation
 import GRDB
 import Persistence
 import SecureStorage
@@ -55,7 +56,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
+        metadataDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: metadataDatabaseLocation, model: model)
         metadataDatabase.loadStore()
     }
 

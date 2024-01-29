@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
@@ -276,3 +278,5 @@ class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase 
 // swiftlint:enable unused_closure_parameter
 // swiftlint:enable trailing_comma
 // swiftlint:enable opening_brace
+
+#endif

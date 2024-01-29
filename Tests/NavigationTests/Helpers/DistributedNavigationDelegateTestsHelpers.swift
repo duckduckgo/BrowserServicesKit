@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
@@ -72,7 +74,8 @@ class DistributedNavigationDelegateTestsBase: XCTestCase {
 
 }
 
-@available(macOS 12.0, iOS 15.0, *)
+@available(macOS 12.0, *)
+@available(iOS, unavailable)
 extension DistributedNavigationDelegateTestsBase {
 
     static func makeNavigationDelegateProxy() -> NavigationDelegateProxy {
@@ -426,3 +429,5 @@ extension DistributedNavigationDelegateTestsBase {
     }
 
 }
+
+#endif
