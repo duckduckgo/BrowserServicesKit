@@ -409,12 +409,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func loadAuthToken(from options: StartupOptions) throws {
         switch options.authToken {
         case .set(let newAuthToken):
-            do {
-                if let currentAuthToken = try tokenStore.fetchToken(), currentAuthToken == newAuthToken {
-                    return
-                }
-            } catch {
-                // Do nothing; in this case the token store doesn't have its token yet.
+            if let currentAuthToken = try? tokenStore.fetchToken(), currentAuthToken == newAuthToken {
+                return
             }
 
             try tokenStore.store(newAuthToken)
