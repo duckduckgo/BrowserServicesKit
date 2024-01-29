@@ -41,6 +41,7 @@ public final class VPNSettings {
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
         case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
+        case setShouldShowExpiredEntitlementAlert(_ shouldShowExpiredEntitlementAlert: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable, Equatable {
@@ -183,6 +184,13 @@ public final class VPNSettings {
                 Change.setDisableRekeying(disableRekeying)
             }.eraseToAnyPublisher()
 
+        let shouldShowExpiredEntitlementAlertPublisher = shouldShowExpiredEntitlementAlertPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { shouldShowEntitlemetnAlert in
+                Change.setShouldShowExpiredEntitlementAlert(shouldShowEntitlemetnAlert)
+            }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
@@ -195,6 +203,7 @@ public final class VPNSettings {
             showInMenuBarPublisher,
             vpnFirstEnabledPublisher,
             networkPathChangePublisher,
+            shouldShowExpiredEntitlementAlertPublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
@@ -249,6 +258,8 @@ public final class VPNSettings {
                 newPath: newPath ?? "unknown")
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
+        case .setShouldShowExpiredEntitlementAlert(let shouldShowExpiredEntitlementAlert):
+            self.shouldShowExpiredEntitlementAlert = shouldShowExpiredEntitlementAlert
         }
     }
     // swiftlint:enable cyclomatic_complexity
@@ -486,6 +497,22 @@ public final class VPNSettings {
 
         set {
             defaults.networkProtectionSettingDisableRekeying = newValue
+        }
+    }
+
+    // MARK: - Whether to show expired entitlement alert
+
+    public var shouldShowExpiredEntitlementAlertPublisher: AnyPublisher<Bool, Never> {
+        defaults.shouldShowExpiredEntitlementAlertPublisher
+    }
+
+    public var shouldShowExpiredEntitlementAlert: Bool {
+        get {
+            defaults.shouldShowExpiredEntitlementAlert
+        }
+
+        set {
+            defaults.shouldShowExpiredEntitlementAlert = newValue
         }
     }
 }
