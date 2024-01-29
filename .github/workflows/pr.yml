@@ -20,7 +20,7 @@ jobs:
 
   unit-tests:
 
-      name: Run unit tests
+      name: Run unit tests (macOS)
 
       runs-on: macos-13-xlarge
       timeout-minutes: 30
@@ -71,7 +71,7 @@ jobs:
         uses: mikepenz/action-junit-report@v3
         if: always()
         with:
-          check_name: Test Report
+          check_name: Test Report (macOS)
           report_paths: tests.xml
           require_tests: true
 
