@@ -423,7 +423,7 @@ let package = Package(
             name: "SwiftLintPlugin",
             capability: .buildTool(),
             dependencies: [
-                .target(name: "SwiftLintBinary")
+                .target(name: "SwiftLintBinary", condition: .when(platforms: [.macOS]))
             ]
         ),
         .binaryTarget(
