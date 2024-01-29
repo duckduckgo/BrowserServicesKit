@@ -112,9 +112,6 @@ jobs:
       runs-on: macos-13-xlarge
       timeout-minutes: 30
 
-      outputs:
-        commit_author: ${{ steps.fetch_commit_author.outputs.commit_author }}
-
       steps:
 
       - name: Check out the code
@@ -179,7 +176,7 @@ jobs:
         run: |
           # Extract failed tests from the junit report
           # Only keep failures unique by classname and name (column 1 and 2 of the yq output)
-          yq < tests.xml -p xml -o json -r \
+          yq < ios-unittests.xml -p xml -o json -r \
             $'[.testsuites.testsuite[].testcase] | flatten | map(select(.failure) | .+@classname + " " + .+@name + " \'" + .failure.+@message + "\' ${{ env.WORKFLOW_URL }}") | .[]' \
             | sort -u -k 1,2 \
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
@@ -190,16 +187,6 @@ jobs:
         with:
           name: ios-build-log.txt
           path: ios-build-log.txt
-
-      - name: Fetch latest commit author
-        if: always() && github.ref_name == 'main'
-        id: fetch_commit_author
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          head_commit=$(git rev-parse HEAD)
-          author=$(gh api https://api.github.com/repos/${{ github.repository }}/commits/${head_commit} --jq .author.login)
-          echo "commit_author=${author}" >> $GITHUB_OUTPUT
 
   create-asana-task:
     name: Create Asana Task
@@ -222,7 +209,7 @@ jobs:
 
   close-asana-task:
     name: Close Asana Task
-    needs: [swiftlint, unit-tests]
+    needs: [swiftlint, unit-tests, unit-tests-ios]
 
     if: success() && github.ref_name == 'main' && github.run_attempt > 1
 
