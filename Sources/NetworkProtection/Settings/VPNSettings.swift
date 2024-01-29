@@ -41,7 +41,7 @@ public final class VPNSettings {
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
         case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
-        case setShouldShowExpiredEntitlementAlert(_ shouldShowExpiredEntitlementAlert: Bool)
+        case setShouldShowExpiredEntitlementMessaging(_ settings: UserDefaults.ExpiredEntitlementMessaging)
     }
 
     public enum RegistrationKeyValidity: Codable, Equatable {
@@ -184,11 +184,11 @@ public final class VPNSettings {
                 Change.setDisableRekeying(disableRekeying)
             }.eraseToAnyPublisher()
 
-        let shouldShowExpiredEntitlementAlertPublisher = shouldShowExpiredEntitlementAlertPublisher
+        let shouldShowExpiredEntitlementMessagingPublisher = shouldShowExpiredEntitlementMessagingPublisher
             .dropFirst()
             .removeDuplicates()
-            .map { shouldShowEntitlemetnAlert in
-                Change.setShouldShowExpiredEntitlementAlert(shouldShowEntitlemetnAlert)
+            .map { shouldShowExpiredEntitlementMessaging in
+                Change.setShouldShowExpiredEntitlementMessaging(shouldShowExpiredEntitlementMessaging)
             }.eraseToAnyPublisher()
 
         return Publishers.MergeMany(
@@ -203,7 +203,7 @@ public final class VPNSettings {
             showInMenuBarPublisher,
             vpnFirstEnabledPublisher,
             networkPathChangePublisher,
-            shouldShowExpiredEntitlementAlertPublisher,
+            shouldShowExpiredEntitlementMessagingPublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
@@ -258,8 +258,8 @@ public final class VPNSettings {
                 newPath: newPath ?? "unknown")
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
-        case .setShouldShowExpiredEntitlementAlert(let shouldShowExpiredEntitlementAlert):
-            self.shouldShowExpiredEntitlementAlert = shouldShowExpiredEntitlementAlert
+        case .setShouldShowExpiredEntitlementMessaging(let shouldShowExpiredEntitlementMessaging):
+            self.shouldShowExpiredEntitlementMessaging = shouldShowExpiredEntitlementMessaging
         }
     }
     // swiftlint:enable cyclomatic_complexity
@@ -502,17 +502,17 @@ public final class VPNSettings {
 
     // MARK: - Whether to show expired entitlement alert
 
-    public var shouldShowExpiredEntitlementAlertPublisher: AnyPublisher<Bool, Never> {
-        defaults.shouldShowExpiredEntitlementAlertPublisher
+    public var shouldShowExpiredEntitlementMessagingPublisher: AnyPublisher<UserDefaults.ExpiredEntitlementMessaging, Never> {
+        defaults.shouldShowExpiredEntitlementMessagingPublisher
     }
 
-    public var shouldShowExpiredEntitlementAlert: Bool {
+    public var shouldShowExpiredEntitlementMessaging: UserDefaults.ExpiredEntitlementMessaging {
         get {
-            defaults.shouldShowExpiredEntitlementAlert
+            defaults.shouldShowExpiredEntitlementMessaging
         }
 
         set {
-            defaults.shouldShowExpiredEntitlementAlert = newValue
+            defaults.shouldShowExpiredEntitlementMessaging = newValue
         }
     }
 }

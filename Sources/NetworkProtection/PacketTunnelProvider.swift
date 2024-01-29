@@ -718,7 +718,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 #if ALPHA
             if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error, await !isEntitlementValid() {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
-                settings.shouldShowExpiredEntitlementAlert = true
+                settings.shouldShowExpiredEntitlementMessaging = true
                 throw TunnelError.vpnAccessRevoked
             }
 #endif
@@ -855,7 +855,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setVPNFirstEnabled,
                 .setNetworkPathChange,
                 .setDisableRekeying,
-                .setShouldShowExpiredEntitlementAlert:
+                .setShouldShowExpiredEntitlementMessaging:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
