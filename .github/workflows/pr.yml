@@ -156,7 +156,7 @@ jobs:
       - name: Run tests
         run: |
           set -o pipefail && xcodebuild test \
-            -scheme BrowserServicesKit-Package \
+            -scheme BrowserServicesKit \
             -destination 'platform=iOS Simulator,name=iPhone 15' \
             -derivedDataPath DerivedData \
             -skipPackagePluginValidation \
