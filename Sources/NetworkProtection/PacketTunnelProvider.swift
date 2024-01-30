@@ -715,13 +715,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
-#if ALPHA
+//#if ALPHA
             if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error, await !isEntitlementValid() {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
-                settings.shouldShowExpiredEntitlementMessaging = true
+                settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
                 throw TunnelError.vpnAccessRevoked
             }
-#endif
+//#endif
             throw TunnelError.couldNotGenerateTunnelConfiguration(internalError: error)
         }
 
@@ -845,6 +845,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
+        case .setShouldShowExpiredEntitlementMessaging(let settings):
+            notificationsPresenter.showExpiredEntitlementNotification()
+            completionHandler?(nil)
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
                 .setEnforceRoutes,
@@ -854,8 +857,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setShowInMenuBar,
                 .setVPNFirstEnabled,
                 .setNetworkPathChange,
-                .setDisableRekeying,
-                .setShouldShowExpiredEntitlementMessaging:
+                .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             break
         }
