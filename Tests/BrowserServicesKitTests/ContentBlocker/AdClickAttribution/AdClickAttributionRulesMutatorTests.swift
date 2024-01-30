@@ -98,8 +98,10 @@ final class AdClickAttributionRulesMutatorTests: XCTestCase {
             return false
         }
 
-        let lData = try JSONEncoder().encode(l)
-        let rData = try JSONEncoder().encode(r)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let lData = try encoder.encode(l)
+        let rData = try encoder.encode(r)
 
         return String(data: lData, encoding: .utf8) == String(data: rData, encoding: .utf8)
     }
