@@ -143,8 +143,8 @@ public struct WebsiteBreakage {
 #endif
 
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
-    public var requestParameters: [String: Codable] {
-        var result: [String: Codable] = [
+    public var requestParameters: [String: String] {
+        var result: [String: String] = [
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
             "category": category,
             "description": description ?? "",
@@ -171,7 +171,7 @@ public struct WebsiteBreakage {
 
         if let error = error as NSError? {
             let errorDescription = "\(error.code) - \(error.localizedDescription)"
-            result["errorDescriptions"] = [errorDescription]
+            result["errorDescription"] = errorDescription
         }
 
 #if os(iOS)
