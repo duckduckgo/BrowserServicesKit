@@ -20,6 +20,7 @@ import XCTest
 import Bookmarks
 import BookmarksTestsUtils
 import Common
+import CoreData
 import DDGSync
 import Persistence
 @testable import SyncDataProviders
