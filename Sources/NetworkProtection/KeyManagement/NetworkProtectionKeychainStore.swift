@@ -23,6 +23,7 @@ enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertib
     case failedToCastKeychainValueToData(field: String)
     case keychainReadError(field: String, status: Int32)
     case keychainWriteError(field: String, status: Int32)
+    case keychainUpdateError(field: String, status: Int32)
     case keychainDeleteError(status: Int32)
 
     var networkProtectionError: NetworkProtectionError {
@@ -30,6 +31,7 @@ enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertib
         case .failedToCastKeychainValueToData(let field): return .failedToCastKeychainValueToData(field: field)
         case .keychainReadError(let field, let status): return .keychainReadError(field: field, status: status)
         case .keychainWriteError(let field, let status): return .keychainWriteError(field: field, status: status)
+        case .keychainUpdateError(let field, let status): return .keychainUpdateError(field: field, status: status)
         case .keychainDeleteError(let status): return .keychainDeleteError(status: status)
         }
     }
@@ -83,9 +85,30 @@ final class NetworkProtectionKeychainStore {
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
-        guard status == errSecSuccess else {
+        switch status {
+        case errSecSuccess:
+            return
+        case errSecDuplicateItem:
+            let updateStatus = updateData(data, named: name)
+
+            if updateStatus != errSecSuccess {
+                throw NetworkProtectionKeychainStoreError.keychainUpdateError(field: name, status: status)
+            }
+        default:
             throw NetworkProtectionKeychainStoreError.keychainWriteError(field: name, status: status)
         }
+    }
+
+    private func updateData(_ data: Data, named name: String) -> OSStatus {
+        var query = defaultAttributes()
+        query[kSecAttrAccount] = name
+
+        let newAttributes = [
+          kSecValueData: data,
+          kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
+        ] as [CFString: Any]
+
+        return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
     }
 
     func deleteAll() throws {
