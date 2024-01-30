@@ -74,8 +74,7 @@ class DistributedNavigationDelegateTestsBase: XCTestCase {
 
 }
 
-@available(macOS 12.0, *)
-@available(iOS, unavailable)
+@available(macOS 12.0, iOS 15.0, *)
 extension DistributedNavigationDelegateTestsBase {
 
     static func makeNavigationDelegateProxy() -> NavigationDelegateProxy {
