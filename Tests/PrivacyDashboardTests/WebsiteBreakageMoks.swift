@@ -37,7 +37,7 @@ struct WebsiteBreakageMoks {
                         protectionsState: true,
                         reportFlow: .appMenu,
                         error: nil,
-                        httpErrorCode: "")
+                        httpStatusCode: nil)
     }
 
     static var testBreakage2: WebsiteBreakage {
@@ -56,7 +56,7 @@ struct WebsiteBreakageMoks {
                         protectionsState: true,
                         reportFlow: .appMenu,
                         error: nil,
-                        httpErrorCode: "")
+                        httpStatusCode: nil)
     }
 
     static var testBreakage3: WebsiteBreakage {
@@ -75,6 +75,6 @@ struct WebsiteBreakageMoks {
                         protectionsState: true,
                         reportFlow: .appMenu,
                         error: nil,
-                        httpErrorCode: "")
+                        httpStatusCode: nil)
     }
 }
