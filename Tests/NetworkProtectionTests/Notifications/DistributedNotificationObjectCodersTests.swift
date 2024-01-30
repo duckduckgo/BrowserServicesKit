@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import XCTest
 @testable import NetworkProtection
 
@@ -39,3 +41,5 @@ final class DistributedNotificationObjectCoders: XCTestCase {
         XCTAssertEqual(inputObject, outputObject)
     }
 }
+
+#endif
