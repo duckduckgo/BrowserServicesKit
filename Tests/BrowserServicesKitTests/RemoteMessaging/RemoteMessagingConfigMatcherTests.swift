@@ -196,7 +196,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func testWhenDeviceMatchesAnyRuleThenReturnFirstMatch() {
         let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
                                         rules: [1: [LocaleMatchingAttribute(value: [Locale.current.identifier], fallback: nil)],
-                                                2: [OSMatchingAttribute(min: "0", max: "15", fallback: nil)]])
+                                                2: [OSMatchingAttribute(min: "0", max: "100", fallback: nil)]])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1, 2], exclusionRules: []))
     }

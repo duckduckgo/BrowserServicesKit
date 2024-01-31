@@ -58,6 +58,7 @@ public enum NetworkProtectionError: LocalizedError {
     case failedToCastKeychainValueToData(field: String)
     case keychainReadError(field: String, status: Int32)
     case keychainWriteError(field: String, status: Int32)
+    case keychainUpdateError(field: String, status: Int32)
     case keychainDeleteError(status: Int32)
 
     // Wireguard errors

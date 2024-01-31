@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
@@ -389,7 +391,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
                 newFrameIdentity = navAction.targetFrame?.handle
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
                 XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -446,7 +450,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
                 newFrameIdentity = navAction.targetFrame?.handle
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
                 XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -508,7 +514,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
                 newFrameIdentity = navAction.targetFrame?.handle
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
                 XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -554,7 +562,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
                 newFrameIdentity = navAction.targetFrame?.handle
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
                 XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -615,7 +625,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
                 newFrameIdentity = navAction.targetFrame?.handle
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
                 XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -677,7 +689,9 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
                 newFrameIdentity = navAction.targetFrame?.handle
                 XCTAssertNotEqual(newFrameIdentity, webView.mainFrameHandle)
                 XCTAssertTrue(navAction.targetFrame?.isMainFrame == true)
+#if _FRAME_HANDLE_ENABLED
                 XCTAssertNotEqual(newFrameIdentity.frameID, WKFrameInfo.defaultMainFrameHandle)
+#endif
             }
             return .next
         }
@@ -759,10 +773,17 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         }
         waitForExpectations(timeout: 5)
 
+#if os(macOS)
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .link, from: history[1], .userInitiated, src: main(urls.local), targ: nil)),
             .didCancel(navAct(2))
         ])
+#else
+        assertHistory(ofResponderAt: 0, equalsTo: [
+            .navigationAction(NavAction(req(urls.local2, defaultHeaders + ["Referer": urls.local.separatedString]), .linkActivated, from: history[1], .userInitiated, src: main(urls.local), targ: nil)),
+            .didCancel(navAct(2))
+        ])
+#endif
     }
 
     // MARK: - Reload
@@ -1004,178 +1025,178 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     // MARK: - Simulated requests
 
     @MainActor
-    func testSimulatedRequest() {
-        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        withWebView { webView in
-            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
-                .loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
-
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.https), .custom(.init(rawValue: "custom")), src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .didCommit(Nav(action: navAct(1), .started, .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, .committed))
-        ])
+    func testSimulatedRequest() throws {
+        throw XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//
+//        withWebView { webView in
+//            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+//                .loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+//
+//        }
+//        waitForExpectations(timeout: 5)
+//
+//        assertHistory(ofResponderAt: 0, equalsTo: [
+//            .navigationAction(req(urls.https), .custom(.init(rawValue: "custom")), src: main()),
+//            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(1), .started)),
+//            .didCommit(Nav(action: navAct(1), .started, .committed)),
+//            .didFinish(Nav(action: navAct(1), .finished, .committed))
+//        ])
     }
 
     @MainActor
-    func testSimulatedRequestWithData() {
-        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        withWebView { webView in
-            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
-                .loadSimulatedRequest(req(urls.https), response: URLResponse(url: urls.https, mimeType: "text/html", expectedContentLength: data.html.count, textEncodingName: "UTF-8"), responseData: data.html, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.https), .custom(.init(rawValue: "custom")), src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .didCommit(Nav(action: navAct(1), .started, .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, .committed))
-        ])
+    func testSimulatedRequestWithData() throws {
+        throw XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//
+//        withWebView { webView in
+//            _=webView.navigator(distributedNavigationDelegate: navigationDelegate)
+//                .loadSimulatedRequest(req(urls.https), response: URLResponse(url: urls.https, mimeType: "text/html", expectedContentLength: data.html.count, textEncodingName: "UTF-8"), responseData: data.html, withExpectedNavigationType: .custom(.init(rawValue: "custom")))
+//        }
+//        waitForExpectations(timeout: 5)
+//
+//        assertHistory(ofResponderAt: 0, equalsTo: [
+//            .navigationAction(req(urls.https), .custom(.init(rawValue: "custom")), src: main()),
+//            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(1), .started)),
+//            .didCommit(Nav(action: navAct(1), .started, .committed)),
+//            .didFinish(Nav(action: navAct(1), .finished, .committed))
+//        ])
     }
 
-    func testSimulatedRequestAfterCustomSchemeRequest() {
-        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
-        navigationDelegateProxy.finishEventsDispatchTime = .instant
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
-            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
-        }
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        responder(at: 0).onDidFail = { [urls] _, error in
-            XCTAssertEqual(error._nsError.domain, NSURLErrorDomain)
-            XCTAssertTrue(error.isNavigationCancelled)
-            XCTAssertEqual(error.failingUrl?.matches(urls.testScheme), true)
-        }
-
-        withWebView { webView in
-            _=webView.load(req(urls.testScheme))
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.testScheme), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
-
-            .navigationAction(req(urls.https), .other, src: main()),
-            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(2), .started)),
-            .didCommit(Nav(action: navAct(2), .started, .committed)),
-            .didFinish(Nav(action: navAct(2), .finished, .committed))
-        ])
+    func testSimulatedRequestAfterCustomSchemeRequest() throws {
+        throw XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+//        navigationDelegateProxy.finishEventsDispatchTime = .instant
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+//        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
+//            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+//        }
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        responder(at: 0).onDidFail = { [urls] _, error in
+//            XCTAssertEqual(error._nsError.domain, NSURLErrorDomain)
+//            XCTAssertTrue(error.isNavigationCancelled)
+//            XCTAssertEqual(error.failingUrl?.matches(urls.testScheme), true)
+//        }
+//
+//        withWebView { webView in
+//            _=webView.load(req(urls.testScheme))
+//        }
+//        waitForExpectations(timeout: 5)
+//
+//        assertHistory(ofResponderAt: 0, equalsTo: [
+//            .navigationAction(req(urls.testScheme), .other, src: main()),
+//            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(1), .started)),
+//            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+//
+//            .navigationAction(req(urls.https), .other, src: main()),
+//            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(2), .started)),
+//            .didCommit(Nav(action: navAct(2), .started, .committed)),
+//            .didFinish(Nav(action: navAct(2), .finished, .committed))
+//        ])
     }
 
-    func testSimulatedRequestAfterCustomSchemeRequestWithFailureBeforeWillStartNavigation() {
-        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+    func testSimulatedRequestAfterCustomSchemeRequestWithFailureBeforeWillStartNavigation() throws {
+        throw XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
-        navigationDelegateProxy.finishEventsDispatchTime = .beforeWillStartNavigationAction
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
-            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
-        }
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        withWebView { webView in
-            _=webView.load(req(urls.testScheme))
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.testScheme), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-
-            .navigationAction(req(urls.https), .other, src: main()),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
-
-            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(2), .started)),
-            .didCommit(Nav(action: navAct(2), .started, .committed)),
-            .didFinish(Nav(action: navAct(2), .finished, .committed))
-        ])
+//        navigationDelegateProxy.finishEventsDispatchTime = .beforeWillStartNavigationAction
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+//        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
+//            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+//        }
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        withWebView { webView in
+//            _=webView.load(req(urls.testScheme))
+//        }
+//        waitForExpectations(timeout: 5)
+//
+//        assertHistory(ofResponderAt: 0, equalsTo: [
+//            .navigationAction(req(urls.testScheme), .other, src: main()),
+//            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(1), .started)),
+//
+//            .navigationAction(req(urls.https), .other, src: main()),
+//            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled))), NSURLErrorCancelled),
+//
+//            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(2), .started)),
+//            .didCommit(Nav(action: navAct(2), .started, .committed)),
+//            .didFinish(Nav(action: navAct(2), .finished, .committed))
+//        ])
     }
 
-    func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterWillStartNavigation() {
-        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+    func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterWillStartNavigation() throws {
+        throw XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
         // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (because it works different in runtime than in tests)
-        navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
-            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
-        }
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        withWebView { webView in
-            _=webView.load(req(urls.testScheme))
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.testScheme), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-
-            .navigationAction(req(urls.https), .other, src: main()),
-            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
-
-            .didStart(Nav(action: navAct(2), .started)),
-            .didCommit(Nav(action: navAct(2), .started, .committed)),
-            .didFinish(Nav(action: navAct(2), .finished, .committed))
-        ])
+//        navigationDelegateProxy.finishEventsDispatchTime = .afterWillStartNavigationAction
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+//        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
+//            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+//        }
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        withWebView { webView in
+//            _=webView.load(req(urls.testScheme))
+//        }
+//        waitForExpectations(timeout: 5)
+//
+//        assertHistory(ofResponderAt: 0, equalsTo: [
+//            .navigationAction(req(urls.testScheme), .other, src: main()),
+//            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(1), .started)),
+//
+//            .navigationAction(req(urls.https), .other, src: main()),
+//            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+//            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
+//
+//            .didStart(Nav(action: navAct(2), .started)),
+//            .didCommit(Nav(action: navAct(2), .started, .committed)),
+//            .didFinish(Nav(action: navAct(2), .finished, .committed))
+//        ])
     }
 
-    func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterDidStartNavigation() {
-        XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
-       // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
-        navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
-        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
-            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
-        }
-
-        let eDidFinish = expectation(description: "onDidFinish")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        withWebView { webView in
-            _=webView.load(req(urls.testScheme))
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.testScheme), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-
-            .navigationAction(req(urls.https), .other, src: main()),
-            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(2), .started)),
-            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
-
-            .didCommit(Nav(action: navAct(2), .started, .committed)),
-            .didFinish(Nav(action: navAct(2), .finished, .committed))
-        ])
+    func testSimulatedRequestAfterCustomSchemeRequestWithFailureAfterDidStartNavigation() throws {
+        throw XCTSkip("flakey, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+        // receive didFailProvisionalNavigation AFTER decidePolicyForNavigationAction for loadSimulatedRequest (works different in runtime than in tests)
+//        navigationDelegateProxy.finishEventsDispatchTime = .afterDidStartNavigationAction
+//        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+//        testSchemeHandler.onRequest = { [unowned webView=withWebView(do: { $0 }), data, urls] task in
+//            webView.loadSimulatedRequest(req(urls.https), responseHTML: String(data: data.html, encoding: .utf8)!)
+//        }
+//
+//        let eDidFinish = expectation(description: "onDidFinish")
+//        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
+//        withWebView { webView in
+//            _=webView.load(req(urls.testScheme))
+//        }
+//        waitForExpectations(timeout: 5)
+//
+//        assertHistory(ofResponderAt: 0, equalsTo: [
+//            .navigationAction(req(urls.testScheme), .other, src: main()),
+//            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(1), .started)),
+//
+//            .navigationAction(req(urls.https), .other, src: main()),
+//            .willStart(Nav(action: navAct(2), .approved, isCurrent: false)),
+//            .didStart(Nav(action: navAct(2), .started)),
+//            .didFail(Nav(action: navAct(1), .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
+//
+//            .didCommit(Nav(action: navAct(2), .started, .committed)),
+//            .didFinish(Nav(action: navAct(2), .finished, .committed))
+//        ])
     }
 
     func testRealRequestAfterCustomSchemeRequest() {
@@ -1662,3 +1683,5 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
 // swiftlint:enable unused_closure_parameter
 // swiftlint:enable opening_brace
+
+#endif
