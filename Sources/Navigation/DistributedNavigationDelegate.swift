@@ -519,7 +519,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // regular flow: start .expected navigation
             navigation = expectedNavigation
         } else if webView.url?.isEmpty == false {
-            assert(webView.url?.navigationalScheme == .about, "session restoration happening without NavigationAction")
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
             if let finishedNavigation = wkNavigation?.navigation {
                 assert(finishedNavigation.state == .finished)

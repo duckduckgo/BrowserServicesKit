@@ -150,8 +150,13 @@ public struct NavigationAction {
     }
 
     internal static func sessionRestoreNavigation(webView: WKWebView, mainFrameNavigation: Navigation?) -> Self {
-        assert(webView.backForwardList.currentItem == nil)
-        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
+        let navigationType: NavigationType
+        if webView.backForwardList.currentItem == nil {
+            navigationType = .sessionRestoration
+        } else {
+            navigationType = .alternateHtmlLoad
+        }
+        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: navigationType, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
     }
 
 }
@@ -206,11 +211,23 @@ public struct NavigationPreferences: Equatable {
             self.javaScriptEnabledValue = true
         }
     }
-
+static var onceSet = false
     internal func applying(to preferences: WKWebpagePreferences) -> WKWebpagePreferences {
         preferences.preferredContentMode = contentMode
         if #available(macOS 11.0, iOS 14.0, *) {
             preferences.allowsContentJavaScript = javaScriptEnabled
+        }
+
+        if !Self.onceSet {
+            Self.onceSet = true
+            
+            if let customHeaders = NSClassFromString("_WKCustomHeaderFields")!.alloc().perform("init").takeUnretainedValue() as? NSObject {
+                
+                customHeaders.perform("setFields:", with: ["X-My-Header": "new test", "X-My-Header2": "another val"] as NSDictionary)
+                
+                preferences.setValue([customHeaders], forKey: "customHeaderFields")
+            }
+            preferences.perform("_setCustomUserAgent:", with: "customUA")
         }
         return preferences
     }
