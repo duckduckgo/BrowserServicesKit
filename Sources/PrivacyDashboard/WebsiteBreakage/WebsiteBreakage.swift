@@ -76,8 +76,8 @@ public struct WebsiteBreakage {
         urlParametersRemoved: Bool,
         protectionsState: Bool,
         reportFlow: Source,
-        error: Error? = nil,
-        httpStatusCode: Int? = nil
+        error: Error?,
+        httpStatusCode: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
