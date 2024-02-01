@@ -72,7 +72,6 @@ public enum NetworkProtectionError: LocalizedError {
     case noAuthTokenFound
 
     // Subscription errors
-    case noSubscriptionAccessTokenFound
     case vpnAccessRevoked
 
     // Unhandled error

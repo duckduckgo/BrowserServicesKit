@@ -43,14 +43,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     public struct SubscriptionConfig {
-        let isEnabled: Bool
-        let isEntitlementValid: () async -> Bool
-        let getAccessToken: () -> String?
+        public let isEnabled: Bool
+        public let isEntitlementValid: () async -> Bool
 
-        public init(isEnabled: Bool, isEntitlementValid: @escaping () async -> Bool, getAccessToken: @escaping () -> String?) {
+        public init(isEnabled: Bool, isEntitlementValid: @escaping () async -> Bool) {
             self.isEnabled = isEnabled
             self.isEntitlementValid = isEntitlementValid
-            self.getAccessToken = getAccessToken
         }
     }
 
@@ -863,6 +861,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         case .setShouldShowExpiredEntitlementMessaging:
             notificationsPresenter.showExpiredEntitlementNotification()
+            adapter.stop { _ in }
             completionHandler?(nil)
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,

@@ -29,7 +29,7 @@ public protocol NetworkProtectionTokenStore {
     ///
     func fetchToken() throws -> String?
 
-    /// Obtain the stored auth token.
+    /// Delete the stored auth token.
     ///
     func deleteToken() throws
 }
@@ -39,6 +39,7 @@ public protocol NetworkProtectionTokenStore {
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
+    private let isSubscriptionEnabled: Bool
 
     public struct Defaults {
         static let tokenStoreEntryLabel = "DuckDuckGo Network Protection Auth Token"
@@ -48,11 +49,13 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public init(keychainType: KeychainType,
                 serviceName: String = Defaults.tokenStoreService,
-                errorEvents: EventMapping<NetworkProtectionError>?) {
+                errorEvents: EventMapping<NetworkProtectionError>?,
+                isSubscriptionEnabled: Bool) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: serviceName,
                                                        keychainType: keychainType)
         self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     public func store(_ token: String) throws {

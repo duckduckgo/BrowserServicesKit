@@ -226,7 +226,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
             return (selectedServer, keyPair)
         case .failure(let error):
-            if case .rekeyDenied = error {
+            if subscriptionConfig.isEnabled, case .accessDenied = error {
                 try tokenStore.deleteToken()
                 errorEvents?.fire(.vpnAccessRevoked)
                 throw NetworkProtectionError.vpnAccessRevoked

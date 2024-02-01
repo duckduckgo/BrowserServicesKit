@@ -23,20 +23,6 @@ public enum NetworkProtectionAuthenticationMethod {
     case subscription(String)
 }
 
-public enum NetworkProtectionRegistrationMethod {
-    case authToken(String)
-    case subscriptionAccessToken(String)
-
-    var bearerToken: String {
-        switch self {
-        case .authToken(let token):
-            return token
-        case .subscriptionAccessToken(let accessToken):
-            return "ddg:\(accessToken)"
-        }
-    }
-}
-
 protocol NetworkProtectionClient {
     func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
@@ -59,7 +45,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
-    case rekeyDenied
+    case accessDenied
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
@@ -76,7 +62,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
-        case .rekeyDenied: return .vpnAccessRevoked
+        case .accessDenied: return .vpnAccessRevoked
         }
     }
 }
@@ -208,7 +194,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: downloadedData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return .failure(.failedToFetchLocationList(nil))
+            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchLocationList(nil))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchLocationList(error))
@@ -235,7 +221,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: downloadedData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return .failure(.failedToFetchServerList(nil))
+            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchServerList(nil))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchServerList(error))
@@ -275,8 +261,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: responseData = data
             case 401: return .failure(.invalidAuthToken)
-            case 403: return isSubscriptionEnabled ? .failure(.rekeyDenied) : .failure(.failedToFetchRegisteredServers(nil))
-            default: return .failure(.failedToFetchRegisteredServers(nil))
+            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchRegisteredServers(nil))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchRegisteredServers(error))
