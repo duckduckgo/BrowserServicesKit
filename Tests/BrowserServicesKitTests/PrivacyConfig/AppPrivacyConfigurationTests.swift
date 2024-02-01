@@ -881,7 +881,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         clearRolloutData(feature: "autofill", subFeature: "accessCredentialManagement")
         XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement), "Subfeature should be enabled if rollouts array is empty")
-        XCTAssertEqual(config.stateFor(AutofillSubfeature.accessCredentialManagement), .disabled(.stillInRollout))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.accessCredentialManagement), .disabled(.disabledInConfig))
     }
 
     func exampleTrackerAllowlistConfig(with state: String) -> Data {
