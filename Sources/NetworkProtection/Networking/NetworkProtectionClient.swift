@@ -41,7 +41,7 @@ protocol NetworkProtectionClient {
     func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
-    func register(withMethod method: NetworkProtectionRegistrationMethod,
+    func register(authToken: String,
                   requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
 }
 
@@ -249,7 +249,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    func register(withMethod method: NetworkProtectionRegistrationMethod,
+    func register(authToken: String,
                   requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         let requestBodyData: Data
 
@@ -260,7 +260,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         var request = URLRequest(url: registerKeyURL)
-        request.setValue("bearer \(method.bearerToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
         request.httpBody = requestBodyData

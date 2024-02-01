@@ -163,16 +163,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
 
-        let registrationMethod: NetworkProtectionRegistrationMethod
-
-        if subscriptionConfig.isEnabled {
-            guard let token = subscriptionConfig.getAccessToken() else { throw NetworkProtectionError.noSubscriptionAccessTokenFound }
-            registrationMethod = .subscriptionAccessToken(token)
-        } else {
-
-            guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
-            registrationMethod = .authToken(token)
-        }
+        guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
 
         var keyPair = keyStore.currentKeyPair()
 
@@ -197,7 +188,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         let requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey,
                                                  serverSelection: serverSelection)
 
-        let registeredServersResult = await networkClient.register(withMethod: registrationMethod,
+        let registeredServersResult = await networkClient.register(authToken: token,
                                                                    requestBody: requestBody)
         let selectedServer: NetworkProtectionServer
 
