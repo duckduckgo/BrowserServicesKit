@@ -57,28 +57,34 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
+    private let isSubscriptionEnabled: Bool
+
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
-                errorEvents: EventMapping<NetworkProtectionError>?) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                errorEvents: EventMapping<NetworkProtectionError>?,
+                isSubscriptionEnabled: Bool) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
-                  errorEvents: errorEvents)
+                  errorEvents: errorEvents,
+                  isSubscriptionEnabled: isSubscriptionEnabled)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
          serverListStore: NetworkProtectionServerListStore? = nil,
-         errorEvents: EventMapping<NetworkProtectionError>?) {
+         errorEvents: EventMapping<NetworkProtectionError>?,
+         isSubscriptionEnabled: Bool) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -181,7 +187,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         let requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey,
                                                  serverSelection: serverSelection)
 
-        let registeredServersResult = await networkClient.register(authToken: token,
+        let registeredServersResult = await networkClient.register(withMethod: registrationMethod,
                                                                    requestBody: requestBody)
         let selectedServer: NetworkProtectionServer
 

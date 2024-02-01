@@ -23,11 +23,25 @@ public enum NetworkProtectionAuthenticationMethod {
     case subscription(String)
 }
 
+public enum NetworkProtectionRegistrationMethod {
+    case authToken(String)
+    case subscriptionAccessToken(String)
+
+    var bearerToken: String {
+        switch self {
+        case .authToken(let token):
+            return token
+        case .subscriptionAccessToken(let accessToken):
+            return "ddg:\(accessToken)"
+        }
+    }
+}
+
 protocol NetworkProtectionClient {
     func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
-    func register(authToken: String,
+    func register(withMethod method: NetworkProtectionRegistrationMethod,
                   requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
 }
 
@@ -167,9 +181,11 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }()
 
     private let endpointURL: URL
+    private let isSubscriptionEnabled: Bool
 
-    init(environment: VPNSettings.SelectedEnvironment = .default) {
+    init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
         endpointURL = environment.endpointURL
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
@@ -226,7 +242,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    func register(authToken: String,
+    func register(withMethod method: NetworkProtectionRegistrationMethod,
                   requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         let requestBodyData: Data
 
@@ -237,7 +253,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         var request = URLRequest(url: registerKeyURL)
-        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("bearer \(method.bearerToken)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
         request.httpBody = requestBodyData
@@ -252,7 +268,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: responseData = data
             case 401: return .failure(.invalidAuthToken)
-            case 403: return .failure(.rekeyDenied)
+            case 403: return isSubscriptionEnabled ? .failure(.rekeyDenied) : .failure(.failedToFetchRegisteredServers(nil))
             default: return .failure(.failedToFetchRegisteredServers(nil))
             }
         } catch {

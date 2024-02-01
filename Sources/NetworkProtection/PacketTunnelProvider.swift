@@ -278,6 +278,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
+    private let isSubscriptionEnabled: Bool
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
@@ -287,6 +288,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
+                isSubscriptionEnabled: Bool,
                 isEntitlementValid: @escaping () async -> Bool) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
@@ -298,6 +300,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
+        self.isSubscriptionEnabled = isSubscriptionEnabled
         self.isEntitlementValid = isEntitlementValid
 
         super.init()
@@ -711,21 +714,22 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
 
         do {
-            let networkClient = NetworkProtectionBackendClient(environment: environment)
+            let networkClient = NetworkProtectionBackendClient(environment: environment,
+                                                               isSubscriptionEnabled: isSubscriptionEnabled)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
                                                                tokenStore: tokenStore,
                                                                keyStore: keyStore,
-                                                               errorEvents: debugEvents)
+                                                               errorEvents: debugEvents,
+                                                               isSubscriptionEnabled: isSubscriptionEnabled)
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
-//#if ALPHA
-            if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error, await !isEntitlementValid() {
+            if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
                 throw TunnelError.vpnAccessRevoked
             }
-//#endif
+
             throw TunnelError.couldNotGenerateTunnelConfiguration(internalError: error)
         }
 
@@ -849,7 +853,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
-        case .setShouldShowExpiredEntitlementMessaging(let settings):
+        case .setShouldShowExpiredEntitlementMessaging:
             notificationsPresenter.showExpiredEntitlementNotification()
             completionHandler?(nil)
         case .setConnectOnLogin,
