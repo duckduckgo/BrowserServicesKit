@@ -526,7 +526,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 let navigationAction = NavigationAction(request: finishedNavigation.request, navigationType: finishedNavigation.navigationAction.navigationType, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: finishedNavigation.navigationAction.sourceFrame, targetFrame: finishedNavigation.navigationAction.targetFrame, shouldDownload: false, mainFrameNavigation: navigation)
                 navigation.navigationActionReceived(navigationAction)
             } else {
-                navigation.navigationActionReceived(.sessionRestoreNavigation(webView: webView, mainFrameNavigation: navigation))
+                navigation.navigationActionReceived(.alternateHtmlLoadNavigation(webView: webView, mainFrameNavigation: navigation))
             }
             navigation.willStart()
         } else if let wkNavigation {
