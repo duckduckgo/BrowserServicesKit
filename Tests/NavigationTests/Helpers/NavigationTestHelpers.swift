@@ -754,6 +754,8 @@ extension NavigationType {
             return ".other"
         case .custom(let name):
             return "<##custom: \(name.rawValue)>"
+        case .alternateHtmlLoad:
+            return ".alternateHtmlLoad"
         }
     }
 }
