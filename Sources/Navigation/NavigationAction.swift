@@ -211,23 +211,11 @@ public struct NavigationPreferences: Equatable {
             self.javaScriptEnabledValue = true
         }
     }
-static var onceSet = false
+
     internal func applying(to preferences: WKWebpagePreferences) -> WKWebpagePreferences {
         preferences.preferredContentMode = contentMode
         if #available(macOS 11.0, iOS 14.0, *) {
             preferences.allowsContentJavaScript = javaScriptEnabled
-        }
-
-        if !Self.onceSet {
-            Self.onceSet = true
-            
-            if let customHeaders = NSClassFromString("_WKCustomHeaderFields")!.alloc().perform("init").takeUnretainedValue() as? NSObject {
-                
-                customHeaders.perform("setFields:", with: ["X-My-Header": "new test", "X-My-Header2": "another val"] as NSDictionary)
-                
-                preferences.setValue([customHeaders], forKey: "customHeaderFields")
-            }
-            preferences.perform("_setCustomUserAgent:", with: "customUA")
         }
         return preferences
     }
