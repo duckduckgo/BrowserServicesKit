@@ -42,6 +42,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case failure
     }
 
+    public struct SubscriptionConfig {
+        let isEnabled: Bool
+        let isEntitlementValid: () async -> Bool
+        let getAccessToken: () -> String?
+
+        public init(isEnabled: Bool, isEntitlementValid: @escaping () async -> Bool, getAccessToken: @escaping () -> String?) {
+            self.isEnabled = isEnabled
+            self.isEntitlementValid = isEntitlementValid
+            self.getAccessToken = getAccessToken
+        }
+    }
+
     // MARK: - Error Handling
 
     enum TunnelError: LocalizedError {
@@ -267,8 +279,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
 
-    private let isEntitlementValid: () async -> Bool
-
     // MARK: - Cancellables
 
     private var cancellables = Set<AnyCancellable>()
@@ -278,7 +288,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
-    private let isSubscriptionEnabled: Bool
+    private let subscriptionConfig: SubscriptionConfig
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
@@ -288,8 +298,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                isSubscriptionEnabled: Bool,
-                isEntitlementValid: @escaping () async -> Bool) {
+                subscriptionConfig: SubscriptionConfig) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -300,8 +309,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
-        self.isSubscriptionEnabled = isSubscriptionEnabled
-        self.isEntitlementValid = isEntitlementValid
+        self.subscriptionConfig = subscriptionConfig
 
         super.init()
 
@@ -715,16 +723,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         do {
             let networkClient = NetworkProtectionBackendClient(environment: environment,
-                                                               isSubscriptionEnabled: isSubscriptionEnabled)
+                                                               isSubscriptionEnabled: subscriptionConfig.isEnabled)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
                                                                tokenStore: tokenStore,
                                                                keyStore: keyStore,
                                                                errorEvents: debugEvents,
-                                                               isSubscriptionEnabled: isSubscriptionEnabled)
+                                                               subscriptionConfig: subscriptionConfig)
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
-            if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
+            if subscriptionConfig.isEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
                 throw TunnelError.vpnAccessRevoked

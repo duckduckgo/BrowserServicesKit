@@ -57,20 +57,20 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    private let isSubscriptionEnabled: Bool
+    private let subscriptionConfig: PacketTunnelProvider.SubscriptionConfig
 
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?,
-                isSubscriptionEnabled: Bool) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
+                subscriptionConfig: PacketTunnelProvider.SubscriptionConfig) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: subscriptionConfig.isEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
                   errorEvents: errorEvents,
-                  isSubscriptionEnabled: isSubscriptionEnabled)
+                  subscriptionConfig: subscriptionConfig)
     }
 
     init(networkClient: NetworkProtectionClient,
@@ -78,13 +78,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
          keyStore: NetworkProtectionKeyStore,
          serverListStore: NetworkProtectionServerListStore? = nil,
          errorEvents: EventMapping<NetworkProtectionError>?,
-         isSubscriptionEnabled: Bool) {
+         subscriptionConfig: PacketTunnelProvider.SubscriptionConfig) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
-        self.isSubscriptionEnabled = isSubscriptionEnabled
+        self.subscriptionConfig = subscriptionConfig
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -163,7 +163,17 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
 
-        guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        let registrationMethod: NetworkProtectionRegistrationMethod
+
+        if subscriptionConfig.isEnabled {
+            guard let token = subscriptionConfig.getAccessToken() else { throw NetworkProtectionError.noSubscriptionAccessTokenFound }
+            registrationMethod = .subscriptionAccessToken(token)
+        } else {
+
+            guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+            registrationMethod = .authToken(token)
+        }
+
         var keyPair = keyStore.currentKeyPair()
 
         let serverSelection: RegisterServerSelection
