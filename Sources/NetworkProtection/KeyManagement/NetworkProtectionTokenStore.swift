@@ -81,6 +81,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public func deleteToken() throws {
         do {
+            guard isSubscriptionEnabled, let token = try? fetchToken(), !token.hasPrefix("ddg:") else { return }
             try keychainStore.deleteAll()
         } catch {
             handle(error)
