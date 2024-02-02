@@ -32,6 +32,14 @@ public protocol NetworkProtectionTokenStore {
     /// Delete the stored auth token.
     ///
     func deleteToken() throws
+
+    /// Convert DDG-access-token to NetP-auth-token
+    ///
+    static func makeToken(from accessToken: String) -> String
+
+    /// Check if a given token is derived from DDG-access-token
+    ///
+    static func isAccessToken(_ token: String) -> Bool
 }
 
 /// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
@@ -81,7 +89,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public func deleteToken() throws {
         do {
-            guard isSubscriptionEnabled, let token = try? fetchToken(), !token.hasPrefix("ddg:") else { return }
+            guard isSubscriptionEnabled, let token = try? fetchToken(), !Self.isAccessToken(token) else { return }
             try keychainStore.deleteAll()
         } catch {
             handle(error)
@@ -99,5 +107,17 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         }
 
         errorEvents?.fire(error.networkProtectionError)
+    }
+}
+
+extension NetworkProtectionTokenStore {
+    private static var authTokenPrefix: String { "ddg:" }
+    
+    public static func makeToken(from accessToken: String) -> String {
+        "\(authTokenPrefix)\(accessToken)"
+    }
+
+    public static func isAccessToken(_ token: String) -> Bool {
+        token.hasPrefix(authTokenPrefix)
     }
 }

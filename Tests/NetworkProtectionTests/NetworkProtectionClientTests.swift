@@ -28,7 +28,7 @@ final class NetworkProtectionClientTests: XCTestCase {
         super.setUp()
         testDefaults = UserDefaults(suiteName: "com.duckduckgo.browserserviceskit.tests.\(String(describing: type(of: self)))")!
         settings = VPNSettings(defaults: testDefaults)
-        client = NetworkProtectionBackendClient(environment: .default)
+        client = NetworkProtectionBackendClient(environment: .default, isSubscriptionEnabled: false)
     }
 
     override class func setUp() {
