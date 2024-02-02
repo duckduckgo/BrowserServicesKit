@@ -880,8 +880,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let config = manager.privacyConfig
 
         clearRolloutData(feature: "autofill", subFeature: "accessCredentialManagement")
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement), "Subfeature should be enabled if rollouts array is empty")
-        XCTAssertEqual(config.stateFor(AutofillSubfeature.accessCredentialManagement), .disabled(.disabledInConfig))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement, randomizer: mockRandom(in:)), "Subfeature should be disabled by state setting")
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.accessCredentialManagement, randomizer: mockRandom(in:)), .disabled(.disabledInConfig))
     }
 
     func testWhenCheckingSubfeatureStateWithRolloutsAndSubfeatureDisabledWhenPreviouslyInRollout_SubfeatureShouldBeDisabled() {
